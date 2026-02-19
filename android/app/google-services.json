@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "574438658911",
+    "project_id": "aci-automation-21bb9",
+    "storage_bucket": "aci-automation-21bb9.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:574438658911:android:20e0b0dc172bb173e51cea",
+        "android_client_info": {
+          "package_name": "com.hapiapps.aci"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCiP_YcxPWQ-PbwpICWni86ruNn2jB1C7w"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:574438658911:android:8c15d9722de7a41ee51cea",
+        "android_client_info": {
+          "package_name": "com.hapiapps.jains"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCiP_YcxPWQ-PbwpICWni86ruNn2jB1C7w"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
