@@ -101,7 +101,7 @@ class AttendanceDetails extends StatelessWidget {
         Container(
           width: kIsWeb?webWidth:phoneWidth,
           decoration: customDecoration.baseBackgroundDecoration(
-              color: isLate(inTime)?colorsConst.late:Colors.white,
+              color: isLate(inTime)?const Color(0xFFFFF3E0):Colors.white,
               radius: 5,
               borderColor: Colors.grey.shade200,isShadow: true,shadowColor: Colors.grey.shade200
           ),

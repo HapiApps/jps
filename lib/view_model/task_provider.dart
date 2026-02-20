@@ -2076,6 +2076,7 @@ class TaskProvider with ChangeNotifier {
       _startDate=date1!;
       _endDate=date2!;
       search.clear();
+      _assignedNames="";
     }
     // _filterDate="";
     // _stDate="${DateTime.now().day.toString().padLeft(2,"0")}-${DateTime.now().month.toString().padLeft(2,"0")}-${DateTime.now().year}";
@@ -3929,16 +3930,28 @@ class TaskProvider with ChangeNotifier {
       log(response.toString());
       if (response.toString().contains("200")){
         utils.showSuccessToast(context: context,text: constValue.success,);
-        Provider.of<EmployeeProvider>(context, listen: false).sendSomeUserNotification(
-          "A new task has been assigned to you by (${localData.storage.read("f_name")})",
-          taskTitleCont.text.trim(),
-          _assignedId,
-        );
-        Provider.of<EmployeeProvider>(context, listen: false).sendAdminNotification(
-          "A new task has been assigned to $assignedNames.",
-          taskTitleCont.text.trim(),
-          localData.storage.read("role"),
-        );
+        try {
+          await Provider.of<EmployeeProvider>(context, listen: false)
+              .sendSomeUserNotification(
+            "A new task has been assigned to you by (${localData.storage.read("f_name")})",
+            taskTitleCont.text.trim(),
+            _assignedId,
+          );
+        } catch (e) {
+          print("User notification error: $e");
+        }
+
+        // admin notification (always run)
+        try {
+          await Provider.of<EmployeeProvider>(context, listen: false)
+              .sendAdminNotification(
+            "A new task has been assigned to $assignedNames.",
+            taskTitleCont.text.trim(),
+            localData.storage.read("role"),
+          );
+        } catch (e) {
+          print("Admin notification error: $e");
+        }
         taskCtr.reset();
         await FirebaseFirestore.instance.collection('attendance').add({
           'emp_id': localData.storage.read("id"),
@@ -3981,16 +3994,26 @@ class TaskProvider with ChangeNotifier {
       log(response.toString());
       if (response.toString().contains("200")){
         utils.showSuccessToast(context: context,text: constValue.updated,);
-        Provider.of<EmployeeProvider>(context, listen: false).sendSomeUserNotification(
-          "Task detail updated by (${localData.storage.read("f_name")})",
-          taskTitleCont.text.trim(),
-          assignedId,
-        );
-        Provider.of<EmployeeProvider>(context, listen: false).sendAdminNotification(
-          "Task detail updated by (${localData.storage.read("f_name")})",
-          taskTitleCont.text.trim(),
-          localData.storage.read("role"),
-        );
+        try {
+          await Provider.of<EmployeeProvider>(context, listen: false).sendSomeUserNotification(
+            "Task detail updated by (${localData.storage.read("f_name")})",
+            taskTitleCont.text.trim(),
+            assignedId,
+          );
+        } catch (e) {
+          print("User notification error: $e");
+        }
+
+        // admin notification (always run)
+        try {
+          await Provider.of<EmployeeProvider>(context, listen: false).sendAdminNotification(
+            "Task detail updated by (${localData.storage.read("f_name")})",
+            taskTitleCont.text.trim(),
+            localData.storage.read("role"),
+          );
+        } catch (e) {
+          print("Admin notification error: $e");
+        }
         taskCtr.reset();
         await FirebaseFirestore.instance.collection('attendance').add({
           'emp_id': localData.storage.read("id"),

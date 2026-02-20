@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 import 'package:master_code/source/constant/colors_constant.dart';
 import 'package:master_code/source/extentions/extensions.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
+import 'package:master_code/view_model/leave_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:rounded_loading_button_plus/rounded_loading_button.dart';
 import 'package:syncfusion_flutter_datepicker/datepicker.dart';
@@ -397,13 +398,20 @@ class AttendanceProvider with ChangeNotifier{
     final response = await attRepo.getAttendance(data);
     log(data.toString());
     log(response.toString());
+    log(response.first["status"].toString());
+    log(response.first["status"].toString().contains("2").toString());
     if (response.isNotEmpty){
       DateTime now = DateTime.now();
       String formattedDate = DateFormat('dd-MMM-yyyy').format(now);
-      if(formattedDate==response.first["date"]){
-        _mainAttendance = 1;
-        _mainCheckOut=response.first["status"].toString().contains("2")?true:false;
 
+
+      if(formattedDate==response.first["date"]){
+        _mainCheckOut=response.first["status"].toString().contains("2")?true:false;
+        if((response.first["status"].toString()=="1")||(response.first["status"].toString()=="1,2")){
+          _mainAttendance = 1;
+        }else{
+
+        }
         if (response.first["status"].toString().contains("1,2")) {
           _inTime = response.first["time"].split(",")[0];
           _outTime = response.first["time"].split(",")[1];
@@ -415,6 +423,8 @@ class AttendanceProvider with ChangeNotifier{
           if(split.last=="1"){
             _isPermission=true;
             permissionReason.text=split2.last;
+          }else{
+            _isPermission=false;
           }
         }
         else if (response.first["status"].toString().contains("2,1")) {
@@ -428,6 +438,8 @@ class AttendanceProvider with ChangeNotifier{
           if(split.last=="1"){
             _isPermission=true;
             permissionReason.text=split2.last;
+          }else{
+            _isPermission=false;
           }
         }
         else {
@@ -439,6 +451,8 @@ class AttendanceProvider with ChangeNotifier{
           if(split.last=="1"){
             _isPermission=true;
             permissionReason.text=split2.last;
+          }else{
+            _isPermission=false;
           }
           print("_isPermission.........$_permissionStatus");
           print("_isPermission.........$_isPermission");
@@ -478,10 +492,19 @@ class AttendanceProvider with ChangeNotifier{
   dynamic get user=>_user;
   String _userName="";
   String get userName=>_userName;
-  void selectUser(UserModel value,List<UserModel>? list){
+  void selectUser(context,UserModel value,List<UserModel>? list){
     _user=value.id;
     _userName=value.firstname.toString();
     // filterList(true);
+    if(selectedIndex==0||selectedIndex==4){
+      searchAttendanceReport(_userName);
+    }else if(selectedIndex==1){
+      searchAttendanceReport2(_userName);
+    }else if(selectedIndex==2){
+      searchAttendanceReport3(_userName);
+    }else{
+      Provider.of<LeaveProvider>(context, listen: false).searchReport(_userName);
+    }
     applyFilter(list);
     notifyListeners();
   }
@@ -605,13 +628,21 @@ class AttendanceProvider with ChangeNotifier{
     "Leave",
     "Permission",
   ];
+  final statusController = GroupButtonController();
+  var _grpType;
+  get expense => _grpType;
+  void changeExpense(String value,int index) {
+    _grpType = value;
+    selectedIndex=index;
+    notifyListeners();
+  }
   // Each button color
   final List<Color> itemColors = [
     Colors.green,   // Present
     Colors.red,     // Absent
     Colors.orange,  // Late
     Colors.blue,    // Leave
-    Color(0XFFAC30DD),    // Leave
+    Color(0XFFAC30DD),// Leave
   ];
   String lastRefreshed="";
   bool asc=false;
@@ -964,6 +995,35 @@ class AttendanceProvider with ChangeNotifier{
           return comFName.contains(input) ||userFName.contains(input);
         }).toList();
     _getDailyAttendance=suggestions;
+    notifyListeners();
+  }
+  void searchAttendanceReport3(String value){
+    List<AttendanceModel> old=lateUsers;
+    final suggestions=lateUsers.where(
+            (user){
+          final comFName=user.firstname.toString().toLowerCase();
+          final userFName=user.role.toString().toLowerCase();
+          final input=value.toString().toLowerCase();
+          return comFName.contains(input) ||userFName.contains(input);
+        }).toList();
+    _lateUsers=suggestions;
+    if(value.isEmpty){
+      _lateUsers=old;
+    }
+    notifyListeners();
+  }
+  void searchAttendanceReport2(String value){
+    List old=missingDateList;
+    final suggestions=missingDateList.where(
+            (user){
+          final comFName=user.toString().toLowerCase();
+          final input=value.toString().toLowerCase();
+          return comFName.contains(input);
+        }).toList();
+    _missingDateList=suggestions;
+    if(value.isEmpty){
+      _missingDateList=old;
+    }
     notifyListeners();
   }
   String _startDate = "";

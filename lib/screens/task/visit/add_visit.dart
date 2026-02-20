@@ -45,7 +45,7 @@ class _AddVisitState extends State<AddVisit> with TickerProviderStateMixin {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       setCustomer(Provider.of<CustomerProvider>(context, listen: false).customer);
       // Provider.of<CustomerProvider>(context, listen: false).setValue(widget.companyId.toString());
-      Provider.of<CustomerProvider>(context, listen: false).initComment(widget.numberList);
+      Provider.of<CustomerProvider>(context, listen: false).initComment(widget.numberList,widget.type);
       companyName="";
       if(Provider.of<LocationProvider>(context, listen: false).latitude!=""&&Provider.of<LocationProvider>(context, listen: false).longitude!=""){
         Provider.of<CustomerProvider>(context, listen: false).getAdd(

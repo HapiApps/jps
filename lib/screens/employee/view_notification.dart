@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:intl/intl.dart';
 import 'package:master_code/source/extentions/extensions.dart';
 import 'package:flutter/material.dart';
@@ -6,6 +7,7 @@ import 'package:provider/provider.dart';
 import '../../component/custom_appbar.dart';
 import '../../component/custom_loading.dart';
 import '../../component/custom_text.dart';
+import '../../source/constant/assets_constant.dart';
 import '../../source/constant/colors_constant.dart';
 import '../../source/styles/decoration.dart';
 import '../../view_model/employee_provider.dart';
@@ -103,12 +105,12 @@ class _ViewNotificationState extends State<ViewNotification> with SingleTickerPr
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             if (showHeader) ...[
-                              10.height,
+                              5.height,
                               CustomText(
                                 text: sectionTitle,
                                 colors: Colors.grey,
                               ),
-                              10.height,
+                              5.height,
                             ],
                             Container(
                               margin: const EdgeInsets.only(bottom: 16),
@@ -170,22 +172,21 @@ class _ViewNotificationState extends State<ViewNotification> with SingleTickerPr
                                       ),
                                     ],
                                   ),
-                                  12.height,
-                                  CustomText(
-                                    text: title,
-                                    size: 14,
-                                    isBold: true,
-                                  ),
+                                  // 12.height,
+                                  // CustomText(
+                                  //   text: title,
+                                  //   size: 14,
+                                  //   isBold: true,
+                                  // ),
 
-                                  8.height,
+                                  5.height,
 
                                   /// 🔹 Body
                                   CustomText(
-                                    text: body,
-                                    colors: colorsConst.greyClr,
+                                    text: body,isBold: true,
                                   ),
 
-                                  12.height,
+                                  5.height,
 
                                   /// 🔹 Created By
                                   Row(
@@ -212,9 +213,9 @@ class _ViewNotificationState extends State<ViewNotification> with SingleTickerPr
                                           ],
                                         ),
                                       ),
-                                      Image.asset(
-                                        "assets/images/message_icon.png",
-                                        height: 20,
+                                      SvgPicture.asset(
+                                        assets.tMessage,
+                                        height: 25,width: 25,
                                       ),
                                     ],
                                   ),

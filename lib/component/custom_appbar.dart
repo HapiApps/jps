@@ -27,7 +27,7 @@ class CustomAppbar extends StatelessWidget {
             } else {
               Future.microtask(() => Navigator.pop(context));
             }
-          }, icon: Icon(Icons.arrow_back_ios_rounded,color: colorsConst.primary,size: 15,)):null,
+          }, icon: Icon(Icons.arrow_back_ios_rounded,color: colorsConst.primary,size: 20,)):null,
         actions: [
           if(isButton==true)
             CreateButton(

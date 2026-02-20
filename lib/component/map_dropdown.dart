@@ -40,7 +40,7 @@ class MapDropDown extends StatelessWidget {
                   children: [
                     Row(
                       children: [
-                        CustomText(text:hintText,colors: Colors.grey.shade400,),
+                        CustomText(text:hintText),
                         if(isRequired==true)
                           CustomText(text:"*",colors: colorsConst.appRed,size:20,isBold: false,),
                       ],

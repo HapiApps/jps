@@ -26,7 +26,7 @@ class MaxLineTextField extends StatelessWidget {
           width: width,
           child: Row(
             children: [
-              CustomText(text:text,colors: Colors.grey,),
+              CustomText(text:text),
               if(isRequired==true)
                 CustomText(text:"*",colors:colorsConst.appRed,size:20,isBold: false,),
             ],

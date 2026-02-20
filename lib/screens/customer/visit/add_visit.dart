@@ -64,7 +64,7 @@ class _CusAddVisitState extends State<CusAddVisit> with TickerProviderStateMixin
         }
       }
       // customerProvider.setValue(widget.companyId.toString());
-      customerProvider.initComment(widget.numberList);
+      customerProvider.initComment(widget.numberList,widget.type);
       companyName="";
       if(Provider.of<LocationProvider>(context, listen: false).latitude!=""&&Provider.of<LocationProvider>(context, listen: false).longitude!=""){
         customerProvider.getAdd(

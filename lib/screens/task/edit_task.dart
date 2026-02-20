@@ -76,7 +76,7 @@ class _EditTaskState extends State<EditTask> with SingleTickerProviderStateMixin
                             children: [
                               Row(
                                 children: [
-                                  CustomText(text: "Type",colors: Colors.grey.shade400,),
+                                  CustomText(text: "Type"),
                                   CustomText(text: "*",colors: colorsConst.appRed,isBold: true,size: 15,),
                                 ],
                               ),10.height,
@@ -111,7 +111,7 @@ class _EditTaskState extends State<EditTask> with SingleTickerProviderStateMixin
                             children: [
                               Row(
                                 children: [
-                                  CustomText(text:constValue.customerName,colors:Colors.grey,size:13,isBold: false,),
+                                  CustomText(text:constValue.customerName,size:13,isBold: false,),
                                   // CustomText(text:"*",colors:colorsConst.appRed,size:18,isBold: false,),
                                 ],
                               ),

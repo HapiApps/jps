@@ -25,7 +25,7 @@ class CustomerDropdown extends StatelessWidget {
           if(hintText==true)
             Row(
               children: [
-                CustomText(text:text.toString(),colors:Colors.grey,size:13,isBold: false,),
+                CustomText(text:text.toString(),size:13,isBold: false,),
                 if(isRequired==true)
                   CustomText(text:"*",colors:colorsConst.appRed,size:18,isBold: false,),
               ],

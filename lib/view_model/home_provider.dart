@@ -637,6 +637,8 @@ Future<void> updateToken(context) async {
     notifyListeners();
   }
   String _totalV="0";
+  int activeVisit=0;
+  int inActiveVisit=0;
   List _visitCount=[];
   List get visitCount => _visitCount;
   String get totalV => _totalV;
@@ -644,6 +646,8 @@ Future<void> updateToken(context) async {
   bool get vRefresh =>_vRefresh;
 
   Future<void> getDashboardReport(bool isRefresh) async {
+    inActiveVisit=0;
+    activeVisit=0;
     if(isRefresh==true){
       _totalV="0";
       _vRefresh=false;
@@ -662,10 +666,18 @@ Future<void> updateToken(context) async {
       };
       final response =await homeRepo.getDashboardReport(data);
       if (response.isNotEmpty) {
+        print("response....${response}");
         _visitCount=response;
         var store=0;
+        inActiveVisit=0;
+        activeVisit=0;
         for(var i=0;i<response.length;i++){
           store+=int.parse(response[i]["total_count"]);
+          if(response[i]["total_count"].toString()=="0"){
+            inActiveVisit++;
+          }else{
+            activeVisit++;
+          }
         }
         _totalV=store.toString();
         _vRefresh=true;

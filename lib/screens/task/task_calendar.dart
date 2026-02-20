@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/svg.dart';
 import 'package:master_code/source/extentions/extensions.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -8,6 +9,7 @@ import '../../component/custom_loading.dart';
 import '../../component/custom_text.dart';
 import '../../component/custom_textfield.dart';
 import '../../model/task/task_data_model.dart';
+import '../../source/constant/assets_constant.dart';
 import '../../source/constant/colors_constant.dart';
 import '../../source/constant/default_constant.dart';
 import '../../source/styles/decoration.dart';
@@ -55,7 +57,7 @@ class CalendarAppointment extends State<TaskCalendar> {
                               colors: colorsConst.secondary),
                           CustomText(
                             text: "  ${taskPvr.searchAllTasks.length}",
-                            colors: colorsConst.appRed,
+                            colors: colorsConst.primary,
                             isBold: true,)
                         ],
                       ),
@@ -67,7 +69,7 @@ class CalendarAppointment extends State<TaskCalendar> {
                           //     colors: colorsConst.appRed,
                           //     isBold: true),
                           CustomText(text: "  ${taskPvr.filteredTasks.length}",
-                              colors: colorsConst.appRed,
+                              colors: colorsConst.primary,
                               isBold: true)
                         ],
                       ),
@@ -84,10 +86,68 @@ class CalendarAppointment extends State<TaskCalendar> {
                     child: Column(
                       children: [
                         Container(
+                          width: kIsWeb?webWidth:phoneWidth,
+                          height: 45,
+                          decoration: customDecoration.baseBackgroundDecoration(
+                            radius: 30,
+                            color: colorsConst.primary,
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            children: [
+                              Center(child: Icon(Icons.search,color: Colors.white)),
+                              SizedBox(
+                                width: kIsWeb?webWidth:phoneWidth/1.1,
+                                child: TextFormField(
+                                  cursorColor: colorsConst.primary,
+                                  onChanged: (value) {
+                                    taskPvr.searchTask2(value.toString());
+                                  },
+                                  textInputAction: TextInputAction.done,
+                                  controller: taskPvr.search2,
+                                  decoration: InputDecoration(
+                                      hintText:"Search Name or ${constValue.customer}",
+                                      hintStyle: TextStyle(
+                                          color: colorsConst.primary,
+                                          fontSize: 14
+                                      ),
+                                      fillColor: Colors.white,
+                                      filled: true,
+                                      // prefixIcon: Icon(Icons.search,color: Colors.grey,),
+                                      suffixIcon: taskPvr.search2.text.isNotEmpty?
+                                      GestureDetector(
+                                          onTap: (){
+                                            taskPvr.search2.clear();
+                                            taskPvr.searchTask2("");
+                                          },
+                                          child: Container(
+                                              width: 10,height: 10,color: Colors.transparent,
+                                              child: Padding(
+                                                padding: const EdgeInsets.all(8.0),
+                                                child: SvgPicture.asset(assets.cancel2),
+                                              ))):null,
+                                      errorStyle: const TextStyle(
+                                        fontSize: 12.0,
+                                        height: 0.20,
+                                      ),
+                                      enabledBorder: OutlineInputBorder(
+                                        // grey.shade300
+                                          borderSide:  BorderSide(color: Colors.grey.shade300),
+                                          borderRadius: BorderRadius.circular(30)
+                                      ),
+                                      contentPadding:const EdgeInsets.fromLTRB(10, 10, 10, 10)
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        10.height,
+                        Container(
                           decoration: customDecoration
                               .baseBackgroundDecoration(
-                              color: Colors.transparent,
-                              borderColor: colorsConst.litGrey,
+                              color: Colors.white,
+                              // borderColor: colorsConst.litGrey,
                               radius: 10
                           ),
                           width: kIsWeb?webWidth:phoneWidth,
@@ -148,25 +208,23 @@ class CalendarAppointment extends State<TaskCalendar> {
                               Color textColor = isSelected
                                   ? colorsConst.greyClr
                                   : isInCurrentMonth
-                                  ? colorsConst.primary
+                                  ? Colors.black
                                   : colorsConst.litGrey; // 👉 other month dates in grey
 
                               return Container(
                                 alignment: Alignment.topLeft,
                                 margin: const EdgeInsets.all(4),
                                 decoration: customDecoration.baseBackgroundDecoration(
-                                  color: isSelected
-                                      ? Colors.white
-                                      : hasAppointments
-                                      ? colorsConst.adm5
+                                  color: hasAppointments
+                                      ? colorsConst.primary
                                       : Colors.transparent,
-                                  radius: isSelected ? 0 : 10,
+                                  radius: 50,
                                 ),
                                 child: Center(
                                   child: CustomText(
                                     text: details.date.day.toString(),
                                     isBold: true,
-                                    colors: textColor,
+                                    colors: hasAppointments?Colors.white:isSelected?Colors.black:textColor,
                                   ),
                                 ),
                               );
@@ -188,22 +246,6 @@ class CalendarAppointment extends State<TaskCalendar> {
                               ),
                             ),
                           ),
-                        ),
-                        CustomTextField(
-                          controller: taskPvr.search2,radius: 30,
-                          width: kIsWeb?webWidth:phoneWidth,
-                          text: "",
-                          isIcon: true,hintText: "Search Name or ${constValue.customer}",
-                          iconData: Icons.search,
-                          textInputAction: TextInputAction.done,
-                          onChanged: (value) {
-                            taskPvr.searchTask2(value.toString());
-                          },
-                          isSearch: taskPvr.search2.text.isNotEmpty?true:false,
-                          searchCall: (){
-                            taskPvr.search2.clear();
-                            taskPvr.searchTask2("");
-                          },
                         ),
                         taskPvr.allTasks.isEmpty?
                         CustomText(text: "\n\nNo tasks found", colors: colorsConst.secondary, size: 14,):
@@ -258,41 +300,87 @@ class CalendarAppointment extends State<TaskCalendar> {
 
   Widget dataList(double width,TaskData data){
     return Padding(
-      padding: const EdgeInsets.fromLTRB(0, 10, 0, 0),
+      padding: const EdgeInsets.fromLTRB(0, 5, 0, 5),
       child: Container(
-        decoration: customDecoration
-            .baseBackgroundDecoration(
-            color: Colors.white,borderColor: Colors.grey.shade200,
-            radius: 5
-        ),
         width: width,
+        decoration: BoxDecoration(
+          color: colorsConst.primary,
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(10),
+            bottomLeft: Radius.circular(10),
+            topRight: Radius.circular(10),
+            bottomRight: Radius.circular(10),
+          ),
+        ),
         child: Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          padding: const EdgeInsets.fromLTRB(5, 0, 0, 0),
+          child: Container(
+            decoration: customDecoration
+                .baseBackgroundDecoration(
+                color: Colors.white,borderColor:  Colors.transparent,
+                radius: 10
+            ),
+            width: width,
+            child: Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  CustomText( text:data.taskDate .toString(), colors: colorsConst.greyClr,),
-                  CustomText( text: data.statval .toString(),
-                    colors: data.statval .toString().contains("Completed")?
-                    colorsConst.appGreen:colorsConst.greyClr,),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      SizedBox(
+                          width: width/1.5,
+                          child: CustomText( text:data.taskTitle .toString(), isBold: true,)),
+                      Container(
+                        width: width/4,
+                        decoration: customDecoration
+                            .baseBackgroundDecoration(
+                            color: Colors.pink.shade100,
+                            radius: 10
+                        ),
+                        child: Center(
+                          child: Padding(
+                            padding: const EdgeInsets.all(5.0),
+                            child: CustomText( text: data.statval .toString(),
+                                colors: colorsConst.primary),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  5.height,
+                  Row(
+                    // mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      CustomText(text: data.projectName.toString()=="null"?"":data.projectName.toString(),colors: colorsConst.primary,),5.width,
+                      Icon(Icons.circle,size: 8,),5.width,
+                      CustomText(text: data.type.toString()),
+                    ],
+                  ),
+                  5.height,
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      if(data.assignedNames .toString()!="null")
+                        Row(
+                          children: [
+                            Icon(Icons.featured_play_list_outlined,color: colorsConst.greyClr,size: 15,),5.width,
+                            CustomText(text: data.assignedNames .toString(),colors: colorsConst.greyClr,),
+                          ],
+                        ),
+                      Row(
+                        children: [
+                          Icon(Icons.calendar_today_sharp,color: colorsConst.greyClr,size: 15),5.width,
+                          CustomText(text: DateFormat("dd MMM yyyy").format(
+                              DateFormat("dd-MM-yyyy").parse(data.taskDate.toString())),colors: colorsConst.greyClr,),
+                        ],
+                      ),
+                    ],
+                  ),
                 ],
               ),
-              5.height,
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  CustomText(text: data.projectName .toString(),colors: colorsConst.sandal2,),10.width,
-                  CustomText(text: data.type .toString(),colors: colorsConst.greyClr,),
-                ],
-              ),
-              5.height,
-              CustomText(text: data.taskTitle .toString()),5.height,
-              if(data.assignedNames .toString()!="null")
-              CustomText(text: data.assignedNames .toString()),
-            ],
+            ),
           ),
         ),
       ),

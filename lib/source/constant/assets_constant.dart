@@ -120,6 +120,12 @@ class Assets{
   final String tEdit= "assets/images/task/Edit.svg";
   final String tFilter= "assets/images/task/Filter.svg";
   final String tMessage= "assets/images/task/message.svg";
+  final String img1= "assets/images/task/img1.svg";
+  final String img2= "assets/images/task/img2.svg";
+  final String voice1= "assets/images/task/voice1.svg";
+  final String voice2= "assets/images/task/voice2.svg";
+  final String rep1= "assets/images/task/rep1.svg";
+  final String rep2= "assets/images/task/rep2.svg";
 
 
 

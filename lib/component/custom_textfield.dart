@@ -55,7 +55,6 @@ class CustomTextField extends StatelessWidget {
               children: [
                 CustomText(
                   text: text,
-                  colors: Colors.grey.shade400,
                   size: 13,
                   isBold: false,
                 ),

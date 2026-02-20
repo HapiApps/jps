@@ -36,6 +36,7 @@ import '../attendance/attendance_report.dart';
 import '../attendance/custom_attendance.dart';
 import '../controller/track_controller.dart';
 import '../customer/view_task.dart';
+import '../customer/visit/add_visit.dart';
 import '../customer/visit_report/visits_report.dart';
 import '../employee/view_notification.dart';
 import '../expense/view_expense.dart';
@@ -510,7 +511,7 @@ class _HomePageState extends State<HomePage> {
                                       25.width,
                     Consumer<EmployeeProvider>(
                       builder: (context, emp, _) {
-                        print("count ${emp.unreadCount}");
+                        // print("count ${emp.unreadCount}");
                         return Stack(
                           children: [
                             InkWell(
@@ -1147,223 +1148,231 @@ class _HomePageState extends State<HomePage> {
                                   ],
                                 ),
                               ),
-                              const SizedBox(height: 20),
-                              Container(
-                                padding: const EdgeInsets.all(16),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(15),
-                                  boxShadow: const [
-                                    BoxShadow(
-                                      color: Colors.black12,
-                                      blurRadius: 8,
-                                      offset: Offset(0, 4),
-                                    ),
-                                  ],
-                                ),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    /// Top Row
-                                    Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        const CustomText(
-                                          "Total Visits",
-                                          size: 18,
-                                          weight: FontWeight.bold,
-                                        ),
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 12,
-                                            vertical: 6,
+                              10.height,
+                              InkWell(
+                                onTap:(){
+                                  utils.navigatePage(context, ()=> DashBoard(child: VisitReport(date1: homeProvider.startDate, date2: homeProvider.endDate,month: homeProvider.month,type: homeProvider.type,)));
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.all(16),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(15),
+                                    boxShadow: const [
+                                      BoxShadow(
+                                        color: Colors.black12,
+                                        blurRadius: 8,
+                                        offset: Offset(0, 4),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      /// Top Row
+                                      Row(
+                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          const CustomText(
+                                            "Total Visits",
+                                            size: 18,
+                                            weight: FontWeight.bold,
                                           ),
-                                          decoration: BoxDecoration(
-                                            color: colorsConst.primary,
-                                            borderRadius: BorderRadius.circular(20),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 12,
+                                              vertical: 6,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: colorsConst.primary,
+                                              borderRadius: BorderRadius.circular(20),
+                                            ),
+                                            child: Row(
+                                              children: [
+                                                Icon(
+                                                  Icons.calendar_month,
+                                                  size: 16,
+                                                  color: Colors.white,
+                                                ),
+                                                SizedBox(width: 6),
+                                                CustomText(
+                                                  "Pending Visits: ${homeProvider.inActiveVisit}",
+                                                  size: 12,
+                                                  weight: FontWeight.w600,
+                                                  color: Colors.white,
+                                                ),
+                                              ],
+                                            ),
                                           ),
-                                          child: Row(
-                                            children: [
-                                              Icon(
-                                                Icons.calendar_month,
-                                                size: 16,
-                                                color: Colors.white,
-                                              ),
-                                              SizedBox(width: 6),
-                                              CustomText(
-                                                "Pending Visits: ${homeProvider.mainReportList.isEmpty?"0":homeProvider.mainReportList[0]["pending_visit_count"]}",
-                                                size: 12,
-                                                weight: FontWeight.w600,
-                                                color: Colors.white,
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ],
-                                    ),
+                                        ],
+                                      ),
 
-                                    /// Big Count
-                                    CustomText("${homeProvider.visitCount.length}", size: 28, weight: FontWeight.bold),
+                                      /// Big Count
+                                      CustomText("${homeProvider.visitCount.length}", size: 28, weight: FontWeight.bold),
 
-                                    /// Main Content Row
-                                    Row(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        /// LEFT SECTION
-                                        Expanded(
-                                          flex: 55,
-                                          child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                            children: [
-                                              CustomText(
-                                                "Active Visits(2)",
-                                                size: 16,
-                                                weight: FontWeight.bold,
-                                                color: colorsConst.primary,
-                                              ),
-                                              const SizedBox(height: 8),
-                                              /// Scrollable List (3 visible items height)
-                                              SizedBox(
-                                                height: 95,
-                                                child: SingleChildScrollView(
-                                                  physics: const BouncingScrollPhysics(),
-                                                  child: Column(
-                                                    children: [
-                                                      !homeProvider.vRefresh
-                                                          ? const SkeletonLoading()
-                                                          : homeProvider.visitCount.isEmpty
-                                                              ? const Center(
-                                                                  child: CustomText(
-                                                                     "No Visits Found",
-                                                                  ),
-                                                                )
-                                                              : Padding(
-                                                                  padding: const EdgeInsets.fromLTRB(0, 0, 0, 5),
-                                                                  child: ListView.builder(
-                                                                    itemCount: homeProvider.visitCount.length,
-                                                                    shrinkWrap: true,
-                                                                    physics: const NeverScrollableScrollPhysics(),
-                                                                    itemBuilder: (context, index) {
-                                                                      return  Padding(
-                                                                        padding: const EdgeInsets.symmetric(
-                                                                          vertical: 4,
-                                                                        ),
-                                                                        child: Row(
-                                                                          children: [
-                                                                            const Text("• "),
-                                                                            Expanded(
-                                                                              child: CustomText(
-                                                                                homeProvider.visitCount[index]["value"],
-                                                                                size: 13,
-                                                                              ),
-                                                                            ),
-                                                                            Container(
-                                                                              padding: const EdgeInsets.symmetric(
-                                                                                horizontal: 8,
-                                                                                vertical: 2,
-                                                                              ),
-                                                                              decoration: BoxDecoration(
-                                                                                color: colorsConst.primary,
-                                                                                borderRadius:
-                                                                                BorderRadius.circular(
-                                                                                  12,
+                                      /// Main Content Row
+                                      Row(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          /// LEFT SECTION
+                                          Expanded(
+                                            flex: 55,
+                                            child: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                CustomText(
+                                                  "Active Visits(${homeProvider.activeVisit})",
+                                                  size: 16,
+                                                  weight: FontWeight.bold,
+                                                  color: colorsConst.primary,
+                                                ),
+                                                const SizedBox(height: 8),
+                                                /// Scrollable List (3 visible items height)
+                                                SizedBox(
+                                                  height: 95,
+                                                  child: SingleChildScrollView(
+                                                    physics: const BouncingScrollPhysics(),
+                                                    child: Column(
+                                                      children: [
+                                                        !homeProvider.vRefresh
+                                                            ? const SkeletonLoading()
+                                                            : homeProvider.visitCount.isEmpty
+                                                                ? const Center(
+                                                                    child: CustomText(
+                                                                       "No Visits Found",
+                                                                    ),
+                                                                  )
+                                                                : Padding(
+                                                                    padding: const EdgeInsets.fromLTRB(0, 0, 0, 5),
+                                                                    child: ListView.builder(
+                                                                      itemCount: homeProvider.visitCount.length,
+                                                                      shrinkWrap: true,
+                                                                      physics: const NeverScrollableScrollPhysics(),
+                                                                      itemBuilder: (context, index) {
+                                                                        return  Padding(
+                                                                          padding: const EdgeInsets.symmetric(
+                                                                            vertical: 4,
+                                                                          ),
+                                                                          child: Row(
+                                                                            children: [
+                                                                              const Text("• "),
+                                                                              Expanded(
+                                                                                child: CustomText(
+                                                                                  homeProvider.visitCount[index]["value"],
+                                                                                  size: 13,
                                                                                 ),
                                                                               ),
-                                                                              child: CustomText(
-                                                                                homeProvider.visitCount[index]["total_count"],
-                                                                                size: 10,
-                                                                                color: Colors.white,
+                                                                              Container(
+                                                                                padding: const EdgeInsets.symmetric(
+                                                                                  horizontal: 8,
+                                                                                  vertical: 2,
+                                                                                ),
+                                                                                decoration: BoxDecoration(
+                                                                                  color: colorsConst.primary,
+                                                                                  borderRadius:
+                                                                                  BorderRadius.circular(
+                                                                                    12,
+                                                                                  ),
+                                                                                ),
+                                                                                child: CustomText(
+                                                                                  homeProvider.visitCount[index]["total_count"],
+                                                                                  size: 10,
+                                                                                  color: Colors.white,
+                                                                                ),
                                                                               ),
-                                                                            ),
-                                                                          ],
-                                                                        ),
-                                                                      );
-                                                                    },
+                                                                            ],
+                                                                          ),
+                                                                        );
+                                                                      },
+                                                                    ),
                                                                   ),
-                                                                ),
-                                                    ],
+                                                      ],
+                                                    ),
                                                   ),
                                                 ),
-                                              ),
-                                            ],
+                                              ],
+                                            ),
                                           ),
-                                        ),
-                                        const SizedBox(width: 16),
-                                        /// RIGHT SECTION
-                                        Expanded(
-                                          flex: 45,
-                                          child: Column(
-                                            children: [
-                                              /// Larger Pie Chart (closer to reference)
-                                              SizedBox(
-                                                height: 80,
-                                                child: totalVisits == 0
-                                                    ? const Center(
-                                                  child: CustomText("No Data"),
-                                                )
-                                                    : PieChart(
-                                                  PieChartData(
-                                                    sectionsSpace: 0,
-                                                    centerSpaceRadius: 0,
-                                                    sections: [
-                                                      PieChartSectionData(
-                                                        value: visitPendingCount.toDouble(),
-                                                        color: Color(0xffE34853),
-                                                        radius: 50,
-                                                        showTitle: false,
-                                                      ),
-                                                      PieChartSectionData(
-                                                        value: visitActiveCount.toDouble(),
-                                                        color: Color(0xff63D076),
-                                                        radius: 50,
-                                                        showTitle: false,
-                                                      ),
-                                                    ],
+                                          const SizedBox(width: 16),
+                                          /// RIGHT SECTION
+                                          Expanded(
+                                            flex: 45,
+                                            child: Column(
+                                              children: [
+                                                /// Larger Pie Chart (closer to reference)
+                                                SizedBox(
+                                                  height: 80,
+                                                  child: totalVisits == 0
+                                                      ? const Center(
+                                                    child: CustomText("No Data"),
+                                                  )
+                                                      : PieChart(
+                                                    PieChartData(
+                                                      sectionsSpace: 0,
+                                                      centerSpaceRadius: 0,
+                                                      sections: [
+                                                        PieChartSectionData(
+                                                          value: visitPendingCount.toDouble(),
+                                                          color: Color(0xffE34853),
+                                                          radius: 50,
+                                                          showTitle: false,
+                                                        ),
+                                                        PieChartSectionData(
+                                                          value: visitActiveCount.toDouble(),
+                                                          color: Color(0xff63D076),
+                                                          radius: 50,
+                                                          showTitle: false,
+                                                        ),
+                                                      ],
+                                                    ),
                                                   ),
-                                                ),
-                                              ),
-
-                                              // 20.height,
-                                              // Container(
-                                              //   padding: const EdgeInsets.symmetric(
-                                              //     horizontal: 12,
-                                              //     vertical: 6,
-                                              //   ),
-                                              //   decoration: BoxDecoration(
-                                              //     color: Colors.white,
-                                              //     borderRadius: BorderRadius.circular(8),
-                                              //     boxShadow: const [
-                                              //       BoxShadow(
-                                              //         color: Colors.black38,
-                                              //         blurRadius: 10,
-                                              //         offset: Offset(0, 2),
-                                              //       ),
-                                              //     ],
-                                              //   ),
-                                              //   child: const CustomText(
-                                              //     "View All 20 Types",
-                                              //     size: 12,
-                                              //     weight: FontWeight.w600,
-                                              //   ),
-                                              // ),
-                                            ],
+                                                ),10.height,
+                                                IconButton(onPressed: (){
+                                                  utils.navigatePage(context, ()=> DashBoard(child:
+                                                  CusAddVisit(taskId:"",companyId: "",companyName: "",
+                                                      numberList: [],isDirect: true, type: "", desc: "")));
+                                                }, icon: Icon(Icons.add))
+                                                // 20.height,
+                                                // Container(
+                                                //   padding: const EdgeInsets.symmetric(
+                                                //     horizontal: 12,
+                                                //     vertical: 6,
+                                                //   ),
+                                                //   decoration: BoxDecoration(
+                                                //     color: Colors.white,
+                                                //     borderRadius: BorderRadius.circular(8),
+                                                //     boxShadow: const [
+                                                //       BoxShadow(
+                                                //         color: Colors.black38,
+                                                //         blurRadius: 10,
+                                                //         offset: Offset(0, 2),
+                                                //       ),
+                                                //     ],
+                                                //   ),
+                                                //   child: const CustomText(
+                                                //     "View All 20 Types",
+                                                //     size: 12,
+                                                //     weight: FontWeight.w600,
+                                                //   ),
+                                                // ),
+                                              ],
+                                            ),
                                           ),
-                                        ),
-                                      ],
-                                    ),
-                                    10.height,
-                                    ///  Inactive Visits CENTERED AT BOTTOM (LIKE IMAGE)
-                                    // Center(
-                                    //   child: CustomText(
-                                    //     "Inactive Visits (18)",
-                                    //     color: colorsConst.primary,
-                                    //     weight: FontWeight.w600,
-                                    //   ),
-                                    // ),
-                                  ],
+                                        ],
+                                      ),
+                                      10.height,
+                                      ///  Inactive Visits CENTERED AT BOTTOM (LIKE IMAGE)
+                                      // Center(
+                                      //   child: CustomText(
+                                      //     "Inactive Visits (18)",
+                                      //     color: colorsConst.primary,
+                                      //     weight: FontWeight.w600,
+                                      //   ),
+                                      // ),
+                                    ],
+                                  ),
                                 ),
                               ),
-                              const SizedBox(height: 20),
                               if (homeProvider.mainReportList.isNotEmpty && homeProvider.mainReportList[0]["total_expense_count"].toString() != "0")
                               Container(
                                 padding: const EdgeInsets.all(16),

@@ -31,7 +31,7 @@ class _FullScreenState extends State<FullScreen> {
       centerTitle: true,
         leading: IconButton(
           onPressed:(){Navigator.pop(context);},
-          icon: Icon(Icons.arrow_back_ios_sharp,color: colorsConst.primary,size: 15,),
+          icon: Icon(Icons.arrow_back_ios_sharp,color: colorsConst.primary,size: 20,),
         ),
       title: CustomText(text: constValue.appName,colors: colorsConst.primary,isBold: true,size: 17,),
     ),

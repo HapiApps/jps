@@ -122,52 +122,44 @@ class CustomerProvider with ChangeNotifier{
       "log_file":localData.storage.read("mobile_number"),
       "created_by":localData.storage.read("id")??"0",
       "comment":disPoint.text.trim(),
-      // "data": jsonString,
+      "data": jsonString,
     };
     final response =await custRepo.taskComments(data,customersList);
     log(response.toString());
     if (response.toString().contains("200")){
-      // if(localData.storage.read("role")=="1"){
-      //   Provider.of<EmployeeProvider>(context, listen: false).sendAdminNotification(
-      //     "Comments added to task.Added By ${localData.storage.read("f_name")}",
-      //     disPoint.text.trim(),
-      //     "1",
-      //   );
-      // }
-      // else{
-      //   Provider.of<EmployeeProvider>(context, listen: false).sendUserNotification(
-      //       "${localData.storage.read("f_name")} replied to task issue.",
-      //       disPoint.text.trim(),localData.storage.read("id"));
-      // }
+      _recordedAudioPaths.clear();
       if(localData.storage.read("role")=="1"){
-        // List<int> assignList = assignedId.split(",").map((e) => int.parse(e)).toList();
-        //
-        // for (var id in assignList) {
-        //   print("Current ID: $id");
-        //   if(localData.storage.read("id")!=id){
-        //     Provider.of<EmployeeProvider>(context, listen: false).sendUserNotification(
-        //       "Comments added to task.Added By ${localData.storage.read("f_name")}",
-        //       disPoint.text.trim(),
-        //       id.toString(),
-        //     );
-        //   }
-        // }
-         Provider.of<EmployeeProvider>(context, listen: false).sendSomeUserNotification(
-          "Feedback added to task.Added By ${localData.storage.read("f_name")}",
-          disPoint.text.trim(),
-          assignedId.toString(),
-        );
-        Provider.of<EmployeeProvider>(context, listen: false).sendAdminNotification(
-          "Feedback added to task.Added By ${localData.storage.read("f_name")}",
-          disPoint.text.trim(),
-          localData.storage.read("role"),
-        );
+        try {
+          await Provider.of<EmployeeProvider>(context, listen: false).sendSomeUserNotification(
+            "Feedback added to task.Added By ${localData.storage.read("f_name")}",
+            disPoint.text.trim(),
+            assignedId.toString(),
+          );
+        } catch (e) {
+          print("User notification error: $e");
+        }
+
+        // admin notification (always run)
+        try {
+          await Provider.of<EmployeeProvider>(context, listen: false).sendAdminNotification(
+            "Feedback added to task.Added By ${localData.storage.read("f_name")}",
+            disPoint.text.trim(),
+            localData.storage.read("role"),
+          );
+        } catch (e) {
+          print("Admin notification error: $e");
+        }
       }else{
-        Provider.of<EmployeeProvider>(context, listen: false).sendAdminNotification(
-          "${localData.storage.read("f_name")} replied to task feedback.",
-          disPoint.text.trim(),
-          "1",
-        );
+        // admin notification (always run)
+        try {
+          await Provider.of<EmployeeProvider>(context, listen: false).sendAdminNotification(
+            "${localData.storage.read("f_name")} replied to task feedback.",
+            disPoint.text.trim(),
+            "1",
+          );
+        } catch (e) {
+          print("Admin notification error: $e");
+        }
       }
 
       utils.showSuccessToast(context: context,text: constValue.success,);
@@ -1563,7 +1555,7 @@ void changeReview(dynamic value){
   _selectReview=value.toString();
   notifyListeners();
 }
-void initComment(List coList){
+void initComment(List coList,String type){
   disPoint.clear();
   points.clear();
   _selectType=null;
@@ -1571,10 +1563,25 @@ void initComment(List coList){
   if(cmtTypeList.isEmpty){
     _selectType=null;
   }else{
-    _selectType=null;
-    _selectType=cmtTypeList[0];
-    localData.storage.write("type_id",cmtTypeList[0]["id"]);
-    notifyListeners();
+    // _selectType=null;
+    // _selectType=cmtTypeList[0];
+    // localData.storage.write("type_id",cmtTypeList[0]["id"]);
+    // 👉 type match aagura item find pannum
+    print("valueee $type");
+    print("valueee ${cmtTypeList}");
+    var matchedType = cmtTypeList.firstWhere(
+          (item) =>
+      item["value"]
+          .toString()
+          .trim()
+          .toLowerCase() ==
+          type.toString().trim().toLowerCase(),
+      orElse: () => cmtTypeList[0] as Map<String, String>,
+    );
+
+    _selectType = matchedType;
+
+    localData.storage.write("type_id", matchedType["id"]);
   }
 
   if(callList.isEmpty){
@@ -2842,11 +2849,17 @@ List<Marker> get liveMarker =>_liveMarker;
       if (path != null) {
         _isRecording = false;
         timer?.cancel();
+        if(_recordedAudioPaths.isEmpty){
+          _recordedAudioPaths.add(
+            AddAudioModel(audioPath: path, second: _recordingDuration, time: _recordingTime),
+          );
+        }else{
+          _recordedAudioPaths[0]=
+              AddAudioModel(audioPath: path, second: _recordingDuration, time: _recordingTime);
+        }
 
-        _recordedAudioPaths.add(
-          AddAudioModel(audioPath: path, second: _recordingDuration, time: _recordingTime),
-        );
-
+print("_recordedAudioPaths");
+print(_recordedAudioPaths);
         await Future.delayed(Duration(seconds: 1)); // Optional delay
         loadAudioDuration(path);
       }

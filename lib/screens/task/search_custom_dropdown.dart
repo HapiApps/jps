@@ -44,7 +44,6 @@ class _SearchCustomDropdownState extends State<SearchCustomDropdown> {
             children: [
               CustomText(
                 text: widget.text.toString(),
-                colors: colorsConst.greyClr,
                 size: 13,
               ),
               widget.isOptional == false
@@ -125,7 +124,7 @@ class _SearchCustomDropdownState extends State<SearchCustomDropdown> {
                           ),
                         ),
                         const SizedBox(width: 10),
-                        CustomText(text:item.toString()),
+                        CustomText(text:item.toString(),size: 15,),
                       ],
                     ),
                   );

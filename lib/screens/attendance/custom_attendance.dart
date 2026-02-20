@@ -270,14 +270,15 @@ class _CheckAttendanceState extends State<CheckAttendance> {
           20.height,
           attProvider.isPermission==true?
           SwipeButton(
-            width: MediaQuery.of(context).size.width*0.55,
+            width: MediaQuery.of(context).size.width*0.9,
             height: 35,
             thumb: Padding(
               padding: const EdgeInsets.fromLTRB(10, 0, 10, 0),
               child: SvgPicture.asset(assets.arrow),
             ),
             activeThumbColor: attProvider.permissionStatus==""||split.last=="2"?colorsConst.appGreen:colorsConst.appRed,
-            activeTrackColor: attProvider.permissionStatus==""||split.last=="2"?colorsConst.appGreen.withOpacity(0.2):colorsConst.appRed.withOpacity(0.3),
+            // activeTrackColor: attProvider.permissionStatus==""||split.last=="2"?colorsConst.appGreen.withOpacity(0.2):colorsConst.appRed.withOpacity(0.3),
+            activeTrackColor: Colors.white,
             onSwipe: () async {
               Map<Permission, PermissionStatus> status = await [
                 Permission.location,

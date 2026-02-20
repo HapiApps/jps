@@ -1,3 +1,4 @@
+import 'package:group_button/group_button.dart';
 import 'package:intl/intl.dart';
 import 'package:master_code/screens/attendance/user_attendance_report.dart';
 import 'package:master_code/screens/common/home_page.dart';
@@ -62,7 +63,7 @@ class _AttendanceReportState extends State<AttendanceReport> {
   }
 void check(){
   setState(() {
-    if(showType=="Present"){
+    if(showType=="0"){
       Provider.of<AttendanceProvider>(context, listen: false).selectedIndex=0;
     }else if(showType=="Absent"){
       Provider.of<AttendanceProvider>(context, listen: false).selectedIndex=1;
@@ -75,6 +76,14 @@ void check(){
     }
   });
 }
+  var reportTypeList = [
+    "All",
+    "Present",
+    "Absent",
+    "Late",
+    "Leave",
+    "Permission",
+  ];
   @override
   void dispose() {
     _myFocusScopeNode.dispose();
@@ -115,306 +124,884 @@ void check(){
                       children: [
                         // if(showType.toString()!="Absent"&&showType.toString()!="Late")
                         if(localData.storage.read("role")=="1")
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            CustomText(text: attProvider.lastRefreshed,colors:colorsConst.greyClr,isBold: true,size: 12,),
-                            Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  SizedBox(
-                                    height: 85,
-                                    child: CustomTextField(
-                                      text: "",radius: 30,
-                                      controller: attProvider.search,
-                                      textInputAction: TextInputAction.done,
-                                      width: kIsWeb?webWidth/1.5:phoneWidth/1.6,
-                                      hintText: "Search By Name",
-                                      isIcon: true,
-                                      iconData: Icons.search,
-                                      isShadow: true,
-                                      onChanged: (value) {
-                                        attProvider.searchAttendanceReport(value.toString());
-                                      },
-                                      isSearch: attProvider.search.text.isNotEmpty?true:false,
-                                      searchCall: (){
-                                        attProvider.search.clear();
-                                        attProvider.searchAttendanceReport("");
-                                      },
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Container(
+                                width: kIsWeb?webWidth/1.2:phoneWidth/1.2,
+                                decoration: customDecoration.baseBackgroundDecoration(
+                                  radius: 30,
+                                  color: colorsConst.primary,
+                                ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Container(
+                                      width: showType.toString()=="Absent"?phoneWidth/1.24:phoneWidth/1.5,
+                                      height: 45,
+                                      decoration: customDecoration.baseBackgroundDecoration(
+                                        radius: 30,
+                                        color: Colors.transparent,
+                                      ),
+                                      child: TextFormField(
+                                        cursorColor: colorsConst.primary,
+                                        onChanged: (value) {
+                                          if(showType=="Present"||showType=="Permission"){
+                                            attProvider.searchAttendanceReport(value.toString());
+                                          }else if(showType=="Absent"){
+                                            attProvider.searchAttendanceReport2(value.toString());
+                                          }else if(showType=="Late"){
+                                            attProvider.searchAttendanceReport3(value.toString());
+                                          }else{
+                                            levPvr.searchReport(value.toString());
+                                          }
+                                          },
+                                        textInputAction: TextInputAction.done,
+                                        controller: attProvider.search,
+                                        decoration: InputDecoration(
+                                            hintText:"Search Name or ${constValue.customer}",
+                                            hintStyle: TextStyle(
+                                                color: colorsConst.primary,
+                                                fontSize: 14
+                                            ),
+                                            fillColor: Colors.white,
+                                            filled: true,
+                                            prefixIcon: Icon(Icons.search,color: Colors.grey,),
+                                            suffixIcon: attProvider.search.text.isNotEmpty?
+                                            GestureDetector(
+                                                onTap: (){
+                                                  attProvider.search.clear();
+                                                  if(showType=="Present"||showType=="Permission"){
+                                                    attProvider.searchAttendanceReport("");
+                                                  }else if(showType=="Absent"){
+                                                    attProvider.searchAttendanceReport2("");
+                                                  }else if(showType=="Late"){
+                                                    attProvider.searchAttendanceReport3("");
+                                                  }else{
+                                                    levPvr.searchReport("");
+                                                  }
+                                                  },
+                                                child: Container(
+                                                    width: 10,height: 10,color: Colors.transparent,
+                                                    child: Padding(
+                                                      padding: const EdgeInsets.all(8.0),
+                                                      child: SvgPicture.asset(assets.cancel2),
+                                                    ))):null,
+                                            errorStyle: const TextStyle(
+                                              fontSize: 12.0,
+                                              height: 0.20,
+                                            ),
+                                            enabledBorder: OutlineInputBorder(
+                                              // grey.shade300
+                                                borderSide:  BorderSide(color: Colors.grey.shade300),
+                                                borderRadius: BorderRadius.circular(30)
+                                            ),
+                                            contentPadding:const EdgeInsets.fromLTRB(10, 10, 10, 10)
+                                        ),
+                                      ),
                                     ),
-                                  ),
-                                  // InkWell(
-                                  //   onTap: (){
-                                  //     _myFocusScopeNode.unfocus();
-                                  //     showDialog(
-                                  //       context: context,
-                                  //       builder: (context) {
-                                  //         return Consumer<AttendanceProvider>(
-                                  //           builder: (context, custProvider, _) {
-                                  //             return AlertDialog(
-                                  //               actions: [
-                                  //                 SizedBox(
-                                  //                   width: kIsWeb?webWidth:phoneWidth,
-                                  //                   child: Column(
-                                  //                     children: [
-                                  //                       20.height,
-                                  //                       Row(
-                                  //                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  //                         children: [
-                                  //                           70.width,
-                                  //                           const CustomText(
-                                  //                             text: 'Filters',
-                                  //                             colors: Colors.black,
-                                  //                             size: 16,
-                                  //                             isBold: true,
-                                  //                           ),
-                                  //                           30.width,
-                                  //                           InkWell(
-                                  //                             onTap: () {
-                                  //                               Navigator.of(context, rootNavigator: true).pop();
-                                  //                             },
-                                  //                             child: SvgPicture.asset(assets.cancel),
-                                  //                           )
-                                  //                         ],
-                                  //                       ),
-                                  //                       20.height,
-                                  //                       Row(
-                                  //                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                                  //                         children: [
-                                  //                           Column(
-                                  //                             crossAxisAlignment: CrossAxisAlignment.start,
-                                  //                             children: [
-                                  //                               CustomText(
-                                  //                                 text: "From Date",
-                                  //                                 colors: colorsConst.greyClr,
-                                  //                                 size: 12,
-                                  //                               ),
-                                  //                               InkWell(
-                                  //                                 onTap: () {
-                                  //                                   custProvider.datePick(
-                                  //                                     context: context,
-                                  //                                     isStartDate: true,
-                                  //                                     date: attProvider.startDate,
-                                  //                                   );
-                                  //                                 },
-                                  //                                 child: Container(
-                                  //                                   height: 30,
-                                  //                                   width: kIsWeb?webWidth/2.7:phoneWidth/2.7,
-                                  //                                   decoration: customDecoration.baseBackgroundDecoration(
-                                  //                                     color: Colors.white,
-                                  //                                     radius: 5,
-                                  //                                     borderColor: colorsConst.litGrey,
-                                  //                                   ),
-                                  //                                   child: Row(
-                                  //                                     mainAxisAlignment: MainAxisAlignment.center,
-                                  //                                     children: [
-                                  //                                       CustomText(text: custProvider.startDate),
-                                  //                                       5.width,
-                                  //                                       SvgPicture.asset(assets.calendar2),
-                                  //                                     ],
-                                  //                                   ),
-                                  //                                 ),
-                                  //                               )
-                                  //                             ],
-                                  //                           ),
-                                  //                           Column(
-                                  //                             crossAxisAlignment: CrossAxisAlignment.start,
-                                  //                             children: [
-                                  //                               CustomText(
-                                  //                                 text: "To Date",
-                                  //                                 colors: colorsConst.greyClr,
-                                  //                                 size: 12,
-                                  //                               ),
-                                  //                               InkWell(
-                                  //                                 onTap: () {
-                                  //                                   custProvider.datePick(
-                                  //                                     context: context,
-                                  //                                     isStartDate: false,
-                                  //                                     date: attProvider.endDate,
-                                  //                                   );
-                                  //                                 },
-                                  //                                 child: Container(
-                                  //                                   height: 30,
-                                  //                                   width: kIsWeb?webWidth/2.7:phoneWidth/2.7,
-                                  //                                   decoration: customDecoration.baseBackgroundDecoration(
-                                  //                                     color: Colors.white,
-                                  //                                     radius: 5,
-                                  //                                     borderColor: colorsConst.litGrey,
-                                  //                                   ),
-                                  //                                   child: Row(
-                                  //                                     mainAxisAlignment: MainAxisAlignment.center,
-                                  //                                     children: [
-                                  //                                       CustomText(text: custProvider.endDate),
-                                  //                                       5.width,
-                                  //                                       SvgPicture.asset(assets.calendar2),
-                                  //                                     ],
-                                  //                                   ),
-                                  //                                 ),
-                                  //                               )
-                                  //                             ],
-                                  //                           ),
-                                  //                         ],
-                                  //                       ),
-                                  //                       10.height,
-                                  //                       Row(
-                                  //                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                                  //                         children: [
-                                  //                           Column(
-                                  //                             crossAxisAlignment: CrossAxisAlignment.start,
-                                  //                             children: [
-                                  //                               CustomText(
-                                  //                                 text: "Employee Name",
-                                  //                                 colors: colorsConst.greyClr,
-                                  //                                 size: 12,
-                                  //                               ),
-                                  //                               EmployeeDropdown(
-                                  //                                 callback: (){
-                                  //                                   empProvider.getAllUsers();
-                                  //                                 },
-                                  //                                 text: attProvider.userName,
-                                  //                                 employeeList: empProvider.filterUserData,
-                                  //                                 onChanged: (UserModel? value) {
-                                  //                                   attProvider.selectUser(value!);
-                                  //                                 },
-                                  //                                 size: kIsWeb?webWidth/2.7:phoneWidth/2.7,
-                                  //                               ),
-                                  //                             ],
-                                  //                           ),
-                                  //                           Padding(
-                                  //                             padding: EdgeInsets.fromLTRB(0, empProvider.filterUserData.isEmpty?20:0, 0, 0),
-                                  //                             child: Column(
-                                  //                               crossAxisAlignment: CrossAxisAlignment.start,
-                                  //                               children: [
-                                  //                                 CustomText(
-                                  //                                   text: "Select Date Range",
-                                  //                                   colors: colorsConst.greyClr,
-                                  //                                   size: 12,
-                                  //                                 ),
-                                  //                                 Container(
-                                  //                                   height: 40,
-                                  //                                   width: kIsWeb?webWidth/2.7:phoneWidth/2.7,
-                                  //                                   decoration: customDecoration.baseBackgroundDecoration(
-                                  //                                     radius: 5,
-                                  //                                     color: Colors.white,
-                                  //                                     borderColor: colorsConst.litGrey,
-                                  //                                   ),
-                                  //                                   child: DropdownButton(
-                                  //                                     iconEnabledColor: colorsConst.greyClr,
-                                  //                                     isExpanded: true,
-                                  //                                     underline: const SizedBox(),
-                                  //                                     icon: const Icon(Icons.keyboard_arrow_down_outlined),
-                                  //                                     value: attProvider.type,
-                                  //                                     onChanged: (value) {
-                                  //                                       attProvider.changeType(value,localData.storage.read("id"),localData.storage.read("role"),false);
-                                  //                                     },
-                                  //                                     items: attProvider.typeList.map((list) {
-                                  //                                       return DropdownMenuItem(
-                                  //                                         value: list,
-                                  //                                         child: CustomText(
-                                  //                                           text: "  $list",
-                                  //                                           colors: Colors.black,
-                                  //                                           isBold: false,
-                                  //                                         ),
-                                  //                                       );
-                                  //                                     }).toList(),
-                                  //                                   ),
-                                  //                                 ),
-                                  //                               ],
-                                  //                             ),
-                                  //                           ),
-                                  //                         ],
-                                  //                       ),
-                                  //                       20.height,
-                                  //                       Row(
-                                  //                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                                  //                         children: [
-                                  //                           CustomBtn(
-                                  //                             width: 100,
-                                  //                             text: 'Clear All',
-                                  //                             callback: () {
-                                  //                               attProvider.initDate(id:localData.storage.read("id"),role:localData.storage.read("role"),isRefresh: false,date1:widget.date1,date2:widget.date2,type:widget.type);
-                                  //                               Navigator.of(context, rootNavigator: true).pop();
-                                  //                               // attProvider.getAttendanceReport(localData.storage.read("id"),localData.storage.read("role"),false,isAbsent: showType=="Absent"?true:false,isLate: showType=="Late"?true:false,list: widget.empList);
-                                  //                               if(attProvider.selectedIndex==1){
-                                  //                                 showType="Absent";
-                                  //                                 attProvider.getAttendanceReport(localData.storage.read("id"),localData.storage.read("role"),false,isAbsent: true,isLate: false,list: widget.empList);
-                                  //                               }
-                                  //                               if(attProvider.selectedIndex==2){
-                                  //                                 showType="Late";
-                                  //                                 attProvider.getAttendanceReport(localData.storage.read("id"),localData.storage.read("role"),false,isAbsent: false,isLate: true,list: widget.empList);
-                                  //                               }
-                                  //                               if(attProvider.selectedIndex==4){
-                                  //                                 showType="Present";
-                                  //                                 attProvider.getAttendanceReport(localData.storage.read("id"),localData.storage.read("role"),false,isAbsent: false,isLate: false,list: widget.empList);
-                                  //                               }
-                                  //                               },
-                                  //                             bgColor: Colors.grey.shade200,
-                                  //                             textColor: Colors.black,
-                                  //                           ),
-                                  //                           CustomBtn(
-                                  //                             width: 100,
-                                  //                             text: 'Apply Filters',
-                                  //                             callback: () {
-                                  //                               attProvider.getAttendanceReport(localData.storage.read("id"),localData.storage.read("role"),true,isAbsent: showType=="Absent"?true:false,isLate: showType=="Late"?true:false,list: widget.empList);
-                                  //                               Navigator.of(context, rootNavigator: true).pop();
-                                  //                             },
-                                  //                             bgColor: colorsConst.primary,
-                                  //                             textColor: Colors.white,
-                                  //                           ),
-                                  //                         ],
-                                  //                       ),
-                                  //                       20.height,
-                                  //                     ],
-                                  //                   ),
-                                  //                 )
-                                  //               ],
-                                  //             );
-                                  //           },
-                                  //         );
-                                  //       },
-                                  //     );
-                                  //     // empProvider.filterUserData = empProvider.filterUserData.where((contact){
-                                  //     //   DateTime contactDate = DateFormat('yyyy-MM-dd').parse(contact.updatedTs.toString().split(' ')[0]);
-                                  //     //   return contactDate.isAfter(startDate) && contactDate.isBefore(currentDate);
-                                  //     // }).toList();
-                                  //   },
-                                  //   child: Container(
-                                  //     width: kIsWeb?webWidth/6.5:phoneWidth/7,
-                                  //     height: 45,
-                                  //     decoration: customDecoration.baseBackgroundDecoration(
-                                  //         color: attProvider.filter==true?colorsConst.primary:Colors.grey.shade300,radius: 5
-                                  //     ),
-                                  //     child: Padding(
-                                  //       padding: const EdgeInsets.all(5.0),
-                                  //       child: SvgPicture.asset(assets.filter,width: 15,height: 15,),
-                                  //     ),
-                                  //   ),
-                                  // ),
-                                  IconButton(onPressed: (){
+                                    if(showType.toString()!="Absent")
+                                    InkWell(
+                                      onTap: (){
+                                        // _myFocusScopeNode.unfocus();
+                                        // if (!attProvider.typeList.any((e) => e['value'] == 'All')) {
+                                        //   attProvider.typeList.insert(0, {
+                                        //     "id": "",
+                                        //     "value": "All",
+                                        //   });
+                                        // }
+                                        // showDialog(
+                                        //   context: context,
+                                        //   builder: (context) {
+                                        //     return Consumer3<attProvider,CustomerProvider,EmployeeProvider>(
+                                        //       builder: (context, attProvider,cusPvr,empProvider, _) {
+                                        //         return AlertDialog(
+                                        //           actions: [
+                                        //             SizedBox(
+                                        //               width: kIsWeb?MediaQuery.of(context).size.width*0.3:MediaQuery.of(context).size.width*0.9,
+                                        //               child: Column(
+                                        //                 crossAxisAlignment: CrossAxisAlignment.start,
+                                        //                 children: [
+                                        //                   20.height,
+                                        //                   Row(
+                                        //                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                        //                     children: [
+                                        //                       70.width,
+                                        //                       const CustomText(
+                                        //                         text: 'Filters',
+                                        //                         colors: Colors.black,
+                                        //                         size: 16,
+                                        //                         isBold: true,
+                                        //                       ),
+                                        //                       30.width,
+                                        //                       InkWell(
+                                        //                         onTap: () {
+                                        //                           Navigator.of(context, rootNavigator: true).pop();
+                                        //                         },
+                                        //                         child: SvgPicture.asset(assets.cancel),
+                                        //                       )
+                                        //                     ],
+                                        //                   ),
+                                        //                   20.height,
+                                        //                   Row(
+                                        //                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                        //                     children: [
+                                        //                       Column(
+                                        //                         crossAxisAlignment: CrossAxisAlignment.start,
+                                        //                         children: [
+                                        //                           CustomText(
+                                        //                             text: "From Date",
+                                        //                             colors: colorsConst.greyClr,
+                                        //                             size: 12,
+                                        //                           ),
+                                        //                           InkWell(
+                                        //                             onTap: () {
+                                        //                               attProvider.filterPick(
+                                        //                                 context: context,
+                                        //                                 isStartDate: true,
+                                        //                                 date: attProvider.startDate,
+                                        //                               );
+                                        //                             },
+                                        //                             child: Container(
+                                        //                               height: 30,
+                                        //                               width: kIsWeb?webHeight/2.8:phoneHeight/2.8,
+                                        //                               decoration: customDecoration.baseBackgroundDecoration(
+                                        //                                 color: Colors.white,
+                                        //                                 radius: 5,
+                                        //                                 borderColor: colorsConst.litGrey,
+                                        //                               ),
+                                        //                               child: Row(
+                                        //                                 mainAxisAlignment: MainAxisAlignment.center,
+                                        //                                 children: [
+                                        //                                   CustomText(text: attProvider.startDate),
+                                        //                                   5.width,
+                                        //                                   SvgPicture.asset(assets.calendar2),
+                                        //                                 ],
+                                        //                               ),
+                                        //                             ),
+                                        //                           )
+                                        //                         ],
+                                        //                       ),
+                                        //                       Column(
+                                        //                         crossAxisAlignment: CrossAxisAlignment.start,
+                                        //                         children: [
+                                        //                           CustomText(
+                                        //                             text: "To Date",
+                                        //                             colors: colorsConst.greyClr,
+                                        //                             size: 12,
+                                        //                           ),
+                                        //                           InkWell(
+                                        //                             onTap: () {
+                                        //                               attProvider.filterPick(
+                                        //                                 context: context,
+                                        //                                 isStartDate: false,
+                                        //                                 date: attProvider.endDate,
+                                        //                               );
+                                        //                             },
+                                        //                             child: Container(
+                                        //                               height: 30,
+                                        //                               width: kIsWeb?webHeight/2.8:phoneHeight/2.8,
+                                        //                               decoration: customDecoration.baseBackgroundDecoration(
+                                        //                                 color: Colors.white,
+                                        //                                 radius: 5,
+                                        //                                 borderColor: colorsConst.litGrey,
+                                        //                               ),
+                                        //                               child: Row(
+                                        //                                 mainAxisAlignment: MainAxisAlignment.center,
+                                        //                                 children: [
+                                        //                                   CustomText(text: attProvider.endDate),
+                                        //                                   5.width,
+                                        //                                   SvgPicture.asset(assets.calendar2),
+                                        //                                 ],
+                                        //                               ),
+                                        //                             ),
+                                        //                           )
+                                        //                         ],
+                                        //                       ),
+                                        //                     ],
+                                        //                   ),
+                                        //                   10.height,
+                                        //                   Column(
+                                        //                     crossAxisAlignment: CrossAxisAlignment.start,
+                                        //                     children: [
+                                        //                       CustomText(
+                                        //                         text: "Select Date Range",
+                                        //                         colors: colorsConst.greyClr,
+                                        //                         size: 12,
+                                        //                       ),
+                                        //                       Container(
+                                        //                           height: 30,
+                                        //                           width: kIsWeb?webHeight:phoneHeight,
+                                        //                           decoration: customDecoration.baseBackgroundDecoration(
+                                        //                             radius: 5,
+                                        //                             color: Colors.white,
+                                        //                             borderColor: colorsConst.litGrey,
+                                        //                           ),
+                                        //                           child: DropdownButton<String>(
+                                        //                             value: attProvider.filterTypeList
+                                        //                                 .contains(attProvider.filterType)
+                                        //                                 ? attProvider.filterType
+                                        //                                 : null,
+                                        //                             isExpanded: true,
+                                        //                             underline: const SizedBox(),
+                                        //                             icon: const Icon(Icons.keyboard_arrow_down_outlined),
+                                        //                             iconEnabledColor: colorsConst.greyClr,
+                                        //                             onChanged: (value) {
+                                        //                               if (value != null) {
+                                        //                                 attProvider.changeFilterType(value);
+                                        //                               }
+                                        //                             },
+                                        //                             items: attProvider.filterTypeList
+                                        //                                 .toSet() // removes duplicates
+                                        //                                 .map<DropdownMenuItem<String>>((list) {
+                                        //                               return DropdownMenuItem<String>(
+                                        //                                 value: list,
+                                        //                                 child: CustomText(
+                                        //                                   text: "  $list",
+                                        //                                   colors: Colors.black,
+                                        //                                   isBold: false,
+                                        //                                 ),
+                                        //                               );
+                                        //                             }).toList(),
+                                        //                           )
+                                        //                       ),
+                                        //                     ],
+                                        //                   ),
+                                        //                   10.height,
+                                        //                   // CustomText(
+                                        //                   //   text: "Employee Name",
+                                        //                   //   colors: colorsConst.greyClr,
+                                        //                   //   size: 12,
+                                        //                   // ),
+                                        //                   SearchCustomDropdown(
+                                        //                       text: "Employee Name",
+                                        //                       hintText: attProvider.assignedId==""?"":attProvider.assignedNames,
+                                        //                       valueList: empProvider.activeEmps,
+                                        //                       onChanged: (value) {},
+                                        //                       width: kIsWeb?webHeight:phoneHeight),
+                                        //                   // EmployeeDropdown(
+                                        //                   //   callback: (){
+                                        //                   //   },
+                                        //                   //   text: attProvider.userName==""?"Name":attProvider.userName,
+                                        //                   //   employeeList: empProvider.activeEmps,
+                                        //                   //   onChanged: (UserModel? value) {
+                                        //                   //     attProvider.selectUser(value!);
+                                        //                   //   },
+                                        //                   //   size: kIsWeb?webHeight:phoneHeight,),
+                                        //                   10.height,
+                                        //                   MapDropDown(saveValue: attProvider.type, hintText: constValue.type,
+                                        //                       onChanged: (value){
+                                        //                         attProvider.checkFilterType(value);
+                                        //                       }, dropText: 'value',
+                                        //                       list: attProvider.typeList.toSet().toList()),
+                                        //                   CustomText(
+                                        //                     text: constValue.companyName,
+                                        //                     colors: colorsConst.greyClr,
+                                        //                     size: 12,
+                                        //                   ),
+                                        //                   // 2.height,
+                                        //                   CustomerDropdown(
+                                        //                     text: attProvider.companyName==""?constValue.companyName:attProvider.companyName,
+                                        //                     isRequired: true,hintText: false,
+                                        //                     employeeList: cusPvr.customer,
+                                        //                     onChanged: (CustomerModel? value) {
+                                        //                       attProvider.changeName(value);
+                                        //                     }, size: kIsWeb?webHeight:phoneHeight,),
+                                        //                   20.height,
+                                        //                   Row(
+                                        //                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                        //                     children: [
+                                        //                       CustomBtn(
+                                        //                         width: 100,
+                                        //                         text: 'Clear All',
+                                        //                         callback: () {
+                                        //                           attProvider.initFilterValue(true,date1:widget.date1,date2:widget.date2,type:widget.type);
+                                        //                           Navigator.of(context, rootNavigator: true).pop();
+                                        //                         },
+                                        //                         bgColor: Colors.grey.shade200,
+                                        //                         textColor: Colors.black,
+                                        //                       ),
+                                        //                       CustomBtn(
+                                        //                         width: 100,
+                                        //                         text: 'Apply Filters',
+                                        //                         callback: () {
+                                        //                           attProvider.initFilterValue(false);
+                                        //                           attProvider.filterList();
+                                        //                           Navigator.of(context, rootNavigator: true).pop();
+                                        //                         },
+                                        //                         bgColor: colorsConst.primary,
+                                        //                         textColor: Colors.white,
+                                        //                       ),
+                                        //                     ],
+                                        //                   ),
+                                        //                   20.height,
+                                        //                 ],
+                                        //               ),
+                                        //             )
+                                        //           ],
+                                        //         );
+                                        //       },
+                                        //     );
+                                        //   },
+                                        // );
+                                        _myFocusScopeNode.unfocus();
+                                                  showDialog(
+                                                    context: context,
+                                                    builder: (context) {
+                                                      return Consumer<AttendanceProvider>(
+                                                        builder: (context, custProvider, _) {
+                                                          return AlertDialog(
+                                                            actions: [
+                                                              SizedBox(
+                                                                width: kIsWeb?webWidth:phoneWidth,
+                                                                child: Column(
+                                                                  children: [
+                                                                    20.height,
+                                                                    Row(
+                                                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                                      children: [
+                                                                        70.width,
+                                                                        const CustomText(
+                                                                          text: 'Filters',
+                                                                          colors: Colors.black,
+                                                                          size: 16,
+                                                                          isBold: true,
+                                                                        ),
+                                                                        30.width,
+                                                                        InkWell(
+                                                                          onTap: () {
+                                                                            Navigator.of(context, rootNavigator: true).pop();
+                                                                          },
+                                                                          child: SvgPicture.asset(assets.cancel),
+                                                                        )
+                                                                      ],
+                                                                    ),
+                                                                    20.height,
+                                                                    Row(
+                                                                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                                                      children: [
+                                                                        Column(
+                                                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                                                          children: [
+                                                                            CustomText(
+                                                                              text: "From Date",
+                                                                              colors: colorsConst.greyClr,
+                                                                              size: 12,
+                                                                            ),
+                                                                            InkWell(
+                                                                              onTap: () {
+                                                                                custProvider.datePick(
+                                                                                  context: context,
+                                                                                  isStartDate: true,
+                                                                                  date: attProvider.startDate,
+                                                                                );
+                                                                              },
+                                                                              child: Container(
+                                                                                height: 30,
+                                                                                width: kIsWeb?webWidth/2.7:phoneWidth/2.7,
+                                                                                decoration: customDecoration.baseBackgroundDecoration(
+                                                                                  color: Colors.white,
+                                                                                  radius: 5,
+                                                                                  borderColor: colorsConst.litGrey,
+                                                                                ),
+                                                                                child: Row(
+                                                                                  mainAxisAlignment: MainAxisAlignment.center,
+                                                                                  children: [
+                                                                                    CustomText(text: custProvider.startDate),
+                                                                                    5.width,
+                                                                                    SvgPicture.asset(assets.calendar2),
+                                                                                  ],
+                                                                                ),
+                                                                              ),
+                                                                            )
+                                                                          ],
+                                                                        ),
+                                                                        Column(
+                                                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                                                          children: [
+                                                                            CustomText(
+                                                                              text: "To Date",
+                                                                              colors: colorsConst.greyClr,
+                                                                              size: 12,
+                                                                            ),
+                                                                            InkWell(
+                                                                              onTap: () {
+                                                                                custProvider.datePick(
+                                                                                  context: context,
+                                                                                  isStartDate: false,
+                                                                                  date: attProvider.endDate,
+                                                                                );
+                                                                              },
+                                                                              child: Container(
+                                                                                height: 30,
+                                                                                width: kIsWeb?webWidth/2.7:phoneWidth/2.7,
+                                                                                decoration: customDecoration.baseBackgroundDecoration(
+                                                                                  color: Colors.white,
+                                                                                  radius: 5,
+                                                                                  borderColor: colorsConst.litGrey,
+                                                                                ),
+                                                                                child: Row(
+                                                                                  mainAxisAlignment: MainAxisAlignment.center,
+                                                                                  children: [
+                                                                                    CustomText(text: custProvider.endDate),
+                                                                                    5.width,
+                                                                                    SvgPicture.asset(assets.calendar2),
+                                                                                  ],
+                                                                                ),
+                                                                              ),
+                                                                            )
+                                                                          ],
+                                                                        ),
+                                                                      ],
+                                                                    ),
+                                                                    10.height,
+                                                                    Row(
+                                                                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                                                      children: [
+                                                                        Column(
+                                                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                                                          children: [
+                                                                            CustomText(
+                                                                              text: "Employee Name",
+                                                                              colors: colorsConst.greyClr,
+                                                                              size: 12,
+                                                                            ),
+                                                                            EmployeeDropdown(
+                                                                              callback: (){
+                                                                                empProvider.getAllUsers();
+                                                                              },
+                                                                              text: attProvider.userName,
+                                                                              employeeList: empProvider.filterUserData,
+                                                                              onChanged: (UserModel? value) {
+                                                                                attProvider.selectUser(context,value!,widget.empList);
+                                                                              },
+                                                                              size: kIsWeb?webWidth/2.7:phoneWidth/2.7,
+                                                                            ),
+                                                                          ],
+                                                                        ),
+                                                                        Padding(
+                                                                          padding: EdgeInsets.fromLTRB(0, empProvider.filterUserData.isEmpty?20:0, 0, 0),
+                                                                          child: Column(
+                                                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                                                            children: [
+                                                                              CustomText(
+                                                                                text: "Select Date Range",
+                                                                                colors: colorsConst.greyClr,
+                                                                                size: 12,
+                                                                              ),
+                                                                              Container(
+                                                                                height: 40,
+                                                                                width: kIsWeb?webWidth/2.7:phoneWidth/2.7,
+                                                                                decoration: customDecoration.baseBackgroundDecoration(
+                                                                                  radius: 5,
+                                                                                  color: Colors.white,
+                                                                                  borderColor: colorsConst.litGrey,
+                                                                                ),
+                                                                                child: DropdownButton(
+                                                                                  iconEnabledColor: colorsConst.greyClr,
+                                                                                  isExpanded: true,
+                                                                                  underline: const SizedBox(),
+                                                                                  icon: const Icon(Icons.keyboard_arrow_down_outlined),
+                                                                                  value: attProvider.type,
+                                                                                  onChanged: (value) {
+                                                                                    attProvider.changeType(value,localData.storage.read("id"),localData.storage.read("role"),false,widget.empList);
+                                                                                  },
+                                                                                  items: attProvider.typeList.map((list) {
+                                                                                    return DropdownMenuItem(
+                                                                                      value: list,
+                                                                                      child: CustomText(
+                                                                                        text: "  $list",
+                                                                                        colors: Colors.black,
+                                                                                        isBold: false,
+                                                                                      ),
+                                                                                    );
+                                                                                  }).toList(),
+                                                                                ),
+                                                                              ),
+                                                                            ],
+                                                                          ),
+                                                                        ),
+                                                                      ],
+                                                                    ),
+                                                                    20.height,
+                                                                    Row(
+                                                                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                                                      children: [
+                                                                        CustomBtn(
+                                                                          width: 100,
+                                                                          text: 'Clear All',
+                                                                          callback: () {
+                                                                            attProvider.initDate(id:localData.storage.read("id"),role:localData.storage.read("role"),isRefresh: false,date1:widget.date1,date2:widget.date2,type:widget.type);
+                                                                            Navigator.of(context, rootNavigator: true).pop();
+                                                                            // attProvider.getAttendanceReport(localData.storage.read("id"),localData.storage.read("role"),false,isAbsent: showType=="Absent"?true:false,isLate: showType=="Late"?true:false,list: widget.empList);
+                                                                            if(attProvider.selectedIndex==1){
+                                                                              showType="Absent";
+                                                                              attProvider.getAttendanceReport(localData.storage.read("id"),localData.storage.read("role"),false,isAbsent: true,isLate: false,list: widget.empList);
+                                                                            }
+                                                                            if(attProvider.selectedIndex==2){
+                                                                              showType="Late";
+                                                                              attProvider.getAttendanceReport(localData.storage.read("id"),localData.storage.read("role"),false,isAbsent: false,isLate: true,list: widget.empList);
+                                                                            }
+                                                                            if(attProvider.selectedIndex==4){
+                                                                              showType="Present";
+                                                                              attProvider.getAttendanceReport(localData.storage.read("id"),localData.storage.read("role"),false,isAbsent: false,isLate: false,list: widget.empList);
+                                                                            }
+                                                                            },
+                                                                          bgColor: Colors.grey.shade200,
+                                                                          textColor: Colors.black,
+                                                                        ),
+                                                                        CustomBtn(
+                                                                          width: 100,
+                                                                          text: 'Apply Filters',
+                                                                          callback: () {
+                                                                            attProvider.getAttendanceReport(localData.storage.read("id"),localData.storage.read("role"),true,isAbsent: showType=="Absent"?true:false,isLate: showType=="Late"?true:false,list: widget.empList);
+                                                                            Navigator.of(context, rootNavigator: true).pop();
+                                                                          },
+                                                                          bgColor: colorsConst.primary,
+                                                                          textColor: Colors.white,
+                                                                        ),
+                                                                      ],
+                                                                    ),
+                                                                    20.height,
+                                                                  ],
+                                                                ),
+                                                              )
+                                                            ],
+                                                          );
+                                                        },
+                                                      );
+                                                    },
+                                                  );
+                                                  // empProvider.filterUserData = empProvider.filterUserData.where((contact){
+                                                  //   DateTime contactDate = DateFormat('yyyy-MM-dd').parse(contact.updatedTs.toString().split(' ')[0]);
+                                                  //   return contactDate.isAfter(startDate) && contactDate.isBefore(currentDate);
+                                                  // }).toList();
+                                                },
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(6.0),
+                                        child: SvgPicture.asset(assets.tFilter,width: 20,height: 20,),
+                                      ),
+                                    ),5.width
+                                  ],
+                                ),),
+                              GestureDetector(
+                                  onTap: (){
                                     if(attProvider.getDailyAttendance.isEmpty){
                                       utils.showWarningToast(context, text: "No Data Found");
                                     }else{
-                                      if(attProvider.filter==true&&attProvider.userName!=""){
+                                      if(attProvider.userName!=""){
                                         excelReports.exportUserAttendanceToExcel(context,chunked: attProvider.getDailyAttendance, date: "${attProvider.startDate} ${attProvider.startDate==attProvider.endDate?"":"To ${attProvider.endDate}"}");
                                       }else{
                                         excelReports.exportAttendanceToExcel(context,chunked: attProvider.getDailyAttendance, date: "${attProvider.startDate} ${attProvider.startDate==attProvider.endDate?"":"To ${attProvider.endDate}"}");
                                       }
                                     }
-                                  }, icon: Icon(Icons.download)),
-                                  IconButton(onPressed: (){
-                                    Provider.of<AttendanceProvider>(context, listen: false).getAttendanceReport(localData.storage.read("id"),localData.storage.read("role"),attProvider.filter,
-                                        isAbsent: showType=="Absent"?true:false,isLate: showType=="Late"?true:false,list: widget.empList);
-                                  }, icon: Icon(Icons.refresh,color: Colors.red,)),
-                                  InkWell(onTap: (){
-                                    attProvider.initDate(id:localData.storage.read("id"),role:localData.storage.read("role"),isRefresh: false,date1:widget.date1,date2:widget.date2);
-                                    showType="Present";
-                                    attProvider.getAttendanceReport(localData.storage.read("id"),localData.storage.read("role"),false,isAbsent: false,isLate: false,list: widget.empList,);
-                                  }, child: Icon(Icons.cancel,color: Colors.red,))
-                                  ///
-                                ],
-                              ),
-                          ],
-                        ),
+                                    },
+                                  child: SvgPicture.asset(assets.tDownload,width: 27,height: 27,)),
+                              // CustomLoadingButton(callback: (){
+                              // }, text: "PF", isLoading: false,
+                              //     backgroundColor: colorsConst.primary, radius: 5, width: 60)
+                            ],
+                          ),
+                        // Column(
+                        //   crossAxisAlignment: CrossAxisAlignment.end,
+                        //   children: [
+                        //     CustomText(text: attProvider.lastRefreshed,colors:colorsConst.greyClr,isBold: true,size: 12,),
+                        //     Row(
+                        //         mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        //         children: [
+                        //           SizedBox(
+                        //             height: 85,
+                        //             child: CustomTextField(
+                        //               text: "",radius: 30,
+                        //               controller: attProvider.search,
+                        //               textInputAction: TextInputAction.done,
+                        //               width: kIsWeb?webWidth/1.5:phoneWidth/1.6,
+                        //               hintText: "Search By Name",
+                        //               isIcon: true,
+                        //               iconData: Icons.search,
+                        //               isShadow: true,
+                        //               onChanged: (value) {
+                        //
+                        //               },
+                        //               isSearch: attProvider.search.text.isNotEmpty?true:false,
+                        //               searchCall: (){
+                        //                 attProvider.search.clear();
+                        //                 attProvider.searchAttendanceReport("");
+                        //               },
+                        //             ),
+                        //           ),
+                        //           // InkWell(
+                        //           //   onTap: (){
+                        //           //     _myFocusScopeNode.unfocus();
+                        //           //     showDialog(
+                        //           //       context: context,
+                        //           //       builder: (context) {
+                        //           //         return Consumer<AttendanceProvider>(
+                        //           //           builder: (context, custProvider, _) {
+                        //           //             return AlertDialog(
+                        //           //               actions: [
+                        //           //                 SizedBox(
+                        //           //                   width: kIsWeb?webWidth:phoneWidth,
+                        //           //                   child: Column(
+                        //           //                     children: [
+                        //           //                       20.height,
+                        //           //                       Row(
+                        //           //                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        //           //                         children: [
+                        //           //                           70.width,
+                        //           //                           const CustomText(
+                        //           //                             text: 'Filters',
+                        //           //                             colors: Colors.black,
+                        //           //                             size: 16,
+                        //           //                             isBold: true,
+                        //           //                           ),
+                        //           //                           30.width,
+                        //           //                           InkWell(
+                        //           //                             onTap: () {
+                        //           //                               Navigator.of(context, rootNavigator: true).pop();
+                        //           //                             },
+                        //           //                             child: SvgPicture.asset(assets.cancel),
+                        //           //                           )
+                        //           //                         ],
+                        //           //                       ),
+                        //           //                       20.height,
+                        //           //                       Row(
+                        //           //                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        //           //                         children: [
+                        //           //                           Column(
+                        //           //                             crossAxisAlignment: CrossAxisAlignment.start,
+                        //           //                             children: [
+                        //           //                               CustomText(
+                        //           //                                 text: "From Date",
+                        //           //                                 colors: colorsConst.greyClr,
+                        //           //                                 size: 12,
+                        //           //                               ),
+                        //           //                               InkWell(
+                        //           //                                 onTap: () {
+                        //           //                                   custProvider.datePick(
+                        //           //                                     context: context,
+                        //           //                                     isStartDate: true,
+                        //           //                                     date: attProvider.startDate,
+                        //           //                                   );
+                        //           //                                 },
+                        //           //                                 child: Container(
+                        //           //                                   height: 30,
+                        //           //                                   width: kIsWeb?webWidth/2.7:phoneWidth/2.7,
+                        //           //                                   decoration: customDecoration.baseBackgroundDecoration(
+                        //           //                                     color: Colors.white,
+                        //           //                                     radius: 5,
+                        //           //                                     borderColor: colorsConst.litGrey,
+                        //           //                                   ),
+                        //           //                                   child: Row(
+                        //           //                                     mainAxisAlignment: MainAxisAlignment.center,
+                        //           //                                     children: [
+                        //           //                                       CustomText(text: custProvider.startDate),
+                        //           //                                       5.width,
+                        //           //                                       SvgPicture.asset(assets.calendar2),
+                        //           //                                     ],
+                        //           //                                   ),
+                        //           //                                 ),
+                        //           //                               )
+                        //           //                             ],
+                        //           //                           ),
+                        //           //                           Column(
+                        //           //                             crossAxisAlignment: CrossAxisAlignment.start,
+                        //           //                             children: [
+                        //           //                               CustomText(
+                        //           //                                 text: "To Date",
+                        //           //                                 colors: colorsConst.greyClr,
+                        //           //                                 size: 12,
+                        //           //                               ),
+                        //           //                               InkWell(
+                        //           //                                 onTap: () {
+                        //           //                                   custProvider.datePick(
+                        //           //                                     context: context,
+                        //           //                                     isStartDate: false,
+                        //           //                                     date: attProvider.endDate,
+                        //           //                                   );
+                        //           //                                 },
+                        //           //                                 child: Container(
+                        //           //                                   height: 30,
+                        //           //                                   width: kIsWeb?webWidth/2.7:phoneWidth/2.7,
+                        //           //                                   decoration: customDecoration.baseBackgroundDecoration(
+                        //           //                                     color: Colors.white,
+                        //           //                                     radius: 5,
+                        //           //                                     borderColor: colorsConst.litGrey,
+                        //           //                                   ),
+                        //           //                                   child: Row(
+                        //           //                                     mainAxisAlignment: MainAxisAlignment.center,
+                        //           //                                     children: [
+                        //           //                                       CustomText(text: custProvider.endDate),
+                        //           //                                       5.width,
+                        //           //                                       SvgPicture.asset(assets.calendar2),
+                        //           //                                     ],
+                        //           //                                   ),
+                        //           //                                 ),
+                        //           //                               )
+                        //           //                             ],
+                        //           //                           ),
+                        //           //                         ],
+                        //           //                       ),
+                        //           //                       10.height,
+                        //           //                       Row(
+                        //           //                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        //           //                         children: [
+                        //           //                           Column(
+                        //           //                             crossAxisAlignment: CrossAxisAlignment.start,
+                        //           //                             children: [
+                        //           //                               CustomText(
+                        //           //                                 text: "Employee Name",
+                        //           //                                 colors: colorsConst.greyClr,
+                        //           //                                 size: 12,
+                        //           //                               ),
+                        //           //                               EmployeeDropdown(
+                        //           //                                 callback: (){
+                        //           //                                   empProvider.getAllUsers();
+                        //           //                                 },
+                        //           //                                 text: attProvider.userName,
+                        //           //                                 employeeList: empProvider.filterUserData,
+                        //           //                                 onChanged: (UserModel? value) {
+                        //           //                                   attProvider.selectUser(value!);
+                        //           //                                 },
+                        //           //                                 size: kIsWeb?webWidth/2.7:phoneWidth/2.7,
+                        //           //                               ),
+                        //           //                             ],
+                        //           //                           ),
+                        //           //                           Padding(
+                        //           //                             padding: EdgeInsets.fromLTRB(0, empProvider.filterUserData.isEmpty?20:0, 0, 0),
+                        //           //                             child: Column(
+                        //           //                               crossAxisAlignment: CrossAxisAlignment.start,
+                        //           //                               children: [
+                        //           //                                 CustomText(
+                        //           //                                   text: "Select Date Range",
+                        //           //                                   colors: colorsConst.greyClr,
+                        //           //                                   size: 12,
+                        //           //                                 ),
+                        //           //                                 Container(
+                        //           //                                   height: 40,
+                        //           //                                   width: kIsWeb?webWidth/2.7:phoneWidth/2.7,
+                        //           //                                   decoration: customDecoration.baseBackgroundDecoration(
+                        //           //                                     radius: 5,
+                        //           //                                     color: Colors.white,
+                        //           //                                     borderColor: colorsConst.litGrey,
+                        //           //                                   ),
+                        //           //                                   child: DropdownButton(
+                        //           //                                     iconEnabledColor: colorsConst.greyClr,
+                        //           //                                     isExpanded: true,
+                        //           //                                     underline: const SizedBox(),
+                        //           //                                     icon: const Icon(Icons.keyboard_arrow_down_outlined),
+                        //           //                                     value: attProvider.type,
+                        //           //                                     onChanged: (value) {
+                        //           //                                       attProvider.changeType(value,localData.storage.read("id"),localData.storage.read("role"),false);
+                        //           //                                     },
+                        //           //                                     items: attProvider.typeList.map((list) {
+                        //           //                                       return DropdownMenuItem(
+                        //           //                                         value: list,
+                        //           //                                         child: CustomText(
+                        //           //                                           text: "  $list",
+                        //           //                                           colors: Colors.black,
+                        //           //                                           isBold: false,
+                        //           //                                         ),
+                        //           //                                       );
+                        //           //                                     }).toList(),
+                        //           //                                   ),
+                        //           //                                 ),
+                        //           //                               ],
+                        //           //                             ),
+                        //           //                           ),
+                        //           //                         ],
+                        //           //                       ),
+                        //           //                       20.height,
+                        //           //                       Row(
+                        //           //                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        //           //                         children: [
+                        //           //                           CustomBtn(
+                        //           //                             width: 100,
+                        //           //                             text: 'Clear All',
+                        //           //                             callback: () {
+                        //           //                               attProvider.initDate(id:localData.storage.read("id"),role:localData.storage.read("role"),isRefresh: false,date1:widget.date1,date2:widget.date2,type:widget.type);
+                        //           //                               Navigator.of(context, rootNavigator: true).pop();
+                        //           //                               // attProvider.getAttendanceReport(localData.storage.read("id"),localData.storage.read("role"),false,isAbsent: showType=="Absent"?true:false,isLate: showType=="Late"?true:false,list: widget.empList);
+                        //           //                               if(attProvider.selectedIndex==1){
+                        //           //                                 showType="Absent";
+                        //           //                                 attProvider.getAttendanceReport(localData.storage.read("id"),localData.storage.read("role"),false,isAbsent: true,isLate: false,list: widget.empList);
+                        //           //                               }
+                        //           //                               if(attProvider.selectedIndex==2){
+                        //           //                                 showType="Late";
+                        //           //                                 attProvider.getAttendanceReport(localData.storage.read("id"),localData.storage.read("role"),false,isAbsent: false,isLate: true,list: widget.empList);
+                        //           //                               }
+                        //           //                               if(attProvider.selectedIndex==4){
+                        //           //                                 showType="Present";
+                        //           //                                 attProvider.getAttendanceReport(localData.storage.read("id"),localData.storage.read("role"),false,isAbsent: false,isLate: false,list: widget.empList);
+                        //           //                               }
+                        //           //                               },
+                        //           //                             bgColor: Colors.grey.shade200,
+                        //           //                             textColor: Colors.black,
+                        //           //                           ),
+                        //           //                           CustomBtn(
+                        //           //                             width: 100,
+                        //           //                             text: 'Apply Filters',
+                        //           //                             callback: () {
+                        //           //                               attProvider.getAttendanceReport(localData.storage.read("id"),localData.storage.read("role"),true,isAbsent: showType=="Absent"?true:false,isLate: showType=="Late"?true:false,list: widget.empList);
+                        //           //                               Navigator.of(context, rootNavigator: true).pop();
+                        //           //                             },
+                        //           //                             bgColor: colorsConst.primary,
+                        //           //                             textColor: Colors.white,
+                        //           //                           ),
+                        //           //                         ],
+                        //           //                       ),
+                        //           //                       20.height,
+                        //           //                     ],
+                        //           //                   ),
+                        //           //                 )
+                        //           //               ],
+                        //           //             );
+                        //           //           },
+                        //           //         );
+                        //           //       },
+                        //           //     );
+                        //           //     // empProvider.filterUserData = empProvider.filterUserData.where((contact){
+                        //           //     //   DateTime contactDate = DateFormat('yyyy-MM-dd').parse(contact.updatedTs.toString().split(' ')[0]);
+                        //           //     //   return contactDate.isAfter(startDate) && contactDate.isBefore(currentDate);
+                        //           //     // }).toList();
+                        //           //   },
+                        //           //   child: Container(
+                        //           //     width: kIsWeb?webWidth/6.5:phoneWidth/7,
+                        //           //     height: 45,
+                        //           //     decoration: customDecoration.baseBackgroundDecoration(
+                        //           //         color: attProvider.filter==true?colorsConst.primary:Colors.grey.shade300,radius: 5
+                        //           //     ),
+                        //           //     child: Padding(
+                        //           //       padding: const EdgeInsets.all(5.0),
+                        //           //       child: SvgPicture.asset(assets.filter,width: 15,height: 15,),
+                        //           //     ),
+                        //           //   ),
+                        //           // ),
+                        //           IconButton(onPressed: (){
+                        //             if(attProvider.getDailyAttendance.isEmpty){
+                        //               utils.showWarningToast(context, text: "No Data Found");
+                        //             }else{
+                        //               if(attProvider.userName!=""){
+                        //                 excelReports.exportUserAttendanceToExcel(context,chunked: attProvider.getDailyAttendance, date: "${attProvider.startDate} ${attProvider.startDate==attProvider.endDate?"":"To ${attProvider.endDate}"}");
+                        //               }else{
+                        //                 excelReports.exportAttendanceToExcel(context,chunked: attProvider.getDailyAttendance, date: "${attProvider.startDate} ${attProvider.startDate==attProvider.endDate?"":"To ${attProvider.endDate}"}");
+                        //               }
+                        //             }
+                        //           }, icon: Icon(Icons.download)),
+                        //           IconButton(onPressed: (){
+                        //             Provider.of<AttendanceProvider>(context, listen: false).getAttendanceReport(localData.storage.read("id"),localData.storage.read("role"),attProvider.filter,
+                        //                 isAbsent: showType=="Absent"?true:false,isLate: showType=="Late"?true:false,list: widget.empList);
+                        //           }, icon: Icon(Icons.refresh,color: Colors.red,)),
+                        //           InkWell(onTap: (){
+                        //             attProvider.initDate(id:localData.storage.read("id"),role:localData.storage.read("role"),isRefresh: false,date1:widget.date1,date2:widget.date2);
+                        //             showType="Present";
+                        //             attProvider.getAttendanceReport(localData.storage.read("id"),localData.storage.read("role"),false,isAbsent: false,isLate: false,list: widget.empList,);
+                        //           }, child: Icon(Icons.cancel,color: Colors.red,))
+                        //           ///
+                        //         ],
+                        //       ),
+                        //   ],
+                        // ),
                         if(localData.storage.read("role") !="1"&&showType!="0"&&showType!="Absent"&&showType!="Late")
                         CustomDropDown(
                               text: "", valueList: attProvider.typeList,
@@ -422,140 +1009,94 @@ void check(){
                               onChanged: (value){
                                 attProvider.changeType(value,localData.storage.read("id"),localData.storage.read("role"),false,widget.empList);
                               }, width: kIsWeb?webWidth:phoneWidth),
-                        if(attProvider.userName!="")
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(0, 0, 10, 0),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            children: [
-                              CustomText(text: attProvider.userName,colors:colorsConst.pink2,isBold: true,),
-                            ],
-                          ),
+                        10.height,
+                        Column(
+                          children: [
+                            SizedBox(
+                              width: kIsWeb?webWidth:phoneWidth,
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  if(attProvider.filter==true)
+                                  CustomText(text: "Filter Selected",colors:colorsConst.greyClr,size: 14,),10.height,
+                                  Row(
+                                    crossAxisAlignment: CrossAxisAlignment.end,
+                                    mainAxisAlignment: MainAxisAlignment.end,
+                                    children: [
+                                      CustomText(text: "Total Records: ",colors:colorsConst.greyClr,size: 14,),
+                                      CustomText(text: showType=="Leave"?levPvr.myLevSearch.length.toString():showType=="Late"?attProvider.lateUsers.length.toString():showType=="Absent"?attProvider.noAttendanceList.length.toString():showType=="Present"?attProvider.getDailyAttendance.length.toString():attProvider.permisCount.toString(),colors:colorsConst.primary,size: 14,),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                            10.height,
+                            if(attProvider.filter==true)
+                            Row(
+                                // spacing: 8,
+                                // runSpacing: 8,
+                                children: [
+                                  if (attProvider.startDate != attProvider.endDate)
+                                    if (attProvider.startDate.isNotEmpty &&
+                                        attProvider.endDate.isNotEmpty)
+                                      _filterChip(
+                                        "${attProvider.startDate} - ${attProvider.endDate}",
+                                      ),
+
+                                  if (attProvider.type.isNotEmpty || attProvider.type!="null")
+                                    _filterChip(attProvider.type), // Last 7 days
+
+                                  if (attProvider.userName.isNotEmpty)
+                                    _filterChip(attProvider.userName),
+
+                                ],
+                              ),
+                            10.height,
+                          ],
                         ),
                         // if(attProvider.getDailyAttendance.isNotEmpty)
                         Column(
                           children: [
-                            Row(
-                              children: [
-                                EmployeeDropdown(
-                                  callback: (){
-                                    empProvider.getAllUsers();
-                                  },
-                                  text: attProvider.userName==""?"Employee name":attProvider.userName,isHint:true,
-                                  employeeList: empProvider.filterUserData,
-                                  onChanged: (UserModel? value) {
-                                    attProvider.selectUser(value!,widget.empList);
-                                  },
-                                  size: kIsWeb?webWidth/2:phoneWidth/2,
-                                ),
-                                Container(
-                                  height: 40,
-                                  width: kIsWeb?webWidth/2.7:phoneWidth/2,
-                                  decoration: customDecoration.baseBackgroundDecoration(
-                                    radius: 5,
-                                    color: Colors.white,
-                                    borderColor: colorsConst.litGrey.withOpacity(0.2),
-                                  ),
-                                  child: DropdownButton(
-                                    iconEnabledColor: colorsConst.greyClr,
-                                    isExpanded: true,
-                                    underline: const SizedBox(),
-                                    icon: const Icon(Icons.keyboard_arrow_down_outlined),
-                                    value: attProvider.type,
-                                    onChanged: (value) {
-                                      attProvider.changeType(value,localData.storage.read("id"),localData.storage.read("role"),false,widget.empList);
-                                    },
-                                    items: attProvider.typeList.map((list) {
-                                      return DropdownMenuItem(
-                                        value: list,
-                                        child: CustomText(
-                                          text: "  $list",
-                                          colors: Colors.black,
-                                          isBold: false,
-                                        ),
-                                      );
-                                    }).toList(),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            Padding(
-                                padding: const EdgeInsets.all(8.0),
-                                child: Container(
-                                  width: kIsWeb?webWidth:phoneWidth,
-                                  decoration: customDecoration.baseBackgroundDecoration(
-                                    color: Colors.white,radius: 10,
-                                  ),
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    if(attProvider.filter==true)
-                                      Padding(
-                                        padding: const EdgeInsets.all(5.0),
-                                        child: Row(
-                                          children: [
-                                            CustomText(text: "Filter Type : ",colors:colorsConst.greyClr,size: 13,),
-                                            CustomText(text: "${attProvider.type!=null?attProvider.type:""}",colors:colorsConst.primary,size: 13,),
-                                          ],
-                                        ),
-                                      ),
-                                    if(attProvider.filter==true)
-                                      Divider(color: Colors.grey.shade200,),
-                                      GestureDetector(
-                                        onTap: (){
-                                          attProvider.showDatePickerDialog(context,widget.empList);
-                                        },
-                                        child: Padding(
-                                          padding: const EdgeInsets.all(5.0),
-                                          child: Row(
-                                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                            children: [
-                                              Row(
-                                                children: [
-                                                  Icon(Icons.calendar_month_outlined,color: colorsConst.primary),
-                                                  // SvgPicture.asset(assets.rCalendar,width: 20,height: 20,),
-                                                  5.width,
-                                                  CustomText(
-                                                    text: attProvider.startDate == attProvider.endDate
-                                                        ? "${attProvider.startDate}"
-                                                        : "${attProvider.startDate} To ${attProvider.endDate}",
-                                                    colors: colorsConst.greyClr,
-                                                    size: 14,
-                                                  ),
-                                                ],
-                                              ),
-                                              Container(height: 15,width: 1,color: Colors.grey,),
-                                              Row(
-                                                children: [
-                                                  CustomText(text: "Total Records: ",colors:colorsConst.greyClr,size: 14,),
-                                                  CustomText(text: showType=="Leave"?levPvr.myLevSearch.length.toString():showType=="Late"?attProvider.lateUsers.length.toString():showType=="Absent"?attProvider.noAttendanceList.length.toString():showType=="Present"?attProvider.getDailyAttendance.length.toString():attProvider.permisCount.toString(),colors:colorsConst.primary,size: 14,),
-                                                ],
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ),
-                                  ],
-                                ),
-                                ),
-                              ),
+                            // GroupButton(
+                            //   options: GroupButtonOptions(
+                            //       spacing: 10,
+                            //       borderRadius:BorderRadius.circular(5),
+                            //       buttonHeight: 30,
+                            //       buttonWidth: phoneWidth/7,
+                            //       selectedBorderColor:colorsConst.primary,
+                            //       unselectedBorderColor:colorsConst.primary,
+                            //       selectedTextStyle:const TextStyle(
+                            //           fontSize: 13,
+                            //           fontFamily:'Lato'
+                            //       ),unselectedTextStyle:TextStyle(
+                            //       color: colorsConst.primary,
+                            //       fontSize: 13,
+                            //       fontFamily:'Lato'
+                            //   )),
+                            //   buttons: attProvider.items,
+                            //   controller:attProvider.statusController,
+                            //   onSelected: (name, index, isSelect) {
+                            //     attProvider.changeExpense(name.toString(),index);
+                            //   },
+                            // ),
                             Row(
                               children: [
                                 Container(
-                                  width: kIsWeb?webWidth:phoneWidth/1.17,
+                                  width: kIsWeb?webWidth:phoneWidth/1.14,
                                   height: 45,
                                   decoration: BoxDecoration(
                                     color: Colors.white,
                                     borderRadius: BorderRadius.only(
-                                      topLeft: Radius.circular(25),
-                                      bottomLeft: Radius.circular(25),
+                                      topLeft: Radius.circular(5),
+                                      bottomLeft: Radius.circular(5),
                                     ),
                                     // border: Border.all(color: Colors.grey.shade300),
                                   ),
                                   child: ToggleButtons(
                                     borderRadius: BorderRadius.only(
-                                      topLeft: Radius.circular(25),
-                                      bottomLeft: Radius.circular(25),
+                                      topLeft: Radius.circular(5),
+                                      bottomLeft: Radius.circular(5),
                                     ),
                                     // borderColor: Colors.grey.shade300,
                                     selectedBorderColor: Colors.white,
@@ -597,11 +1138,12 @@ void check(){
                                       bool isSelected = attProvider.selectedIndex == index;
 
                                       return Padding(
-                                        padding: const EdgeInsets.symmetric(horizontal: 5),
+                                        padding: const EdgeInsets.symmetric(horizontal: 6),
                                         child: Row(
+                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                           children: [
                                             CustomText(
-                                              text:attProvider.items[index],
+                                              text:"  ${attProvider.items[index]}",
                                               colors: isSelected
                                                   ? Colors.white
                                                   : attProvider.itemColors[index].withOpacity(0.6),isBold: true,
@@ -622,15 +1164,18 @@ void check(){
                                   },
                                   child: Container(
                                       height: 45,
-                                      width: kIsWeb?webWidth:phoneWidth/7,
+                                      width: kIsWeb?webWidth:phoneWidth/9,
                                       decoration: BoxDecoration(
                                         color: Colors.white,
                                         borderRadius: BorderRadius.only(
-                                          topRight: Radius.circular(25),
-                                          bottomRight: Radius.circular(25),
+                                          topRight: Radius.circular(5),
+                                          bottomRight: Radius.circular(5),
                                         ),
                                       ),
-                                      child: Icon(Icons.sort_by_alpha)
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(5.0),
+                                        child: Icon(Icons.sort_by_alpha),
+                                      )
                                   ),
                                 ),
                               ],
@@ -758,9 +1303,13 @@ void check(){
                                 return Padding(
                                   padding: EdgeInsets.fromLTRB(5, 10, 5, index==attProvider.lateUsers.length-1?30:0),
                                   child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
                                       if(localData.storage.read("role")=="1"&&showDateHeader)
-                                      CustomText(text: createdBy,colors:colorsConst.greyClr,size: 12,),
+                                      Padding(
+                                        padding: const EdgeInsets.fromLTRB(0, 10, 0, 10),
+                                        child: CustomText(text: createdBy,colors:colorsConst.greyClr,size: 12,),
+                                      ),
                                       AttendanceDetails(
                                         showDate: index==0?true:false,
                                         date: data.date.toString(),
@@ -788,6 +1337,21 @@ void check(){
                                 );
                               }),
                         ):
+                        attProvider.selectedIndex==3&&levPvr.isLoading == false ?
+                        const Padding(
+                          padding: EdgeInsets.fromLTRB(0, 150, 0, 0),
+                          child: Loading(),
+                        )
+                        :attProvider.selectedIndex==3&&levPvr.myLevSearch.isEmpty ?
+                        Column(
+                          children: [
+                            100.height,
+                            CustomText(
+                              text: constValue.noData, colors: colorsConst.greyClr,),
+                          ],
+                        )
+                        :attProvider.selectedIndex==3&&levPvr.myLevSearch.isNotEmpty?Flexible(
+                          child: itemBuilder(levPvr.myLevSearch,levPvr)):
                         Flexible(
                           child: ListView.builder(
                               itemCount: attProvider.getDailyAttendance.length,
@@ -826,9 +1390,13 @@ void check(){
                                     createdBy != prevCreatedBy;
                                 return attProvider.selectedIndex==2&&isLate(inTime)?
                                 Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     if(localData.storage.read("role")=="1"&&showDateHeader)
-                                    CustomText(text: createdBy,colors:colorsConst.greyClr,size: 12,),
+                                    Padding(
+                                      padding: const EdgeInsets.fromLTRB(0, 10, 0, 10),
+                                      child: CustomText(text: createdBy,colors:colorsConst.greyClr,size: 12,),
+                                    ),
                                     InkWell(
                                       onTap:(){
                                           utils.navigatePage(context, ()=> DashBoard(child:
@@ -870,9 +1438,13 @@ void check(){
                                 )
                                 :attProvider.selectedIndex==4&&data.perStatus.toString().contains(",")?
                                 Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     if(localData.storage.read("role")=="1"&&showDateHeader)
-                                    CustomText(text: createdBy,colors:colorsConst.greyClr,size: 12,),
+                                    Padding(
+                                      padding: const EdgeInsets.fromLTRB(0, 10, 0, 10),
+                                      child: CustomText(text: createdBy,colors:colorsConst.greyClr,size: 12,),
+                                    ),
                                     InkWell(
                                       onTap:(){
                                           utils.navigatePage(context, ()=> DashBoard(child:
@@ -906,9 +1478,13 @@ void check(){
                                 )
                                 :attProvider.selectedIndex==0?
                                 Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     if(localData.storage.read("role")=="1"&&showDateHeader)
-                                    CustomText(text: createdBy,colors:colorsConst.greyClr,size: 12,),
+                                    Padding(
+                                      padding: const EdgeInsets.fromLTRB(0, 10, 0, 10),
+                                      child: CustomText(text: createdBy,colors:colorsConst.greyClr,size: 12,),
+                                    ),
                                     InkWell(
                                       onTap:(){
                                           utils.navigatePage(context, ()=> DashBoard(child:
@@ -939,23 +1515,8 @@ void check(){
                                       ),
                                     ),5.height
                                   ],
-                                ):
-                                attProvider.selectedIndex==3&&levPvr.isLoading == false ?
-                                const Padding(
-                                  padding: EdgeInsets.fromLTRB(0, 150, 0, 0),
-                                  child: Loading(),
                                 )
-                                :attProvider.selectedIndex==3&&levPvr.myLevSearch.isEmpty ?
-                                Column(
-                                  children: [
-                                    100.height,
-                                    CustomText(
-                                      text: constValue.noData, colors: colorsConst.greyClr,),
-                                  ],
-                                )
-                                :attProvider.selectedIndex==3&&levPvr.myLevSearch.isNotEmpty?Flexible(
-                                    child: itemBuilder(levPvr.myLevSearch,levPvr))
-                                  :0.height;
+                                :0.height;
                               }),
                         ),
                       ]
@@ -1181,5 +1742,23 @@ void check(){
     } else {
       return "${dateTime.day}/${dateTime.month}/${dateTime.year}";
     }
+  }
+  Widget _filterChip(String text) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(0, 0, 5, 0),
+      child: Container(
+        // padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: Color(0xff353535),
+          borderRadius: BorderRadius.circular(5),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: CustomText(
+            text:text,colors: Color(0xffF5F5F5),size: 12,
+          ),
+        ),
+      ),
+    );
   }
 }

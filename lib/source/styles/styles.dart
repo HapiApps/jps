@@ -11,7 +11,7 @@ class CustomStyle{
     return InputDecoration(
       hintText:text,
       hintStyle: const TextStyle(
-          color: Colors.grey,
+          // color: Colors.grey,
           fontSize: 14
       ),
       fillColor: fieldClr,
