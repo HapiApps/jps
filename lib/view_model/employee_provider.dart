@@ -484,6 +484,8 @@ void selectStatus(value){
   search.clear();
   _active=0;
   _inActive=0;
+  _userName="";
+  searchName="";
   for (var user in _filterUserData) {
     user.active == "1" ? _active++ : _inActive++;
   }
@@ -1604,8 +1606,63 @@ Future<void> getUserLogs(String id) async {
     unreadCount = 0;
     notifyListeners();
   }
+  String _userName="";
+  String get userName=>_userName;
+  void selectUser(UserModel value){
+    _userName=value.firstname.toString();
+    searchName=_userName;
+    notifyListeners();
+  }
+  String searchName = "";
+  DateTime? selectedDate;
+  // List<dynamic> get filteredNotifyData {
+  //   return _notifyData.where((item) {
+  //     final createdBy = item["firstname"]?.toString().toLowerCase() ?? "";
+  //     final createdTs = DateTime.parse(item["created_ts"]);
+  //
+  //     /// Name filter
+  //     final matchName = searchName.isEmpty ||
+  //         createdBy.contains(searchName.toLowerCase());
+  //
+  //     /// Date filter
+  //     final matchDate = selectedDate == null ||
+  //         (createdTs.year == selectedDate!.year &&
+  //             createdTs.month == selectedDate!.month &&
+  //             createdTs.day == selectedDate!.day);
+  //
+  //     return matchName && matchDate;
+  //   }).toList();
+  // }
+  List<dynamic> get filteredNotifyData {
+    return notifyData.where((item) {
+      final createdTs = DateTime.parse(item["created_ts"]);
+      final createdBy = item["firstname"]?.toString().toLowerCase() ?? "";
 
+      /// name filter
+      final matchName = searchName.isEmpty ||
+          createdBy.contains(searchName.toLowerCase());
 
+      /// start & end date parse
+      DateTime? start = startDate != ""
+          ? DateFormat("dd-MM-yyyy").parse(startDate)
+          : null;
+
+      DateTime? end = endDate != ""
+          ? DateFormat("dd-MM-yyyy").parse(endDate)
+          : null;
+
+      if (end != null) {
+        end = DateTime(end.year, end.month, end.day, 23, 59, 59);
+      }
+
+      /// date range filter
+      final matchDate =
+          (start == null || !createdTs.isBefore(start)) &&
+              (end == null || !createdTs.isAfter(end));
+
+      return matchName && matchDate; // 👈 rendu filter combine
+    }).toList();
+  }
 Future<void> getNotifications({bool markSeen = false}) async {
   _refresh=false;
   _notifyData.clear();
@@ -1660,7 +1717,7 @@ Future<void> getNotifications({bool markSeen = false}) async {
     }
     notifyListeners();
   }
-  Future<void> sendSomeUserNotification(String msgTittle,String msgBody,String id) async {
+  Future<void> sendSomeUserNotification(String msgTittle,String msgBody,String id,String purposeId) async {
     try {
       Map data = {
         "action": someUserNotification,
@@ -1668,7 +1725,8 @@ Future<void> getNotifications({bool markSeen = false}) async {
         "msgBody": msgBody,
         "send_by": localData.storage.read("id"),
         "id": id,
-        "platform": localData.storage.read("platform").toString()
+        "platform": localData.storage.read("platform").toString(),
+        "purpose_id": purposeId
       };
       final response = await empRepo.notification(data);
       if (response.isNotEmpty) {
@@ -1694,7 +1752,7 @@ Future<void> getNotifications({bool markSeen = false}) async {
         "msgBody": msgBody,
         "send_by": localData.storage.read("id"),
         "id": id,
-        "platform": localData.storage.read("platform").toString()
+        "platform": localData.storage.read("platform").toString(),
       };
       final response = await empRepo.notification(data);
       if (response.isNotEmpty) {
@@ -1712,7 +1770,7 @@ Future<void> getNotifications({bool markSeen = false}) async {
     }
     notifyListeners();
   }
-  Future<void> sendAdminNotification(String msgTittle,String msgBody,String role) async {
+  Future<void> sendAdminNotification(String msgTittle,String msgBody,String role,String purposeId) async {
     Map data = {
       "action":adminNotification,
       "msgTittle":msgTittle,
@@ -1722,7 +1780,8 @@ Future<void> getNotifications({bool markSeen = false}) async {
       "id":localData.storage.read("id"),
       "type":"1",
       "platform": localData.storage.read("platform"),
-      "cos_id": localData.storage.read("cos_id")
+      "cos_id": localData.storage.read("cos_id"),
+      "purpose_id": purposeId
     };
     final response = await empRepo.notification(data);
     print(response);

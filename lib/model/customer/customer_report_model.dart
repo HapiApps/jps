@@ -18,6 +18,7 @@ class CustomerReportModel {
   String? documents;
   String? createdBy;
   String? role;
+  bool isLocal;
 
   CustomerReportModel({
     this.comments,
@@ -39,27 +40,30 @@ class CustomerReportModel {
     this.documents,
     this.createdBy,
     this.role,
+    this.isLocal = false,
   });
 
-  factory CustomerReportModel.fromJson(Map<String, dynamic> json) => CustomerReportModel(
-    documents: json["documents"],
-    type: json["type"],
-    companyName: json["company_name"],
-    comments: json["comments"],
-    date: json["date"],
-    createdTs: DateTime.parse(json["created_ts"]),
-    name: json["name"],
-    phoneNo: json["phone_no"],
-    firstname: json["firstname"],
-    discussionPoints: json["discussion_points"],
-    actionTaken: json["action_taken"],
-    lead: json["lead"],
-    callVisitType: json["call_visit_type"],
-    id: json["id"],
-    commentsList: json["commentsList"],
-    commentsTs: json["commentsTs"],
-    typeNo: json["typeNo"],
-    createdBy: json["created_by"],
-    role: json["role"],
-  );
+  factory CustomerReportModel.fromJson(Map<String, dynamic> json) =>
+      CustomerReportModel(
+        documents: json["documents"],
+        type: json["type"],
+        companyName: json["company_name"],
+        comments: json["comments"],
+        date: json["date"],
+        createdTs: DateTime.parse(json["created_ts"]),
+        name: json["name"],
+        phoneNo: json["phone_no"],
+        firstname: json["firstname"],
+        discussionPoints: json["discussion_points"],
+        actionTaken: json["action_taken"],
+        lead: json["lead"],
+        callVisitType: json["call_visit_type"],
+        id: json["id"],
+        commentsList: json["commentsList"],
+        commentsTs: json["commentsTs"],
+        typeNo: json["typeNo"],
+        createdBy: json["created_by"],
+        role: json["role"],
+        isLocal: false,
+      );
 }

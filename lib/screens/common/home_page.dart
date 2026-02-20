@@ -800,7 +800,7 @@ class _HomePageState extends State<HomePage> {
                                               ),
                                               SizedBox(width: 4),
                                               CustomText(
-                                                "/12 hours",
+                                                "/12 hrs",
                                                 size: 12,
                                                 color: Colors.black54,
                                               ),
@@ -1031,7 +1031,7 @@ class _HomePageState extends State<HomePage> {
                               /// ================= ATTENDANCE CARD =================
                                if(localData.storage.read("role")=="1")
                               Container(
-                                padding: const EdgeInsets.all(16),
+                                padding: const EdgeInsets.all(5),
                                 decoration: BoxDecoration(
                                   color: Colors.white,
                                   borderRadius: BorderRadius.circular(15),
@@ -1073,7 +1073,7 @@ class _HomePageState extends State<HomePage> {
                                           bgColor: Color(0xFFE8F5E9),
                                           borderColor: ColorsConst.present,
                                           imagePath: DashboardAssets.present,
-                                        ),
+                                        ),2.width,
 
                                          AttendanceItem(
                                           title: "Absent",
@@ -1100,7 +1100,7 @@ class _HomePageState extends State<HomePage> {
                                           bgColor: Color(0xFFFFEBEE),
                                           borderColor: ColorsConst.absent,
                                           imagePath: DashboardAssets.absent,
-                                        ),
+                                        ),2.width,
 
                                          AttendanceItem(
                                           title: "On-Leave",
@@ -1118,7 +1118,7 @@ class _HomePageState extends State<HomePage> {
                                           bgColor: Color(0xFFE3F2FD),
                                           borderColor: ColorsConst.onLeave,
                                           imagePath: DashboardAssets.onLeave,
-                                        ),
+                                        ),2.width,
                                         AttendanceItem(
                                           onClick: (){
                                             if(attPvr.lateCount!=0){
@@ -1132,6 +1132,21 @@ class _HomePageState extends State<HomePage> {
                                           count: "${attPvr.lateCount}",
                                           bgColor: const Color(0xFFFFF3E0),
                                           borderColor: colorsConst.late,
+                                          imagePath: DashboardAssets.late,
+                                        ),2.width,
+                                        AttendanceItem(
+                                          onClick: (){
+                                            if(homeProvider.mainReportList.isNotEmpty&&homeProvider.mainReportList[0]["perm_count"].toString()!="0"){
+                                              homeProvider.updateIndex(4);
+                                              utils.navigatePage(context, ()=> DashBoard(child: AttendanceReport(type: homeProvider.type,showType: "Permission",date1: homeProvider.startDate,date2:homeProvider.endDate,empList: empPvr.userData)));
+                                            }else{
+                                              utils.showWarningToast(context, text: "No permission employees found");
+                                            }
+                                          },
+                                          title: "Permission",
+                                          count: homeProvider.mainReportList.isEmpty ?"0":homeProvider.mainReportList[0]["perm_count"].toString()=="null"?"0": homeProvider.mainReportList[0]["perm_count"].toString(),
+                                          bgColor: Colors.purple.shade200,
+                                          borderColor:Colors.purple,iconValue: true,icon: Icons.perm_identity,
                                           imagePath: DashboardAssets.late,
                                         ),
                                       ],
@@ -1153,7 +1168,8 @@ class _HomePageState extends State<HomePage> {
                                 onTap:(){
                                   utils.navigatePage(context, ()=> DashBoard(child: VisitReport(date1: homeProvider.startDate, date2: homeProvider.endDate,month: homeProvider.month,type: homeProvider.type,)));
                                 },
-                                child: Container(
+                                child: homeProvider.vRefresh==false
+                                    ? const Loading():Container(
                                   padding: const EdgeInsets.all(16),
                                   decoration: BoxDecoration(
                                     color: Colors.white,
@@ -1326,12 +1342,40 @@ class _HomePageState extends State<HomePage> {
                                                       ],
                                                     ),
                                                   ),
-                                                ),10.height,
-                                                IconButton(onPressed: (){
-                                                  utils.navigatePage(context, ()=> DashBoard(child:
-                                                  CusAddVisit(taskId:"",companyId: "",companyName: "",
-                                                      numberList: [],isDirect: true, type: "", desc: "")));
-                                                }, icon: Icon(Icons.add))
+                                                ),15.height,
+                                                InkWell(
+                                                  onTap: (){
+                                                    utils.navigatePage(context, ()=> DashBoard(child:
+                                                    CusAddVisit(taskId:"",companyId: "",companyName: "",
+                                                        numberList: [],isDirect: true, type: "", desc: "")));
+                                                  },
+                                                  child: Container(
+                                                    padding: const EdgeInsets.symmetric(
+                                                      horizontal: 12,
+                                                      vertical: 6,
+                                                    ),
+                                                    decoration: BoxDecoration(
+                                                      color: Colors.greenAccent.shade700,
+                                                      borderRadius: BorderRadius.circular(20),
+                                                    ),
+                                                    child: Row(
+                                                      children: [
+                                                        Icon(
+                                                          Icons.add,
+                                                          size: 16,
+                                                          color: Colors.white,
+                                                        ),
+                                                        SizedBox(width: 6),
+                                                        CustomText(
+                                                          "Add Visit",
+                                                          size: 12,
+                                                          weight: FontWeight.w600,
+                                                          color: Colors.white,
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                ),
                                                 // 20.height,
                                                 // Container(
                                                 //   padding: const EdgeInsets.symmetric(

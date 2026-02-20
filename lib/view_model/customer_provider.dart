@@ -86,8 +86,23 @@ class CustomerProvider with ChangeNotifier{
     }
     notifyListeners();
   }
+
   Future<void> tComment({context,required String taskId,required String assignedId}) async {
-    // try {
+    final tempMessage = CustomerReportModel(
+      comments: disPoint.text.trim(),
+      createdBy: localData.storage.read("id"),
+      firstname: localData.storage.read("f_name"),
+      role: localData.storage.read("role"),
+      createdTs: DateTime.now(),
+      documents: _recordedAudioPaths.isNotEmpty
+          ? _recordedAudioPaths[0].audioPath
+          : null,
+      isLocal: true,
+    );
+
+    _customerReport.add(tempMessage);
+    notifyListeners();
+    try {
     List<Map<String, String>> customersList = [];
 
     // Loop for selected files
@@ -113,7 +128,6 @@ class CustomerProvider with ChangeNotifier{
         "image_$i": selectedPhotos[i - (_selectedFiles.length + _recordedAudioPaths.length)], // Adjust index
       });
     }
-
     String jsonString = json.encode(customersList);
     Map<String,String> data = {
       "action":taskComments,
@@ -133,7 +147,7 @@ class CustomerProvider with ChangeNotifier{
           await Provider.of<EmployeeProvider>(context, listen: false).sendSomeUserNotification(
             "Feedback added to task.Added By ${localData.storage.read("f_name")}",
             disPoint.text.trim(),
-            assignedId.toString(),
+            assignedId.toString(),taskId
           );
         } catch (e) {
           print("User notification error: $e");
@@ -144,7 +158,7 @@ class CustomerProvider with ChangeNotifier{
           await Provider.of<EmployeeProvider>(context, listen: false).sendAdminNotification(
             "Feedback added to task.Added By ${localData.storage.read("f_name")}",
             disPoint.text.trim(),
-            localData.storage.read("role"),
+            localData.storage.read("role"),taskId
           );
         } catch (e) {
           print("Admin notification error: $e");
@@ -155,27 +169,29 @@ class CustomerProvider with ChangeNotifier{
           await Provider.of<EmployeeProvider>(context, listen: false).sendAdminNotification(
             "${localData.storage.read("f_name")} replied to task feedback.",
             disPoint.text.trim(),
-            "1",
+            "1",taskId
           );
         } catch (e) {
           print("Admin notification error: $e");
         }
       }
 
-      utils.showSuccessToast(context: context,text: constValue.success,);
-      addCtr.reset();
+      // utils.showSuccessToast(context: context,text: constValue.success,);
       disPoint.clear();
-      getTaskComments(taskId);
+      addCtr.reset();
+      // getTaskComments(taskId);
       // Future.microtask(() => Navigator.pop(context));
       addCtr.reset();
     }else {
       utils.showErrorToast(context: context);
       addCtr.reset();
     }
-    // } catch (e) {
-    //   utils.showWarningToast(context,text: "Failed",);
-    //   addCtr.reset();
-    // }
+    } catch (e) {
+      _customerReport.remove(tempMessage);
+      notifyListeners();
+      // utils.showWarningToast(context,text: "Failed",);
+      addCtr.reset();
+    }
     notifyListeners();
   }
 
@@ -1667,7 +1683,7 @@ Future<void> addComment({context,required String createdBy,required String taskI
           Provider.of<EmployeeProvider>(context, listen: false).sendAdminNotification(
             "Comments added to visit report.Added By ${localData.storage.read("f_name")}",
             disPoint.text.trim(),
-            "1",
+            "1",visitId
           );        }
         else{Provider.of<EmployeeProvider>(context, listen: false).sendUserNotification(
             "${localData.storage.read("f_name")} replied to visit report.",
@@ -1998,7 +2014,7 @@ TextEditingController date= TextEditingController(text: "${DateTime.now().day.to
         Provider.of<EmployeeProvider>(context, listen: false).sendAdminNotification(
           "Visit report added to task ${localData.storage.read("typeName")??""}",
           "Added By ${localData.storage.read("f_name")}",
-          "1",
+          "1",taskId
         );
         await FirebaseFirestore.instance.collection('attendance').add({
           'emp_id': localData.storage.read("id"),

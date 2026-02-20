@@ -926,6 +926,7 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
                             colors: Colors.black,
                           ),
                         ),
+                        if(localData.storage.read("role") =="1")
                         InkWell(onTap: (){
                           utils.navigatePage(context, ()=> DashBoard(child: EditTask(
                               data: data,isDirect: false,numberList: [])));
@@ -1267,7 +1268,8 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
                                     CustomText(text: data.type.toString().trim(),isBold: true),
                                   ],
                                 ),
-                                IconButton(icon: SvgPicture.asset(assets.tEdit,width: 20,height: 20,),onPressed: (){
+                                if(localData.storage.read("role") =="1")
+                                  IconButton(icon: SvgPicture.asset(assets.tEdit,width: 20,height: 20,),onPressed: (){
                                   utils.navigatePage(context, ()=> DashBoard(child: EditTask(
                                       data: data,isDirect:true, numberList: const [])));
                                 },)

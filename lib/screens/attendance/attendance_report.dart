@@ -1025,7 +1025,7 @@ void check(){
                                     mainAxisAlignment: MainAxisAlignment.end,
                                     children: [
                                       CustomText(text: "Total Records: ",colors:colorsConst.greyClr,size: 14,),
-                                      CustomText(text: showType=="Leave"?levPvr.myLevSearch.length.toString():showType=="Late"?attProvider.lateUsers.length.toString():showType=="Absent"?attProvider.noAttendanceList.length.toString():showType=="Present"?attProvider.getDailyAttendance.length.toString():attProvider.permisCount.toString(),colors:colorsConst.primary,size: 14,),
+                                      CustomText(text: showType=="Leave"?levPvr.myLevSearch.length.toString():showType=="Late"?attProvider.lateUsers.length.toString():showType=="Absent"?attProvider.noAttendanceList.length.toString():showType=="0"?attProvider.getDailyAttendance.length.toString():attProvider.permisCount.toString(),colors:colorsConst.primary,size: 14,),
                                     ],
                                   ),
                                 ],
@@ -1352,6 +1352,94 @@ void check(){
                         )
                         :attProvider.selectedIndex==3&&levPvr.myLevSearch.isNotEmpty?Flexible(
                           child: itemBuilder(levPvr.myLevSearch,levPvr)):
+                        attProvider.selectedIndex==4&&attProvider.permisCount==0?
+                        Column(
+                          children: [
+                            100.height,
+                            CustomText(
+                              text: constValue.noData, colors: colorsConst.greyClr,),
+                          ],
+                        ):
+                        attProvider.selectedIndex==4&&attProvider.permisCount!=0?
+                        Flexible(
+                          child: ListView.builder(
+                              itemCount: attProvider.getDailyAttendance.length,
+                              itemBuilder: (context, index) {
+                                final sortedData = attProvider.getDailyAttendance;
+                                AttendanceModel data = attProvider.getDailyAttendance[index];
+                                var inTime = "",outTime = "-",timeD = "-";
+                                var lat = data.lats.toString().split(",");
+                                var lng = data.lngs.toString().split(",");
+                                if (data.status.toString().contains("1,2")) {
+                                  inTime = data.time!.split(",")[0];
+                                  outTime = data.time!.split(",")[1];
+                                  timeD=attProvider.timeDifference(data.createdTs!.split(",")[0], data.createdTs!.split(",")[1]);
+                                }else if (data.status.toString().contains("2,1")) {
+                                  inTime = data.time!.split(",")[1];
+                                  outTime = data.time!.split(",")[0];
+                                  timeD=attProvider.timeDifference(data.createdTs!.split(",")[0], data.createdTs!.split(",")[1]);
+                                }else {
+                                  inTime = data.time!.split(",")[0];
+                                  timeD="-";
+                                }
+                                String timestamp =data.createdTs.toString();
+                                List<String> times = timestamp.split(',');
+                                DateTime startTime = DateTime.parse(times[0]);
+
+                                String createdBy = formatCreatedDate(startTime);
+                                String? prevCreatedBy;
+                                if (index != 0) {
+                                  String timestamp =sortedData[index - 1].createdTs.toString();
+                                  List<String> times = timestamp.split(',');
+                                  DateTime startTime = DateTime.parse(times[0]);
+                                  prevCreatedBy = formatCreatedDate(startTime);
+                                }
+
+                                final showDateHeader = index == 0 ||
+                                    createdBy != prevCreatedBy;
+                                return data.perStatus.toString().contains(",")?
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    if(localData.storage.read("role")=="1"&&showDateHeader)
+                                      Padding(
+                                        padding: const EdgeInsets.fromLTRB(0, 10, 0, 10),
+                                        child: CustomText(text: createdBy,colors:colorsConst.greyClr,size: 12,),
+                                      ),
+                                    InkWell(
+                                        onTap:(){
+                                          utils.navigatePage(context, ()=> DashBoard(child:
+                                          CustomAttendanceReport(userId:data.salesmanId.toString(),userName: data.firstname.toString())));
+                                        },
+                                        child: AttendanceDetails(
+                                          isName: attProvider.userName!=""?false:true,
+                                          showDate: index==0?true:false,
+                                          date: data.date.toString(),
+                                          img: data.image.toString(),
+                                          inTime: inTime,
+                                          outTime: outTime,
+                                          timeD:timeD,
+                                          name: data.firstname.toString(),
+                                          role: data.role.toString(),
+                                          callback: () {
+                                            utils.navigatePage(context, ()=>CheckLocation(
+                                                lat1: lat[0].toString(),
+                                                long1: lng[0].toString(),
+                                                lat2: data.status.toString().contains("2")? lat[1].toString(): "",
+                                                long2: data.status.toString().contains("2")? lng[1].toString(): ""
+                                            ));
+                                          },
+                                          perStatus: data.perStatus.toString(),
+                                          perReason: data.perReason.toString(),
+                                          perTime: data.perTime.toString(),
+                                          perCreatedTs: data.perCreatedTs.toString(),
+                                        )
+                                    ),5.height
+                                  ],
+                                )
+                                :0.height;
+                              }),
+                        ):
                         Flexible(
                           child: ListView.builder(
                               itemCount: attProvider.getDailyAttendance.length,
@@ -1434,46 +1522,6 @@ void check(){
                                     100.height,
                                     CustomText(
                                       text: constValue.noData, colors: colorsConst.greyClr,),
-                                  ],
-                                )
-                                :attProvider.selectedIndex==4&&data.perStatus.toString().contains(",")?
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    if(localData.storage.read("role")=="1"&&showDateHeader)
-                                    Padding(
-                                      padding: const EdgeInsets.fromLTRB(0, 10, 0, 10),
-                                      child: CustomText(text: createdBy,colors:colorsConst.greyClr,size: 12,),
-                                    ),
-                                    InkWell(
-                                      onTap:(){
-                                          utils.navigatePage(context, ()=> DashBoard(child:
-                                          CustomAttendanceReport(userId:data.salesmanId.toString(),userName: data.firstname.toString())));
-                                      },
-                                      child: AttendanceDetails(
-                                        isName: attProvider.userName!=""?false:true,
-                                        showDate: index==0?true:false,
-                                        date: data.date.toString(),
-                                        img: data.image.toString(),
-                                        inTime: inTime,
-                                        outTime: outTime,
-                                        timeD:timeD,
-                                        name: data.firstname.toString(),
-                                        role: data.role.toString(),
-                                        callback: () {
-                                          utils.navigatePage(context, ()=>CheckLocation(
-                                              lat1: lat[0].toString(),
-                                              long1: lng[0].toString(),
-                                              lat2: data.status.toString().contains("2")? lat[1].toString(): "",
-                                              long2: data.status.toString().contains("2")? lng[1].toString(): ""
-                                          ));
-                                        },
-                                        perStatus: data.perStatus.toString(),
-                                        perReason: data.perReason.toString(),
-                                        perTime: data.perTime.toString(),
-                                        perCreatedTs: data.perCreatedTs.toString(),
-                                      ),
-                                    ),5.height
                                   ],
                                 )
                                 :attProvider.selectedIndex==0?

@@ -82,6 +82,8 @@ class AttendanceItem extends StatelessWidget {
   final VoidCallback onClick;
   final Color borderColor;
   final String imagePath; // PNG path
+  final bool? iconValue; // PNG path
+  final IconData? icon; // PNG path
 
   const AttendanceItem({
     super.key,
@@ -90,7 +92,7 @@ class AttendanceItem extends StatelessWidget {
     required this.bgColor,
     required this.borderColor,
     required this.imagePath,
-    required this.onClick,
+    required this.onClick, this.iconValue=false, this.icon,
   });
 
   @override
@@ -102,9 +104,9 @@ class AttendanceItem extends StatelessWidget {
         onTap: onClick,
         child: Container(
           // width: 100,
-          // height: screenWidth * 0.22,
-          margin: const EdgeInsets.symmetric(horizontal: 4),
-          padding: const EdgeInsets.symmetric(vertical: 12),
+          height: screenWidth * 0.2,
+          // margin: const EdgeInsets.symmetric(horizontal: 4),
+          // padding: const EdgeInsets.all(5),
           decoration: BoxDecoration(
             color: bgColor,
             borderRadius: BorderRadius.circular(10),
@@ -116,7 +118,7 @@ class AttendanceItem extends StatelessWidget {
               /// Title
               CustomText(
                 title,
-                size: 14,
+                size: 11,
                 weight: FontWeight.w600,
                 color: borderColor,
               ),
@@ -127,6 +129,8 @@ class AttendanceItem extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
+                  iconValue==true?
+                  Icon(icon!,color: borderColor,size: 15,):
                   Image.asset(
                     imagePath,
                     fit: BoxFit.contain,

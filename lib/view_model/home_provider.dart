@@ -685,9 +685,12 @@ Future<void> updateToken(context) async {
         _visitCount=[];
         _vRefresh=true;
       }
+      _vRefresh=true;
+      notifyListeners();
     } catch (e) {
       _visitCount=[];
       _vRefresh=true;
+      notifyListeners();
     }
     notifyListeners();
   }

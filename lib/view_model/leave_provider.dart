@@ -1495,7 +1495,7 @@ void setList(){
         Provider.of<EmployeeProvider>(context, listen: false).sendAdminNotification(
           "${localData.storage.read("role")!="1"?localData.storage.read("f_name"):localData.storage.read("leave_emp_name")} Requested for ${_dayType.toString()=="0.5"?"Half Day Leave":"Leave"} - $stDate ${enDate==""?"":" to $enDate"}",
           reason.text.trim(),
-          "1",
+          "1",""
         );
         await FirebaseFirestore.instance.collection('attendance').add({
           'emp_id': localData.storage.read("id"),

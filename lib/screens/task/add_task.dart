@@ -118,9 +118,10 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
                             10.height,
                           ],
                         ),
-                        cusPvr.refresh == false?
-                        const Loading()
-                            :Column(
+                        // cusPvr.refresh == false?
+                        // const Loading()
+                        //     :
+                        Column(
                           children: [
                             Row(
                               children: [

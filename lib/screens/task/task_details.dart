@@ -3,6 +3,7 @@ import 'package:master_code/component/dotted_border.dart';
 import 'package:master_code/model/task/task_data_model.dart';
 import 'package:master_code/screens/task/task_chat.dart';
 import 'package:master_code/screens/task/view_task.dart';
+import 'package:master_code/screens/task/visit/add_visit.dart';
 import 'package:master_code/source/extentions/extensions.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/foundation.dart';
@@ -50,7 +51,8 @@ class _TaskDetailsState extends State<TaskDetails> with SingleTickerProviderStat
   void initState() {
     Future.delayed(Duration.zero, () {
       level=widget.data.level.toString();
-      Provider.of<TaskProvider >(context, listen: false).setStatus(widget.data.statval.toString());
+      Provider.of<TaskProvider >(context, listen: false).lStatus=widget.data.statval.toString();
+      Provider.of<TaskProvider >(context, listen: false).setStatus(Provider.of<TaskProvider >(context, listen: false).lStatus);
       Provider.of<TaskProvider >(context, listen: false).setStatusByName(widget.data.statval.toString());
       if(kIsWeb){
         Provider.of<ExpenseProvider>(context, listen: false).getExpenseType();
@@ -311,7 +313,8 @@ class _TaskDetailsState extends State<TaskDetails> with SingleTickerProviderStat
                                   itemBuilder: (context,index){
                                     return  SizedBox(
                                       width: kIsWeb?webWidth:phoneWidth,
-                                      child: AudioTile(audioUrl: '$imageFile?path=${voiceList[index]}'),
+                                      child: AudioTile(
+                                          key: ValueKey(voiceList[index]),audioUrl: '$imageFile?path=${voiceList[index]}'),
                                     );
                                   }
                               ),
@@ -322,7 +325,10 @@ class _TaskDetailsState extends State<TaskDetails> with SingleTickerProviderStat
                               children: [
                                 GestureDetector(
                                   onTap: (){
-                                    setState(() {
+                                    utils.navigatePage(context, ()=> DashBoard(child:
+                                    AddVisit(taskId:widget.data.id.toString(),companyId: widget.data.companyId.toString(),companyName: widget.data.projectName.toString(),
+                                        numberList: const [],isDirect: true, type: widget.data.type.toString(), desc: widget.data.taskTitle.toString())));
+                                    (() {
                                       type="1";
                                     });
                                   },
@@ -413,59 +419,6 @@ class _TaskDetailsState extends State<TaskDetails> with SingleTickerProviderStat
                                 taskProvider.changeStatusT(selectedStatus['value']);
                                 taskProvider.changeStatus(selectedStatus);
                                 taskProvider.updateChanges();
-                                // if(widget.data.statval.toString()=="Completed"){
-                                //   utils.showWarningToast(context, text: "Status is already completed.");
-                                //   taskProvider.statusController.selectIndex(taskProvider.statusList.length-1);
-                                //   return;
-                                // }
-                                // else{
-                                //   if (name == "Completed"&&localData.storage.read("role")!="1") {
-                                //     utils.showWarningToast(context, text: "Only the admin can change the status.");
-                                //     taskProvider.setStatus(widget.data.statval.toString());
-                                //     return;
-                                //   }else if (name.toString().contains("Clsd")) {
-                                //     if(widget.data.visitReportCount.toString()=="0"){
-                                //       utils.showWarningToast(context, text: localData.storage.read("role")!="1"?"Please add visit report":"No visit report found");
-                                //       taskProvider.setStatus(widget.data.statval.toString());
-                                //     }else if(widget.data.expenseReportCount.toString()=="0"){
-                                //       utils.showWarningToast(context, text: localData.storage.read("role")!="1"?"Please add expense report":"No expense report found");
-                                //       taskProvider.setStatus(widget.data.statval.toString());
-                                //     }else{
-                                //       final selectedStatus = taskProvider.statusList.firstWhere(
-                                //             (e) => e['value'] == name,
-                                //         orElse: () => {"id": "0", "value": "Unknown"},
-                                //       );
-                                //       taskProvider.changeStatusT(selectedStatus['value']);
-                                //       taskProvider.changeStatus(selectedStatus);
-                                //       taskProvider.updateChanges();
-                                //     }
-                                //   }else if (name.toString().contains("Completed")&&localData.storage.read("role")=="1") {
-                                //     if(widget.data.visitReportCount.toString()=="0"){
-                                //       utils.showWarningToast(context, text: "The visit report has not been added.");
-                                //       taskProvider.setStatus(widget.data.statval.toString());
-                                //     }else if(widget.data.expenseReportCount.toString()=="0"){
-                                //       utils.showWarningToast(context, text: "The expense report has not been added.");
-                                //       taskProvider.setStatus(widget.data.statval.toString());
-                                //     }else{
-                                //       final selectedStatus = taskProvider.statusList.firstWhere(
-                                //             (e) => e['value'] == name,
-                                //         orElse: () => {"id": "0", "value": "Unknown"},
-                                //       );
-                                //       taskProvider.changeStatusT(selectedStatus['value']);
-                                //       taskProvider.changeStatus(selectedStatus);
-                                //       taskProvider.updateChanges();
-                                //     }
-                                //   }
-                                //   else{
-                                //     final selectedStatus = taskProvider.statusList.firstWhere(
-                                //           (e) => e['value'] == name,
-                                //       orElse: () => {"id": "0", "value": "Unknown"},
-                                //     );
-                                //     taskProvider.changeStatusT(selectedStatus['value']);
-                                //     taskProvider.changeStatus(selectedStatus);
-                                //     taskProvider.updateChanges();
-                                //   }
-                                // }
                               }
                             ),
                           ),

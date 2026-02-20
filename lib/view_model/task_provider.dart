@@ -1783,6 +1783,7 @@ class TaskProvider with ChangeNotifier {
   bool get isFilter=>_isFilter;
   String _startDate = "";
   String get startDate => _startDate;
+  String lStatus="";
   String _endDate="";
   String get endDate => _endDate;
   String _companyName="";
@@ -2100,7 +2101,7 @@ class TaskProvider with ChangeNotifier {
       context: context,
       initialDate: initDate,
       firstDate: DateTime(1920),
-      lastDate: DateTime.now(),
+      lastDate: DateTime(2050),
     ).then((value) {
       if (value != null) {
         String formattedDate = "${value.day.toString().padLeft(2, "0")}-"
@@ -3017,6 +3018,7 @@ class TaskProvider with ChangeNotifier {
     notifyListeners();
   } void changeStatusT(String value) {
     _statusT = value;
+    lStatus=value;
     notifyListeners();
   }
   void setStatus(String value) {
@@ -3935,7 +3937,7 @@ class TaskProvider with ChangeNotifier {
               .sendSomeUserNotification(
             "A new task has been assigned to you by (${localData.storage.read("f_name")})",
             taskTitleCont.text.trim(),
-            _assignedId,
+            _assignedId,""
           );
         } catch (e) {
           print("User notification error: $e");
@@ -3947,7 +3949,7 @@ class TaskProvider with ChangeNotifier {
               .sendAdminNotification(
             "A new task has been assigned to $assignedNames.",
             taskTitleCont.text.trim(),
-            localData.storage.read("role"),
+            localData.storage.read("role"),""
           );
         } catch (e) {
           print("Admin notification error: $e");
@@ -3998,7 +4000,7 @@ class TaskProvider with ChangeNotifier {
           await Provider.of<EmployeeProvider>(context, listen: false).sendSomeUserNotification(
             "Task detail updated by (${localData.storage.read("f_name")})",
             taskTitleCont.text.trim(),
-            assignedId,
+            assignedId,""
           );
         } catch (e) {
           print("User notification error: $e");
@@ -4009,7 +4011,7 @@ class TaskProvider with ChangeNotifier {
           await Provider.of<EmployeeProvider>(context, listen: false).sendAdminNotification(
             "Task detail updated by (${localData.storage.read("f_name")})",
             taskTitleCont.text.trim(),
-            localData.storage.read("role"),
+            localData.storage.read("role"),""
           );
         } catch (e) {
           print("Admin notification error: $e");
@@ -4193,8 +4195,9 @@ class TaskProvider with ChangeNotifier {
             break;
           }
         }
-        utils.navigatePage(context, ()=>DashBoard(child: TaskDetails(
-            data:sentData!,isDirect:true,coId: "0", numberList: const [])));
+        getStatusHistory(data.id.toString());
+        // utils.navigatePage(context, ()=>DashBoard(child: TaskDetails(
+        //     data:sentData!,isDirect:true,coId: "0", numberList: const [])));
         // Future.microtask(() => Navigator.pop(context));
       }else {
         utils.showErrorToast(context: context);
