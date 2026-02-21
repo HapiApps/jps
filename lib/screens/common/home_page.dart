@@ -412,12 +412,9 @@ class _HomePageState extends State<HomePage> {
       builder: (context,homeProvider,custProvider,attPvr,locPvr,empPvr,_){
         int visitPendingCount = homeProvider.mainReportList.isEmpty
             ? 0
-            : int.tryParse(
-          homeProvider.mainReportList[0]["pending_visit_count"].toString(),
-        ) ??
-            0;
+            : homeProvider.inActiveVisit;
 
-        int visitActiveCount = homeProvider.visitCount.length;
+        int visitActiveCount = homeProvider.activeVisit;
         int totalVisits = visitPendingCount + visitActiveCount;
 
         int taskPendingCount = homeProvider.mainReportList.isEmpty

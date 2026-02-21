@@ -54,6 +54,7 @@ class _AttendanceReportState extends State<AttendanceReport> {
     showType = widget.showType;
     check();
     Future.delayed(Duration.zero, () {
+      print("attendance report init ${widget.type}");
       if (!mounted) return;
       print(Provider.of<EmployeeProvider>(context, listen: false).userData.length);
       Provider.of<AttendanceProvider>(context, listen: false).initDate(id:localData.storage.read("id"),role:localData.storage.read("role"),isRefresh:true,date1:widget.date1,date2:widget.date2,type:widget.type);
