@@ -181,7 +181,6 @@ class CustomerProvider with ChangeNotifier{
       addCtr.reset();
       // getTaskComments(taskId);
       // Future.microtask(() => Navigator.pop(context));
-      addCtr.reset();
     }else {
       utils.showErrorToast(context: context);
       addCtr.reset();
@@ -1638,7 +1637,21 @@ void initCmtValues(){
   notifyListeners();
 }
 Future<void> addComment({context,required String createdBy,required String taskId,required String visitId,required String companyName,required String companyId,required List numberList}) async {
-    // try {
+  final tempMessage = CustomerReportModel(
+    comments: disPoint.text.trim(),
+    createdBy: localData.storage.read("id"),
+    firstname: localData.storage.read("f_name"),
+    role: localData.storage.read("role"),
+    createdTs: DateTime.now(),
+    documents: _recordedAudioPaths.isNotEmpty
+        ? _recordedAudioPaths[0].audioPath
+        : null,
+    isLocal: true,
+  );
+
+  _customerReport.add(tempMessage);
+  notifyListeners();
+    try {
   List<Map<String, String>> customersList = [];
 
 // Loop for selected files
@@ -1679,30 +1692,53 @@ Future<void> addComment({context,required String createdBy,required String taskI
       final response =await custRepo.addComments(data,customersList);
       log(response.toString());
       if (response.toString().contains("200")){
+        _recordedAudioPaths.clear();
         if(localData.storage.read("role")=="1"){
-          Provider.of<EmployeeProvider>(context, listen: false).sendAdminNotification(
-            "Comments added to visit report.Added By ${localData.storage.read("f_name")}",
-            disPoint.text.trim(),
-            "1",visitId
-          );        }
-        else{Provider.of<EmployeeProvider>(context, listen: false).sendUserNotification(
-            "${localData.storage.read("f_name")} replied to visit report.",
-            disPoint.text.trim(),createdBy);
+          try {
+            await Provider.of<EmployeeProvider>(context, listen: false).sendSomeUserNotification(
+                "Feedback added to task.Added By ${localData.storage.read("f_name")}",
+                disPoint.text.trim(),
+                createdBy,taskId
+            );
+          } catch (e) {
+            print("User notification error: $e");
+          }
+
+          // admin notification (always run)
+          try {
+            await Provider.of<EmployeeProvider>(context, listen: false).sendAdminNotification(
+                "Visit report added to comments.Added By ${localData.storage.read("f_name")}",
+                disPoint.text.trim(),
+                localData.storage.read("role"),taskId
+            );
+          } catch (e) {
+            print("Admin notification error: $e");
+          }
+        }else{
+          // admin notification (always run)
+          try {
+            await Provider.of<EmployeeProvider>(context, listen: false).sendAdminNotification(
+                "${localData.storage.read("f_name")} replied to visit report comment.",
+                disPoint.text.trim(),
+                "1",taskId
+            );
+          } catch (e) {
+            print("Admin notification error: $e");
+          }
         }
-        utils.showSuccessToast(context: context,text: constValue.success,);
-        addCtr.reset();
+
+        // utils.showSuccessToast(context: context,text: constValue.success,);
         disPoint.clear();
-        getComments(visitId);
-        // Future.microtask(() => Navigator.pop(context));
         addCtr.reset();
       }else {
         utils.showErrorToast(context: context);
         addCtr.reset();
       }
-    // } catch (e) {
-    //   utils.showWarningToast(context,text: "Failed",);
-    //   addCtr.reset();
-    // }
+    } catch (e) {
+      _customerReport.remove(tempMessage);
+      utils.showWarningToast(context,text: "Failed",);
+      addCtr.reset();
+    }
     notifyListeners();
   }
 Future<void> getAllComments(String id,String contId) async {

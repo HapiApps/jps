@@ -14,6 +14,7 @@ class AttendanceModel {
     this.perStatus,
     this.perReason,
     this.perCreatedTs,
+    this.missingDate,
   });
 
   String? salesmanId;
@@ -30,9 +31,11 @@ class AttendanceModel {
   String? perStatus;
   String? perReason;
   String? perCreatedTs;
+  String? missingDate;
 
   factory AttendanceModel.fromJson(Map<String, dynamic> json) =>
       AttendanceModel(
+        missingDate: json["missing_date"],
         salesmanId: json["salesman_id"],
         image: json["image"],
         date: json["date"],

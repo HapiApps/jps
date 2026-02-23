@@ -20,6 +20,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:rounded_loading_button_plus/rounded_loading_button.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sidebarx/sidebarx.dart';
+import 'package:syncfusion_flutter_datepicker/datepicker.dart';
 import '../component/month_calendar.dart';
 import '../local_database/sqlite.dart';
 import '../repo/home_repo.dart';
@@ -33,6 +34,7 @@ import '../screens/log_in.dart';
 import '../screens/report_dashboard/report_dashboard.dart';
 import '../screens/track/live_location.dart';
 import '../source/constant/api.dart';
+import '../source/constant/colors_constant.dart';
 import '../source/constant/local_data.dart';
 import '../source/utilities/utils.dart';
 
@@ -428,6 +430,112 @@ String get notificationToken =>_notificationToken;
     }catch(e){
       // print("token error ....$e");
     }
+  }
+  PickerDateRange? selectedDate;
+  List<DateTime> datesBetween = [];
+  String betweenDates="";
+  List<DateTime> getDatesInRange(DateTime start, DateTime end) {
+    List<DateTime> days = [];
+    for (int i = 0; i <= end.difference(start).inDays; i++) {
+      days.add(DateTime(start.year, start.month, start.day + i));
+    }
+    return days;
+  }
+  void showDatePickerDialog(BuildContext context) {
+    DateTime today = DateTime.now();
+    selectedDate = PickerDateRange(today, today);
+    datesBetween = getDatesInRange(selectedDate!.startDate!, selectedDate!.endDate!);
+
+    DateFormat dateFormat = DateFormat('dd-MM-yyyy');
+    List<String> formattedDates = datesBetween.map((date) => dateFormat.format(date)).toList();
+    betweenDates = formattedDates.join(' || ');
+
+    _startDate = dateFormat.format(selectedDate!.startDate!);
+    notifyListeners();
+    notifyListeners();
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: CustomText(text: '   Select Date',colors: colorsConst.secondary,isBold: true,),
+          content: SizedBox(
+            height: 300, // Adjust height as needed
+            width: 300, // Adjust width as needed
+            child: SfDateRangePicker(
+              minDate: DateTime(2025), // Disable past dates
+              maxDate: DateTime.now(),
+              onSelectionChanged: (DateRangePickerSelectionChangedArgs args) {
+                selectedDate = args.value;
+                _startDate="";
+                _endDate="";
+                if(selectedDate?.endDate!=null){
+                  _startDate="${selectedDate?.startDate?.day.toString().padLeft(2,"0")}"
+                      "-${selectedDate?.startDate?.month.toString().padLeft(2,"0")}"
+                      "-${selectedDate?.startDate?.year.toString()}";
+
+                  _endDate="${selectedDate?.endDate?.day.toString().padLeft(2,"0")}"
+                      "-${selectedDate?.endDate?.month.toString().padLeft(2,"0")}"
+                      "-${selectedDate?.endDate?.year.toString()}";
+                }else{
+                  _startDate="${selectedDate?.startDate?.day.toString().padLeft(2,"0")}"
+                      "-${selectedDate?.startDate?.month.toString().padLeft(2,"0")}"
+                      "-${selectedDate?.startDate?.year.toString()}";
+                  _endDate="${selectedDate?.startDate?.day.toString().padLeft(2,"0")}"
+                      "-${selectedDate?.startDate?.month.toString().padLeft(2,"0")}"
+                      "-${selectedDate?.startDate?.year.toString()}";
+                }
+                notifyListeners();
+              },
+              selectionMode: DateRangePickerSelectionMode.range,
+            ),
+          ),
+          actions: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                CustomText(text: 'Click and drag to select multiple dates',colors: colorsConst.greyClr,),
+              ],
+            ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                TextButton(
+                  child: const CustomText(text:'Cancel',colors: Colors.grey,isBold: true,),
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                ),
+                TextButton(
+                  child: CustomText(text: 'OK',colors: colorsConst.primary,isBold: true,),
+                  onPressed: () {
+                    if (selectedDate != null) {
+                      datesBetween = getDatesInRange(
+                        selectedDate!.startDate!,
+                        selectedDate!.endDate ?? selectedDate!.startDate!,
+                      );
+                    }
+                    DateFormat dateFormat = DateFormat('dd-MM-yyyy');
+
+                    List<String> formattedDates = datesBetween.map((date) => dateFormat.format(date)).toList();
+                    betweenDates = formattedDates.join(' || ');
+                    getMainReport(true);
+                    getDashboardReport(true);
+                    if(localData.storage.read("role")=='1'){
+                      // roleEmployees();
+                      Provider.of<AttendanceProvider>(context, listen: false).getLateCount(_startDate,_endDate);
+                    }else{
+                      Provider.of<AttendanceProvider>(context, listen: false).getTotalHours(_startDate,_endDate);
+                    }
+                    notifyListeners();
+                    Navigator.of(context).pop();
+                  },
+                ),
+              ],
+            ),
+          ],
+        );
+      },
+    );
   }
 Future<void> login(context) async {
   // print("printttt");

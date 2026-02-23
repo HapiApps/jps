@@ -82,8 +82,7 @@ class AttendanceItem extends StatelessWidget {
   final VoidCallback onClick;
   final Color borderColor;
   final String imagePath; // PNG path
-  final bool? iconValue; // PNG path
-  final IconData? icon; // PNG path
+  final String? type; // PNG path
 
   const AttendanceItem({
     super.key,
@@ -92,7 +91,7 @@ class AttendanceItem extends StatelessWidget {
     required this.bgColor,
     required this.borderColor,
     required this.imagePath,
-    required this.onClick, this.iconValue=false, this.icon,
+    required this.onClick, this.type="0",
   });
 
   @override
@@ -109,40 +108,33 @@ class AttendanceItem extends StatelessWidget {
           // padding: const EdgeInsets.all(5),
           decoration: BoxDecoration(
             color: bgColor,
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: borderColor),
+            borderRadius: type=="1"?BorderRadius.only(
+              topLeft: Radius.circular(10),
+              bottomLeft: Radius.circular(10),
+            ):type=="2"?BorderRadius.only(
+              topRight: Radius.circular(10),
+              bottomRight: Radius.circular(10),
+            ):null,
+            // border: Border.all(color: borderColor),
           ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              /// Title
               CustomText(
                 title,
                 size: 11,
                 weight: FontWeight.w600,
                 color: borderColor,
               ),
-
-              const SizedBox(height: 6),
-
-              /// Image + Count
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  iconValue==true?
-                  Icon(icon!,color: borderColor,size: 15,):
-                  Image.asset(
-                    imagePath,
-                    fit: BoxFit.contain,
-                  ),
-                  const SizedBox(width: 6),
-                  CustomText(
-                    count.toString(),
-                    size: 12,
-                    weight: FontWeight.bold,
-                    color: borderColor,
-                  ),
-                ],
+              Divider(
+                color: Colors.white,
+                thickness: 1,
+              ),
+              CustomText(
+                count.toString(),
+                size: 12,
+                weight: FontWeight.bold,
+                color: borderColor,
               ),
             ],
           ),

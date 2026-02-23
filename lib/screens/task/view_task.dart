@@ -1053,7 +1053,7 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
                           ),
                         ),
                         GestureDetector(onTap: (){
-                          utils.navigatePage(context, ()=> DashBoard(child: TaskChat(
+                          utils.navigatePage(context, ()=> DashBoard(child: TaskChat(isVisit:false,
                               taskId: data.id.toString(), assignedId: data.assigned.toString(), name: data.creator.toString())));
                         }, child: SvgPicture.asset(assets.tMessage,width: 20,height: 20,)),
                       ],
@@ -1338,7 +1338,7 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
                     )),
                     Icon(Icons.add),
                     IconButton(onPressed: (){
-                      utils.navigatePage(context, ()=> DashBoard(child: TaskChat(
+                      utils.navigatePage(context, ()=> DashBoard(child: TaskChat(isVisit:false,
                           taskId: data.id.toString(), assignedId: data.assigned.toString(), name: data.creator.toString())));
                     }, icon: SvgPicture.asset(assets.tMessage,width: 10,height: 10,)),
                   ],

@@ -439,7 +439,7 @@ class _ViewNotificationState extends State<ViewNotification> with SingleTickerPr
                             GestureDetector(
                               onTap:(){
                                 if(title.toLowerCase().contains("feedback")){
-                                  utils.navigatePage(context, ()=> DashBoard(child: TaskChat(
+                                  utils.navigatePage(context, ()=> DashBoard(child: TaskChat(isVisit:false,
                                       taskId: empProvider.notifyData[index]["purpose_id"], assignedId: "", name: createdBy)));
                                 }else if(title.toLowerCase().contains("assigned")){
                                   utils.navigatePage(context, ()=>DashBoard(child: ViewTask(date1:  DateFormat("dd-MM-yyyy").format(

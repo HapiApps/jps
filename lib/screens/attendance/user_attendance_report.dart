@@ -36,7 +36,7 @@ class _UserAttendanceReportState extends State<UserAttendanceReport> {
       if (!mounted) return;
 
       Provider.of<AttendanceProvider>(context, listen: false).initDate(type: Provider.of<AttendanceProvider>(context, listen: false).type,id:widget.id,role:"0",isRefresh: true,date1: Provider.of<AttendanceProvider>(context, listen: false).startDate,date2: Provider.of<AttendanceProvider>(context, listen: false).endDate);
-      Provider.of<AttendanceProvider>(context, listen: false).getAttendanceReport(widget.id,"0",false);
+      Provider.of<AttendanceProvider>(context, listen: false).getAttendanceReport(widget.id);
 
 
     });

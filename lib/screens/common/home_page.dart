@@ -747,87 +747,57 @@ class _HomePageState extends State<HomePage> {
                                 ],
                               ),
                               5.height,
-                              Row(
-                                children: [
-                                  /// LEFT - Total Hours (Soft Red Gradient)
-                                  Expanded(
-                                    flex: 40,
-                                    child: Container(
-                                      height: 90,
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 16,
-                                        vertical: 14,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        borderRadius: BorderRadius.circular(10),
-                                        gradient: const LinearGradient(
-                                          colors: [
-                                            Color(0xFFD88D90),
-                                            Color(0xFFFFFFFF),
-                                          ],
-                                          begin: Alignment.topLeft,
-                                          end: Alignment.bottomRight,
+                              SizedBox(
+                                width: screenWidth,
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Container(
+                                        height: 35,
+                                        width: screenWidth/2.2,
+                                        decoration: customDecoration.baseBackgroundDecoration(
+                                            color: Colors.white,radius: 10
                                         ),
-                                        boxShadow: const [
-                                          BoxShadow(
-                                            color: Colors.black45,
-                                            blurRadius: 10,
-                                            offset: Offset(1, 1),
+                                        child: DropdownButtonHideUnderline(
+                                          child: DropdownButton<String>(
+                                            value: homeProvider.type,
+                                            isExpanded: true,
+                                            // dropdownColor: Color(0xFFD88D90),
+                                            icon: const Icon(
+                                              Icons.keyboard_arrow_down,
+                                              color: Colors.black,
+                                            ),
+                                            style: const TextStyle(
+                                              color: Colors.black,
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                            items: homeProvider.typeList.map((list) {
+                                              return DropdownMenuItem(
+                                                value: list,
+                                                child: CustomText(
+                                                  "  $list",
+                                                  color: Colors.black,
+                                                ),
+                                              );
+                                            }).toList(),
+                                            onChanged: (value) {
+                                              setState(() {
+                                                homeProvider.changeType(context,value);
+                                              });
+                                            },
                                           ),
-                                        ],
+                                        ),
                                       ),
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        // mainAxisAlignment: MainAxisAlignment.center,
-                                        children:  [
-                                          CustomText(
-                                            "Total Hours Worked",
-                                            weight: FontWeight.w600,
-                                            color: Colors.black87,
-                                          ),
-                                          SizedBox(height: 6),
-                                          Row(
-                                            crossAxisAlignment: CrossAxisAlignment.end,
-                                            children: [
-                                              CustomText(
-                                                attPvr.totalHrs2==""?"0 mins":attPvr.totalHrs2,
-                                                size: 16,
-                                                weight: FontWeight.bold,
-                                                color: Colors.black,
-                                              ),
-                                              SizedBox(width: 4),
-                                              CustomText(
-                                                "/12 hrs",
-                                                size: 12,
-                                                color: Colors.black54,
-                                              ),
-                                            ],
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  /// RIGHT - Date Range + Red Filter
-                                  Expanded(
-                                    flex: 45,
-                                    child: Column(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                        /// 1️⃣ DATE RANGE SMALL CARD
-                                        Container(
+                                      GestureDetector(
+                                        onTap:(){
+                                          homeProvider.showDatePickerDialog(context);
+                                        },
+                                        child: Container(
                                           height: 35,
-                                          padding: const EdgeInsets.symmetric(horizontal: 8),
-                                          decoration: BoxDecoration(
-                                            color: const Color(0xFFF1F1F1),
-                                            borderRadius: BorderRadius.circular(10),
-                                            boxShadow: const [
-                                              BoxShadow(
-                                                color: Colors.black45,
-                                                blurRadius: 8,
-                                                offset: Offset(0, 4),
-                                              ),
-                                            ],
+                                          width: screenWidth/2.2,
+                                          decoration: customDecoration.baseBackgroundDecoration(
+                                              color: Colors.white,radius: 10
                                           ),
                                           child: Row(
                                             children: [
@@ -840,8 +810,9 @@ class _HomePageState extends State<HomePage> {
                                               Expanded(
                                                 child: CustomText(
                                                   size: 12,
-                                                  "${homeProvider.startDate} to ${homeProvider.endDate}",
-                                                  //_formatDateRange(),
+                                                  (homeProvider.startDate == homeProvider.endDate)
+                                                      ? homeProvider.startDate
+                                                      : "${homeProvider.startDate} to ${homeProvider.endDate}",
                                                   weight: FontWeight.w600,
                                                   maxLines: 1,
                                                   overflow: TextOverflow.ellipsis,
@@ -850,181 +821,13 @@ class _HomePageState extends State<HomePage> {
                                             ],
                                           ),
                                         ),
-                                        const SizedBox(height: 10),
-
-                                        /// 2️⃣ RED DROPDOWN SEPARATE CARD
-                                        Container(
-                                          height: 35,
-                                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                                          decoration: BoxDecoration(
-                                            color: Colors.white,
-                                            borderRadius: BorderRadius.circular(10),
-                                            boxShadow: const [
-                                              BoxShadow(
-                                                color: Colors.black12,
-                                                blurRadius: 8,
-                                                offset: Offset(0, 4),
-                                              ),
-                                            ],
-                                          ),
-                                          child: DropdownButtonHideUnderline(
-                                            child: DropdownButton<String>(
-                                              value: homeProvider.type,
-                                              isExpanded: true,
-                                             // dropdownColor: Color(0xFFD88D90),
-                                              icon: const Icon(
-                                                Icons.keyboard_arrow_down,
-                                                color: Colors.black,
-                                              ),
-                                              style: const TextStyle(
-                                                color: Colors.black,
-                                                fontSize: 14,
-                                                fontWeight: FontWeight.w500,
-                                              ),
-                                              items: homeProvider.typeList.map((list) {
-                                                return DropdownMenuItem(
-                                                  value: list,
-                                                  child: CustomText(
-                                                     "  $list",
-                                                    color: Colors.black,
-                                                  ),
-                                                );
-                                              }).toList(),
-                                              onChanged: (value) {
-                                                setState(() {
-                                                  homeProvider.changeType(context,value);
-                                                });
-                                              },
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              20.height,
-                              /// Work Log Section
-                              CustomCard(
-                                color: colorsConst.primary,
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    /// Header Row
-                                    // Row(
-                                    //   mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    //   children: [
-                                    //     const CustomText(
-                                    //       "Work Log",
-                                    //       size: 16,
-                                    //       weight: FontWeight.bold,
-                                    //       color: Colors.white,
-                                    //     ),
-                                    //
-                                    //     Row(
-                                    //       children: [
-                                    //         /// Verify
-                                    //         Row(
-                                    //           children: [
-                                    //             GestureDetector(
-                                    //               onTap: () {
-                                    //                 setState(() {
-                                    //                   isVerify = !isVerify;
-                                    //                 });
-                                    //               },
-                                    //               child: Container(
-                                    //                 width: 20,
-                                    //                 height: 20,
-                                    //                 decoration: BoxDecoration(
-                                    //                   color: isVerify ? Color(0xffD9D9D9) :Color(0xffD9D9D9),
-                                    //                   borderRadius: BorderRadius.circular(4),
-                                    //                   border: Border.all(color: Color(0xffD9D9D9), width: 1.2),
-                                    //                 ),
-                                    //                 child: isVerify
-                                    //                     ? Icon(
-                                    //                   Icons.check,
-                                    //                   size: 14,
-                                    //                   color: colorsConst.primary,
-                                    //                 )
-                                    //                     : null,
-                                    //               ),
-                                    //             ),
-                                    //             const SizedBox(width: 6),
-                                    //             const CustomText(
-                                    //               "Verify",
-                                    //               size: 14,
-                                    //               color: Colors.white,
-                                    //             ),
-                                    //           ],
-                                    //         ),
-                                    //
-                                    //         const SizedBox(width: 18),
-                                    //
-                                    //         /// Permission
-                                    //         Row(
-                                    //           children: [
-                                    //             GestureDetector(
-                                    //               onTap: () {
-                                    //                 setState(() {
-                                    //                   isPermission = !isPermission;
-                                    //                 });
-                                    //               },
-                                    //               child: Container(
-                                    //                 width: 20,
-                                    //                 height: 20,
-                                    //                 decoration: BoxDecoration(
-                                    //                   color: isPermission
-                                    //                       ? Color(0xffD9D9D9)
-                                    //                       : Color(0xffD9D9D9),
-                                    //                   borderRadius: BorderRadius.circular(4),
-                                    //                   border: Border.all(color: Color(0xffD9D9D9), width: 1.2),
-                                    //                 ),
-                                    //                 child: isPermission
-                                    //                     ? Icon(
-                                    //                   Icons.check,
-                                    //                   size: 14,
-                                    //                   color: colorsConst.primary,
-                                    //                 )
-                                    //                     : null,
-                                    //               ),
-                                    //             ),
-                                    //             const SizedBox(width: 6),
-                                    //             const CustomText(
-                                    //               "Permission",
-                                    //               size: 14,
-                                    //               color: Colors.white,
-                                    //             ),
-                                    //           ],
-                                    //         ),
-                                    //       ],
-                                    //     )
-                                    //   ],
-                                    // ),
-                                    const CheckAttendance()
-                                    /// Swipe Button
-                                    // SwipeButton.expand(
-                                    //   height: 45,
-                                    //   borderRadius: BorderRadius.circular(30),
-                                    //   thumb: Image.asset(DashboardAssets.checkInArrow),
-                                    //   activeThumbColor: const Color(0xFFB6E2B7),
-                                    //   activeTrackColor: Colors.white,
-                                    //   inactiveTrackColor: Colors.white,
-                                    //   onSwipe: () {
-                                    //     debugPrint(
-                                    //       "Checked In - Verify: $isVerify, Permission: $isPermission",
-                                    //     );
-                                    //   },
-                                    //   child: const CustomText(
-                                    //     "Check-In",
-                                    //     size: 14,
-                                    //     weight: FontWeight.w600,
-                                    //     color: Colors.green,
-                                    //   ),
-                                    // ),
-                                  ],
+                                      ),
+                                    ],
                                 ),
                               ),
-                              const SizedBox(height: 20),
+                              10.height,
+                              const CheckAttendance(),
+                              10.height,
                               /// ================= ATTENDANCE CARD =================
                                if(localData.storage.read("role")=="1")
                               Container(
@@ -1043,16 +846,7 @@ class _HomePageState extends State<HomePage> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    /// Title
-                                    CustomText(
-                                      "Employees Attendance Log",
-                                      size: 18,
-                                      weight: FontWeight.bold,
-                                      color: colorsConst.primary,
-                                    ),
-                                    const SizedBox(height: 16),
-
-                                    /// Status Row
+                                    5.height,
                                     Row(
                                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                       children: [
@@ -1060,18 +854,17 @@ class _HomePageState extends State<HomePage> {
                                            onClick: (){
                                                if(homeProvider.mainReportList.isNotEmpty&&homeProvider.mainReportList[0]["unique_attendance_count"].toString()!="0"){
                                                  homeProvider.updateIndex(4);
-                                                 utils.navigatePage(context, ()=> DashBoard(child: AttendanceReport(type: homeProvider.type,showType: "0",date1: homeProvider.startDate,date2:homeProvider.endDate,empList: empPvr.userData)));
+                                                 utils.navigatePage(context, ()=> DashBoard(child: AttendanceReport(type: homeProvider.type,showType: "Present",date1: homeProvider.startDate,date2:homeProvider.endDate,empList: empPvr.userData)));
                                                }else{
                                                  utils.showWarningToast(context, text: "No present employees found");
                                                }
                                            },
-                                          title: "Present",
+                                          title: "Present",type: "1",
                                           count: homeProvider.mainReportList.isEmpty ?"0":homeProvider.mainReportList[0]["unique_attendance_count"].toString()=="null"?"0": homeProvider.mainReportList[0]["unique_attendance_count"].toString(),
                                           bgColor: Color(0xFFE8F5E9),
                                           borderColor: ColorsConst.present,
                                           imagePath: DashboardAssets.present,
-                                        ),2.width,
-
+                                        ),
                                          AttendanceItem(
                                           title: "Absent",
                                           onClick: (){
@@ -1097,8 +890,7 @@ class _HomePageState extends State<HomePage> {
                                           bgColor: Color(0xFFFFEBEE),
                                           borderColor: ColorsConst.absent,
                                           imagePath: DashboardAssets.absent,
-                                        ),2.width,
-
+                                        ),
                                          AttendanceItem(
                                           title: "On-Leave",
                                           onClick: (){
@@ -1115,8 +907,8 @@ class _HomePageState extends State<HomePage> {
                                           bgColor: Color(0xFFE3F2FD),
                                           borderColor: ColorsConst.onLeave,
                                           imagePath: DashboardAssets.onLeave,
-                                        ),2.width,
-                                        AttendanceItem(
+                                        ),
+                                         AttendanceItem(
                                           onClick: (){
                                             if(attPvr.lateCount!=0){
                                               homeProvider.updateIndex(4);
@@ -1130,8 +922,8 @@ class _HomePageState extends State<HomePage> {
                                           bgColor: const Color(0xFFFFF3E0),
                                           borderColor: colorsConst.late,
                                           imagePath: DashboardAssets.late,
-                                        ),2.width,
-                                        AttendanceItem(
+                                        ),
+                                         AttendanceItem(
                                           onClick: (){
                                             if(homeProvider.mainReportList.isNotEmpty&&homeProvider.mainReportList[0]["perm_count"].toString()!="0"){
                                               homeProvider.updateIndex(4);
@@ -1140,17 +932,15 @@ class _HomePageState extends State<HomePage> {
                                               utils.showWarningToast(context, text: "No permission employees found");
                                             }
                                           },
-                                          title: "Permission",
+                                          title: "Permission",type: "2",
                                           count: homeProvider.mainReportList.isEmpty ?"0":homeProvider.mainReportList[0]["perm_count"].toString()=="null"?"0": homeProvider.mainReportList[0]["perm_count"].toString(),
                                           bgColor: Colors.purple.shade200,
-                                          borderColor:Colors.purple,iconValue: true,icon: Icons.perm_identity,
+                                          borderColor:Colors.purple,
                                           imagePath: DashboardAssets.late,
                                         ),
                                       ],
                                     ),
-                                    const SizedBox(height: 16),
-
-                                    /// Total Employees
+                                    5.height,
                                      Center(
                                       child: CustomText(
                                         "Total Employees : ${homeProvider.mainReportList.isEmpty?"":homeProvider.mainReportList[0]["total_user_count"].toString()}",
@@ -1186,42 +976,57 @@ class _HomePageState extends State<HomePage> {
                                       Row(
                                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                         children: [
-                                          const CustomText(
-                                            "Total Visits",
-                                            size: 18,
-                                            weight: FontWeight.bold,
+                                          Row(
+                                            children: [
+                                              const CustomText(
+                                                "Total Visits  ",
+                                                size: 18,
+                                                weight: FontWeight.bold,
+                                              ),
+                                              CustomText("${homeProvider.visitCount.length}", size: 28, weight: FontWeight.bold),
+                                            ],
                                           ),
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 12,
-                                              vertical: 6,
-                                            ),
-                                            decoration: BoxDecoration(
-                                              color: colorsConst.primary,
-                                              borderRadius: BorderRadius.circular(20),
-                                            ),
-                                            child: Row(
-                                              children: [
-                                                Icon(
-                                                  Icons.calendar_month,
-                                                  size: 16,
-                                                  color: Colors.white,
+                                          InkWell(
+                                            onTap: (){
+                                              utils.navigatePage(context, ()=> DashBoard(child:
+                                              CusAddVisit(taskId:"",companyId: "",companyName: "",
+                                                  numberList: [],isDirect: true, type: "", desc: "")));
+                                            },
+                                            child: Container(
+                                              width: screenWidth/3,
+                                              decoration: BoxDecoration(
+                                                color: Color(0xFFE8F5E9),
+                                                borderRadius: BorderRadius.circular(20),
+                                              ),
+                                              child: Padding(
+                                                padding: const EdgeInsets.all(5.0),
+                                                child: Row(
+                                                  mainAxisAlignment: MainAxisAlignment.center,
+                                                  children: [
+                                                    CircleAvatar(
+                                                      radius:10,backgroundColor: Colors.grey,
+                                                      child: Icon(
+                                                        Icons.add,
+                                                        size: 15,
+                                                        color: Colors.white,
+                                                      ),
+                                                    ),
+                                                    SizedBox(width: 6),
+                                                    CustomText(
+                                                      "Add Visits",
+                                                      size: 12,
+                                                      weight: FontWeight.w600,
+                                                      color: ColorsConst.present,
+                                                    ),
+                                                  ],
                                                 ),
-                                                SizedBox(width: 6),
-                                                CustomText(
-                                                  "Pending Visits: ${homeProvider.inActiveVisit}",
-                                                  size: 12,
-                                                  weight: FontWeight.w600,
-                                                  color: Colors.white,
-                                                ),
-                                              ],
+                                              ),
                                             ),
                                           ),
                                         ],
-                                      ),
+                                      ),10.height,
 
                                       /// Big Count
-                                      CustomText("${homeProvider.visitCount.length}", size: 28, weight: FontWeight.bold),
 
                                       /// Main Content Row
                                       Row(
@@ -1340,31 +1145,24 @@ class _HomePageState extends State<HomePage> {
                                                     ),
                                                   ),
                                                 ),15.height,
-                                                InkWell(
-                                                  onTap: (){
-                                                    utils.navigatePage(context, ()=> DashBoard(child:
-                                                    CusAddVisit(taskId:"",companyId: "",companyName: "",
-                                                        numberList: [],isDirect: true, type: "", desc: "")));
-                                                  },
-                                                  child: Container(
-                                                    padding: const EdgeInsets.symmetric(
-                                                      horizontal: 12,
-                                                      vertical: 6,
-                                                    ),
-                                                    decoration: BoxDecoration(
-                                                      color: Colors.greenAccent.shade700,
-                                                      borderRadius: BorderRadius.circular(20),
-                                                    ),
+                                                Container(
+                                                  width: screenWidth/2,
+                                                  decoration: BoxDecoration(
+                                                    color: colorsConst.primary,
+                                                    borderRadius: BorderRadius.circular(20),
+                                                  ),
+                                                  child: Padding(
+                                                    padding: const EdgeInsets.all(8.0),
                                                     child: Row(
                                                       children: [
                                                         Icon(
-                                                          Icons.add,
+                                                          Icons.calendar_month,
                                                           size: 16,
                                                           color: Colors.white,
                                                         ),
                                                         SizedBox(width: 6),
                                                         CustomText(
-                                                          "Add Visit",
+                                                          "Pending Visits: ${homeProvider.inActiveVisit}",
                                                           size: 12,
                                                           weight: FontWeight.w600,
                                                           color: Colors.white,
@@ -1373,6 +1171,7 @@ class _HomePageState extends State<HomePage> {
                                                     ),
                                                   ),
                                                 ),
+
                                                 // 20.height,
                                                 // Container(
                                                 //   padding: const EdgeInsets.symmetric(
@@ -1756,7 +1555,24 @@ class _HomePageState extends State<HomePage> {
                                           ],
                                         ),
                                       ),
-
+                                      if(taskPendingCount!=0)
+                                      Row(
+                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          CustomText(
+                                            "Normal (${homeProvider.mainReportList.isEmpty?"0":homeProvider.mainReportList[0]["Normal_count"]})",
+                                            color: Colors.blue,
+                                          ),
+                                          CustomText(
+                                            "High (${homeProvider.mainReportList.isEmpty?"0":homeProvider.mainReportList[0]["High_count"]})",
+                                            color: Colors.red,
+                                          ),
+                                          CustomText(
+                                            "Immediate (${homeProvider.mainReportList.isEmpty?"0":homeProvider.mainReportList[0]["High_count"]})",
+                                            color: Colors.purple,
+                                          ),
+                                        ],
+                                      ),
                                     ],
                                   ),
                                 ),

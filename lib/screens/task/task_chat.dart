@@ -26,7 +26,9 @@ class TaskChat extends StatefulWidget {
   final String taskId;
   final String assignedId;
   final String name;
-  const TaskChat({super.key, required this.taskId, required this.assignedId, required this.name});
+  final bool isVisit;
+  final String? createdBy;
+  const TaskChat({super.key, required this.taskId, required this.assignedId, required this.name, required this.isVisit, this.createdBy});
 
   @override
   State<TaskChat> createState() => _TaskChatState();
@@ -43,7 +45,11 @@ class _TaskChatState extends State<TaskChat> with SingleTickerProviderStateMixin
     WidgetsBinding.instance.addPostFrameCallback((timeStamp){
       Provider.of<CustomerProvider>(context, listen: false).disPoint.clear();
       Provider.of<CustomerProvider>(context, listen: false).recordedAudioPaths.clear();
-      Provider.of<CustomerProvider>(context, listen: false).getTaskComments(widget.taskId);
+      if(widget.isVisit==true){
+        Provider.of<CustomerProvider>(context, listen: false).getComments(widget.taskId);
+      }else{
+        Provider.of<CustomerProvider>(context, listen: false).getTaskComments(widget.taskId);
+      }
     });
     WidgetsBinding.instance.addPostFrameCallback((_) {
       scrollToBottom();
@@ -149,11 +155,16 @@ class _TaskChatState extends State<TaskChat> with SingleTickerProviderStateMixin
                             );
                           }
                         });
-                        await custProvider.tComment(
-                          context: context,
-                          taskId: widget.taskId.toString(),
-                          assignedId: widget.assignedId.toString(),
-                        );
+                        if(widget.isVisit==true){
+                          await custProvider.addComment(context: context,visitId: widget.taskId.toString(),
+                              companyName: widget.name,companyId:"", numberList: [], taskId: "0", createdBy: widget.createdBy.toString());
+                        }else{
+                          await custProvider.tComment(
+                            context: context,
+                            taskId: widget.taskId.toString(),
+                            assignedId: widget.assignedId.toString(),
+                          );
+                        }
 
                         // Future.microtask(() {
                         //   if (_scrollController.hasClients) {

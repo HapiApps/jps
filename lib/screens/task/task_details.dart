@@ -213,7 +213,7 @@ class _TaskDetailsState extends State<TaskDetails> with SingleTickerProviderStat
                                   ],
                                 ),
                                 InkWell(onTap: (){
-                                  utils.navigatePage(context, ()=> DashBoard(child: TaskChat(
+                                  utils.navigatePage(context, ()=> DashBoard(child: TaskChat(isVisit:false,
                                       taskId: widget.data.id.toString(), assignedId: widget.data.assigned.toString(), name: widget.data.creator.toString())));
                                 }, child: SvgPicture.asset(assets.tMessage,width: 25,height: 25,))
                               ],

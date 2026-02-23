@@ -45,10 +45,10 @@ class AttendanceProvider with ChangeNotifier{
     _isPermission=!_isPermission;
     notifyListeners();
   }
-  List<UserModel> _noAttendanceList = [];
-  List<AttendanceModel> _lateUsers = [];
-  List<UserModel> get noAttendanceList=>_noAttendanceList;
-  List<AttendanceModel> get lateUsers=>_lateUsers;
+  List<AttendanceModel> _noAttendanceList = [];
+  List<AttendanceModel> _noAttendanceList2 = [];
+  List<AttendanceModel> get noAttendanceList=>_noAttendanceList;
+  List<AttendanceModel> get noAttendanceList2=>_noAttendanceList2;
 
 //   void checkType(context) {
 //     _noAttendanceList.clear();
@@ -73,68 +73,7 @@ class AttendanceProvider with ChangeNotifier{
 //     _noAttendanceList.sort((a, b) => a.firstname!.toLowerCase().compareTo(b.firstname!.toLowerCase()));
 //     notifyListeners();
 //   }
-  void checkType(context) {
-    _noAttendanceList.clear();
-    final empProvider = Provider.of<EmployeeProvider>(context, listen: false);
-    _refresh = false;
 
-    print("🧾 Total Employees: ${empProvider.userData.length}");
-    print("🕒 Total Attendance Records: ${_getDailyAttendance.length}");
-
-    for (var emp in empProvider.userData) {
-      print("\nChecking employee: ${emp.firstname} (ID: ${emp.id})");
-
-      bool hasAttendance = _getDailyAttendance.any((att) {
-        // Split salesmanId in case it contains multiple IDs like "90,91"
-        var ids = att.salesmanId.toString().split(',').map((e) => e.trim()).toList();
-        print("  Attendance salesmanId: ${att.salesmanId} → Split IDs: $ids");
-
-        bool matched = ids.contains(emp.id.toString());
-        if (matched) {
-          print("  ✅ Match found for employee ID ${emp.id}");
-        }
-        return matched;
-      });
-
-      if (!hasAttendance) {
-        print("  ❌ No attendance found for ${emp.firstname} (ID: ${emp.id})");
-        _noAttendanceList.add(emp);
-      }
-    }
-
-    print("\n🚫 Employees without attendance: ${_noAttendanceList.length}");
-    _noAttendanceList.sort(
-          (a, b) => a.firstname!.toLowerCase().compareTo(b.firstname!.toLowerCase()),
-    );
-
-    // notifyListeners();
-  }
-
-  void checkLateUsers() {
-    _lateUsers.clear();
-    // 9:00 AM cutoff
-    final now = DateTime.now();
-    final cutoff = DateTime(now.year, now.month, now.day, 9, 0, 0);
-
-    for (var att in _getDailyAttendance) {
-      try {
-        // Get the first timestamp (before the comma)
-        String ts = att.createdTs.toString().split(',').first.trim();
-
-        // Parse timestamp
-        DateTime createdTs = DateTime.parse(ts);
-
-        // Check if after 9:00 AM
-        if (createdTs.isAfter(cutoff)) {
-          _lateUsers.add(att);
-        }
-      } catch (e) {
-        print("Error parsing createdTs for ${att.firstname}: $e");
-      }
-    }
-    _lateUsers.sort((a, b) => a.firstname!.toLowerCase().compareTo(b.firstname!.toLowerCase()));
-    notifyListeners();
-  }
   String _report = "Daily";
   String get report=>_report;
   final groupController = GroupButtonController();
@@ -189,60 +128,29 @@ class AttendanceProvider with ChangeNotifier{
   List<UserModel> _userData=[];
   List<UserModel> get userData => _userData;
 
-  Future<void> getAllUsers({bool? isRefresh=true}) async {
-    _userData.clear();
-    notifyListeners();
-    try {
-      Map data = {
-        "action": getAllData,
-        "search_type": "allusers",
-        "cos_id":localData.storage.read("cos_id"),
-        "role":localData.storage.read("role"),
-      };
-      final response =await empRepo.getUsers(data);
-      // print("response.toString()");
-      // print(response.toString());
-      if (response.isNotEmpty) {
-        _userData=response;
-        _noAttendanceList.clear();
-        _refresh = false;
-
-        print("🧾 Total Employees: ${_userData.length}");
-        print("🕒 Total Attendance Records: ${_getDailyAttendance.length}");
-
-        for (var emp in _userData) {
-          print("\nChecking employee: ${emp.firstname} (ID: ${emp.id})");
-
-          bool hasAttendance = _getDailyAttendance.any((att) {
-            // Split salesmanId in case it contains multiple IDs like "90,91"
-            var ids = att.salesmanId.toString().split(',').map((e) => e.trim()).toList();
-            print("  Attendance salesmanId: ${att.salesmanId} → Split IDs: $ids");
-
-            bool matched = ids.contains(emp.id.toString());
-            if (matched&&emp.active=="1") {
-              print("  ✅ Match found for employee ID ${emp.id}");
-            }
-            return matched;
-          });
-
-          if (!hasAttendance&&emp.active=="1") {
-            print("  ❌ No attendance found for ${emp.firstname} (ID: ${emp.id})");
-            _noAttendanceList.add(emp);
-          }
-        }
-
-        print("\n🚫 Employees without attendance: ${_noAttendanceList.length}");
-        _noAttendanceList.sort(
-              (a, b) => a.firstname!.toLowerCase().compareTo(b.firstname!.toLowerCase()),
-        );
-        _refresh = true;
-      } else {
-      }
-    } catch (e) {
-      log(e.toString());
-    }
-    notifyListeners();
-  }
+  // Future<void> getAllUsers({bool? isRefresh=true}) async {
+  //   _userData.clear();
+  //   notifyListeners();
+  //   try {
+  //     Map data = {
+  //       "action": getAllData,
+  //       "search_type": "allusers",
+  //       "cos_id":localData.storage.read("cos_id"),
+  //       "role":localData.storage.read("role"),
+  //     };
+  //     final response =await empRepo.getUsers(data);
+  //     // print("response.toString()");
+  //     // print(response.toString());
+  //     if (response.isNotEmpty) {
+  //       _userData=response;
+  //       _refresh = true;
+  //     } else {
+  //     }
+  //   } catch (e) {
+  //     log(e.toString());
+  //   }
+  //   notifyListeners();
+  // }
 
   void filterList(bool isFilter){
     _filter = isFilter;
@@ -251,6 +159,26 @@ class AttendanceProvider with ChangeNotifier{
     final parsedDate2 = dateFormat.parse(_endDate);
 
     _getDailyAttendance = _searchGetDailyAttendance.where((contact) {
+      String timestamp =contact.createdTs.toString();
+      List<String> times = timestamp.split(',');
+      DateTime startTime = DateTime.parse(times[0]);
+
+      DateTime  createdTsDate = startTime;
+      final createdDateOnly = DateTime(createdTsDate.year, createdTsDate.month, createdTsDate.day);
+      // print("Dates...... ${_startDate}-${_endDate}");
+      // print("Created ts......${contact.createdTs.toString()}");
+
+      final isWithinDateRange = !createdDateOnly.isBefore(parsedDate1) && !createdDateOnly.isAfter(parsedDate2);
+
+      final isIdMatch = _user == contact.salesmanId;
+      if (_user == null||_user=="") {
+        return isWithinDateRange;
+      }else {
+        return isWithinDateRange && isIdMatch;
+      }
+
+    }).toList();
+    _noAttendanceList = _noAttendanceList2.where((contact) {
       String timestamp =contact.createdTs.toString();
       List<String> times = timestamp.split(',');
       DateTime startTime = DateTime.parse(times[0]);
@@ -495,16 +423,6 @@ class AttendanceProvider with ChangeNotifier{
   void selectUser(context,UserModel value,List<UserModel>? list){
     _user=value.id;
     _userName=value.firstname.toString();
-    // filterList(true);
-    if(selectedIndex==0||selectedIndex==4){
-      searchAttendanceReport(_userName);
-    }else if(selectedIndex==1){
-      searchAttendanceReport2(_userName);
-    }else if(selectedIndex==2){
-      searchAttendanceReport3(_userName);
-    }else{
-      Provider.of<LeaveProvider>(context, listen: false).searchReport(_userName);
-    }
     applyFilter(list);
     notifyListeners();
   }
@@ -557,68 +475,6 @@ class AttendanceProvider with ChangeNotifier{
     return DateTime(year, month, day);
   }
 
-  List<String> getMissingDates({
-    required String startDateDMY,
-    required String endDateDMY,
-    required List<AttendanceModel> attendanceList,
-  }) {
-    // print("START = $startDateDMY");
-    // print("END   = $endDateDMY");
-    // print("ATTENDANCE LENGTH = ${attendanceList.length}");
-
-    // convert dd-mm-yyyy → DateTime
-    DateTime startDate = parseDMY(startDateDMY);
-    DateTime endDate = parseDMY(endDateDMY);
-    // print("Parsed Start = $startDate");
-    // print("Parsed End   = $endDate");
-
-    List<String> missingDates = [];
-
-    // Extract created_ts date as dd-mm-yyyy
-    Set<String> presentDates = attendanceList.map((item) {
-      String tsString = item.createdTs.toString();
-      // print("RAW created_ts = $tsString");
-
-      // remove [,] if present
-      tsString = tsString.split(',')[0].trim();
-      // print("PARSED created_ts = $tsString");
-
-      DateTime ts = DateTime.parse(tsString);
-      String finalDate =
-          "${ts.day.toString().padLeft(2, '0')}-"
-          "${ts.month.toString().padLeft(2, '0')}-"
-          "${ts.year}";
-
-      // print("Converted created_ts → $finalDate");
-      return finalDate;
-    }).toSet();
-
-    log("PRESENT DATES = $presentDates");
-
-    DateTime current = startDate;
-
-    while (current.isBefore(endDate.add(const Duration(days: 1)))) {
-      String dateString =
-          "${current.day.toString().padLeft(2, '0')}-"
-          "${current.month.toString().padLeft(2, '0')}-"
-          "${current.year}";
-
-      // print("CHECKING DATE = $dateString");
-
-      if (!presentDates.contains(dateString)) {
-        // print("❌ Missing → $dateString");
-        missingDates.add(dateString);
-      } else {
-        // print("✔ Present → $dateString");
-      }
-
-      current = current.add(const Duration(days: 1));
-    }
-
-    // print("FINAL MISSING DATES = $missingDates");
-
-    return missingDates;
-  }
   int selectedIndex = 0;
 
   final List<String> items = [
@@ -647,147 +503,102 @@ class AttendanceProvider with ChangeNotifier{
   String lastRefreshed="";
   bool asc=false;
   int permisCount=0;
-  Future<void> getAttendanceReport(String id,String role,bool isFilter,{bool? isAbsent,bool? isLate,List<UserModel>? list}) async {
+  int lateCountShow=0;
+  Future<void> getAttendanceReport(String id) async {
     _refresh = false;
     _getDailyAttendance.clear();
     _searchGetDailyAttendance.clear();
     permisCount=0;
+    lateCountShow=0;
     notifyListeners();
     try {
-      print("isAbsent : $isAbsent");
       Map data = {
         "action": getAllData,
         "search_type": "get_attendance",
         "salesman_id": id,
-        "role": role,
+        "role": localData.storage.read("role"),
         "cos_id":localData.storage.read("cos_id"),
         "st_dt": _startDate,
         "en_dt": _endDate
       };
       final response = await attRepo.getReport(data);
-      // print(response.toString());
+
       if (response.isNotEmpty){
         _getDailyAttendance=response;
         _searchGetDailyAttendance=response;
         int count=0;
+        int count2=0;
         for(var i=0;i<response.length;i++){
           if(response[i].perStatus.toString().contains(",")){
             count++;
           }
         }
         permisCount=count;
-        filterList(isFilter);
-        if(isAbsent==true){
-          if(role=="1"){
-            getAllUsers();
-          }else{
-            _missingDateList = getMissingDates(
-              startDateDMY: _startDate,
-              endDateDMY: _endDate,
-              attendanceList: response,
-            );
-            _refresh = true;
-            // print("missingggg $_missingDateList");
+        for(var i=0;i<response.length;i++){
+          var inTime = "";
+          if (response[i].status.toString().contains("1,2")) {
+            inTime = response[i].time!.split(",")[0];
+          }else if (response[i].status.toString().contains("2,1")) {
+            inTime = response[i].time!.split(",")[1];
+          }else {
+            inTime = response[i].time!.split(",")[0];
+          }
+          if(isLate(inTime)){
+            count2++;
           }
         }
-        else if (isLate == true) {
-          _lateUsers.clear();
-
-          for (var att in _getDailyAttendance) {
-            try {
-              String ts = att.createdTs.toString().split(',').first.trim();
-
-              // Parse the timestamp safely
-              DateTime createdTs;
-              try {
-                createdTs = DateTime.parse(ts);
-              } catch (_) {
-                createdTs = DateFormat("dd-MM-yyyy HH:mm:ss").parse(ts);
-              }
-
-              // ✅ Use the same day as the record for cutoff
-              final cutoff = DateTime(createdTs.year, createdTs.month, createdTs.day, 9, 0, 0);
-
-              // Compare
-              if (createdTs.isAfter(cutoff)) {
-                log("🚨 ${att.firstname} is LATE (Check-in: ${createdTs.hour}:${createdTs.minute.toString().padLeft(2, '0')})");
-                _lateUsers.add(att);
-              } else {
-                log("✅ ${att.firstname} is ON TIME (Check-in: ${createdTs.hour}:${createdTs.minute.toString().padLeft(2, '0')})");
-              }
-
-            } catch (e) {
-              log("Error parsing createdTs for ${att.firstname}: $e");
-            }
-          }
-
-          log("🔹 Total Late Users: ${_lateUsers.length}");
-          // _lateUsers.sort((a, b) => a.firstname!.toLowerCase().compareTo(b.firstname!.toLowerCase()));
-          _refresh = true;
-          notifyListeners();
-        }
-        else{
-          // print("missing.......1");
-          _refresh = true;
-        }
+        lateCountShow=count2;
+        print("permisCount......$permisCount");
+        print("lateCountShow......$lateCountShow");
+        filterList(_filter);
       }else {
-        // print("missing......llll");
         _refresh = true;
       }
       lastRefreshed=DateFormat('dd-MM-yyyy hh:mm a').format(DateTime.now());
       notifyListeners();
     } catch (e) {
       // print("Errrrrrr$e");
-      if(isAbsent==true){
-        if(role=="1"){
-          getAllUsers();
-        }else{
-          _missingDateList = getMissingDates(
-            startDateDMY: _startDate,
-            endDateDMY: _endDate,
-            attendanceList: [],
-          );
-          _refresh = true;
-          // print("missingggg $_missingDateList");
-        }
-      } else if (isLate == true) {
-        _lateUsers.clear();
+      notifyListeners();
+    }
+    notifyListeners();
+  }
+  bool isLate(String inTime) {
+    final format = DateFormat("hh:mm a");
 
-        for (var att in _getDailyAttendance) {
-          try {
-            String ts = att.createdTs.toString().split(',').first.trim();
+    DateTime officeTime = format.parse("09:00 AM");
+    DateTime userTime = format.parse(inTime);
 
-            // Parse the timestamp safely
-            DateTime createdTs;
-            try {
-              createdTs = DateTime.parse(ts);
-            } catch (_) {
-              createdTs = DateFormat("dd-MM-yyyy HH:mm:ss").parse(ts);
-            }
+    return userTime.isAfter(officeTime);
+  }
+  Future<void> getAbsentAttendanceReport(String id) async {
+    _refresh = false;
+    _noAttendanceList.clear();
+    notifyListeners();
+    try {
+      Map data = {
+        "action": getAllData,
+        "search_type": "absent_attendance",
+        "salesman_id": id,
+        "role": localData.storage.read("role"),
+        "cos_id":localData.storage.read("cos_id"),
+        "st_dt": _startDate,
+        "en_dt": _endDate
+      };
+      final response = await attRepo.getReport(data);
 
-            // ✅ Use the same day as the record for cutoff
-            final cutoff = DateTime(createdTs.year, createdTs.month, createdTs.day, 9, 0, 0);
-
-            // Compare
-            if (createdTs.isAfter(cutoff)) {
-              log("🚨 ${att.firstname} is LATE (Check-in: ${createdTs.hour}:${createdTs.minute.toString().padLeft(2, '0')})");
-              _lateUsers.add(att);
-            } else {
-              log("✅ ${att.firstname} is ON TIME (Check-in: ${createdTs.hour}:${createdTs.minute.toString().padLeft(2, '0')})");
-            }
-
-          } catch (e) {
-            log("Error parsing createdTs for ${att.firstname}: $e");
-          }
-        }
-
-        log("🔹 Total Late Users: ${_lateUsers.length}");
-        // _lateUsers.sort((a, b) => a.firstname!.toLowerCase().compareTo(b.firstname!.toLowerCase()));
+      if (response.isNotEmpty){
+        _noAttendanceList=response;
+        _noAttendanceList2=response;
+        filterList(_filter);
         _refresh = true;
-        notifyListeners();
-      }else{
+      }else {
+        // print("missing......llll");
         _refresh = true;
       }
+      notifyListeners();
+    } catch (e) {
+      // print("Errrrrrr$e");
+      _refresh = true;
       notifyListeners();
     }
     notifyListeners();
@@ -995,21 +806,14 @@ class AttendanceProvider with ChangeNotifier{
           return comFName.contains(input) ||userFName.contains(input);
         }).toList();
     _getDailyAttendance=suggestions;
-    notifyListeners();
-  }
-  void searchAttendanceReport3(String value){
-    List<AttendanceModel> old=lateUsers;
-    final suggestions=lateUsers.where(
+
+    final suggestions2=_noAttendanceList2.where(
             (user){
           final comFName=user.firstname.toString().toLowerCase();
-          final userFName=user.role.toString().toLowerCase();
           final input=value.toString().toLowerCase();
-          return comFName.contains(input) ||userFName.contains(input);
+          return comFName.contains(input);
         }).toList();
-    _lateUsers=suggestions;
-    if(value.isEmpty){
-      _lateUsers=old;
-    }
+    _noAttendanceList=suggestions2;
     notifyListeners();
   }
   void searchAttendanceReport2(String value){
@@ -1069,7 +873,7 @@ PickerDateRange? selectedDate;
     // stDt = DateTime.now();
     // enDt = DateTime.now().add(const Duration(days: 1));
     // _startDate = DateFormat('dd-MM-yyyy').format(stDt);
-    daily(id,role,refresh);
+    // daily(id,role,refresh);
     // _endDate = DateFormat('dd-MM-yyyy').format(enDt);
     notifyListeners();
   }
@@ -1079,7 +883,7 @@ PickerDateRange? selectedDate;
     _startDate = DateFormat('dd-MM-yyyy').format(stDt);
     _endDate = DateFormat('dd-MM-yyyy').format(stDt);
     if(localData.storage.read("role")!="1"){
-      getAttendanceReport(id,role,true);
+      getAttendanceReport(id,);
     }
     notifyListeners();
   }
@@ -1089,7 +893,7 @@ PickerDateRange? selectedDate;
     _startDate = DateFormat('dd-MM-yyyy').format(stDt);
     _endDate = DateFormat('dd-MM-yyyy').format(stDt);
     if(localData.storage.read("role")!="1"){
-      getAttendanceReport(id,role,true);
+      getAttendanceReport(id);
     }
     notifyListeners();
   }
@@ -1100,7 +904,7 @@ PickerDateRange? selectedDate;
     _startDate = DateFormat('dd-MM-yyyy').format(lastWeekStart);
     _endDate = DateFormat('dd-MM-yyyy').format(lastWeekEnd);
     if(localData.storage.read("role")!="1"){
-      getAttendanceReport(id,role,true);
+      getAttendanceReport(id);
     }
     notifyListeners();
   }
@@ -1111,7 +915,7 @@ PickerDateRange? selectedDate;
     _startDate = DateFormat('dd-MM-yyyy').format(lastMonthStart);
     _endDate = DateFormat('dd-MM-yyyy').format(lastMonthEnd);
     if(localData.storage.read("role")!="1"){
-      getAttendanceReport(id,role,true);
+      getAttendanceReport(id,);
     }
     notifyListeners();
   }
@@ -1123,7 +927,7 @@ PickerDateRange? selectedDate;
     _startDate = DateFormat('dd-MM-yyyy').format(stDt);
     _endDate = DateFormat('dd-MM-yyyy').format(enDt);
     if(localData.storage.read("role")!="1"){
-      getAttendanceReport(id,role,true);
+      getAttendanceReport(id);
     }
     notifyListeners();
   }
@@ -1134,7 +938,7 @@ PickerDateRange? selectedDate;
     _startDate = DateFormat('dd-MM-yyyy').format(stDt);
     _endDate = DateFormat('dd-MM-yyyy').format(enDt);
     if(localData.storage.read("role")!="1"){
-      getAttendanceReport(id,role,true);
+      getAttendanceReport(id);
     }
     notifyListeners();
   }
@@ -1170,17 +974,17 @@ PickerDateRange? selectedDate;
     _startDate = DateFormat('dd-MM-yyyy').format(stDt);
     _endDate = DateFormat('dd-MM-yyyy').format(enDt);
     if(localData.storage.read("role")!="1"){
-      getAttendanceReport(id,role,true);
+      getAttendanceReport(id);
     }
     notifyListeners();
   }
   void applyFilter(List<UserModel>? list){
     if(selectedIndex==1){
-      getAttendanceReport(localData.storage.read("id"),localData.storage.read("role"),false,isAbsent: true,isLate: false,list: list);
+      getAttendanceReport(localData.storage.read("id"));
     }else if(selectedIndex==2){
-      getAttendanceReport(localData.storage.read("id"),localData.storage.read("role"),false,isAbsent: false,isLate: true,list: list);
+      getAttendanceReport(localData.storage.read("id"));
     }else{
-      getAttendanceReport(localData.storage.read("id"),localData.storage.read("role"),false,isAbsent: false,isLate: false,list: list);
+      getAttendanceReport(localData.storage.read("id"));
     }
   }
 void showDatePickerDialog(BuildContext context,List<UserModel>? list) {
@@ -1433,7 +1237,7 @@ void showDatePickerDialog(BuildContext context,List<UserModel>? list) {
       getMainAttendance();
       getTotalHours(date1, date2);
       Provider.of<AttendanceProvider>(context, listen: false).initDate(id:localData.storage.read("id"),role:localData.storage.read("role"),isRefresh: true,date1: "${DateTime.now().day.toString().padLeft(2,"0")}-${DateTime.now().month.toString().padLeft(2,"0")}-${DateTime.now().year.toString()}",date2: "${DateTime.now().day.toString().padLeft(2,"0")}-${DateTime.now().month.toString().padLeft(2,"0")}-${DateTime.now().year.toString()}");
-      Provider.of<AttendanceProvider>(context, listen: false).getAttendanceReport(localData.storage.read("id"),localData.storage.read("role"),false);
+      Provider.of<AttendanceProvider>(context, listen: false).getAttendanceReport(localData.storage.read("id"));
     }else{
       log("Failed");
       utils.showErrorToast(context: context);
@@ -1497,7 +1301,7 @@ void showDatePickerDialog(BuildContext context,List<UserModel>? list) {
         _isPermission=false;
         notifyListeners();
       }
-      Provider.of<AttendanceProvider>(context, listen: false).getAttendanceReport(localData.storage.read("id"),localData.storage.read("role"),false);
+      Provider.of<AttendanceProvider>(context, listen: false).getAttendanceReport(localData.storage.read("id"));
       getMainAttendance();
       if(localData.storage.read("role")=="1"){
         getLateCount(Provider.of<HomeProvider>(context, listen: false).startDate,Provider.of<HomeProvider>(context, listen: false).endDate,);
