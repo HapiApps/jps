@@ -378,8 +378,9 @@ class _CheckAttendanceState extends State<CheckAttendance> {
                       child: CustomText(text: attProvider.mainAttendance==0?
                       "Attendance In"
                           :attProvider.mainCheckOut == true?
-                      "Attendance Marked"
-                          :"Attendance Out",colors: attProvider.mainAttendance==0?colorsConst.appGreen:attProvider.mainCheckOut == true?Colors.grey:colorsConst.appRed,size: 15,),
+                      "            Attendance Marked"
+                          :"        Attendance Out",colors: attProvider.mainAttendance==0?colorsConst.appGreen
+                          :attProvider.mainCheckOut == true?Colors.grey:colorsConst.appRed,size: 13,),
                     ),
 
                   ],
@@ -408,13 +409,13 @@ class _CheckAttendanceState extends State<CheckAttendance> {
                         children: [
                           CustomText(
                             text:attProvider.totalHrs2==""?"0 mins":attProvider.totalHrs2,
-                            size: 16,
+                            size: 13,
                             isBold: true,
                             colors: Colors.black,
                           ),
-                          5.width,
+                          2.width,
                           CustomText(
-                           text: "/12 hours",
+                           text: "/12 hrs",
                             size: 12,
                             colors: Colors.black54,
                           ),

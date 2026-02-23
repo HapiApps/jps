@@ -7,7 +7,7 @@ import 'package:intl/intl.dart';
 import 'package:master_code/component/custom_loading_button.dart';
 import 'package:master_code/screens/common/dashboard.dart';
 import 'package:master_code/screens/customer/visit_report/visits_report.dart';
-import 'package:master_code/screens/employee/view_notification.dart';
+import 'package:master_code/screens/common/view_notification.dart';
 import 'package:master_code/screens/report_dashboard/report_dashboard.dart';
 import 'package:master_code/screens/work_report/view_work_report.dart';
 import 'package:master_code/source/constant/default_constant.dart';

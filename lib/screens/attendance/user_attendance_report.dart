@@ -65,7 +65,7 @@ class _UserAttendanceReportState extends State<UserAttendanceReport> {
                           text: "", valueList: attProvider.typeList,
                           saveValue: attProvider.type,color: Colors.white,
                           onChanged: (value){
-                            attProvider.changeType(value,widget.id,"0",true,[]);
+                            attProvider.changeType(value,widget.id,"0",true,[],context);
                           },width: kIsWeb?webWidth:phoneWidth),
                     ),10.height,
                     attProvider.refresh == false ?

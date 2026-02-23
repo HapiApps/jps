@@ -36,8 +36,8 @@ class AttendanceRepository{
           },
           body: jsonEncode(data),
           encoding: Encoding.getByName("utf-8"));
-      print(data.toString());
-      print(request.body.toString());
+      // print(data.toString());
+      // print(request.body.toString());
       if (request.statusCode == 200){
         List response = json.decode(request.body);
         return response.map((json) => AttendanceModel.fromJson(json)).toList();

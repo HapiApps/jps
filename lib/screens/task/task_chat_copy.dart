@@ -73,7 +73,71 @@ class _TaskChatState extends State<TaskChat> with SingleTickerProviderStateMixin
     animation = Tween<double>(begin: 0.5, end: 1.5).animate(animationController);
     super.initState();
   }
+  final record = AudioRecorder();
 
+  bool isRecording = false;
+  bool isLocked = false;
+  bool isCancelled = false;
+
+  String? audioPath;
+
+  Offset dragOffset = Offset.zero;
+  int seconds = 0;
+  Timer? timer;
+  Future<void> checkPermissionAndStart() async {
+    var status = await Permission.microphone.request();
+
+    if (status.isGranted) {
+      startRecording();
+    }
+  }
+
+  Future<void> startRecording() async {
+    if (await record.hasPermission()) {
+      audioPath =
+      "/storage/emulated/0/Download/audio_${DateTime.now().millisecondsSinceEpoch}.m4a";
+
+      await record.start(const RecordConfig(), path: audioPath!);
+
+      isCancelled = false;
+      isLocked = false;
+      seconds = 0;
+
+      startTimer();
+
+      setState(() => isRecording = true);
+    }
+  }
+
+  Future<void> stopRecording() async {
+    timer?.cancel();
+
+    if (isCancelled) {
+      await record.stop();
+      return;
+    }
+
+    final path = await record.stop();
+
+    setState(() => isRecording = false);
+
+    if (path != null) {
+      print("Audio saved → $path");
+
+      // 👉 send API / preview / save
+    }
+  }
+
+  void cancelRecording() {
+    isCancelled = true;
+    stopRecording();
+  }
+
+  void startTimer() {
+    timer = Timer.periodic(const Duration(seconds: 1), (_) {
+      setState(() => seconds++);
+    });
+  }
   @override
   void dispose() {
     animationController.dispose();
@@ -119,18 +183,50 @@ class _TaskChatState extends State<TaskChat> with SingleTickerProviderStateMixin
                         decoration: customStyle.inputDecoration(text: "Type a comment", fieldClr: Colors.white,radius: 50)
                     ),
                   ),
-                  IconButton(
-                      onPressed: (){
-                        _myFocusScopeNode.unfocus();
-                        custProvider.timer?.cancel();
-                        HapticFeedback.vibrate();
-                        if(custProvider.isRecording){
-                          custProvider.stopRecording();
-                        }else{
-                          custProvider.startRecording();
-                        }
-                      },
-                      icon: Icon(custProvider.isRecording?Icons.send:Icons.mic,color: Colors.green,)),
+                  // IconButton(
+                  //     onPressed: (){
+                  //       _myFocusScopeNode.unfocus();
+                  //       HapticFeedback.vibrate();
+                  //       if(custProvider.isRecording){
+                  //         custProvider.stopRecording();
+                  //       }else{
+                  //         custProvider.startRecording();
+                  //       }
+                  //     },
+                  //     icon: Icon(custProvider.isRecording?Icons.send:Icons.mic,color: Colors.green,)),
+                  GestureDetector(
+                    onLongPress: checkPermissionAndStart,
+
+                    onLongPressMoveUpdate: (details) {
+                      dragOffset = details.localPosition;
+                      // slide left → cancel
+                      if (dragOffset.dx < -50) {
+                        cancelRecording();
+                      }
+
+                      // slide up → lock recording
+                      if (dragOffset.dy < -50) {
+                        setState(() => isLocked = true);
+                      }
+                    },
+
+                    onLongPressUp: () {
+                      if (!isLocked) stopRecording();
+                    },
+
+                    child: Container(
+                      height: 55,
+                      width: 55,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: isRecording ? Colors.red : Colors.green,
+                      ),
+                      child: Icon(
+                        isRecording ? Icons.mic : Icons.mic_none,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
                   SizedBox(
                     height: 45,
                     width: 45,
@@ -188,6 +284,35 @@ class _TaskChatState extends State<TaskChat> with SingleTickerProviderStateMixin
                       ),
                     ),
                   ),
+                  // SizedBox(
+                  //   height: 45,
+                  //   width: 45,
+                  //   child: RoundedLoadingButton(
+                  //       borderRadius: 30,
+                  //       color: colorsConst.primary,
+                  //       successColor: colorsConst.primary,
+                  //       valueColor: Colors.white,
+                  //       onPressed: () async {
+                  //         if(custProvider.disPoint.text.trim().isEmpty&&custProvider.recordedAudioPaths.isEmpty){
+                  //           utils.showWarningToast(context, text: "Type a comment or record audio");
+                  //           custProvider.addCtr.reset();
+                  //         }else{
+                  //            await custProvider.tComment(context: context,taskId: widget.taskId.toString(), assignedId: widget.assignedId.toString());
+                  //            Future.microtask(() {
+                  //              if (_scrollController.hasClients) {
+                  //                _scrollController.animateTo(
+                  //                  _scrollController.position.maxScrollExtent,
+                  //                  duration: const Duration(milliseconds: 300),
+                  //                  curve: Curves.easeOut,
+                  //                );
+                  //              }
+                  //            });
+                  //         }
+                  //       },
+                  //       controller: custProvider.addCtr,
+                  //       child: const Icon(Icons.send)
+                  //   ),
+                  // )
                 ],
               ),
             ),
@@ -246,8 +371,7 @@ class _TaskChatState extends State<TaskChat> with SingleTickerProviderStateMixin
                                 constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.5),
                                 margin: const EdgeInsets.symmetric(vertical: 4),
                                 child: AudioTile( key: ValueKey(custProvider.customerReport[index].documents),
-                                    audioUrl: custProvider.customerReport[index].documents.toString().contains("com.hapiapps.")?
-                                    custProvider.customerReport[index].documents.toString():'$imageFile?path=${custProvider.customerReport[index].documents}')):Container(
+                                    audioUrl: '$imageFile?path=${custProvider.customerReport[index].documents}')):Container(
                               constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.55),
                               margin: const EdgeInsets.symmetric(vertical: 4),
                               padding: const EdgeInsets.all(10),
@@ -312,6 +436,52 @@ class _TaskChatState extends State<TaskChat> with SingleTickerProviderStateMixin
                     },
                   ),
                 ),
+                if (isRecording)
+                  Positioned(
+                    bottom: 80,
+                    left: 20,
+                    right: 20,
+                    child: Container(
+                      padding: EdgeInsets.all(15),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(15),
+                      ),
+                      child: Row(
+                        children: [
+                          // mic animation
+                          TweenAnimationBuilder(
+                            tween: Tween(begin: 1.0, end: 1.5),
+                            duration: Duration(milliseconds: 600),
+                            builder: (_, value, child) =>
+                                Transform.scale(scale: value as double, child: child),
+                            child: Icon(Icons.mic, color: Colors.red),
+                          ),
+
+                          SizedBox(width: 10),
+
+                          Text("$seconds s",
+                              style: TextStyle(
+                                  color: Colors.red,
+                                  fontWeight: FontWeight.bold)),
+
+                          Spacer(),
+
+                          if (!isLocked)
+                            Text("← slide to cancel"),
+
+                          if (isLocked)
+                            Text("🔒 Locked"),
+                        ],
+                      ),
+                    ),
+                  ),
+                if (isLocked)
+                  FloatingActionButton(
+                    backgroundColor: Colors.red,
+                    onPressed: stopRecording,
+                    child: Icon(Icons.send),
+                  ),
                 if(custProvider.isRecording)
                   Positioned(
                     left: 0,

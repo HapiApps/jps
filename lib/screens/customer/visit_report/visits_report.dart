@@ -41,7 +41,7 @@ class _VisitReportState extends State<VisitReport> with SingleTickerProviderStat
 
   @override
   void initState() {
-    tabController=TabController(length:2, vsync: this);
+    tabController=TabController(length:localData.storage.read("role")=="1"?2:1, vsync: this);
     tabController.addListener(() {
       tabController.index;
     });
@@ -71,6 +71,7 @@ class _VisitReportState extends State<VisitReport> with SingleTickerProviderStat
             width: kIsWeb?webWidth:phoneWidth,
             child: Column(
               children: [
+                if(localData.storage.read("role")=="1")
                 Container(
                     height: 40,
                     decoration: customDecoration.baseBackgroundDecoration(
@@ -382,6 +383,7 @@ class _VisitReportState extends State<VisitReport> with SingleTickerProviderStat
                           ),
                         ],
                       ),
+                      if(localData.storage.read("role")=="1")
                       Column(
                         children: [
                           10.height,

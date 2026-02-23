@@ -33,7 +33,7 @@ class _CustomAttendanceReportState extends State<CustomAttendanceReport> {
   void initState() {
     Future.delayed(Duration.zero, () {
       if (!mounted) return;
-      Provider.of<AttendanceProvider>(context, listen: false).thisMonth(widget.userId,"0",false);
+      Provider.of<AttendanceProvider>(context, listen: false).thisMonth(widget.userId,"0",false,context);
       Provider.of<AttendanceProvider>(context, listen: false).getUserAttendanceReport(widget.userId,"0",false,isAbsent: false,isLate: false,list: []);
     });
     super.initState();

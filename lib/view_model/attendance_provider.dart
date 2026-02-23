@@ -151,34 +151,16 @@ class AttendanceProvider with ChangeNotifier{
   //   }
   //   notifyListeners();
   // }
-
-  void filterList(bool isFilter){
-    _filter = isFilter;
+  void changeFilter(){
+    _filter=true;
+    notifyListeners();
+  }
+  void filterList(){
     final dateFormat = DateFormat('dd-MM-yyyy');
     final parsedDate1 = dateFormat.parse(_startDate);
     final parsedDate2 = dateFormat.parse(_endDate);
 
     _getDailyAttendance = _searchGetDailyAttendance.where((contact) {
-      String timestamp =contact.createdTs.toString();
-      List<String> times = timestamp.split(',');
-      DateTime startTime = DateTime.parse(times[0]);
-
-      DateTime  createdTsDate = startTime;
-      final createdDateOnly = DateTime(createdTsDate.year, createdTsDate.month, createdTsDate.day);
-      // print("Dates...... ${_startDate}-${_endDate}");
-      // print("Created ts......${contact.createdTs.toString()}");
-
-      final isWithinDateRange = !createdDateOnly.isBefore(parsedDate1) && !createdDateOnly.isAfter(parsedDate2);
-
-      final isIdMatch = _user == contact.salesmanId;
-      if (_user == null||_user=="") {
-        return isWithinDateRange;
-      }else {
-        return isWithinDateRange && isIdMatch;
-      }
-
-    }).toList();
-    _noAttendanceList = _noAttendanceList2.where((contact) {
       String timestamp =contact.createdTs.toString();
       List<String> times = timestamp.split(',');
       DateTime startTime = DateTime.parse(times[0]);
@@ -262,20 +244,20 @@ class AttendanceProvider with ChangeNotifier{
 
   var typeList = ["Today","Yesterday","Last 7 Days","Last 30 Days","This Week","This Month","Last 3 months"];
   dynamic get type=>_type;
-  void changeType(value,String id ,String role,bool? isRefresh,List<UserModel>? list){
+  void changeType(value,String id ,String role,bool? isRefresh,List<UserModel>? list,context){
     _type=value;
     if(_type=="Today"){
-      daily(id,role,isRefresh);
+      daily(id,role,isRefresh,context);
     }else if(_type=="Yesterday"){
-      yesterday(id,role,isRefresh);
+      yesterday(id,role,isRefresh,context);
     }else if(_type=="Last 7 Days"){
-      last7Days(id,role,isRefresh);
+      last7Days(id,role,isRefresh,context);
     }else if(_type=="Last 30 Days"){
-      last30Days(id,role,isRefresh);
+      last30Days(id,role,isRefresh,context);
     }else if(_type=="This Week"){
-      thisWeek(id,role,isRefresh);
+      thisWeek(id,role,isRefresh,context);
     }else if(_type=="This Month"){
-      thisMonth(id,role,isRefresh);
+      thisMonth(id,role,isRefresh,context);
     }else if(_type=="Last 3 months"){
       last3Month(id,role,isRefresh);
     }else{
@@ -522,14 +504,15 @@ class AttendanceProvider with ChangeNotifier{
         "en_dt": _endDate
       };
       final response = await attRepo.getReport(data);
-
+      print("response");
+      print(response);
       if (response.isNotEmpty){
         _getDailyAttendance=response;
         _searchGetDailyAttendance=response;
         int count=0;
         int count2=0;
         for(var i=0;i<response.length;i++){
-          if(response[i].perStatus.toString().contains(",")){
+          if(response[i].perStatus.toString()!="null"){
             count++;
           }
         }
@@ -550,7 +533,10 @@ class AttendanceProvider with ChangeNotifier{
         lateCountShow=count2;
         print("permisCount......$permisCount");
         print("lateCountShow......$lateCountShow");
-        filterList(_filter);
+        if(_filter==true){
+          filterList();
+        }
+        _refresh = true;
       }else {
         _refresh = true;
       }
@@ -587,9 +573,35 @@ class AttendanceProvider with ChangeNotifier{
       final response = await attRepo.getReport(data);
 
       if (response.isNotEmpty){
-        _noAttendanceList=response;
         _noAttendanceList2=response;
-        filterList(_filter);
+        print("_filter...... ${_filter}");
+        print("Dates...... ${_user}");
+        if (_filter == true) {
+          final dateFormat = DateFormat('dd-MM-yyyy');
+          final parsedDate1 = dateFormat.parse(_startDate);
+          final parsedDate2 = dateFormat.parse(_endDate);
+
+          _noAttendanceList = response.where((contact) {
+            // API la irukura date
+            DateTime missingDate = DateTime.parse(contact.missingDate.toString());
+
+            final createdDateOnly =
+            DateTime(missingDate.year, missingDate.month, missingDate.day);
+
+            final isWithinDateRange = !createdDateOnly.isBefore(parsedDate1) &&
+                !createdDateOnly.isAfter(parsedDate2);
+
+            final isIdMatch = _user == contact.id;
+
+            if (_user == null || _user == "") {
+              return isWithinDateRange;
+            } else {
+              return isWithinDateRange && isIdMatch;
+            }
+          }).toList();
+        }else{
+          _noAttendanceList=response;
+        }
         _refresh = true;
       }else {
         // print("missing......llll");
@@ -839,18 +851,18 @@ class AttendanceProvider with ChangeNotifier{
 PickerDateRange? selectedDate;
   List<DateTime> datesBetween = [];
   String betweenDates="";
-  void sorting() {
+  void sorting(context) {
     if (asc) {
       // ASC → A to Z
-      _getDailyAttendance.sort(
-            (a, b) => (a.firstname ?? '').compareTo(b.firstname ?? ''),
-      );
+      _getDailyAttendance.sort((a, b) => (a.firstname ?? '').compareTo(b.firstname ?? ''));
+      _noAttendanceList.sort((a, b) => (a.firstname ?? '').compareTo(b.firstname ?? ''));
+      Provider.of<LeaveProvider>(context, listen: false).myLevSearch.sort((a, b) => (a.fName ?? '').compareTo(b.fName ?? ''));
       asc = false;
     } else {
       // DESC → Z to A
-      _getDailyAttendance.sort(
-            (a, b) => (b.firstname ?? '').compareTo(a.firstname ?? ''),
-      );
+      _getDailyAttendance.sort((a, b) => (b.firstname ?? '').compareTo(a.firstname ?? ''));
+      _noAttendanceList.sort((a, b) => (b.firstname ?? '').compareTo(a.firstname ?? ''));
+      Provider.of<LeaveProvider>(context, listen: false).myLevSearch.sort((a, b) => (b.fName ?? '').compareTo(a.fName ?? ''));
       asc = true;
     }
 
@@ -868,6 +880,7 @@ PickerDateRange? selectedDate;
     _filter=false;
     _user=null;
     _userName="";
+    _user="";
     _startDate=date1 ??_startDate;
     _endDate=date2 ??_endDate;
     // stDt = DateTime.now();
@@ -877,38 +890,44 @@ PickerDateRange? selectedDate;
     // _endDate = DateFormat('dd-MM-yyyy').format(enDt);
     notifyListeners();
   }
-  void daily(String id ,String role,bool? isRefresh) {
+  void daily(String id ,String role,bool? isRefresh,context) {
     stDt=DateTime.now();
     enDt=DateTime.now().add(const Duration(days: 1));
     _startDate = DateFormat('dd-MM-yyyy').format(stDt);
     _endDate = DateFormat('dd-MM-yyyy').format(stDt);
     if(localData.storage.read("role")!="1"){
       getAttendanceReport(id,);
+      getAbsentAttendanceReport(id);
+      Provider.of<LeaveProvider>(context, listen: false).allLeaves(_startDate,_endDate,true);
     }
     notifyListeners();
   }
-  void yesterday(String id ,String role,bool? isRefresh) {
+  void yesterday(String id ,String role,bool? isRefresh,context) {
     stDt=DateTime.now().subtract(const Duration(days: 1));
     enDt = DateTime.now();
     _startDate = DateFormat('dd-MM-yyyy').format(stDt);
     _endDate = DateFormat('dd-MM-yyyy').format(stDt);
     if(localData.storage.read("role")!="1"){
-      getAttendanceReport(id);
+      getAttendanceReport(id,);
+      getAbsentAttendanceReport(id);
+      Provider.of<LeaveProvider>(context, listen: false).allLeaves(_startDate,_endDate,true);
     }
     notifyListeners();
   }
-  void last7Days(String id ,String role,bool? isRefresh) {
+  void last7Days(String id ,String role,bool? isRefresh,context) {
     DateTime now = DateTime.now();
     DateTime lastWeekStart = now.subtract(const Duration(days: 6));
     DateTime lastWeekEnd = now;
     _startDate = DateFormat('dd-MM-yyyy').format(lastWeekStart);
     _endDate = DateFormat('dd-MM-yyyy').format(lastWeekEnd);
     if(localData.storage.read("role")!="1"){
-      getAttendanceReport(id);
+      getAttendanceReport(id,);
+      getAbsentAttendanceReport(id);
+      Provider.of<LeaveProvider>(context, listen: false).allLeaves(_startDate,_endDate,true);
     }
     notifyListeners();
   }
-  void last30Days(String id ,String role,bool? isRefresh) {
+  void last30Days(String id ,String role,bool? isRefresh,context) {
     DateTime now = DateTime.now();
     DateTime lastMonthStart = now.subtract(const Duration(days: 29));
     DateTime lastMonthEnd = now;
@@ -916,10 +935,12 @@ PickerDateRange? selectedDate;
     _endDate = DateFormat('dd-MM-yyyy').format(lastMonthEnd);
     if(localData.storage.read("role")!="1"){
       getAttendanceReport(id,);
+      getAbsentAttendanceReport(id);
+      Provider.of<LeaveProvider>(context, listen: false).allLeaves(_startDate,_endDate,true);
     }
     notifyListeners();
   }
-  void thisWeek(String id ,String role,bool? isRefresh) {
+  void thisWeek(String id ,String role,bool? isRefresh,context) {
     DateTime now = DateTime.now();
     int currentWeekday = now.weekday;
     DateTime stDt = now.subtract(Duration(days: currentWeekday - 1));
@@ -927,18 +948,22 @@ PickerDateRange? selectedDate;
     _startDate = DateFormat('dd-MM-yyyy').format(stDt);
     _endDate = DateFormat('dd-MM-yyyy').format(enDt);
     if(localData.storage.read("role")!="1"){
-      getAttendanceReport(id);
+      getAttendanceReport(id,);
+      getAbsentAttendanceReport(id);
+      Provider.of<LeaveProvider>(context, listen: false).allLeaves(_startDate,_endDate,true);
     }
     notifyListeners();
   }
-  void thisMonth(String id ,String role,bool? isRefresh) {
+  void thisMonth(String id ,String role,bool? isRefresh,context) {
     DateTime now = DateTime.now();
     stDt = DateTime(now.year, now.month, 1);
     enDt = now; // Today’s date
     _startDate = DateFormat('dd-MM-yyyy').format(stDt);
     _endDate = DateFormat('dd-MM-yyyy').format(enDt);
     if(localData.storage.read("role")!="1"){
-      getAttendanceReport(id);
+      getAttendanceReport(id,);
+      getAbsentAttendanceReport(id);
+      Provider.of<LeaveProvider>(context, listen: false).allLeaves(_startDate,_endDate,true);
     }
     notifyListeners();
   }

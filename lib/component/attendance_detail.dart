@@ -153,7 +153,8 @@ class AttendanceDetails extends StatelessWidget {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              CustomText(text: inTime,size: 11,),
+                              // CustomText(text: (inTime.toString()=="null").toString(),size: 11,),
+                              CustomText(text: inTime.toString()!="null"?inTime:"-",size: 11,),
                               GestureDetector(
                                   onTap: callback,
                                   child: SvgPicture.asset(assets.map,width: 13,height: 13,)),
@@ -258,13 +259,26 @@ class AttendanceDetails extends StatelessWidget {
       ],
     );
   }
-  bool isLate(String inTime) {
+  // bool isLate(String inTime) {
+  //   final format = DateFormat("hh:mm a");
+  //
+  //   DateTime officeTime = format.parse("09:00 AM");
+  //   DateTime userTime = format.parse(inTime);
+  //
+  //   return userTime.isAfter(officeTime);
+  // }
+  bool isLate(String? inTime) {
+    if (inTime == null || inTime.trim().isEmpty) return false;
+
     final format = DateFormat("hh:mm a");
 
-    DateTime officeTime = format.parse("09:00 AM");
-    DateTime userTime = format.parse(inTime);
-
-    return userTime.isAfter(officeTime);
+    try {
+      DateTime officeTime = format.parse("09:00 AM");
+      DateTime userTime = format.parse(inTime);
+      return userTime.isAfter(officeTime);
+    } catch (e) {
+      return false; // invalid time format
+    }
   }
   String timeDifference (String dateTimeString1,String dateTimeString2) {
     DateTime startTime = DateTime.parse(dateTimeString1);

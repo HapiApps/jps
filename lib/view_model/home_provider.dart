@@ -518,14 +518,10 @@ String get notificationToken =>_notificationToken;
 
                     List<String> formattedDates = datesBetween.map((date) => dateFormat.format(date)).toList();
                     betweenDates = formattedDates.join(' || ');
-                    getMainReport(true);
-                    getDashboardReport(true);
-                    if(localData.storage.read("role")=='1'){
-                      // roleEmployees();
-                      Provider.of<AttendanceProvider>(context, listen: false).getLateCount(_startDate,_endDate);
-                    }else{
-                      Provider.of<AttendanceProvider>(context, listen: false).getTotalHours(_startDate,_endDate);
-                    }
+                    getMainReport(false);
+                    getDashboardReport(false);
+                    Provider.of<AttendanceProvider>(context, listen: false).getLateCount(_startDate,_endDate);
+                    Provider.of<AttendanceProvider>(context, listen: false).getTotalHours(_startDate,_endDate);
                     notifyListeners();
                     Navigator.of(context).pop();
                   },
@@ -918,13 +914,9 @@ Future<void> deleteUseAccount(context) async {
       last3Month();
     }
     getMainReport(false);
-    getDashboardReport(false);
-    if(localData.storage.read("role")=='1'){
-      // roleEmployees();
-      Provider.of<AttendanceProvider>(context, listen: false).getLateCount(_startDate,_endDate);
-    }else{
-      Provider.of<AttendanceProvider>(context, listen: false).getTotalHours(_startDate,_endDate);
-    }
+    getDashboardReport(false);Provider.of<AttendanceProvider>(context, listen: false).getLateCount(_startDate,_endDate);
+    Provider.of<AttendanceProvider>(context, listen: false).getTotalHours(_startDate,_endDate);
+
     notifyListeners();
   }
   DateTime stDt = DateTime.now();

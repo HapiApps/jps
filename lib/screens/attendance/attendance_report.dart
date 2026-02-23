@@ -127,7 +127,7 @@ void check(){
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Container(
-                                width: kIsWeb?webWidth/1.2:phoneWidth/1.2,
+                                width: attProvider.selectedIndex==0?phoneWidth/1.2:phoneWidth,
                                 decoration: customDecoration.baseBackgroundDecoration(
                                   radius: 30,
                                   color: colorsConst.primary,
@@ -136,7 +136,7 @@ void check(){
                                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
                                     Container(
-                                      width: phoneWidth/1.5,
+                                      width: attProvider.selectedIndex==0?phoneWidth/1.5:phoneWidth/1.2,
                                       height: 45,
                                       decoration: customDecoration.baseBackgroundDecoration(
                                         radius: 30,
@@ -176,12 +176,25 @@ void check(){
                                               fontSize: 12.0,
                                               height: 0.20,
                                             ),
+                                            focusedBorder: OutlineInputBorder(
+                                                borderSide:  BorderSide(color: colorsConst.primary),
+                                                borderRadius: BorderRadius.circular(30)
+                                            ),
+                                            focusedErrorBorder: OutlineInputBorder(
+                                                borderSide: BorderSide(color: colorsConst.primary),
+                                                borderRadius: BorderRadius.circular(30)
+                                            ),
+                                            // errorStyle: const TextStyle(height:0.05,fontSize: 12),
+                                            contentPadding:const EdgeInsets.fromLTRB(10, 10, 10, 10),
+                                            errorBorder: OutlineInputBorder(
+                                                borderSide:  const BorderSide(color: Colors.transparent),
+                                                borderRadius: BorderRadius.circular(30)
+                                            ),
                                             enabledBorder: OutlineInputBorder(
                                               // grey.shade300
                                                 borderSide:  BorderSide(color: Colors.grey.shade300),
                                                 borderRadius: BorderRadius.circular(30)
                                             ),
-                                            contentPadding:const EdgeInsets.fromLTRB(10, 10, 10, 10)
                                         ),
                                       ),
                                     ),
@@ -347,7 +360,7 @@ void check(){
                                                                                   icon: const Icon(Icons.keyboard_arrow_down_outlined),
                                                                                   value: attProvider.type,
                                                                                   onChanged: (value) {
-                                                                                    attProvider.changeType(value,localData.storage.read("id"),localData.storage.read("role"),false,widget.empList);
+                                                                                    attProvider.changeType(value,localData.storage.read("id"),localData.storage.read("role"),false,widget.empList,context);
                                                                                   },
                                                                                   items: attProvider.typeList.map((list) {
                                                                                     return DropdownMenuItem(
@@ -375,20 +388,11 @@ void check(){
                                                                           text: 'Clear All',
                                                                           callback: () {
                                                                             attProvider.initDate(id:localData.storage.read("id"),role:localData.storage.read("role"),isRefresh: false,date1:widget.date1,date2:widget.date2,type:widget.type);
+                                                                            attProvider.getAttendanceReport(localData.storage.read("id"));
+                                                                            attProvider.getAbsentAttendanceReport(localData.storage.read("id"));
+                                                                            levPvr.changeFilter();
+                                                                            levPvr.allLeaves(attProvider.date1,attProvider.date2,true);
                                                                             Navigator.of(context, rootNavigator: true).pop();
-                                                                            // attProvider.getAttendanceReport(localData.storage.read("id"),localData.storage.read("role"),false,isAbsent: showType=="Absent"?true:false,isLate: showType=="Late"?true:false,list: widget.empList);
-                                                                            if(attProvider.selectedIndex==1){
-                                                                              showType="Absent";
-                                                                              attProvider.getAttendanceReport(localData.storage.read("id"));
-                                                                            }
-                                                                            if(attProvider.selectedIndex==2){
-                                                                              showType="Late";
-                                                                              attProvider.getAttendanceReport(localData.storage.read("id"));
-                                                                            }
-                                                                            if(attProvider.selectedIndex==4){
-                                                                              showType="Present";
-                                                                              attProvider.getAttendanceReport(localData.storage.read("id"));
-                                                                            }
                                                                             },
                                                                           bgColor: Colors.grey.shade200,
                                                                           textColor: Colors.black,
@@ -397,6 +401,7 @@ void check(){
                                                                           width: 100,
                                                                           text: 'Apply Filters',
                                                                           callback: () {
+                                                                            attProvider.changeFilter();
                                                                             attProvider.getAttendanceReport(localData.storage.read("id"));
                                                                             attProvider.getAbsentAttendanceReport(localData.storage.read("id"));
                                                                             levPvr.changeFilter();
@@ -430,9 +435,9 @@ void check(){
                                     ),5.width
                                   ],
                                 ),),
+                              if(attProvider.selectedIndex==0)
                               GestureDetector(
                                   onTap: (){
-                                    if(attProvider.selectedIndex==0)
                                     if(attProvider.getDailyAttendance.isEmpty){
                                       utils.showWarningToast(context, text: "No Data Found");
                                     }else{
@@ -446,12 +451,12 @@ void check(){
                                   child: SvgPicture.asset(assets.tDownload,width: 27,height: 27,)),
                             ],
                           ),
-                        if(localData.storage.read("role") !="1"&&showType!="0"&&showType!="Absent"&&showType!="Late")
+                        if(localData.storage.read("role") !="1")
                         CustomDropDown(
                               text: "", valueList: attProvider.typeList,
                               saveValue: attProvider.type,color: Colors.white,
                               onChanged: (value){
-                                attProvider.changeType(value,localData.storage.read("id"),localData.storage.read("role"),false,widget.empList);
+                                attProvider.changeType(value,localData.storage.read("id"),localData.storage.read("role"),false,widget.empList,context);
                               }, width: kIsWeb?webWidth:phoneWidth),
                         10.height,
                         SizedBox(
@@ -461,7 +466,7 @@ void check(){
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               if(attProvider.filter==true)
-                                CustomText(text: "Filter Selected",colors:colorsConst.greyClr,size: 14,),10.height,
+                              CustomText(text: "Filter Selected",colors:colorsConst.greyClr,size: 14,),10.height,
                               Row(
                                 crossAxisAlignment: CrossAxisAlignment.end,
                                 mainAxisAlignment: MainAxisAlignment.end,
@@ -498,7 +503,7 @@ void check(){
                         Row(
                           children: [
                             Container(
-                              width: kIsWeb?webWidth:phoneWidth/1.14,
+                              width: phoneWidth/1.15,
                               height: 45,
                               decoration: BoxDecoration(
                                 color: Colors.white,
@@ -513,15 +518,12 @@ void check(){
                                   topLeft: Radius.circular(5),
                                   bottomLeft: Radius.circular(5),
                                 ),
-                                // borderColor: Colors.grey.shade300,
+                                borderWidth: 1,                      // ⭐ important
+                                borderColor: Colors.grey.shade300,
                                 selectedBorderColor: Colors.white,
                                 fillColor: Colors.green, // selected background
 
-                                borderColor: Colors.transparent,        // ⭐ unselected border remove
-                                // selectedBorderColor: Colors.transparent, // ⭐ selected border remove
                                 disabledBorderColor: Colors.transparent,
-                                borderWidth: 0,
-
                                 isSelected: List.generate(
                                   attProvider.items.length,
                                       (index) => attProvider.selectedIndex == index,
@@ -551,22 +553,18 @@ void check(){
                                 children: List.generate(attProvider.items.length, (index) {
                                   bool isSelected = attProvider.selectedIndex == index;
 
-                                  return Padding(
-                                    padding: const EdgeInsets.symmetric(horizontal: 6),
-                                    child: Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        CustomText(
-                                          text:"  ${attProvider.items[index]}",
-                                          colors: isSelected
-                                              ? Colors.white
-                                              : attProvider.itemColors[index].withOpacity(0.6),isBold: true,
-                                        ),5.width,
-                                        if(!isSelected)
-                                          Container(
-                                            color: Colors.grey.shade200,height: 30,width: 1,
-                                          )
-                                      ],
+                                  final totalWidth = phoneWidth / 1.15; // ⭐ same as container
+
+                                  return SizedBox(
+                                    width: totalWidth / attProvider.items.length,
+                                    child: Center(
+                                      child: CustomText(
+                                        text: attProvider.items[index],size: 12,
+                                        colors: isSelected
+                                            ? Colors.white
+                                            : attProvider.itemColors[index].withOpacity(0.6),
+                                        isBold: true,
+                                      ),
                                     ),
                                   );
                                 }),
@@ -574,22 +572,23 @@ void check(){
                             ),
                             InkWell(
                               onTap: (){
-                                attProvider.sorting();
+                                attProvider.sorting(context);
                               },
                               child: Container(
                                   height: 45,
-                                  width: kIsWeb?webWidth:phoneWidth/9,
+                                  width:phoneWidth/9,
                                   decoration: BoxDecoration(
                                     color: Colors.white,
                                     borderRadius: BorderRadius.only(
                                       topRight: Radius.circular(5),
                                       bottomRight: Radius.circular(5),
                                     ),
+                                    border: Border.all(
+                                      color: Colors.grey.shade300, // ⭐ border color
+                                      width: 1,           // optional
+                                    ),
                                   ),
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(5.0),
-                                    child: Icon(Icons.sort_by_alpha),
-                                  )
+                                  child: Icon(Icons.sort_by_alpha)
                               ),
                             ),
                           ],
@@ -619,7 +618,7 @@ void check(){
                                     outTime = data.time!.split(",")[0];
                                     timeD=attProvider.timeDifference(data.createdTs!.split(",")[0], data.createdTs!.split(",")[1]);
                                   }else {
-                                    inTime = data.time!.split(",")[0];
+                                    inTime = data.time.toString().split(",")[0];
                                     timeD="-";
                                   }
                                   String timestamp =data.createdTs.toString();
@@ -637,56 +636,7 @@ void check(){
 
                                   final showDateHeader = index == 0 ||
                                       createdBy != prevCreatedBy;
-                                  return attProvider.selectedIndex==2&&isLate(inTime)?
-                                  Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      if(localData.storage.read("role")=="1"&&showDateHeader)
-                                        Padding(
-                                          padding: const EdgeInsets.fromLTRB(0, 10, 0, 10),
-                                          child: CustomText(text: createdBy,colors:colorsConst.greyClr,size: 12,),
-                                        ),
-                                      InkWell(
-                                          onTap:(){
-                                            utils.navigatePage(context, ()=> DashBoard(child:
-                                            CustomAttendanceReport(userId:data.salesmanId.toString(),userName: data.firstname.toString())));
-                                          },
-                                          child: AttendanceDetails(
-                                            isName: attProvider.userName!=""?false:true,
-                                            showDate: index==0?true:false,
-                                            date: data.date.toString(),
-                                            img: data.image.toString(),
-                                            inTime: inTime,
-                                            outTime: outTime,
-                                            timeD:timeD,
-                                            name: data.firstname.toString(),
-                                            role: data.role.toString(),
-                                            callback: () {
-                                              utils.navigatePage(context, ()=>CheckLocation(
-                                                  lat1: lat[0].toString(),
-                                                  long1: lng[0].toString(),
-                                                  lat2: data.status.toString().contains("2")? lat[1].toString(): "",
-                                                  long2: data.status.toString().contains("2")? lng[1].toString(): ""
-                                              ));
-                                            },
-                                            perStatus: data.perStatus.toString(),
-                                            perReason: data.perReason.toString(),
-                                            perTime: data.perTime.toString(),
-                                            perCreatedTs: data.perCreatedTs.toString(),
-                                          )
-                                      ),5.height
-                                    ],
-                                  )
-                                      :attProvider.selectedIndex==4&&attProvider.permisCount==0?
-                                  Column(
-                                    children: [
-                                      100.height,
-                                      CustomText(
-                                        text: constValue.noData, colors: colorsConst.greyClr,),
-                                    ],
-                                  )
-                                      :attProvider.selectedIndex==0?
-                                  Column(
+                                  return Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
                                       if(localData.storage.read("role")=="1"&&showDateHeader)
@@ -724,8 +674,7 @@ void check(){
                                         ),
                                       ),5.height
                                     ],
-                                  )
-                                      :0.height;
+                                  );
                                 }),
                           ):
                         attProvider.selectedIndex==1&&
@@ -736,21 +685,50 @@ void check(){
                                 itemBuilder: (context, index) {
                                   var data = attProvider.noAttendanceList[index];
                                   return Padding(
-                                    padding: EdgeInsets.fromLTRB(5, 10, 5, index==attProvider.noAttendanceList.length-1?30:0),
+                                    padding: EdgeInsets.fromLTRB(0, 10, 0, index==attProvider.noAttendanceList.length-1?30:0),
                                     child: Card(
                                       child: Padding(
                                         padding: const EdgeInsets.all(8.0),
                                         child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.end,
+                                          crossAxisAlignment: CrossAxisAlignment.start,
                                           children: [
-                                            // CustomText(text:  DateFormat('dd-MM-yyyy hh:mm a')
-                                            //     .format(DateTime.parse(data.createdTs.toString())),colors:colorsConst.red1),5.height,
                                             Row(
                                               crossAxisAlignment: CrossAxisAlignment.start,
-                                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                              mainAxisAlignment: MainAxisAlignment.start,
                                               children: [
-                                                CustomText(text: data.firstname.toString(),colors:colorsConst.greyClr),
-                                                CustomText(text: data.missingDate.toString(),colors:Colors.grey),
+                                                if(localData.storage.read("role")=="1")
+                                                  CircleAvatar(
+                                                    radius: 15,
+                                                    backgroundColor: Colors.grey.shade400,
+                                                    // child: NetworkImg(image: img, width: 50,)
+                                                    child: SvgPicture.asset(assets.profile)
+                                                ),5.width,
+                                                Column(
+                                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                                  children: [
+                                                    if(localData.storage.read("role")=="1")
+                                                      CustomText(text: data.firstname.toString(),isBold: true,),
+                                                    Row(
+                                                      children: [
+                                                        if(localData.storage.read("role")=="1")
+                                                          SizedBox(
+                                                          width: phoneWidth/1.9,
+                                                            child: CustomText(text: data.role.toString(),colors:colorsConst.blueClr)),
+
+                                                        Row(
+                                                          children: [
+                                                            Icon(Icons.calendar_today_sharp,color:colorsConst.greyClr,size: 15,),5.width,
+                                                            CustomText(
+                                                              text: DateFormat('dd MMM yyyy')
+                                                                  .format(DateTime.parse(data.missingDate.toString())),
+                                                              colors: colorsConst.greyClr,
+                                                            )
+                                                          ],
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ],
+                                                ),
                                               ],
                                             ),
                                           ],
@@ -838,8 +816,9 @@ void check(){
                         levPvr.myLevSearch.isNotEmpty?
                         Flexible(
                               child: itemBuilder(levPvr.myLevSearch,levPvr)):
-                        attProvider.selectedIndex==4&&
-                        attProvider.permisCount!=0?
+                        attProvider.selectedIndex==4
+                        &&attProvider.permisCount!=0
+                            ?
                         Flexible(
                             child: ListView.builder(
                                 itemCount: attProvider.getDailyAttendance.length,
@@ -858,7 +837,7 @@ void check(){
                                     outTime = data.time!.split(",")[0];
                                     timeD=attProvider.timeDifference(data.createdTs!.split(",")[0], data.createdTs!.split(",")[1]);
                                   }else {
-                                    inTime = data.time!.split(",")[0];
+                                    inTime = data.time.toString().split(",")[0];
                                     timeD="-";
                                   }
                                   String timestamp =data.createdTs.toString();
@@ -876,7 +855,7 @@ void check(){
 
                                   final showDateHeader = index == 0 ||
                                       createdBy != prevCreatedBy;
-                                  return data.perStatus.toString().contains(",")?
+                                  return data.perStatus.toString()!="null"?
                                   Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [

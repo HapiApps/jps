@@ -1930,7 +1930,9 @@ void changeStatus(bool value){
         "search_type":"all_leave",
         "st_dt":st,
         "en_dt":en,
-        "cos_id":localData.storage.read("cos_id")
+        "cos_id":localData.storage.read("cos_id"),
+        "role":localData.storage.read("role"),
+        "id":localData.storage.read("id"),
       };
       final response = await leaveRepo.getLeave(data);
       // print(data);

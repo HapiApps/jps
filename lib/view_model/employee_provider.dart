@@ -1660,11 +1660,12 @@ Future<void> getUserLogs(String id) async {
           (start == null || !createdTs.isBefore(start)) &&
               (end == null || !createdTs.isAfter(end));
 
-      return matchName && matchDate; // 👈 rendu filter combine
+      return matchName || matchDate; // 👈 rendu filter combine
     }).toList();
   }
 Future<void> getNotifications({bool markSeen = false}) async {
   _refresh=false;
+  filteredNotifyData.clear();
   _notifyData.clear();
   notifyListeners();
   try {
@@ -1677,6 +1678,7 @@ Future<void> getNotifications({bool markSeen = false}) async {
     final response =await empRepo.getUserLogs(data);
     if (response.isNotEmpty) {
       _notifyData=response;
+      notifyListeners();
       await calculateUnreadCount();
       if (markSeen) {
         await markNotificationsAsSeen();

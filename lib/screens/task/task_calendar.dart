@@ -1,6 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
+import 'package:master_code/screens/task/task_chat.dart';
+import 'package:master_code/screens/task/task_details.dart';
 import 'package:master_code/source/extentions/extensions.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -15,6 +17,7 @@ import '../../source/constant/default_constant.dart';
 import '../../source/styles/decoration.dart';
 import '../../source/utilities/utils.dart';
 import '../../view_model/task_provider.dart';
+import '../common/dashboard.dart';
 
 class TaskCalendar extends StatefulWidget {
   const TaskCalendar({super.key});
@@ -65,12 +68,12 @@ class CalendarAppointment extends State<TaskCalendar> {
                         children: [
                           CustomText(text: "This Month",
                               colors: colorsConst.secondary),
-                          // CustomText(text: "  ${taskPvr.thisMonthLeave}",
-                          //     colors: colorsConst.appRed,
-                          //     isBold: true),
-                          CustomText(text: "  ${taskPvr.filteredTasks.length}",
-                              colors: colorsConst.primary,
-                              isBold: true)
+                          CustomText(text: "  ${taskPvr.thisMonthLeave}",
+                              colors: colorsConst.appRed,
+                              isBold: true),
+                          // CustomText(text: "  ${taskPvr.filteredTasks.length}",
+                          //     colors: colorsConst.primary,
+                          //     isBold: true)
                         ],
                       ),
                     ],
@@ -299,86 +302,107 @@ class CalendarAppointment extends State<TaskCalendar> {
   }
 
   Widget dataList(double width,TaskData data){
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(0, 5, 0, 5),
-      child: Container(
-        width: width,
-        decoration: BoxDecoration(
-          color: colorsConst.primary,
-          borderRadius: BorderRadius.only(
-            topLeft: Radius.circular(10),
-            bottomLeft: Radius.circular(10),
-            topRight: Radius.circular(10),
-            bottomRight: Radius.circular(10),
+    return GestureDetector(
+      onTap: (){
+        utils.navigatePage(
+          context, () => DashBoard(
+          child: TaskDetails(
+            data: data,
+            isDirect: true,
+            coId: "0",
+            numberList: const [],
           ),
         ),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(5, 0, 0, 0),
-          child: Container(
-            decoration: customDecoration
-                .baseBackgroundDecoration(
-                color: Colors.white,borderColor:  Colors.transparent,
-                radius: 10
+        );
+      },
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(0, 5, 0, 5),
+        child: Container(
+          width: width,
+          decoration: BoxDecoration(
+            color: colorsConst.primary,
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(10),
+              bottomLeft: Radius.circular(10),
+              topRight: Radius.circular(10),
+              bottomRight: Radius.circular(10),
             ),
-            width: width,
-            child: Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      SizedBox(
-                          width: width/1.5,
-                          child: CustomText( text:data.taskTitle .toString(), isBold: true,)),
-                      Container(
-                        width: width/4,
-                        decoration: customDecoration
-                            .baseBackgroundDecoration(
-                            color: Colors.pink.shade100,
-                            radius: 10
-                        ),
-                        child: Center(
-                          child: Padding(
-                            padding: const EdgeInsets.all(5.0),
-                            child: CustomText( text: data.statval .toString(),
-                                colors: colorsConst.primary),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(5, 0, 0, 0),
+            child: Container(
+              decoration: customDecoration
+                  .baseBackgroundDecoration(
+                  color: Colors.white,borderColor:  Colors.transparent,
+                  radius: 10
+              ),
+              width: width,
+              child: Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        SizedBox(
+                            width: width/1.5,
+                            child: CustomText( text:data.taskTitle .toString(), isBold: true,)),
+                        Container(
+                          width: width/4,
+                          decoration: customDecoration
+                              .baseBackgroundDecoration(
+                              color: Colors.pink.shade100,
+                              radius: 10
+                          ),
+                          child: Center(
+                            child: Padding(
+                              padding: const EdgeInsets.all(5.0),
+                              child: CustomText( text: data.statval .toString(),
+                                  colors: colorsConst.primary),
+                            ),
                           ),
                         ),
-                      ),
-                    ],
-                  ),
-                  5.height,
-                  Row(
-                    // mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      ],
+                    ),
+                    5.height,
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      CustomText(text: data.projectName.toString()=="null"?"":data.projectName.toString(),colors: colorsConst.primary,),5.width,
-                      Icon(Icons.circle,size: 8,),5.width,
-                      CustomText(text: data.type.toString()),
-                    ],
-                  ),
-                  5.height,
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      if(data.assignedNames .toString()!="null")
                         Row(
                           children: [
-                            Icon(Icons.featured_play_list_outlined,color: colorsConst.greyClr,size: 15,),5.width,
-                            CustomText(text: data.assignedNames .toString(),colors: colorsConst.greyClr,),
+                            CustomText(text: data.projectName.toString()=="null"?"":data.projectName.toString(),colors: colorsConst.primary,),5.width,
+                            Icon(Icons.circle,size: 8,),5.width,
+                            CustomText(text: data.type.toString()),
                           ],
                         ),
-                      Row(
-                        children: [
-                          Icon(Icons.calendar_today_sharp,color: colorsConst.greyClr,size: 15),5.width,
-                          CustomText(text: DateFormat("dd MMM yyyy").format(
-                              DateFormat("dd-MM-yyyy").parse(data.taskDate.toString())),colors: colorsConst.greyClr,),
-                        ],
-                      ),
-                    ],
-                  ),
-                ],
+                        Row(
+                          children: [
+                            Icon(Icons.calendar_today_sharp,color: colorsConst.greyClr,size: 15),5.width,
+                            CustomText(text: DateFormat("dd MMM yyyy").format(
+                                DateFormat("dd-MM-yyyy").parse(data.taskDate.toString())),colors: colorsConst.greyClr,),
+                          ],
+                        ),
+                      ],
+                    ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        if(data.assignedNames .toString()!="null")
+                        Row(
+                            children: [
+                              Icon(Icons.featured_play_list_outlined,color: colorsConst.greyClr,size: 15,),5.width,
+                              CustomText(text: data.assignedNames .toString(),colors: colorsConst.greyClr,),
+                            ],
+                          ),
+                        IconButton(onPressed: (){
+                          utils.navigatePage(context, ()=> DashBoard(child: TaskChat(isVisit:false,
+                              taskId: data.id.toString(), assignedId: data.assigned.toString(), name: data.creator.toString())));
+                        }, icon: SvgPicture.asset(assets.tMessage,width: 25,height: 25,))
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
           ),

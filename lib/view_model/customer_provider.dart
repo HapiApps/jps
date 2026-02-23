@@ -177,6 +177,7 @@ class CustomerProvider with ChangeNotifier{
       }
 
       // utils.showSuccessToast(context: context,text: constValue.success,);
+      _customerReport.last.isLocal=false;
       disPoint.clear();
       addCtr.reset();
       // getTaskComments(taskId);
@@ -1728,6 +1729,7 @@ Future<void> addComment({context,required String createdBy,required String taskI
         }
 
         // utils.showSuccessToast(context: context,text: constValue.success,);
+        _customerReport.last.isLocal=false;
         disPoint.clear();
         addCtr.reset();
       }else {
@@ -2845,38 +2847,103 @@ List<Marker> get liveMarker =>_liveMarker;
       return "0.$seconds";
     }
   }
+  // Future<void> startRecording() async {
+  //   if (_isRecording) return; // Prevent duplicate starts
+  //
+  //   HapticFeedback.heavyImpact();
+  //
+  //   try {
+  //     if (await _record.hasPermission()) {
+  //       final dir = await getApplicationDocumentsDirectory();
+  //       String path =
+  //           "${dir.path}/recorded_audio_${DateTime.now().millisecondsSinceEpoch}.m4a";
+  //
+  //       await _record.start(const RecordConfig(), path: path);
+  //
+  //       _isRecording = true;
+  //       _startTime = DateTime.now();
+  //       _recordingDuration = 0.0;
+  //       _recordingTime ="";
+  //
+  //       timer = Timer.periodic(const Duration(milliseconds: 100), (timer) {
+  //         final elapsed = DateTime.now().difference(_startTime).inMilliseconds;
+  //         _recordingTime = formatDurationTime(elapsed);
+  //         _recordingDuration = elapsed / 1000;
+  //         notifyListeners();
+  //       });
+  //
+  //       notifyListeners();
+  //     }
+  //   } catch (e) {
+  //     log("Error in startRecording: $e");
+  //   }
+  // }
   Future<void> startRecording() async {
-    if (_isRecording) return; // Prevent duplicate starts
+    if (_isRecording) return;
 
     HapticFeedback.heavyImpact();
 
     try {
       if (await _record.hasPermission()) {
+
+        _isRecording = true;   // ✅ move here (before start)
+        notifyListeners();
+
         final dir = await getApplicationDocumentsDirectory();
         String path =
             "${dir.path}/recorded_audio_${DateTime.now().millisecondsSinceEpoch}.m4a";
 
         await _record.start(const RecordConfig(), path: path);
 
-        _isRecording = true;
         _startTime = DateTime.now();
         _recordingDuration = 0.0;
-        _recordingTime ="";
+        _recordingTime = "";
 
+        timer?.cancel(); // ✅ safety
         timer = Timer.periodic(const Duration(milliseconds: 100), (timer) {
           final elapsed = DateTime.now().difference(_startTime).inMilliseconds;
           _recordingTime = formatDurationTime(elapsed);
           _recordingDuration = elapsed / 1000;
           notifyListeners();
         });
-
-        notifyListeners();
       }
     } catch (e) {
       log("Error in startRecording: $e");
+      _isRecording = false;
+      notifyListeners();
     }
   }
+  Future<void> stopRecording() async {
+    if (!_isRecording) return;
 
+    try {
+      _isRecording = false;  // ✅ immediate UI update
+      timer?.cancel();
+      notifyListeners();
+
+      final path = await _record.stop();
+
+      if (path != null) {
+        if (_recordedAudioPaths.isEmpty) {
+          _recordedAudioPaths.add(
+            AddAudioModel(
+              audioPath: path,
+              second: _recordingDuration,
+              time: _recordingTime,
+            ),
+          );
+        } else {
+          _recordedAudioPaths[0] =
+              AddAudioModel(audioPath: path, second: _recordingDuration, time: _recordingTime);
+        }
+      log("_recordedAudioPaths : ${_recordedAudioPaths.length}");
+        await loadAudioDuration(path);
+      }
+    } catch (e) {
+      log("Error in stopRecording: $e");
+    }
+    notifyListeners();
+  }
   /// Stop Recording
   // Future<void> stopRecording() async {
   //   try {
@@ -2892,35 +2959,35 @@ List<Marker> get liveMarker =>_liveMarker;
   //     // print("Error in stopRecording: $e");
   //   }
   // }
-  Future<void> stopRecording() async {
-    if (!_isRecording) return; // Prevent stop if not recording
-
-    try {
-      final path = await _record.stop();
-
-      if (path != null) {
-        _isRecording = false;
-        timer?.cancel();
-        if(_recordedAudioPaths.isEmpty){
-          _recordedAudioPaths.add(
-            AddAudioModel(audioPath: path, second: _recordingDuration, time: _recordingTime),
-          );
-        }else{
-          _recordedAudioPaths[0]=
-              AddAudioModel(audioPath: path, second: _recordingDuration, time: _recordingTime);
-        }
-
-print("_recordedAudioPaths");
-print(_recordedAudioPaths);
-        await Future.delayed(Duration(seconds: 1)); // Optional delay
-        loadAudioDuration(path);
-      }
-    } catch (e) {
-      log("Error in stopRecording: $e");
-    }
-
-    notifyListeners();
-  }
+//   Future<void> stopRecording() async {
+//     if (!_isRecording) return; // Prevent stop if not recording
+//
+//     try {
+//       final path = await _record.stop();
+//
+//       if (path != null) {
+//         _isRecording = false;
+//         timer?.cancel();
+//         if(_recordedAudioPaths.isEmpty){
+//           _recordedAudioPaths.add(
+//             AddAudioModel(audioPath: path, second: _recordingDuration, time: _recordingTime),
+//           );
+//         }else{
+//           _recordedAudioPaths[0]=
+//               AddAudioModel(audioPath: path, second: _recordingDuration, time: _recordingTime);
+//         }
+//
+// print("_recordedAudioPaths");
+// print(_recordedAudioPaths);
+//         await Future.delayed(Duration(seconds: 1)); // Optional delay
+//         loadAudioDuration(path);
+//       }
+//     } catch (e) {
+//       log("Error in stopRecording: $e");
+//     }
+//
+//     notifyListeners();
+//   }
 
   Future<void> loadAudioDuration(String url) async {
     try {

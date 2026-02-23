@@ -789,14 +789,24 @@ Future<void> main() async {
         const NotificationDetails platformDetails = NotificationDetails(android: androidDetails);
 
         // நோட்டிஃபிகேஷன் காண்பிக்கப்படுகிறது
-        await flutterLocalNotificationsPlugin.show(
-          message.hashCode,
-          body,
-         // title,
-          "Created by $name .Task",
-          platformDetails,
-          payload: jsonEncode(message.data), // payload சேர்க்கப்பட்டுள்ளது
-        );
+        if(title.toString().contains("A new task has been assigned")){
+          await flutterLocalNotificationsPlugin.show(
+            message.hashCode,
+            body,
+            // title,
+            "Created by $name .Task",
+            platformDetails,
+            payload: jsonEncode(message.data), // payload சேர்க்கப்பட்டுள்ளது
+          );
+        }else{
+          await flutterLocalNotificationsPlugin.show(
+            message.hashCode,
+            body,
+            title,
+            platformDetails,
+            payload: jsonEncode(message.data), // payload சேர்க்கப்பட்டுள்ளது
+          );
+        }
     });
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
       if (message.notification?.title

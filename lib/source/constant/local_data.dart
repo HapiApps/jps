@@ -6,5 +6,5 @@ class LocalData{
   LocalData._();
   var storage = GetStorage();
   // String cosId='202501';
-  String versionNumber = "0.0.19";
+  String versionNumber = "0.0.21";
 }

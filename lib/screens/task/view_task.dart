@@ -449,6 +449,7 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
                                                   //   colors: colorsConst.greyClr,
                                                   //   size: 12,
                                                   // ),
+                                                  if(localData.storage.read("role")=="1")
                                                   SearchCustomDropdown(
                                                       text: "Employee Name",
                                                       hintText: taskProvider.assignedId==""?"":taskProvider.assignedNames,

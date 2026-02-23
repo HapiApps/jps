@@ -38,7 +38,7 @@ import '../controller/track_controller.dart';
 import '../customer/view_task.dart';
 import '../customer/visit/add_visit.dart';
 import '../customer/visit_report/visits_report.dart';
-import '../employee/view_notification.dart';
+import 'view_notification.dart';
 import '../expense/view_expense.dart';
 import '../project_report/view_project_report.dart';
 import '../report_dashboard/report_dashboard.dart';
@@ -826,7 +826,12 @@ class _HomePageState extends State<HomePage> {
                                 ),
                               ),
                               10.height,
-                              const CheckAttendance(),
+                              InkWell(
+                                onTap:(){
+                                  homeProvider.updateIndex(4);
+                                  utils.navigatePage(context, ()=> DashBoard(child: AttendanceReport(type: homeProvider.type,showType: "Present",date1: homeProvider.startDate,date2:homeProvider.endDate,empList: empPvr.userData)));
+                                },
+                                  child: const CheckAttendance()),
                               10.height,
                               /// ================= ATTENDANCE CARD =================
                                if(localData.storage.read("role")=="1")
@@ -898,7 +903,7 @@ class _HomePageState extends State<HomePage> {
                                               // homeProvider.updateIndex(11);
                                               // utils.navigatePage(context, ()=> DashBoard(child: ViewMyLeaves(date1:homeProvider.startDate,date2:homeProvider.endDate,isDirect: true)));
                                               homeProvider.updateIndex(4);
-                                              utils.navigatePage(context, ()=> DashBoard(child: AttendanceReport(type: homeProvider.type,showType: "On Leave",date1: homeProvider.startDate,date2:homeProvider.endDate,empList: empPvr.userData)));
+                                              utils.navigatePage(context, ()=> DashBoard(child: AttendanceReport(type: homeProvider.type,showType: "Leave",date1: homeProvider.startDate,date2:homeProvider.endDate,empList: empPvr.userData)));
                                             }else{
                                               utils.showWarningToast(context, text: "No on leave employee found");
                                             }
@@ -1120,11 +1125,13 @@ class _HomePageState extends State<HomePage> {
                                                 /// Larger Pie Chart (closer to reference)
                                                 SizedBox(
                                                   height: 80,
-                                                  child: totalVisits == 0
-                                                      ? const Center(
-                                                    child: CustomText("No Data"),
-                                                  )
-                                                      : PieChart(
+                                                  child:
+                                                  // totalVisits == 0
+                                                  //     ? const Center(
+                                                  //   child: CustomText("No Data"),
+                                                  // )
+                                                  //     :
+                                                  PieChart(
                                                     PieChartData(
                                                       sectionsSpace: 0,
                                                       centerSpaceRadius: 0,

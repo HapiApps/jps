@@ -16,7 +16,7 @@ import '../../source/constant/colors_constant.dart';
 import '../../source/styles/decoration.dart';
 import '../../source/utilities/utils.dart';
 import '../../view_model/employee_provider.dart';
-import '../common/dashboard.dart';
+import 'dashboard.dart';
 import '../customer/visit_report/visits_report.dart';
 import '../task/search_custom_dropdown.dart';
 import '../task/task_chat.dart';
@@ -405,7 +405,11 @@ class _ViewNotificationState extends State<ViewNotification> with SingleTickerPr
 
                         String type =
                         title.toLowerCase().contains("task")
-                            ? "Task"
+                            ? "Task":
+                        title.toLowerCase().contains("visit report")
+                            ? "Visit Report":
+                        title.toLowerCase().contains("Requested for")&&title.toLowerCase().contains("leave")
+                            ? "Leave"
                             : "Feedback";
                         final sortedData = empProvider.notifyData;
 
@@ -535,7 +539,7 @@ class _ViewNotificationState extends State<ViewNotification> with SingleTickerPr
                                           text: TextSpan(
                                             children: [
                                               TextSpan(
-                                                text: title.toLowerCase().contains("feedback")?"Feedback sent by ":"Created by ",
+                                                text: type=="Feedback"?"Feedback sent by ":type=="Leave"?"Leave Applied by ":"Created by ",
                                                 style: TextStyle(
                                                   fontSize: 12,
                                                   color: Color(0xffA80007),
