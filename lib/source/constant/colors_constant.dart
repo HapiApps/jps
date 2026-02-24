@@ -93,5 +93,6 @@ class ColorsConst{
   static const Color onLeave = Color(0xFF0985D9);
 
   static const Color background = Color(0xFFF5F6F8);
+  static const Color background2 = Color(0xFFE8E8E7);
 
 }

@@ -661,7 +661,7 @@ class _VisitReportState extends State<VisitReport> with SingleTickerProviderStat
                                               child: Column(
                                                 crossAxisAlignment: CrossAxisAlignment.start,
                                                 children: [
-                                                  if (!isNameRepeated)
+                                                  // if (!isNameRepeated)
                                                     Row(
                                                       mainAxisAlignment : MainAxisAlignment.spaceBetween,
                                                       children: [
@@ -686,7 +686,7 @@ class _VisitReportState extends State<VisitReport> with SingleTickerProviderStat
                                                             child: Icon(Icons.arrow_back_ios,color: colorsConst.blue2,size: 15,)),
                                                       ],
                                                     ),
-                                                  if (!isNameRepeated)
+                                                  // if (!isNameRepeated)
                                                     const Padding(
                                                       padding: EdgeInsets.all(8.0),
                                                       child: DotLine(),

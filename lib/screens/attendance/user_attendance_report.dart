@@ -91,11 +91,11 @@ class _UserAttendanceReportState extends State<UserAttendanceReport> {
                             if (data.status.toString().contains("1,2")) {
                               inTime = data.time!.split(",")[0];
                               outTime = data.time!.split(",")[1];
-                              timeD=attProvider.timeDifference(data.createdTs!.split(",")[0], data.createdTs!.split(",")[1]);
+                              timeD=attProvider.timeDifference("${data.createdTs!.split(",")[0]},${data.createdTs!.split(",")[1]}");
                             }else if (data.status.toString().contains("2,1")) {
                               inTime = data.time!.split(",")[1];
                               outTime = data.time!.split(",")[0];
-                              timeD=attProvider.timeDifference(data.createdTs!.split(",")[0], data.createdTs!.split(",")[1]);
+                              timeD=attProvider.timeDifference("${data.createdTs!.split(",")[0]},${data.createdTs!.split(",")[1]}");
                             }else {
                               inTime = data.time!.split(",")[0];
                               timeD="-";

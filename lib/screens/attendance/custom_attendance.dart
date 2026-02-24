@@ -18,6 +18,9 @@ import '../../view_model/location_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:master_code/view_model/home_provider.dart';
 
+import '../common/dashboard.dart';
+import 'attendance_report.dart';
+
 class CheckAttendance extends StatefulWidget {
   const CheckAttendance({super.key});
 
@@ -38,8 +41,8 @@ class _CheckAttendanceState extends State<CheckAttendance> {
   @override
   Widget build(BuildContext context) {
     double screenWidth = MediaQuery.of(context).size.width;
-    return Consumer2<AttendanceProvider,LocationProvider>(
-        builder: (context,attProvider,locPvr,_){
+    return Consumer3<AttendanceProvider,LocationProvider,HomeProvider>(
+        builder: (context,attProvider,locPvr,homeProvider,_){
       var split =attProvider.permissionStatus.toString().split(",");
       return attProvider.attCheck==false?const Loading():
       Container(
@@ -91,7 +94,7 @@ class _CheckAttendanceState extends State<CheckAttendance> {
                                   ),
                                   5.width,
                                   GestureDetector(
-                                    onTap: () {
+                                    onTap: attProvider.permissionStatus==""||split.last=="2"?() {
                                       if(attProvider.mainCheckOut == true){
                                         utils.showWarningToast(context, text: "Permission cannot be added after marking attendance.");
                                       }else{
@@ -225,7 +228,7 @@ class _CheckAttendanceState extends State<CheckAttendance> {
                                             }
                                         );
                                       }
-                                    },
+                                    }:null,
                                     child: Container(
                                       width: 20,
                                       height: 20,
@@ -299,8 +302,8 @@ class _CheckAttendanceState extends State<CheckAttendance> {
                         }
                       },
                       child: CustomText(text: attProvider.permissionStatus==""||split.last=="2"?
-                      "Permission In"
-                          :"Permission Out",colors: attProvider.permissionStatus==""||split.last=="2"?colorsConst.appGreen:colorsConst.appRed,size: 15,),
+                      "     Permission In"
+                          :"     Permission Out",colors: attProvider.permissionStatus==""||split.last=="2"?colorsConst.appGreen:colorsConst.appRed,size: 15,),
                     )
                     :SwipeButton(
                       //width: attProvider.mainCheckOut == true?MediaQuery.of(context).size.width*0.9:MediaQuery.of(context).size.width*0.55,
@@ -386,42 +389,48 @@ class _CheckAttendanceState extends State<CheckAttendance> {
                   ],
                 ),
               ),
-              Container(
-                height: 90,
-                width: screenWidth/2.5,
-                decoration: customDecoration.baseBackgroundDecoration(
-                  color: Colors.white,radius: 10
-                ),
-                child: Center(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children:  [
-                      CustomText(
-                        text:"Total Hours Worked",
-                        isBold: true,
-                        colors: Colors.black87,
-                      ),
-                      SizedBox(height: 6),
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          CustomText(
-                            text:attProvider.totalHrs2==""?"0 mins":attProvider.totalHrs2,
-                            size: 13,
-                            isBold: true,
-                            colors: Colors.black,
-                          ),
-                          2.width,
-                          CustomText(
-                           text: "/12 hrs",
-                            size: 12,
-                            colors: Colors.black54,
-                          ),
-                        ],
-                      ),
-                    ],
+              InkWell(
+                onTap:(){
+                  homeProvider.updateIndex(4);
+                  utils.navigatePage(context, ()=> DashBoard(child: AttendanceReport(type: homeProvider.type,showType: "Present",date1: homeProvider.startDate,date2:homeProvider.endDate,empList: [])));
+                },
+                child: Container(
+                  height: 90,
+                  width: screenWidth/2.5,
+                  decoration: customDecoration.baseBackgroundDecoration(
+                    color: Colors.white,radius: 10
+                  ),
+                  child: Center(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children:  [
+                        CustomText(
+                          text:"Total Hours Worked",
+                          isBold: true,
+                          colors: Colors.black87,
+                        ),
+                        SizedBox(height: 6),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            CustomText(
+                              text:attProvider.totalHrs2==""?"0 mins":attProvider.totalHrs2,
+                              size: 13,
+                              isBold: true,
+                              colors: Colors.black,
+                            ),
+                            2.width,
+                            CustomText(
+                             text: "/12 hrs",
+                              size: 12,
+                              colors: Colors.black54,
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               )

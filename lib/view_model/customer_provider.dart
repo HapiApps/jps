@@ -87,15 +87,15 @@ class CustomerProvider with ChangeNotifier{
     notifyListeners();
   }
 
-  Future<void> tComment({context,required String taskId,required String assignedId}) async {
+  Future<void> tComment({context,required String taskId,required String assignedId,required String path}) async {
     final tempMessage = CustomerReportModel(
       comments: disPoint.text.trim(),
       createdBy: localData.storage.read("id"),
       firstname: localData.storage.read("f_name"),
       role: localData.storage.read("role"),
       createdTs: DateTime.now(),
-      documents: _recordedAudioPaths.isNotEmpty
-          ? _recordedAudioPaths[0].audioPath
+      documents: path.isNotEmpty
+          ? path
           : null,
       isLocal: true,
     );
@@ -128,6 +128,11 @@ class CustomerProvider with ChangeNotifier{
         "image_$i": selectedPhotos[i - (_selectedFiles.length + _recordedAudioPaths.length)], // Adjust index
       });
     }
+      if(path!=""){
+        customersList.add({
+          "image_${0}": path, // Adjust index
+        });
+      }
     String jsonString = json.encode(customersList);
     Map<String,String> data = {
       "action":taskComments,
@@ -1637,15 +1642,15 @@ void initCmtValues(){
   _isRecording = false;
   notifyListeners();
 }
-Future<void> addComment({context,required String createdBy,required String taskId,required String visitId,required String companyName,required String companyId,required List numberList}) async {
+Future<void> addComment({context,required String createdBy,required String taskId,required String visitId,required String companyName,required String companyId,required List numberList,required String path}) async {
   final tempMessage = CustomerReportModel(
     comments: disPoint.text.trim(),
     createdBy: localData.storage.read("id"),
     firstname: localData.storage.read("f_name"),
     role: localData.storage.read("role"),
     createdTs: DateTime.now(),
-    documents: _recordedAudioPaths.isNotEmpty
-        ? _recordedAudioPaths[0].audioPath
+    documents: path.isNotEmpty
+        ? path
         : null,
     isLocal: true,
   );
@@ -1678,7 +1683,11 @@ Future<void> addComment({context,required String createdBy,required String taskI
       "image_$i": selectedPhotos[i - (_selectedFiles.length + _recordedAudioPaths.length)], // Adjust index
     });
   }
-
+  if(path!=""){
+    customersList.add({
+      "image_${0}": path, // Adjust index
+    });
+  }
   String jsonString = json.encode(customersList);
       Map<String,String> data = {
         "action":addCmt,
@@ -2050,7 +2059,7 @@ TextEditingController date= TextEditingController(text: "${DateTime.now().day.to
       if (response.toString().contains('ok')){
         utils.showSuccessToast(context: context,text: constValue.success);
         Provider.of<EmployeeProvider>(context, listen: false).sendAdminNotification(
-          "Visit report added to task ${localData.storage.read("typeName")??""}",
+          "Visit report added - ${localData.storage.read("typeName")??""}",
           "Added By ${localData.storage.read("f_name")}",
           "1",taskId
         );
@@ -2375,9 +2384,11 @@ void manageFilter(value){
   //   notifyListeners();
   // }
   void last3Month() {
-    DateTime now = DateTime.now(); // Today: e.g. 13 June 2025
-    DateTime stDt = DateTime(now.year, now.month - 2, now.day); // 13 April 2025
-    DateTime enDt = now; // 13 June 2025
+    DateTime now = DateTime.now();
+
+// Subtract 3 months from today
+    DateTime stDt = DateTime(now.year, now.month - 3, now.day);
+    DateTime enDt = now;
 
     _startDate = DateFormat('dd-MM-yyyy').format(stDt);
     _endDate = DateFormat('dd-MM-yyyy').format(enDt);
@@ -3254,8 +3265,11 @@ List<Marker> get liveMarker =>_liveMarker;
   }
   void last3MonthVisit() {
     DateTime now = DateTime.now();
-    DateTime stDt = DateTime(now.year, now.month - 3, 1);
-    DateTime enDt = DateTime(now.year, now.month, 0);
+
+// Subtract 3 months from today
+    DateTime stDt = DateTime(now.year, now.month - 3, now.day);
+    DateTime enDt = now;
+
     _startDate = DateFormat('dd-MM-yyyy').format(stDt);
     _endDate = DateFormat('dd-MM-yyyy').format(enDt);
     getVisitReport();

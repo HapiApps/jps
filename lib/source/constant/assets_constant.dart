@@ -11,7 +11,7 @@ class Assets{
   final String hapiAppsLogo= "assets/images/about/hapiapps_logo.png";
 
   final String login= "assets/images/login.svg";
-
+  final String circle = "assets/images/circle.png";
   final String employees= "assets/images/panel/employee.svg";
   final String home= "assets/images/panel/home.svg";
   final String about= "assets/images/panel/about.svg";
@@ -36,7 +36,8 @@ class Assets{
   final String deleteValue= "assets/images/delete.svg";
   final String map= "assets/images/map.svg";
   final String map2= "assets/images/map2.svg";
-  final String tracks= "assets/images/track.svg";
+  final String tracks= "assets/images/track.png";
+  final String mobile= "assets/images/mobile.png";
   final String file= "assets/images/file.svg";
 
   final String profile= "assets/images/emp/profile.svg";
@@ -97,6 +98,7 @@ class Assets{
 
   // final String attendanceReport= "assets/images/attendance_report.svg";
   final String photoCamera= "assets/images/photo.png";
+  final String addButton= "assets/images/add_button.png";
 
 
   final String myLeave= "assets/images/leave/my_leave.svg";

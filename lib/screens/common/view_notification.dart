@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:intl/intl.dart';
 import 'package:master_code/screens/task/view_task.dart';
+import 'package:master_code/source/constant/local_data.dart';
 import 'package:master_code/source/extentions/extensions.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -16,6 +17,8 @@ import '../../source/constant/colors_constant.dart';
 import '../../source/styles/decoration.dart';
 import '../../source/utilities/utils.dart';
 import '../../view_model/employee_provider.dart';
+import '../leave_management/leave_dashboard.dart';
+import '../leave_management/leave_report.dart';
 import 'dashboard.dart';
 import '../customer/visit_report/visits_report.dart';
 import '../task/search_custom_dropdown.dart';
@@ -402,15 +405,15 @@ class _ViewNotificationState extends State<ViewNotification> with SingleTickerPr
                         employeeData["firstname"]?.toString() == "null"
                             ? ""
                             : employeeData["firstname"].toString();
-
+                        print(title);
                         String type =
-                        title.toLowerCase().contains("task")
-                            ? "Task":
+                        title.toLowerCase().contains("feedback")
+                            ? "Feedback":
                         title.toLowerCase().contains("visit report")
                             ? "Visit Report":
-                        title.toLowerCase().contains("Requested for")&&title.toLowerCase().contains("leave")
+                        title.contains("Requested for")
                             ? "Leave"
-                            : "Feedback";
+                            : "Task";
                         final sortedData = empProvider.notifyData;
 
                         String? prevCreatedBy;
@@ -442,17 +445,25 @@ class _ViewNotificationState extends State<ViewNotification> with SingleTickerPr
                             ],
                             GestureDetector(
                               onTap:(){
-                                if(title.toLowerCase().contains("feedback")){
+                                if(type=="Feedback"){
                                   utils.navigatePage(context, ()=> DashBoard(child: TaskChat(isVisit:false,
                                       taskId: empProvider.notifyData[index]["purpose_id"], assignedId: "", name: createdBy)));
-                                }else if(title.toLowerCase().contains("assigned")){
-                                  utils.navigatePage(context, ()=>DashBoard(child: ViewTask(date1:  DateFormat("dd-MM-yyyy").format(
-                                    DateTime.parse(empProvider.notifyData[index]["created_ts"])), date2: DateFormat("dd-MM-yyyy").format(
-                                      DateTime.parse(empProvider.notifyData[index]["created_ts"])), type: 'Today',)));
-                                }else if(title.toLowerCase().contains("visit report")){
+                                }else if(type=="Visit Report"){
                                   utils.navigatePage(context, ()=> DashBoard(child: VisitReport(date1: DateFormat("dd-MM-yyyy").format(
                                       DateTime.parse(empProvider.notifyData[index]["created_ts"])), date2: DateFormat("dd-MM-yyyy").format(
                                       DateTime.parse(empProvider.notifyData[index]["created_ts"])),month: "",type: "Today",)));
+                                }else if(type=="Leave"){
+                                  if(localData.storage.read("role")=="1"){
+                                    utils.navigatePage(context, ()=>const DashBoard(child: LeaveManagementDashboard()));
+                                  }else{
+                                    utils.navigatePage(context, ()=> DashBoard(child: ViewMyLeaves(date1:DateFormat("dd-MM-yyyy").format(
+                                        DateTime.parse(empProvider.notifyData[index]["created_ts"])),date2:DateFormat("dd-MM-yyyy").format(
+                                        DateTime.parse(empProvider.notifyData[index]["created_ts"])),isDirect: true)));
+                                  }
+                                }else{
+                                  utils.navigatePage(context, ()=>DashBoard(child: ViewTask(date1:  DateFormat("dd-MM-yyyy").format(
+                                    DateTime.parse(empProvider.notifyData[index]["created_ts"])), date2: DateFormat("dd-MM-yyyy").format(
+                                      DateTime.parse(empProvider.notifyData[index]["created_ts"])), type: 'Today',)));
                                 }
                               },
                               child: Container(
@@ -484,15 +495,19 @@ class _ViewNotificationState extends State<ViewNotification> with SingleTickerPr
                                           decoration: BoxDecoration(
                                             color: type == "Task"
                                                 ? const Color(0xffE8F5E9)
-                                                : const Color(0xffE3F2FD),
+                                                : type == "Leave"?Colors.red.shade200
+                                                : type == "Feedback"?Colors.purple.shade200:
+                                            const Color(0xffE3F2FD),
                                             borderRadius: BorderRadius.circular(12),
                                           ),
                                           child: Text(
                                             type,
                                             style: TextStyle(
                                               color: type == "Task"
-                                                  ? const Color(0xff2E7D32)
-                                                  : const Color(0xff1A85DB),
+                                                  ? const Color(0xff2E7D32):
+                                                  type == "Leave"?Colors.red:
+                                                  type == "Feedback"?Colors.purple:
+                                                  const Color(0xff1A85DB),
                                               fontWeight: FontWeight.w600,
                                               fontSize: 13,
                                             ),
@@ -556,6 +571,7 @@ class _ViewNotificationState extends State<ViewNotification> with SingleTickerPr
                                             ],
                                           ),
                                         ),
+                                        if(type!="Leave")
                                         SvgPicture.asset(
                                           assets.tMessage,
                                           height: 25,width: 25,

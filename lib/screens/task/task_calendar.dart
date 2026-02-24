@@ -129,16 +129,29 @@ class CalendarAppointment extends State<TaskCalendar> {
                                                 padding: const EdgeInsets.all(8.0),
                                                 child: SvgPicture.asset(assets.cancel2),
                                               ))):null,
-                                      errorStyle: const TextStyle(
-                                        fontSize: 12.0,
-                                        height: 0.20,
-                                      ),
-                                      enabledBorder: OutlineInputBorder(
-                                        // grey.shade300
-                                          borderSide:  BorderSide(color: Colors.grey.shade300),
-                                          borderRadius: BorderRadius.circular(30)
-                                      ),
-                                      contentPadding:const EdgeInsets.fromLTRB(10, 10, 10, 10)
+                                    errorStyle: const TextStyle(
+                                      fontSize: 12.0,
+                                      height: 0.20,
+                                    ),
+                                    focusedBorder: OutlineInputBorder(
+                                        borderSide:  BorderSide(color: colorsConst.primary),
+                                        borderRadius: BorderRadius.circular(30)
+                                    ),
+                                    focusedErrorBorder: OutlineInputBorder(
+                                        borderSide: BorderSide(color: colorsConst.primary),
+                                        borderRadius: BorderRadius.circular(30)
+                                    ),
+                                    // errorStyle: const TextStyle(height:0.05,fontSize: 12),
+                                    contentPadding:const EdgeInsets.fromLTRB(10, 10, 10, 10),
+                                    errorBorder: OutlineInputBorder(
+                                        borderSide:  const BorderSide(color: Colors.transparent),
+                                        borderRadius: BorderRadius.circular(30)
+                                    ),
+                                    enabledBorder: OutlineInputBorder(
+                                      // grey.shade300
+                                        borderSide:  BorderSide(color: Colors.grey.shade300),
+                                        borderRadius: BorderRadius.circular(30)
+                                    ),
                                   ),
                                 ),
                               ),

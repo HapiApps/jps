@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/svg.dart';
@@ -44,6 +45,58 @@ class _TaskChatState extends State<TaskChat> with SingleTickerProviderStateMixin
   final FocusScopeNode _myFocusScopeNode = FocusScopeNode();
   final ScrollController _scrollController = ScrollController();
 
+  final AudioRecorder _audioRecorder = AudioRecorder();
+  final AudioPlayer _audioPlayer = AudioPlayer();
+
+  bool isRecording = false;
+  String? recordedPath;
+  Duration duration = Duration.zero;
+  Timer? timer;
+  Duration totalDuration = Duration.zero;
+  Duration currentPosition = Duration.zero;
+  bool isPlaying = false;
+
+  Future<void> startRecording() async {
+    final status = await Permission.microphone.request();
+
+    if (status.isGranted) {
+      String path = '/storage/emulated/0/Download/audio_${DateTime.now().millisecondsSinceEpoch}.m4a';
+
+      await _audioRecorder.start(
+        const RecordConfig(),
+        path: path,
+      );
+
+      setState(() {
+        isRecording = true;
+        duration = Duration.zero;
+      });
+
+      timer = Timer.periodic(const Duration(seconds: 1), (t) {
+        setState(() {
+          duration += const Duration(seconds: 1);
+        });
+      });
+    } else {
+      print("Permission denied");
+    }
+  }
+  Future<void> stopRecording() async {
+    timer?.cancel();
+
+    final path = await _audioRecorder.stop();
+    print("Recorded Path: $path");   // 👈 add this
+
+    setState(() {
+      isRecording = false;
+      recordedPath = path;
+    });
+  }
+  Future<void> playAudio() async {
+    if (recordedPath != null) {
+      await _audioPlayer.play(DeviceFileSource(recordedPath!));
+    }
+  }
   @override
   void initState() {
     WidgetsBinding.instance.addPostFrameCallback((timeStamp){
@@ -71,9 +124,42 @@ class _TaskChatState extends State<TaskChat> with SingleTickerProviderStateMixin
     )..repeat(reverse: true); // Shrinks and expands
 
     animation = Tween<double>(begin: 0.5, end: 1.5).animate(animationController);
+    _audioPlayer.onDurationChanged.listen((d) {
+      setState(() {
+        totalDuration = d;
+      });
+    });
+
+    _audioPlayer.onPositionChanged.listen((p) {
+      setState(() {
+        currentPosition = p;
+      });
+    });
+
+    _audioPlayer.onPlayerStateChanged.listen((state) {
+      setState(() {
+        isPlaying = state == PlayerState.playing;
+      });
+    });
     super.initState();
   }
+  Future<void> togglePlay() async {
+    if (recordedPath == null) return;
 
+    if (isPlaying) {
+      await _audioPlayer.pause();
+    } else {
+      await _audioPlayer.play(
+        DeviceFileSource(recordedPath!),
+      );
+    }
+  }
+  String formatTime(Duration d) {
+    String twoDigits(int n) => n.toString().padLeft(2, '0');
+    final minutes = twoDigits(d.inMinutes);
+    final seconds = twoDigits(d.inSeconds.remainder(60));
+    return "$minutes:$seconds";
+  }
   @override
   void dispose() {
     animationController.dispose();
@@ -103,12 +189,101 @@ class _TaskChatState extends State<TaskChat> with SingleTickerProviderStateMixin
               preferredSize: const Size(300, 60),
               child: CustomAppbar(text: widget.name),
             ),
+            // bottomSheet: Padding(
+            //   padding: const EdgeInsets.all(8.0),
+            //   child: Row(
+            //     mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            //     children: [
+            //       SizedBox(
+            //         width: MediaQuery.of(context).size.width*0.63,
+            //         child: TextFormField(
+            //           // maxLines: maxLine,
+            //             textCapitalization: TextCapitalization.sentences,
+            //             textInputAction: TextInputAction.done,
+            //             keyboardType: TextInputType.text,
+            //             controller:custProvider.disPoint,
+            //             decoration: customStyle.inputDecoration(text: "Type a comment", fieldClr: Colors.white,radius: 50)
+            //         ),
+            //       ),
+            //       IconButton(
+            //           onPressed: (){
+            //             _myFocusScopeNode.unfocus();
+            //             custProvider.timer?.cancel();
+            //             HapticFeedback.vibrate();
+            //             if(custProvider.isRecording){
+            //               custProvider.stopRecording();
+            //             }else{
+            //               custProvider.startRecording();
+            //             }
+            //           },
+            //           icon: Icon(custProvider.isRecording?Icons.send:Icons.mic,color: Colors.green,)),
+            //       SizedBox(
+            //         height: 45,
+            //         width: 45,
+            //         child: ElevatedButton(
+            //           style: ElevatedButton.styleFrom(
+            //             shape: const CircleBorder(),
+            //             padding: EdgeInsets.zero,
+            //             backgroundColor: colorsConst.primary,
+            //             elevation: 2,
+            //           ),
+            //           onPressed: () async {
+            //             _myFocusScopeNode.unfocus();
+            //             if (custProvider.disPoint.text.trim().isEmpty &&
+            //                 custProvider.recordedAudioPaths.isEmpty) {
+            //               utils.showWarningToast(
+            //                 context,
+            //                 text: "Type a comment or record audio",
+            //               );
+            //               return;
+            //             }
+            //             WidgetsBinding.instance.addPostFrameCallback((_) {
+            //               if (_scrollController.hasClients) {
+            //                 _scrollController.animateTo(
+            //                   _scrollController.position.maxScrollExtent,
+            //                   duration: const Duration(milliseconds: 300),
+            //                   curve: Curves.easeOut,
+            //                 );
+            //               }
+            //             });
+            //             if(widget.isVisit==true){
+            //               await custProvider.addComment(context: context,visitId: widget.taskId.toString(),
+            //                   companyName: widget.name,companyId:"", numberList: [], taskId: "0", createdBy: widget.createdBy.toString());
+            //             }else{
+            //               await custProvider.tComment(
+            //                 context: context,
+            //                 taskId: widget.taskId.toString(),
+            //                 assignedId: widget.assignedId.toString(),
+            //               );
+            //             }
+            //
+            //             // Future.microtask(() {
+            //             //   if (_scrollController.hasClients) {
+            //             //     _scrollController.animateTo(
+            //             //       _scrollController.position.maxScrollExtent,
+            //             //       duration: const Duration(milliseconds: 300),
+            //             //       curve: Curves.easeOut,
+            //             //     );
+            //             //   }
+            //             // });
+            //           },
+            //           child: const Icon(
+            //             Icons.send,
+            //             color: Colors.white,
+            //             size: 20,
+            //           ),
+            //         ),
+            //       ),
+            //     ],
+            //   ),
+            // ),
             bottomSheet: Padding(
               padding: const EdgeInsets.all(8.0),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  SizedBox(
+                  if (recordedPath == null&&isRecording==false)
+                    SizedBox(
                     width: MediaQuery.of(context).size.width*0.63,
                     child: TextFormField(
                       // maxLines: maxLine,
@@ -120,17 +295,83 @@ class _TaskChatState extends State<TaskChat> with SingleTickerProviderStateMixin
                     ),
                   ),
                   IconButton(
-                      onPressed: (){
-                        _myFocusScopeNode.unfocus();
-                        custProvider.timer?.cancel();
-                        HapticFeedback.vibrate();
-                        if(custProvider.isRecording){
-                          custProvider.stopRecording();
-                        }else{
-                          custProvider.startRecording();
-                        }
-                      },
-                      icon: Icon(custProvider.isRecording?Icons.send:Icons.mic,color: Colors.green,)),
+                    icon: Icon(isRecording ? Icons.stop : Icons.mic, color: Colors.green),
+                    onPressed: () {
+                      if (isRecording) {
+                        stopRecording();
+                      } else {
+                        startRecording();
+                      }
+                    },
+                  ),
+                  if (isRecording)
+                    Text(
+                      "${duration.inSeconds}s Recording...",
+                      style: TextStyle(color: Colors.red),
+                    ),
+                  if (recordedPath != null && !isRecording)
+                    Container(
+                      height: 40,
+                      width: phoneWidth/2,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(5),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black12,
+                            blurRadius: 4,
+                          )
+                        ],
+                      ),
+                      child: Row(
+                        children: [
+
+                          /// ▶ PLAY / PAUSE
+                          IconButton(
+                            icon: Icon(
+                              isPlaying ? Icons.pause : Icons.play_arrow,
+                              size: 30,
+                              color: Colors.green,
+                            ),
+                            onPressed: togglePlay,
+                          ),
+
+                          /// 🎚 SLIDER
+                          Expanded(
+                            child: Slider(
+                              activeColor: Colors.green,
+                              inactiveColor: Colors.grey.shade300,
+                              value: currentPosition.inSeconds.toDouble(),
+                              min: 0,
+                              max: totalDuration.inSeconds.toDouble() == 0
+                                  ? 1
+                                  : totalDuration.inSeconds.toDouble(),
+                              onChanged: (value) async {
+                                final position = Duration(seconds: value.toInt());
+                                await _audioPlayer.seek(position);
+                              },
+                            ),
+                          ),
+
+                          /// ⏱ TIME
+                          Text(
+                            formatTime(currentPosition),
+                            style: TextStyle(fontSize: 12),
+                          ),
+
+                          SizedBox(width: 5),
+                        ],
+                      ),
+                    ),
+                  if (recordedPath != null)
+                  IconButton(
+                    icon: SvgPicture.asset(assets.deleteValue,width: 20,height: 20,),
+                    onPressed: (){
+                      setState(() {
+                        recordedPath=null;
+                      });
+                    },
+                  ),
                   SizedBox(
                     height: 45,
                     width: 45,
@@ -144,33 +385,30 @@ class _TaskChatState extends State<TaskChat> with SingleTickerProviderStateMixin
                       onPressed: () async {
                         _myFocusScopeNode.unfocus();
                         if (custProvider.disPoint.text.trim().isEmpty &&
-                            custProvider.recordedAudioPaths.isEmpty) {
+                            // custProvider.recordedAudioPaths.isEmpty) {
+                            recordedPath==null) {
                           utils.showWarningToast(
                             context,
                             text: "Type a comment or record audio",
                           );
                           return;
                         }
-                        WidgetsBinding.instance.addPostFrameCallback((_) {
-                          if (_scrollController.hasClients) {
-                            _scrollController.animateTo(
-                              _scrollController.position.maxScrollExtent,
-                              duration: const Duration(milliseconds: 300),
-                              curve: Curves.easeOut,
-                            );
-                          }
-                        });
+                        isRecording=false;
                         if(widget.isVisit==true){
+                          print("in");
                           await custProvider.addComment(context: context,visitId: widget.taskId.toString(),
-                              companyName: widget.name,companyId:"", numberList: [], taskId: "0", createdBy: widget.createdBy.toString());
+                              companyName: widget.name,companyId:"", numberList: [], taskId: "0", createdBy: widget.createdBy.toString(),path:recordedPath.toString());
                         }else{
+                          print("inn");
                           await custProvider.tComment(
                             context: context,
                             taskId: widget.taskId.toString(),
-                            assignedId: widget.assignedId.toString(),
+                            assignedId: widget.assignedId.toString(),path:recordedPath.toString()
                           );
                         }
-
+                        setState(() {
+                          recordedPath=null;
+                        });
                         // Future.microtask(() {
                         //   if (_scrollController.hasClients) {
                         //     _scrollController.animateTo(
@@ -246,7 +484,7 @@ class _TaskChatState extends State<TaskChat> with SingleTickerProviderStateMixin
                                 constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.5),
                                 margin: const EdgeInsets.symmetric(vertical: 4),
                                 child: AudioTile( key: ValueKey(custProvider.customerReport[index].documents),
-                                    audioUrl: custProvider.customerReport[index].documents.toString().contains("com.hapiapps.")?
+                                    audioUrl: custProvider.customerReport[index].isLocal==true?
                                     custProvider.customerReport[index].documents.toString():'$imageFile?path=${custProvider.customerReport[index].documents}')):Container(
                               constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.55),
                               margin: const EdgeInsets.symmetric(vertical: 4),

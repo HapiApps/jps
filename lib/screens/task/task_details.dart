@@ -419,7 +419,7 @@ class _TaskDetailsState extends State<TaskDetails> with SingleTickerProviderStat
               20.height,
               if(taskProvider.historyDetails.isNotEmpty)
               Center(
-                child: Container(
+                child: taskProvider.refresh==false?Loading():Container(
                     width: kIsWeb?webWidth:phoneWidth,
                     decoration: customDecoration.baseBackgroundDecoration(
                         color: Colors.white,radius: 5

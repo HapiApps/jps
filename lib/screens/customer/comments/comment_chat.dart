@@ -76,7 +76,7 @@ class _CommentChatState extends State<CommentChat> {
                           utils.showWarningToast(context, text: "Type a comment");
                           custProvider.addCtr.reset();
                         }else{
-                          custProvider.addComment(context: context,visitId: widget.visitId.toString(),
+                          custProvider.addComment(context: context,visitId: widget.visitId.toString(),path: "",
                               companyName: widget.companyName,companyId: widget.companyId, numberList: widget.numberList, taskId: "0", createdBy: widget.createdBy);
                           // custProvider.addComment(context: context,companyId: widget.visitId.toString(), type: custProvider.selectType.toString());
                         }

@@ -79,6 +79,13 @@ class _ViewTaskState extends State<ViewTask> with SingleTickerProviderStateMixin
         Provider.of<CustomerProvider>(context, listen: false).getVisit();
         Provider.of<CustomerProvider>(context, listen: false).getCommentType();
       }
+      final taskProvider = Provider.of<TaskProvider>(context, listen: false);
+      taskProvider.initFilterValue(true,date1:widget.date1,date2:widget.date2,type:widget.type);
+      taskProvider.dataSource = _getDataSource();
+      taskProvider.getAllTask(true,date1:widget.date1,date2:widget.date2,type:widget.type);
+      if(localData.storage.read("role")=="1"){
+        taskProvider.getTaskUsers();
+      }
     });
   }
   @override
@@ -169,6 +176,10 @@ class _ViewTaskState extends State<ViewTask> with SingleTickerProviderStateMixin
           );
         });
   }
+  _DataSource _getDataSource() {
+    List<Appointment> appointments = <Appointment>[];
+    return _DataSource(appointments);
+  }
 }
 
 
@@ -185,19 +196,19 @@ class ViewfilterUserData extends StatefulWidget {
 
 class _ViewfilterUserDataState extends State<ViewfilterUserData>{
   final FocusScopeNode _myFocusScopeNode = FocusScopeNode();
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final taskProvider = Provider.of<TaskProvider>(context, listen: false);
-      taskProvider.initFilterValue(true,date1:widget.date1,date2:widget.date2,type:widget.type);
-      taskProvider.dataSource = _getDataSource();
-      taskProvider.getAllTask(true,date1:widget.date1,date2:widget.date2,type:widget.type);
-      if(localData.storage.read("role")=="1"){
-        taskProvider.getTaskUsers();
-      }
-    });
-  }
+  // @override
+  // void initState() {
+  //   super.initState();
+  //   WidgetsBinding.instance.addPostFrameCallback((_) {
+  //     final taskProvider = Provider.of<TaskProvider>(context, listen: false);
+  //     taskProvider.initFilterValue(true,date1:widget.date1,date2:widget.date2,type:widget.type);
+  //     taskProvider.dataSource = _getDataSource();
+  //     taskProvider.getAllTask(true,date1:widget.date1,date2:widget.date2,type:widget.type);
+  //     if(localData.storage.read("role")=="1"){
+  //       taskProvider.getTaskUsers();
+  //     }
+  //   });
+  // }
   @override
   void dispose() {
     _myFocusScopeNode.dispose();
@@ -264,16 +275,29 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
                                               padding: const EdgeInsets.all(8.0),
                                               child: SvgPicture.asset(assets.cancel2),
                                             ))):null,
-                                    errorStyle: const TextStyle(
-                                      fontSize: 12.0,
-                                      height: 0.20,
-                                    ),
-                                    enabledBorder: OutlineInputBorder(
-                                      // grey.shade300
-                                        borderSide:  BorderSide(color: Colors.grey.shade300),
-                                        borderRadius: BorderRadius.circular(30)
-                                    ),
-                                    contentPadding:const EdgeInsets.fromLTRB(10, 10, 10, 10)
+                                  errorStyle: const TextStyle(
+                                    fontSize: 12.0,
+                                    height: 0.20,
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                      borderSide:  BorderSide(color: colorsConst.primary),
+                                      borderRadius: BorderRadius.circular(30)
+                                  ),
+                                  focusedErrorBorder: OutlineInputBorder(
+                                      borderSide: BorderSide(color: colorsConst.primary),
+                                      borderRadius: BorderRadius.circular(30)
+                                  ),
+                                  // errorStyle: const TextStyle(height:0.05,fontSize: 12),
+                                  contentPadding:const EdgeInsets.fromLTRB(10, 10, 10, 10),
+                                  errorBorder: OutlineInputBorder(
+                                      borderSide:  const BorderSide(color: Colors.transparent),
+                                      borderRadius: BorderRadius.circular(30)
+                                  ),
+                                  enabledBorder: OutlineInputBorder(
+                                    // grey.shade300
+                                      borderSide:  BorderSide(color: Colors.grey.shade300),
+                                      borderRadius: BorderRadius.circular(30)
+                                  ),
                                 ),
                               ),
                             ),

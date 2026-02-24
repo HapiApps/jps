@@ -236,7 +236,7 @@ class AttendanceDetails extends StatelessWidget {
                                     SizedBox(
                                       // color: Colors.yellow,
                                       width: kIsWeb?webWidth/5:phoneWidth/5,
-                                      child: CustomText(text: item["out_ts"]!=""?timeDifference(item["in_ts"], item["out_ts"]):"-",size: 11,isBold: true),
+                                      child: CustomText(text: item["out"]!=""?timeDifference("${item["in"]},${item["out"]}"):"-",size: 11,isBold: true),
                                     ),
                                     SizedBox(
                                       // color: Colors.green,
@@ -280,14 +280,38 @@ class AttendanceDetails extends StatelessWidget {
       return false; // invalid time format
     }
   }
-  String timeDifference (String dateTimeString1,String dateTimeString2) {
-    DateTime startTime = DateTime.parse(dateTimeString1);
-    DateTime endTime = DateTime.parse(dateTimeString2);
+  String timeDifference(String timeRange) {
+    // Split the two times
+    List<String> parts = timeRange.split(',');
+
+    DateFormat format = DateFormat("hh:mm a");
+
+    DateTime startTime = format.parse(parts[0].trim());
+    DateTime endTime = format.parse(parts[1].trim());
 
     Duration difference = endTime.difference(startTime);
 
-    return difference.inMinutes==0?"${difference.inSeconds} Secs":difference.inHours==0?"${difference.inMinutes} Mins":"${difference.inHours} Hrs";
+    if (difference.inMinutes < 60) {
+      return "${difference.inMinutes} Mins";
+    } else {
+      int hours = difference.inHours;
+      int minutes = difference.inMinutes.remainder(60);
+
+      return minutes == 0
+          ? "$hours Hrs"
+          : "$hours Hrs $minutes Mins";
+    }
   }
+  // String timeDifference (String dateTimeString1,String dateTimeString2) {
+  //   DateTime startTime = DateTime.parse(dateTimeString1);
+  //   DateTime endTime = DateTime.parse(dateTimeString2);
+  //
+  //   Duration difference = endTime.difference(startTime);
+  //   print(startTime);
+  //   print(endTime);
+  //   print(difference.inMinutes);
+  //   return difference.inMinutes==0?"${difference.inSeconds} Secs":difference.inHours==0?"${difference.inMinutes} Mins":"${difference.inHours} Hrs";
+  // }
   DateTime parseTime(String time) {
     final now = DateTime.now(); // Get today's date
     final parts = time.split(" ");

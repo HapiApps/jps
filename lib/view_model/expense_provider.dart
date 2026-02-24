@@ -2680,9 +2680,11 @@ void calBalance(){
     notifyListeners();
   }
   void last3Month() {
-    DateTime now = DateTime.now(); // Today: e.g. 13 June 2025
-    DateTime stDt = DateTime(now.year, now.month - 2, now.day); // 13 April 2025
-    DateTime enDt = now; // 13 June 2025
+    DateTime now = DateTime.now();
+
+// Subtract 3 months from today
+    DateTime stDt = DateTime(now.year, now.month - 3, now.day);
+    DateTime enDt = now;
 
     _startDate = DateFormat('dd-MM-yyyy').format(stDt);
     _endDate = DateFormat('dd-MM-yyyy').format(enDt);
@@ -2808,12 +2810,14 @@ void calBalance(){
     notifyListeners();
   }
   void last3Month2() {
-    DateTime now = DateTime.now(); // Today: e.g. 13 June 2025
-    DateTime stDt = DateTime(now.year, now.month - 2, now.day); // 13 April 2025
-    DateTime enDt = now; // 13 June 2025
+    DateTime now = DateTime.now();
 
-    _startDate2 = DateFormat('dd-MM-yyyy').format(stDt);
-    _endDate2 = DateFormat('dd-MM-yyyy').format(enDt);
+// Subtract 3 months from today
+    DateTime stDt = DateTime(now.year, now.month - 3, now.day);
+    DateTime enDt = now;
+
+    _startDate = DateFormat('dd-MM-yyyy').format(stDt);
+    _endDate = DateFormat('dd-MM-yyyy').format(enDt);
     notifyListeners();
   }
   void lastMonth2() {
@@ -3124,12 +3128,14 @@ dynamic get user=>_user;
     notifyListeners();
   }
   void last3Month3() {
-    DateTime now = DateTime.now(); // Today: e.g. 13 June 2025
-    DateTime stDt = DateTime(now.year, now.month - 2, now.day); // 13 April 2025
-    DateTime enDt = now; // 13 June 2025
+    DateTime now = DateTime.now();
 
-    _startDate3 = DateFormat('dd-MM-yyyy').format(stDt);
-    _endDate3 = DateFormat('dd-MM-yyyy').format(enDt);
+// Subtract 3 months from today
+    DateTime stDt = DateTime(now.year, now.month - 3, now.day);
+    DateTime enDt = now;
+
+    _startDate = DateFormat('dd-MM-yyyy').format(stDt);
+    _endDate = DateFormat('dd-MM-yyyy').format(enDt);
     notifyListeners();
   }
   void lastMonth3() {

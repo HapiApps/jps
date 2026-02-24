@@ -472,7 +472,7 @@ void check(){
                                 mainAxisAlignment: MainAxisAlignment.end,
                                 children: [
                                   CustomText(text: "Total Records: ",colors:colorsConst.greyClr,size: 14,),
-                                  CustomText(text: showType=="Leave"?levPvr.myLevSearch.length.toString():showType=="Late"?attProvider.getDailyAttendance.length.toString():showType=="Absent"?attProvider.noAttendanceList.length.toString():showType=="Present"?attProvider.getDailyAttendance.length.toString():attProvider.permisCount.toString(),colors:colorsConst.primary,size: 14,),
+                                  CustomText(text: showType=="Leave"?levPvr.myLevSearch.length.toString():showType=="Late"?attProvider.lateCountShow.toString():showType=="Absent"?attProvider.noAttendanceList.length.toString():showType=="Present"?attProvider.getDailyAttendance.length.toString():attProvider.permisCount.toString(),colors:colorsConst.primary,size: 14,),
                                 ],
                               ),
                             ],
@@ -612,11 +612,11 @@ void check(){
                                   if (data.status.toString().contains("1,2")) {
                                     inTime = data.time!.split(",")[0];
                                     outTime = data.time!.split(",")[1];
-                                    timeD=attProvider.timeDifference(data.createdTs!.split(",")[0], data.createdTs!.split(",")[1]);
+                                    timeD=attProvider.timeDifference("$inTime,$outTime");
                                   }else if (data.status.toString().contains("2,1")) {
                                     inTime = data.time!.split(",")[1];
                                     outTime = data.time!.split(",")[0];
-                                    timeD=attProvider.timeDifference(data.createdTs!.split(",")[0], data.createdTs!.split(",")[1]);
+                                    timeD=attProvider.timeDifference("$inTime,$outTime");
                                   }else {
                                     inTime = data.time.toString().split(",")[0];
                                     timeD="-";
@@ -752,11 +752,11 @@ void check(){
                                   if (data.status.toString().contains("1,2")) {
                                     inTime = data.time!.split(",")[0];
                                     outTime = data.time!.split(",")[1];
-                                    timeD=attProvider.timeDifference(data.createdTs!.split(",")[0], data.createdTs!.split(",")[1]);
+                                    timeD=attProvider.timeDifference("$inTime,$outTime");
                                   }else if (data.status.toString().contains("2,1")) {
                                     inTime = data.time!.split(",")[1];
                                     outTime = data.time!.split(",")[0];
-                                    timeD=attProvider.timeDifference(data.createdTs!.split(",")[0], data.createdTs!.split(",")[1]);
+                                    timeD=attProvider.timeDifference("$inTime,$outTime");
                                   }else {
                                     inTime = data.time!.split(",")[0];
                                     timeD="-";
@@ -831,11 +831,11 @@ void check(){
                                   if (data.status.toString().contains("1,2")) {
                                     inTime = data.time!.split(",")[0];
                                     outTime = data.time!.split(",")[1];
-                                    timeD=attProvider.timeDifference(data.createdTs!.split(",")[0], data.createdTs!.split(",")[1]);
+                                    timeD=attProvider.timeDifference("$inTime,$outTime");
                                   }else if (data.status.toString().contains("2,1")) {
                                     inTime = data.time!.split(",")[1];
                                     outTime = data.time!.split(",")[0];
-                                    timeD=attProvider.timeDifference(data.createdTs!.split(",")[0], data.createdTs!.split(",")[1]);
+                                    timeD=attProvider.timeDifference("$inTime,$outTime");
                                   }else {
                                     inTime = data.time.toString().split(",")[0];
                                     timeD="-";
@@ -920,9 +920,13 @@ void check(){
   Widget itemBuilder(List<LeaveModel> dataList,LeaveProvider levProvider){
     var webWidth=MediaQuery.of(context).size.width*0.7;
     var phoneWidth=MediaQuery.of(context).size.width*0.95;
+    /// CALCULATE FULL & HALF DAY COUNTS
+    final fullDayCount =
+        dataList.where((e) => e.dayType.toString() == "1").length;
+
+    final halfDayCount =
+        dataList.where((e) => e.dayType.toString() == "0.5").length;
     return ListView.builder(
-        shrinkWrap: true,
-        physics: NeverScrollableScrollPhysics(),
         itemCount: dataList.length,
         itemBuilder: (context,index){
           final sortedData = dataList;
@@ -944,160 +948,314 @@ void check(){
           }
           createdBy = "${dateTime.day}/${dateTime.month}/${dateTime.year}";
           final showDateHeader = index == 0 || createdBy != getCreatedDate(sortedData[index - 1]);
-          var st = DateTime.parse(data.startDate.toString());
-          var date1 = "${st.day.toString().padLeft(2,"0")}/${st.month.toString().padLeft(2,"0")}/${st.year}";
-          var date2="";
-          if(data.startDate.toString()!=data.endDate.toString()&&data.endDate.toString()!=""){
-            var en = DateTime.parse(data.endDate.toString());
-            // print(data.endDate.toString());
-            date2 = "${en.day.toString().padLeft(2,"0")}/${en.month.toString().padLeft(2,"0")}/${en.year}";
+          // var st = DateTime.parse(data.startDate.toString());
+          // var date1 = "${st.day.toString().padLeft(2,"0")}/${st.month.toString().padLeft(2,"0")}/${st.year}";
+          // var date2="";
+          // if(data.startDate.toString()!=data.endDate.toString()&&data.endDate.toString()!=""){
+          //   var en = DateTime.parse(data.endDate.toString());
+          //   // print(data.endDate.toString());
+          //   date2 = "${en.day.toString().padLeft(2,"0")}/${en.month.toString().padLeft(2,"0")}/${en.year}";
+          // }
+          /// FORMAT START & END DATE
+          final start = DateTime.parse(data.startDate.toString());
+          final end = (data.endDate != null &&
+              data.endDate.toString() != "" &&
+              data.startDate.toString() != data.endDate.toString())
+              ? DateTime.parse(data.endDate.toString())
+              : null;
+          String displayDate;
+
+          if (end != null) {
+            /// 28 Oct - 1 Nov
+            displayDate =
+            "${DateFormat('dd MMM').format(start)} - ${DateFormat('dd MMM').format(end)}";
+          } else {
+            /// Mon, 28 Oct
+            displayDate =
+                DateFormat('EEE, dd MMM').format(start);
           }
           return SizedBox(
             width: kIsWeb?webWidth:phoneWidth,
             child: Column(
               children: [
-                if(index==0)
-                  5.height,
-                if (showDateHeader)
+                if (index == 0) ...[
+                  10.height,
+                  /// FULL DAY / HALF DAY SUMMARY
                   SizedBox(
-                    width: kIsWeb?webWidth:phoneWidth,
-                    child: Column(
+                    width: kIsWeb ? webWidth : phoneWidth,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
                       children: [
-                        10.height,
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
-                            CustomText(
-                                text: dayOfWeek,
-                                colors: colorsConst.greyClr
-                            ),
-                          ],
+                        CustomText(
+                            text: "Full Day: ${fullDayCount.toString()!="0"?fullDayCount.toString().padLeft(2, "0"):"0"}",
+                            size: 13,
+                            isBold:true,
+                            colors:Color(0xff7E7E7E)
+                        ),
+                        20.width,
+                        CustomText(
+                            text: "Half Day: ${halfDayCount.toString()!="0"?halfDayCount.toString().padLeft(2, "0"):"0"}",
+                            size: 13,
+                            isBold:true,
+                            colors:Color(0xff7E7E7E)
                         ),
                       ],
                     ),
                   ),
-                GestureDetector(
-                  child: Container(
-                    width: kIsWeb?webWidth:phoneWidth,
-                    // height: 75,
-                    decoration: customDecoration.baseBackgroundDecoration(
-                      radius: 5,
-                      color: Colors.white,
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(10, 0, 10, 0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  5.height,
+                ],
+                // if(index==0)
+                //   5.height,
+                // if (showDateHeader)
+                SizedBox(
+                  width: kIsWeb?webWidth:phoneWidth,
+                  child: Column(
+                    children: [
+                      10.height,
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
                         children: [
-                          5.height,
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              CustomText(
-                                text: data.type.toString(),
-                                colors: colorsConst.greyClr,
-                              ),
-                              if(localData.storage.read("role")!="1")
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    CustomText(
-                                      text: "$date1${date2!=""?" To $date2":""}",
-                                      size: 13,
-                                      colors: Colors.black,
-                                    ),
-                                  ],
-                                ),
-                              if(data.creater.toString()!=data.fName.toString())
-                                Row(
-                                  children: [
-                                    CustomText(
-                                      text: "Added By  ",
-                                      colors: colorsConst.greyClr,
-                                    ),
-                                    CustomText(
-                                      text: "${data.creater.toString()} ( HR )",
-                                      colors: colorsConst.primary,
-                                    ),
-                                  ],
-                                ),
-                              // CustomText(
-                              //   text: time,
-                              //   colors: colorsConst.greyClr,
-                              // ),
-                            ],
+                          CustomText(
+                              text: dayOfWeek,
+                              colors: colorsConst.greyClr
                           ),
-                          5.height,
-                          if(localData.storage.read("role")=="1")
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                6.height,
+                // GestureDetector(
+                //   onTap: (){
+                //     utils.navigatePage(context, ()=>LeaveDetails(empId: data.userId.toString(), name: data.fName.toString(), role: data.role.toString(),date1: widget.date1!,date2: widget.date2!));
+                //   },
+                //   child: Container(
+                //     width: kIsWeb?webWidth:phoneWidth,
+                //     // height: 75,
+                //     decoration: customDecoration.baseBackgroundDecoration(
+                //       radius: 5,
+                //       color: Colors.white,
+                //     ),
+                //     child: Padding(
+                //       padding: const EdgeInsets.fromLTRB(10, 0, 10, 0),
+                //       child: Column(
+                //         crossAxisAlignment: CrossAxisAlignment.start,
+                //         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                //         children: [
+                //           5.height,
+                //           Row(
+                //             mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                //             children: [
+                //               CustomText(
+                //                 text: data.type.toString(),
+                //                 colors: colorsConst.greyClr,
+                //               ),
+                //               if(localData.storage.read("role")!="1")
+                //                 Row(
+                //                   mainAxisAlignment: MainAxisAlignment.center,
+                //                   children: [
+                //                     CustomText(
+                //                       text: "$date1${date2!=""?" To $date2":""}",
+                //                       size: 13,
+                //                       colors: Colors.black,
+                //                     ),
+                //                   ],
+                //                 ),
+                //               if(data.creater.toString()!=data.fName.toString())
+                //                 Row(
+                //                   children: [
+                //                     CustomText(
+                //                       text: "Added By  ",
+                //                       colors: colorsConst.greyClr,
+                //                     ),
+                //                     CustomText(
+                //                       text: "${data.creater.toString()} ( HR )",
+                //                       colors: colorsConst.primary,
+                //                     ),
+                //                   ],
+                //                 ),
+                //               // CustomText(
+                //               //   text: time,
+                //               //   colors: colorsConst.greyClr,
+                //               // ),
+                //             ],
+                //           ),
+                //           5.height,
+                //           if(localData.storage.read("role")=="1")
+                //             Row(
+                //               mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                //               children: [
+                //                 Row(
+                //                   mainAxisAlignment: MainAxisAlignment.center,
+                //                   children: [
+                //                     CustomText(
+                //                       text: data.fName.toString(),
+                //                       isBold: true,
+                //                       size: 15,
+                //                       colors: colorsConst.shareColor,
+                //                     ),
+                //                     5.width,
+                //                     CustomText(
+                //                       text: data.role.toString(),
+                //                       size: 13,
+                //                       colors: Colors.black,
+                //                     ),
+                //                   ],
+                //                 ),
+                //                 Row(
+                //                   mainAxisAlignment: MainAxisAlignment.center,
+                //                   children: [
+                //                     CustomText(
+                //                       text: "$date1${date2!=""?" To $date2":""}",
+                //                       size: 13,
+                //                       colors: Colors.black,
+                //                     ),
+                //                   ],
+                //                 ),
+                //               ],
+                //             ),
+                //           if(localData.storage.read("role")=="1")
+                //             5.height,
+                //           Row(
+                //             mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                //             children: [
+                //               CustomText(
+                //                 text: "Requested for ${data.dayType.toString()=="0.5"?"Half Day":data.dayType.toString()=="1"?"1 Day":"${data.dayCount }days"} leave ${data.dayType.toString()=="0.5"&&data.session.toString()!="null"?"( ${data.session.toString()} )":""}",
+                //                 colors: colorsConst.greyClr,
+                //               ),
+                //               if(localData.storage.read("id")==data.createdBy)
+                //               InkWell(
+                //                   onTap: (){
+                //                 utils.customDialog(
+                //                   context: context,
+                //                   title: "Are you sure you want to delete",
+                //                   callback: () {
+                //                     levProvider.deleteLeave(context,data.id.toString());
+                //                   },
+                //                   roundedLoadingButtonController: levProvider.submitCtr,
+                //                   isLoading: true,
+                //                 );
+                //               }, child: CustomText(text: "Delete",colors: colorsConst.appRed,isBold: true,))
+                //             ],
+                //           ),
+                //           5.height,
+                //           CustomText(
+                //             text: data.reason.toString(),
+                //             colors: colorsConst.stateColor.withOpacity(0.7),
+                //           ),
+                //           5.height,
+                //         ],
+                //       ),
+                //     ),
+                //   ),
+                // ),
+                Container(
+                  width: kIsWeb ? webWidth : phoneWidth,
+                  margin: const EdgeInsets.symmetric(vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Colors.black26,
+                        blurRadius: 8,
+                        offset: Offset(2, 2),
+                      )
+                    ],
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(14),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        /// TOP ROW (Name + Date + Status)
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            /// LEFT SIDE (Name + Role)
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    CustomText(
-                                      text: data.fName.toString(),
-                                      isBold: true,
-                                      size: 15,
-                                      colors: colorsConst.shareColor,
-                                    ),
-                                    5.width,
-                                    CustomText(
-                                      text: data.role.toString(),
-                                      size: 13,
-                                      colors: Colors.black,
-                                    ),
-                                  ],
+                                CustomText(
+                                  text: data.fName.toString(),
+                                  size: 16,
+                                  isBold: true,
                                 ),
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    CustomText(
-                                      text: "$date1${date2!=""?" To $date2":""}",
-                                      size: 13,
-                                      colors: Colors.black,
-                                    ),
-                                  ],
+                                3.height,
+                                CustomText(
+                                  text: data.role.toString(),
+                                  size: 13,
+                                  colors: Color(0xffA80007),
                                 ),
                               ],
                             ),
-                          if(localData.storage.read("role")=="1")
-                            5.height,
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              CustomText(
-                                text: "Requested for ${data.dayType.toString()=="0.5"?"Half Day":data.dayType.toString()=="1"?"1 Day":"${data.dayCount }days"} leave ${data.dayType.toString()=="0.5"&&data.session.toString()!="null"?"( ${data.session.toString()} )":""}",
-                                colors: colorsConst.greyClr,
+                            /// RIGHT SIDE (Date + Status Badge)
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                CustomText(
+                                    text: displayDate,
+                                    size: 12,
+                                    isBold:true,
+                                    colors:Color(0xff7E7E7E)
+                                ),
+                                5.height,
+
+                                /// STATUS BADGE
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 10, vertical: 5),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xffA80007),
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  child: CustomText(
+                                    text:
+                                    "${data.type} : ${data.dayType == "0.5" ? "Half / ${data.session}" : "Full Day"}",
+                                    size: 11,
+                                    colors: Colors.white,
+                                    isBold: true,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                        5.height,
+                        /// REASON
+                        Row(
+                          children: [
+                            const CustomText(
+                              text: "Reason : ",
+                              size: 13,
+                              colors: Colors.black,
+                              isBold: true,
+                            ),
+                            Expanded(
+                              child: CustomText(
+                                  text: data.reason.toString(),
+                                  size: 13,
+                                  colors: Color(0xff7E7E7E)
                               ),
-                              if(localData.storage.read("id")==data.createdBy)
-                                InkWell(
-                                    onTap: (){
-                                      utils.customDialog(
-                                        context: context,
-                                        title: "Are you sure you want to delete",
-                                        callback: () {
-                                          levProvider.deleteLeave(context,data.id.toString());
-                                        },
-                                        roundedLoadingButtonController: levProvider.submitCtr,
-                                        isLoading: true,
-                                      );
-                                    }, child: CustomText(text: "Delete",colors: colorsConst.appRed,isBold: true,))
-                            ],
+                            ),
+                          ],
+                        ),
+                        10.height,
+                        /// REQUESTED BY DATE
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: CustomText(
+                            text: "Requested By : $createdBy",
+                            size: 12,
+                            colors: Colors.black,
+                            isBold: true,
                           ),
-                          5.height,
-                          CustomText(
-                            text: data.reason.toString(),
-                            colors: colorsConst.stateColor.withOpacity(0.7),
-                          ),
-                          5.height,
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
-                5.height,
                 if(index==dataList.length-1)
                   80.height,
               ],

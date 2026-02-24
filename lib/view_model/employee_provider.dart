@@ -627,7 +627,9 @@ void thisMonth() {
 }
 void last3Month() {
   DateTime now = DateTime.now();
-  DateTime stDt = DateTime(now.year, now.month - 2, now.day);
+
+// Subtract 3 months from today
+  DateTime stDt = DateTime(now.year, now.month - 3, now.day);
   DateTime enDt = now;
 
   _startDate = DateFormat('dd-MM-yyyy').format(stDt);

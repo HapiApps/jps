@@ -224,24 +224,28 @@ class AttendanceProvider with ChangeNotifier{
   //
   //   return difference.inHours==0?"${difference.inMinutes} Mins":"${difference.inHours} Hrs";
   // }
-  String timeDifference(String dateTimeString1, String dateTimeString2) {
-    DateTime startTime = DateTime.parse(dateTimeString1);
-    DateTime endTime = DateTime.parse(dateTimeString2);
+  String timeDifference(String timeRange) {
+    // Split the two times
+    List<String> parts = timeRange.split(',');
+
+    DateFormat format = DateFormat("hh:mm a");
+
+    DateTime startTime = format.parse(parts[0].trim());
+    DateTime endTime = format.parse(parts[1].trim());
 
     Duration difference = endTime.difference(startTime);
 
-    int hours = difference.inHours;
-    int minutes = difference.inMinutes % 60;
-
-    if (hours == 0) {
-      return "$minutes mins";
-    } else if (minutes == 0) {
-      return "$hours hrs";
+    if (difference.inMinutes < 60) {
+      return "${difference.inMinutes} Mins";
     } else {
-      return "$hours hrs $minutes mins";
+      int hours = difference.inHours;
+      int minutes = difference.inMinutes.remainder(60);
+
+      return minutes == 0
+          ? "$hours Hrs"
+          : "$hours Hrs $minutes Mins";
     }
   }
-
   var typeList = ["Today","Yesterday","Last 7 Days","Last 30 Days","This Week","This Month","Last 3 months"];
   dynamic get type=>_type;
   void changeType(value,String id ,String role,bool? isRefresh,List<UserModel>? list,context){
@@ -620,7 +624,6 @@ class AttendanceProvider with ChangeNotifier{
     _getUserAttendance.clear();
     notifyListeners();
     try {
-      print("isAbsent : $isAbsent");
       Map data = {
         "action": getAllData,
         "search_type": "get_attendance",
@@ -631,7 +634,7 @@ class AttendanceProvider with ChangeNotifier{
         "en_dt": _endDate
       };
       final response = await attRepo.getReport(data);
-      // print(response.toString());
+      print(data.toString());
       if (response.isNotEmpty){
         _getUserAttendance=response;
         _refresh = true;
@@ -967,7 +970,7 @@ PickerDateRange? selectedDate;
     }
     notifyListeners();
   }
-  String _monthName = "";
+  String _monthName = DateFormat('MMMM yyyy').format(DateTime.now());
   String get monthName => _monthName;
   void increaseMonth(String id, String role, bool? isRefresh) {
     // Move to next month
@@ -992,8 +995,16 @@ PickerDateRange? selectedDate;
   }
 
   void last3Month(String id ,String role,bool? isRefresh) {
+    // DateTime now = DateTime.now();
+    // DateTime stDt = DateTime(now.year, now.month - 2, now.day);
+    // DateTime enDt = now;
+    //
+    // _startDate = DateFormat('dd-MM-yyyy').format(stDt);
+    // _endDate = DateFormat('dd-MM-yyyy').format(enDt);
     DateTime now = DateTime.now();
-    DateTime stDt = DateTime(now.year, now.month - 2, now.day);
+
+// Subtract 3 months from today
+    DateTime stDt = DateTime(now.year, now.month - 3, now.day);
     DateTime enDt = now;
 
     _startDate = DateFormat('dd-MM-yyyy').format(stDt);
@@ -1326,7 +1337,8 @@ void showDatePickerDialog(BuildContext context,List<UserModel>? list) {
         _isPermission=false;
         notifyListeners();
       }
-      Provider.of<AttendanceProvider>(context, listen: false).getAttendanceReport(localData.storage.read("id"));
+      Provider.of<HomeProvider>(context, listen: false).getMainReport(false);
+      getAttendanceReport(localData.storage.read("id"));
       getMainAttendance();
       if(localData.storage.read("role")=="1"){
         getLateCount(Provider.of<HomeProvider>(context, listen: false).startDate,Provider.of<HomeProvider>(context, listen: false).endDate,);

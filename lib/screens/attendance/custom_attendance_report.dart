@@ -59,40 +59,28 @@ class _CustomAttendanceReportState extends State<CustomAttendanceReport> {
               child: CustomAppbar(text: "${widget.userName} Attendance Report"),
             ),
             body: GestureDetector(
-              // onHorizontalDragEnd: (details) {
-              //   if (details.primaryVelocity! < 0) {
-              //     attProvider.decreaseMonth(widget.userId,"0",false);   // swipe left → go next
-              //   } else if (details.primaryVelocity! > 0) {
-              //     attProvider.increaseMonth(widget.userId,"0",false);  // swipe right → go previous
-              //   }
-              // },
               behavior: HitTestBehavior.opaque,
+              onHorizontalDragEnd: (details) {
+                if (details.primaryVelocity == null) return;
 
-              // 👉 Perfect swipe detection
-              onHorizontalDragUpdate: (details) {
-                // Dragging left (finger moving towards left)
-                if (details.delta.dx < -5) {
-                  // print("SWIPED LEFT → Next page");
-                  attProvider.decreaseMonth(widget.userId,"0",false);   // swipe left → go next
+                // Swipe Left (next month)
+                if (details.primaryVelocity! < 0) {
+                  attProvider.decreaseMonth(widget.userId, "0", false);
                 }
-                // Dragging right
-                else if (details.delta.dx > 5) {
-                  // print("SWIPED RIGHT → Previous page");
-                  attProvider.increaseMonth(widget.userId,"0",false);
+
+                // Swipe Right (previous month)
+                else if (details.primaryVelocity! > 0) {
+                  attProvider.increaseMonth(widget.userId, "0", false);
                 }
               },
-
-              // 👉 Tap detection
               onTapDown: (TapDownDetails details) {
                 final screenWidth = MediaQuery.of(context).size.width;
                 double dx = details.globalPosition.dx;
 
                 if (dx < screenWidth / 2) {
-                  // print("LEFT TAP");
-                  attProvider.decreaseMonth(widget.userId,"0",false);   // swipe left → go next
+                  attProvider.decreaseMonth(widget.userId, "0", false);
                 } else {
-                  // print("RIGHT TAP");
-                  attProvider.increaseMonth(widget.userId,"0",false);
+                  attProvider.increaseMonth(widget.userId, "0", false);
                 }
               },
               child: Center(
@@ -126,11 +114,11 @@ class _CustomAttendanceReportState extends State<CustomAttendanceReport> {
                                 if (data.status.toString().contains("1,2")) {
                                   inTime = data.time!.split(",")[0];
                                   outTime = data.time!.split(",")[1];
-                                  timeD=attProvider.timeDifference(data.createdTs!.split(",")[0], data.createdTs!.split(",")[1]);
+                                  timeD=attProvider.timeDifference("$inTime,$outTime");
                                 }else if (data.status.toString().contains("2,1")) {
                                   inTime = data.time!.split(",")[1];
                                   outTime = data.time!.split(",")[0];
-                                  timeD=attProvider.timeDifference(data.createdTs!.split(",")[0], data.createdTs!.split(",")[1]);
+                                  timeD=attProvider.timeDifference("$inTime,$outTime");
                                 }else {
                                   inTime = data.time!.split(",")[0];
                                   timeD="-";

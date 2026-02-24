@@ -455,7 +455,7 @@ class _HomePageState extends State<HomePage> {
             stream:FirebaseFirestore.instance.collection('attendance').snapshots(),
             builder: (context,snapshot){
               return Scaffold(
-                backgroundColor: ColorsConst.background,
+                backgroundColor: ColorsConst.background2,
                 body: PopScope(
                   canPop: false,
                   onPopInvoked: (bool pop){
@@ -493,7 +493,7 @@ class _HomePageState extends State<HomePage> {
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
                                   /// ARUU Logo
-                                  Image.asset(DashboardAssets.jpsLogo),
+                                  Image.asset(assets.logo),
 
                                   /// Right Side Icons
                                   Row(
@@ -504,7 +504,7 @@ class _HomePageState extends State<HomePage> {
                                           homeProvider.updateIndex(3);
                                           utils.navigatePage(context, ()=>const DashBoard(child: TrackingLive()));
                                         },
-                                          child: Image.asset(DashboardAssets.tracking)),
+                                          child: Image.asset(assets.tracks)),
                                       25.width,
                     Consumer<EmployeeProvider>(
                       builder: (context, emp, _) {
@@ -618,7 +618,7 @@ class _HomePageState extends State<HomePage> {
                                             child: CustomText(
                                              localData.storage.read("Track") == true
                                                   ? 'ON     '
-                                                  : '     Track Off',
+                                                  : '     Tracker Off',
                                               size: 11, color: Colors.white,
                                             ),
                                           ),
@@ -628,8 +628,8 @@ class _HomePageState extends State<HomePage> {
                                                 .centerLeft,
                                             child: Container(
                                               margin: const EdgeInsets.all(3),
-                                              width: 22,
-                                              height: 22,
+                                              width: 25,
+                                              height: 25,
                                               decoration: const BoxDecoration(
                                                 color: Colors.white,
                                                 shape: BoxShape.circle,
@@ -827,12 +827,72 @@ class _HomePageState extends State<HomePage> {
                               ),
                               10.height,
                               InkWell(
-                                onTap:(){
-                                  homeProvider.updateIndex(4);
-                                  utils.navigatePage(context, ()=> DashBoard(child: AttendanceReport(type: homeProvider.type,showType: "Present",date1: homeProvider.startDate,date2:homeProvider.endDate,empList: empPvr.userData)));
-                                },
                                   child: const CheckAttendance()),
                               10.height,
+                              /// DAILY WORK PLAN
+                              Container(
+                                margin: const EdgeInsets.only(bottom: 15),
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xffF3F6FA),
+                                  borderRadius: BorderRadius.circular(15),
+                                  border: Border.all(color: const Color(0xff0078D7), width: 1.5),
+                                  boxShadow: const [
+                                    BoxShadow(
+                                      color: Colors.black12,
+                                      blurRadius: 6,
+                                      offset: Offset(0, 3),
+                                    ),
+                                  ],
+                                ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    /// LEFT TEXT
+                                    const CustomText(
+                                      "Daily Work Plan",
+                                      size: 14,
+                                      weight: FontWeight.bold,
+                                      color: Color(0xff1A85DB),
+                                    ),
+                                    /// SUBMIT BUTTON
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 12),
+                                      decoration: BoxDecoration(
+                                        gradient: const LinearGradient(
+                                          colors: [
+                                            Color(0xff1A85DB),
+                                            Color(0xff1A85DB),
+                                          ],
+                                        ),
+                                        borderRadius: BorderRadius.circular(10),
+                                        boxShadow: const [
+                                          BoxShadow(
+                                            color: Colors.black45,
+                                            blurRadius: 6,
+                                            offset: Offset(0, 3),
+                                          ),
+                                        ],
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          const CustomText(
+                                            "Submit",
+                                            size: 13,
+                                            weight: FontWeight.w600,
+                                            color: Colors.white,
+                                          ),
+                                          6.width,
+                                          Icon(Icons.check_circle,color: Colors.white,size: 15,)
+                                          // Image.asset(
+                                          //   assets.circle,
+                                          // ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
                               /// ================= ATTENDANCE CARD =================
                                if(localData.storage.read("role")=="1")
                               Container(
@@ -851,6 +911,25 @@ class _HomePageState extends State<HomePage> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                      child: Row(
+                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          const CustomText(
+                                            "Employees Attendance Log",
+                                            size: 14,
+                                            weight: FontWeight.bold,
+                                            color: Colors.black,
+                                          ),
+
+                                          CustomText(
+                                              "Total Employees : ${homeProvider.mainReportList.isEmpty?"":homeProvider.mainReportList[0]["total_user_count"].toString()}",
+                                              color:Color(0xffA2A2A2)
+                                          ),
+                                        ],
+                                      ),
+                                    ),     ///ADDED NEW
                                     5.height,
                                     Row(
                                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -873,26 +952,15 @@ class _HomePageState extends State<HomePage> {
                                          AttendanceItem(
                                           title: "Absent",
                                           onClick: (){
-                                            if(homeProvider.mainReportList.isNotEmpty&&
-                                                (int.parse(homeProvider.mainReportList[0]["total_user_count"].toString())-
-                                                    int.parse(homeProvider.mainReportList[0]["unique_attendance_count"].toString())
-                                                    -int.parse(homeProvider.mainReportList[0]["fulldayleave_user"].toString())).toString()!="0"){
+                                            if(homeProvider.mainReportList.isNotEmpty&&homeProvider.mainReportList[0]["no_attendance_count"].toString()!="0"&&homeProvider.mainReportList[0]["no_attendance_count"].toString()!="null"){
                                               homeProvider.updateIndex(4);
                                               utils.navigatePage(context, ()=> DashBoard(child: AttendanceReport(type: homeProvider.type,showType: "Absent",date1: homeProvider.startDate,date2:homeProvider.endDate,empList: empPvr.userData)));
                                             }else{
                                               utils.showWarningToast(context, text: "No absent employees found");
                                             }
                                           },
-                                          count: homeProvider.mainReportList.isEmpty
-                                              ? "0"
-                                              : (() {
-                                            final total = int.parse(homeProvider.mainReportList[0]["total_user_count"].toString()=="null"?"0":homeProvider.mainReportList[0]["total_user_count"].toString());
-                                            final attend = int.parse(homeProvider.mainReportList[0]["unique_attendance_count"].toString() == "null"?"0":homeProvider.mainReportList[0]["unique_attendance_count"].toString());
-                                            final leave = int.parse(homeProvider.mainReportList[0]["fulldayleave_user"].toString() == "null"?"0":homeProvider.mainReportList[0]["fulldayleave_user"].toString()) + int.parse(homeProvider.mainReportList[0]["sessionleave_user"].toString() == "null"?"0":homeProvider.mainReportList[0]["sessionleave_user"].toString());
-                                            final result = total - attend - leave;
-                                            return result < 0 ? "0" : result.toString();
-                                          })(),
-                                          bgColor: Color(0xFFFFEBEE),
+                                           count: homeProvider.mainReportList.isEmpty ?"0":homeProvider.mainReportList[0]["no_attendance_count"].toString()=="null"?"0": homeProvider.mainReportList[0]["no_attendance_count"].toString(),
+                                           bgColor: Color(0xFFFFEBEE),
                                           borderColor: ColorsConst.absent,
                                           imagePath: DashboardAssets.absent,
                                         ),
@@ -946,12 +1014,12 @@ class _HomePageState extends State<HomePage> {
                                       ],
                                     ),
                                     5.height,
-                                     Center(
-                                      child: CustomText(
-                                        "Total Employees : ${homeProvider.mainReportList.isEmpty?"":homeProvider.mainReportList[0]["total_user_count"].toString()}",
-                                        color: ColorsConst.textGrey,
-                                      ),
-                                    ),
+                                    //  Center(
+                                    //   child: CustomText(
+                                    //     "Total Employees : ${homeProvider.mainReportList.isEmpty?"":homeProvider.mainReportList[0]["total_user_count"].toString()}",
+                                    //     color: ColorsConst.textGrey,
+                                    //   ),
+                                    // ),
                                   ],
                                 ),
                               ),
@@ -999,37 +1067,40 @@ class _HomePageState extends State<HomePage> {
                                             },
                                             child: Container(
                                               width: screenWidth/3,
+                                              height: screenHeight/22,
                                               decoration: BoxDecoration(
-                                                color: Color(0xFFE8F5E9),
-                                                borderRadius: BorderRadius.circular(20),
+                                                color: Color(0xffDAF2DC),
+                                                borderRadius: BorderRadius.circular(10),
+                                                boxShadow: const [
+                                                  BoxShadow(
+                                                    color: Colors.black38,
+                                                    blurRadius: 4,
+                                                    offset: Offset(0, 0),
+                                                  ),
+                                                ],
                                               ),
                                               child: Padding(
                                                 padding: const EdgeInsets.all(5.0),
                                                 child: Row(
                                                   mainAxisAlignment: MainAxisAlignment.center,
                                                   children: [
-                                                    CircleAvatar(
-                                                      radius:10,backgroundColor: Colors.grey,
-                                                      child: Icon(
-                                                        Icons.add,
-                                                        size: 15,
-                                                        color: Colors.white,
-                                                      ),
+                                                    Image.asset(
+                                                      assets.addButton,
                                                     ),
                                                     SizedBox(width: 6),
                                                     CustomText(
                                                       "Add Visits",
                                                       size: 12,
-                                                      weight: FontWeight.w600,
-                                                      color: ColorsConst.present,
+                                                      weight: FontWeight.bold,
+                                                      color: Color(0xff0F8D4B),
                                                     ),
                                                   ],
                                                 ),
                                               ),
-                                            ),
+                                            ), ///ADDED NEW,
                                           ),
                                         ],
-                                      ),10.height,
+                                      ),15.height,
 
                                       /// Big Count
 
@@ -1461,68 +1532,103 @@ class _HomePageState extends State<HomePage> {
                                   ),
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
+                                    children: [     ///ADDED NEW
                                       /// TOP ROW
                                       Row(
                                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                         children: [
-                                          /// LEFT SIDE (Icon + Text)
+                                          /// LEFT SIDE (Icon + Title)
                                           Row(
                                             children: [
-                                              Image.asset(DashboardAssets.task),
+                                              Image.asset(
+                                                DashboardAssets.task,
+                                                width: 40,
+                                                height: 40,
+                                              ),
                                               const SizedBox(width: 10),
                                               Column(
                                                 crossAxisAlignment: CrossAxisAlignment.start,
-                                                children:  [
-                                                  CustomText(
+                                                children: [
+                                                  const CustomText(
                                                     "Tasks",
-                                                    size: 14,
+                                                    size: 16,
                                                     weight: FontWeight.bold,
                                                   ),
-                                                  SizedBox(height: 2),
+                                                  const SizedBox(height: 2),
                                                   CustomText(
-                                                    "${homeProvider.mainReportList.isEmpty?"0":homeProvider.mainReportList[0]["total_tasks"]} total tasks",
+                                                    "${homeProvider.mainReportList.isEmpty ? "0" : homeProvider.mainReportList[0]["total_tasks"]} total tasks",
                                                     size: 12,
-                                                    color: Color(0xffA2A2A2),
-                                                    weight: FontWeight.bold,
+                                                    color: const Color(0xffA2A2A2),
                                                   ),
                                                 ],
                                               ),
                                             ],
                                           ),
-                                          /// RIGHT SIDE COUNTS
-                                          Row(
-                                            children:  [
-                                              CustomText(
-                                                  "Pending: ",
+                                          /// RIGHT SIDE (Add Task Button)
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 20,
+                                              vertical: 8,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: const Color(0xffDAF2DC),
+                                              borderRadius: BorderRadius.circular(10),
+                                              boxShadow: const [
+                                                BoxShadow(
+                                                  color: Colors.black38,
+                                                  blurRadius: 4,
+                                                  offset: Offset(0, 0),
+                                                ),
+                                              ],
+                                            ),
+                                            child: Row(
+                                              children:  [
+                                                Image.asset(
+                                                  assets.addButton,
+                                                ),
+                                                SizedBox(width: 6),
+                                                CustomText(
+                                                  "Add Task",
                                                   size: 13,
-                                                  color: Color(0xffF02433),
-                                                  weight: FontWeight.bold
-                                              ),
-                                              CustomText(
-                                                "${homeProvider.mainReportList.isEmpty?"0":homeProvider.mainReportList[0]["incomplete_count"]}",
-                                                size: 13,
-                                                weight: FontWeight.bold,
-                                                color:Color(0xffF02433),
-                                              ),
-                                              SizedBox(width: 12),
-                                              CustomText(
-                                                "Completed: ",
-                                                size: 13,
-                                                color: Color(0xff008443),
-                                                weight: FontWeight.bold,
-                                              ),
-                                              CustomText(
-                                                "${homeProvider.mainReportList.isEmpty?"0":homeProvider.mainReportList[0]["complete_count"]}",
-                                                size: 13,
-                                                weight: FontWeight.bold,
-                                                color: Color(0xff008443),
-                                              ),
-                                            ],
+                                                  weight: FontWeight.bold,
+                                                  color: Color(0xff0F8D4B),
+                                                ),
+                                              ],
+                                            ),
                                           ),
                                         ],
                                       ),
-                                      const SizedBox(height: 16),
+                                      /// SECOND ROW (Pending / Completed)
+                                      Row(
+                                        children: [
+                                          const CustomText(
+                                            "Pending: ",
+                                            size: 13,
+                                            weight: FontWeight.bold,
+                                            color: Color(0xffF02433),
+                                          ),
+                                          CustomText(
+                                            "${homeProvider.mainReportList.isEmpty ? "0" : homeProvider.mainReportList[0]["incomplete_count"]}",
+                                            size: 13,
+                                            weight: FontWeight.bold,
+                                            color: const Color(0xffF02433),
+                                          ),
+                                          const SizedBox(width: 20),
+                                          const CustomText(
+                                            "Completed: ",
+                                            size: 13,
+                                            weight: FontWeight.bold,
+                                            color: Color(0xff008443),
+                                          ),
+                                          CustomText(
+                                            "${homeProvider.mainReportList.isEmpty ? "0" : homeProvider.mainReportList[0]["complete_count"]}",
+                                            size: 13,
+                                            weight: FontWeight.bold,
+                                            color: const Color(0xff008443),
+                                          ),
+                                        ],
+                                      ),
+                                      5.height,
                                       /// PROGRESS BAR
                                       ClipRRect(
                                         borderRadius: BorderRadius.circular(2),
@@ -1562,24 +1668,82 @@ class _HomePageState extends State<HomePage> {
                                           ],
                                         ),
                                       ),
+                                      5.height,
                                       if(taskPendingCount!=0)
-                                      Row(
-                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          CustomText(
-                                            "Normal (${homeProvider.mainReportList.isEmpty?"0":homeProvider.mainReportList[0]["Normal_count"]})",
-                                            color: Colors.blue,
-                                          ),
-                                          CustomText(
-                                            "High (${homeProvider.mainReportList.isEmpty?"0":homeProvider.mainReportList[0]["High_count"]})",
-                                            color: Colors.red,
-                                          ),
-                                          CustomText(
-                                            "Immediate (${homeProvider.mainReportList.isEmpty?"0":homeProvider.mainReportList[0]["High_count"]})",
-                                            color: Colors.purple,
-                                          ),
-                                        ],
-                                      ),
+                                      // Row(
+                                      //   mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      //   children: [
+                                      //     CustomText(
+                                      //       "Normal (${homeProvider.mainReportList.isEmpty?"0":homeProvider.mainReportList[0]["Normal_count"]})",
+                                      //       color: Colors.blue,
+                                      //     ),
+                                      //     CustomText(
+                                      //       "High (${homeProvider.mainReportList.isEmpty?"0":homeProvider.mainReportList[0]["High_count"]})",
+                                      //       color: Colors.red,
+                                      //     ),
+                                      //     CustomText(
+                                      //       "Immediate (${homeProvider.mainReportList.isEmpty?"0":homeProvider.mainReportList[0]["High_count"]})",
+                                      //       color: Colors.purple,
+                                      //     ),
+                                      //   ],
+                                      // ),
+                                        Row(
+                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                          children: [
+
+                                            /// NORMAL
+                                            Expanded(
+                                              child: Container(
+                                                padding: const EdgeInsets.symmetric(vertical: 8),
+                                                margin: const EdgeInsets.only(right: 8),
+                                                decoration: BoxDecoration(
+                                                  color: const Color(0xffF2F6FE),
+                                                  borderRadius: BorderRadius.circular(10),
+                                                ),
+                                                alignment: Alignment.center,
+                                                child: CustomText(
+                                                  "Normal (${homeProvider.mainReportList.isEmpty ? "0" : homeProvider.mainReportList[0]["Normal_count"]})",
+                                                  color: Color(0xff1A85DB),
+                                                  weight: FontWeight.w600,
+                                                ),
+                                              ),
+                                            ),
+                                            /// HIGH
+                                            Expanded(
+                                              child: Container(
+                                                padding: const EdgeInsets.symmetric(vertical: 8),
+                                                margin: const EdgeInsets.only(right: 8),
+                                                decoration: BoxDecoration(
+                                                  color: const Color(0xffFEF2F2),
+                                                  borderRadius: BorderRadius.circular(10),
+                                                ),
+                                                alignment: Alignment.center,
+                                                child: CustomText(
+                                                  "High (${homeProvider.mainReportList.isEmpty ? "0" : homeProvider.mainReportList[0]["High_count"]})",
+                                                  color: const Color(0xffFF5C68),
+                                                  weight: FontWeight.w600,
+                                                ),
+                                              ),
+                                            ),
+
+                                            /// IMMEDIATE
+                                            Expanded(
+                                              child: Container(
+                                                padding: const EdgeInsets.symmetric(vertical: 8),
+                                                decoration: BoxDecoration(
+                                                  color: const Color(0xffFBF2FE),
+                                                  borderRadius: BorderRadius.circular(10),
+                                                ),
+                                                alignment: Alignment.center,
+                                                child: CustomText(
+                                                  "Immediate (${homeProvider.mainReportList.isEmpty ? "0" : homeProvider.mainReportList[0]["High_count"]})",
+                                                  color: Color(0xffB35CFF),
+                                                  weight: FontWeight.w600,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        )
                                     ],
                                   ),
                                 ),
