@@ -13,12 +13,14 @@ import 'package:geolocator/geolocator.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
+import 'package:master_code/screens/common/work_done.dart';
 import 'package:master_code/view_model/expense_provider.dart';
 import 'package:provider/provider.dart';
 import '../../component/animated_button.dart';
 import '../../component/custom_loading.dart';
 import '../../component/new_co.dart';
 import '../../component/update_app.dart';
+import '../../model/attendance_model.dart';
 import '../../source/constant/assets_constant.dart';
 import '../../source/constant/colors_constant.dart';
 import '../../source/constant/dashboard_assets.dart';
@@ -856,39 +858,143 @@ class _HomePageState extends State<HomePage> {
                                       color: Color(0xff1A85DB),
                                     ),
                                     /// SUBMIT BUTTON
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 12),
-                                      decoration: BoxDecoration(
-                                        gradient: const LinearGradient(
-                                          colors: [
-                                            Color(0xff1A85DB),
-                                            Color(0xff1A85DB),
+                                    localData.storage.read("role")=="1"?
+                                    GestureDetector(
+                                      onTap: () {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (_) => WorkDoneEmployeesPage(),
+                                          ),
+                                        );
+                                      },
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 12),
+                                        decoration: BoxDecoration(
+                                          gradient: const LinearGradient(
+                                            colors: [
+                                              Color(0xff1A85DB),
+                                              Color(0xff1A85DB),
+                                            ],
+                                          ),
+                                          borderRadius: BorderRadius.circular(10),
+                                        ),
+                                        child: Row(
+                                          children: const [
+                                            CustomText(
+                                              "View",
+                                              size: 13,
+                                              weight: FontWeight.w600,
+                                              color: Colors.white,
+                                            ),
+                                            SizedBox(width: 6),
+                                            Icon(Icons.check_circle,
+                                                color: Colors.white, size: 15),
                                           ],
                                         ),
-                                        borderRadius: BorderRadius.circular(10),
-                                        boxShadow: const [
-                                          BoxShadow(
-                                            color: Colors.black45,
-                                            blurRadius: 6,
-                                            offset: Offset(0, 3),
-                                          ),
-                                        ],
                                       ),
-                                      child: Row(
-                                        children: [
-                                          const CustomText(
-                                            "Submit",
-                                            size: 13,
-                                            weight: FontWeight.w600,
-                                            color: Colors.white,
+                                    ):
+                                    Row(
+                                      children: [
+
+                                        /// 🔥 If Work Already Done → Show Submitted
+                                        attPvr.isWorkDone != 0
+                                            ? Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 12),
+                                          decoration: BoxDecoration(
+                                            color: Colors.grey,
+                                            borderRadius: BorderRadius.circular(10),
                                           ),
-                                          6.width,
-                                          Icon(Icons.check_circle,color: Colors.white,size: 15,)
-                                          // Image.asset(
-                                          //   assets.circle,
-                                          // ),
-                                        ],
-                                      ),
+                                          child: Row(
+                                            children: const [
+                                              CustomText(
+                                                "Submitted",
+                                                size: 13,
+                                                weight: FontWeight.w600,
+                                                color: Colors.white,
+                                              ),
+                                              SizedBox(width: 6),
+                                              Icon(Icons.check_circle,
+                                                  color: Colors.white, size: 15),
+                                            ],
+                                          ),
+                                        )
+
+                                        /// 🔥 If Not Done → Show YES Button
+                                            :
+                                        Row(
+                                          children: [
+                                            GestureDetector(
+                                              onTap: () {
+                                                attPvr.putWorkDone(context);
+                                              },
+                                              child: Container(
+                                                padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 12),
+                                                decoration: BoxDecoration(
+                                                  gradient: const LinearGradient(
+                                                    colors: [
+                                                      Color(0xff1A85DB),
+                                                      Color(0xff1A85DB),
+                                                    ],
+                                                  ),
+                                                  borderRadius: BorderRadius.circular(10),
+                                                  boxShadow: const [
+                                                    BoxShadow(
+                                                      color: Colors.black45,
+                                                      blurRadius: 6,
+                                                      offset: Offset(0, 3),
+                                                    ),
+                                                  ],
+                                                ),
+                                                child: Row(
+                                                  children: const [
+                                                    CustomText(
+                                                      "Yes",
+                                                      size: 13,
+                                                      weight: FontWeight.w600,
+                                                      color: Colors.white,
+                                                    ),
+                                                    SizedBox(width: 6),
+                                                    Icon(Icons.check_circle,
+                                                        color: Colors.white, size: 15),
+                                                  ],
+                                                ),
+                                              ),
+                                            ),
+                                            5.width,
+                                            Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 12),
+                                              decoration: BoxDecoration(
+                                                gradient: const LinearGradient(
+                                                  colors: [
+                                                    Color(0xff1A85DB),
+                                                    Color(0xff1A85DB),
+                                                  ],
+                                                ),
+                                                borderRadius: BorderRadius.circular(10),
+                                                boxShadow: const [
+                                                  BoxShadow(
+                                                    color: Colors.black45,
+                                                    blurRadius: 6,
+                                                    offset: Offset(0, 3),
+                                                  ),
+                                                ],
+                                              ),
+                                              child: const Row(
+                                                children: [
+                                                  CustomText(
+                                                    "No",
+                                                    size: 13,
+                                                    weight: FontWeight.w600,
+                                                    color: Colors.white,
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+
+                                      ],
                                     ),
                                   ],
                                 ),

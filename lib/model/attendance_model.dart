@@ -16,6 +16,7 @@ class AttendanceModel {
     this.perReason,
     this.perCreatedTs,
     this.missingDate,
+    this.isWorkDone,   // 🔥 ADD THIS
   });
 
   String? id;
@@ -34,6 +35,7 @@ class AttendanceModel {
   String? perReason;
   String? perCreatedTs;
   String? missingDate;
+  String? isWorkDone;   // 🔥 ADD THIS
 
   factory AttendanceModel.fromJson(Map<String, dynamic> json) =>
       AttendanceModel(
@@ -53,6 +55,7 @@ class AttendanceModel {
         perStatus: json["per_status"],
         perReason: json["per_reason"],
         perCreatedTs: json["per_created_ts"],
+        isWorkDone: json["is_work_done"]?.toString(),  // 🔥 ADD THIS
       );
 
   @override
@@ -63,6 +66,7 @@ AttendanceModel(
   date: $date,
   time: $time,
   status: $status,
+  isWorkDone: $isWorkDone,
   lats: $lats,
   lngs: $lngs,
   firstname: $firstname,

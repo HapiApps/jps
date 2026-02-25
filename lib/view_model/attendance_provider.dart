@@ -490,6 +490,15 @@ class AttendanceProvider with ChangeNotifier{
   bool asc=false;
   int permisCount=0;
   int lateCountShow=0;
+  String isWorkDone = "0";
+  void filterWorkDoneEmployees() {
+
+    _searchGetDailyAttendance = _getDailyAttendance
+        .where((element) => element.isWorkDone == 1)
+        .toList();
+
+    notifyListeners();
+  }
   Future<void> getAttendanceReport(String id) async {
     _refresh = false;
     _getDailyAttendance.clear();
@@ -515,6 +524,9 @@ class AttendanceProvider with ChangeNotifier{
         _searchGetDailyAttendance=response;
         int count=0;
         int count2=0;
+        isWorkDone = response[0].isWorkDone?.toString() ?? "0";
+
+        print("Work Done Value ---> $isWorkDone");
         for(var i=0;i<response.length;i++){
           if(response[i].perStatus.toString()!="null"){
             count++;
@@ -1270,6 +1282,66 @@ void showDatePickerDialog(BuildContext context,List<UserModel>? list) {
         });
       }
       utils.showSuccessToast(text: status=="1"?"Check In Successfully":"Check Out Successfully",context: context);
+      getMainAttendance();
+      getTotalHours(date1, date2);
+      Provider.of<AttendanceProvider>(context, listen: false).initDate(id:localData.storage.read("id"),role:localData.storage.read("role"),isRefresh: true,date1: "${DateTime.now().day.toString().padLeft(2,"0")}-${DateTime.now().month.toString().padLeft(2,"0")}-${DateTime.now().year.toString()}",date2: "${DateTime.now().day.toString().padLeft(2,"0")}-${DateTime.now().month.toString().padLeft(2,"0")}-${DateTime.now().year.toString()}");
+      Provider.of<AttendanceProvider>(context, listen: false).getAttendanceReport(localData.storage.read("id"));
+    }else{
+      log("Failed");
+      utils.showErrorToast(context: context);
+      Navigator.pop(context);
+    }
+  }
+
+  Future putWorkDone(context) async {
+    showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: Center(
+              child: Column(
+                children: [
+                  const CustomText(text: "Work Done Marking",
+                    colors: Colors.grey,
+                    size: 15,
+                    isBold: true,),
+                  10.height,
+                  const CustomText(text: "Please Wait",
+                    colors: Colors.grey,
+                    size: 15,
+                    isBold: true,),
+                  20.height,
+                  LoadingAnimationWidget.staggeredDotsWave(
+                    color: colorsConst.secondary,
+                    size: 25,
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+    );
+
+    Map<String, String> requestData = {
+      "action": empWork,
+      "log_file": localData.storage.read("mobile_number"),
+      "salesman_id": localData.storage.read("id"),
+      "status": "1",
+      "cos_id":localData.storage.read("cos_id"),
+    };
+    final response =await attRepo.addWorkDone(requestData);
+    log(response.toString());
+    if(response.isNotEmpty){
+      log("Success");
+      Navigator.pop(context);
+      // if(status=="1"){
+      //   await FirebaseFirestore.instance.collection('attendance').add({
+      //     'emp_id': localData.storage.read("id"),
+      //     'time': DateTime.now(),
+      //     'status': status,
+      //   });
+      // }
       getMainAttendance();
       getTotalHours(date1, date2);
       Provider.of<AttendanceProvider>(context, listen: false).initDate(id:localData.storage.read("id"),role:localData.storage.read("role"),isRefresh: true,date1: "${DateTime.now().day.toString().padLeft(2,"0")}-${DateTime.now().month.toString().padLeft(2,"0")}-${DateTime.now().year.toString()}",date2: "${DateTime.now().day.toString().padLeft(2,"0")}-${DateTime.now().month.toString().padLeft(2,"0")}-${DateTime.now().year.toString()}");

@@ -1472,72 +1472,72 @@ void setList(){
     notifyListeners();
   }
 
-  Future<void> leaveApply(context) async {
-    try {
-      Map data = {
-        "action":applyLeave,
-        "search_type":"apply",
-        "reason":reason.text.trim(),
-        "day_type":dayType.toString(),
-        "lev_type":typeId,
-        "start_date":stDate,
-        "end_date":enDate==""?stDate:enDate,
-        "platform":localData.storage.read("platform"),
-        "created_by":localData.storage.read("id"),
-        "user_id":localData.storage.read("role")=="1"?nameId:localData.storage.read("id"),
-        "cos_id":localData.storage.read("cos_id"),
-        "session":_session1==true?"Morning":"Afternoon",
-      };
-      final response =await leaveRepo.addEmployee(data);
-      log(response.toString());
-      if (response.toString().contains('Leave application successful')){
-        utils.showSuccessToast(context:context,text: "Applied Successfully");
-        Provider.of<EmployeeProvider>(context, listen: false).sendAdminNotification(
-          "${localData.storage.read("role")!="1"?localData.storage.read("f_name"):localData.storage.read("leave_emp_name")} Requested for ${_dayType.toString()=="0.5"?"Half Day Leave":"Leave"} - $stDate ${enDate==""?"":" to $enDate"}",
-          reason.text.trim(),
-          "1",""
-        );
-        await FirebaseFirestore.instance.collection('attendance').add({
-          'emp_id': localData.storage.read("id"),
-          'time': DateTime.now(),
-          'status': "",
-        });
-        leaveCtr.reset();
-        if({"1"}.contains(localData.storage.read("role"))){
-          _selectedIndex=2;
-        }else{
-          getLeaveReport(_filter);
-          Navigator.pop(context);
-        }
-        leaveCtr.reset();
-      }else if(response.toString().contains("This day already has a leave for")){
-        utils.showWarningToast(context,text: response["Failed"]);
-        leaveCtr.reset();
-      }else if(response.toString().contains("Leave already applied on this date")){
-        utils.showWarningToast(context,text: "Leave already applied on this date.");
-        leaveCtr.reset();
-      }else if(response.toString().contains("Half-day leave already applied for Afternoon")){
-        utils.showWarningToast(context,text: "Half-day leave already applied for Afternoon on this date");
-        leaveCtr.reset();
-      }else if(response.toString().contains("Half-day leave already applied for Morning")){
-        utils.showWarningToast(context,text: "Half-day leave already applied for Morning on this date");
-        leaveCtr.reset();
-      }else if(response.toString().contains("Half-day leave already applied on")){
-        utils.showWarningToast(context,text: "Half-day leave already applied on this date");
-        leaveCtr.reset();
-      }else {
-        utils.showErrorToast(context: context);
-        leaveCtr.reset();
-      }
-      leaveCtr.reset();
-    } catch (e) {
-      log(e.toString());
-      utils.showErrorToast(context: context);
-      leaveCtr.reset();
-    }
-    leaveCtr.reset();
-    notifyListeners();
-  }
+  // Future<void> leaveApply(context) async {
+  //   try {
+  //     Map data = {
+  //       "action":applyLeave,
+  //       "search_type":"apply",
+  //       "reason":reason.text.trim(),
+  //       "day_type":dayType.toString(),
+  //       "lev_type":typeId,
+  //       "start_date":stDate,
+  //       "end_date":enDate==""?stDate:enDate,
+  //       "platform":localData.storage.read("platform"),
+  //       "created_by":localData.storage.read("id"),
+  //       "user_id":localData.storage.read("role")=="1"?nameId:localData.storage.read("id"),
+  //       "cos_id":localData.storage.read("cos_id"),
+  //       "session":_session1==true?"Morning":"Afternoon",
+  //     };
+  //     final response =await leaveRepo.addEmployee(data);
+  //     log(response.toString());
+  //     if (response.toString().contains('Leave application successful')){
+  //       utils.showSuccessToast(context:context,text: "Applied Successfully");
+  //       Provider.of<EmployeeProvider>(context, listen: false).sendAdminNotification(
+  //         "${localData.storage.read("role")!="1"?localData.storage.read("f_name"):localData.storage.read("leave_emp_name")} Requested for ${_dayType.toString()=="0.5"?"Half Day Leave":"Leave"} - $stDate ${enDate==""?"":" to $enDate"}",
+  //         reason.text.trim(),
+  //         "1",""
+  //       );
+  //       await FirebaseFirestore.instance.collection('attendance').add({
+  //         'emp_id': localData.storage.read("id"),
+  //         'time': DateTime.now(),
+  //         'status': "",
+  //       });
+  //       leaveCtr.reset();
+  //       if({"1"}.contains(localData.storage.read("role"))){
+  //         _selectedIndex=2;
+  //       }else{
+  //         getLeaveReport(_filter);
+  //         Navigator.pop(context);
+  //       }
+  //       leaveCtr.reset();
+  //     }else if(response.toString().contains("This day already has a leave for")){
+  //       utils.showWarningToast(context,text: response["Failed"]);
+  //       leaveCtr.reset();
+  //     }else if(response.toString().contains("Leave already applied on this date")){
+  //       utils.showWarningToast(context,text: "Leave already applied on this date.");
+  //       leaveCtr.reset();
+  //     }else if(response.toString().contains("Half-day leave already applied for Afternoon")){
+  //       utils.showWarningToast(context,text: "Half-day leave already applied for Afternoon on this date");
+  //       leaveCtr.reset();
+  //     }else if(response.toString().contains("Half-day leave already applied for Morning")){
+  //       utils.showWarningToast(context,text: "Half-day leave already applied for Morning on this date");
+  //       leaveCtr.reset();
+  //     }else if(response.toString().contains("Half-day leave already applied on")){
+  //       utils.showWarningToast(context,text: "Half-day leave already applied on this date");
+  //       leaveCtr.reset();
+  //     }else {
+  //       utils.showErrorToast(context: context);
+  //       leaveCtr.reset();
+  //     }
+  //     leaveCtr.reset();
+  //   } catch (e) {
+  //     log(e.toString());
+  //     utils.showErrorToast(context: context);
+  //     leaveCtr.reset();
+  //   }
+  //   leaveCtr.reset();
+  //   notifyListeners();
+  // }
   // List<Map<String, dynamic>> cleanFirstSaturdays(List<Map<String, dynamic>> list) {
   //   final Map<String, Map<String, dynamic>> uniqueMap = {};
   //
@@ -1549,6 +1549,128 @@ void setList(){
   //   }
   //
   //   return uniqueMap.values.toList();
+  // }
+  Future<void> leaveApply(context) async {
+    try {
+
+      Map data = {
+        "action": applyLeave,
+        "search_type": "apply",
+        "reason": reason.text.trim(),
+        "day_type": dayType.toString(),
+        "lev_type": typeId,
+        "start_date": stDate,
+        "end_date": enDate == "" ? stDate : enDate,
+        "platform": localData.storage.read("platform"),
+        "created_by": localData.storage.read("id"),
+        "user_id": localData.storage.read("role") == "1"
+            ? nameId
+            : localData.storage.read("id"),
+        "cos_id": localData.storage.read("cos_id"),
+        "session": _session1 == true ? "Morning" : "Afternoon",
+      };
+
+      final response = await leaveRepo.addEmployee(data);
+      log(response.toString());
+
+      /// ✅ SUCCESS
+      if (response["message"] != null &&
+          response["message"] == "Leave application successful") {
+
+        utils.showSuccessToast(
+            context: context, text: "Applied Successfully");
+
+        leaveCtr.reset();
+
+      }
+
+      /// ❌ FAILED CASE (Main Fix)
+      else if (response["Failed"] != null) {
+
+        utils.showWarningToast(context,
+            text: response["Failed"].toString());
+
+        leaveCtr.reset();
+      }
+
+      else {
+        utils.showErrorToast(context: context);
+        leaveCtr.reset();
+      }
+
+    } catch (e) {
+      log(e.toString());
+      utils.showErrorToast(context: context);
+      leaveCtr.reset();
+    }
+    leaveCtr.reset();
+    notifyListeners();
+  }
+  // Future<void> leaveApply(context) async {
+  //   try {
+  //     Map data = {
+  //       "action":applyLeave,
+  //       "search_type":"apply",
+  //       "reason":reason.text.trim(),
+  //       "day_type":dayType.toString(),
+  //       "lev_type":typeId,
+  //       "start_date":stDate,
+  //       "end_date":enDate==""?stDate:enDate,
+  //       "platform":localData.storage.read("platform"),
+  //       "created_by":localData.storage.read("id"),
+  //       "user_id":localData.storage.read("role")=="1"?nameId:localData.storage.read("id"),
+  //       "cos_id":localData.storage.read("cos_id"),
+  //       "session":_session1==true?"Morning":"Afternoon",
+  //     };
+  //     final response =await leaveRepo.addEmployee(data);
+  //     log(response.toString());
+  //     if (response.toString().contains('Leave application successful')){
+  //       utils.showSuccessToast(context:context,text: "Applied Successfully");
+  //       Provider.of<EmployeeProvider>(context, listen: false).sendAdminNotification(
+  //           "${localData.storage.read("role")!="1"?localData.storage.read("f_name"):localData.storage.read("leave_emp_name")} Requested for ${_dayType.toString()=="0.5"?"Half Day Leave":"Leave"} - $stDate ${enDate==""?"":" to $enDate"}",
+  //           reason.text.trim(),
+  //           "1",""
+  //       );
+  //       await FirebaseFirestore.instance.collection('attendance').add({
+  //         'emp_id': localData.storage.read("id"),
+  //         'time': DateTime.now(),
+  //         'status': "",
+  //       });
+  //       leaveCtr.reset();
+  //       if({"1"}.contains(localData.storage.read("role"))){
+  //         _selectedIndex=2;
+  //       }else{
+  //         getLeaveReport(_filter);
+  //         Navigator.pop(context);
+  //       }
+  //       leaveCtr.reset();
+  //     }else if(response.toString().contains("This day already has a leave for")){
+  //       utils.showWarningToast(context,text: response["Failed"]);
+  //       leaveCtr.reset();
+  //     }else if(response.toString().contains("Leave already applied on this date")){
+  //       utils.showWarningToast(context,text: "Leave already applied on this date.");
+  //       leaveCtr.reset();
+  //     }else if(response.toString().contains("Half-day leave already applied for Afternoon")){
+  //       utils.showWarningToast(context,text: "Half-day leave already applied for Afternoon on this date");
+  //       leaveCtr.reset();
+  //     }else if(response.toString().contains("Half-day leave already applied for Morning")){
+  //       utils.showWarningToast(context,text: "Half-day leave already applied for Morning on this date");
+  //       leaveCtr.reset();
+  //     }else if(response.toString().contains("Half-day leave already applied on")){
+  //       utils.showWarningToast(context,text: "Half-day leave already applied on this date");
+  //       leaveCtr.reset();
+  //     }else {
+  //       utils.showErrorToast(context: context);
+  //       leaveCtr.reset();
+  //     }
+  //     leaveCtr.reset();
+  //   } catch (e) {
+  //     log(e.toString());
+  //     utils.showErrorToast(context: context);
+  //     leaveCtr.reset();
+  //   }
+  //   leaveCtr.reset();
+  //   notifyListeners();
   // }
   bool _isChanged=false;
   bool get isChanged=> _isChanged;

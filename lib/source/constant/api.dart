@@ -29,6 +29,7 @@ const String updateEmp = "update_employee";
 const String empActivity = "emp_activity";
 const String addGrade = "add_grade";
 const String empAttendance ="daily_attendance";
+const String empWork ="insert_work_done";
 const String empPermission ="daily_permission";
 const String insertExp ="insert_expense";
 const String createExpense ="create_expense";
