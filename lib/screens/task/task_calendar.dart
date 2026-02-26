@@ -410,7 +410,7 @@ class CalendarAppointment extends State<TaskCalendar> {
                           ),
                         IconButton(onPressed: (){
                           utils.navigatePage(context, ()=> DashBoard(child: TaskChat(isVisit:false,
-                              taskId: data.id.toString(), assignedId: data.assigned.toString(), name: data.creator.toString())));
+                              taskId: data.id.toString(), assignedId: data.assigned.toString(), name: data.creator.toString(), assignedName: data.assignedNames.toString(),)));
                         }, icon: SvgPicture.asset(assets.tMessage,width: 25,height: 25,))
                       ],
                     ),

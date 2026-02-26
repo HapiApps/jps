@@ -30,10 +30,12 @@ import '../../source/styles/decoration.dart';
 class TaskChat extends StatefulWidget {
   final String taskId;
   final String assignedId;
+  final String assignedName;
   final String name;
   final bool isVisit;
   final String? createdBy;
-  const TaskChat({super.key, required this.taskId, required this.assignedId, required this.name, required this.isVisit, this.createdBy});
+  const TaskChat({super.key, required this.taskId, required this.assignedId, required this.name, required this.isVisit,
+    this.createdBy, required this.assignedName});
 
   @override
   State<TaskChat> createState() => _TaskChatState();
@@ -50,6 +52,7 @@ class _TaskChatState extends State<TaskChat> with SingleTickerProviderStateMixin
 
   bool isRecording = false;
   String? recordedPath;
+
   Duration duration = Duration.zero;
   Timer? timer;
   Duration totalDuration = Duration.zero;
@@ -187,7 +190,7 @@ class _TaskChatState extends State<TaskChat> with SingleTickerProviderStateMixin
             backgroundColor: Color(0xffEAEAEA),
             appBar: PreferredSize(
               preferredSize: const Size(300, 60),
-              child: CustomAppbar(text: widget.name),
+              child:localData.storage.read("role").toString()=="1" ?CustomAppbar(text: widget.assignedName):CustomAppbar(text: widget.name),
             ),
             // bottomSheet: Padding(
             //   padding: const EdgeInsets.all(8.0),
@@ -397,13 +400,14 @@ class _TaskChatState extends State<TaskChat> with SingleTickerProviderStateMixin
                         if(widget.isVisit==true){
                           print("in");
                           await custProvider.addComment(context: context,visitId: widget.taskId.toString(),
-                              companyName: widget.name,companyId:"", numberList: [], taskId: "0", createdBy: widget.createdBy.toString(),path:recordedPath.toString());
+                              companyName: widget.name,companyId:"", numberList: [], taskId: "0", createdBy: widget.createdBy.toString(),
+                            path:recordedPath==null?"":recordedPath.toString(),);
                         }else{
                           print("inn");
                           await custProvider.tComment(
                             context: context,
                             taskId: widget.taskId.toString(),
-                            assignedId: widget.assignedId.toString(),path:recordedPath.toString()
+                            assignedId: widget.assignedId.toString(),path:recordedPath==null?"":recordedPath.toString(),
                           );
                         }
                         setState(() {

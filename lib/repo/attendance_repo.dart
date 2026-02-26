@@ -74,24 +74,30 @@ class AttendanceRepository{
     }
   }
 
-  Future addWorkDone(Map<String, String> data,) async {
-    try{
+  Future addWorkDone(Map<String, String> data) async {
+    try {
       var request = http.MultipartRequest("POST", Uri.parse(phpFile));
       request.fields.addAll(data);
+
       var response = await request.send();
-      var result=await http.Response.fromStream(response);
+      var result = await http.Response.fromStream(response);
+
       log('Fields ....${request.fields}');
-      log('Files ....${request.files}');
       log('RESULT ....${result.body}');
-      log('RESULT ....${result.body}');
+
       if (result.statusCode == 200) {
-        List response = json.decode(result.body);
-        return response.map((json) => AttendanceModel.fromJson(json)).toList();
+        var decoded = json.decode(result.body);
+
+        if (decoded is List) {
+          return decoded.map((json) => AttendanceModel.fromJson(json)).toList();
+        } else {
+          return decoded;
+        }
       } else {
-        return json.decode(result.body);
+        throw Exception("API Error");
       }
-    }catch(e){
-      // print(e);
+    } catch (e) {
+      log("ERROR: $e");
       throw Exception('Failed to work flow');
     }
   }

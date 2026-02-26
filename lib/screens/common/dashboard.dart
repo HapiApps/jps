@@ -101,28 +101,28 @@ class _DashBoardState extends State<DashBoard> with SingleTickerProviderStateMix
                                 isColor: homeProvider.selectedIndex==10?true:false, text: 'Task',),
                             ],
                           ),
-                            Column(
-                              children: [
-                                localData.storage.read("role") =="1"?
-                                PanelButton(image: assets.grpAtt,callback: (){
-                                  homeProvider.updateIndex(14);
-                                  utils.navigatePage(context, ()=>const DashBoard(child: ProjectAttendance()));
-                                  homeProvider.panelClose();
-                                },
-                                  isColor: homeProvider.selectedIndex==14?true:false, text: "      Group Attendance",):
-                                PanelButton(image: assets.expense,callback: (){
-                                  homeProvider.updateIndex(9);
-                                  utils.navigatePage(context, ()=>const DashBoard(child: ExpensePage()));
-                                  homeProvider.panelClose();
-                                },isColor: homeProvider.selectedIndex==9?true:false, text: 'Expense',),
-                                PanelButton(image: assets.project,callback: (){
-                                  homeProvider.updateIndex(13);
-                                  utils.navigatePage(context, ()=>const DashBoard(child: ViewProject()));
-                                  homeProvider.panelClose();
-                                },
-                                  isColor: homeProvider.selectedIndex==13?true:false, text: constValue.project,),
-                              ],
-                            ),
+                            // Column(
+                            //   children: [
+                            //     localData.storage.read("role") =="1"?
+                            //     PanelButton(image: assets.grpAtt,callback: (){
+                            //       homeProvider.updateIndex(14);
+                            //       utils.navigatePage(context, ()=>const DashBoard(child: ProjectAttendance()));
+                            //       homeProvider.panelClose();
+                            //     }, isColor: homeProvider.selectedIndex==14?true:false, text: "      Group Attendance",):
+                            //
+                            //     PanelButton(image: assets.expense,callback: (){
+                            //       homeProvider.updateIndex(9);
+                            //       utils.navigatePage(context, ()=>const DashBoard(child: ExpensePage()));
+                            //       homeProvider.panelClose();
+                            //     },isColor: homeProvider.selectedIndex==9?true:false, text: 'Expense',),
+                            //     PanelButton(image: assets.project,callback: (){
+                            //       homeProvider.updateIndex(13);
+                            //       utils.navigatePage(context, ()=>const DashBoard(child: ViewProject()));
+                            //       homeProvider.panelClose();
+                            //     },
+                            //       isColor: homeProvider.selectedIndex==13?true:false, text: constValue.project,),
+                            //   ],
+                            // ),
                           if(localData.storage.read("role") =="1")
                             Column(
                               children: [
@@ -132,31 +132,37 @@ class _DashBoardState extends State<DashBoard> with SingleTickerProviderStateMix
                                   homeProvider.panelClose();
                                 },
                                   isColor: homeProvider.selectedIndex==11?true:false, text: 'Leave',),
-                                PanelButton(image: assets.payroll,callback: (){
-                                  homeProvider.updateIndex(12);
-                                  utils.navigatePage(context, ()=>const DashBoard(child: PayrollDashboard()));
-                                  homeProvider.panelClose();
-                                },
-                                  isColor: homeProvider.selectedIndex==12?true:false, text: 'Payroll',),
-                              ],
-                            ),
-
-                          if(localData.storage.read("role") =="1")
-                          Column(
-                              children: [
-                                  PanelButton(image: assets.employees,callback: (){
+                                PanelButton(image: assets.employees,callback: (){
                                   homeProvider.updateIndex(1);
                                   utils.navigatePage(context, ()=>const DashBoard(child: ViewEmployees()));
                                   homeProvider.panelClose();
-                                  },
+                                },
                                   isColor: homeProvider.selectedIndex==1?true:false, text: 'Employee',),
-                                PanelButton(image: assets.expense,callback: (){
-                                  homeProvider.updateIndex(9);
-                                  utils.navigatePage(context, ()=>const DashBoard(child: ExpensePage()));
-                                  homeProvider.panelClose();
-                                },isColor: homeProvider.selectedIndex==9?true:false, text: 'Expense',),
+                                // PanelButton(image: assets.payroll,callback: (){
+                                //   homeProvider.updateIndex(12);
+                                //   utils.navigatePage(context, ()=>const DashBoard(child: PayrollDashboard()));
+                                //   homeProvider.panelClose();
+                                // },
+                                //   isColor: homeProvider.selectedIndex==12?true:false, text: 'Payroll',),
                               ],
                             ),
+
+                          // if(localData.storage.read("role") =="1")
+                          // Column(
+                          //     children: [
+                          //         PanelButton(image: assets.employees,callback: (){
+                          //         homeProvider.updateIndex(1);
+                          //         utils.navigatePage(context, ()=>const DashBoard(child: ViewEmployees()));
+                          //         homeProvider.panelClose();
+                          //         },
+                          //         isColor: homeProvider.selectedIndex==1?true:false, text: 'Employee',),
+                          //       // PanelButton(image: assets.expense,callback: (){
+                          //       //   homeProvider.updateIndex(9);
+                          //       //   utils.navigatePage(context, ()=>const DashBoard(child: ExpensePage()));
+                          //       //   homeProvider.panelClose();
+                          //       // },isColor: homeProvider.selectedIndex==9?true:false, text: 'Expense',),
+                          //     ],
+                          //   ),
                           Column(
                             children: [
                               PanelButton(image: assets.customer,callback: (){

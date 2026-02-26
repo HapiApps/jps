@@ -72,6 +72,15 @@ class _HomePageState extends State<HomePage> {
       if (!mounted) return;
       final homeProvider = Provider.of<HomeProvider>(context, listen: false);
       Provider.of<LocationProvider>(context, listen: false).requestNotificationPermissions();
+      final id = localData.storage.read("id");
+      Provider.of<AttendanceProvider>(context, listen: false).initDate(id:localData.storage.read("id"),role:localData.storage.read("role"),isRefresh: true,date1: "${DateTime.now().day.toString().padLeft(2,"0")}-${DateTime.now().month.toString().padLeft(2,"0")}-${DateTime.now().year.toString()}",date2: "${DateTime.now().day.toString().padLeft(2,"0")}-${DateTime.now().month.toString().padLeft(2,"0")}-${DateTime.now().year.toString()}");
+      if (id != null && id.toString().isNotEmpty) {
+        Provider.of<AttendanceProvider>(context, listen: false)
+            .getAttendanceReport(id);
+        print("Attendance ID ${id}");
+      } else {
+        print("Attendance ID missing! Cannot fetch report");
+      }
       Provider.of<AttendanceProvider>(context, listen: false).getTotalHours(Provider.of<HomeProvider>(context, listen: false).startDate,Provider.of<HomeProvider>(context, listen: false).endDate);
       // if (localData.storage.read("refreshHomeData") == true) {
       //   homeProvider.getMainReport(true);
@@ -412,6 +421,7 @@ class _HomePageState extends State<HomePage> {
     double screenHeight = MediaQuery.of(context).size.height;
     return Consumer5<HomeProvider,CustomerProvider,AttendanceProvider,LocationProvider,EmployeeProvider>(
       builder: (context,homeProvider,custProvider,attPvr,locPvr,empPvr,_){
+        print(" attPvr.isWorkDone == 1 ${attPvr.isWorkDone} ${ attPvr.isWorkDone == 1}");
         int visitPendingCount = homeProvider.mainReportList.isEmpty
             ? 0
             : homeProvider.inActiveVisit;
@@ -898,7 +908,7 @@ class _HomePageState extends State<HomePage> {
                                       children: [
 
                                         /// 🔥 If Work Already Done → Show Submitted
-                                        attPvr.isWorkDone != 0
+                                        attPvr.isWorkDone == 1
                                             ? Container(
                                           padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 12),
                                           decoration: BoxDecoration(
@@ -926,71 +936,50 @@ class _HomePageState extends State<HomePage> {
                                           children: [
                                             GestureDetector(
                                               onTap: () {
-                                                attPvr.putWorkDone(context);
+
                                               },
-                                              child: Container(
-                                                padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 12),
-                                                decoration: BoxDecoration(
-                                                  gradient: const LinearGradient(
-                                                    colors: [
-                                                      Color(0xff1A85DB),
-                                                      Color(0xff1A85DB),
-                                                    ],
-                                                  ),
-                                                  borderRadius: BorderRadius.circular(10),
-                                                  boxShadow: const [
-                                                    BoxShadow(
-                                                      color: Colors.black45,
-                                                      blurRadius: 6,
-                                                      offset: Offset(0, 3),
-                                                    ),
-                                                  ],
-                                                ),
-                                                child: Row(
-                                                  children: const [
-                                                    CustomText(
-                                                      "Yes",
-                                                      size: 13,
-                                                      weight: FontWeight.w600,
-                                                      color: Colors.white,
-                                                    ),
-                                                    SizedBox(width: 6),
-                                                    Icon(Icons.check_circle,
-                                                        color: Colors.white, size: 15),
-                                                  ],
-                                                ),
-                                              ),
+                                              child: GestureDetector(
+                                                  onTap: () {
+                                                                    if (attPvr.mainAttendance == 0) {
+                                                                    ScaffoldMessenger.of(context).showSnackBar(
+                                                                    SnackBar(
+                                                                    content: const Text("Please, mark attendance to submit Day work plan"),
+                                                                    backgroundColor: Colors.red.shade900,
+                                                                    ),
+                                                                    );
+                                                                    return;
+                                                                    }
+
+                                                                    /// ✅ Your Submit Logic Here
+                                                                    attPvr.putWorkDone(context);
+                                                                    },
+                                                                      child: Container(
+                                                                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                                                        decoration: BoxDecoration(
+                                                                          color: attPvr.mainAttendance == 0
+                                                                              ? Colors.grey   /// 🔒 Disabled look
+                                                                              : colorsConst.primary,
+                                                                          borderRadius: BorderRadius.circular(8),
+                                                                        ),
+                                                                        child: Row(
+                                                                          mainAxisSize: MainAxisSize.min,
+                                                                          children: const [
+                                                                            Text(
+                                                                              "Submit",
+                                                                              style: TextStyle(
+                                                                                fontSize: 13,
+                                                                                fontWeight: FontWeight.w600,
+                                                                                color: Colors.white,
+                                                                              ),
+                                                                            ),
+                                                                            SizedBox(width: 6),
+                                                                            Icon(Icons.check_circle, color: Colors.white, size: 15),
+                                                                          ],
+                                                                        ),
+                                                                      ),
+                                                                    ),
                                             ),
-                                            5.width,
-                                            Container(
-                                              padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 12),
-                                              decoration: BoxDecoration(
-                                                gradient: const LinearGradient(
-                                                  colors: [
-                                                    Color(0xff1A85DB),
-                                                    Color(0xff1A85DB),
-                                                  ],
-                                                ),
-                                                borderRadius: BorderRadius.circular(10),
-                                                boxShadow: const [
-                                                  BoxShadow(
-                                                    color: Colors.black45,
-                                                    blurRadius: 6,
-                                                    offset: Offset(0, 3),
-                                                  ),
-                                                ],
-                                              ),
-                                              child: const Row(
-                                                children: [
-                                                  CustomText(
-                                                    "No",
-                                                    size: 13,
-                                                    weight: FontWeight.w600,
-                                                    color: Colors.white,
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
+
                                           ],
                                         ),
 
