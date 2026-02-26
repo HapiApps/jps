@@ -601,82 +601,138 @@ void check(){
                         attProvider.selectedIndex==0&&
                         attProvider.getDailyAttendance.isNotEmpty?
                         Flexible(
-                            child: ListView.builder(
-                                itemCount: attProvider.getDailyAttendance.length,
-                                itemBuilder: (context, index) {
-                                  final sortedData = attProvider.getDailyAttendance;
-                                  AttendanceModel data = attProvider.getDailyAttendance[index];
-                                  var inTime = "",outTime = "-",timeD = "-";
-                                  var lat = data.lats.toString().split(",");
-                                  var lng = data.lngs.toString().split(",");
-                                  if (data.status.toString().contains("1,2")) {
-                                    inTime = data.time!.split(",")[0];
-                                    outTime = data.time!.split(",")[1];
-                                    timeD=attProvider.timeDifference("$inTime,$outTime");
-                                  }else if (data.status.toString().contains("2,1")) {
-                                    inTime = data.time!.split(",")[1];
-                                    outTime = data.time!.split(",")[0];
-                                    timeD=attProvider.timeDifference("$inTime,$outTime");
-                                  }else {
-                                    inTime = data.time.toString().split(",")[0];
-                                    timeD="-";
-                                  }
-                                  String timestamp =data.createdTs.toString();
-                                  List<String> times = timestamp.split(',');
-                                  DateTime startTime = DateTime.parse(times[0]);
+                          child: ListView.builder(
+                            itemCount: attProvider.getDailyAttendance.length,
+                            itemBuilder: (context, index) {
 
-                                  String createdBy = formatCreatedDate(startTime);
-                                  String? prevCreatedBy;
-                                  if (index != 0) {
-                                    String timestamp =sortedData[index - 1].createdTs.toString();
-                                    List<String> times = timestamp.split(',');
-                                    DateTime startTime = DateTime.parse(times[0]);
-                                    prevCreatedBy = formatCreatedDate(startTime);
-                                  }
+                              final sortedData = attProvider.getDailyAttendance;
+                              AttendanceModel data = sortedData[index];
 
-                                  final showDateHeader = index == 0 ||
-                                      createdBy != prevCreatedBy;
-                                  return Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      if(localData.storage.read("role")=="1"&&showDateHeader)
-                                        Padding(
-                                          padding: const EdgeInsets.fromLTRB(0, 10, 0, 10),
-                                          child: CustomText(text: createdBy,colors:colorsConst.greyClr,size: 12,),
+                              String inTime = "-";
+                              String outTime = "-";
+                              String timeD = "-";
+
+                              // SAFE TIME SPLIT
+                              List<String> timeList = (data.time ?? "").split(",");
+
+                              // SAFE LAT LNG
+                              List<String> latList = (data.lats ?? "").split(",");
+                              List<String> lngList = (data.lngs ?? "").split(",");
+
+                              /// HANDLE TIME SAFELY
+                              if (timeList.length > 1) {
+
+                                if (data.status.toString().contains("1,2")) {
+                                  inTime  = timeList[0];
+                                  outTime = timeList[1];
+                                }
+                                else if (data.status.toString().contains("2,1")) {
+                                  inTime  = timeList[1];
+                                  outTime = timeList[0];
+                                }
+
+                                if(inTime != "-" && outTime != "-") {
+                                  timeD = attProvider.timeDifference("$inTime,$outTime");
+                                }
+
+                              } else if (timeList.isNotEmpty) {
+                                inTime = timeList[0];
+                              }
+
+                              /// DATE HEADER LOGIC
+                              String timestamp = data.createdTs.toString();
+                              List<String> times = timestamp.split(',');
+                              DateTime startTime = DateTime.parse(times[0]);
+
+                              String createdBy = formatCreatedDate(startTime);
+                              String? prevCreatedBy;
+
+                              if (index != 0) {
+                                String prevTimestamp = sortedData[index - 1].createdTs.toString();
+                                List<String> prevTimes = prevTimestamp.split(',');
+                                DateTime prevStartTime = DateTime.parse(prevTimes[0]);
+                                prevCreatedBy = formatCreatedDate(prevStartTime);
+                              }
+
+                              final showDateHeader = index == 0 || createdBy != prevCreatedBy;
+
+                              return Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+
+                                  if(localData.storage.read("role")=="1" && showDateHeader)
+                                    Padding(
+                                      padding: const EdgeInsets.fromLTRB(0, 10, 0, 10),
+                                      child: CustomText(
+                                        text: createdBy,
+                                        colors: colorsConst.greyClr,
+                                        size: 12,
+                                      ),
+                                    ),
+
+                                  InkWell(
+                                    onTap: (){
+                                      utils.navigatePage(
+                                        context,
+                                            ()=> DashBoard(
+                                          child: CustomAttendanceReport(
+                                            userId: data.salesmanId.toString(),
+                                            userName: data.firstname.toString(),
+                                          ),
                                         ),
-                                      InkWell(
-                                        onTap:(){
-                                          utils.navigatePage(context, ()=> DashBoard(child:
-                                          CustomAttendanceReport(userId:data.salesmanId.toString(),userName: data.firstname.toString())));
-                                        },
-                                        child: AttendanceDetails(
-                                          isName: attProvider.userName!=""?false:true,
-                                          showDate: index==0?true:false,
-                                          date: data.date.toString(),
-                                          img: data.image.toString(),
-                                          inTime: inTime,
-                                          outTime: outTime,
-                                          timeD:timeD,
-                                          name: data.firstname.toString(),
-                                          role: data.role.toString(),
-                                          callback: () {
-                                            utils.navigatePage(context, ()=>CheckLocation(
-                                                lat1: lat[0].toString(),
-                                                long1: lng[0].toString(),
-                                                lat2: data.status.toString().contains("2")? lat[1].toString(): "",
-                                                long2: data.status.toString().contains("2")? lng[1].toString(): ""
-                                            ));
-                                          },
-                                          perStatus: data.perStatus.toString(),
-                                          perReason: data.perReason.toString(),
-                                          perTime: data.perTime.toString(),
-                                          perCreatedTs: data.perCreatedTs.toString(),
-                                        ),
-                                      ),5.height
-                                    ],
-                                  );
-                                }),
-                          ):
+                                      );
+                                    },
+
+                                    child: AttendanceDetails(
+
+                                      isName: attProvider.userName!=""?false:true,
+                                      showDate: index==0?true:false,
+                                      date: data.date.toString(),
+                                      img: data.image.toString(),
+                                      inTime: inTime,
+                                      outTime: outTime,
+                                      timeD: timeD,
+                                      name: data.firstname.toString(),
+                                      role: data.role.toString(),
+
+                                      callback: () {
+
+                                        String lat1 = latList.isNotEmpty ? latList[0] : "";
+                                        String lng1 = lngList.isNotEmpty ? lngList[0] : "";
+
+                                        String lat2 = "";
+                                        String lng2 = "";
+
+                                        if (data.status.toString().contains("2")
+                                            && latList.length > 1
+                                            && lngList.length > 1) {
+
+                                          lat2 = latList[1];
+                                          lng2 = lngList[1];
+                                        }
+
+                                        utils.navigatePage(context, ()=>CheckLocation(
+                                          lat1: lat1,
+                                          long1: lng1,
+                                          lat2: lat2,
+                                          long2: lng2,
+                                        ));
+                                      },
+
+                                      perStatus: data.perStatus.toString(),
+                                      perReason: data.perReason.toString(),
+                                      perTime: data.perTime.toString(),
+                                      perCreatedTs: data.perCreatedTs.toString(),
+
+                                    ),
+                                  ),
+
+                                  5.height
+                                ],
+                              );
+                            },
+                          ),
+                        ):
                         attProvider.selectedIndex==1&&
                         attProvider.noAttendanceList.isNotEmpty?
                         Flexible(
@@ -741,77 +797,131 @@ void check(){
                         attProvider.selectedIndex==2&&
                         attProvider.lateCountShow!=0?
                         Flexible(
-                            child: ListView.builder(
-                                itemCount: attProvider.getDailyAttendance.length,
-                                itemBuilder: (context, index) {
-                                  final sortedData = attProvider.getDailyAttendance;
-                                  AttendanceModel data = attProvider.getDailyAttendance[index];
-                                  var inTime = "",outTime = "-",timeD = "-";
-                                  var lat = data.lats.toString().split(",");
-                                  var lng = data.lngs.toString().split(",");
-                                  if (data.status.toString().contains("1,2")) {
-                                    inTime = data.time!.split(",")[0];
-                                    outTime = data.time!.split(",")[1];
-                                    timeD=attProvider.timeDifference("$inTime,$outTime");
-                                  }else if (data.status.toString().contains("2,1")) {
-                                    inTime = data.time!.split(",")[1];
-                                    outTime = data.time!.split(",")[0];
-                                    timeD=attProvider.timeDifference("$inTime,$outTime");
-                                  }else {
-                                    inTime = data.time!.split(",")[0];
-                                    timeD="-";
-                                  }
-                                  String timestamp =data.createdTs.toString();
-                                  List<String> times = timestamp.split(',');
-                                  DateTime startTime = DateTime.parse(times[0]);
+                          child: ListView.builder(
+                            itemCount: attProvider.getDailyAttendance.length,
+                            itemBuilder: (context, index) {
 
-                                  String createdBy = formatCreatedDate(startTime);
-                                  String? prevCreatedBy;
-                                  if (index != 0) {
-                                    String timestamp =sortedData[index - 1].createdTs.toString();
-                                    List<String> times = timestamp.split(',');
-                                    DateTime startTime = DateTime.parse(times[0]);
-                                    prevCreatedBy = formatCreatedDate(startTime);
-                                  }
+                              final sortedData = attProvider.getDailyAttendance;
+                              AttendanceModel data = sortedData[index];
 
-                                  final showDateHeader = index == 0 ||
-                                      createdBy != prevCreatedBy;
-                                  return Padding(
-                                    padding: EdgeInsets.fromLTRB(5, 10, 5, index==attProvider.getDailyAttendance.length-1?30:0),
-                                    child: isLate(inTime)?Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                          Padding(
-                                            padding: const EdgeInsets.fromLTRB(0, 10, 0, 10),
-                                            child: CustomText(text: createdBy,colors:colorsConst.greyClr,size: 12,),
-                                          ),
-                                        AttendanceDetails(
-                                          showDate: index==0?true:false,
-                                          date: data.date.toString(),
-                                          img: data.image.toString(),
-                                          inTime: inTime,
-                                          outTime: outTime,
-                                          timeD:timeD,
-                                          name: data.firstname.toString(),
-                                          role: data.role.toString(),
-                                          callback: () {
-                                            utils.navigatePage(context, ()=>CheckLocation(
-                                                lat1: lat[0].toString(),
-                                                long1: lng[0].toString(),
-                                                lat2: data.status.toString().contains("2")? lat[1].toString(): "",
-                                                long2: data.status.toString().contains("2")? lng[1].toString(): ""
-                                            ));
-                                          },
-                                          perStatus: data.perStatus.toString(),
-                                          perReason: data.perReason.toString(),
-                                          perTime: data.perTime.toString(),
-                                          perCreatedTs: data.perCreatedTs.toString(),
+                              String inTime = "-";
+                              String outTime = "-";
+                              String timeD = "-";
+
+                              /// SAFE TIME SPLIT
+                              List<String> timeList = (data.time ?? "").split(",");
+
+                              /// SAFE LAT LNG
+                              List<String> latList = (data.lats ?? "").split(",");
+                              List<String> lngList = (data.lngs ?? "").split(",");
+
+                              /// TIME HANDLE
+                              if(timeList.length > 1){
+
+                                if (data.status.toString().contains("1,2")) {
+                                  inTime  = timeList[0];
+                                  outTime = timeList[1];
+                                }
+                                else if (data.status.toString().contains("2,1")) {
+                                  inTime  = timeList[1];
+                                  outTime = timeList[0];
+                                }
+
+                                if(inTime != "-" && outTime != "-"){
+                                  timeD = attProvider.timeDifference("$inTime,$outTime");
+                                }
+
+                              } else if(timeList.isNotEmpty){
+                                inTime = timeList[0];
+                              }
+
+                              /// DATE HEADER
+                              String timestamp = data.createdTs.toString();
+                              List<String> times = timestamp.split(',');
+                              DateTime startTime = DateTime.parse(times[0]);
+
+                              String createdBy = formatCreatedDate(startTime);
+                              String? prevCreatedBy;
+
+                              if (index != 0) {
+                                String prevTimestamp = sortedData[index - 1].createdTs.toString();
+                                List<String> prevTimes = prevTimestamp.split(',');
+                                DateTime prevStartTime = DateTime.parse(prevTimes[0]);
+                                prevCreatedBy = formatCreatedDate(prevStartTime);
+                              }
+
+                              final showDateHeader = index == 0 || createdBy != prevCreatedBy;
+
+                              /// LATE FILTER
+                              if(!isLate(inTime)) return const SizedBox();
+
+                              return Padding(
+                                padding: EdgeInsets.fromLTRB(
+                                    5,
+                                    10,
+                                    5,
+                                    index == attProvider.getDailyAttendance.length - 1 ? 30 : 0
+                                ),
+
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+
+                                    if(showDateHeader)
+                                      Padding(
+                                        padding: const EdgeInsets.fromLTRB(0, 10, 0, 10),
+                                        child: CustomText(
+                                          text: createdBy,
+                                          colors: colorsConst.greyClr,
+                                          size: 12,
                                         ),
-                                      ],
-                                    ):0.width,
-                                  );
-                                }),
-                          ):
+                                      ),
+
+                                    AttendanceDetails(
+                                      showDate: index==0,
+                                      date: data.date.toString(),
+                                      img: data.image.toString(),
+                                      inTime: inTime,
+                                      outTime: outTime,
+                                      timeD: timeD,
+                                      name: data.firstname.toString(),
+                                      role: data.role.toString(),
+
+                                      callback: () {
+
+                                        String lat1 = latList.isNotEmpty ? latList[0] : "";
+                                        String lng1 = lngList.isNotEmpty ? lngList[0] : "";
+
+                                        String lat2 = "";
+                                        String lng2 = "";
+
+                                        if(data.status.toString().contains("2")
+                                            && latList.length > 1
+                                            && lngList.length > 1){
+
+                                          lat2 = latList[1];
+                                          lng2 = lngList[1];
+                                        }
+
+                                        utils.navigatePage(context, ()=>CheckLocation(
+                                          lat1: lat1,
+                                          long1: lng1,
+                                          lat2: lat2,
+                                          long2: lng2,
+                                        ));
+                                      },
+
+                                      perStatus: data.perStatus.toString(),
+                                      perReason: data.perReason.toString(),
+                                      perTime: data.perTime.toString(),
+                                      perCreatedTs: data.perCreatedTs.toString(),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            },
+                          ),
+                        ):
                         attProvider.selectedIndex==3&&
                         levPvr.myLevSearch.isNotEmpty?
                         Flexible(
@@ -820,83 +930,147 @@ void check(){
                         &&attProvider.permisCount!=0
                             ?
                         Flexible(
-                            child: ListView.builder(
-                                itemCount: attProvider.getDailyAttendance.length,
-                                itemBuilder: (context, index) {
-                                  final sortedData = attProvider.getDailyAttendance;
-                                  AttendanceModel data = attProvider.getDailyAttendance[index];
-                                  var inTime = "",outTime = "-",timeD = "-";
-                                  var lat = data.lats.toString().split(",");
-                                  var lng = data.lngs.toString().split(",");
-                                  if (data.status.toString().contains("1,2")) {
-                                    inTime = data.time!.split(",")[0];
-                                    outTime = data.time!.split(",")[1];
-                                    timeD=attProvider.timeDifference("$inTime,$outTime");
-                                  }else if (data.status.toString().contains("2,1")) {
-                                    inTime = data.time!.split(",")[1];
-                                    outTime = data.time!.split(",")[0];
-                                    timeD=attProvider.timeDifference("$inTime,$outTime");
-                                  }else {
-                                    inTime = data.time.toString().split(",")[0];
-                                    timeD="-";
-                                  }
-                                  String timestamp =data.createdTs.toString();
-                                  List<String> times = timestamp.split(',');
-                                  DateTime startTime = DateTime.parse(times[0]);
+                          child: ListView.builder(
+                            itemCount: attProvider.getDailyAttendance.length,
+                            itemBuilder: (context, index) {
 
-                                  String createdBy = formatCreatedDate(startTime);
-                                  String? prevCreatedBy;
-                                  if (index != 0) {
-                                    String timestamp =sortedData[index - 1].createdTs.toString();
-                                    List<String> times = timestamp.split(',');
-                                    DateTime startTime = DateTime.parse(times[0]);
-                                    prevCreatedBy = formatCreatedDate(startTime);
-                                  }
+                              final sortedData = attProvider.getDailyAttendance;
+                              AttendanceModel data = sortedData[index];
 
-                                  final showDateHeader = index == 0 ||
-                                      createdBy != prevCreatedBy;
-                                  return data.perStatus.toString()!="null"?
-                                  Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                        Padding(
-                                          padding: const EdgeInsets.fromLTRB(0, 10, 0, 10),
-                                          child: CustomText(text: createdBy,colors:colorsConst.greyClr,size: 12,),
+                              /// ---------------- TIME SAFE LOGIC ----------------
+
+                              var inTime  = "-";
+                              var outTime = "-";
+                              var timeD   = "-";
+
+                              final times = (data.time ?? "").split(",");
+
+                              if (data.status.toString().contains("1,2")) {
+
+                                inTime  = times.isNotEmpty ? times[0].trim() : "-";
+                                outTime = times.length > 1 ? times[1].trim() : "-";
+
+                                if(inTime != "-" && outTime != "-"){
+                                  timeD = attProvider.timeDifferences(inTime, outTime);
+                                }
+
+                              }
+                              else if (data.status.toString().contains("2,1")) {
+
+                                inTime  = times.length > 1 ? times[1].trim() : "-";
+                                outTime = times.isNotEmpty ? times[0].trim() : "-";
+
+                                if(inTime != "-" && outTime != "-"){
+                                  timeD = attProvider.timeDifferences(inTime, outTime);
+                                }
+
+                              }
+                              else {
+
+                                inTime  = times.isNotEmpty ? times[0].trim() : "-";
+                                outTime = "-";
+                                timeD   = "-";
+
+                              }
+
+                              /// ---------------- LOCATION SAFE ----------------
+
+                              List<String> lat = data.lats?.toString().split(",") ?? [];
+                              List<String> lng = data.lngs?.toString().split(",") ?? [];
+
+                              String lat1 = lat.isNotEmpty ? lat[0] : "";
+                              String lng1 = lng.isNotEmpty ? lng[0] : "";
+
+                              String lat2 = (lat.length > 1 && data.status.toString().contains("2"))
+                                  ? lat[1]
+                                  : "";
+
+                              String lng2 = (lng.length > 1 && data.status.toString().contains("2"))
+                                  ? lng[1]
+                                  : "";
+
+                              /// ---------------- DATE HEADER ----------------
+
+                              String timestamp = data.createdTs.toString();
+                              List<String> createdTimes = timestamp.split(',');
+
+                              DateTime startTime = DateTime.parse(createdTimes[0]);
+                              String createdBy = formatCreatedDate(startTime);
+
+                              String? prevCreatedBy;
+                              if (index != 0) {
+                                String prevTimestamp = sortedData[index - 1].createdTs.toString();
+                                List<String> prevTimes = prevTimestamp.split(',');
+                                DateTime prevStart = DateTime.parse(prevTimes[0]);
+                                prevCreatedBy = formatCreatedDate(prevStart);
+                              }
+
+                              final showDateHeader = index == 0 || createdBy != prevCreatedBy;
+
+                              /// ---------------- UI ----------------
+
+                              return data.perStatus.toString() != "null"
+                                  ? Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+
+                                  if(showDateHeader)
+                                    Padding(
+                                      padding: const EdgeInsets.fromLTRB(0, 10, 0, 10),
+                                      child: CustomText(
+                                        text: createdBy,
+                                        colors: colorsConst.greyClr,
+                                        size: 12,
+                                      ),
+                                    ),
+
+                                  InkWell(
+                                    onTap: () {
+                                      utils.navigatePage(
+                                        context,
+                                            () => DashBoard(
+                                          child: CustomAttendanceReport(
+                                            userId: data.salesmanId.toString(),
+                                            userName: data.firstname.toString(),
+                                          ),
                                         ),
-                                      InkWell(
-                                          onTap:(){
-                                            utils.navigatePage(context, ()=> DashBoard(child:
-                                            CustomAttendanceReport(userId:data.salesmanId.toString(),userName: data.firstname.toString())));
-                                          },
-                                          child: AttendanceDetails(
-                                            isName: attProvider.userName!=""?false:true,
-                                            showDate: index==0?true:false,
-                                            date: data.date.toString(),
-                                            img: data.image.toString(),
-                                            inTime: inTime,
-                                            outTime: outTime,
-                                            timeD:timeD,
-                                            name: data.firstname.toString(),
-                                            role: data.role.toString(),
-                                            callback: () {
-                                              utils.navigatePage(context, ()=>CheckLocation(
-                                                  lat1: lat[0].toString(),
-                                                  long1: lng[0].toString(),
-                                                  lat2: data.status.toString().contains("2")? lat[1].toString(): "",
-                                                  long2: data.status.toString().contains("2")? lng[1].toString(): ""
-                                              ));
-                                            },
-                                            perStatus: data.perStatus.toString(),
-                                            perReason: data.perReason.toString(),
-                                            perTime: data.perTime.toString(),
-                                            perCreatedTs: data.perCreatedTs.toString(),
-                                          )
-                                      ),5.height
-                                    ],
-                                  )
-                                      :0.height;
-                                }),
-                          ):
+                                      );
+                                    },
+                                    child: AttendanceDetails(
+                                      isName: attProvider.userName != "",
+                                      showDate: index == 0,
+                                      date: data.date.toString(),
+                                      img: data.image.toString(),
+                                      inTime: inTime,
+                                      outTime: outTime,
+                                      timeD: timeD,
+                                      name: data.firstname.toString(),
+                                      role: data.role.toString(),
+                                      callback: () {
+                                        utils.navigatePage(
+                                          context,
+                                              () => CheckLocation(
+                                            lat1: lat1,
+                                            long1: lng1,
+                                            lat2: lat2,
+                                            long2: lng2,
+                                          ),
+                                        );
+                                      },
+                                      perStatus: data.perStatus.toString(),
+                                      perReason: data.perReason.toString(),
+                                      perTime: data.perTime.toString(),
+                                      perCreatedTs: data.perCreatedTs.toString(),
+                                    ),
+                                  ),
+
+                                  5.height
+                                ],
+                              )
+                                  : 0.height;
+                            },
+                          ),
+                        ):
                         Padding(
                           padding: const EdgeInsets.fromLTRB(0, 150, 0, 0),
                           child: CustomText(

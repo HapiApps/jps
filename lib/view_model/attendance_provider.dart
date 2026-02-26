@@ -246,6 +246,29 @@ class AttendanceProvider with ChangeNotifier{
           : "$hours Hrs $minutes Mins";
     }
   }
+  String timeDifferences(String inTime, String outTime) {
+
+    // ❌ If any time missing → return "-"
+    if (inTime.isEmpty || outTime.isEmpty || inTime == "-" || outTime == "-") {
+      return "-";
+    }
+
+    try {
+
+      DateTime inDate  = DateFormat("hh:mm a").parse(inTime);
+      DateTime outDate = DateFormat("hh:mm a").parse(outTime);
+
+      Duration diff = outDate.difference(inDate);
+
+      int hours   = diff.inHours;
+      int minutes = diff.inMinutes.remainder(60);
+
+      return "${hours}h ${minutes}m";
+
+    } catch (e) {
+      return "-"; // Prevent crash if API sends bad data
+    }
+  }
   var typeList = ["Today","Yesterday","Last 7 Days","Last 30 Days","This Week","This Month","Last 3 months"];
   dynamic get type=>_type;
   void changeType(value,String id ,String role,bool? isRefresh,List<UserModel>? list,context){
