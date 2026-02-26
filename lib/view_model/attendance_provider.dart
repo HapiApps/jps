@@ -490,7 +490,31 @@ class AttendanceProvider with ChangeNotifier{
   bool asc=false;
   int permisCount=0;
   int lateCountShow=0;
-  String isWorkDone = "0";
+  String? workDoneDate;
+  int _isWorkDone = 0;
+
+  int get isWorkDone => _isWorkDone;
+
+  void setWorkDone(dynamic value) {
+    _isWorkDone = int.tryParse(value.toString()) ?? 0;
+    notifyListeners();
+  }
+  bool isWorkDoneToday() {
+    if (workDoneDate == null || workDoneDate!.isEmpty) return false;
+
+    try {
+      DateTime today = DateTime.now();
+      DateTime doneDate = DateTime.parse(workDoneDate!);
+      print("today ${today.year == doneDate.year &&
+          today.month == doneDate.month &&
+          today.day == doneDate.day}");
+      return today.year == doneDate.year &&
+          today.month == doneDate.month &&
+          today.day == doneDate.day;
+    } catch (e) {
+      return false;
+    }
+  }
   void filterWorkDoneEmployees() {
 
     _searchGetDailyAttendance = _getDailyAttendance
@@ -516,6 +540,7 @@ class AttendanceProvider with ChangeNotifier{
         "st_dt": _startDate,
         "en_dt": _endDate
       };
+      print("data${data}");
       final response = await attRepo.getReport(data);
       print("response");
       print(response);
@@ -524,9 +549,9 @@ class AttendanceProvider with ChangeNotifier{
         _searchGetDailyAttendance=response;
         int count=0;
         int count2=0;
-        isWorkDone = response[0].isWorkDone?.toString() ?? "0";
-
-        print("Work Done Value ---> $isWorkDone");
+        _isWorkDone = int.tryParse(response[0].isWorkDone.toString()) ?? 0;
+        notifyListeners();
+        print("Work Done Value ---> $_isWorkDone");
         for(var i=0;i<response.length;i++){
           if(response[i].perStatus.toString()!="null"){
             count++;
@@ -559,7 +584,9 @@ class AttendanceProvider with ChangeNotifier{
       lastRefreshed=DateFormat('dd-MM-yyyy hh:mm a').format(DateTime.now());
       notifyListeners();
     } catch (e) {
-      // print("Errrrrrr$e");
+      print("permisCount......${localData.storage.read("role")}");
+      print("lateCountShow......${localData.storage.read("cos_id")}");
+     print("Errrrrrr$e");
       notifyListeners();
     }
     notifyListeners();
@@ -1334,6 +1361,9 @@ void showDatePickerDialog(BuildContext context,List<UserModel>? list) {
     log(response.toString());
     if(response.isNotEmpty){
       log("Success");
+      _isWorkDone = 1;
+      workDoneDate = DateTime.now().toString();
+
       Navigator.pop(context);
       // if(status=="1"){
       //   await FirebaseFirestore.instance.collection('attendance').add({
