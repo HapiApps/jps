@@ -1660,6 +1660,7 @@ class _HomePageState extends State<HomePage> {
                                             ],
                                           ),
                                           /// RIGHT SIDE (Add Task Button)
+                                          localData.storage.read("role")=="1"?
                                           Container(
                                             padding: const EdgeInsets.symmetric(
                                               horizontal: 20,
@@ -1690,7 +1691,7 @@ class _HomePageState extends State<HomePage> {
                                                 ),
                                               ],
                                             ),
-                                          ),
+                                          ):SizedBox(),
                                         ],
                                       ),
                                       /// SECOND ROW (Pending / Completed)
