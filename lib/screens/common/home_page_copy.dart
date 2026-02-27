@@ -75,7 +75,7 @@ class _DashHomePageState extends State<DashHomePage>  with TickerProviderStateMi
       //   // print("***** Check");
       //   localData.storage.write("refreshHomeData", false);
       // }
-      homeProvider.updateToken(context);
+     // homeProvider.updateToken(context);
       FirebaseFirestore.instance
           .collection('attendance')
           .snapshots()

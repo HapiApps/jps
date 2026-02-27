@@ -88,7 +88,7 @@ class _HomePageState extends State<HomePage> {
       //   // print("***** Check");
       //   localData.storage.write("refreshHomeData", false);
       // }
-      homeProvider.updateToken(context);
+     // homeProvider.updateToken(context);
       FirebaseFirestore.instance
           .collection('attendance')
           .snapshots()
@@ -462,7 +462,13 @@ class _HomePageState extends State<HomePage> {
         ) ?? 0;
 
         int total = approvedCount + pendingCount + rejectedCount;
+        final submittedCount = attPvr.getDailyAttendance
+            .where((e) => e.isWorkDone == "1")
+            .length;
 
+        final notSubmittedCount = attPvr.getDailyAttendance
+            .where((e) => e.isWorkDone != "1" && localData.storage.read("role") == 1)
+            .length;
         return StreamBuilder(
             stream:FirebaseFirestore.instance.collection('attendance').snapshots(),
             builder: (context,snapshot){
@@ -694,19 +700,19 @@ class _HomePageState extends State<HomePage> {
                                                             },img: assets.aTask,text: "Task Report"
                                                         ),
                                                         20.height,
-                                                        iconBox(
-                                                            callBack: (){
-                                                              homeProvider.updateIndex(16);
-                                                              utils.navigatePage(context, ()=>const DashBoard(child: ViewWorkReport()));
-                                                            },img: assets.aRep,text: "Work Report"
-                                                        ),
-                                                        20.height,
-                                                        iconBox(
-                                                            callBack: (){
-                                                              homeProvider.updateIndex(15);
-                                                              utils.navigatePage(context, ()=>const DashBoard(child: ViewProjectReport()));
-                                                            },img: assets.aPrj,text: "Project Report"
-                                                        ),20.height,
+                                                        // iconBox(
+                                                        //     callBack: (){
+                                                        //       homeProvider.updateIndex(16);
+                                                        //       utils.navigatePage(context, ()=>const DashBoard(child: ViewWorkReport()));
+                                                        //     },img: assets.aRep,text: "Work Report"
+                                                        // ),
+                                                        // 20.height,
+                                                        // iconBox(
+                                                        //     callBack: (){
+                                                        //       homeProvider.updateIndex(15);
+                                                        //       utils.navigatePage(context, ()=>const DashBoard(child: ViewProjectReport()));
+                                                        //     },img: assets.aPrj,text: "Project Report"
+                                                        // ),20.height,
                                                         iconBox(
                                                             callBack: (){
                                                               utils.navigatePage(context, ()=> DashBoard(child: VisitReport(date1: homeProvider.startDate, date2: homeProvider.endDate,month: homeProvider.month,type: homeProvider.type,)));
@@ -857,8 +863,9 @@ class _HomePageState extends State<HomePage> {
                                     ),
                                   ],
                                 ),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.start,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     /// LEFT TEXT
                                     const CustomText(
@@ -867,6 +874,7 @@ class _HomePageState extends State<HomePage> {
                                       weight: FontWeight.bold,
                                       color: Color(0xff1A85DB),
                                     ),
+                                    5.height,
                                     /// SUBMIT BUTTON
                                     localData.storage.read("role")=="1"?
                                     GestureDetector(
@@ -878,30 +886,56 @@ class _HomePageState extends State<HomePage> {
                                           ),
                                         );
                                       },
-                                      child: Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 12),
-                                        decoration: BoxDecoration(
-                                          gradient: const LinearGradient(
-                                            colors: [
-                                              Color(0xff1A85DB),
-                                              Color(0xff1A85DB),
-                                            ],
-                                          ),
-                                          borderRadius: BorderRadius.circular(10),
-                                        ),
-                                        child: Row(
-                                          children: const [
-                                            CustomText(
-                                              "View",
-                                              size: 13,
-                                              weight: FontWeight.w600,
-                                              color: Colors.white,
+                                      child: Row(
+                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 12),
+                                            decoration: BoxDecoration(
+                                              gradient: const LinearGradient(
+                                                colors: [
+                                                  Color(0xff1A85DB),
+                                                  Color(0xff1A85DB),
+                                                ],
+                                              ),
+                                              borderRadius: BorderRadius.circular(10),
                                             ),
-                                            SizedBox(width: 6),
-                                            Icon(Icons.check_circle,
-                                                color: Colors.white, size: 15),
-                                          ],
-                                        ),
+                                            child: Row(
+                                              children:  [
+                                                CustomText(
+                                                  "Submitted (${submittedCount})",
+                                                  size: 13,
+                                                  weight: FontWeight.w600,
+                                                  color: Colors.white,
+                                                ),
+
+                                              ],
+                                            ),
+                                          ),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 12),
+                                            decoration: BoxDecoration(
+                                              gradient: const LinearGradient(
+                                                colors: [
+                                                Colors.red,
+                                                  Colors.red
+                                                ],
+                                              ),
+                                              borderRadius: BorderRadius.circular(10),
+                                            ),
+                                            child: Row(
+                                              children:  [
+                                                CustomText(
+                                                  "Not Submitted (${notSubmittedCount})",
+                                                  size: 13,
+                                                  weight: FontWeight.w600,
+                                                  color: Colors.white,
+                                                ),
+
+                                              ],
+                                            ),
+                                          ),
+                                        ],
                                       ),
                                     ):
                                     Row(
@@ -909,35 +943,38 @@ class _HomePageState extends State<HomePage> {
 
                                         /// 🔥 If Work Already Done → Show Submitted
                                         attPvr.isWorkDone == 1
-                                            ? Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 12),
-                                          decoration: BoxDecoration(
-                                            color: Colors.grey,
-                                            borderRadius: BorderRadius.circular(10),
-                                          ),
-                                          child: Row(
-                                            children: const [
-                                              CustomText(
-                                                "Submitted",
-                                                size: 13,
-                                                weight: FontWeight.w600,
-                                                color: Colors.white,
-                                              ),
-                                              SizedBox(width: 6),
-                                              Icon(Icons.check_circle,
-                                                  color: Colors.white, size: 15),
-                                            ],
-                                          ),
-                                        )
+                                            ? Row(
 
-                                        /// 🔥 If Not Done → Show YES Button
+                                              children: [
+                                                160.width,
+                                                Container(
+                                                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                                                decoration: BoxDecoration(
+                                                color: Colors.grey,
+                                                borderRadius: BorderRadius.circular(10),
+                                                                                          ),
+                                                                                          child: Row(
+                                                children: const [
+
+                                                  CustomText(
+                                                    "Submitted",
+                                                    size: 13,
+                                                    weight: FontWeight.w600,
+                                                    color: Colors.white,
+                                                  ),
+                                                  SizedBox(width: 6),
+                                                  Icon(Icons.check_circle,
+                                                      color: Colors.white, size: 15),
+                                                ],
+                                                                                          ),
+                                                                                        ),
+                                              ],
+                                            )
                                             :
                                         Row(
                                           children: [
                                             GestureDetector(
-                                              onTap: () {
-
-                                              },
+                                              onTap: () {},
                                               child: GestureDetector(
                                                   onTap: () {
                                                                     if (attPvr.mainAttendance == 0) {
@@ -1017,7 +1054,6 @@ class _HomePageState extends State<HomePage> {
                                             weight: FontWeight.bold,
                                             color: Colors.black,
                                           ),
-
                                           CustomText(
                                               "Total Employees : ${homeProvider.mainReportList.isEmpty?"":homeProvider.mainReportList[0]["total_user_count"].toString()}",
                                               color:Color(0xffA2A2A2)
@@ -1059,7 +1095,23 @@ class _HomePageState extends State<HomePage> {
                                           borderColor: ColorsConst.absent,
                                           imagePath: DashboardAssets.absent,
                                         ),
+
                                          AttendanceItem(
+                                          onClick: (){
+                                            if(attPvr.lateCount!=0){
+                                              homeProvider.updateIndex(4);
+                                              utils.navigatePage(context, ()=> DashBoard(child: AttendanceReport(type: homeProvider.type,showType: "Late",date1: homeProvider.startDate,date2:homeProvider.endDate,empList: empPvr.userData)));
+                                            }else{
+                                              utils.showWarningToast(context, text: "No late employees found");
+                                            }
+                                          },
+                                          title: "Late",
+                                          count: "${attPvr.lateCount}",
+                                          bgColor: const Color(0xFFFFF3E0),
+                                          borderColor: colorsConst.late,
+                                          imagePath: DashboardAssets.late,
+                                        ),
+                                        AttendanceItem(
                                           title: "On-Leave",
                                           onClick: (){
                                             if(homeProvider.mainReportList.isNotEmpty&&(homeProvider.mainReportList[0]["fulldayleave_user"].toString()!="0"||homeProvider.mainReportList[0]["sessionleave_user"].toString()!="0")){
@@ -1075,21 +1127,6 @@ class _HomePageState extends State<HomePage> {
                                           bgColor: Color(0xFFE3F2FD),
                                           borderColor: ColorsConst.onLeave,
                                           imagePath: DashboardAssets.onLeave,
-                                        ),
-                                         AttendanceItem(
-                                          onClick: (){
-                                            if(attPvr.lateCount!=0){
-                                              homeProvider.updateIndex(4);
-                                              utils.navigatePage(context, ()=> DashBoard(child: AttendanceReport(type: homeProvider.type,showType: "Late",date1: homeProvider.startDate,date2:homeProvider.endDate,empList: empPvr.userData)));
-                                            }else{
-                                              utils.showWarningToast(context, text: "No late employees found");
-                                            }
-                                          },
-                                          title: "Late",
-                                          count: "${attPvr.lateCount}",
-                                          bgColor: const Color(0xFFFFF3E0),
-                                          borderColor: colorsConst.late,
-                                          imagePath: DashboardAssets.late,
                                         ),
                                          AttendanceItem(
                                           onClick: (){

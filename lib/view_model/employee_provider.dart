@@ -1697,16 +1697,20 @@ Future<void> getNotifications({bool markSeen = false}) async {
   }
   notifyListeners();
 }
+  String safeStr(dynamic value) {
+    if (value == null) return "0";
+    return value.toString();
+  }
   Future<void> sendRoleNotification(String msgTittle,String msgBody,String role) async {
-    Map data = {
-      "action":roleNotification,
-      "msgTittle":msgTittle,
-      "msgBody":msgBody,
-      "role":role,
-      "send_by":localData.storage.read("id")??"0",
-      "type":"1",
-      "platform": localData.storage.read("platform"),
-      "cos_id": localData.storage.read("cos_id")
+    Map<String,String> data = {
+      "action": roleNotification,
+      "msgTittle": msgTittle,
+      "msgBody": msgBody,
+      "role": role,
+      "send_by": safeStr(localData.storage.read("id")),
+      "type": "1",
+      "platform": safeStr(localData.storage.read("platform")),
+      "cos_id": safeStr(localData.storage.read("cos_id"))
     };
     final response = await empRepo.notification(data);
     print(response);
@@ -1723,15 +1727,23 @@ Future<void> getNotifications({bool markSeen = false}) async {
   }
   Future<void> sendSomeUserNotification(String msgTittle,String msgBody,String id,String purposeId) async {
     try {
-      Map data = {
+      String loginId = safeStr(localData.storage.read("id"));
+
+      List<String> idList = id.split(",");
+      idList.remove(loginId);
+      String filteredId = idList.join(",");
+
+      Map<String,String> data = {
         "action": someUserNotification,
         "msgTittle": msgTittle,
         "msgBody": msgBody,
-        "send_by": localData.storage.read("id"),
-        "id": id,
-        "platform": localData.storage.read("platform").toString(),
-        "purpose_id": purposeId
+        "send_by": loginId,
+        "id": filteredId,
+        "platform": safeStr(localData.storage.read("platform")),
+        "purpose_id": purposeId.isNotEmpty ? purposeId : "0",
+        "sender_name":localData.storage.read("f_name"),
       };
+      debugPrint("admin data send${data}");
       final response = await empRepo.notification(data);
       if (response.isNotEmpty) {
         // utils.showSuccessToast(context: context,text: "Account deleted successfully",);
@@ -1750,13 +1762,13 @@ Future<void> getNotifications({bool markSeen = false}) async {
   }
   Future<void> sendUserNotification(String msgTittle,String msgBody,String id) async {
     try {
-      Map data = {
+      Map<String,String> data = {
         "action": userNotification,
         "msgTittle": msgTittle,
         "msgBody": msgBody,
-        "send_by": localData.storage.read("id"),
+        "send_by": safeStr(localData.storage.read("id")),
         "id": id,
-        "platform": localData.storage.read("platform").toString(),
+        "platform": safeStr(localData.storage.read("platform")),
       };
       final response = await empRepo.notification(data);
       if (response.isNotEmpty) {
@@ -1775,18 +1787,19 @@ Future<void> getNotifications({bool markSeen = false}) async {
     notifyListeners();
   }
   Future<void> sendAdminNotification(String msgTittle,String msgBody,String role,String purposeId) async {
-    Map data = {
-      "action":adminNotification,
-      "msgTittle":msgTittle,
-      "msgBody":msgBody,
-      "role":role,
-      "send_by":localData.storage.read("id")??"0",
-      "id":localData.storage.read("id"),
-      "type":"1",
-      "platform": localData.storage.read("platform"),
-      "cos_id": localData.storage.read("cos_id"),
-      "purpose_id": purposeId
+    Map<String,String> data = {
+      "action": adminNotification,
+      "msgTittle": msgTittle,
+      "msgBody": msgBody,
+      "role": role,
+      "send_by": safeStr(localData.storage.read("id")),
+      "id": safeStr(localData.storage.read("id")),
+      "type": "1",
+      "platform": safeStr(localData.storage.read("platform")),
+      "cos_id": safeStr(localData.storage.read("cos_id")),
+      "purpose_id": purposeId.isNotEmpty ? purposeId : "0",
     };
+
     final response = await empRepo.notification(data);
     print(response);
     if(response.isNotEmpty){

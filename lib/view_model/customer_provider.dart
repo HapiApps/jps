@@ -150,7 +150,7 @@ class CustomerProvider with ChangeNotifier{
       if(localData.storage.read("role")=="1"){
         try {
           await Provider.of<EmployeeProvider>(context, listen: false).sendSomeUserNotification(
-            "Feedback added to task.Added By ${localData.storage.read("f_name")}",
+            "${disPoint.text.trim()}${localData.storage.read("f_name")}",
             disPoint.text.trim(),
             assignedId.toString(),taskId
           );
@@ -161,7 +161,7 @@ class CustomerProvider with ChangeNotifier{
         // admin notification (always run)
         try {
           await Provider.of<EmployeeProvider>(context, listen: false).sendAdminNotification(
-            "Feedback added to task.Added By ${localData.storage.read("f_name")}",
+            "${disPoint.text.trim()}.Added By ${localData.storage.read("f_name")}",
             disPoint.text.trim(),
             localData.storage.read("role"),taskId
           );
@@ -1706,7 +1706,7 @@ Future<void> addComment({context,required String createdBy,required String taskI
         if(localData.storage.read("role")=="1"){
           try {
             await Provider.of<EmployeeProvider>(context, listen: false).sendSomeUserNotification(
-                "Feedback added to task.Added By ${localData.storage.read("f_name")}",
+                "${disPoint.text.trim()}${localData.storage.read("f_name")}",
                 disPoint.text.trim(),
                 createdBy,taskId
             );

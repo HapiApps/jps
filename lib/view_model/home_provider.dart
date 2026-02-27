@@ -422,15 +422,33 @@ Future<void> verifyUser(context) async {
 String _notificationToken="";
 String get notificationToken =>_notificationToken;
   Future<void> getToken() async {
-    try{
-      String? token="";
-      token=await FirebaseMessaging.instance.getToken();
-      _notificationToken=token.toString();
-      // print("token$token");
-    }catch(e){
-      // print("token error ....$e");
+    try {
+      String? token;
+      /// Try 3 times
+      for (int i = 0; i < 3; i++) {
+        token = await FirebaseMessaging.instance.getToken();
+        if (token != null && token.isNotEmpty) {
+          break;
+        }
+        await Future.delayed(const Duration(seconds: 2));
+      }
+      _notificationToken = token ?? "";
+      debugPrint("FCM Token 1234: $_notificationToken");
+    } catch (e) {
+      debugPrint("Token error: $e");
+      _notificationToken = "";
     }
   }
+  // Future<void> getToken() async {
+  //   try{
+  //     String? token="";
+  //     token=await FirebaseMessaging.instance.getToken();
+  //     _notificationToken=token.toString();
+  //    debugPrint("token$token");
+  //   }catch(e){
+  //     debugPrint("token error ....$e");
+  //   }
+  // }
   PickerDateRange? selectedDate;
   List<DateTime> datesBetween = [];
   String betweenDates="";
@@ -537,7 +555,9 @@ Future<void> login(context) async {
   // print("printttt");
   // log("logggg");
   //   try {
-      checkPlatform();
+
+  await getToken();
+  checkPlatform();
       var id="",brand="",model="",version="";
       if(kIsWeb){
         final deviceInfoPlugin = DeviceInfoPlugin();
@@ -578,7 +598,7 @@ Future<void> login(context) async {
         'token': _notificationToken,
         'platform': localData.storage.read("platform").toString()
       };
-      final response = await homeRepo.loginApi(data);
+      print("body data ${data}");      final response = await homeRepo.loginApi(data);
       log(response.toString());
       if(response.toString().contains("No user found")){
         utils.showWarningToast(context,text: "No user found");

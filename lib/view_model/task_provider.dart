@@ -2220,7 +2220,7 @@ class TaskProvider with ChangeNotifier {
         try {
           await Provider.of<EmployeeProvider>(context, listen: false)
               .sendSomeUserNotification(
-            "A new task has been assigned to you by (${localData.storage.read("f_name")})",
+            "${taskTitleCont.text.trim()} by (${localData.storage.read("f_name")})",
             taskTitleCont.text.trim(),
             _assignedId,""
           );
@@ -2230,12 +2230,12 @@ class TaskProvider with ChangeNotifier {
 
         // admin notification (always run)
         try {
-          await Provider.of<EmployeeProvider>(context, listen: false)
-              .sendAdminNotification(
-            "A new task has been assigned to $assignedNames.",
-            taskTitleCont.text.trim(),
-            localData.storage.read("role"),""
-          );
+          // await Provider.of<EmployeeProvider>(context, listen: false)
+          //     .sendAdminNotification(
+          //   "${ taskTitleCont.text.trim()}assigned to $assignedNames.",
+          //   taskTitleCont.text.trim(),
+          //   localData.storage.read("role"),""
+          // );
         } catch (e) {
           print("Admin notification error: $e");
         }
@@ -2283,7 +2283,7 @@ class TaskProvider with ChangeNotifier {
         utils.showSuccessToast(context: context,text: constValue.updated,);
         try {
           await Provider.of<EmployeeProvider>(context, listen: false).sendSomeUserNotification(
-            "Task detail updated by (${localData.storage.read("f_name")})",
+            "${taskTitleCont.text.trim()} (${localData.storage.read("f_name")})",
             taskTitleCont.text.trim(),
             assignedId,""
           );
@@ -2294,7 +2294,7 @@ class TaskProvider with ChangeNotifier {
         // admin notification (always run)
         try {
           await Provider.of<EmployeeProvider>(context, listen: false).sendAdminNotification(
-            "Task detail updated by (${localData.storage.read("f_name")})",
+            "${taskTitleCont.text.trim()}(${localData.storage.read("f_name")})",
             taskTitleCont.text.trim(),
             localData.storage.read("role"),""
           );

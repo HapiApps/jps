@@ -32,25 +32,40 @@ class EmployeeRepository{
   }
 
   Future<Map<String, dynamic>> notification(Map data) async {
-    try{
-      final request = await http.post(Uri.parse(phpFile),
-          headers: {
-            "Accept": "application/text",
-            "Content-Type": "application/x-www-form-urlencoded"
-          },
-          body: jsonEncode(data),
-          encoding: Encoding.getByName("utf-8"));
-      print(data.toString());
-      print(request.body);
+    try {
+
+      // ✅ Convert all values to String
+      Map<String, String> formData = data.map((key, value) => MapEntry(
+        key.toString(),
+        value.toString(),
+      ));
+
+      final request = await http.post(
+        Uri.parse(phpFile),
+        headers: {
+          "Accept": "application/json",
+          "Content-Type": "application/x-www-form-urlencoded"
+        },
+        body: formData,
+      );
+
+      print("Request Data: $formData");
+      print("Raw Response: ${request.body}");
+
       if (request.statusCode == 200) {
-        Map<String, dynamic> response = json.decode(request.body);
-        return response;
+
+        if (request.body.isEmpty) {
+          throw Exception("Empty server response");
+        }
+
+        return json.decode(request.body);
       } else {
-        throw Exception('Failed to login');
+        throw Exception('Server Error ${request.statusCode}');
       }
-    }catch(e){
-      print("e $e");
-      throw Exception('Failed to login');
+
+    } catch (e) {
+      print("Notification API Error: $e");
+      throw Exception('Admin notification failed');
     }
   }
 
