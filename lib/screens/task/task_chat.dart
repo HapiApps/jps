@@ -400,7 +400,8 @@ class _TaskChatState extends State<TaskChat> with SingleTickerProviderStateMixin
                         if(widget.isVisit==true){
                           print("in");
                           await custProvider.addComment(context: context,visitId: widget.taskId.toString(),
-                              companyName: widget.name,companyId:"", numberList: [], taskId: "0", createdBy: widget.createdBy.toString(),
+                              companyName: widget.name,companyId:"", numberList: [], taskId: "0",
+                            createdBy: widget.createdBy.toString(),
                             path:recordedPath==null?"":recordedPath.toString(),);
                         }else{
                           print("inn");

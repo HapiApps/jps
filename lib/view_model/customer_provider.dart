@@ -87,119 +87,135 @@ class CustomerProvider with ChangeNotifier{
     notifyListeners();
   }
 
-  Future<void> tComment({context,required String taskId,required String assignedId,required String path}) async {
+  Future<void> tComment({
+    context,
+    required String taskId,
+    required String assignedId,
+    required String path
+  }) async {
+
     final tempMessage = CustomerReportModel(
       comments: disPoint.text.trim(),
       createdBy: localData.storage.read("id"),
       firstname: localData.storage.read("f_name"),
       role: localData.storage.read("role"),
       createdTs: DateTime.now(),
-      documents: path.isNotEmpty
-          ? path
-          : null,
+      documents: path.isNotEmpty ? path : null,
       isLocal: true,
     );
 
     _customerReport.add(tempMessage);
     notifyListeners();
+
     try {
-    List<Map<String, String>> customersList = [];
 
-    // Loop for selected files
-    for (int i = 0; i < _selectedFiles.length; i++) {
-      // print("////$i");
-      customersList.add({
-        "image_$i": _selectedFiles[i]['path'],
-      });
-    }
+      List<Map<String, String>> customersList = [];
 
-// Loop for recorded audio paths
-    for (int i = _selectedFiles.length; i < _selectedFiles.length + _recordedAudioPaths.length; i++) {
-      // print("----$i");
-      customersList.add({
-        "image_$i": _recordedAudioPaths[i - _selectedFiles.length].audioPath, // Adjust index
-      });
-    }
-
-// Loop for selected photos
-    for (int i = _selectedFiles.length + _recordedAudioPaths.length; i < _selectedFiles.length + _recordedAudioPaths.length + selectedPhotos.length; i++) {
-      // print("]]]]$i");
-      customersList.add({
-        "image_$i": selectedPhotos[i - (_selectedFiles.length + _recordedAudioPaths.length)], // Adjust index
-      });
-    }
-      if(path!=""){
+      /// FILES
+      for (int i = 0; i < _selectedFiles.length; i++) {
         customersList.add({
-          "image_${0}": path, // Adjust index
+          "image_$i": _selectedFiles[i]['path'],
         });
       }
-    String jsonString = json.encode(customersList);
-    Map<String,String> data = {
-      "action":taskComments,
-      "cos_id":localData.storage.read("cos_id"),
-      "task_id":taskId,
-      "log_file":localData.storage.read("mobile_number"),
-      "created_by":localData.storage.read("id")??"0",
-      "comment":disPoint.text.trim(),
-      "data": jsonString,
-    };
-    final response =await custRepo.taskComments(data,customersList);
-    log(response.toString());
-    if (response.toString().contains("200")){
-      _recordedAudioPaths.clear();
-      if(localData.storage.read("role")=="1"){
-        try {
-          await Provider.of<EmployeeProvider>(context, listen: false).sendSomeUserNotification(
-            "${disPoint.text.trim()}${localData.storage.read("f_name")}",
-            disPoint.text.trim(),
-            assignedId.toString(),taskId
-          );
-        } catch (e) {
-          print("User notification error: $e");
-        }
 
-        // admin notification (always run)
-        try {
-          await Provider.of<EmployeeProvider>(context, listen: false).sendAdminNotification(
-            "${disPoint.text.trim()}.Added By ${localData.storage.read("f_name")}",
-            disPoint.text.trim(),
-            localData.storage.read("role"),taskId
-          );
-        } catch (e) {
-          print("Admin notification error: $e");
-        }
-      }else{
-        // admin notification (always run)
-        try {
-          await Provider.of<EmployeeProvider>(context, listen: false).sendAdminNotification(
-            "${localData.storage.read("f_name")} replied to task feedback.",
-            disPoint.text.trim(),
-            "1",taskId
-          );
-        } catch (e) {
-          print("Admin notification error: $e");
-        }
+      /// AUDIO
+      for (int i = 0; i < _recordedAudioPaths.length; i++) {
+        customersList.add({
+          "image_${i + _selectedFiles.length}":
+          _recordedAudioPaths[i].audioPath,
+        });
       }
 
-      // utils.showSuccessToast(context: context,text: constValue.success,);
-      _customerReport.last.isLocal=false;
-      disPoint.clear();
-      addCtr.reset();
-      // getTaskComments(taskId);
-      // Future.microtask(() => Navigator.pop(context));
-    }else {
-      utils.showErrorToast(context: context);
-      addCtr.reset();
-    }
+      /// PHOTOS
+      for (int i = 0; i < selectedPhotos.length; i++) {
+        customersList.add({
+          "image_${i + _selectedFiles.length + _recordedAudioPaths.length}":
+          selectedPhotos[i],
+        });
+      }
+
+      /// EXTRA PATH
+      if (path.isNotEmpty) {
+        customersList.add({
+          "image_0": path,
+        });
+      }
+
+      String jsonString = json.encode(customersList);
+
+      Map<String,String> data = {
+        "action": taskComments,
+        "cos_id": localData.storage.read("cos_id"),
+        "task_id": taskId,
+        "log_file": localData.storage.read("mobile_number"),
+        "created_by": localData.storage.read("id") ?? "0",
+        "comment": disPoint.text.trim(),
+        "data": jsonString,
+      };
+
+      final response = await custRepo.taskComments(data, customersList);
+      log(response.toString());
+
+      if (response.toString().contains("200")) {
+
+        _recordedAudioPaths.clear();
+
+        String role = localData.storage.read("role");
+
+        try {
+
+          /// ================= ADMIN COMMENTED =================
+          if(role == "1") {
+
+            await Provider.of<EmployeeProvider>(context, listen: false)
+                .sendSomeUserNotification(
+                "${disPoint.text.trim()} Added by ${localData.storage.read("f_name")}",
+                disPoint.text.trim(),
+                assignedId,
+                taskId
+            );
+
+          }
+
+          /// ================= EMPLOYEE COMMENTED =================
+          else {
+
+            await Provider.of<EmployeeProvider>(context, listen: false)
+                .sendAdminNotification(
+                "${localData.storage.read("f_name")} replied to task feedback",
+                disPoint.text.trim(),
+                assignedId,
+                "1",
+                taskId
+            );
+
+          }
+
+        } catch (e) {
+          print("Notification error: $e");
+        }
+
+        _customerReport.last.isLocal = false;
+        disPoint.clear();
+        addCtr.reset();
+
+      } else {
+
+        utils.showErrorToast(context: context);
+        addCtr.reset();
+
+      }
+
     } catch (e) {
+
       _customerReport.remove(tempMessage);
       notifyListeners();
-      // utils.showWarningToast(context,text: "Failed",);
       addCtr.reset();
+
     }
+
     notifyListeners();
   }
-
 bool _isVisible=false;
 int _visibleIndex=0;
 bool get isVisible =>_isVisible;
@@ -1718,7 +1734,7 @@ Future<void> addComment({context,required String createdBy,required String taskI
           try {
             await Provider.of<EmployeeProvider>(context, listen: false).sendAdminNotification(
                 "Visit report added to comments.Added By ${localData.storage.read("f_name")}",
-                disPoint.text.trim(),
+                disPoint.text.trim(),'',
                 localData.storage.read("role"),taskId
             );
           } catch (e) {
@@ -1729,7 +1745,7 @@ Future<void> addComment({context,required String createdBy,required String taskI
           try {
             await Provider.of<EmployeeProvider>(context, listen: false).sendAdminNotification(
                 "${localData.storage.read("f_name")} replied to visit report comment.",
-                disPoint.text.trim(),
+                disPoint.text.trim(),'',
                 "1",taskId
             );
           } catch (e) {
@@ -2061,7 +2077,7 @@ TextEditingController date= TextEditingController(text: "${DateTime.now().day.to
         Provider.of<EmployeeProvider>(context, listen: false).sendAdminNotification(
           "Visit report added - ${localData.storage.read("typeName")??""}",
           "Added By ${localData.storage.read("f_name")}",
-          "1",taskId
+          "1",taskId,""
         );
         await FirebaseFirestore.instance.collection('attendance').add({
           'emp_id': localData.storage.read("id"),

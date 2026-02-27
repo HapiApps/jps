@@ -31,36 +31,31 @@ class EmployeeRepository{
     }
   }
 
-  Future<Map<String, dynamic>> notification(Map data) async {
+  Future<Map<String, dynamic>> notification(Map<String, dynamic> data) async {
     try {
 
-      // ✅ Convert all values to String
-      Map<String, String> formData = data.map((key, value) => MapEntry(
-        key.toString(),
-        value.toString(),
-      ));
-
-      final request = await http.post(
+      final response = await http.post(
         Uri.parse(phpFile),
         headers: {
           "Accept": "application/json",
-          "Content-Type": "application/x-www-form-urlencoded"
+          "Content-Type": "application/json",
         },
-        body: formData,
+        body: jsonEncode(data),
       );
 
-      print("Request Data: $formData");
-      print("Raw Response: ${request.body}");
+      print("Request JSON: ${jsonEncode(data)}");
+      print("Raw Response: ${response.body}");
 
-      if (request.statusCode == 200) {
+      if (response.statusCode == 200) {
 
-        if (request.body.isEmpty) {
+        if (response.body.isEmpty) {
           throw Exception("Empty server response");
         }
 
-        return json.decode(request.body);
+        return json.decode(response.body);
+
       } else {
-        throw Exception('Server Error ${request.statusCode}');
+        throw Exception('Server Error ${response.statusCode}');
       }
 
     } catch (e) {

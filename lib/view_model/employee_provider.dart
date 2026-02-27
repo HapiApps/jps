@@ -1725,15 +1725,23 @@ Future<void> getNotifications({bool markSeen = false}) async {
     }
     notifyListeners();
   }
-  Future<void> sendSomeUserNotification(String msgTittle,String msgBody,String id,String purposeId) async {
+  Future<void> sendSomeUserNotification(
+      String msgTittle,
+      String msgBody,
+      String id,
+      String purposeId) async
+  {
+
     try {
+
       String loginId = safeStr(localData.storage.read("id"));
 
+      // Remove self id
       List<String> idList = id.split(",");
       idList.remove(loginId);
       String filteredId = idList.join(",");
 
-      Map<String,String> data = {
+      Map<String, dynamic> payload = {
         "action": someUserNotification,
         "msgTittle": msgTittle,
         "msgBody": msgBody,
@@ -1741,23 +1749,58 @@ Future<void> getNotifications({bool markSeen = false}) async {
         "id": filteredId,
         "platform": safeStr(localData.storage.read("platform")),
         "purpose_id": purposeId.isNotEmpty ? purposeId : "0",
-        "sender_name":localData.storage.read("f_name"),
+        "sender_name": localData.storage.read("f_name"),
       };
-      debugPrint("admin data send${data}");
-      final response = await empRepo.notification(data);
-      if (response.isNotEmpty) {
-        // utils.showSuccessToast(context: context,text: "Account deleted successfully",);
-        // LocalDatabase.deleteDb();
-        // utils.navigatePage(context,()=>const LoginPage());
-        // loginCtr.reset();
-      } else {
-        // utils.showErrorToast(context: context);
-        // loginCtr.reset();
-      }
-    }catch(e){
-      // utils.showErrorToast(context: context);
-      // loginCtr.reset();
+
+      debugPrint("Notification Payload => $payload");
+
+      final response = await empRepo.notification(payload);
+
+      debugPrint("Notification Response => $response");
+
+    } catch (e) {
+      debugPrint("Notification Error => $e");
     }
+
+    notifyListeners();
+  }
+  Future<void> sendSomeUserTaskNotification(
+      String msgTittle,
+      String msgBody,
+      String id,
+      String purposeId) async
+  {
+
+    try {
+
+      String loginId = safeStr(localData.storage.read("id"));
+
+      // Remove self id
+      List<String> idList = id.split(",");
+      idList.remove(loginId);
+      String filteredId = idList.join(",");
+
+      Map<String, dynamic> payload = {
+        "action": someUserNotification,
+        "msgTittle": msgTittle,
+        "msgBody": msgBody,
+        "send_by": loginId,
+        "id": id,
+        "platform": safeStr(localData.storage.read("platform")),
+        "purpose_id": purposeId.isNotEmpty ? purposeId : "0",
+        "sender_name": localData.storage.read("f_name"),
+      };
+
+      debugPrint("Notification Payload => $payload");
+
+      final response = await empRepo.notification(payload);
+
+      debugPrint("Notification Response => $response");
+
+    } catch (e) {
+      debugPrint("Notification Error => $e");
+    }
+
     notifyListeners();
   }
   Future<void> sendUserNotification(String msgTittle,String msgBody,String id) async {
@@ -1786,14 +1829,14 @@ Future<void> getNotifications({bool markSeen = false}) async {
     }
     notifyListeners();
   }
-  Future<void> sendAdminNotification(String msgTittle,String msgBody,String role,String purposeId) async {
+  Future<void> sendAdminNotification(String msgTittle,String msgBody,String role,String purposeId,String assignedId) async {
     Map<String,String> data = {
       "action": adminNotification,
       "msgTittle": msgTittle,
       "msgBody": msgBody,
       "role": role,
       "send_by": safeStr(localData.storage.read("id")),
-      "id": safeStr(localData.storage.read("id")),
+      "id": assignedId.isEmpty?safeStr(localData.storage.read("id")):assignedId.toString(),
       "type": "1",
       "platform": safeStr(localData.storage.read("platform")),
       "cos_id": safeStr(localData.storage.read("cos_id")),
