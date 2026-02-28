@@ -1658,117 +1658,169 @@ void initCmtValues(){
   _isRecording = false;
   notifyListeners();
 }
-Future<void> addComment({context,required String createdBy,required String taskId,required String visitId,required String companyName,required String companyId,required List numberList,required String path}) async {
-  final tempMessage = CustomerReportModel(
-    comments: disPoint.text.trim(),
-    createdBy: localData.storage.read("id"),
-    firstname: localData.storage.read("f_name"),
-    role: localData.storage.read("role"),
-    createdTs: DateTime.now(),
-    documents: path.isNotEmpty
-        ? path
-        : null,
-    isLocal: true,
-  );
+  Future<void> addComment({
+    context,
+    required String createdBy,
+    required String assignedId,
+    required String taskId,
+    required String visitId,
+    required String companyName,
+    required String companyId,
+    required List numberList,
+    required String path
+  }) async {
 
-  _customerReport.add(tempMessage);
-  notifyListeners();
+    final tempMessage = CustomerReportModel(
+      comments: disPoint.text.trim(),
+      createdBy: localData.storage.read("id"),
+      firstname: localData.storage.read("f_name"),
+      role: localData.storage.read("role"),
+      createdTs: DateTime.now(),
+      documents: path.isNotEmpty ? path : null,
+      isLocal: true,
+    );
+
+    _customerReport.add(tempMessage);
+    notifyListeners();
+
     try {
-  List<Map<String, String>> customersList = [];
 
-// Loop for selected files
-  for (int i = 0; i < _selectedFiles.length; i++) {
-    // print("////$i");
-    customersList.add({
-      "image_$i": _selectedFiles[i]['path'],
-    });
-  }
+      List<Map<String, String>> customersList = [];
 
-// Loop for recorded audio paths
-  for (int i = _selectedFiles.length; i < _selectedFiles.length + _recordedAudioPaths.length; i++) {
-    // print("----$i");
-    customersList.add({
-      "image_$i": _recordedAudioPaths[i - _selectedFiles.length].audioPath, // Adjust index
-    });
-  }
+      // files
+      for (int i = 0; i < _selectedFiles.length; i++) {
+        customersList.add({
+          "image_$i": _selectedFiles[i]['path'],
+        });
+      }
 
-// Loop for selected photos
-  for (int i = _selectedFiles.length + _recordedAudioPaths.length; i < _selectedFiles.length + _recordedAudioPaths.length + selectedPhotos.length; i++) {
-    // print("]]]]$i");
-    customersList.add({
-      "image_$i": selectedPhotos[i - (_selectedFiles.length + _recordedAudioPaths.length)], // Adjust index
-    });
-  }
-  if(path!=""){
-    customersList.add({
-      "image_${0}": path, // Adjust index
-    });
-  }
-  String jsonString = json.encode(customersList);
-      Map<String,String> data = {
-        "action":addCmt,
-        "cos_id":localData.storage.read("cos_id"),
-        "visit_id":visitId,
-        "log_file":localData.storage.read("mobile_number"),
-        "created_by":localData.storage.read("id")??"0",
-        "comments":disPoint.text.trim(),
-        "date":commentDate.text.trim(),
+      // audio
+      for (int i = _selectedFiles.length;
+      i < _selectedFiles.length + _recordedAudioPaths.length;
+      i++) {
+        customersList.add({
+          "image_$i": _recordedAudioPaths[i - _selectedFiles.length].audioPath,
+        });
+      }
+
+      // photos
+      for (int i = _selectedFiles.length + _recordedAudioPaths.length;
+      i <
+          _selectedFiles.length +
+              _recordedAudioPaths.length +
+              selectedPhotos.length;
+      i++) {
+        customersList.add({
+          "image_$i":
+          selectedPhotos[i - (_selectedFiles.length + _recordedAudioPaths.length)],
+        });
+      }
+
+      if (path != "") {
+        customersList.add({
+          "image_0": path,
+        });
+      }
+
+      String jsonString = json.encode(customersList);
+
+      Map<String, String> data = {
+        "action": addCmt,
+        "cos_id": localData.storage.read("cos_id"),
+        "visit_id": visitId,
+        "log_file": localData.storage.read("mobile_number"),
+        "created_by": localData.storage.read("id") ?? "0",
+        "comments": disPoint.text.trim(),
+        "date": commentDate.text.trim(),
         "data": jsonString,
       };
-      final response =await custRepo.addComments(data,customersList);
+
+      final response = await custRepo.addComments(data, customersList);
+
       log(response.toString());
-      if (response.toString().contains("200")){
+
+      if (response.toString().contains("200")) {
+
         _recordedAudioPaths.clear();
-        if(localData.storage.read("role")=="1"){
+
+        String myRole = localData.storage.read("role");
+        String myId   = localData.storage.read("id");
+
+        /// 🎯 ADMIN COMMENT → EMPLOYEE
+        if (myRole == "1") {
+
           try {
-            await Provider.of<EmployeeProvider>(context, listen: false).sendSomeUserNotification(
-                "${disPoint.text.trim()}${localData.storage.read("f_name")}",
-                disPoint.text.trim(),
-                createdBy,taskId
+            await Provider.of<EmployeeProvider>(context, listen: false)
+                .sendSomeUserNotification(
+              "${localData.storage.read("f_name")} added a comment",
+              disPoint.text.trim(),
+              assignedId,   // 👉 Employee ID
+              taskId,
             );
           } catch (e) {
-            print("User notification error: $e");
+            print("Employee notification error: $e");
           }
 
-          // admin notification (always run)
           try {
-            await Provider.of<EmployeeProvider>(context, listen: false).sendAdminNotification(
-                "Visit report added to comments.Added By ${localData.storage.read("f_name")}",
-                disPoint.text.trim(),'',
-                localData.storage.read("role"),taskId
+            await Provider.of<EmployeeProvider>(context, listen: false)
+                .sendAdminNotification(
+              "Visit report updated by ${localData.storage.read("f_name")}",
+              disPoint.text.trim(),
+              assignedId,
+              myRole,
+              taskId,
             );
           } catch (e) {
             print("Admin notification error: $e");
           }
-        }else{
-          // admin notification (always run)
+
+        }
+        /// 🎯 EMPLOYEE REPLY → ADMIN
+        else {
+
           try {
-            await Provider.of<EmployeeProvider>(context, listen: false).sendAdminNotification(
-                "${localData.storage.read("f_name")} replied to visit report comment.",
-                disPoint.text.trim(),'',
-                "1",taskId
+            await Provider.of<EmployeeProvider>(context, listen: false)
+                .sendSomeUserNotification(
+              "${localData.storage.read("f_name")} replied to comment",
+              disPoint.text.trim(),
+              createdBy,   // 👉 Admin ID
+              taskId,
+            );
+          } catch (e) {
+            print("Admin receive error: $e");
+          }
+
+          try {
+            await Provider.of<EmployeeProvider>(context, listen: false)
+                .sendAdminNotification(
+              "${localData.storage.read("f_name")} replied to visit report",
+              disPoint.text.trim(),
+              createdBy,
+              "1",
+              taskId,
             );
           } catch (e) {
             print("Admin notification error: $e");
           }
         }
 
-        // utils.showSuccessToast(context: context,text: constValue.success,);
-        _customerReport.last.isLocal=false;
+        _customerReport.last.isLocal = false;
         disPoint.clear();
         addCtr.reset();
-      }else {
+
+      } else {
         utils.showErrorToast(context: context);
         addCtr.reset();
       }
+
     } catch (e) {
       _customerReport.remove(tempMessage);
-      utils.showWarningToast(context,text: "Failed",);
+      utils.showWarningToast(context, text: "Failed");
       addCtr.reset();
     }
+
     notifyListeners();
-  }
-Future<void> getAllComments(String id,String contId) async {
+  }Future<void> getAllComments(String id,String contId) async {
   _cmtRefresh=false;
     _customerReport.clear();
     notifyListeners();

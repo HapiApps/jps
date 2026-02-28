@@ -77,7 +77,7 @@ class _CommentChatState extends State<CommentChat> {
                           custProvider.addCtr.reset();
                         }else{
                           custProvider.addComment(context: context,visitId: widget.visitId.toString(),path: "",
-                              companyName: widget.companyName,companyId: widget.companyId, numberList: widget.numberList, taskId: "0", createdBy: widget.createdBy);
+                              companyName: widget.companyName,companyId: widget.companyId, numberList: widget.numberList, taskId: "0", createdBy: widget.createdBy, assignedId: '');
                           // custProvider.addComment(context: context,companyId: widget.visitId.toString(), type: custProvider.selectType.toString());
                         }
                       },
