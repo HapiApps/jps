@@ -27,8 +27,12 @@ class VisitReportDetails extends StatelessWidget {
     var phoneWidth=MediaQuery.of(context).size.width * 0.95;
     var commentsList=data.commentsList.toString().split('||');
     var commentsTs=data.commentsTs.toString().split('||');
+    var created=data.createdBy.toString();
+    print("created by:${created}");
     return GestureDetector(
       onTap:(){
+        print("created by 12 task :${data.createdBy.toString()}");
+        print("created by 12 task :${data.companyName.toString()}");
         utils.navigatePage(context, ()=> DashBoard(child: TaskChat(isVisit:true,createdBy: data.createdBy.toString(),
             taskId: data.id.toString(), assignedId: "", assignedName:"",name: data.companyName.toString())));
         // utils.navigatePage(context, ()=>CommentChat(visitId: data.id.toString(), companyName: data.companyName.toString(), numberList: [], companyId: '',createdBy: data.createdBy.toString(),));

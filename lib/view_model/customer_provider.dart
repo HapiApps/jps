@@ -1668,7 +1668,8 @@ void initCmtValues(){
     required String companyId,
     required List numberList,
     required String path
-  }) async {
+  }) async
+  {
 
     final tempMessage = CustomerReportModel(
       comments: disPoint.text.trim(),
@@ -1745,60 +1746,68 @@ void initCmtValues(){
 
         String myRole = localData.storage.read("role");
         String myId   = localData.storage.read("id");
-
+        String createdUserId = createdBy.toString();
+        print("MyID: $myId");
+        print("CreatedBy: $createdUserId");
+        print("Role: $myRole");
         /// 🎯 ADMIN COMMENT → EMPLOYEE
         if (myRole == "1") {
-
           try {
-            await Provider.of<EmployeeProvider>(context, listen: false)
-                .sendSomeUserNotification(
-              "${localData.storage.read("f_name")} added a comment",
-              disPoint.text.trim(),
-              assignedId,   // 👉 Employee ID
-              taskId,
-            );
+            if(myId==createdUserId)
+              {
+                print("123");
+                await
+                Provider.of<EmployeeProvider>(context, listen: false)
+                    .sendAdminNotification(
+                  "${localData.storage.read("f_name")} replied to visit report",
+                  disPoint.text.trim(),
+                  createdUserId,
+                  "1",
+                  taskId,
+                );
+              }
+            else {
+              print("123456");
+              await Future.wait([
+
+                /// 🔔 Notify OTHER ADMINS
+                Provider.of<EmployeeProvider>(context, listen: false)
+                  .sendSomeUserTaskNotification(
+                  "${localData.storage.read("f_name")} replied to visit report",
+                  disPoint.text.trim(),
+                  myId,   // exclude self
+                  taskId,
+                ),
+
+                /// 🔔 Notify VISIT OWNER
+                Provider.of<EmployeeProvider>(context, listen: false)
+                    .sendAdminNotification(
+                  "${localData.storage.read("f_name")} replied to your visit",
+                  disPoint.text.trim(),
+                  createdUserId,   // send to creator
+                  "1",
+                  taskId,
+                ),
+
+              ]);
+
+            }
           } catch (e) {
             print("Employee notification error: $e");
           }
-
+        }else {
           try {
-            await Provider.of<EmployeeProvider>(context, listen: false)
-                .sendAdminNotification(
-              "Visit report updated by ${localData.storage.read("f_name")}",
-              disPoint.text.trim(),
-              assignedId,
-              myRole,
-              taskId,
-            );
-          } catch (e) {
-            print("Admin notification error: $e");
-          }
+            print("1234");
 
-        }
-        /// 🎯 EMPLOYEE REPLY → ADMIN
-        else {
-
-          try {
-            await Provider.of<EmployeeProvider>(context, listen: false)
-                .sendSomeUserNotification(
-              "${localData.storage.read("f_name")} replied to comment",
-              disPoint.text.trim(),
-              createdBy,   // 👉 Admin ID
-              taskId,
-            );
-          } catch (e) {
-            print("Admin receive error: $e");
-          }
-
-          try {
             await Provider.of<EmployeeProvider>(context, listen: false)
                 .sendAdminNotification(
               "${localData.storage.read("f_name")} replied to visit report",
               disPoint.text.trim(),
-              createdBy,
+              createdUserId,
               "1",
               taskId,
             );
+            
           } catch (e) {
             print("Admin notification error: $e");
           }
@@ -1820,7 +1829,10 @@ void initCmtValues(){
     }
 
     notifyListeners();
-  }Future<void> getAllComments(String id,String contId) async {
+  }
+
+
+  Future<void> getAllComments(String id,String contId) async {
   _cmtRefresh=false;
     _customerReport.clear();
     notifyListeners();
@@ -1909,10 +1921,11 @@ Future<void> getComments(String id) async {
         "cos_id": localData.storage.read("cos_id"),
         "cus_id": "0"
       };
-      // print(data.toString());
+       print(data.toString());
       final response =await custRepo.getComments(data);
       if (response.isNotEmpty) {
         _customerReport=response;
+        print("vist tcommend ${_customerReport}");
         _refresh=true;
       } else {
         _refresh=true;
@@ -2094,7 +2107,8 @@ TextEditingController date= TextEditingController(text: "${DateTime.now().day.to
     notifyListeners();
   }
   Future<void> addVisit({required  context,required String companyId, required String taskId, required String companyName,required String tType, required String desc,
-    required List sendList,required String lat,required String lng,required VoidCallback callBack}) async {
+    required List sendList,required String lat,required String lng,required VoidCallback callBack}) async
+  {
     try {
       Map data = {
         "action":addVst,
@@ -2124,27 +2138,76 @@ TextEditingController date= TextEditingController(text: "${DateTime.now().day.to
       };
       final response =await custRepo.addVisit(data);
       log(response.toString());
-      if (response.toString().contains('ok')){
-        utils.showSuccessToast(context: context,text: constValue.success);
-        Provider.of<EmployeeProvider>(context, listen: false).sendAdminNotification(
-          "Visit report added - ${localData.storage.read("typeName")??""}",
-          "Added By ${localData.storage.read("f_name")}",
-          "1",taskId,""
-        );
-        await FirebaseFirestore.instance.collection('attendance').add({
-          'emp_id': localData.storage.read("id"),
+      if (response.toString().contains('ok')) {
+
+        utils.showSuccessToast(
+            context: context,
+            text: constValue.success);
+
+        final empProvider =
+        Provider.of<EmployeeProvider>(context, listen: false);
+
+        String myId =
+        localData.storage.read("id").toString();
+
+        /// 🔔 SAFE NOTIFICATION
+        try {
+          await empProvider.sendAdminNotification(
+            "Visit report added - ${localData.storage.read("typeName") ?? ""}",
+            "Added by ${localData.storage.read("f_name")}",
+            "",
+            taskId,
+            "",
+          );
+        } catch (e) {
+          print("Notification error ignored: $e");
+        }
+
+        /// Firebase attendance
+        await FirebaseFirestore.instance
+            .collection('attendance')
+            .add({
+          'emp_id': myId,
           'time': DateTime.now(),
           'status': "",
         });
+
         getAllCustomers(false);
-        Provider.of<TaskProvider>(context, listen: false).getAllTask(false);
+
+        /// ✅ NAVIGATION ALWAYS EXECUTES
         callBack();
+
+        addCtr.reset();
         notifyListeners();
-        addCtr.reset();
-      }else {
-        utils.showErrorToast(context: context);
-        addCtr.reset();
       }
+      // if (response.toString().contains('ok')){
+      //   utils.showSuccessToast(context: context,text: constValue.success);
+      //   Provider.of<EmployeeProvider>(context, listen: false).sendAdminNotification(
+      //     "Visit report added - ${localData.storage.read("typeName")??""}",
+      //     "Added By ${localData.storage.read("f_name")}",
+      //     "1",taskId,""
+      //   );
+      //   await FirebaseFirestore.instance.collection('attendance').add({
+      //     'emp_id': localData.storage.read("id"),
+      //     'time': DateTime.now(),
+      //     'status': "",
+      //   });
+      //   getAllCustomers(false);
+      //   await Provider.of<EmployeeProvider>(context, listen: false)
+      //       .sendAdminNotification(
+      //     "${localData.storage.read("f_name")} replied to visit report",
+      //     disPoint.text.trim(),
+      //     localData.storage.read("id"),
+      //     "1",
+      //     "",
+      //   );
+      //       callBack();
+      //   notifyListeners();
+      //   addCtr.reset();
+      // }else {
+      //   utils.showErrorToast(context: context);
+      //   addCtr.reset();
+      // }
     } catch (e) {
       utils.showErrorToast(context: context);
       addCtr.reset();
@@ -3424,7 +3487,7 @@ List<Marker> get liveMarker =>_liveMarker;
       log("REQUEST DATA => $data");
 
       final response = await custRepo.getComments(data);
-
+      print('response REQUEST DATA${response}');
       log("API RESPONSE COUNT => ${response.length}");
 
       if (response.isNotEmpty) {

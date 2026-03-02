@@ -378,6 +378,11 @@ class _VisitReportState extends State<VisitReport> with SingleTickerProviderStat
                                 itemCount: custProvider.dailyVisitReport.length,
                                 itemBuilder: (context,index){
                                   CustomerReportModel data = custProvider.dailyVisitReport[index];
+                                 // CustomerReportModel data1 = custProvider.customerReport[index];
+                                 //  print("created${data1.createdBy}");
+                                 //  print("created com ${data1.companyName}");
+                                  print("created${data.createdBy}");
+                                  print("created com ${data.companyName}");
                                   return VisitReportDetails(data: data);
                                 }),
                           ),

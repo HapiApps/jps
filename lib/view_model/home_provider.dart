@@ -692,29 +692,29 @@ Future<void> loginOuts(context) async {
     }
     notifyListeners();
 }
-Future<void> updateToken(context) async {
-    try {
-      String? token="";
-      token=await FirebaseMessaging.instance.getToken();
-      _notificationToken=token.toString();
-      Map data = {
-        "action": logOut,
-        'id': localData.storage.read("id"),
-        'token':_notificationToken
-      };
-      final response = await homeRepo.loginApi(data);
-      log(data.toString());
-      log(response.toString());
-      if(response.isNotEmpty){
-        debugPrint("Token updated successfully");
-      }else{
-      }
-    } catch (e) {
-      // utils.showErrorToast(context: context);
-      // loginCtr.reset();
-    }
-    notifyListeners();
-}
+// Future<void> updateToken(context) async {
+//     try {
+//       String? token="";
+//       token=await FirebaseMessaging.instance.getToken();
+//       _notificationToken=token.toString();
+//       Map data = {
+//         "action": logOut,
+//         'id': localData.storage.read("id"),
+//         'token':_notificationToken
+//       };
+//       final response = await homeRepo.loginApi(data);
+//       log(data.toString());
+//       log(response.toString());
+//       if(response.isNotEmpty){
+//         debugPrint("Token updated successfully");
+//       }else{
+//       }
+//     } catch (e) {
+//       // utils.showErrorToast(context: context);
+//       // loginCtr.reset();
+//     }
+//     notifyListeners();
+// }
   List _mainReportList=[];
   List get mainReportList => _mainReportList;
 

@@ -1729,7 +1729,8 @@ Future<void> getNotifications({bool markSeen = false}) async {
       String msgTittle,
       String msgBody,
       String id,
-      String purposeId) async
+      String purposeId
+      ) async
   {
 
     try {
@@ -1784,8 +1785,8 @@ Future<void> getNotifications({bool markSeen = false}) async {
         "action": someUserNotification,
         "msgTittle": msgTittle,
         "msgBody": msgBody,
-        "send_by": loginId,
-        "id": id,
+        "send_by": loginId.toString(),
+        "id": loginId.toString(),
         "platform": safeStr(localData.storage.read("platform")),
         "purpose_id": purposeId.isNotEmpty ? purposeId : "0",
         "sender_name": localData.storage.read("f_name"),
@@ -1834,9 +1835,9 @@ Future<void> getNotifications({bool markSeen = false}) async {
       "action": adminNotification,
       "msgTittle": msgTittle,
       "msgBody": msgBody,
-      "role": role,
+      "role": safeStr(localData.storage.read("role")),
       "send_by": safeStr(localData.storage.read("id")),
-      "id": assignedId.isEmpty?safeStr(localData.storage.read("id")):assignedId.toString(),
+      "id": assignedId.isEmpty?safeStr(localData.storage.read("id").toString()):assignedId.toString(),
       "type": "1",
       "platform": safeStr(localData.storage.read("platform")),
       "cos_id": safeStr(localData.storage.read("cos_id")),

@@ -50,7 +50,9 @@ class CustomerReportModel {
         companyName: json["company_name"],
         comments: json["comments"],
         date: json["date"],
-        createdTs: DateTime.parse(json["created_ts"]),
+        createdTs: json["created_ts"] != null
+            ? DateTime.tryParse(json["created_ts"].toString())
+            : null,
         name: json["name"],
         phoneNo: json["phone_no"],
         firstname: json["firstname"],
@@ -62,7 +64,7 @@ class CustomerReportModel {
         commentsList: json["commentsList"],
         commentsTs: json["commentsTs"],
         typeNo: json["typeNo"],
-        createdBy: json["created_by"],
+        createdBy: json["created_by"]?.toString(),
         role: json["role"],
         isLocal: false,
       );

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:developer';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart'as http;
 import 'package:master_code/model/customer/customer_attendance_model.dart';
@@ -279,7 +280,7 @@ class CustomerRepository{
           body: jsonEncode(data),
           encoding: Encoding.getByName("utf-8"));
       print(data.toString());
-      print(request.body);
+      log("request data print${request.body}");
       if (request.statusCode == 200){
         List response = json.decode(request.body);
         return response.map((json) => CustomerReportModel.fromJson(json)).toList();

@@ -11,6 +11,7 @@ import 'package:master_code/view_model/task_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:record/record.dart';
 import 'package:rounded_loading_button_plus/rounded_loading_button.dart';
+import 'package:universal_html/js_util.dart' as _customerReport;
 import '../../../component/custom_appbar.dart';
 import '../../../component/custom_loading.dart';
 import '../../../component/custom_text.dart';
@@ -52,7 +53,7 @@ class _TaskChatState extends State<TaskChat> with SingleTickerProviderStateMixin
 
   bool isRecording = false;
   String? recordedPath;
-
+  String lastCreatedBy = "0";
   Duration duration = Duration.zero;
   Timer? timer;
   Duration totalDuration = Duration.zero;
@@ -397,11 +398,16 @@ class _TaskChatState extends State<TaskChat> with SingleTickerProviderStateMixin
                           return;
                         }
                         isRecording=false;
+                        /// ✅ Get last comment creator safely
+
+                        // print("BottomSheet LastCreatedBy => $lastCreatedBy");
+                        // print("CreatedEId lastCreatedBy : ${lastCreatedBy}");
                         if(widget.isVisit==true){
-                          print("in");
+                        print("innn");
+                          // print("created lastCreatedBy:${ lastCreatedBy}");
                           await custProvider.addComment(context: context,visitId: widget.taskId.toString(),
                               companyName: widget.name,companyId:"", numberList: [], taskId: "0",
-                            createdBy: widget.createdBy.toString(), assignedId: widget.assignedId.toString(),
+                            createdBy: lastCreatedBy, assignedId: widget.assignedId.toString(),
                             path:recordedPath==null?"":recordedPath.toString(),);
                         }else{
                           print("inn");
@@ -454,8 +460,21 @@ class _TaskChatState extends State<TaskChat> with SingleTickerProviderStateMixin
                     addRepaintBoundaries: true,
                     itemCount: custProvider.customerReport.length,
                     itemBuilder: (context, index) {
+
+
+                      if (custProvider.customerReport.isNotEmpty) {
+                       Future.delayed(Duration.zero,(){
+                         setState(() {
+                           lastCreatedBy =
+                               custProvider.customerReport.last.createdBy?.toString() ?? "0";
+                         });
+                       });
+                      }
                       CustomerReportModel data = custProvider.customerReport[index];
                       var createdBy = "";
+                      String CreatedEId=data.createdBy.toString();
+                      // print("CreatedEId: ${CreatedEId}");
+                      // print("CreatedEId lastCreatedBy : ${lastCreatedBy}");
                       String timestamp = data.createdTs.toString();
                       DateTime dateTime = DateTime.parse(timestamp);
                       String dayOfWeek = DateFormat('EEEE').format(dateTime);
