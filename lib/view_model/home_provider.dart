@@ -23,6 +23,9 @@ import 'package:sidebarx/sidebarx.dart';
 import 'package:syncfusion_flutter_datepicker/datepicker.dart';
 import '../component/month_calendar.dart';
 import '../local_database/sqlite.dart';
+import '../model/attendance_model.dart';
+import '../model/customer/customer_model.dart';
+import '../model/user_model.dart';
 import '../repo/home_repo.dart';
 import '../screens/attendance/attendance_report.dart';
 import '../screens/common/dashboard.dart';
@@ -818,7 +821,85 @@ Future<void> loginOuts(context) async {
     }
     notifyListeners();
   }
+  Future<void> loadFullDashboard(BuildContext context) async {
 
+    _refresh = false;
+    notifyListeners();
+
+    try {
+
+      Map data = {
+        "action": home,
+        "id": localData.storage.read("id"),
+        "salesman_id": localData.storage.read("id"),
+        "role": localData.storage.read("role"),
+        "cos_id": localData.storage.read("cos_id"),
+        "st_dt": _startDate,
+        "en_dt": _endDate,
+        "date1": _startDate,
+        "date2": _endDate,
+      };
+
+      final response = await homeRepo.getFullDashboard(data);
+
+
+      /* ================= MAIN REPORT ================= */
+
+      _mainReportList = [response["main_report"]];
+      localData.storage.write("conveyance_amount",response[0]['conveyance_amount'].toString()=="null"||response[0]['conveyance_amount'].toString()==""?"0":response[0]['conveyance_amount'].toString());
+      localData.storage.write("travel_amount",response[0]['travel_amount'].toString()=="null"||response[0]['travel_amount'].toString()==""?"0":response[0]['travel_amount'].toString());
+      localData.storage.write("da_amount",response[0]['da_amount'].toString()=="null"||response[0]['da_amount'].toString()==""?"0":response[0]['da_amount'].toString());
+      /* ================= DASHBOARD VISIT ================= */
+
+      _visitCount = response["dashboard_report"];
+
+      /* ================= USERS ================= */
+
+      final attendanceProvider =
+      Provider.of<AttendanceProvider>(context, listen: false);
+
+      final employeeProvider =
+      Provider.of<EmployeeProvider>(context, listen: false);
+
+      final customerProvider =
+      Provider.of<CustomerProvider>(context, listen: false);
+
+      /* ================= ATTENDANCE ================= */
+
+      attendanceProvider.setAttendanceData(
+        (response["attendance"] as List)
+            .map((e) => AttendanceModel.fromJson(e))
+            .toList(),
+      );
+
+      /* ================= USERS ================= */
+
+      employeeProvider.setUserData(
+        (response["allusers"] as List)
+            .map((e) => UserModel.fromJson(e))
+            .toList(),
+      );
+
+      /* ================= CUSTOMERS ================= */
+
+      customerProvider.setCustomerData(
+        (response["allcustomers"] as List)
+            .map((e) => CustomerModel.fromJson(e))
+            .toList(),
+      );
+
+      /* ================= NOTIFICATIONS ================= */
+
+      employeeProvider.setNotifications(response["notifications"]);
+
+      _refresh = true;
+
+    } catch (e) {
+      _refresh = true;
+    }
+
+    notifyListeners();
+  }
 Future<void> forgotPassword(context) async {
   try{
       Map data = {

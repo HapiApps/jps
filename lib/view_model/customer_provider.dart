@@ -429,6 +429,12 @@ void closeVisible(){
   List<CustomerModel> get customer => _customerData;
   List<CustomerModel> get filterCustomerData => _filterCustomerData;
   List<CustomerModel> get customerDetailData => _customerDetailData;
+  void setCustomerData(List<CustomerModel> data) {
+    _customerData = data;
+    _searchCustomerDate = data;
+    _filterCustomerData = data;
+    notifyListeners();
+  }
   Future<void> getAllCustomers(bool isRefresh) async {
     if(isRefresh==true){
       _cusRefresh=false;

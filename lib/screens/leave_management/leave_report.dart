@@ -100,679 +100,132 @@ class _ViewMyLeavesState extends State<ViewMyLeaves> {
                 }
                 _myFocusScopeNode.unfocus();
               },
-              child: Center(
-                child: SizedBox(
-                  width: kIsWeb?webWidth:phoneWidth,
-                  child: Column(
-                    children: [
-                      // 15.height,
-                      // SizedBox(
-                      //   width: kIsWeb?webWidth:phoneWidth,
-                      //   child: GroupButton(
-                      //     isRadio: true,
-                      //     controller: levProvider.groupController,
-                      //     options: GroupButtonOptions(
-                      //         borderRadius: BorderRadius.circular(20),
-                      //         spacing: 10,
-                      //         elevation: 0.5,
-                      //         buttonHeight: 30,
-                      //         selectedColor: colorsConst.primary,
-                      //         unselectedColor: Colors.white,
-                      //         unselectedTextStyle: TextStyle(
-                      //             color: colorsConst.greyClr
-                      //         ),
-                      //         unselectedBorderColor: Colors.white
-                      //     ),
-                      //     onSelected: (name, index, isSelected) {
-                      //       levProvider.changeReportType(name.toString());
-                      //       levProvider.search.clear();
-                      //     },
-                      //     buttons: levProvider.reportList,
-                      //   ),
-                      // ),
-                      10.height,
-                      // InkWell(
-                      //   onTap:(){
-                      //     levProvider.showDatePickerCalendar(context);
-                      //   },
-                      //   child:Container(
-                      //     height: 50,
-                      //     decoration: customDecoration.baseBackgroundDecoration(
-                      //         color: Colors.white,
-                      //         radius: 10,
-                      //         borderColor: Colors.grey.shade300
-                      //     ),
-                      //     width: kIsWeb?webWidth:phoneWidth,
-                      //     child: Padding(
-                      //         padding: const EdgeInsets.fromLTRB(10, 0, 10, 0),
-                      //         child: Row(
-                      //           mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      //           children: [
-                      //             Row(
-                      //               children: [
-                      //                 Icon(
-                      //                   Icons.calendar_today, size: 15,color: colorsConst.primary,), 2.width,
-                      //                 CustomText(
-                      //                   text:
-                      //                   "${levProvider.startDate}${(levProvider.startDate!=levProvider.endDate)&&levProvider.endDate!=""? " To ${levProvider.endDate}" : ""}",
-                      //                 )
-                      //               ],
-                      //             ),
-                      //             CustomText(text: levProvider.levCount1,
-                      //               colors: colorsConst.primary,
-                      //               isBold: true,)
-                      //           ],
-                      //         )
-                      //     ),
-                      //   )
-                      // ),
-                      // 5.height,
-                      if(localData.storage.read("role") == "1")
-                      // Row(
-                      //   mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      //   children: [
-                      //     CustomTextField(
-                      //         text: "",
-                      //         controller: levProvider.search2,
-                      //         keyboardType: TextInputType.text,
-                      //         inputFormatters: constInputFormatters.numTextInput,
-                      //         textInputAction: TextInputAction.done,
-                      //         width: kIsWeb?webWidth:phoneWidth/1.2,
-                      //         hintText: "Search Name",
-                      //         isIcon: true,
-                      //         iconData: Icons.search,
-                      //         isShadow: true,
-                      //         onChanged: (value) {
-                      //           levProvider.searchReport(value.toString());
-                      //         },
-                      //         isSearch: levProvider.search2.text.isNotEmpty?true:false,
-                      //         searchCall: (){
-                      //           levProvider.search2.clear();
-                      //           levProvider.searchReport("");
-                      //         },
-                      //       ),
-                      //     InkWell(
-                      //       onTap: (){
-                      //         _myFocusScopeNode.unfocus();
-                      //         showDialog(
-                      //           context: context,
-                      //           builder: (context) {
-                      //             return Consumer2<LeaveProvider,EmployeeProvider>(
-                      //               builder: (context, levPvr,empProvider, _) {
-                      //                 return AlertDialog(
-                      //                   actions: [
-                      //                     SizedBox(
-                      //                       width: kIsWeb?webWidth:phoneWidth,
-                      //                       child: Column(
-                      //                         children: [
-                      //                           20.height,
-                      //                           Row(
-                      //                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      //                             children: [
-                      //                               70.width,
-                      //                               const CustomText(
-                      //                                 text: 'Filters',
-                      //                                 colors: Colors.black,
-                      //                                 size: 16,
-                      //                                 isBold: true,
-                      //                               ),
-                      //                               30.width,
-                      //                               InkWell(
-                      //                                 onTap: () {
-                      //                                   Navigator.of(context, rootNavigator: true).pop();
-                      //                                 },
-                      //                                 child: SvgPicture.asset(assets.cancel),
-                      //                               )
-                      //                             ],
-                      //                           ),
-                      //                           20.height,
-                      //                           Row(
-                      //                             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      //                             children: [
-                      //                               Column(
-                      //                                 crossAxisAlignment: CrossAxisAlignment.start,
-                      //                                 children: [
-                      //                                   CustomText(
-                      //                                     text: "From Date",
-                      //                                     colors: colorsConst.greyClr,
-                      //                                     size: 12,
-                      //                                   ),
-                      //                                   InkWell(
-                      //                                     onTap: () {
-                      //                                       levPvr.datePick(
-                      //                                         context: context,
-                      //                                         isStartDate: true,
-                      //                                         date: levPvr.startDate,
-                      //                                       );
-                      //                                     },
-                      //                                     child: Container(
-                      //                                       height: 30,
-                      //                                       width: kIsWeb?webWidth/2.7:phoneWidth/2.7,
-                      //                                       decoration: customDecoration.baseBackgroundDecoration(
-                      //                                         color: Colors.white,
-                      //                                         radius: 5,
-                      //                                         borderColor: colorsConst.litGrey,
-                      //                                       ),
-                      //                                       child: Row(
-                      //                                         mainAxisAlignment: MainAxisAlignment.center,
-                      //                                         children: [
-                      //                                           CustomText(text: levPvr.startDate),
-                      //                                           5.width,
-                      //                                           SvgPicture.asset(assets.calendar2),
-                      //                                         ],
-                      //                                       ),
-                      //                                     ),
-                      //                                   )
-                      //                                 ],
-                      //                               ),
-                      //                               Column(
-                      //                                 crossAxisAlignment: CrossAxisAlignment.start,
-                      //                                 children: [
-                      //                                   CustomText(
-                      //                                     text: "To Date",
-                      //                                     colors: colorsConst.greyClr,
-                      //                                     size: 12,
-                      //                                   ),
-                      //                                   InkWell(
-                      //                                     onTap: () {
-                      //                                       levPvr.datePick(
-                      //                                         context: context,
-                      //                                         isStartDate: false,
-                      //                                         date: levPvr.endDate,
-                      //                                       );
-                      //                                     },
-                      //                                     child: Container(
-                      //                                       height: 30,
-                      //                                       width: kIsWeb?webWidth/2.7:phoneWidth/2.7,
-                      //                                       decoration: customDecoration.baseBackgroundDecoration(
-                      //                                         color: Colors.white,
-                      //                                         radius: 5,
-                      //                                         borderColor: colorsConst.litGrey,
-                      //                                       ),
-                      //                                       child: Row(
-                      //                                         mainAxisAlignment: MainAxisAlignment.center,
-                      //                                         children: [
-                      //                                           CustomText(text: levPvr.endDate),
-                      //                                           5.width,
-                      //                                           SvgPicture.asset(assets.calendar2),
-                      //                                         ],
-                      //                                       ),
-                      //                                     ),
-                      //                                   )
-                      //                                 ],
-                      //                               ),
-                      //                             ],
-                      //                           ),
-                      //                           10.height,
-                      //                           Row(
-                      //                             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      //                             children: [
-                      //                               Column(
-                      //                                 crossAxisAlignment: CrossAxisAlignment.start,
-                      //                                 children: [
-                      //                                   CustomText(
-                      //                                     text: "Employee Name",
-                      //                                     colors: colorsConst.greyClr,
-                      //                                     size: 12,
-                      //                                   ),
-                      //                                   EmployeeDropdown(
-                      //                                     callback: (){
-                      //                                       empProvider.getAllUsers();
-                      //                                     },
-                      //                                     text: levPvr.userName==""?"Name":levPvr.userName,
-                      //                                     employeeList: empProvider.filterUserData,
-                      //                                     onChanged: (UserModel? value) {
-                      //                                       levPvr.selectUserReport(value!);
-                      //                                     },
-                      //                                     size: kIsWeb?webWidth/2.7:phoneWidth/2.7,
-                      //                                   ),
-                      //                                 ],
-                      //                               ),
-                      //                               Padding(
-                      //                                 padding: EdgeInsets.fromLTRB(0, empProvider.filterUserData.isEmpty?20:0, 0, 0),
-                      //                                 child: Column(
-                      //                                   crossAxisAlignment: CrossAxisAlignment.start,
-                      //                                   children: [
-                      //                                     CustomText(
-                      //                                       text: "Select Date Range",
-                      //                                       colors: colorsConst.greyClr,
-                      //                                       size: 12,
-                      //                                     ),
-                      //                                     Container(
-                      //                                       height: 40,
-                      //                                       width: kIsWeb?webWidth/2.7:phoneWidth/2.7,
-                      //                                       decoration: customDecoration.baseBackgroundDecoration(
-                      //                                         radius: 5,
-                      //                                         color: Colors.white,
-                      //                                         borderColor: colorsConst.litGrey,
-                      //                                       ),
-                      //                                       child: DropdownButton(
-                      //                                         iconEnabledColor: colorsConst.greyClr,
-                      //                                         isExpanded: true,
-                      //                                         underline: const SizedBox(),
-                      //                                         icon: const Icon(Icons.keyboard_arrow_down_outlined),
-                      //                                         value: levPvr.typeReport,
-                      //                                         onChanged: (value) {
-                      //                                           levPvr.changeRrtType(value,localData.storage.read("id"),localData.storage.read("role"),false);
-                      //                                         },
-                      //                                         items: levPvr.typeList.map((list) {
-                      //                                           return DropdownMenuItem(
-                      //                                             value: list,
-                      //                                             child: CustomText(
-                      //                                               text: "  $list",
-                      //                                               colors: Colors.black,
-                      //                                               isBold: false,
-                      //                                             ),
-                      //                                           );
-                      //                                         }).toList(),
-                      //                                       ),
-                      //                                     ),
-                      //                                   ],
-                      //                                 ),
-                      //                               ),
-                      //                             ],
-                      //                           ),
-                      //                           20.height,
-                      //                           Row(
-                      //                             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      //                             children: [
-                      //                               CustomBtn(
-                      //                                 width: 100,
-                      //                                 text: 'Clear All',
-                      //                                 callback: () {
-                      //                                   levPvr.initDates(id:localData.storage.read("id"),role:localData.storage.read("role"),isRefresh: false);
-                      //                                   Navigator.of(context, rootNavigator: true).pop();
-                      //                                   levPvr.getLeaveReport(levPvr.filter);
-                      //                                 },
-                      //                                 bgColor: Colors.grey.shade200,
-                      //                                 textColor: Colors.black,
-                      //                               ),
-                      //                               CustomBtn(
-                      //                                 width: 100,
-                      //                                 text: 'Apply Filters',
-                      //                                 callback: () {
-                      //                                   levPvr.changeFilter();
-                      //                                   levPvr.getLeaveReport(levPvr.filter);
-                      //                                   Navigator.of(context, rootNavigator: true).pop();
-                      //                                 },
-                      //                                 bgColor: colorsConst.primary,
-                      //                                 textColor: Colors.white,
-                      //                               ),
-                      //                             ],
-                      //                           ),
-                      //                           20.height,
-                      //                         ],
-                      //                       ),
-                      //                     )
-                      //                   ],
-                      //                 );
-                      //               },
-                      //             );
-                      //           },
-                      //         );
-                      //         // empProvider.filterUserData = empProvider.filterUserData.where((contact){
-                      //         //   DateTime contactDate = DateFormat('yyyy-MM-dd').parse(contact.updatedTs.toString().split(' ')[0]);
-                      //         //   return contactDate.isAfter(startDate) && contactDate.isBefore(currentDate);
-                      //         // }).toList();
-                      //       },
-                      //       child: Container(
-                      //         width: kIsWeb?webWidth/6.5:phoneWidth/7,
-                      //         height: 45,
-                      //         decoration: customDecoration.baseBackgroundDecoration(
-                      //             color: levProvider.filter==true?colorsConst.primary:Colors.grey.shade300,radius: 5
-                      //         ),
-                      //         child: Padding(
-                      //           padding: const EdgeInsets.all(5.0),
-                      //           child: SvgPicture.asset(assets.filter,width: 15,height: 15,),
-                      //         ),
-                      //       ),
-                      //     ),
-                      //   ],
-                      // ),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              child:DefaultTabController(
+              length: 2,
+              child: Column(
+                children: [
+
+                  /// SEARCH BAR (UNCHANGED)
+                  if(localData.storage.read("role") == "1")
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      child: Container(
+                        width: kIsWeb ? webWidth : phoneWidth,
+                        decoration: customDecoration.baseBackgroundDecoration(
+                          radius: 30,
+                          color: colorsConst.primary,
+                        ),
+                        child: Row(
                           children: [
-                            /// SEARCH + FILTER BAR
-                            Container(
-                              width: kIsWeb ? webWidth: phoneWidth,
-                              decoration: customDecoration.baseBackgroundDecoration(
-                                radius: 30,
-                                color: colorsConst.primary,
-                              ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  /// SEARCH FIELD
-                                  Container(
-                                      width: kIsWeb ? webWidth / 1.2 : phoneWidth / 1.2,
-                                    height: 45,
-                                    decoration: customDecoration.baseBackgroundDecoration(
-                                      radius: 30,
-                                      color: Colors.transparent,
-                                    ),
-                                    child: TextFormField(
-                                      controller: levProvider.search2,
-                                      cursorColor: colorsConst.primary,
-                                      onChanged: (value) {
-                                        levProvider.searchReport(value.toString());
-                                      },
-                                      decoration: InputDecoration(
-                                        hintText: "Search for Employees",
-                                        hintStyle: TextStyle(
-                                          color: colorsConst.primary,
-                                          fontSize: 14,
-                                        ),
-                                        filled: true,
-                                        fillColor: Colors.white,
-                                        prefixIcon: const Icon(Icons.search, color: Colors.grey),
-                                        suffixIcon: levProvider.search2.text.isNotEmpty
-                                            ? GestureDetector(
-                                            onTap: () {
-                                              levProvider.search2.clear();
-                                              levProvider.searchReport("");
-                                            },
-                                            child: Container(
-                                                width: 10,height: 10,color: Colors.transparent,
-                                                child: Padding(
-                                                  padding: const EdgeInsets.all(8.0),
-                                                  child: SvgPicture.asset(assets.cancel2),
-                                                ))
-                                        )
-                                            : null,
-                                        errorStyle: const TextStyle(
-                                          fontSize: 12.0,
-                                          height: 0.20,
-                                        ),
-                                        focusedBorder: OutlineInputBorder(
-                                            borderSide:  BorderSide(color: colorsConst.primary),
-                                            borderRadius: BorderRadius.circular(30)
-                                        ),
-                                        focusedErrorBorder: OutlineInputBorder(
-                                            borderSide: BorderSide(color: colorsConst.primary),
-                                            borderRadius: BorderRadius.circular(30)
-                                        ),
-                                        // errorStyle: const TextStyle(height:0.05,fontSize: 12),
-                                        contentPadding:const EdgeInsets.fromLTRB(10, 10, 10, 10),
-                                        errorBorder: OutlineInputBorder(
-                                            borderSide:  const BorderSide(color: Colors.transparent),
-                                            borderRadius: BorderRadius.circular(30)
-                                        ),
-                                        enabledBorder: OutlineInputBorder(
-                                          // grey.shade300
-                                            borderSide:  BorderSide(color: Colors.grey.shade300),
-                                            borderRadius: BorderRadius.circular(30)
-                                        ),
-                                      ),
-                                    ),
+                            Expanded(
+                              child: TextFormField(
+                                controller: levProvider.search2,
+                                onChanged: (value) {
+                                  levProvider.searchReport(value.toString());
+                                },
+                                decoration: InputDecoration(
+                                  hintText: "Search for Employees",
+                                  filled: true,
+                                  fillColor: Colors.white,
+                                  prefixIcon: const Icon(Icons.search),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(30),
                                   ),
-                                  /// FILTER ICON
-                                  InkWell(
-                                    onTap: (){
-                                      _myFocusScopeNode.unfocus();
-                                      showDialog(
-                                        context: context,
-                                        builder: (context) {
-                                          return Consumer2<LeaveProvider,EmployeeProvider>(
-                                            builder: (context, levPvr,empProvider, _) {
-                                              return AlertDialog(
-                                                actions: [
-                                                  SizedBox(
-                                                    width: kIsWeb?webWidth:phoneWidth,
-                                                    child: Column(
-                                                      children: [
-                                                        20.height,
-                                                        Row(
-                                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                                          children: [
-                                                            70.width,
-                                                            const CustomText(
-                                                              text: 'Filters',
-                                                              colors: Colors.black,
-                                                              size: 16,
-                                                              isBold: true,
-                                                            ),
-                                                            30.width,
-                                                            InkWell(
-                                                              onTap: () {
-                                                                Navigator.of(context, rootNavigator: true).pop();
-                                                              },
-                                                              child: SvgPicture.asset(assets.cancel),
-                                                            )
-                                                          ],
-                                                        ),
-                                                        20.height,
-                                                        Row(
-                                                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                                                          children: [
-                                                            Column(
-                                                              crossAxisAlignment: CrossAxisAlignment.start,
-                                                              children: [
-                                                                CustomText(
-                                                                  text: "From Date",
-                                                                  colors: colorsConst.greyClr,
-                                                                  size: 12,
-                                                                ),
-                                                                InkWell(
-                                                                  onTap: () {
-                                                                    levPvr.datePick(
-                                                                      context: context,
-                                                                      isStartDate: true,
-                                                                      date: levPvr.startDate,
-                                                                    );
-                                                                  },
-                                                                  child: Container(
-                                                                    height: 30,
-                                                                    width: kIsWeb?webWidth/2.7:phoneWidth/2.7,
-                                                                    decoration: customDecoration.baseBackgroundDecoration(
-                                                                      color: Colors.white,
-                                                                      radius: 5,
-                                                                      borderColor: colorsConst.litGrey,
-                                                                    ),
-                                                                    child: Row(
-                                                                      mainAxisAlignment: MainAxisAlignment.center,
-                                                                      children: [
-                                                                        CustomText(text: levPvr.startDate),
-                                                                        5.width,
-                                                                        SvgPicture.asset(assets.calendar2),
-                                                                      ],
-                                                                    ),
-                                                                  ),
-                                                                )
-                                                              ],
-                                                            ),
-                                                            Column(
-                                                              crossAxisAlignment: CrossAxisAlignment.start,
-                                                              children: [
-                                                                CustomText(
-                                                                  text: "To Date",
-                                                                  colors: colorsConst.greyClr,
-                                                                  size: 12,
-                                                                ),
-                                                                InkWell(
-                                                                  onTap: () {
-                                                                    levPvr.datePick(
-                                                                      context: context,
-                                                                      isStartDate: false,
-                                                                      date: levPvr.endDate,
-                                                                    );
-                                                                  },
-                                                                  child: Container(
-                                                                    height: 30,
-                                                                    width: kIsWeb?webWidth/2.7:phoneWidth/2.7,
-                                                                    decoration: customDecoration.baseBackgroundDecoration(
-                                                                      color: Colors.white,
-                                                                      radius: 5,
-                                                                      borderColor: colorsConst.litGrey,
-                                                                    ),
-                                                                    child: Row(
-                                                                      mainAxisAlignment: MainAxisAlignment.center,
-                                                                      children: [
-                                                                        CustomText(text: levPvr.endDate),
-                                                                        5.width,
-                                                                        SvgPicture.asset(assets.calendar2),
-                                                                      ],
-                                                                    ),
-                                                                  ),
-                                                                )
-                                                              ],
-                                                            ),
-                                                          ],
-                                                        ),
-                                                        10.height,
-                                                        Row(
-                                                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                                                          children: [
-                                                            Column(
-                                                              crossAxisAlignment: CrossAxisAlignment.start,
-                                                              children: [
-                                                                CustomText(
-                                                                  text: "Employee Name",
-                                                                  colors: colorsConst.greyClr,
-                                                                  size: 12,
-                                                                ),
-                                                                EmployeeDropdown(
-                                                                  callback: (){
-                                                                    empProvider.getAllUsers();
-                                                                  },
-                                                                  text: levPvr.userName==""?"Name":levPvr.userName,
-                                                                  employeeList: empProvider.filterUserData,
-                                                                  onChanged: (UserModel? value) {
-                                                                    levPvr.selectUserReport(value!);
-                                                                  },
-                                                                  size: kIsWeb?webWidth/2.7:phoneWidth/2.7,
-                                                                ),
-                                                              ],
-                                                            ),
-                                                            Padding(
-                                                              padding: EdgeInsets.fromLTRB(0, empProvider.filterUserData.isEmpty?20:0, 0, 0),
-                                                              child: Column(
-                                                                crossAxisAlignment: CrossAxisAlignment.start,
-                                                                children: [
-                                                                  CustomText(
-                                                                    text: "Select Date Range",
-                                                                    colors: colorsConst.greyClr,
-                                                                    size: 12,
-                                                                  ),
-                                                                  Container(
-                                                                    height: 40,
-                                                                    width: kIsWeb?webWidth/2.7:phoneWidth/2.7,
-                                                                    decoration: customDecoration.baseBackgroundDecoration(
-                                                                      radius: 5,
-                                                                      color: Colors.white,
-                                                                      borderColor: colorsConst.litGrey,
-                                                                    ),
-                                                                    child: DropdownButton(
-                                                                      iconEnabledColor: colorsConst.greyClr,
-                                                                      isExpanded: true,
-                                                                      underline: const SizedBox(),
-                                                                      icon: const Icon(Icons.keyboard_arrow_down_outlined),
-                                                                      value: levPvr.typeReport,
-                                                                      onChanged: (value) {
-                                                                        levPvr.changeRrtType(value,localData.storage.read("id"),localData.storage.read("role"),false);
-                                                                      },
-                                                                      items: levPvr.typeList.map((list) {
-                                                                        return DropdownMenuItem(
-                                                                          value: list,
-                                                                          child: CustomText(
-                                                                            text: "  $list",
-                                                                            colors: Colors.black,
-                                                                            isBold: false,
-                                                                          ),
-                                                                        );
-                                                                      }).toList(),
-                                                                    ),
-                                                                  ),
-                                                                ],
-                                                              ),
-                                                            ),
-                                                          ],
-                                                        ),
-                                                        20.height,
-                                                        Row(
-                                                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                                                          children: [
-                                                            CustomBtn(
-                                                              width: 100,
-                                                              text: 'Clear All',
-                                                              callback: () {
-                                                                levPvr.initDates(id:localData.storage.read("id"),role:localData.storage.read("role"),isRefresh: false);
-                                                                Navigator.of(context, rootNavigator: true).pop();
-                                                                levPvr.getLeaveReport(levPvr.filter);
-                                                              },
-                                                              bgColor: Colors.grey.shade200,
-                                                              textColor: Colors.black,
-                                                            ),
-                                                            CustomBtn(
-                                                              width: 100,
-                                                              text: 'Apply Filters',
-                                                              callback: () {
-                                                                levPvr.changeFilter();
-                                                                levPvr.getLeaveReport(levPvr.filter);
-                                                                Navigator.of(context, rootNavigator: true).pop();
-                                                              },
-                                                              bgColor: colorsConst.primary,
-                                                              textColor: Colors.white,
-                                                            ),
-                                                          ],
-                                                        ),
-                                                        20.height,
-                                                      ],
-                                                    ),
-                                                  )
-                                                ],
-                                              );
-                                            },
-                                          );
-                                        },
-                                      );
-                                      // empProvider.filterUserData = empProvider.filterUserData.where((contact){
-                                      //   DateTime contactDate = DateFormat('yyyy-MM-dd').parse(contact.updatedTs.toString().split(' ')[0]);
-                                      //   return contactDate.isAfter(startDate) && contactDate.isBefore(currentDate);
-                                      // }).toList();
-                                    },
-                                    child: Padding(
-                                      padding: const EdgeInsets.all(8.0),
-                                      child: SvgPicture.asset(
-                                        assets.tFilter,
-                                        width: 20,
-                                        height: 20,
-                                      ),
-                                    ),
-                                  ),
-                                  5.width,
-                                ],
+                                ),
                               ),
                             ),
-                            // ///  DOWNLOAD ICON
-                            // GestureDetector(
-                            //   onTap: () {
-                            //
-                            //   },
-                            //   child: SvgPicture.asset(
-                            //     assets.tDownload,
-                            //     width: 27,
-                            //     height: 27,
-                            //   ),
-                            // ),
                           ],
                         ),
-                      levProvider.isLoading == false ?
-                      const Padding(
-                        padding: EdgeInsets.fromLTRB(0, 150, 0, 0),
-                        child: Loading(),
-                      )
-                      : levProvider.myLevSearch.isEmpty ?
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(0, 150, 0, 0),
-                        child: CustomText(
-                          text: constValue.noData, colors: colorsConst.greyClr,),)
-                      : Flexible(
-                        child: itemBuilder(levProvider.myLevSearch,levProvider),
-                      )
+                      ),
+                    ),
+
+                  /// TAB BAR
+                  const TabBar(
+                    labelColor: Colors.black,
+                    indicatorColor: Colors.red,
+                    tabs: [
+                      Tab(text: "Leave Created Today"),
+                      Tab(text: "Employees On Leave Today"),
                     ],
                   ),
-                ),
+
+                  /// TAB VIEW
+                  Expanded(
+                    child: TabBarView(
+                      children: [
+
+                        /// ===============================
+                        /// TAB 1 – LEAVE CREATED TODAY
+                        /// ===============================
+                        Builder(
+                          builder: (context) {
+
+                            DateTime today = DateTime.now();
+
+                            final createdToday = levProvider.myLevSearch.where((e) {
+                              DateTime created = DateTime.parse(e.createdTs.toString());
+                              return created.year == today.year &&
+                                  created.month == today.month &&
+                                  created.day == today.day;
+                            }).toList();
+
+                            if (createdToday.isEmpty) {
+                              return const Center(child: Text("No Leave Created Today"));
+                            }
+
+                            return ListView.builder(
+                              padding: const EdgeInsets.all(10),
+                              itemCount: createdToday.length,
+                              itemBuilder: (context, index) {
+                                final data = createdToday[index];
+                                return leaveCard(data);
+                              },
+                            );
+                          },
+                        ),
+
+                        /// ===============================
+                        /// TAB 2 – EMPLOYEE ON LEAVE TODAY
+                        /// ===============================
+                        Builder(
+                          builder: (context) {
+
+                            DateTime today = DateTime.now();
+
+                            final onLeaveToday = levProvider.myLevSearch.where((e) {
+
+                              DateTime start =
+                              DateTime.parse(e.startDate.toString());
+
+                              DateTime end = (e.endDate != null &&
+                                  e.endDate.toString() != "")
+                                  ? DateTime.parse(e.endDate.toString())
+                                  : start;
+
+                              return today.isAfter(start.subtract(const Duration(days: 1))) &&
+                                  today.isBefore(end.add(const Duration(days: 1)));
+                            }).toList();
+
+                            if (onLeaveToday.isEmpty) {
+                              return const Center(child: Text("No Employees On Leave Today"));
+                            }
+
+                            return ListView.builder(
+                              padding: const EdgeInsets.all(10),
+                              itemCount: onLeaveToday.length,
+                              itemBuilder: (context, index) {
+                                final data = onLeaveToday[index];
+                                return leaveCard(data);
+                              },
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
+            ),
             ),
           ),
         ),
@@ -1323,5 +776,115 @@ class _ViewMyLeavesState extends State<ViewMyLeaves> {
             ),
           );
         });
+  }
+  Widget leaveCard(LeaveModel data) {
+
+    final start = DateTime.parse(data.startDate.toString());
+
+    final end = (data.endDate != null &&
+        data.endDate.toString() != "")
+        ? DateTime.parse(data.endDate.toString())
+        : null;
+
+    String displayDate;
+
+    if (end != null) {
+      displayDate =
+      "${DateFormat('dd MMM').format(start)} - ${DateFormat('dd MMM').format(end)}";
+    } else {
+      displayDate =
+          DateFormat('EEE, dd MMM').format(start);
+    }
+
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: const [
+          BoxShadow(
+            color: Colors.black26,
+            blurRadius: 8,
+          )
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    CustomText(
+                      text: data.fName.toString(),
+                      size: 16,
+                      isBold: true,
+                    ),
+                    CustomText(
+                      text: data.role.toString(),
+                      size: 13,
+                      colors: const Color(0xffA80007),
+                    ),
+                  ],
+                ),
+
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    CustomText(
+                      text: displayDate,
+                      size: 12,
+                      colors: const Color(0xff7E7E7E),
+                      isBold: true,
+                    ),
+                    const SizedBox(height: 5),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: const Color(0xffA80007),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: CustomText(
+                        text:
+                        "${data.type} : ${data.dayType == "0.5" ? "Half / ${data.session}" : "Full Day"}",
+                        size: 11,
+                        colors: Colors.white,
+                        isBold: true,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 6),
+
+            Row(
+              children: [
+                const CustomText(
+                  text: "Reason : ",
+                  size: 13,
+                  isBold: true,
+                ),
+                Expanded(
+                  child: CustomText(
+                    text: data.reason.toString(),
+                    size: 13,
+                    colors: const Color(0xff7E7E7E),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

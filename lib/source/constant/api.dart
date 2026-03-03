@@ -19,6 +19,7 @@ const String projectPhpFile="$domain/$path/$projectScriptFile";
 const String loginUser="login";
 const String logOut="log_out";
 const String forgotPsd="forgot_password";
+const String home="home_data";
 
 /// EMPLOYEE
 const String signUp = "sign_up";

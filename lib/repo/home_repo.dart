@@ -96,5 +96,24 @@ class HomeRepository{
       throw Exception('Failed to login');
     }
   }
+  Future<Map<String, dynamic>> getFullDashboard(Map data) async {
+    try {
+      final request = await http.post(
+        Uri.parse(phpFile),   // your php URL
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: jsonEncode(data),
+      );
 
+      if (request.statusCode == 200) {
+        return json.decode(request.body);
+      } else {
+        throw Exception("Server Error");
+      }
+
+    } catch (e) {
+      throw Exception("API Error");
+    }
+  }
 }

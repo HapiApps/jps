@@ -75,13 +75,12 @@ class _HomePageState extends State<HomePage> {
       final id = localData.storage.read("id");
       Provider.of<AttendanceProvider>(context, listen: false).initDate(id:localData.storage.read("id"),role:localData.storage.read("role"),isRefresh: true,date1: "${DateTime.now().day.toString().padLeft(2,"0")}-${DateTime.now().month.toString().padLeft(2,"0")}-${DateTime.now().year.toString()}",date2: "${DateTime.now().day.toString().padLeft(2,"0")}-${DateTime.now().month.toString().padLeft(2,"0")}-${DateTime.now().year.toString()}");
       if (id != null && id.toString().isNotEmpty) {
-        Provider.of<AttendanceProvider>(context, listen: false)
-            .getAttendanceReport(id);
+      //  Provider.of<AttendanceProvider>(context, listen: false).getAttendanceReport(id);
         print("Attendance ID ${id}");
       } else {
         print("Attendance ID missing! Cannot fetch report");
       }
-      Provider.of<AttendanceProvider>(context, listen: false).getTotalHours(Provider.of<HomeProvider>(context, listen: false).startDate,Provider.of<HomeProvider>(context, listen: false).endDate);
+   //   Provider.of<AttendanceProvider>(context, listen: false).getTotalHours(Provider.of<HomeProvider>(context, listen: false).startDate,Provider.of<HomeProvider>(context, listen: false).endDate);
       // if (localData.storage.read("refreshHomeData") == true) {
       //   homeProvider.getMainReport(true);
       //   homeProvider.getDashboardReport(true);
@@ -96,17 +95,15 @@ class _HomePageState extends State<HomePage> {
         // When any new attendance record is added/updated
         final homeProvider = Provider.of<HomeProvider>(context, listen: false);
         homeProvider.checkThisMonth();
-        homeProvider.getMainReport(false);
-        homeProvider.getDashboardReport(false);
-        Provider.of<AttendanceProvider>(context, listen: false).getLateCount(Provider.of<HomeProvider>(context, listen: false).startDate,Provider.of<HomeProvider>(context, listen: false).endDate,);
+        homeProvider.loadFullDashboard(context);
+      //  homeProvider.getDashboardReport(false);
+       // Provider.of<AttendanceProvider>(context, listen: false).getLateCount(Provider.of<HomeProvider>(context, listen: false).startDate,Provider.of<HomeProvider>(context, listen: false).endDate,);
       });
-      Provider.of<AttendanceProvider>(context, listen: false).getLateCount(Provider.of<HomeProvider>(context, listen: false).startDate,Provider.of<HomeProvider>(context, listen: false).endDate,);
-      Provider.of<EmployeeProvider>(context, listen: false).getAllUsers();
-      Provider.of<CustomerProvider>(context, listen: false).getAllCustomers(true);
-        final provider =
-        Provider.of<EmployeeProvider>(context, listen: false);
-
-        provider.getNotifications();
+    //  Provider.of<AttendanceProvider>(context, listen: false).getLateCount(Provider.of<HomeProvider>(context, listen: false).startDate,Provider.of<HomeProvider>(context, listen: false).endDate,);
+      //Provider.of<EmployeeProvider>(context, listen: false).getAllUsers();
+      //Provider.of<CustomerProvider>(context, listen: false).getAllCustomers(true);
+        final provider = Provider.of<EmployeeProvider>(context, listen: false);
+       // provider.getNotifications();
         provider.markNotificationsAsSeen();
       });
     super.initState();

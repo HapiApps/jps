@@ -856,6 +856,7 @@ Future<void> getGrades(bool isRefresh) async {
     notifyListeners();
   }
   List<Map<String, dynamic>> changesList=[];
+
   void insertGradeDetails(context) async {
     try {
       changesList.clear();
@@ -1664,6 +1665,16 @@ Future<void> getUserLogs(String id) async {
 
       return matchName || matchDate; // 👈 rendu filter combine
     }).toList();
+  }
+  void setUserData(List<UserModel> data) {
+    _userData = data;
+    _searchUserData = data;
+    _filterUserData = data;
+    notifyListeners();
+  }
+  void setNotifications(List data) {
+    _notifyData = data;
+    notifyListeners();
   }
 Future<void> getNotifications({bool markSeen = false}) async {
   _refresh=false;

@@ -73,7 +73,11 @@ class AttendanceProvider with ChangeNotifier{
 //     _noAttendanceList.sort((a, b) => a.firstname!.toLowerCase().compareTo(b.firstname!.toLowerCase()));
 //     notifyListeners();
 //   }
-
+  void setAttendanceData(List<AttendanceModel> data) {
+    _getDailyAttendance = data;
+    _searchGetDailyAttendance = data;
+    notifyListeners();
+  }
   String _report = "Daily";
   String get report=>_report;
   final groupController = GroupButtonController();

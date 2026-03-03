@@ -83,9 +83,9 @@ class _ViewTaskState extends State<ViewTask> with SingleTickerProviderStateMixin
       taskProvider.initFilterValue(true,date1:widget.date1,date2:widget.date2,type:widget.type);
       taskProvider.dataSource = _getDataSource();
       taskProvider.getAllTask(true,date1:widget.date1,date2:widget.date2,type:widget.type);
-      if(localData.storage.read("role")=="1"){
-        taskProvider.getTaskUsers();
-      }
+      // if(localData.storage.read("role")=="1"){
+      //   taskProvider.getTaskUsers();
+      // }
     });
   }
   @override
@@ -163,7 +163,7 @@ class _ViewTaskState extends State<ViewTask> with SingleTickerProviderStateMixin
                             controller: tabController,
                             children: [
                               ViewfilterUserData(date1: widget.date1,date2:widget.date2,type:widget.type),
-                              TaskCalendar()
+                              TaskCalendar(),
                             ],
                           ),
                         ),
@@ -1088,36 +1088,43 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
               ),
 
               /// BOTTOM BAR
-              Container(
-                height: 32,
-                padding: EdgeInsets.fromLTRB(10, 5, 10, 5),
-                decoration: BoxDecoration(
-                  color: roleColor,
-                  borderRadius: const BorderRadius.only(
-                    bottomLeft: Radius.circular(18),
-                    bottomRight: Radius.circular(18),
+              GestureDetector(
+                onTap: (){
+                  utils.navigatePage(context, ()=> DashBoard(child:
+                  AddVisit(taskId:data.id.toString(),companyId: data.companyId.toString(),companyName: data.projectName.toString(),
+                      numberList: const [],isDirect: true, type: data.type.toString(), desc: data.taskTitle.toString())));
+                },
+                child: Container(
+                  height: 32,
+                  padding: EdgeInsets.fromLTRB(10, 5, 10, 5),
+                  decoration: BoxDecoration(
+                    color: roleColor,
+                    borderRadius: const BorderRadius.only(
+                      bottomLeft: Radius.circular(18),
+                      bottomRight: Radius.circular(18),
+                    ),
                   ),
-                ),
-                child: Center(
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children:  [
-                      // InkWell(
-                      //   onTap: (){
-                      //                 utils.navigatePage(context, ()=> DashBoard(child: CreateExpense(taskId: data.id.toString(),data: data,coId: "",numberList: const [], companyName: data.projectName.toString(), type: data.type.toString(), desc: data.taskTitle.toString(),
-                      //                     date: data.taskDate.toString())));
-                      //   },
-                      //     child: Center(child: CustomText(text: "         Add Expense", colors: Colors.white))),
-                      // VerticalDivider(color: Colors.white),
-                      GestureDetector(
-                        onTap: (){
-                                      utils.navigatePage(context, ()=> DashBoard(child:
-                                      AddVisit(taskId:data.id.toString(),companyId: data.companyId.toString(),companyName: data.projectName.toString(),
-                                          numberList: const [],isDirect: true, type: data.type.toString(), desc: data.taskTitle.toString())));
-                        },
-                        child: Center(child: CustomText(text: "Add Visit", colors: Colors.white)),
-                      ),
-                    ],
+                  child: Center(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children:  [
+                        // InkWell(
+                        //   onTap: (){
+                        //                 utils.navigatePage(context, ()=> DashBoard(child: CreateExpense(taskId: data.id.toString(),data: data,coId: "",numberList: const [], companyName: data.projectName.toString(), type: data.type.toString(), desc: data.taskTitle.toString(),
+                        //                     date: data.taskDate.toString())));
+                        //   },
+                        //     child: Center(child: CustomText(text: "         Add Expense", colors: Colors.white))),
+                        // VerticalDivider(color: Colors.white),
+                        GestureDetector(
+                          onTap: (){
+                                        utils.navigatePage(context, ()=> DashBoard(child:
+                                        AddVisit(taskId:data.id.toString(),companyId: data.companyId.toString(),companyName: data.projectName.toString(),
+                                            numberList: const [],isDirect: true, type: data.type.toString(), desc: data.taskTitle.toString())));
+                          },
+                          child: Center(child: CustomText(text: "Add Visit", colors: Colors.white)),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),

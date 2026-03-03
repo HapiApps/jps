@@ -1576,11 +1576,16 @@ void setList(){
       /// ✅ SUCCESS
       if (response["message"] != null &&
           response["message"] == "Leave application successful") {
-
         utils.showSuccessToast(
             context: context, text: "Applied Successfully");
 
         leaveCtr.reset();
+        if({"1"}.contains(localData.storage.read("role"))){
+                  _selectedIndex=2;
+                }else{
+                  getLeaveReport(_filter);
+                  Navigator.pop(context);
+                }
 
       }
 
