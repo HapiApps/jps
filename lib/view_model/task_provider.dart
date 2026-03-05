@@ -2247,6 +2247,9 @@ class TaskProvider with ChangeNotifier {
         });
         // getAllTask(true);
         utils.navigatePage(context, ()=> DashBoard(child: ViewTask(date1: Provider.of<HomeProvider>(context, listen: false).startDate, date2: Provider.of<HomeProvider>(context, listen: false).endDate, type: Provider.of<HomeProvider>(context, listen: false).type)));
+        final homeProvider = Provider.of<HomeProvider>(context, listen: false);
+        homeProvider.checkThisMonth();
+        homeProvider.getMainReport(false);
         // Future.microtask(() => Navigator.pop(context));
       }else {
         utils.showErrorToast(context: context);

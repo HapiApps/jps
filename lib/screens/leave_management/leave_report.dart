@@ -115,25 +115,338 @@ class _ViewMyLeavesState extends State<ViewMyLeaves> {
                           radius: 30,
                           color: colorsConst.primary,
                         ),
-                        child: Row(
+                        child:  Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Expanded(
-                              child: TextFormField(
-                                controller: levProvider.search2,
-                                onChanged: (value) {
-                                  levProvider.searchReport(value.toString());
-                                },
-                                decoration: InputDecoration(
-                                  hintText: "Search for Employees",
-                                  filled: true,
-                                  fillColor: Colors.white,
-                                  prefixIcon: const Icon(Icons.search),
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(30),
+                            /// SEARCH + FILTER BAR
+                            Container(
+                              width: kIsWeb ? webWidth: phoneWidth,
+                              decoration: customDecoration.baseBackgroundDecoration(
+                                radius: 30,
+                                color: colorsConst.primary,
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  /// SEARCH FIELD
+                                  Container(
+                                    width: kIsWeb ? webWidth / 1.2 : phoneWidth / 1.2,
+                                    height: 45,
+                                    decoration: customDecoration.baseBackgroundDecoration(
+                                      radius: 30,
+                                      color: Colors.transparent,
+                                    ),
+                                    child: TextFormField(
+                                      controller: levProvider.search2,
+                                      cursorColor: colorsConst.primary,
+                                      onChanged: (value) {
+                                        levProvider.searchReport(value.toString());
+                                      },
+                                      decoration: InputDecoration(
+                                        hintText: "Search for Employees",
+                                        hintStyle: TextStyle(
+                                          color: colorsConst.primary,
+                                          fontSize: 14,
+                                        ),
+                                        filled: true,
+                                        fillColor: Colors.white,
+                                        prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                                        suffixIcon: levProvider.search2.text.isNotEmpty
+                                            ? GestureDetector(
+                                            onTap: () {
+                                              levProvider.search2.clear();
+                                              levProvider.searchReport("");
+                                            },
+                                            child: Container(
+                                                width: 10,height: 10,color: Colors.transparent,
+                                                child: Padding(
+                                                  padding: const EdgeInsets.all(8.0),
+                                                  child: SvgPicture.asset(assets.cancel2),
+                                                ))
+                                        )
+                                            : null,
+                                        errorStyle: const TextStyle(
+                                          fontSize: 12.0,
+                                          height: 0.20,
+                                        ),
+                                        focusedBorder: OutlineInputBorder(
+                                            borderSide:  BorderSide(color: colorsConst.primary),
+                                            borderRadius: BorderRadius.circular(30)
+                                        ),
+                                        focusedErrorBorder: OutlineInputBorder(
+                                            borderSide: BorderSide(color: colorsConst.primary),
+                                            borderRadius: BorderRadius.circular(30)
+                                        ),
+                                        // errorStyle: const TextStyle(height:0.05,fontSize: 12),
+                                        contentPadding:const EdgeInsets.fromLTRB(10, 10, 10, 10),
+                                        errorBorder: OutlineInputBorder(
+                                            borderSide:  const BorderSide(color: Colors.transparent),
+                                            borderRadius: BorderRadius.circular(30)
+                                        ),
+                                        enabledBorder: OutlineInputBorder(
+                                          // grey.shade300
+                                            borderSide:  BorderSide(color: Colors.grey.shade300),
+                                            borderRadius: BorderRadius.circular(30)
+                                        ),
+                                      ),
+                                    ),
                                   ),
-                                ),
+                                  /// FILTER ICON
+                                  InkWell(
+                                    onTap: (){
+                                      _myFocusScopeNode.unfocus();
+                                      showDialog(
+                                        context: context,
+                                        builder: (context) {
+                                          return Consumer2<LeaveProvider,EmployeeProvider>(
+                                            builder: (context, levPvr,empProvider, _) {
+                                              return AlertDialog(
+                                                actions: [
+                                                  SizedBox(
+                                                    width: kIsWeb?webWidth:phoneWidth,
+                                                    child: Column(
+                                                      children: [
+                                                        20.height,
+                                                        Row(
+                                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                          children: [
+                                                            70.width,
+                                                            const CustomText(
+                                                              text: 'Filters',
+                                                              colors: Colors.black,
+                                                              size: 16,
+                                                              isBold: true,
+                                                            ),
+                                                            30.width,
+                                                            InkWell(
+                                                              onTap: () {
+                                                                Navigator.of(context, rootNavigator: true).pop();
+                                                              },
+                                                              child: SvgPicture.asset(assets.cancel),
+                                                            )
+                                                          ],
+                                                        ),
+                                                        20.height,
+                                                        Row(
+                                                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                                          children: [
+                                                            Column(
+                                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                                              children: [
+                                                                CustomText(
+                                                                  text: "From Date",
+                                                                  colors: colorsConst.greyClr,
+                                                                  size: 12,
+                                                                ),
+                                                                InkWell(
+                                                                  onTap: () {
+                                                                    levPvr.datePick(
+                                                                      context: context,
+                                                                      isStartDate: true,
+                                                                      date: levPvr.startDate,
+                                                                    );
+                                                                  },
+                                                                  child: Container(
+                                                                    height: 30,
+                                                                    width: kIsWeb?webWidth/2.7:phoneWidth/2.7,
+                                                                    decoration: customDecoration.baseBackgroundDecoration(
+                                                                      color: Colors.white,
+                                                                      radius: 5,
+                                                                      borderColor: colorsConst.litGrey,
+                                                                    ),
+                                                                    child: Row(
+                                                                      mainAxisAlignment: MainAxisAlignment.center,
+                                                                      children: [
+                                                                        CustomText(text: levPvr.startDate),
+                                                                        5.width,
+                                                                        SvgPicture.asset(assets.calendar2),
+                                                                      ],
+                                                                    ),
+                                                                  ),
+                                                                )
+                                                              ],
+                                                            ),
+                                                            Column(
+                                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                                              children: [
+                                                                CustomText(
+                                                                  text: "To Date",
+                                                                  colors: colorsConst.greyClr,
+                                                                  size: 12,
+                                                                ),
+                                                                InkWell(
+                                                                  onTap: () {
+                                                                    levPvr.datePick(
+                                                                      context: context,
+                                                                      isStartDate: false,
+                                                                      date: levPvr.endDate,
+                                                                    );
+                                                                  },
+                                                                  child: Container(
+                                                                    height: 30,
+                                                                    width: kIsWeb?webWidth/2.7:phoneWidth/2.7,
+                                                                    decoration: customDecoration.baseBackgroundDecoration(
+                                                                      color: Colors.white,
+                                                                      radius: 5,
+                                                                      borderColor: colorsConst.litGrey,
+                                                                    ),
+                                                                    child: Row(
+                                                                      mainAxisAlignment: MainAxisAlignment.center,
+                                                                      children: [
+                                                                        CustomText(text: levPvr.endDate),
+                                                                        5.width,
+                                                                        SvgPicture.asset(assets.calendar2),
+                                                                      ],
+                                                                    ),
+                                                                  ),
+                                                                )
+                                                              ],
+                                                            ),
+                                                          ],
+                                                        ),
+                                                        10.height,
+                                                        Row(
+                                                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                                          children: [
+                                                            Column(
+                                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                                              children: [
+                                                                CustomText(
+                                                                  text: "Employee Name",
+                                                                  colors: colorsConst.greyClr,
+                                                                  size: 12,
+                                                                ),
+                                                                EmployeeDropdown(
+                                                                  callback: (){
+                                                                    empProvider.getAllUsers();
+                                                                  },
+                                                                  text: levPvr.userName==""?"Name":levPvr.userName,
+                                                                  employeeList: empProvider.filterUserData,
+                                                                  onChanged: (UserModel? value) {
+                                                                    levPvr.selectUserReport(value!);
+                                                                  },
+                                                                  size: kIsWeb?webWidth/2.7:phoneWidth/2.7,
+                                                                ),
+                                                              ],
+                                                            ),
+                                                            Padding(
+                                                              padding: EdgeInsets.fromLTRB(0, empProvider.filterUserData.isEmpty?20:0, 0, 0),
+                                                              child: Column(
+                                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                                children: [
+                                                                  CustomText(
+                                                                    text: "Select Date Range",
+                                                                    colors: colorsConst.greyClr,
+                                                                    size: 12,
+                                                                  ),
+                                                                  Container(
+                                                                    height: 40,
+                                                                    width: kIsWeb?webWidth/2.7:phoneWidth/2.7,
+                                                                    decoration: customDecoration.baseBackgroundDecoration(
+                                                                      radius: 5,
+                                                                      color: Colors.white,
+                                                                      borderColor: colorsConst.litGrey,
+                                                                    ),
+                                                                    child: DropdownButton(
+                                                                      iconEnabledColor: colorsConst.greyClr,
+                                                                      isExpanded: true,
+                                                                      underline: const SizedBox(),
+                                                                      icon: const Icon(Icons.keyboard_arrow_down_outlined),
+                                                                      value: levPvr.typeReport,
+                                                                      onChanged: (value) {
+                                                                        levPvr.changeRrtType(value,localData.storage.read("id"),localData.storage.read("role"),false);
+                                                                      },
+                                                                      items: levPvr.typeList.map((list) {
+                                                                        return DropdownMenuItem(
+                                                                          value: list,
+                                                                          child: CustomText(
+                                                                            text: "  $list",
+                                                                            colors: Colors.black,
+                                                                            isBold: false,
+                                                                          ),
+                                                                        );
+                                                                      }).toList(),
+                                                                    ),
+                                                                  ),
+                                                                ],
+                                                              ),
+                                                            ),
+                                                          ],
+                                                        ),
+                                                        20.height,
+                                                        Row(
+                                                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                                          children: [
+                                                            CustomBtn(
+                                                              width: 100,
+                                                              text: 'Clear All',
+                                                              callback: () {
+                                                                levPvr.isFilterApplied = false;
+
+                                                                levPvr.initDates(
+                                                                    id: localData.storage.read("id"),
+                                                                    role: localData.storage.read("role"),
+                                                                    isRefresh: false
+                                                                );
+                                                                Navigator.of(context, rootNavigator: true).pop();
+                                                                levPvr.getLeaveReport(levPvr.filter);
+                                                              },
+                                                              bgColor: Colors.grey.shade200,
+                                                              textColor: Colors.black,
+                                                            ),
+                                                            CustomBtn(
+                                                              width: 100,
+                                                              text: 'Apply Filters',
+                                                              callback: () {
+                                                                levPvr.isFilterApplied = true;
+                                                                levPvr.changeFilter();
+                                                                levPvr.getLeaveReport(levPvr.filter);
+                                                                Navigator.of(context, rootNavigator: true).pop();
+                                                              },
+                                                              bgColor: colorsConst.primary,
+                                                              textColor: Colors.white,
+                                                            ),
+                                                          ],
+                                                        ),
+                                                        20.height,
+                                                      ],
+                                                    ),
+                                                  )
+                                                ],
+                                              );
+                                            },
+                                          );
+                                        },
+                                      );
+                                      // empProvider.filterUserData = empProvider.filterUserData.where((contact){
+                                      //   DateTime contactDate = DateFormat('yyyy-MM-dd').parse(contact.updatedTs.toString().split(' ')[0]);
+                                      //   return contactDate.isAfter(startDate) && contactDate.isBefore(currentDate);
+                                      // }).toList();
+                                    },
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(8.0),
+                                      child: SvgPicture.asset(
+                                        assets.tFilter,
+                                        width: 20,
+                                        height: 20,
+                                      ),
+                                    ),
+                                  ),
+                                  5.width,
+                                ],
                               ),
                             ),
+                            // ///  DOWNLOAD ICON
+                            // GestureDetector(
+                            //   onTap: () {
+                            //
+                            //   },
+                            //   child: SvgPicture.asset(
+                            //     assets.tDownload,
+                            //     width: 27,
+                            //     height: 27,
+                            //   ),
+                            // ),
                           ],
                         ),
                       ),
@@ -144,8 +457,8 @@ class _ViewMyLeavesState extends State<ViewMyLeaves> {
                     labelColor: Colors.black,
                     indicatorColor: Colors.red,
                     tabs: [
-                      Tab(text: "Leave Created Today"),
-                      Tab(text: "Employees On Leave Today"),
+                      Tab(text: "Leave Created "),
+                      Tab(text: "Employees On Leave"),
                     ],
                   ),
 
@@ -160,26 +473,62 @@ class _ViewMyLeavesState extends State<ViewMyLeaves> {
                         Builder(
                           builder: (context) {
 
-                            DateTime today = DateTime.now();
+                            List<LeaveModel> createdToday;
 
-                            final createdToday = levProvider.myLevSearch.where((e) {
-                              DateTime created = DateTime.parse(e.createdTs.toString());
-                              return created.year == today.year &&
-                                  created.month == today.month &&
-                                  created.day == today.day;
-                            }).toList();
+                            if (levProvider.isFilterApplied) {
 
-                            if (createdToday.isEmpty) {
-                              return const Center(child: Text("No Leave Created Today"));
+                              /// SHOW ALL FILTERED DATA
+                              createdToday = levProvider.myLevSearch;
+
+                            } else {
+
+                              /// PAGE LOAD → SHOW TODAY ONLY
+                              DateTime today = DateTime.now();
+
+                              createdToday = levProvider.myLevSearch.where((e) {
+
+                                DateTime created = DateTime.parse(e.createdTs.toString());
+
+                                return created.year == today.year &&
+                                    created.month == today.month &&
+                                    created.day == today.day;
+
+                              }).toList();
                             }
 
-                            return ListView.builder(
-                              padding: const EdgeInsets.all(10),
-                              itemCount: createdToday.length,
-                              itemBuilder: (context, index) {
-                                final data = createdToday[index];
-                                return leaveCard(data);
-                              },
+                            return DefaultTabController(
+                              length: 3,
+                              child: Column(
+                                children: [
+
+                                  /// SUB TAB BAR
+                                  const TabBar(
+                                    labelColor: Colors.black,
+                                    indicatorColor: Colors.red,
+                                    tabs: [
+                                      Tab(text: "Applied"),
+                                      Tab(text: "Approved"),
+                                      Tab(text: "Rejected"),
+                                    ],
+                                  ),
+
+                                  Expanded(
+                                    child: TabBarView(
+                                      children: [
+
+                                        /// APPLIED (status 0)
+                                        leaveStatusList(createdToday, "0"),
+
+                                        /// APPROVED (status 1)
+                                        leaveStatusList(createdToday, "1"),
+
+                                        /// CANCELLED (status 2)
+                                        leaveStatusList(createdToday, "2"),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
                             );
                           },
                         ),
@@ -190,21 +539,29 @@ class _ViewMyLeavesState extends State<ViewMyLeaves> {
                         Builder(
                           builder: (context) {
 
-                            DateTime today = DateTime.now();// employee leave
+                            List<LeaveModel> onLeaveToday;
 
-                            final onLeaveToday = levProvider.myLevSearch.where((e) {
+                            if (levProvider.isFilterApplied) {
 
-                              DateTime start =
-                              DateTime.parse(e.startDate.toString());
+                              onLeaveToday = levProvider.myLevSearch;
 
-                              DateTime end = (e.endDate != null &&
-                                  e.endDate.toString() != "")
-                                  ? DateTime.parse(e.endDate.toString())
-                                  : start;
+                            } else {
 
-                              return today.isAfter(start.subtract(const Duration(days: 1))) &&
-                                  today.isBefore(end.add(const Duration(days: 1)));
-                            }).toList();
+                              DateTime today = DateTime.now();
+
+                              onLeaveToday = levProvider.myLevSearch.where((e) {
+
+                                DateTime start = DateTime.parse(e.startDate.toString());
+
+                                DateTime end = (e.endDate != null && e.endDate.toString() != "")
+                                    ? DateTime.parse(e.endDate.toString())
+                                    : start;
+
+                                return today.isAfter(start.subtract(const Duration(days: 1))) &&
+                                    today.isBefore(end.add(const Duration(days: 1)));
+
+                              }).toList();
+                            }
 
                             if (onLeaveToday.isEmpty) {
                               return const Center(child: Text("No Employees On Leave Today"));
@@ -215,7 +572,7 @@ class _ViewMyLeavesState extends State<ViewMyLeaves> {
                               itemCount: onLeaveToday.length,
                               itemBuilder: (context, index) {
                                 final data = onLeaveToday[index];
-                                return leaveCard(data);
+                                return leaveCard(data, showButtons: false);
                               },
                             );
                           },
@@ -777,7 +1134,7 @@ class _ViewMyLeavesState extends State<ViewMyLeaves> {
           );
         });
   }
-  Widget leaveCard(LeaveModel data) {
+  Widget leaveCard(LeaveModel data, {bool showButtons = false}) {
 
     final start = DateTime.parse(data.startDate.toString());
 
@@ -814,6 +1171,7 @@ class _ViewMyLeavesState extends State<ViewMyLeaves> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
 
+            /// Header Row
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -864,8 +1222,9 @@ class _ViewMyLeavesState extends State<ViewMyLeaves> {
               ],
             ),
 
-            const SizedBox(height: 6),
+            const SizedBox(height: 8),
 
+            /// Reason
             Row(
               children: [
                 const CustomText(
@@ -882,9 +1241,140 @@ class _ViewMyLeavesState extends State<ViewMyLeaves> {
                 ),
               ],
             ),
+
+            const SizedBox(height: 12),
+
+            /// STATUS BASED ADMIN BUTTONS
+          if (showButtons && localData.storage.read("role")=="1") ...[
+        if (data.status == "0") ...[
+              Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green,
+                      ),
+                      onPressed: () async {
+                        final provider =
+                        Provider.of<LeaveProvider>(context, listen: false);
+
+                        await provider.approveApply(
+                          context,
+                          data.id.toString(),      // leave_id
+                          data.userId.toString(),  // user_id
+                          "1",                     // status (1 = Approved)
+                        );
+                      },
+                      child: const Text("Approve Leave"),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red,
+                      ),
+                      onPressed: () async {
+                        final provider =
+                        Provider.of<LeaveProvider>(context, listen: false);
+
+                        await provider.approveApply(
+                          context,
+                          data.id.toString(),      // leave_id
+                          data.userId.toString(),  // user_id
+                          "2",                     // status (1 = Approved)
+                        );
+                      },
+                      child: const Text("Reject Leave"),
+                    ),
+                  ),
+                ],
+              ),
+            ]
+
+            else if (data.status == "1") ...[
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
+                      minimumSize: const Size(0, 36), // height control
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                    onPressed: () async {
+                      final provider =
+                      Provider.of<LeaveProvider>(context, listen: false);
+
+                      await provider.approveApply(
+                        context,
+                        data.id.toString(),      // leave_id
+                        data.userId.toString(),  // user_id
+                        "2",                     // status (1 = Approved)
+                      );
+                    },
+                    child: const Text("Cancel Approved Leave"),
+                  ),
+                ],
+              ),
+            ]
+
+            else if (data.status == "2") ...[
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+
+                  children: [
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
+                        minimumSize: const Size(0, 36), // height control
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      onPressed: () async {
+                        final provider =
+                        Provider.of<LeaveProvider>(context, listen: false);
+
+                        await provider.approveApply(
+                          context,
+                          data.id.toString(),      // leave_id
+                          data.userId.toString(),  // user_id
+                          "1",                     // status (1 = Approved)
+                        );
+                      },
+                      child: const Text("Approve Rejected Leave"),
+                    ),
+                  ],
+                ),
+              ],
           ],
+    ]
         ),
       ),
+    );
+  }
+  Widget leaveStatusList(List<LeaveModel> list, String status) {
+
+    final filtered =
+    list.where((element) => element.status == status).toList();
+
+    if (filtered.isEmpty) {
+      return const Center(child: Text("No Data Found"));
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.all(10),
+      itemCount: filtered.length,
+      itemBuilder: (context, index) {
+        return leaveCard(filtered[index], showButtons: true);
+      },
     );
   }
 }

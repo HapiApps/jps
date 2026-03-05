@@ -51,6 +51,29 @@ class LeaveRepository{
       throw Exception('Failed to work flow');
     }
   }
+  Future<Map<String,dynamic>> addLeaveStatus(Map data) async {
+    try{
+      final request = await http.post(Uri.parse(leavePhpFile),
+          headers: {
+            "Accept": "application/text",
+            "Content-Type": "application/x-www-form-urlencoded"
+          },
+          body: jsonEncode(data),
+          encoding: Encoding.getByName("utf-8"));
+      print("STATUS: ${request.statusCode}");
+      print("BODY: ${request.body}");
+      print(request.body);
+      print(data);
+      if (request.statusCode == 200) {
+        return json.decode(request.body);
+      } else {
+        return json.decode(request.body);
+      }
+    }catch(e){
+       print(e);
+      throw Exception('Failed to work flow');
+    }
+  }
   Future<List<RulesModel>> getRules(Map data) async {
     try{
       final request = await http.post(Uri.parse(leavePhpFile),

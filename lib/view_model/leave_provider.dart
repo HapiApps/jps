@@ -45,6 +45,7 @@ class LeaveProvider with ChangeNotifier {
   String _nameId="";
   String _year="";
   String _report="Daily";
+  bool isFilterApplied = false;
   bool _getLeave=false;
   bool get getLeave=> _getLeave;
   bool _allSelect =false;
@@ -1578,6 +1579,50 @@ void setList(){
           response["message"] == "Leave application successful") {
         utils.showSuccessToast(
             context: context, text: "Applied Successfully");
+        /// 🔔 SEND NOTIFICATION TO ADMINS
+
+        final empProvider =
+        Provider.of<EmployeeProvider>(context, listen: false);
+
+        String currentUserId =
+        localData.storage.read("id").toString();
+
+        String currentRole =
+        localData.storage.read("role").toString();
+
+        String title = "New Leave Request";
+        String body =
+            "${localData.storage.read("f_name")} applied for leave";
+        try {
+          await empProvider.sendAdminNotification(
+              title,
+              body,
+              "",
+              "",
+              "1"
+          );
+        } catch(e){
+          log("Notification failed: $e");
+        }
+            // if (currentRole == "1") {
+        //   // Role 1 → exclude self
+        //   await empProvider.sendAdminNotification(
+        //     title,
+        //     body,
+        //     "",
+        //     "",
+        //     currentUserId, // exclude self
+        //   );
+        // } else {
+        //   // Normal employee → send to all admins
+        //   await empProvider.sendAdminNotification(
+        //     title,
+        //     body,
+        //     "", // no exclusion
+        //     "",
+        //     "",
+        //   );
+        // }
 
         leaveCtr.reset();
         if({"1"}.contains(localData.storage.read("role"))){
@@ -1608,6 +1653,81 @@ void setList(){
       utils.showErrorToast(context: context);
       leaveCtr.reset();
     }
+    leaveCtr.reset();
+    notifyListeners();
+  }
+  Future<void> approveApply(
+      context,
+      String leaveId,
+      String userId,
+      String status,
+      ) async {
+
+    try {
+
+      Map data = {
+        "action": approveLeave,
+        "platform": localData.storage.read("platform"),
+        "leave_id": leaveId,
+        "status": status,
+        "updated_by": localData.storage.read("id"),
+        "cos_id": localData.storage.read("cos_id"),
+        "created_by": localData.storage.read("id"),
+        "user_id": userId,
+      };
+
+      final response = await leaveRepo.addLeaveStatus(data);
+      log(response.toString());
+
+      if (response["message"] != null) {
+
+        utils.showSuccessToast(
+            context: context,
+            text: response["message"]);
+
+        /// 🔔 SEND NOTIFICATION TO EMPLOYEE
+
+        final empProvider =
+        Provider.of<EmployeeProvider>(context, listen: false);
+
+        String title = status == "1"
+            ? "Leave Approved ✅"
+            : "Leave Rejected ❌";
+
+        String body = status == "1"
+            ? "Your leave request has been approved"
+            : "Your leave request has been rejected";
+        try {
+          await empProvider.sendUserNotification(
+            title,
+            body,
+            userId,   // 👈 employee id
+          );
+        } catch(e){
+          log("Notification failed: $e");
+        }
+        getLeaveReport(_filter);
+
+      }
+      else if (response["Failed"] != null) {
+
+        utils.showWarningToast(
+            context,
+            text: response["Failed"].toString());
+
+        leaveCtr.reset();
+      }
+      else {
+        utils.showErrorToast(context: context);
+        leaveCtr.reset();
+      }
+
+    } catch (e) {
+      log(e.toString());
+      utils.showErrorToast(context: context);
+      leaveCtr.reset();
+    }
+
     leaveCtr.reset();
     notifyListeners();
   }

@@ -1753,44 +1753,52 @@ void initCmtValues(){
         String myRole = localData.storage.read("role");
         String myId   = localData.storage.read("id");
         String createdUserId = createdBy.toString();
+
         print("MyID: $myId");
         print("CreatedBy: $createdUserId");
         print("Role: $myRole");
-        /// 🎯 ADMIN COMMENT → EMPLOYEE
+
+        /// ===============================
+        /// ADMIN COMMENT
+        /// ===============================
         if (myRole == "1") {
+
           try {
-            if(myId==createdUserId)
-              {
-                print("123");
-                await
-                Provider.of<EmployeeProvider>(context, listen: false)
-                    .sendAdminNotification(
-                  "${localData.storage.read("f_name")} replied to visit report",
-                  disPoint.text.trim(),
-                  createdUserId,
-                  "1",
-                  taskId,
-                );
-              }
+
+            /// ADMIN == CREATOR
+            if (myId == createdUserId) {
+
+              /// Notify other admins only
+              Provider.of<EmployeeProvider>(context, listen: false)
+                  .sendAdminNotification(
+                "${localData.storage.read("f_name")} replied to your visit report",
+                disPoint.text.trim(),
+                createdUserId,
+                "1",
+                taskId,
+              );
+
+            }
+
+            /// ADMIN != CREATOR
             else {
-              print("123456");
+
               await Future.wait([
 
-                /// 🔔 Notify OTHER ADMINS
+                /// Notify other admins
                 Provider.of<EmployeeProvider>(context, listen: false)
-                  .sendSomeUserTaskNotification(
+                    .sendUserNotification(
                   "${localData.storage.read("f_name")} replied to visit report",
                   disPoint.text.trim(),
-                  myId,   // exclude self
-                  taskId,
+                  createdBy.toString(), // exclude self
                 ),
 
-                /// 🔔 Notify VISIT OWNER
+                /// Notify visit creator (employee/admin)
                 Provider.of<EmployeeProvider>(context, listen: false)
                     .sendAdminNotification(
-                  "${localData.storage.read("f_name")} replied to your visit",
+                  "${localData.storage.read("f_name")} replied to your visit report",
                   disPoint.text.trim(),
-                  createdUserId,   // send to creator
+                  createdUserId,
                   "1",
                   taskId,
                 ),
@@ -1798,25 +1806,33 @@ void initCmtValues(){
               ]);
 
             }
-          } catch (e) {
-            print("Employee notification error: $e");
-          }
-        }else {
-          try {
-            print("1234");
 
-            await Provider.of<EmployeeProvider>(context, listen: false)
+          } catch (e) {
+            print("Admin notification error: $e");
+          }
+        }
+
+        /// ===============================
+        /// EMPLOYEE COMMENT
+        /// ===============================
+        else {
+
+          try {
+
+            /// Notify all admins
+            Provider.of<EmployeeProvider>(context, listen: false)
                 .sendAdminNotification(
-              "${localData.storage.read("f_name")} replied to visit report",
+              "${localData.storage.read("f_name")} replied to your visit report",
               disPoint.text.trim(),
               createdUserId,
               "1",
               taskId,
             );
-            
+
           } catch (e) {
-            print("Admin notification error: $e");
+            print("Employee notification error: $e");
           }
+
         }
 
         _customerReport.last.isLocal = false;
@@ -2179,7 +2195,8 @@ TextEditingController date= TextEditingController(text: "${DateTime.now().day.to
         });
 
         getAllCustomers(false);
-
+        final homeProvider = Provider.of<HomeProvider>(context, listen: false);
+        homeProvider.getDashboardReport(true);
         /// ✅ NAVIGATION ALWAYS EXECUTES
         callBack();
 

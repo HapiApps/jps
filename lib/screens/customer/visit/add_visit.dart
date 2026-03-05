@@ -329,7 +329,8 @@ class _CusAddVisitState extends State<CusAddVisit> with TickerProviderStateMixin
                                 // if(widget.isDirect==true&&custProvider.selectCustomer==null){
                                 //   utils.showWarningToast(context, text: "Select ${constValue.companyName}");
                                 //   custProvider.addCtr.reset();
-                                // }else{
+                                // }
+                                // else{
                                   if(taskProvider.selectType==null){
                                     utils.showWarningToast(context, text: "Select a visit type");
                                     custProvider.addCtr.reset();

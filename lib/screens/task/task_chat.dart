@@ -191,7 +191,19 @@ class _TaskChatState extends State<TaskChat> with SingleTickerProviderStateMixin
             backgroundColor: Color(0xffEAEAEA),
             appBar: PreferredSize(
               preferredSize: const Size(300, 60),
-              child:localData.storage.read("role").toString()=="1" ?CustomAppbar(text: widget.assignedName):CustomAppbar(text: widget.name),
+              child: localData.storage.read("role").toString() == "1"
+                  ? CustomAppbar(
+                text: (widget.assignedName != null &&
+                    widget.assignedName.toString() != "null" &&
+                    widget.assignedName.toString().isNotEmpty)
+                    ? widget.assignedName.toString()
+                    : "",
+              )
+                  : (widget.name != null &&
+                  widget.name.toString() != "null" &&
+                  widget.name.toString().isNotEmpty)
+                  ? CustomAppbar(text: widget.name.toString())
+                  : const SizedBox(),
             ),
             // bottomSheet: Padding(
             //   padding: const EdgeInsets.all(8.0),
@@ -407,7 +419,7 @@ class _TaskChatState extends State<TaskChat> with SingleTickerProviderStateMixin
                           // print("created lastCreatedBy:${ lastCreatedBy}");
                           await custProvider.addComment(context: context,visitId: widget.taskId.toString(),
                               companyName: widget.name,companyId:"", numberList: [], taskId: "0",
-                            createdBy: lastCreatedBy, assignedId: widget.assignedId.toString(),
+                            createdBy: widget.createdBy.toString(), assignedId: widget.assignedId.toString(),
                             path:recordedPath==null?"":recordedPath.toString(),);
                         }else{
                           print("inn");

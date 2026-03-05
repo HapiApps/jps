@@ -69,6 +69,7 @@ const String taskComments="task_comments";
 /// Leave Management
 const String fixLeave="fix_leave";
 const String applyLeave="apply_leave";
+const String approveLeave="leave_status";
 const String listLeaves="list_of_leaves";
 const String leaveType="leave_type";
 const String addLeaveRules="add_leave_rules";

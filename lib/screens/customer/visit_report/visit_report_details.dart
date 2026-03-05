@@ -28,7 +28,9 @@ class VisitReportDetails extends StatelessWidget {
     var commentsList=data.commentsList.toString().split('||');
     var commentsTs=data.commentsTs.toString().split('||');
     var created=data.createdBy.toString();
+    var createdcommentsTs =data.commentsTs.toString();
     print("created by:${created}");
+    print("created by createdcommentsTs:${createdcommentsTs}");
     return GestureDetector(
       onTap:(){
         print("created by 12 task :${data.createdBy.toString()}");

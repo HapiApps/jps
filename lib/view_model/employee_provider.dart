@@ -1796,8 +1796,8 @@ Future<void> getNotifications({bool markSeen = false}) async {
         "action": someUserNotification,
         "msgTittle": msgTittle,
         "msgBody": msgBody,
-        "send_by": loginId.toString(),
-        "id": loginId.toString(),
+        "send_by": id,
+        "id": id,
         "platform": safeStr(localData.storage.read("platform")),
         "purpose_id": purposeId.isNotEmpty ? purposeId : "0",
         "sender_name": localData.storage.read("f_name"),
@@ -1841,12 +1841,13 @@ Future<void> getNotifications({bool markSeen = false}) async {
     }
     notifyListeners();
   }
-  Future<void> sendAdminNotification(String msgTittle,String msgBody,String role,String purposeId,String assignedId) async {
+  Future<void> sendAdminNotification(String msgTittle,String msgBody,String role,String purposeId,String assignedId) async
+  {
     Map<String,String> data = {
       "action": adminNotification,
       "msgTittle": msgTittle,
       "msgBody": msgBody,
-      "role": safeStr(localData.storage.read("role")),
+      "role": role.isEmpty?safeStr(localData.storage.read("role")):role,
       "send_by": safeStr(localData.storage.read("id")),
       "id": assignedId.isEmpty?safeStr(localData.storage.read("id").toString()):assignedId.toString(),
       "type": "1",
