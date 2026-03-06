@@ -106,7 +106,7 @@ class _ViewMyLeavesState extends State<ViewMyLeaves> {
                 children: [
 
                   /// SEARCH BAR (UNCHANGED)
-                  if(localData.storage.read("role") == "1")
+                  // if(localData.storage.read("role") == "1")
                     Padding(
                       padding: const EdgeInsets.symmetric(vertical: 8),
                       child: Container(
@@ -308,6 +308,7 @@ class _ViewMyLeavesState extends State<ViewMyLeaves> {
                                                         Row(
                                                           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                                                           children: [
+                                                            if(localData.storage.read("role") == "1")
                                                             Column(
                                                               crossAxisAlignment: CrossAxisAlignment.start,
                                                               children: [
