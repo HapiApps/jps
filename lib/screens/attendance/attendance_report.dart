@@ -59,8 +59,7 @@ class _AttendanceReportState extends State<AttendanceReport> {
       Provider.of<AttendanceProvider>(context, listen: false).getAttendanceReport(localData.storage.read("id"));
       Provider.of<AttendanceProvider>(context, listen: false).getAbsentAttendanceReport(localData.storage.read("id"));
       Provider.of<LeaveProvider>(context, listen: false).allLeaves(widget.date1,widget.date2,true,"",localData.storage.read("id"));
-      Provider.of<EmployeeProvider>(context, listen: false).getAllUsers();
-      Provider.of<CustomerProvider>(context, listen: false).getAllCustomers(true);
+
     });
     super.initState();
   }
