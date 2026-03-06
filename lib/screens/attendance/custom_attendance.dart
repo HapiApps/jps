@@ -391,8 +391,8 @@ class _CheckAttendanceState extends State<CheckAttendance> {
               ),
               InkWell(
                 onTap:(){
-                  homeProvider.updateIndex(4);
-                  utils.navigatePage(context, ()=> DashBoard(child: AttendanceReport(type: homeProvider.type,showType: "Present",date1: homeProvider.startDate,date2:homeProvider.endDate,empList: [])));
+                  // homeProvider.updateIndex(4);
+                  // utils.navigatePage(context, ()=> DashBoard(child: AttendanceReport(type: homeProvider.type,showType: "Present",date1: homeProvider.startDate,date2:homeProvider.endDate,empList: [])));
                 },
                 child: Container(
                   height: 90,

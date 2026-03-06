@@ -43,6 +43,8 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
     super.initState();
     Future.delayed(Duration.zero, () {
       Provider.of<TaskProvider >(context, listen: false).initValue();
+      // Provider.of<EmployeeProvider>(context, listen: false).getAllUsers();
+      // Provider.of<CustomerProvider>(context, listen: false).getAllCustomers(true);
       if(Provider.of<TaskProvider >(context, listen: false).assignEmployees.isEmpty){
         Provider.of<TaskProvider >(context, listen: false).getTaskUsers();
       }

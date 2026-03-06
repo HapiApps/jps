@@ -25,11 +25,12 @@ import '../../source/constant/default_constant.dart';
 import '../../source/constant/local_data.dart';
 import '../../source/styles/decoration.dart';
 import '../../view_model/attendance_provider.dart';
+import '../../view_model/customer_provider.dart';
 import '../../view_model/employee_provider.dart';
 import '../common/check_location.dart';
 import '../common/dashboard.dart';
 import 'custom_attendance_report.dart';
-
+//
 class AttendanceReport extends StatefulWidget {
   final String date1;
   final String date2;
@@ -57,7 +58,9 @@ class _AttendanceReportState extends State<AttendanceReport> {
       Provider.of<AttendanceProvider>(context, listen: false).initDate(id:localData.storage.read("id"),role:localData.storage.read("role"),isRefresh:true,date1:widget.date1,date2:widget.date2,type:widget.type);
       Provider.of<AttendanceProvider>(context, listen: false).getAttendanceReport(localData.storage.read("id"));
       Provider.of<AttendanceProvider>(context, listen: false).getAbsentAttendanceReport(localData.storage.read("id"));
-      Provider.of<LeaveProvider>(context, listen: false).allLeaves(widget.date1,widget.date2,true);
+      Provider.of<LeaveProvider>(context, listen: false).allLeaves(widget.date1,widget.date2,true,"",localData.storage.read("id"));
+      Provider.of<EmployeeProvider>(context, listen: false).getAllUsers();
+      Provider.of<CustomerProvider>(context, listen: false).getAllCustomers(true);
     });
     super.initState();
   }
@@ -391,7 +394,7 @@ void check(){
                                                                             attProvider.getAttendanceReport(localData.storage.read("id"));
                                                                             attProvider.getAbsentAttendanceReport(localData.storage.read("id"));
                                                                             levPvr.changeFilter();
-                                                                            levPvr.allLeaves(attProvider.date1,attProvider.date2,true);
+                                                                            levPvr.allLeaves(attProvider.startDate,attProvider.endDate,true,"",localData.storage.read("id"));
                                                                             Navigator.of(context, rootNavigator: true).pop();
                                                                             },
                                                                           bgColor: Colors.grey.shade200,
@@ -401,16 +404,27 @@ void check(){
                                                                           width: 100,
                                                                           text: 'Apply Filters',
                                                                           callback: () {
+
+                                                                            /// 1️⃣ CLEAR SEARCH TEXT
+                                                                            attProvider.search.clear();
+                                                                            levPvr.search2.clear();
+
+                                                                            /// 2️⃣ RESET FILTER
                                                                             attProvider.changeFilter();
+                                                                            levPvr.changeFilter();
+
+                                                                            /// 3️⃣ FETCH NEW DATA WITH DATE RANGE
                                                                             attProvider.getAttendanceReport(localData.storage.read("id"));
                                                                             attProvider.getAbsentAttendanceReport(localData.storage.read("id"));
-                                                                            levPvr.changeFilter();
-                                                                            levPvr.allLeaves(attProvider.date1,attProvider.date2,true);
+                                                                            print("FILTER DATE : ${attProvider.startDate} to ${attProvider.endDate} ${attProvider.user}");
+                                                                            levPvr.allLeaves(attProvider.startDate,attProvider.endDate,true,"0",attProvider.user);
+
+                                                                            /// 4️⃣ CLOSE FILTER POPUP
                                                                             Navigator.of(context, rootNavigator: true).pop();
                                                                           },
                                                                           bgColor: colorsConst.primary,
                                                                           textColor: Colors.white,
-                                                                        ),
+                                                                        )
                                                                       ],
                                                                     ),
                                                                     20.height,
@@ -491,7 +505,8 @@ void check(){
                                   "${attProvider.startDate} - ${attProvider.endDate}",
                                 ),
 
-                            if (attProvider.type.isNotEmpty || attProvider.type!="null")
+                          //  if (attProvider.type.isNotEmpty || attProvider.type!="null")
+                            if (attProvider.type.isNotEmpty && attProvider.type!="null")
                               _filterChip(attProvider.type), // Last 7 days
 
                             if (attProvider.userName.isNotEmpty)

@@ -878,23 +878,62 @@ class AttendanceProvider with ChangeNotifier{
     return '$hours : $minutes mins';
   }
 
-  void searchAttendanceReport(String value){
-    final suggestions=_searchGetDailyAttendance.where(
-            (user){
-          final comFName=user.firstname.toString().toLowerCase();
-          final userFName=user.role.toString().toLowerCase();
-          final input=value.toString().toLowerCase();
-          return comFName.contains(input) ||userFName.contains(input);
-        }).toList();
-    _getDailyAttendance=suggestions;
+  // void searchAttendanceReport(String value){
+  //   final suggestions=_searchGetDailyAttendance.where(
+  //           (user){
+  //         final comFName=user.firstname.toString().toLowerCase();
+  //         final userFName=user.role.toString().toLowerCase();
+  //         final input=value.toString().toLowerCase();
+  //         return comFName.contains(input) ||userFName.contains(input);
+  //       }).toList();
+  //   _getDailyAttendance=suggestions;
+  //
+  //   final suggestions2=_noAttendanceList2.where(
+  //           (user){
+  //         final comFName=user.firstname.toString().toLowerCase();
+  //         final input=value.toString().toLowerCase();
+  //         return comFName.contains(input);
+  //       }).toList();
+  //   _noAttendanceList=suggestions2;
+  //   notifyListeners();
+  // }
+  void searchAttendanceReport(String value) {
 
-    final suggestions2=_noAttendanceList2.where(
-            (user){
-          final comFName=user.firstname.toString().toLowerCase();
-          final input=value.toString().toLowerCase();
-          return comFName.contains(input);
-        }).toList();
-    _noAttendanceList=suggestions2;
+    final input = value.toLowerCase().trim();
+
+    /// RESET WHEN SEARCH EMPTY
+    if (input.isEmpty) {
+
+      _getDailyAttendance = List.from(_searchGetDailyAttendance);
+      _noAttendanceList = List.from(_noAttendanceList2);
+
+      notifyListeners();
+      return;
+    }
+
+    /// SEARCH PRESENT LIST
+    final suggestions = _searchGetDailyAttendance.where((user) {
+
+      final name = user.firstname.toString().toLowerCase();
+      final role = user.role.toString().toLowerCase();
+
+      return name.contains(input) || role.contains(input);
+
+    }).toList();
+
+    _getDailyAttendance = suggestions;
+
+    /// SEARCH ABSENT LIST
+    final suggestions2 = _noAttendanceList2.where((user) {
+
+      final name = user.firstname.toString().toLowerCase();
+
+      return name.contains(input);
+
+    }).toList();
+
+    _noAttendanceList = suggestions2;
+
     notifyListeners();
   }
   void searchAttendanceReport2(String value){
@@ -967,7 +1006,7 @@ PickerDateRange? selectedDate;
     if(localData.storage.read("role")!="1"){
       getAttendanceReport(id,);
       getAbsentAttendanceReport(id);
-      Provider.of<LeaveProvider>(context, listen: false).allLeaves(_startDate,_endDate,true);
+      Provider.of<LeaveProvider>(context, listen: false).allLeaves(_startDate,_endDate,true,"",localData.storage.read("id"));
     }
     notifyListeners();
   }
@@ -979,7 +1018,7 @@ PickerDateRange? selectedDate;
     if(localData.storage.read("role")!="1"){
       getAttendanceReport(id,);
       getAbsentAttendanceReport(id);
-      Provider.of<LeaveProvider>(context, listen: false).allLeaves(_startDate,_endDate,true);
+      Provider.of<LeaveProvider>(context, listen: false).allLeaves(_startDate,_endDate,true,"",localData.storage.read("id"));
     }
     notifyListeners();
   }
@@ -992,7 +1031,7 @@ PickerDateRange? selectedDate;
     if(localData.storage.read("role")!="1"){
       getAttendanceReport(id,);
       getAbsentAttendanceReport(id);
-      Provider.of<LeaveProvider>(context, listen: false).allLeaves(_startDate,_endDate,true);
+      Provider.of<LeaveProvider>(context, listen: false).allLeaves(_startDate,_endDate,true,"",localData.storage.read("id"));
     }
     notifyListeners();
   }
@@ -1005,7 +1044,7 @@ PickerDateRange? selectedDate;
     if(localData.storage.read("role")!="1"){
       getAttendanceReport(id,);
       getAbsentAttendanceReport(id);
-      Provider.of<LeaveProvider>(context, listen: false).allLeaves(_startDate,_endDate,true);
+      Provider.of<LeaveProvider>(context, listen: false).allLeaves(_startDate,_endDate,true,"",localData.storage.read("id"));
     }
     notifyListeners();
   }
@@ -1019,7 +1058,7 @@ PickerDateRange? selectedDate;
     if(localData.storage.read("role")!="1"){
       getAttendanceReport(id,);
       getAbsentAttendanceReport(id);
-      Provider.of<LeaveProvider>(context, listen: false).allLeaves(_startDate,_endDate,true);
+      Provider.of<LeaveProvider>(context, listen: false).allLeaves(_startDate,_endDate,true,"",localData.storage.read("id"));
     }
     notifyListeners();
   }
@@ -1032,7 +1071,7 @@ PickerDateRange? selectedDate;
     if(localData.storage.read("role")!="1"){
       getAttendanceReport(id,);
       getAbsentAttendanceReport(id);
-      Provider.of<LeaveProvider>(context, listen: false).allLeaves(_startDate,_endDate,true);
+      Provider.of<LeaveProvider>(context, listen: false).allLeaves(_startDate,_endDate,true,"",localData.storage.read("id"));
     }
     notifyListeners();
   }
@@ -1327,7 +1366,10 @@ void showDatePickerDialog(BuildContext context,List<UserModel>? list) {
     log(response.toString());
     if(response.isNotEmpty){
       log("Success");
-      Navigator.pop(context);
+      if (Navigator.canPop(context)) {
+        Navigator.pop(context);
+      }
+
       if(status=="1"){
         await FirebaseFirestore.instance.collection('attendance').add({
           'emp_id': localData.storage.read("id"),
@@ -1335,7 +1377,14 @@ void showDatePickerDialog(BuildContext context,List<UserModel>? list) {
           'status': status,
         });
       }
-      utils.showSuccessToast(text: status=="1"?"Check In Successfully":"Check Out Successfully",context: context);
+      if (context.mounted) {
+        utils.showSuccessToast(
+          text: status == "1"
+              ? "Check In Successfully"
+              : "Check Out Successfully",
+          context: context,
+        );
+      }
       getMainAttendance();
       getTotalHours(date1, date2);
       Provider.of<AttendanceProvider>(context, listen: false).initDate(id:localData.storage.read("id"),role:localData.storage.read("role"),isRefresh: true,date1: "${DateTime.now().day.toString().padLeft(2,"0")}-${DateTime.now().month.toString().padLeft(2,"0")}-${DateTime.now().year.toString()}",date2: "${DateTime.now().day.toString().padLeft(2,"0")}-${DateTime.now().month.toString().padLeft(2,"0")}-${DateTime.now().year.toString()}");

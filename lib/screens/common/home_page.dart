@@ -100,8 +100,8 @@ class _HomePageState extends State<HomePage> {
        // Provider.of<AttendanceProvider>(context, listen: false).getLateCount(Provider.of<HomeProvider>(context, listen: false).startDate,Provider.of<HomeProvider>(context, listen: false).endDate,);
       });
     //  Provider.of<AttendanceProvider>(context, listen: false).getLateCount(Provider.of<HomeProvider>(context, listen: false).startDate,Provider.of<HomeProvider>(context, listen: false).endDate,);
-      //Provider.of<EmployeeProvider>(context, listen: false).getAllUsers();
-      //Provider.of<CustomerProvider>(context, listen: false).getAllCustomers(true);
+     Provider.of<EmployeeProvider>(context, listen: false).getAllUsers();
+     Provider.of<CustomerProvider>(context, listen: false).getAllCustomers(true);
         final provider = Provider.of<EmployeeProvider>(context, listen: false);
        // provider.getNotifications();
         provider.markNotificationsAsSeen();
@@ -488,8 +488,9 @@ class _HomePageState extends State<HomePage> {
                           :homeProvider.currentVersion!=""&&homeProvider.versionCheck==true&&
                           homeProvider.versionActive==false?
                       const UpdateApp()
-                          :homeProvider.refresh==false||homeProvider.vRefresh==false?
-                      const Loading():
+                      //     :homeProvider.refresh==false||homeProvider.vRefresh==false?
+                      // const Loading()
+                          :
                       homeProvider.mainReportList.isNotEmpty&&homeProvider.mainReportList[0]["active"]!="1"
                           ?const Center(child: CustomText(
                         "Invalid",color: Colors.red,weight: FontWeight.bold,
@@ -936,6 +937,7 @@ class _HomePageState extends State<HomePage> {
                                       ),
                                     ):
                                     Row(
+                                      mainAxisAlignment: MainAxisAlignment.end,
                                       children: [
 
                                         /// 🔥 If Work Already Done → Show Submitted
@@ -1157,8 +1159,10 @@ class _HomePageState extends State<HomePage> {
                                 onTap:(){
                                   utils.navigatePage(context, ()=> DashBoard(child: VisitReport(date1: homeProvider.startDate, date2: homeProvider.endDate,month: homeProvider.month,type: homeProvider.type,)));
                                 },
-                                child: homeProvider.vRefresh==false
-                                    ? const Loading():Container(
+                                child:
+                                // homeProvider.vRefresh==false
+                                //     ? const Loading():
+                                Container(
                                   padding: const EdgeInsets.all(16),
                                   decoration: BoxDecoration(
                                     color: Colors.white,

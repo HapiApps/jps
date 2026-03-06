@@ -17,6 +17,7 @@ import '../../../source/constant/default_constant.dart';
 import '../../../source/constant/local_data.dart';
 import '../../../source/styles/decoration.dart';
 import '../../../source/utilities/utils.dart';
+import '../../../view_model/employee_provider.dart';
 import '../../common/dashboard.dart';
 import '../../customer/viamap.dart';
 import '../task_report.dart';
@@ -61,6 +62,8 @@ class _AddVisitState extends State<AddVisit> with TickerProviderStateMixin {
         localData.storage.write("c_name",sendList[0]["name"]);
       }
     });
+    // Provider.of<EmployeeProvider>(context, listen: false).getAllUsers();
+    // Provider.of<CustomerProvider>(context, listen: false).getAllCustomers(true);
     super.initState();
   }
   void setCustomer(List<CustomerModel> customerList) {

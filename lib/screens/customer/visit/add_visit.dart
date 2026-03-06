@@ -1,4 +1,5 @@
 import 'package:master_code/component/custom_loading_button.dart';
+import 'package:master_code/view_model/employee_provider.dart';
 import 'package:master_code/view_model/location_provider.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -47,6 +48,7 @@ class _CusAddVisitState extends State<CusAddVisit> with TickerProviderStateMixin
     setCustomer();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final customerProvider = Provider.of<CustomerProvider>(context, listen: false);
+      final employeeProvider = Provider.of<EmployeeProvider>(context, listen: false);
       if(!kIsWeb){
         Provider.of<TaskProvider>(context, listen: false).getAllTypes();
       }else{
@@ -66,6 +68,8 @@ class _CusAddVisitState extends State<CusAddVisit> with TickerProviderStateMixin
       // customerProvider.setValue(widget.companyId.toString());
       customerProvider.initComment(widget.numberList,widget.type);
       companyName="";
+      Provider.of<EmployeeProvider>(context, listen: false).getAllUsers();
+      Provider.of<CustomerProvider>(context, listen: false).getAllCustomers(true);
       if(Provider.of<LocationProvider>(context, listen: false).latitude!=""&&Provider.of<LocationProvider>(context, listen: false).longitude!=""){
         customerProvider.getAdd(
             double.parse(Provider.of<LocationProvider>(context, listen: false).latitude),

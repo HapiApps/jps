@@ -927,6 +927,7 @@ class _SplashScreenState extends State<SplashScreen> {
       homeProvider.checkThisMonth();
       homeProvider.getMainReport(true);
       homeProvider.getDashboardReport(true);
+
     });
   }
 

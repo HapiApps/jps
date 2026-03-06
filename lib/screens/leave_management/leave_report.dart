@@ -1142,7 +1142,11 @@ class _ViewMyLeavesState extends State<ViewMyLeaves> {
         data.endDate.toString() != "")
         ? DateTime.parse(data.endDate.toString())
         : null;
-
+    final DateTime createdDateTime =
+    DateTime.parse(data.createdTs.toString()).toLocal();
+    final String createdBy =
+    DateFormat('dd-MM-yyyy • hh:mm a')
+        .format(createdDateTime);
     String displayDate;
 
     if (end != null) {
@@ -1225,19 +1229,40 @@ class _ViewMyLeavesState extends State<ViewMyLeaves> {
             const SizedBox(height: 8),
 
             /// Reason
-            Row(
+            Column(
               children: [
-                const CustomText(
-                  text: "Reason : ",
-                  size: 13,
-                  isBold: true,
+                Row(
+                  children: [
+                    const CustomText(
+                      text: "Reason : ",
+                      size: 13,
+                      isBold: true,
+                    ),
+                    Expanded(
+                      child: CustomText(
+                        text: data.reason.toString(),
+                        size: 13,
+                        colors: const Color(0xff7E7E7E),
+                      ),
+                    ),
+                  ],
                 ),
-                Expanded(
-                  child: CustomText(
-                    text: data.reason.toString(),
-                    size: 13,
-                    colors: const Color(0xff7E7E7E),
-                  ),
+                SizedBox(height: 8),
+                Row(
+                  children: [
+                    const CustomText(
+                      text: " Requested on: ",
+                      size: 13,
+                      isBold: true,
+                    ),
+                    Expanded(
+                      child: CustomText(
+                        text: createdBy,
+                        size: 13,
+                        colors: const Color(0xff393636),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),

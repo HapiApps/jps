@@ -1044,6 +1044,7 @@ void searchReport(String value){
   }
   notifyListeners();
 }
+
 void changePage2(){
     _addType=false;
     setList();
@@ -2166,115 +2167,135 @@ void changeStatus(bool value){
     }
   }
 
-  Future<List<LeaveModel>> allLeaves(String st,String en,bool refresh) async {
+  Future<List<LeaveModel>> allLeaves(String st, String en, bool refresh,String roleId,String userId) async {
     try {
-      _levCount1="Full  Day 0\nHalf Day 0";
+
+      _levCount1 = "Full  Day 0\nHalf Day 0";
+
       myLevSearch.clear();
       myLev.clear();
       notifyListeners();
+
       Map data = {
-        "action":getLeaveData,
-        "search_type":"all_leave",
-        "st_dt":st,
-        "en_dt":en,
-        "cos_id":localData.storage.read("cos_id"),
-        "role":localData.storage.read("role"),
-        "id":localData.storage.read("id"),
+        "action": getLeaveData,
+        "search_type": "all_leave",
+        "st_dt": st,
+        "en_dt": en,
+        "cos_id": localData.storage.read("cos_id"),
+        "role": roleId !="0"?localData.storage.read("role"):roleId,
+        "id": userId==""?localData.storage.read("id"):userId,
       };
+
       final response = await leaveRepo.getLeave(data);
-      // print(data);
-      // print(response);
-      if(response.isNotEmpty){
-        _isLoading=true;
-        _isLoading2=true;
-        _isLoading3=true;
-        _isLoading4=true;
+
+      if (response.isNotEmpty) {
+
+        _isLoading = true;
+        _isLoading2 = true;
+        _isLoading3 = true;
+        _isLoading4 = true;
         notifyListeners();
-        myLevSearch=response;
-        myLev=response;
-        if(_filter==true){
+
+        /// STORE API DATA
+        myLev = response;
+        myLevSearch = response;
+
+        /// DATE FILTER
+        if (_filter == true && _startDate.isNotEmpty && _endDate.isNotEmpty) {
+
           final dateFormat = DateFormat('dd-MM-yyyy');
-          final parsedDate1 = dateFormat.parse(_startDate);
-          final parsedDate2 = dateFormat.parse(_endDate);
 
-          myLevSearch = myLev.where((contact) {
-            String timestamp = contact.startDate.toString();
-            List<String> times = timestamp.split(',');
-            DateTime startTime = DateTime.parse(times[0]);
+          DateTime parsedStart = dateFormat.parse(_startDate);
+          DateTime parsedEnd = dateFormat.parse(_endDate);
 
-            DateTime createdTsDate = startTime;
-            final createdDateOnly = DateTime(
-                createdTsDate.year, createdTsDate.month, createdTsDate.day);
+          myLevSearch = myLev.where((leave) {
 
-            final isWithinDateRange =
-                !createdDateOnly.isBefore(parsedDate1) &&
-                    !createdDateOnly.isAfter(parsedDate2);
-
-            final isIdMatch = _user == contact.userId;
-
-            // 🔍 Print matching conditions
-            if (_user == null || _user == "") {
-              if (isWithinDateRange) {
-                print("MATCH → Date: $createdDateOnly | User: ${contact.userId}");
-              }
-              return isWithinDateRange;
-            } else {
-              if (isWithinDateRange && isIdMatch) {
-                print(
-                    "MATCH → Date: $createdDateOnly | User Match: ${contact.userId}");
-              }
-              return isWithinDateRange && isIdMatch;
+            /// NULL SAFETY
+            if (leave.startDate == null || leave.endDate == null) {
+              return false;
             }
+
+            DateTime startDate = DateTime.parse(leave.startDate!);
+            DateTime endDate = DateTime.parse(leave.endDate!);
+
+            /// DATE RANGE CHECK
+            bool isDateMatch =
+                startDate.isBefore(parsedEnd.add(const Duration(days: 1))) &&
+                    endDate.isAfter(parsedStart.subtract(const Duration(days: 1)));
+
+            /// USER FILTER
+            bool isUserMatch =
+                _user == null || _user == "" || _user == leave.userId;
+
+            return isDateMatch && isUserMatch;
+
           }).toList();
         }
-        _levCount1="Full  Day 0\nHalf Day 0";
-        Map<String, Map<String, dynamic>> employeeMap = {};
-        Map<String, Map<String, dynamic>> halfEmployeeMap = {};
-        num h=0;
-        num f=0;
+
+        /// COUNT FULL / HALF DAY
+        Map<String, Map<String, dynamic>> fullEmployee = {};
+        Map<String, Map<String, dynamic>> halfEmployee = {};
+
         for (var item in myLevSearch) {
+
           String id = item.userId ?? '';
 
           if (item.dayType.toString() == "0.5") {
-            h += double.tryParse(item.dayCount ?? "0") ?? 0;
-            if (!halfEmployeeMap.containsKey(id)) {
-              halfEmployeeMap[id] = {'id': id};
+
+            if (!halfEmployee.containsKey(id)) {
+              halfEmployee[id] = {'id': id};
             }
+
           } else {
-            f += int.tryParse(item.dayCount ?? "0") ?? 0;
-            if (!employeeMap.containsKey(id)) {
-              employeeMap[id] = {'id': id};
+
+            if (!fullEmployee.containsKey(id)) {
+              fullEmployee[id] = {'id': id};
             }
           }
         }
-        _levCount1="Full  Day ${employeeMap.values.toList().length}\nHalf Day ${halfEmployeeMap.values.toList().length}";
-        // print("--------");
-        // print("${myLev.length}");
-        // print("${myLevSearch.length}");
-        return response;
-      }
-      else{
-        _levCount1="Full  Day 0\nHalf Day 0";
-        _isLoading=true;
-        _isLoading2=true;
-        _isLoading3=true;
-        _isLoading4=true;
-        myLevSearch.clear();
-        myLev.clear();
+
+        _levCount1 =
+        "Full  Day ${fullEmployee.length}\nHalf Day ${halfEmployee.length}";
+
         notifyListeners();
-        throw Exception('Failed to work flow');
+
+        return response;
+
+      } else {
+
+        /// NO DATA
+        _levCount1 = "Full  Day 0\nHalf Day 0";
+
+        myLev.clear();
+        myLevSearch.clear();
+
+        _isLoading = true;
+        _isLoading2 = true;
+        _isLoading3 = true;
+        _isLoading4 = true;
+
+        notifyListeners();
+
+        return [];
       }
+
     } catch (e) {
-      _levCount1="Full  Day 0\nHalf Day 0";
-      _isLoading=true;
-      _isLoading2=true;
-      _isLoading2=true;
-      _isLoading3=true;
-      _isLoading4=true;
-      myLevSearch.clear();
+
+      print("LEAVE ERROR : $e");
+
+      _levCount1 = "Full  Day 0\nHalf Day 0";
+
       myLev.clear();
+      myLevSearch.clear();
+
+      _isLoading = true;
+      _isLoading2 = true;
+      _isLoading3 = true;
+      _isLoading4 = true;
+
       notifyListeners();
-      throw Exception('Failed to work flow');
+
+      return [];
     }
   }
 
@@ -2659,7 +2680,7 @@ void changeStatus(bool value){
     myLev.clear();
     myLevSearch.clear();
     if(localData.storage.read("role")=="1"){
-      allLeaves(_startDate,_endDate,_filter);
+      allLeaves(_startDate,_endDate,_filter,"",localData.storage.read("id"));
     }else{
       myLeaves(_startDate,_endDate,_isLoading,localData.storage.read("id"));
     }
