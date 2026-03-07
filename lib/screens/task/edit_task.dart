@@ -68,200 +68,207 @@ class _EditTaskState extends State<EditTask> with SingleTickerProviderStateMixin
               body: Center(
                 child: SizedBox(
                     width: kIsWeb?webWidth:phoneWidth,
-                    child:SingleChildScrollView(
-                      child: Column(
-                        children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  CustomText(text: "Type"),
-                                  CustomText(text: "*",colors: colorsConst.appRed,isBold: true,size: 15,),
-                                ],
-                              ),10.height,
-                              GridView.builder(
-                                itemCount: taskProvider.typeList.length,
-                                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                                  crossAxisCount: 2,
-                                  crossAxisSpacing: kIsWeb?5:10,
-                                  mainAxisSpacing: kIsWeb?5:10,
-                                  mainAxisExtent: 20,
+                    child:Column(
+                      children: [
+                        Expanded(
+                          child: SingleChildScrollView(
+                            child: Column(
+                              children: [
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        CustomText(text: "Type"),
+                                        CustomText(text: "*",colors: colorsConst.appRed,isBold: true,size: 15,),
+                                      ],
+                                    ),10.height,
+                                    GridView.builder(
+                                      itemCount: taskProvider.typeList.length,
+                                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                                        crossAxisCount: 2,
+                                        crossAxisSpacing: kIsWeb?5:10,
+                                        mainAxisSpacing: kIsWeb?5:10,
+                                        mainAxisExtent: 20,
+                                      ),
+                                      shrinkWrap: true,
+                                      physics: const NeverScrollableScrollPhysics(),
+                                      itemBuilder: (context,index){
+                                        return CustomRadioButton(
+                                          width: MediaQuery.of(context).size.width*0.37,
+                                          text: taskProvider.typeList[index]["value"].toString().trim(),
+                                          onChanged: (Object? value) {
+                                            taskProvider.changeType(taskProvider.typeList[index]["id"]);
+                                          },
+                                          saveValue: taskProvider.type.toString(),
+                                          confirmValue: taskProvider.typeList[index]["id"].toString(),
+                                        );
+                                      },
+                                    ),
+                                    10.height,
+                                  ],
                                 ),
-                                shrinkWrap: true,
-                                physics: const NeverScrollableScrollPhysics(),
-                                itemBuilder: (context,index){
-                                  return CustomRadioButton(
-                                    width: MediaQuery.of(context).size.width*0.37,
-                                    text: taskProvider.typeList[index]["value"].toString().trim(),
-                                    onChanged: (Object? value) {
-                                      taskProvider.changeType(taskProvider.typeList[index]["id"]);
-                                    },
-                                    saveValue: taskProvider.type.toString(),
-                                    confirmValue: taskProvider.typeList[index]["id"].toString(),
-                                  );
-                                },
-                              ),
-                              10.height,
-                            ],
-                          ),
-                          // cusPvr.refresh == false?
-                          // const Loading()
-                          //     :
-                          Column(
-                            children: [
-                              Row(
-                                children: [
-                                  CustomText(text:constValue.customerName,size:13,isBold: false,),
-                                  // CustomText(text:"*",colors:colorsConst.appRed,size:18,isBold: false,),
-                                ],
-                              ),
-                              CustomerDropdown(hintText:false,
-                                text: taskProvider.cusName!="null"&&taskProvider.cusName!=""?taskProvider.cusName:constValue.companyName,
-                                employeeList: cusPvr.customer,
-                                onChanged: (CustomerModel? value) {
-                                  setState(() {
-                                    companyId=value!.userId.toString();
-                                    companyName=value.companyName.toString();
-                                  });
-                                }, size: kIsWeb?webWidth:phoneWidth,),
-                            ],
-                          ),
-                          CustomTextField(
-                            text: "Description",isRequired: true,
-                            controller: taskProvider.taskTitleCont,
-                            width: kIsWeb?webWidth:phoneWidth,
-                            textCapitalization: TextCapitalization.sentences,
-                          ),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const CustomText(text: "Priority Level"),10.height,
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  CustomRadioButton(
-                                      width: MediaQuery.of(context).size.width*0.2,
-                                      text: "Normal",
-                                      onChanged: (value) {
-                                        taskProvider.changeLevel(value.toString());
-                                      },
-                                      saveValue: taskProvider.level,
-                                      confirmValue: 'Normal'),
-                                  CustomRadioButton(
-                                      width: MediaQuery.of(context).size.width*0.2,
-                                      text: "High",
-                                      onChanged: (value) {
-                                        taskProvider.changeLevel(value.toString());
-                                      },
-                                      saveValue: taskProvider.level,
-                                      confirmValue: 'High'),
-                                  CustomRadioButton(
-                                      text: "Immediate",
-                                      width: MediaQuery.of(context).size.width*0.2,
-                                      onChanged: (value) {
-                                        taskProvider.changeLevel(value.toString());
-                                      },
-                                      saveValue: taskProvider.level,
-                                      confirmValue: 'Immediate'),
-                                ],
-                              ),
-                            ],
-                          ),
-                          20.height,
-                          SearchCustomDropdown(
-                              text: "Assign To",isOptional: false,
-                              hintText: taskProvider.assignedNames,
-                              // hintText: taskProvider.assName==""||taskProvider.assName=="null"?"Assign To":taskProvider.assName,
-                              valueList: empPvr.activeEmps,
-                              onChanged: (value) {},
-                              width: kIsWeb?webWidth:phoneWidth),
-                          MapDropDown(
-                            hintText: "Status",
-                            saveValue: taskProvider.status,
-                            list: taskProvider.statusList,
-                            onChanged: (Object? value) {
-                              if (value.toString().contains("Clsd")||value.toString().contains("Completed")){
-                                if(widget.data.visitReportCount.toString()=="0"){
-                                  utils.showWarningToast(context, text: localData.storage.read("role")!="1"?"Please add visit report":"No visit report found");
-                                  taskProvider.statusController.selectIndex(0); // Unselect
-                                }else if(widget.data.expenseReportCount.toString()=="0"){
-                                  utils.showWarningToast(context, text: localData.storage.read("role")!="1"?"Please add expense report":"No expense report found");
-                                  taskProvider.statusController.selectIndex(0); // Unselect
-                                }else{
-                                  taskProvider.changeStatus(value);
-                                }
-                              }else{
-                                taskProvider.changeStatus(value);
-                              }
-                            },
-                            width: kIsWeb?webWidth:phoneWidth, dropText: 'value',
-                          ),
-                          CustomTextField(isRequired: true,
-                            width: kIsWeb?webWidth:phoneWidth,
-                            text: "Service Date",
-                            controller: taskProvider.taskDt,
-                            hintText: "DD-MM-YYYY",
-                            readOnly: true,
-                            onTap: () {
-                              _myFocusScopeNode.unfocus();
-                              taskProvider.datePick(context: context,date: taskProvider.taskDt);
-                            },
-                          ),
-                          15.height,
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              CustomLoadingButton(
-                                  callback: (){
-                                    Future.microtask(() => Navigator.pop(context));
-                                  }, isLoading: false,text: "Cancel",
-                                  backgroundColor: Colors.white, textColor: colorsConst.primary,radius: 10,
-                                  width: kIsWeb?webWidth/2.5:phoneWidth/2.5),
-                              CustomLoadingButton(
-                                  callback: (){
-                                    if (taskProvider.type==null||taskProvider.type=="0") {
-                                      _myFocusScopeNode.unfocus();
-                                      utils.showWarningToast(context,text: "Please Select ${constValue.type}");
-                                      taskProvider.taskCtr.reset();
-                                    }
-                                    // else if (taskProvider.cusId==""&&companyId=="") {
-                                    //   _myFocusScopeNode.unfocus();
-                                    //   utils.showWarningToast(context,text: "Please Select ${constValue.customerName}");
-                                    //   taskProvider.taskCtr.reset();
-                                    // }
-                                    else if (taskProvider.type==null) {
-                                      _myFocusScopeNode.unfocus();
-                                      utils.showWarningToast(context,text: "Please select a type");
-                                      taskProvider.taskCtr.reset();
-                                    } else if (taskProvider.taskTitleCont.text.isEmpty) {
-                                      utils.showWarningToast(context,text: "Please fill description");
-                                      taskProvider.taskCtr.reset();
-                                    } else if (taskProvider.assignedId==""&&(taskProvider.assName==""||taskProvider.assName=="null")) {
-                                      _myFocusScopeNode.unfocus();
-                                      utils.showWarningToast(context,text: "Please select assign to");
-                                      taskProvider.taskCtr.reset();
-                                    }  else if (taskProvider.taskDt.text.isEmpty) {
-                                      _myFocusScopeNode.unfocus();
-                                      utils.showWarningToast(context,text: "Please select date");
-                                      taskProvider.taskCtr.reset();
-                                    } else {
-                                      _myFocusScopeNode.unfocus();
-                                      if(companyId==""){
-                                        companyName=taskProvider.cusName;
-                                        companyId=taskProvider.cusId;
+                                // cusPvr.refresh == false?
+                                // const Loading()
+                                //     :
+                                Column(
+                                  children: [
+                                    Row(
+                                      children: [
+                                        CustomText(text:constValue.customerName,size:13,isBold: false,),
+                                        // CustomText(text:"*",colors:colorsConst.appRed,size:18,isBold: false,),
+                                      ],
+                                    ),
+                                    CustomerDropdown(hintText:false,
+                                      text: taskProvider.cusName!="null"&&taskProvider.cusName!=""?taskProvider.cusName:constValue.companyName,
+                                      employeeList: cusPvr.customer,
+                                      onChanged: (CustomerModel? value) {
+                                        setState(() {
+                                          companyId=value!.userId.toString();
+                                          companyName=value.companyName.toString();
+                                        });
+                                      }, size: kIsWeb?webWidth:phoneWidth,),
+                                  ],
+                                ),
+                                CustomTextField(
+                                  text: "Description",isRequired: true,
+                                  controller: taskProvider.taskTitleCont,
+                                  width: kIsWeb?webWidth:phoneWidth,
+                                  textCapitalization: TextCapitalization.sentences,
+                                ),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const CustomText(text: "Priority Level"),10.height,
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        CustomRadioButton(
+                                            width: MediaQuery.of(context).size.width*0.2,
+                                            text: "Normal",
+                                            onChanged: (value) {
+                                              taskProvider.changeLevel(value.toString());
+                                            },
+                                            saveValue: taskProvider.level,
+                                            confirmValue: 'Normal'),
+                                        CustomRadioButton(
+                                            width: MediaQuery.of(context).size.width*0.2,
+                                            text: "High",
+                                            onChanged: (value) {
+                                              taskProvider.changeLevel(value.toString());
+                                            },
+                                            saveValue: taskProvider.level,
+                                            confirmValue: 'High'),
+                                        CustomRadioButton(
+                                            text: "Immediate",
+                                            width: MediaQuery.of(context).size.width*0.2,
+                                            onChanged: (value) {
+                                              taskProvider.changeLevel(value.toString());
+                                            },
+                                            saveValue: taskProvider.level,
+                                            confirmValue: 'Immediate'),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                                20.height,
+                                SearchCustomDropdown(
+                                    text: "Assign To",isOptional: false,
+                                    hintText: taskProvider.assignedNames,
+                                    // hintText: taskProvider.assName==""||taskProvider.assName=="null"?"Assign To":taskProvider.assName,
+                                    valueList: empPvr.activeEmps,
+                                    onChanged: (value) {},
+                                    width: kIsWeb?webWidth:phoneWidth),
+                                MapDropDown(
+                                  hintText: "Status",
+                                  saveValue: taskProvider.status,
+                                  list: taskProvider.statusList,
+                                  onChanged: (Object? value) {
+                                    if (value.toString().contains("Clsd")||value.toString().contains("Completed")){
+                                      if(widget.data.visitReportCount.toString()=="0"){
+                                        utils.showWarningToast(context, text: localData.storage.read("role")!="1"?"Please add visit report":"No visit report found");
+                                        taskProvider.statusController.selectIndex(0); // Unselect
+                                      }else if(widget.data.expenseReportCount.toString()=="0"){
+                                        utils.showWarningToast(context, text: localData.storage.read("role")!="1"?"Please add expense report":"No expense report found");
+                                        taskProvider.statusController.selectIndex(0); // Unselect
+                                      }else{
+                                        taskProvider.changeStatus(value);
                                       }
-                                      taskProvider.updateTaskDetail(context,taskId: widget.data.id.toString(),id: companyId,
-                                          isDirect: widget.isDirect, numberList: widget.numberList, companyName: widget.data.projectName.toString());
+                                    }else{
+                                      taskProvider.changeStatus(value);
                                     }
-                                  }, isLoading: true,text: "Save",controller: taskProvider.taskCtr,
-                                  backgroundColor: colorsConst.primary,radius: 10,
-                                  width: kIsWeb?webWidth/2.5:phoneWidth/2.5),
-                            ],
+                                  },
+                                  width: kIsWeb?webWidth:phoneWidth, dropText: 'value',
+                                ),
+                                CustomTextField(isRequired: true,
+                                  width: kIsWeb?webWidth:phoneWidth,
+                                  text: "Service Date",
+                                  controller: taskProvider.taskDt,
+                                  hintText: "DD-MM-YYYY",
+                                  readOnly: true,
+                                  onTap: () {
+                                    _myFocusScopeNode.unfocus();
+                                    taskProvider.datePick(context: context,date: taskProvider.taskDt);
+                                  },
+                                ),
+                                15.height,
+                              
+                                20.height,
+                              ],
+                            ),
                           ),
-                          20.height,
-                        ],
-                      ),
+                        ),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            CustomLoadingButton(
+                                callback: (){
+                                  Future.microtask(() => Navigator.pop(context));
+                                }, isLoading: false,text: "Cancel",
+                                backgroundColor: Colors.white, textColor: colorsConst.primary,radius: 10,
+                                width: kIsWeb?webWidth/2.5:phoneWidth/2.5),
+                            CustomLoadingButton(
+                                callback: (){
+                                  if (taskProvider.type==null||taskProvider.type=="0") {
+                                    _myFocusScopeNode.unfocus();
+                                    utils.showWarningToast(context,text: "Please Select ${constValue.type}");
+                                    taskProvider.taskCtr.reset();
+                                  }
+                                  // else if (taskProvider.cusId==""&&companyId=="") {
+                                  //   _myFocusScopeNode.unfocus();
+                                  //   utils.showWarningToast(context,text: "Please Select ${constValue.customerName}");
+                                  //   taskProvider.taskCtr.reset();
+                                  // }
+                                  else if (taskProvider.type==null) {
+                                    _myFocusScopeNode.unfocus();
+                                    utils.showWarningToast(context,text: "Please select a type");
+                                    taskProvider.taskCtr.reset();
+                                  } else if (taskProvider.taskTitleCont.text.isEmpty) {
+                                    utils.showWarningToast(context,text: "Please fill description");
+                                    taskProvider.taskCtr.reset();
+                                  } else if (taskProvider.assignedId==""&&(taskProvider.assName==""||taskProvider.assName=="null")) {
+                                    _myFocusScopeNode.unfocus();
+                                    utils.showWarningToast(context,text: "Please select assign to");
+                                    taskProvider.taskCtr.reset();
+                                  }  else if (taskProvider.taskDt.text.isEmpty) {
+                                    _myFocusScopeNode.unfocus();
+                                    utils.showWarningToast(context,text: "Please select date");
+                                    taskProvider.taskCtr.reset();
+                                  } else {
+                                    _myFocusScopeNode.unfocus();
+                                    if(companyId==""){
+                                      companyName=taskProvider.cusName;
+                                      companyId=taskProvider.cusId;
+                                    }
+                                    taskProvider.updateTaskDetail(context,taskId: widget.data.id.toString(),id: companyId,
+                                        isDirect: widget.isDirect, numberList: widget.numberList, companyName: widget.data.projectName.toString());
+                                  }
+                                }, isLoading: true,text: "Save",controller: taskProvider.taskCtr,
+                                backgroundColor: colorsConst.primary,radius: 10,
+                                width: kIsWeb?webWidth/2.5:phoneWidth/2.5),
+                          ],
+                        ),
+                      ],
                     )
                 ),
               ),

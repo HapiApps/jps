@@ -1150,6 +1150,34 @@ class _ViewMyLeavesState extends State<ViewMyLeaves> {
         .format(createdDateTime);
     String displayDate;
 
+
+    double leaveDays = 0;
+
+    if (data.dayType.toString() == "0.5") {
+      leaveDays = 0.5;
+    } else {
+      if (end != null) {
+
+        DateTime current = start;
+
+        while (!current.isAfter(end)) {
+
+          /// Sunday skip
+          if (current.weekday != DateTime.sunday) {
+            leaveDays += 1;
+          }
+
+          current = current.add(const Duration(days: 1));
+        }
+
+      } else {
+
+        /// single day leave
+        if (start.weekday != DateTime.sunday) {
+          leaveDays = 1;
+        }
+      }
+    }
     if (end != null) {
       displayDate =
       "${DateFormat('dd MMM').format(start)} - ${DateFormat('dd MMM').format(end)}";
@@ -1263,8 +1291,20 @@ class _ViewMyLeavesState extends State<ViewMyLeaves> {
                         colors: const Color(0xff393636),
                       ),
                     ),
+                    const CustomText(
+                      text: " Days: ",
+                      size: 13,
+                      isBold: true,
+                    ),
+                    CustomText(
+                      text: "$leaveDays Day${leaveDays > 1 ? 's' : ''}",
+                      size: 12,
+                      colors: Colors.black54,
+                      isBold: true,
+                    ),
                   ],
                 ),
+
               ],
             ),
 

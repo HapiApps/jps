@@ -13,6 +13,7 @@ import 'package:rounded_loading_button_plus/rounded_loading_button.dart';
 import 'package:syncfusion_flutter_datepicker/datepicker.dart';
 import '../component/custom_text.dart';
 import '../model/attendance_model.dart';
+import '../model/leave/leave_model.dart';
 import '../model/user_model.dart';
 import '../repo/attendance_repo.dart';
 import '../repo/employee_repo.dart';
@@ -47,6 +48,7 @@ class AttendanceProvider with ChangeNotifier{
   }
   List<AttendanceModel> _noAttendanceList = [];
   List<AttendanceModel> _noAttendanceList2 = [];
+  List<LeaveModel> leave = [];
   List<AttendanceModel> get noAttendanceList=>_noAttendanceList;
   List<AttendanceModel> get noAttendanceList2=>_noAttendanceList2;
 
@@ -550,7 +552,79 @@ class AttendanceProvider with ChangeNotifier{
 
     notifyListeners();
   }
-  Future<void> getAttendanceReport(String id) async {
+  void setAttendanceDatas(List<AttendanceModel> data) {
+    attendanceList = data;
+    notifyListeners();
+  }
+
+  void setAbsentData(List<AttendanceModel> data) {
+    _noAttendanceList2= data;
+    notifyListeners();
+  }
+
+  void setLeaveData(List<LeaveModel> data) {
+    leave = data;
+    notifyListeners();
+  }
+  Future<void> loadAttendanceDashboard(BuildContext context) async {
+
+    try {
+
+      Map data = {
+        "action": "attendance_report",
+        "salesman_id": localData.storage.read("id"),
+        "role": localData.storage.read("role"),
+        "cos_id": localData.storage.read("cos_id"),
+        "st_dt": _startDate,
+        "en_dt": _endDate,
+      };
+
+      final response = await attRepo.getAttendanceFullReport(data);
+
+      final attendanceProvider =
+      Provider.of<AttendanceProvider>(context, listen: false);
+
+      /* ================= ATTENDANCE ================= */
+
+      attendanceProvider.setAttendanceData(
+        (response["attendance"] as List)
+            .map((e) => AttendanceModel.fromJson(e))
+            .toList(),
+      );
+
+      /* ================= ABSENT ================= */
+
+      attendanceProvider.setAbsentData(
+        (response["absent"] as List)
+            .map((e) => AttendanceModel.fromJson(e))
+            .toList(),
+      );
+
+      /* ================= LEAVE ================= */
+
+      attendanceProvider.setLeaveData(
+        (response["leave"] as List)
+            .map((e) => LeaveModel.fromJson(e))
+            .toList(),
+      );
+
+    } catch (e) {
+
+      print("Dashboard Error : $e");
+
+    }
+
+  }
+  bool isLate(String inTime) {
+    final format = DateFormat("hh:mm a");
+
+    DateTime officeTime = format.parse("09:00 AM");
+    DateTime userTime = format.parse(inTime);
+
+    return userTime.isAfter(officeTime);
+  }
+  Future<void> getAttendanceReport(String id)
+  async {
     _refresh = false;
     _getDailyAttendance.clear();
     _searchGetDailyAttendance.clear();
@@ -618,15 +692,8 @@ class AttendanceProvider with ChangeNotifier{
     }
     notifyListeners();
   }
-  bool isLate(String inTime) {
-    final format = DateFormat("hh:mm a");
-
-    DateTime officeTime = format.parse("09:00 AM");
-    DateTime userTime = format.parse(inTime);
-
-    return userTime.isAfter(officeTime);
-  }
-  Future<void> getAbsentAttendanceReport(String id) async {
+  Future<void> getAbsentAttendanceReport(String id)
+  async {
     _refresh = false;
     _noAttendanceList.clear();
     notifyListeners();

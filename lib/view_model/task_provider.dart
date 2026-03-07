@@ -2924,6 +2924,35 @@ class TaskProvider with ChangeNotifier {
   }
   TextEditingController typeCtr = TextEditingController();
 
+  // Future<void> getTaskStatuses() async {
+  //   try {
+  //     Map data = {
+  //       "action": getAllData,
+  //       "search_type":"cmt_type",
+  //       "cat_id":"8",
+  //       "cos_id": localData.storage.read("cos_id")
+  //     };
+  //     final response =await _taskRepo.getListDatas(data);
+  //    log("Task status ${response.toString()}");
+  //     if (response.isNotEmpty) {
+  //       List<Map<String, String>> list = response.map((e) => {
+  //         "id": e['id'].toString(),
+  //         "value": e['value'].toString(),
+  //         "categories": e['categories'].toString()
+  //       }).toList();
+  //       if(!kIsWeb){
+  //         await LocalDatabase.insertTaskStatus(list);
+  //       }else{
+  //         statusList.clear();
+  //         statusList=list;
+  //         notifyListeners();
+  //       }
+  //     }
+  //   } catch (e) {
+  //     // _refresh=true;
+  //   }
+  //   notifyListeners();
+  // }
   Future<void> getTaskStatuses() async {
     try {
       Map data = {
@@ -2933,7 +2962,7 @@ class TaskProvider with ChangeNotifier {
         "cos_id": localData.storage.read("cos_id")
       };
       final response =await _taskRepo.getListDatas(data);
-      // log(response.toString());
+      log("Task status ${response.toString()}");
       if (response.isNotEmpty) {
         List<Map<String, String>> list = response.map((e) => {
           "id": e['id'].toString(),

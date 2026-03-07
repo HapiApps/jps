@@ -49,6 +49,34 @@ class AttendanceRepository{
       throw Exception('Failed to get attendance');
     }
   }
+  Future<Map<String, dynamic>> getAttendanceFullReport(Map data) async {
+    try {
+
+      final request = await http.post(
+        Uri.parse(phpFile),
+        headers: {
+          "Accept": "application/json",
+          "Content-Type": "application/json"
+        },
+        body: jsonEncode(data),
+      );
+
+      print(request.body);
+
+      if (request.statusCode == 200) {
+
+        final response = jsonDecode(request.body);
+
+        return response;
+
+      } else {
+        throw Exception("Failed API");
+      }
+
+    } catch (e) {
+      throw Exception("API Error $e");
+    }
+  }
   Future<Map<String,dynamic>> addAttendance(Map<String, String> data,String img) async {
     try{
       var request = http.MultipartRequest("POST", Uri.parse(phpFile));

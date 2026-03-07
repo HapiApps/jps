@@ -40,6 +40,7 @@ import '../controller/track_controller.dart';
 import '../customer/view_task.dart';
 import '../customer/visit/add_visit.dart';
 import '../customer/visit_report/visits_report.dart';
+import '../task/add_task.dart';
 import 'view_notification.dart';
 import '../expense/view_expense.dart';
 import '../project_report/view_project_report.dart';
@@ -1699,35 +1700,40 @@ class _HomePageState extends State<HomePage> {
                                           ),
                                           /// RIGHT SIDE (Add Task Button)
                                           localData.storage.read("role")=="1"?
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 20,
-                                              vertical: 8,
-                                            ),
-                                            decoration: BoxDecoration(
-                                              color: const Color(0xffDAF2DC),
-                                              borderRadius: BorderRadius.circular(10),
-                                              boxShadow: const [
-                                                BoxShadow(
-                                                  color: Colors.black38,
-                                                  blurRadius: 4,
-                                                  offset: Offset(0, 0),
-                                                ),
-                                              ],
-                                            ),
-                                            child: Row(
-                                              children:  [
-                                                Image.asset(
-                                                  assets.addButton,
-                                                ),
-                                                SizedBox(width: 6),
-                                                CustomText(
-                                                  "Add Task",
-                                                  size: 13,
-                                                  weight: FontWeight.bold,
-                                                  color: Color(0xff0F8D4B),
-                                                ),
-                                              ],
+                                          InkWell(
+                                            onTap:(){
+                                              utils.navigatePage(context, ()=>const DashBoard(child: AddTask()));
+                                            },
+                                            child: Container(
+                                              padding: const EdgeInsets.symmetric(
+                                                horizontal: 20,
+                                                vertical: 8,
+                                              ),
+                                              decoration: BoxDecoration(
+                                                color: const Color(0xffDAF2DC),
+                                                borderRadius: BorderRadius.circular(10),
+                                                boxShadow: const [
+                                                  BoxShadow(
+                                                    color: Colors.black38,
+                                                    blurRadius: 4,
+                                                    offset: Offset(0, 0),
+                                                  ),
+                                                ],
+                                              ),
+                                              child: Row(
+                                                children:  [
+                                                  Image.asset(
+                                                    assets.addButton,
+                                                  ),
+                                                  SizedBox(width: 6),
+                                                  CustomText(
+                                                    "Add Task",
+                                                    size: 13,
+                                                    weight: FontWeight.bold,
+                                                    color: Color(0xff0F8D4B),
+                                                  ),
+                                                ],
+                                              ),
                                             ),
                                           ):SizedBox(),
                                         ],

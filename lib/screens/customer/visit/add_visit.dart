@@ -103,220 +103,229 @@ class _CusAddVisitState extends State<CusAddVisit> with TickerProviderStateMixin
               child: CustomAppbar(text: constValue.addVisit),
             ),
             body: Center(
-              child: SingleChildScrollView(
+              child: SizedBox(
                 child: Column(
                   children: [
-                    20.height,
-                    if(widget.isDirect==true)
-                    custProvider.refresh == false?
-                    const Loading()
-                        :CustomerDropdown(
-                      text: constValue.companyName,
-                      employeeList: custProvider.customer,
-                      onChanged: (CustomerModel? value) {
-                        setState(() {
-                          companyId=value!.userId.toString();
-                          companyName=value.companyName.toString();
-                          sendList=[];
-                          var idList=value.customerId.toString().split('||');
-                          var usersList=value.firstName.toString().split('||');
-                          var phoneList=value.phoneNumber.toString().split('||');
-                          for(var i=0;i<usersList.length;i++){
-                            sendList.add({"id": idList[i], "name": usersList[i], "no": phoneList[i]});
-                          }
-                          custProvider.selectCustomer=sendList[0];
-                          localData.storage.write("c_id",sendList[0]["id"]);
-                          localData.storage.write("c_no",sendList[0]["no"]);
-                          localData.storage.write("c_name",sendList[0]["name"]);
-                        });
-                      }, size: kIsWeb?webWidth:phoneWidth,),
-                    if(widget.isDirect==false)
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        CustomText(text: widget.companyName=="null"?"":widget.companyName,colors: colorsConst.primary,isBold: true,),10.width,
-                        // CustomText(text: widget.type,colors: colorsConst.greyClr,isItalic: true,),
-                      ],
-                    ),
-                    MapDropDown(isRequired:true,
-                      isRefresh: taskProvider.typeList.isEmpty?true:false,
-                      callback: (){
-                        if(!kIsWeb){
-                          taskProvider.getAllTypes();
-                        }else{
-                          taskProvider.getTaskType(false);
-                        }
-                      },
-                      width: kIsWeb?webWidth:phoneWidth,
-                      hintText: constValue.type,
-                      list: taskProvider.typeList,
-                      saveValue: taskProvider.selectType,
-                      onChanged: (Object? value) {
-                        taskProvider.changeTypeValue(value);
-                      },
-                      dropText: 'value',),
-                    CustomTextField(
-                      width: kIsWeb?webWidth:phoneWidth,
-                      text: "Date", controller: custProvider.commentDate,
-                      isRequired: true,
-                      onTap: (){
-                        utils.datePick(context:context,textEditingController: custProvider.commentDate);
-                      },
-                      onChanged: null,
-                    ),
-                    SizedBox(
-                      width: kIsWeb?webWidth:phoneWidth,
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.start,
-                        children: [
-                          CustomText(text: "Visit Location",colors: Colors.grey.shade400,),
-                        ],
-                      ),
-                    ),5.height,
-                    Container(
-                      width: kIsWeb?webWidth:phoneWidth,
-                      decoration: customDecoration.baseBackgroundDecoration(
-                        color: Colors.white,radius: 10,borderColor: Colors.grey.shade300
-                      ),
-                      child:
-                      Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: Row(
+                    Expanded(
+                      child: SingleChildScrollView(
+                        child: Column(
                           children: [
-                            SizedBox(
-                              width: kIsWeb?MediaQuery.of(context).size.width*0.3:MediaQuery.of(context).size.width*0.68,
-                              // color: Colors.yellow,
-                              child: CustomText(
-                                text: [custProvider.address.text,custProvider.comArea.text,custProvider.city.text,
-                                  custProvider.state ?? '',custProvider.country.text,custProvider.pinCode.text,
-                                ].where((e) => e.trim().isNotEmpty).join(', '),
-                              ),
+                            20.height,
+                            if(widget.isDirect==true)
+                            custProvider.refresh == false?
+                            const Loading()
+                                :CustomerDropdown(
+                              text: constValue.companyName,
+                              employeeList: custProvider.customer,
+                              onChanged: (CustomerModel? value) {
+                                setState(() {
+                                  companyId=value!.userId.toString();
+                                  companyName=value.companyName.toString();
+                                  sendList=[];
+                                  var idList=value.customerId.toString().split('||');
+                                  var usersList=value.firstName.toString().split('||');
+                                  var phoneList=value.phoneNumber.toString().split('||');
+                                  for(var i=0;i<usersList.length;i++){
+                                    sendList.add({"id": idList[i], "name": usersList[i], "no": phoneList[i]});
+                                  }
+                                  custProvider.selectCustomer=sendList[0];
+                                  localData.storage.write("c_id",sendList[0]["id"]);
+                                  localData.storage.write("c_no",sendList[0]["no"]);
+                                  localData.storage.write("c_name",sendList[0]["name"]);
+                                });
+                              }, size: kIsWeb?webWidth:phoneWidth,),
+                            if(widget.isDirect==false)
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                CustomText(text: widget.companyName=="null"?"":widget.companyName,colors: colorsConst.primary,isBold: true,),10.width,
+                                // CustomText(text: widget.type,colors: colorsConst.greyClr,isItalic: true,),
+                              ],
                             ),
-                            InkWell(
-                              onTap: () async {
-                                _myFocusScopeNode.unfocus();
-                                if(locPvr.latitude==""&&locPvr.longitude==""){
-                                  await locPvr.manageLocation(context,true);
+                            MapDropDown(isRequired:true,
+                              isRefresh: taskProvider.typeList.isEmpty?true:false,
+                              callback: (){
+                                if(!kIsWeb){
+                                  taskProvider.getAllTypes();
                                 }else{
-                                  utils.navigatePage(context, ()=> const ViaMap());
+                                  taskProvider.getTaskType(false);
                                 }
                               },
-                                child: Icon(Icons.location_on_outlined,color: colorsConst.appRed,))
+                              width: kIsWeb?webWidth:phoneWidth,
+                              hintText: constValue.type,
+                              list: taskProvider.typeList,
+                              saveValue: taskProvider.selectType,
+                              onChanged: (Object? value) {
+                                taskProvider.changeTypeValue(value);
+                              },
+                              dropText: 'value',),
+                            CustomTextField(
+                              width: kIsWeb?webWidth:phoneWidth,
+                              text: "Date", controller: custProvider.commentDate,
+                              isRequired: true,
+                              onTap: (){
+                                utils.datePick(context:context,textEditingController: custProvider.commentDate);
+                              },
+                              onChanged: null,
+                            ),
+                            SizedBox(
+                              width: kIsWeb?webWidth:phoneWidth,
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.start,
+                                children: [
+                                  CustomText(text: "Visit Location",colors: Colors.grey.shade400,),
+                                ],
+                              ),
+                            ),5.height,
+                            Container(
+                              width: kIsWeb?webWidth:phoneWidth,
+                              decoration: customDecoration.baseBackgroundDecoration(
+                                color: Colors.white,radius: 10,borderColor: Colors.grey.shade300
+                              ),
+                              child:
+                              Padding(
+                                padding: const EdgeInsets.all(8.0),
+                                child: Row(
+                                  children: [
+                                    SizedBox(
+                                      width: kIsWeb?MediaQuery.of(context).size.width*0.3:MediaQuery.of(context).size.width*0.68,
+                                      // color: Colors.yellow,
+                                      child: CustomText(
+                                        text: [custProvider.address.text,custProvider.comArea.text,custProvider.city.text,
+                                          custProvider.state ?? '',custProvider.country.text,custProvider.pinCode.text,
+                                        ].where((e) => e.trim().isNotEmpty).join(', '),
+                                      ),
+                                    ),
+                                    InkWell(
+                                      onTap: () async {
+                                        _myFocusScopeNode.unfocus();
+                                        if(locPvr.latitude==""&&locPvr.longitude==""){
+                                          await locPvr.manageLocation(context,true);
+                                        }else{
+                                          utils.navigatePage(context, ()=> const ViaMap());
+                                        }
+                                      },
+                                        child: Icon(Icons.location_on_outlined,color: colorsConst.appRed,))
+                                  ],
+                                ),
+                              ),
+                            ),
+                            10.height,
+                            MapDropDown(
+                              width: kIsWeb?webWidth:phoneWidth,
+                              hintText: constValue.contactName,
+                              list: widget.numberList.isNotEmpty?widget.numberList:sendList,
+                              saveValue: custProvider.selectCustomer,
+                              onChanged: (Object? value) {
+                                setState(() {
+                                  custProvider.selectCustomer=value!;
+                                  var list=[];
+                                  list.add(value);
+                                  localData.storage.write("c_id",list[0]["id"]);
+                                  localData.storage.write("c_no",list[0]["no"]);
+                                  localData.storage.write("c_name",list[0]["name"]);
+                                });
+                              },
+                              dropText: 'name',),
+                            ///
+                            // MaxLineTextField(isRequired:true,
+                            //   text: constValue.disPoints,
+                            //   controller: custProvider.disPoint, maxLine: 5,
+                            //   textCapitalization: TextCapitalization.sentences,
+                            //   textInputAction: TextInputAction.done,
+                            // ),
+                            MapDropDown(
+                              callback: (){
+                                if(!kIsWeb){
+                                  custProvider.refreshLead();
+                                }else{
+                                  custProvider.getLeadCategory();
+                                }
+                              },
+                              isRefresh: custProvider.leadCategoryList.isEmpty?true:false,
+                              width: kIsWeb?webWidth:phoneWidth,
+                              hintText: constValue.leadStatus,
+                              list: custProvider.leadCategoryList,
+                              saveValue: custProvider.leadType,
+                              onChanged: (Object? value) {
+                                custProvider.changeLeadType(value);
+                              },
+                              dropText: 'value',),
+                            MapDropDown(
+                              callback: (){
+                                if(!kIsWeb){
+                                  custProvider.refreshVisit();
+                                }else{
+                                  custProvider.getVisitType();
+                                }
+                              },
+                              isRefresh: custProvider.callList.isEmpty?true:false,
+                              width:kIsWeb?webWidth:phoneWidth,
+                              hintText: constValue.visitType,
+                              list: custProvider.callList,
+                              saveValue: custProvider.callType,
+                              onChanged: (Object? value) {
+                                custProvider.changeCallType(value);
+                              },
+                              dropText: 'value',),
+                            MaxLineTextField(
+                              width: kIsWeb?webWidth:phoneWidth,
+                              isRequired: true,
+                              text: constValue.disPoints,
+                              textCapitalization: TextCapitalization.sentences,
+                              controller: custProvider.disPoint, maxLine: 5,
+                            ),
+                            MaxLineTextField(
+                              width: kIsWeb?webWidth:phoneWidth,
+                              text: constValue.addPoints,
+                              textCapitalization: TextCapitalization.sentences,
+                              controller: custProvider.points, maxLine: 5,
+                              textInputAction: TextInputAction.done,
+                            ),
+                            // SizedBox(
+                            //   width: kIsWeb?webWidth:phoneWidth,
+                            //   child: Column(
+                            //     crossAxisAlignment: CrossAxisAlignment.start,
+                            //     children: [
+                            //       Row(
+                            //         children: [
+                            //           CustomText(text :"Visit Review",colors: Colors.grey.shade500,),
+                            //           CustomText(text :"*",colors: colorsConst.appRed,size: 18,),
+                            //         ],
+                            //       ),
+                            //       10.height,
+                            //       Row(
+                            //           mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            //           children:[
+                            //             CustomRadioButton(
+                            //               text: 'Complete',
+                            //               onChanged: (Object? value) {
+                            //                 custProvider.changeReview(value);
+                            //               },
+                            //               saveValue: custProvider.selectReview, confirmValue: 'Complete',),
+                            //             CustomRadioButton(
+                            //               text: 'Revisit',
+                            //               onChanged: (Object? value) {
+                            //                 custProvider.changeReview(value);
+                            //               },
+                            //               saveValue: custProvider.selectReview, confirmValue: 'Revisit',),
+                            //             // CustomRadioButton(
+                            //             //   text: 'Cancel',
+                            //             //   onChanged: (Object? value) {
+                            //             //     custProvider.changeReview(value);
+                            //             //   },
+                            //             //   saveValue: custProvider.selectReview, confirmValue: 'Cancel',)
+                            //           ]
+                            //       ),
+                            //     ],
+                            //   ),
+                            // ),
+                            40.height,
+
                           ],
                         ),
                       ),
                     ),
-                    10.height,
-                    MapDropDown(
-                      width: kIsWeb?webWidth:phoneWidth,
-                      hintText: constValue.contactName,
-                      list: widget.numberList.isNotEmpty?widget.numberList:sendList,
-                      saveValue: custProvider.selectCustomer,
-                      onChanged: (Object? value) {
-                        setState(() {
-                          custProvider.selectCustomer=value!;
-                          var list=[];
-                          list.add(value);
-                          localData.storage.write("c_id",list[0]["id"]);
-                          localData.storage.write("c_no",list[0]["no"]);
-                          localData.storage.write("c_name",list[0]["name"]);
-                        });
-                      },
-                      dropText: 'name',),
-                    ///
-                    // MaxLineTextField(isRequired:true,
-                    //   text: constValue.disPoints,
-                    //   controller: custProvider.disPoint, maxLine: 5,
-                    //   textCapitalization: TextCapitalization.sentences,
-                    //   textInputAction: TextInputAction.done,
-                    // ),
-                    MapDropDown(
-                      callback: (){
-                        if(!kIsWeb){
-                          custProvider.refreshLead();
-                        }else{
-                          custProvider.getLeadCategory();
-                        }
-                      },
-                      isRefresh: custProvider.leadCategoryList.isEmpty?true:false,
-                      width: kIsWeb?webWidth:phoneWidth,
-                      hintText: constValue.leadStatus,
-                      list: custProvider.leadCategoryList,
-                      saveValue: custProvider.leadType,
-                      onChanged: (Object? value) {
-                        custProvider.changeLeadType(value);
-                      },
-                      dropText: 'value',),
-                    MapDropDown(
-                      callback: (){
-                        if(!kIsWeb){
-                          custProvider.refreshVisit();
-                        }else{
-                          custProvider.getVisitType();
-                        }
-                      },
-                      isRefresh: custProvider.callList.isEmpty?true:false,
-                      width:kIsWeb?webWidth:phoneWidth,
-                      hintText: constValue.visitType,
-                      list: custProvider.callList,
-                      saveValue: custProvider.callType,
-                      onChanged: (Object? value) {
-                        custProvider.changeCallType(value);
-                      },
-                      dropText: 'value',),
-                    MaxLineTextField(
-                      width: kIsWeb?webWidth:phoneWidth,
-                      isRequired: true,
-                      text: constValue.disPoints,
-                      textCapitalization: TextCapitalization.sentences,
-                      controller: custProvider.disPoint, maxLine: 5,
-                    ),
-                    MaxLineTextField(
-                      width: kIsWeb?webWidth:phoneWidth,
-                      text: constValue.addPoints,
-                      textCapitalization: TextCapitalization.sentences,
-                      controller: custProvider.points, maxLine: 5,
-                      textInputAction: TextInputAction.done,
-                    ),
-                    // SizedBox(
-                    //   width: kIsWeb?webWidth:phoneWidth,
-                    //   child: Column(
-                    //     crossAxisAlignment: CrossAxisAlignment.start,
-                    //     children: [
-                    //       Row(
-                    //         children: [
-                    //           CustomText(text :"Visit Review",colors: Colors.grey.shade500,),
-                    //           CustomText(text :"*",colors: colorsConst.appRed,size: 18,),
-                    //         ],
-                    //       ),
-                    //       10.height,
-                    //       Row(
-                    //           mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    //           children:[
-                    //             CustomRadioButton(
-                    //               text: 'Complete',
-                    //               onChanged: (Object? value) {
-                    //                 custProvider.changeReview(value);
-                    //               },
-                    //               saveValue: custProvider.selectReview, confirmValue: 'Complete',),
-                    //             CustomRadioButton(
-                    //               text: 'Revisit',
-                    //               onChanged: (Object? value) {
-                    //                 custProvider.changeReview(value);
-                    //               },
-                    //               saveValue: custProvider.selectReview, confirmValue: 'Revisit',),
-                    //             // CustomRadioButton(
-                    //             //   text: 'Cancel',
-                    //             //   onChanged: (Object? value) {
-                    //             //     custProvider.changeReview(value);
-                    //             //   },
-                    //             //   saveValue: custProvider.selectReview, confirmValue: 'Cancel',)
-                    //           ]
-                    //       ),
-                    //     ],
-                    //   ),
-                    // ),
-                    40.height,
                     SizedBox(
                       width: kIsWeb?webWidth:phoneWidth,
                       child: Row(
@@ -335,36 +344,36 @@ class _CusAddVisitState extends State<CusAddVisit> with TickerProviderStateMixin
                                 //   custProvider.addCtr.reset();
                                 // }
                                 // else{
-                                  if(taskProvider.selectType==null){
-                                    utils.showWarningToast(context, text: "Select a visit type");
-                                    custProvider.addCtr.reset();
-                                  }
-                                  // else if(custProvider.selectCustomer==null){
-                                  //   utils.showWarningToast(context, text: "Select a ${constValue.contactName}");
-                                  //   custProvider.addCtr.reset();
-                                  // }
-                                  else if(custProvider.disPoint.text.trim().isEmpty){
-                                    utils.showWarningToast(context, text: "Type a comment");
-                                    custProvider.addCtr.reset();
-                                  }else{
-                                    _myFocusScopeNode.unfocus();
-                                    custProvider.addVisit(context: context,companyId: widget.isDirect==true?companyId:widget.companyId.toString(), companyName: widget.isDirect==true?companyName:widget.companyName,
-                                      sendList: widget.numberList,lat: locPvr.latitude,lng: locPvr.longitude, taskId: widget.taskId, tType: widget.type, desc: widget.desc,
-                                      callBack: () {
+                                if(taskProvider.selectType==null){
+                                  utils.showWarningToast(context, text: "Select a visit type");
+                                  custProvider.addCtr.reset();
+                                }
+                                // else if(custProvider.selectCustomer==null){
+                                //   utils.showWarningToast(context, text: "Select a ${constValue.contactName}");
+                                //   custProvider.addCtr.reset();
+                                // }
+                                else if(custProvider.disPoint.text.trim().isEmpty){
+                                  utils.showWarningToast(context, text: "Type a comment");
+                                  custProvider.addCtr.reset();
+                                }else{
+                                  _myFocusScopeNode.unfocus();
+                                  custProvider.addVisit(context: context,companyId: widget.isDirect==true?companyId:widget.companyId.toString(), companyName: widget.isDirect==true?companyName:widget.companyName,
+                                    sendList: widget.numberList,lat: locPvr.latitude,lng: locPvr.longitude, taskId: widget.taskId, tType: widget.type, desc: widget.desc,
+                                    callBack: () {
                                       if(widget.isDirect==true){
                                         Navigator.pop(context);
                                       }else{
                                         custProvider.getCusVisits(widget.companyId);
                                         Navigator.pop(context);
                                       }
-                                      },);
-                                  }
+                                    },);
+                                }
                                 // }
                               },text: 'Save',
                               controller: custProvider.addCtr, isLoading: true, backgroundColor: colorsConst.primary, radius: 10, width: kIsWeb?webWidth/2.1:phoneWidth/2.1),
                         ],
                       ),
-                    ),40.height
+                    ),
                   ],
                 ),
               ),
