@@ -1469,7 +1469,8 @@ class TaskProvider with ChangeNotifier {
     }
 
     _assignedId = ids.join(",");
-    _assignedNames = selectedNames.join(", "); // <- add this line to save names
+    // _assignedNames = selectedNames.join(", "); // <- add this line to save names
+    _assignedNames = selectedNames.join(", ").replaceAll(".", ",");
 
     print("Assigned IDs: $_assignedId");
     print("Assigned Names: $_assignedNames");
@@ -1915,6 +1916,7 @@ class TaskProvider with ChangeNotifier {
   // }
   Future<void> playAudio(String audioPath, int index) async {
     if (audioPath.isNotEmpty) {
+
       // Reset all to false
       for (var i = 0; i < _recordedAudioPaths.length; i++) {
         _recordedAudioPaths[i].play = false;
@@ -1947,7 +1949,12 @@ class TaskProvider with ChangeNotifier {
       });
 
       try {
+
+        /// 🔥 START FROM 0
+        await audioPlayer.seek(Duration.zero);
+
         await audioPlayer.play(DeviceFileSource(audioPath));
+
       } catch (e) {
         _isPlaying = false;
         _recordedAudioPaths[index].play = false;
@@ -2314,8 +2321,7 @@ class TaskProvider with ChangeNotifier {
         if(isDirect==true){
           utils.navigatePage(context, ()=> DashBoard(child: ViewTask(date1: Provider.of<HomeProvider>(context, listen: false).startDate, date2: Provider.of<HomeProvider>(context, listen: false).endDate, type: Provider.of<HomeProvider>(context, listen: false).type)));
         }else{
-          utils.navigatePage(context, ()=> DashBoard(child:
-          ViewTasks(coId:cusId,numberList: numberList, companyName: companyName)));
+          utils.navigatePage(context, ()=> DashBoard(child: ViewTask(date1: Provider.of<HomeProvider>(context, listen: false).startDate, date2: Provider.of<HomeProvider>(context, listen: false).endDate, type: Provider.of<HomeProvider>(context, listen: false).type)));
         }
       }else {
         utils.showErrorToast(context: context);

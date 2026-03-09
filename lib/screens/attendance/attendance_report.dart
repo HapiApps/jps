@@ -56,10 +56,10 @@ class _AttendanceReportState extends State<AttendanceReport> {
       if (!mounted) return;
       print(Provider.of<EmployeeProvider>(context, listen: false).userData.length);
       Provider.of<AttendanceProvider>(context, listen: false).initDate(id:localData.storage.read("id"),role:localData.storage.read("role"),isRefresh:true,date1:widget.date1,date2:widget.date2,type:widget.type);
-       Provider.of<AttendanceProvider>(context, listen: false).loadAttendanceDashboard(localData.storage.read("id"));
-      // Provider.of<AttendanceProvider>(context, listen: false).getAttendanceReport(localData.storage.read("id"));
-      // Provider.of<AttendanceProvider>(context, listen: false).getAbsentAttendanceReport(localData.storage.read("id"));
-      // Provider.of<LeaveProvider>(context, listen: false).allLeaves(widget.date1,widget.date2,true,"",localData.storage.read("id"));
+      // Provider.of<AttendanceProvider>(context, listen: false).loadAttendanceDashboard(localData.storage.read("id"));
+      Provider.of<AttendanceProvider>(context, listen: false).getAttendanceReport(localData.storage.read("id"));
+      Provider.of<AttendanceProvider>(context, listen: false).getAbsentAttendanceReport(localData.storage.read("id"));
+      Provider.of<LeaveProvider>(context, listen: false).allLeaves(widget.date1,widget.date2,true,"",localData.storage.read("id"));
 
     });
     super.initState();
@@ -518,7 +518,7 @@ void check(){
                         Row(
                           children: [
                             Container(
-                              width: phoneWidth/1.15,
+                              width: phoneWidth/1.18,
                               height: 45,
                               decoration: BoxDecoration(
                                 color: Colors.white,
@@ -568,7 +568,7 @@ void check(){
                                 children: List.generate(attProvider.items.length, (index) {
                                   bool isSelected = attProvider.selectedIndex == index;
 
-                                  final totalWidth = phoneWidth / 1.15; // ⭐ same as container
+                                  final totalWidth = phoneWidth / 1.10; // ⭐ same as container
 
                                   return SizedBox(
                                     width: totalWidth / attProvider.items.length,
@@ -585,27 +585,28 @@ void check(){
                                 }),
                               ),
                             ),
-                            InkWell(
-                              onTap: (){
-                                attProvider.sorting(context);
-                              },
-                              child: Container(
-                                  height: 45,
-                                  width:phoneWidth/9,
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    borderRadius: BorderRadius.only(
-                                      topRight: Radius.circular(5),
-                                      bottomRight: Radius.circular(5),
-                                    ),
-                                    border: Border.all(
-                                      color: Colors.grey.shade300, // ⭐ border color
-                                      width: 1,           // optional
-                                    ),
-                                  ),
-                                  child: Icon(Icons.sort_by_alpha)
-                              ),
-                            ),
+                            //A to Z
+                            // InkWell(
+                            //   onTap: (){
+                            //     attProvider.sorting(context);
+                            //   },
+                            //   child: Container(
+                            //       height: 45,
+                            //       width:phoneWidth/9,
+                            //       decoration: BoxDecoration(
+                            //         color: Colors.white,
+                            //         borderRadius: BorderRadius.only(
+                            //           topRight: Radius.circular(5),
+                            //           bottomRight: Radius.circular(5),
+                            //         ),
+                            //         border: Border.all(
+                            //           color: Colors.grey.shade300, // ⭐ border color
+                            //           width: 1,           // optional
+                            //         ),
+                            //       ),
+                            //       child: Icon(Icons.sort_by_alpha)
+                            //   ),
+                            // ),
                           ],
                         ),
                         attProvider.refresh == false ?

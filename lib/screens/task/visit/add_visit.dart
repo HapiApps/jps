@@ -1,4 +1,6 @@
 import 'package:master_code/component/custom_loading_button.dart';
+import 'package:master_code/screens/customer/visit_report/visits_report.dart';
+import 'package:master_code/view_model/home_provider.dart';
 import 'package:master_code/view_model/location_provider.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -111,7 +113,7 @@ class _AddVisitState extends State<AddVisit> with TickerProviderStateMixin {
   Widget build(BuildContext context) {
     var webWidth=MediaQuery.of(context).size.width * 0.5;
     var phoneWidth=MediaQuery.of(context).size.width * 0.9;
-    return Consumer3<CustomerProvider,TaskProvider,LocationProvider>(builder: (context,custProvider,taskPvr,locPvr,_){
+    return Consumer4<CustomerProvider,TaskProvider,LocationProvider,HomeProvider>(builder: (context,custProvider,taskPvr,locPvr,home,_){
       return FocusScope(
         node: _myFocusScopeNode,
         child: SafeArea (
@@ -126,41 +128,41 @@ class _AddVisitState extends State<AddVisit> with TickerProviderStateMixin {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  CustomLoadingButton(
-                      callback: (){
-                        Future.microtask(() => Navigator.pop(context));
-                      }, isLoading: false,text: "Cancel",
-                      backgroundColor: Colors.white, textColor: colorsConst.primary,radius: 10,
-                      width: kIsWeb?webWidth/2.1:phoneWidth/2.1),
-                  CustomLoadingButton(
-                      callback: ()  {
-                        if(custProvider.selectType==null){
-                          utils.showWarningToast(context, text: "Select a visit type");
-                          custProvider.addCtr.reset();
-                        }else if(custProvider.selectCustomer==null){
-                          utils.showWarningToast(context, text: "Select a ${constValue.contactName}");
-                          custProvider.addCtr.reset();
-                        }else if(custProvider.disPoint.text.trim().isEmpty){
-                          utils.showWarningToast(context, text: "Type a comment");
-                          custProvider.addCtr.reset();
-                        }else{
-                          _myFocusScopeNode.unfocus();
-                          custProvider.addVisit(context: context,companyId: widget.companyId.toString(), companyName: widget.companyName,
-                              sendList: widget.numberList,lat: locPvr.latitude,lng: locPvr.longitude,
-                              taskId: widget.taskId, tType: widget.type, desc: widget.desc,
-                              callBack: (){
-                                utils.navigatePage(context, ()=>DashBoard(child:
-                                TaskReport(taskId: widget.taskId,coId: companyId,numberList: widget.numberList, isTask: false,
-                                  coName: companyName,description: widget.desc,type: widget.type,
-                                  callback: () {
-                                    Future.microtask(() => Navigator.pop(context));
-                                    Future.microtask(() => Navigator.pop(context));
-                                  }, index: 1,
-                                )));
-                              });
-                        }
-                      },text: 'Save',
-                      controller: custProvider.addCtr, isLoading: true, backgroundColor: colorsConst.primary, radius: 10, width: kIsWeb?webWidth/2.1:phoneWidth/2.1),
+                  // CustomLoadingButton(
+                  //     callback: (){
+                  //       Future.microtask(() => Navigator.pop(context));
+                  //     }, isLoading: false,text: "Cancel",
+                  //     backgroundColor: Colors.white, textColor: colorsConst.primary,radius: 10,
+                  //     width: kIsWeb?webWidth/2.1:phoneWidth/2.1),
+                  // CustomLoadingButton(
+                  //     callback: ()  {
+                  //       if(custProvider.selectType==null){
+                  //         utils.showWarningToast(context, text: "Select a visit type");
+                  //         custProvider.addCtr.reset();
+                  //       }else if(custProvider.selectCustomer==null){
+                  //         utils.showWarningToast(context, text: "Select a ${constValue.contactName}");
+                  //         custProvider.addCtr.reset();
+                  //       }else if(custProvider.disPoint.text.trim().isEmpty){
+                  //         utils.showWarningToast(context, text: "Type a comment");
+                  //         custProvider.addCtr.reset();
+                  //       }else{
+                  //         _myFocusScopeNode.unfocus();
+                  //         custProvider.addVisit(context: context,companyId: widget.companyId.toString(), companyName: widget.companyName,
+                  //             sendList: widget.numberList,lat: locPvr.latitude,lng: locPvr.longitude,
+                  //             taskId: widget.taskId, tType: widget.type, desc: widget.desc,
+                  //             callBack: (){
+                  //               utils.navigatePage(context, ()=>DashBoard(child:
+                  //               TaskReport(taskId: widget.taskId,coId: companyId,numberList: widget.numberList, isTask: false,
+                  //                 coName: companyName,description: widget.desc,type: widget.type,
+                  //                 callback: () {
+                  //                   Future.microtask(() => Navigator.pop(context));
+                  //                   Future.microtask(() => Navigator.pop(context));
+                  //                 }, index: 1,
+                  //               )));
+                  //             });
+                  //       }
+                  //     },text: 'Save',
+                  //     controller: custProvider.addCtr, isLoading: true, backgroundColor: colorsConst.primary, radius: 10, width: kIsWeb?webWidth/2.1:phoneWidth/2.1),
                 ],
               ),
             ) ,
@@ -417,15 +419,13 @@ class _AddVisitState extends State<AddVisit> with TickerProviderStateMixin {
                                       sendList: widget.numberList,lat: locPvr.latitude,lng: locPvr.longitude,
                                       taskId: widget.taskId, tType: widget.type, desc: widget.desc,
                                       callBack: (){
-                                        utils.navigatePage(context, ()=>DashBoard(child:
-                                        TaskReport(taskId: widget.taskId,coId: companyId,numberList: widget.numberList, isTask: false,
-                                          coName: companyName,description: widget.desc,type: widget.type,
-                                          callback: () {
-                                            Future.microtask(() => Navigator.pop(context));
-                                            Future.microtask(() => Navigator.pop(context));
-                                          }, index: 1,
-                                        )));
-                                      });
+                                        utils.navigatePage(context, ()=>
+                                            DashBoard(child: VisitReport(date1: home.startDate, date2: home.endDate,month: home.month,type: home.type,)));
+
+                                        //  Future.microtask(() => Navigator.pop(context));
+
+                                  }
+                                      );
                                 }
                               },text: 'Save',
                               controller: custProvider.addCtr, isLoading: true, backgroundColor: colorsConst.primary, radius: 10, width: kIsWeb?webWidth/2.1:phoneWidth/2.1),

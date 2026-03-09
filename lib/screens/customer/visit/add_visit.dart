@@ -1,5 +1,6 @@
 import 'package:master_code/component/custom_loading_button.dart';
 import 'package:master_code/view_model/employee_provider.dart';
+import 'package:master_code/view_model/home_provider.dart';
 import 'package:master_code/view_model/location_provider.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -20,7 +21,9 @@ import '../../../source/constant/local_data.dart';
 import '../../../source/styles/decoration.dart';
 import '../../../source/utilities/utils.dart';
 import '../../../view_model/task_provider.dart';
+import '../../common/dashboard.dart';
 import '../viamap.dart';
+import '../visit_report/visits_report.dart';
 
 class CusAddVisit extends StatefulWidget {
   final String companyId;
@@ -92,7 +95,7 @@ class _CusAddVisitState extends State<CusAddVisit> with TickerProviderStateMixin
   Widget build(BuildContext context) {
     var webWidth=MediaQuery.of(context).size.width * 0.5;
     var phoneWidth=MediaQuery.of(context).size.width * 0.9;
-    return Consumer3<CustomerProvider,LocationProvider,TaskProvider>(builder: (context,custProvider,locPvr,taskProvider,_){
+    return Consumer4<CustomerProvider,LocationProvider,TaskProvider,HomeProvider>(builder: (context,custProvider,locPvr,taskProvider,home,_){
       return FocusScope(
         node: _myFocusScopeNode,
         child: SafeArea (
@@ -360,13 +363,17 @@ class _CusAddVisitState extends State<CusAddVisit> with TickerProviderStateMixin
                                   custProvider.addVisit(context: context,companyId: widget.isDirect==true?companyId:widget.companyId.toString(), companyName: widget.isDirect==true?companyName:widget.companyName,
                                     sendList: widget.numberList,lat: locPvr.latitude,lng: locPvr.longitude, taskId: widget.taskId, tType: widget.type, desc: widget.desc,
                                     callBack: () {
-                                      if(widget.isDirect==true){
-                                        Navigator.pop(context);
-                                      }else{
-                                        custProvider.getCusVisits(widget.companyId);
-                                        Navigator.pop(context);
-                                      }
-                                    },);
+                                      // if(widget.isDirect==true){
+                                      //   Navigator.pop(context);
+                                      // }else{
+                                      //   custProvider.getCusVisits(widget.companyId);
+                                      //   Navigator.pop(context);
+                                      // }
+                                      utils.navigatePage(context, ()=>
+                                          DashBoard(child: VisitReport(date1: home.startDate, date2: home.endDate,month: home.month,type: home.type,)));
+
+                                    },
+                                  );
                                 }
                                 // }
                               },text: 'Save',

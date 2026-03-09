@@ -259,132 +259,328 @@ class _CheckAttendanceState extends State<CheckAttendance> {
                     ],
                   ),
                     20.height,
-                    attProvider.isPermission==true?
-                    SwipeButton(
-                      width: MediaQuery.of(context).size.width*0.9,
-                      height: 35,
-                      thumb: Padding(
-                        padding: const EdgeInsets.fromLTRB(10, 0, 10, 0),
-                        child: SvgPicture.asset(assets.arrow),
-                      ),
-                      activeThumbColor: attProvider.permissionStatus==""||split.last=="2"?colorsConst.appGreen:colorsConst.appRed,
-                      // activeTrackColor: attProvider.permissionStatus==""||split.last=="2"?colorsConst.appGreen.withOpacity(0.2):colorsConst.appRed.withOpacity(0.3),
-                      activeTrackColor: Colors.white,
-                      onSwipe: () async {
-                        Map<Permission, PermissionStatus> status = await [
-                          Permission.location,
-                        ].request();
-                        if (status[Permission.location] == PermissionStatus.granted) {
-                          bool isLocationServiceEnabled = await Geolocator.isLocationServiceEnabled();
-                          if (!isLocationServiceEnabled) {
-                            utils.showWarningToast(context, text: "Location services are disabled. Please enable them.");
-                          }else{
-                            if(locPvr.latitude==""&&locPvr.longitude==""){
-                              utils.showWarningToast(text:"Check Your Location",context);
-                              await locPvr.manageLocation(context,true);
-                            }else{
-                              if(attProvider.isSelfie==false){
-                                attProvider.putDailyPermission(context,attProvider.permissionStatus==""||split.last=="2"?"1":"2",locPvr.latitude,locPvr.longitude);
-                              }else{
-                                attProvider.signDialog(context: context,
-                                  img: attProvider.profile,
-                                  onTap:(newImg){
-                                    attProvider.profilePick(newImg);
-                                    attProvider.putDailyPermission(context,attProvider.permissionStatus==""||split.last=="2"?"1":"2",locPvr.latitude,locPvr.longitude);
-                                  },
-                                );
-                              }
-                            }
-                          }
+                    // attProvider.isPermission==true?
+                    // SwipeButton(
+                    //   width: MediaQuery.of(context).size.width*0.9,
+                    //   height: 35,
+                    //   thumb: Padding(
+                    //     padding: const EdgeInsets.fromLTRB(10, 0, 10, 0),
+                    //     child: SvgPicture.asset(assets.arrow),
+                    //   ),
+                    //   activeThumbColor: attProvider.permissionStatus==""||split.last=="2"?colorsConst.appGreen:colorsConst.appRed,
+                    //   // activeTrackColor: attProvider.permissionStatus==""||split.last=="2"?colorsConst.appGreen.withOpacity(0.2):colorsConst.appRed.withOpacity(0.3),
+                    //   activeTrackColor: Colors.white,
+                    //   onSwipe: () async {
+                    //     Map<Permission, PermissionStatus> status = await [
+                    //       Permission.location,
+                    //     ].request();
+                    //     if (status[Permission.location] == PermissionStatus.granted) {
+                    //       bool isLocationServiceEnabled = await Geolocator.isLocationServiceEnabled();
+                    //       if (!isLocationServiceEnabled) {
+                    //         utils.showWarningToast(context, text: "Location services are disabled. Please enable them.");
+                    //       }else{
+                    //         if(locPvr.latitude==""&&locPvr.longitude==""){
+                    //           utils.showWarningToast(text:"Check Your Location",context);
+                    //           await locPvr.manageLocation(context,true);
+                    //         }else{
+                    //           if(attProvider.isSelfie==false){
+                    //             attProvider.putDailyPermission(context,attProvider.permissionStatus==""||split.last=="2"?"1":"2",locPvr.latitude,locPvr.longitude);
+                    //           }else{
+                    //             attProvider.signDialog(context: context,
+                    //               img: attProvider.profile,
+                    //               onTap:(newImg){
+                    //                 attProvider.profilePick(newImg);
+                    //                 attProvider.putDailyPermission(context,attProvider.permissionStatus==""||split.last=="2"?"1":"2",locPvr.latitude,locPvr.longitude);
+                    //               },
+                    //             );
+                    //           }
+                    //         }
+                    //       }
+                    //     }
+                    //     else{
+                    //       await locPvr.manageLocation(context,true);
+                    //     }
+                    //   },
+                    //   child: CustomText(text: attProvider.permissionStatus==""||split.last=="2"?
+                    //   "     Permission In"
+                    //       :"     Permission Out",
+                    //     colors: attProvider.permissionStatus==""||split.last=="2"?colorsConst.appGreen:colorsConst.appRed,size: 15,),
+                    // )
+                    // :SwipeButton(
+                    //   //width: attProvider.mainCheckOut == true?MediaQuery.of(context).size.width*0.9:MediaQuery.of(context).size.width*0.55,
+                    //   width: MediaQuery.of(context).size.width*0.9,
+                    //   height: 35,
+                    //   thumb: Padding(
+                    //     padding: const EdgeInsets.fromLTRB(10, 0, 10, 0),
+                    //     child: SvgPicture.asset(assets.arrow),
+                    //   ),
+                    //   activeThumbColor: attProvider.mainAttendance!=0&&attProvider.mainCheckOut == true?Color(0xff7E7E7E):attProvider.mainAttendance!=0&&attProvider.mainCheckOut == false?colorsConst.appRed:colorsConst.appGreen,
+                    //   //activeTrackColor: attProvider.mainAttendance!=0&&attProvider.mainCheckOut == true?Colors.grey.shade300:attProvider.mainAttendance!=0&&attProvider.mainCheckOut == false?colorsConst.appRed.withOpacity(0.2):colorsConst.litGrey.withOpacity(0.3),
+                    //   activeTrackColor: Colors.white,
+                    //   onSwipe: attProvider.mainCheckOut==true?null:() async {
+                    //     if(!kIsWeb){
+                    //       Map<Permission, PermissionStatus> status = await [
+                    //         Permission.location,
+                    //       ].request();
+                    //       if (status[Permission.location] == PermissionStatus.granted) {
+                    //         // print("in 2");
+                    //         bool isLocationServiceEnabled = await Geolocator.isLocationServiceEnabled();
+                    //         if (!isLocationServiceEnabled) {
+                    //           utils.showWarningToast(context, text: "Location services are disabled. Please enable them.");
+                    //         }else if(attProvider.mainCheckOut==true){
+                    //           // print("in 3");
+                    //           utils.showWarningToast(text:"Attendance marked",context);
+                    //         }else{
+                    //           // print("in 4");
+                    //           if(locPvr.latitude==""&&locPvr.longitude==""){
+                    //             // print("in 5");
+                    //             utils.showWarningToast(text:"Check Your Location",context);
+                    //             await locPvr.manageLocation(context,true);
+                    //           }else{
+                    //             // print("in 6");
+                    //             if(attProvider.isSelfie==false){
+                    //               attProvider.putDailyAttendance(context,attProvider.mainAttendance==0?"1":"2",locPvr.latitude,locPvr.longitude);
+                    //             }else{
+                    //               attProvider.signDialog(context: context,
+                    //                 img: attProvider.profile,
+                    //                 onTap:(newImg){
+                    //                   attProvider.profilePick(newImg);
+                    //                   attProvider.putDailyAttendance(context,attProvider.mainAttendance==0?"1":"2",locPvr.latitude,locPvr.longitude);
+                    //                 },
+                    //               );
+                    //             }
+                    //           }
+                    //         }
+                    //       }else{
+                    //         // print("in");
+                    //         await locPvr.manageLocation(context,true);
+                    //       }
+                    //     }else{
+                    //       // print("in 1");
+                    //       if(attProvider.mainCheckOut==true){
+                    //         // print("in 3");
+                    //         utils.showWarningToast(text:"Attendance marked",context);
+                    //       }else{
+                    //         // print("in 4");
+                    //         if(locPvr.latitude==""&&locPvr.longitude==""){
+                    //           // print("in 5");
+                    //           utils.showWarningToast(text:"Check Your Location",context);
+                    //           await locPvr.manageLocation(context,true);
+                    //         }else{
+                    //           // print("in 6");
+                    //           attProvider.signDialog(context: context,
+                    //             img: attProvider.profile,
+                    //             onTap:(newImg){
+                    //               attProvider.profilePick(newImg);
+                    //               attProvider.putDailyAttendance(context,attProvider.mainAttendance==0?"1":"2",locPvr.latitude,locPvr.longitude);
+                    //             },
+                    //           );
+                    //         }
+                    //       }
+                    //     }
+                    //   },
+                    //   child: CustomText(text: attProvider.mainAttendance==0?
+                    //   "Attendance In"
+                    //       :attProvider.mainCheckOut == true?
+                    //   "            Attendance Marked"
+                    //       :"        Attendance Out",colors: attProvider.mainAttendance==0?colorsConst.appGreen
+                    //       :attProvider.mainCheckOut == true?Colors.grey:colorsConst.appRed,size: 13,),
+                    // ),
+            attProvider.isPermission == true
+                ? SwipeButton(
+              width: MediaQuery.of(context).size.width * 0.9,
+              height: 35,
+              thumb: Padding(
+                padding: const EdgeInsets.fromLTRB(10, 0, 10, 0),
+                child: SvgPicture.asset(assets.arrow),
+              ),
+              activeThumbColor: attProvider.permissionStatus == "" || split.last == "2"
+                  ? colorsConst.appGreen
+                  : colorsConst.appRed,
+              activeTrackColor: Colors.white,
+              onSwipe: () async {
+                Map<Permission, PermissionStatus> status = await [
+                  Permission.location,
+                ].request();
+
+                if (status[Permission.location] == PermissionStatus.granted) {
+                  bool isLocationServiceEnabled =
+                  await Geolocator.isLocationServiceEnabled();
+
+                  if (!isLocationServiceEnabled) {
+                    utils.showWarningToast(context,
+                        text: "Location services are disabled. Please enable them.");
+                  } else {
+                    if (locPvr.latitude == "" && locPvr.longitude == "") {
+                      utils.showWarningToast(
+                          text: "Check Your Location", context);
+                      await locPvr.manageLocation(context, true);
+                    } else {
+                      if (attProvider.isSelfie == false) {
+                        attProvider.putDailyPermission(
+                            context,
+                            attProvider.permissionStatus == "" || split.last == "2"
+                                ? "1"
+                                : "2",
+                            locPvr.latitude,
+                            locPvr.longitude);
+                      } else {
+                        attProvider.signDialog(
+                          context: context,
+                          img: attProvider.profile,
+                          onTap: (newImg) {
+                            attProvider.profilePick(newImg);
+                            attProvider.putDailyPermission(
+                                context,
+                                attProvider.permissionStatus == "" ||
+                                    split.last == "2"
+                                    ? "1"
+                                    : "2",
+                                locPvr.latitude,
+                                locPvr.longitude);
+                          },
+                        );
+                      }
+                    }
+                  }
+                } else {
+                  await locPvr.manageLocation(context, true);
+                }
+              },
+              child: CustomText(
+                text: attProvider.permissionStatus == "" || split.last == "2"
+                    ? "     Permission In"
+                    : "     Permission Out",
+                colors: attProvider.permissionStatus == "" || split.last == "2"
+                    ? colorsConst.appGreen
+                    : colorsConst.appRed,
+                size: 15,
+              ),
+            )
+                : SwipeButton(
+              width: MediaQuery.of(context).size.width * 0.9,
+              height: 35,
+              thumb: Padding(
+                padding: const EdgeInsets.fromLTRB(10, 0, 10, 0),
+                child: SvgPicture.asset(assets.arrow),
+              ),
+              activeThumbColor: attProvider.mainAttendance != 0 &&
+                  attProvider.mainCheckOut == true
+                  ? const Color(0xff7E7E7E)
+                  : attProvider.mainAttendance != 0 &&
+                  attProvider.mainCheckOut == false
+                  ? colorsConst.appRed
+                  : colorsConst.appGreen,
+              activeTrackColor: Colors.white,
+              onSwipe: attProvider.mainCheckOut == true
+                  ? null
+                  : () async {
+
+                /// 🔴 Permission IN இருந்தால் Attendance block
+                if (attProvider.permissionStatus.isNotEmpty &&
+                    split.last == "1") {
+                  utils.showWarningToast(context,
+                      text:
+                      "Please mark Permission Out before Attendance");
+                  return;
+                }
+
+                if (!kIsWeb) {
+                  Map<Permission, PermissionStatus> status = await [
+                    Permission.location,
+                  ].request();
+
+                  if (status[Permission.location] ==
+                      PermissionStatus.granted) {
+                    bool isLocationServiceEnabled =
+                    await Geolocator.isLocationServiceEnabled();
+
+                    if (!isLocationServiceEnabled) {
+                      utils.showWarningToast(context,
+                          text:
+                          "Location services are disabled. Please enable them.");
+                    } else if (attProvider.mainCheckOut == true) {
+                      utils.showWarningToast(
+                          text: "Attendance marked", context);
+                    } else {
+                      if (locPvr.latitude == "" ||
+                          locPvr.longitude == "") {
+                        utils.showWarningToast(
+                            text: "Check Your Location", context);
+                        await locPvr.manageLocation(context, true);
+                      } else {
+                        if (attProvider.isSelfie == false) {
+                          attProvider.putDailyAttendance(
+                              context,
+                              attProvider.mainAttendance == 0
+                                  ? "1"
+                                  : "2",
+                              locPvr.latitude,
+                              locPvr.longitude);
+                        } else {
+                          attProvider.signDialog(
+                            context: context,
+                            img: attProvider.profile,
+                            onTap: (newImg) {
+                              attProvider.profilePick(newImg);
+                              attProvider.putDailyAttendance(
+                                  context,
+                                  attProvider.mainAttendance == 0
+                                      ? "1"
+                                      : "2",
+                                  locPvr.latitude,
+                                  locPvr.longitude);
+                            },
+                          );
                         }
-                        else{
-                          await locPvr.manageLocation(context,true);
-                        }
-                      },
-                      child: CustomText(text: attProvider.permissionStatus==""||split.last=="2"?
-                      "     Permission In"
-                          :"     Permission Out",colors: attProvider.permissionStatus==""||split.last=="2"?colorsConst.appGreen:colorsConst.appRed,size: 15,),
-                    )
-                    :SwipeButton(
-                      //width: attProvider.mainCheckOut == true?MediaQuery.of(context).size.width*0.9:MediaQuery.of(context).size.width*0.55,
-                      width: MediaQuery.of(context).size.width*0.9,
-                      height: 35,
-                      thumb: Padding(
-                        padding: const EdgeInsets.fromLTRB(10, 0, 10, 0),
-                        child: SvgPicture.asset(assets.arrow),
-                      ),
-                      activeThumbColor: attProvider.mainAttendance!=0&&attProvider.mainCheckOut == true?Color(0xff7E7E7E):attProvider.mainAttendance!=0&&attProvider.mainCheckOut == false?colorsConst.appRed:colorsConst.appGreen,
-                      //activeTrackColor: attProvider.mainAttendance!=0&&attProvider.mainCheckOut == true?Colors.grey.shade300:attProvider.mainAttendance!=0&&attProvider.mainCheckOut == false?colorsConst.appRed.withOpacity(0.2):colorsConst.litGrey.withOpacity(0.3),
-                      activeTrackColor: Colors.white,
-                      onSwipe: attProvider.mainCheckOut==true?null:() async {
-                        if(!kIsWeb){
-                          Map<Permission, PermissionStatus> status = await [
-                            Permission.location,
-                          ].request();
-                          if (status[Permission.location] == PermissionStatus.granted) {
-                            // print("in 2");
-                            bool isLocationServiceEnabled = await Geolocator.isLocationServiceEnabled();
-                            if (!isLocationServiceEnabled) {
-                              utils.showWarningToast(context, text: "Location services are disabled. Please enable them.");
-                            }else if(attProvider.mainCheckOut==true){
-                              // print("in 3");
-                              utils.showWarningToast(text:"Attendance marked",context);
-                            }else{
-                              // print("in 4");
-                              if(locPvr.latitude==""&&locPvr.longitude==""){
-                                // print("in 5");
-                                utils.showWarningToast(text:"Check Your Location",context);
-                                await locPvr.manageLocation(context,true);
-                              }else{
-                                // print("in 6");
-                                if(attProvider.isSelfie==false){
-                                  attProvider.putDailyAttendance(context,attProvider.mainAttendance==0?"1":"2",locPvr.latitude,locPvr.longitude);
-                                }else{
-                                  attProvider.signDialog(context: context,
-                                    img: attProvider.profile,
-                                    onTap:(newImg){
-                                      attProvider.profilePick(newImg);
-                                      attProvider.putDailyAttendance(context,attProvider.mainAttendance==0?"1":"2",locPvr.latitude,locPvr.longitude);
-                                    },
-                                  );
-                                }
-                              }
-                            }
-                          }else{
-                            // print("in");
-                            await locPvr.manageLocation(context,true);
-                          }
-                        }else{
-                          // print("in 1");
-                          if(attProvider.mainCheckOut==true){
-                            // print("in 3");
-                            utils.showWarningToast(text:"Attendance marked",context);
-                          }else{
-                            // print("in 4");
-                            if(locPvr.latitude==""&&locPvr.longitude==""){
-                              // print("in 5");
-                              utils.showWarningToast(text:"Check Your Location",context);
-                              await locPvr.manageLocation(context,true);
-                            }else{
-                              // print("in 6");
-                              attProvider.signDialog(context: context,
-                                img: attProvider.profile,
-                                onTap:(newImg){
-                                  attProvider.profilePick(newImg);
-                                  attProvider.putDailyAttendance(context,attProvider.mainAttendance==0?"1":"2",locPvr.latitude,locPvr.longitude);
-                                },
-                              );
-                            }
-                          }
-                        }
-                      },
-                      child: CustomText(text: attProvider.mainAttendance==0?
-                      "Attendance In"
-                          :attProvider.mainCheckOut == true?
-                      "            Attendance Marked"
-                          :"        Attendance Out",colors: attProvider.mainAttendance==0?colorsConst.appGreen
-                          :attProvider.mainCheckOut == true?Colors.grey:colorsConst.appRed,size: 13,),
-                    ),
+                      }
+                    }
+                  } else {
+                    await locPvr.manageLocation(context, true);
+                  }
+                } else {
+                  if (attProvider.mainCheckOut == true) {
+                    utils.showWarningToast(
+                        text: "Attendance marked", context);
+                  } else {
+                    if (locPvr.latitude == "" ||
+                        locPvr.longitude == "") {
+                      utils.showWarningToast(
+                          text: "Check Your Location", context);
+                      await locPvr.manageLocation(context, true);
+                    } else {
+                      attProvider.signDialog(
+                        context: context,
+                        img: attProvider.profile,
+                        onTap: (newImg) {
+                          attProvider.profilePick(newImg);
+                          attProvider.putDailyAttendance(
+                              context,
+                              attProvider.mainAttendance == 0
+                                  ? "1"
+                                  : "2",
+                              locPvr.latitude,
+                              locPvr.longitude);
+                        },
+                      );
+                    }
+                  }
+                }
+              },
+              child: CustomText(
+                text: attProvider.mainAttendance == 0
+                    ? "Attendance In"
+                    : attProvider.mainCheckOut == true
+                    ? "Attendance Marked"
+                    : "Attendance Out",
+                colors: attProvider.mainAttendance == 0
+                    ? colorsConst.appGreen
+                    : attProvider.mainCheckOut == true
+                    ? Colors.grey
+                    : colorsConst.appRed,
+                size: 13,
+              ),
+            ),
 
                   ],
                 ),

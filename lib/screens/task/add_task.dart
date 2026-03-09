@@ -157,10 +157,13 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
                               ),
                               SearchCustomDropdown(
                                   text: "Assign To",
-                                  hintText: taskProvider.assignedId==""?"Assign To":taskProvider.assignedNames,
+                                  hintText: taskProvider.assignedNames.isEmpty
+                                      ? "Assign To"
+                                      : taskProvider.assignedNames,
                                   valueList: empPvr.activeEmps,
                                   onChanged: (value) {},
-                                  width: kIsWeb?webWidth:phoneWidth),
+                                  width: kIsWeb?webWidth:phoneWidth
+                              ),
                               MapDropDown(
                                 hintText: "Status",
                                 saveValue: taskProvider.status,
@@ -411,78 +414,90 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
                                           mainAxisAlignment: taskProvider.recordedAudioPaths.isNotEmpty && taskProvider.isRecording==false?MainAxisAlignment.spaceAround:MainAxisAlignment.center,
                                           children: [
                                             Container(
-                                              width: kIsWeb?webWidth/1.5:phoneWidth/1.3,
+                                              width: kIsWeb ? webWidth / 1.5 : phoneWidth / 1.3,
                                               height: 65,
                                               decoration: customDecoration.baseBackgroundDecoration(
-                                                  color: Colors.white,radius: 10
+                                                color: Colors.white,
+                                                radius: 10,
                                               ),
                                               child: Row(
                                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                                 children: [
+
+                                                  /// PLAY BUTTON
                                                   IconButton(
-                                                      onPressed: () {
-                                                        if(taskProvider.recordedAudioPaths[index].play==true){
-                                                          taskProvider.recordedAudioPaths[index].play=false;
-                                                          taskProvider.stopAudio();
-                                                        }else{
-                                                          taskProvider.recordedAudioPaths[index].play=true;
-                                                          taskProvider.playAudio(taskProvider.recordedAudioPaths[index].audioPath,index);
-                                                        }
-                                                      },
-                                                      icon: Icon(taskProvider.recordedAudioPaths[index].play==true?Icons.pause:Icons.play_arrow,size: 30,
-                                                          color: taskProvider.recordedAudioPaths[index].play==true?colorsConst.primary:colorsConst.litGrey)
+                                                    onPressed: () {
+                                                      if (taskProvider.recordedAudioPaths[index].play) {
+                                                        taskProvider.recordedAudioPaths[index].play = false;
+                                                        taskProvider.stopAudio();
+                                                      } else {
+                                                        taskProvider.recordedAudioPaths[index].play = true;
+
+                                                        /// 🔥 start from beginning
+                                                        taskProvider.audioPlayer.seek(Duration.zero);
+
+                                                        taskProvider.playAudio(
+                                                          taskProvider.recordedAudioPaths[index].audioPath,
+                                                          index,
+                                                        );
+                                                      }
+                                                    },
+                                                    icon: Icon(
+                                                      taskProvider.recordedAudioPaths[index].play
+                                                          ? Icons.pause
+                                                          : Icons.play_arrow,
+                                                      size: 30,
+                                                      color: taskProvider.recordedAudioPaths[index].play
+                                                          ? colorsConst.primary
+                                                          : colorsConst.litGrey,
+                                                    ),
                                                   ),
+
+                                                  /// SLIDER
                                                   SizedBox(
-                                                    // color: Colors.pinkAccent,
-                                                    width: kIsWeb?webWidth/1.5:phoneWidth/2.1,
+                                                    width: kIsWeb ? webWidth / 1.5 : phoneWidth / 2.1,
                                                     child: Slider(
                                                       activeColor: colorsConst.primary,
                                                       inactiveColor: colorsConst.litGrey,
-                                                      // onChanged: taskProvider.recordedAudioPaths[index].play==false?(value) {
-                                                      //   if (taskProvider.duration == null) return;
-                                                      //   final positionValue = value * taskProvider.duration!.inMilliseconds;
-                                                      //   taskProvider.audioPlayer.seek(Duration(milliseconds: positionValue.round()));
-                                                      // }:null,
-                                                      onChanged: taskProvider.recordedAudioPaths[index].play
-                                                          ? (value) {
-                                                        final positionValue = value * taskProvider.recordedAudioPaths[index].duration.inMilliseconds;
-                                                        taskProvider.audioPlayer.seek(Duration(milliseconds: positionValue.round()));
-                                                      }
-                                                          : null,
-                                  
-                                                      // value: taskProvider.recordedAudioPaths[index].play==false?0:(taskProvider.position.inMilliseconds > 0 &&
-                                                      //     taskProvider.duration != null &&
-                                                      //     taskProvider.position.inMilliseconds < taskProvider.duration!.inMilliseconds)
-                                                      //     ? taskProvider.position.inMilliseconds / taskProvider.duration!.inMilliseconds
-                                                      //     : 0.0,
-                                                      value: taskProvider.recordedAudioPaths[index].play == false
-                                                          ? 0
-                                                          : (taskProvider.recordedAudioPaths[index].position.inMilliseconds > 0 &&
-                                                          taskProvider.recordedAudioPaths[index].duration.inMilliseconds > 0)
-                                                          ? taskProvider.recordedAudioPaths[index].position.inMilliseconds /
-                                                          taskProvider.recordedAudioPaths[index].duration.inMilliseconds
+
+                                                      onChanged: (value) {
+                                                        final duration =
+                                                            taskProvider.recordedAudioPaths[index].duration;
+
+                                                        if (duration.inMilliseconds == 0) return;
+
+                                                        final positionValue =
+                                                            value * duration.inMilliseconds;
+
+                                                        taskProvider.audioPlayer.seek(
+                                                          Duration(milliseconds: positionValue.round()),
+                                                        );
+                                                      },
+
+                                                      value: (taskProvider
+                                                          .recordedAudioPaths[index].duration
+                                                          .inMilliseconds >
+                                                          0)
+                                                          ? taskProvider.recordedAudioPaths[index].position
+                                                          .inMilliseconds /
+                                                          taskProvider
+                                                              .recordedAudioPaths[index].duration
+                                                              .inMilliseconds
                                                           : 0.0,
                                                     ),
                                                   ),
+
+                                                  /// TIME
                                                   Row(
-                                                    mainAxisAlignment: MainAxisAlignment.start,
                                                     children: [
-                                                      // 5.width,
-                                                      // CustomText(
-                                                      //   text: taskProvider.recordedAudioPaths[index].play==true?
-                                                      //   taskProvider.formatDuration(taskProvider.position)
-                                                      //       :taskProvider.formatDuration(taskProvider.recordedAudioPaths[index].second),
-                                                      //       // :taskProvider.formatDuration(taskProvider.duration!),
-                                                      //   colors: Colors.red,
-                                                      //   size: 11,
-                                                      // ),
-                                                      CustomText(text: taskProvider.recordedAudioPaths[index].second.toStringAsFixed(2),colors: colorsConst.greyClr,size: 13,),
+                                                      CustomText(
+                                                        text: taskProvider
+                                                            .recordedAudioPaths[index].second
+                                                            .toStringAsFixed(2),
+                                                        colors: colorsConst.greyClr,
+                                                        size: 13,
+                                                      ),
                                                       5.width,
-                                                      // CustomText(text: taskProvider.recordedAudioPaths[index].play==true?
-                                                      // taskProvider.formatDuration(taskProvider.duration!):"",
-                                                      //   colors: Colors.pink,
-                                                      //   size: 11,
-                                                      // )
                                                     ],
                                                   ),
                                                 ],
