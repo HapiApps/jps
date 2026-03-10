@@ -64,21 +64,23 @@ class _AttendanceReportState extends State<AttendanceReport> {
     });
     super.initState();
   }
-void check(){
-  setState(() {
-    if(showType=="Present"){
-      Provider.of<AttendanceProvider>(context, listen: false).selectedIndex=0;
-    }else if(showType=="Absent"){
-      Provider.of<AttendanceProvider>(context, listen: false).selectedIndex=1;
-    }else if(showType=="Late"){
-      Provider.of<AttendanceProvider>(context, listen: false).selectedIndex=2;
-    }else if(showType=="Leave"){
-      Provider.of<AttendanceProvider>(context, listen: false).selectedIndex=3;
-    }else{
-      Provider.of<AttendanceProvider>(context, listen: false).selectedIndex=4;
-    }
-  });
-}
+  void check(){
+    setState(() {
+      if(showType=="Present"){
+        Provider.of<AttendanceProvider>(context, listen: false).selectedIndex=0;
+      }else if(showType=="Absent"){
+        Provider.of<AttendanceProvider>(context, listen: false).selectedIndex=1;
+      }else if(showType=="Late"){
+        Provider.of<AttendanceProvider>(context, listen: false).selectedIndex=2;
+      }else if(showType=="Leave"){
+        Provider.of<AttendanceProvider>(context, listen: false).selectedIndex=3;
+      }else if(showType=="Permission"){
+        Provider.of<AttendanceProvider>(context, listen: false).selectedIndex=4;
+      }else{
+        Provider.of<AttendanceProvider>(context, listen: false).selectedIndex=0;
+      }
+    });
+  }
   var reportTypeList = [
     "All",
     "Present",
@@ -621,7 +623,21 @@ void check(){
                             itemCount: attProvider.getDailyAttendance.length,
                             itemBuilder: (context, index) {
 
-                              final sortedData = attProvider.getDailyAttendance;
+                              final sortedData =
+                              List<AttendanceModel>.from(attProvider.getDailyAttendance);
+
+                              sortedData.sort((a, b) {
+
+                                DateTime aTime =
+                                DateTime.parse(a.createdTs.toString().split(',')[0]);
+
+                                DateTime bTime =
+                                DateTime.parse(b.createdTs.toString().split(',')[0]);
+
+                                return bTime.compareTo(aTime);
+
+                              });
+
                               AttendanceModel data = sortedData[index];
 
                               String inTime = "-";
@@ -817,7 +833,21 @@ void check(){
                             itemCount: attProvider.getDailyAttendance.length,
                             itemBuilder: (context, index) {
 
-                              final sortedData = attProvider.getDailyAttendance;
+                              final sortedData =
+                              List<AttendanceModel>.from(attProvider.getDailyAttendance);
+
+                              sortedData.sort((a, b) {
+
+                                DateTime aTime =
+                                DateTime.parse(a.createdTs.toString().split(',')[0]);
+
+                                DateTime bTime =
+                                DateTime.parse(b.createdTs.toString().split(',')[0]);
+
+                                return bTime.compareTo(aTime);
+
+                              });
+
                               AttendanceModel data = sortedData[index];
 
                               String inTime = "-";
@@ -950,7 +980,21 @@ void check(){
                             itemCount: attProvider.getDailyAttendance.length,
                             itemBuilder: (context, index) {
 
-                              final sortedData = attProvider.getDailyAttendance;
+                              final sortedData =
+                              List<AttendanceModel>.from(attProvider.getDailyAttendance);
+
+                              sortedData.sort((a, b) {
+
+                                DateTime aTime =
+                                DateTime.parse(a.createdTs.toString().split(',')[0]);
+
+                                DateTime bTime =
+                                DateTime.parse(b.createdTs.toString().split(',')[0]);
+
+                                return bTime.compareTo(aTime);
+
+                              });
+
                               AttendanceModel data = sortedData[index];
 
                               /// ---------------- TIME SAFE LOGIC ----------------

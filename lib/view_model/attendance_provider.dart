@@ -33,19 +33,30 @@ class AttendanceProvider with ChangeNotifier{
   bool _decrease=false;
   bool _increase=false;
   bool _isSelfie=false;
-  bool _isPermission=false;
+
   bool get increase=>_increase;
   bool get decrease=>_decrease;
   bool get isSelfie=>_isSelfie;
-  bool get isPermission=>_isPermission;
+  bool _isPermission = false;
+  bool get isPermission => _isPermission;
+
+  String _permissionStatus = "";
+  String get permissionStatus => _permissionStatus;
+
+  void setPermission(bool value) {
+    _isPermission = value;
+    notifyListeners();
+  }
+
+  void setPermissionStatus(String value) {
+    _permissionStatus = value;
+    notifyListeners();
+  }
   void manageSelfie(){
     _isSelfie=!_isSelfie;
     notifyListeners();
   }
-  void managePermission(){
-    _isPermission=!_isPermission;
-    notifyListeners();
-  }
+
   List<AttendanceModel> _noAttendanceList = [];
   List<AttendanceModel> _noAttendanceList2 = [];
   List<LeaveModel> leave = [];
@@ -311,8 +322,8 @@ class AttendanceProvider with ChangeNotifier{
   bool _attCheck=false;
   bool _refresh=false;
   int _mainAttendance=0;
-  String _permissionStatus = "";
-  String get permissionStatus=>_permissionStatus;
+  // String _permissionStatus = "";
+  // String get permissionStatus=>_permissionStatus;
   bool get mainCheckOut=>_mainCheckOut;
   bool get check=>_check;
   bool get attCheck=>_attCheck;
@@ -321,98 +332,265 @@ class AttendanceProvider with ChangeNotifier{
   String _inTime = "", _outTime = "-";
   String get inTime=>_inTime;
   String get outTime=>_outTime;
-  Future<void> getMainAttendance() async {
+  // Future<void> getMainAttendance() async {
+  //   try {
+  //   _attCheck = false;
+  //   _mainCheckOut = false;
+  //   _isPermission = false;
+  //   _mainAttendance = 0;
+  //   _totalHrs="";
+  //   _permissionStatus="";
+  //   String reasonSave="";
+  //   notifyListeners();
+  //   Map data = {
+  //     "action": getAllData,
+  //     "search_type": "user_attendance",
+  //     "id": localData.storage.read("id"),
+  //     // "role": localData.storage.read("role"),
+  //     "cos_id":localData.storage.read("cos_id"),
+  //   };
+  //   final response = await attRepo.getAttendance(data);
+  //   log(data.toString());
+  //   log(response.toString());
+  //   log(response.first["status"].toString());
+  //   log(response.first["status"].toString().contains("2").toString());
+  //   if (response.isNotEmpty){
+  //     DateTime now = DateTime.now();
+  //     String formattedDate = DateFormat('dd-MMM-yyyy').format(now);
+  //
+  //
+  //     if(formattedDate==response.first["date"]){
+  //       _mainCheckOut=response.first["status"].toString().contains("2")?true:false;
+  //       if((response.first["status"].toString()=="1")||(response.first["status"].toString()=="1,2")){
+  //         _mainAttendance = 1;
+  //       }else{
+  //
+  //       }
+  //       if (response.first["status"].toString().contains("1,2")) {
+  //         _inTime = response.first["time"].split(",")[0];
+  //         _outTime = response.first["time"].split(",")[1];
+  //         _totalHrs=getTimeDifferenceBetween(_inTime,outTime);
+  //
+  //         _permissionStatus=response.first["per_status"].toString()=="null"?"":response.first["per_status"];
+  //         reasonSave=response.first["per_reason"]=="null"?"":response.first["per_reason"];
+  //         var split =_permissionStatus.toString().split(",");
+  //         var split2 =reasonSave.toString().split(",");
+  //         if(split.last=="1"){
+  //           _isPermission=true;
+  //           permissionReason.text=split2.last;
+  //         }else{
+  //           _isPermission=false;
+  //         }
+  //       }
+  //       else if (response.first["status"].toString().contains("2,1")) {
+  //         _outTime = response.first["time"].split(",")[0];
+  //         _inTime = response.first["time"].split(",")[1];
+  //         _totalHrs=getTimeDifferenceBetween(outTime,_inTime);
+  //         _permissionStatus=response.first["per_status"]=="null"?"":response.first["per_status"];
+  //         reasonSave=response.first["per_reason"]=="null"?"":response.first["per_reason"];
+  //         var split =_permissionStatus.toString().split(",");
+  //         var split2 =reasonSave.toString().split(",");
+  //         if(split.last=="1"){
+  //           _isPermission=true;
+  //           permissionReason.text=split2.last;
+  //         }else{
+  //           _isPermission=false;
+  //         }
+  //       }
+  //       else {
+  //         _inTime = response.first["time"].split(",")[0];
+  //         _permissionStatus=response.first["per_status"].toString()=="null"?"":response.first["per_status"].toString();
+  //         reasonSave=response.first["per_reason"].toString()=="null"?"":response.first["per_reason"].toString();
+  //         var split =_permissionStatus.toString().split(",");
+  //         var split2 =reasonSave.toString().split(",");
+  //         if(split.last=="1"){
+  //           _isPermission=true;
+  //           permissionReason.text=split2.last;
+  //         }else{
+  //           _isPermission=false;
+  //         }
+  //         print("_isPermission.........$_permissionStatus");
+  //         print("_isPermission.........$_isPermission");
+  //       }
+  //       getLateCount("${DateTime.now().day.toString().padLeft(2,"0")}-${DateTime.now().month.toString().padLeft(2,"0")}-${DateTime.now().year}","${DateTime.now().day.toString().padLeft(2,"0")}-${DateTime.now().month.toString().padLeft(2,"0")}-${DateTime.now().year}");
+  //     }
+  //     _attCheck = true;
+  //   }else {
+  //     _totalHrs="";
+  //     _permissionStatus="";
+  //     _attCheck = true;
+  //   }
+  //   } catch (e) {
+  //     _totalHrs="";
+  //     _permissionStatus="";
+  //     _attCheck = true;
+  //   }
+  //   notifyListeners();
+  // }
+  Future<void> getMainAttendance({bool fromReport = false}) async {
     try {
-    _attCheck = false;
-    _mainCheckOut = false;
-    _isPermission = false;
-    _mainAttendance = 0;
-    _totalHrs="";
-    _permissionStatus="";
-    String reasonSave="";
-    notifyListeners();
-    Map data = {
-      "action": getAllData,
-      "search_type": "user_attendance",
-      "id": localData.storage.read("id"),
-      // "role": localData.storage.read("role"),
-      "cos_id":localData.storage.read("cos_id"),
-    };
-    final response = await attRepo.getAttendance(data);
-    log(data.toString());
-    log(response.toString());
-    log(response.first["status"].toString());
-    log(response.first["status"].toString().contains("2").toString());
-    if (response.isNotEmpty){
-      DateTime now = DateTime.now();
-      String formattedDate = DateFormat('dd-MMM-yyyy').format(now);
 
-
-      if(formattedDate==response.first["date"]){
-        _mainCheckOut=response.first["status"].toString().contains("2")?true:false;
-        if((response.first["status"].toString()=="1")||(response.first["status"].toString()=="1,2")){
-          _mainAttendance = 1;
-        }else{
-
-        }
-        if (response.first["status"].toString().contains("1,2")) {
-          _inTime = response.first["time"].split(",")[0];
-          _outTime = response.first["time"].split(",")[1];
-          _totalHrs=getTimeDifferenceBetween(_inTime,outTime);
-          _permissionStatus=response.first["per_status"].toString()=="null"?"":response.first["per_status"];
-          reasonSave=response.first["per_reason"]=="null"?"":response.first["per_reason"];
-          var split =_permissionStatus.toString().split(",");
-          var split2 =reasonSave.toString().split(",");
-          if(split.last=="1"){
-            _isPermission=true;
-            permissionReason.text=split2.last;
-          }else{
-            _isPermission=false;
-          }
-        }
-        else if (response.first["status"].toString().contains("2,1")) {
-          _outTime = response.first["time"].split(",")[0];
-          _inTime = response.first["time"].split(",")[1];
-          _totalHrs=getTimeDifferenceBetween(outTime,_inTime);
-          _permissionStatus=response.first["per_status"]=="null"?"":response.first["per_status"];
-          reasonSave=response.first["per_reason"]=="null"?"":response.first["per_reason"];
-          var split =_permissionStatus.toString().split(",");
-          var split2 =reasonSave.toString().split(",");
-          if(split.last=="1"){
-            _isPermission=true;
-            permissionReason.text=split2.last;
-          }else{
-            _isPermission=false;
-          }
-        }
-        else {
-          _inTime = response.first["time"].split(",")[0];
-          _permissionStatus=response.first["per_status"].toString()=="null"?"":response.first["per_status"].toString();
-          reasonSave=response.first["per_reason"].toString()=="null"?"":response.first["per_reason"].toString();
-          var split =_permissionStatus.toString().split(",");
-          var split2 =reasonSave.toString().split(",");
-          if(split.last=="1"){
-            _isPermission=true;
-            permissionReason.text=split2.last;
-          }else{
-            _isPermission=false;
-          }
-          print("_isPermission.........$_permissionStatus");
-          print("_isPermission.........$_isPermission");
-        }
-        getLateCount("${DateTime.now().day.toString().padLeft(2,"0")}-${DateTime.now().month.toString().padLeft(2,"0")}-${DateTime.now().year}","${DateTime.now().day.toString().padLeft(2,"0")}-${DateTime.now().month.toString().padLeft(2,"0")}-${DateTime.now().year}");
+      if (!fromReport) {
+        _attCheck = false;
+        _mainCheckOut = false;
+        _isPermission = false;
+        _mainAttendance = 0;
+        _totalHrs = "";
+        _permissionStatus = "";
       }
-      _attCheck = true;
-    }else {
-      _totalHrs="";
-      _permissionStatus="";
-      _attCheck = true;
-    }
+
+      String reasonSave = "";
+
+      notifyListeners();
+
+      Map data = {
+        "action": getAllData,
+        "search_type": "user_attendance",
+        "id": localData.storage.read("id"),
+        "cos_id": localData.storage.read("cos_id"),
+      };
+
+      final response = await attRepo.getAttendance(data);
+
+      log(data.toString());
+      log(response.toString());
+
+      if (response.isNotEmpty) {
+
+        DateTime now = DateTime.now();
+        String formattedDate = DateFormat('dd-MMM-yyyy').format(now);
+
+        /// CURRENT USER மட்டும்
+        var userData = response.firstWhere(
+              (e) =>
+          e["salesman_id"].toString() ==
+              localData.storage.read("id").toString(),
+          orElse: () => null,
+        );
+
+        if (userData != null) {
+
+          if (formattedDate == userData["date"]) {
+
+            /// CHECKOUT
+            _mainCheckOut =
+                userData["status"].toString().contains("2");
+
+            /// ATTENDANCE STATUS
+            if (userData["status"].toString() == "1" ||
+                userData["status"].toString() == "1,2") {
+              _mainAttendance = 1;
+            }
+
+            /// IN + OUT
+            if (userData["status"].toString().contains("1,2")) {
+
+              _inTime = userData["time"].split(",")[0];
+              _outTime = userData["time"].split(",")[1];
+
+              _totalHrs =
+                  getTimeDifferenceBetween(_inTime, _outTime);
+
+            }
+
+            /// OUT + IN
+            else if (userData["status"].toString().contains("2,1")) {
+
+              _outTime = userData["time"].split(",")[0];
+              _inTime = userData["time"].split(",")[1];
+
+              _totalHrs =
+                  getTimeDifferenceBetween(_outTime, _inTime);
+
+            }
+
+            /// ONLY IN
+            else {
+
+              if (userData["time"] != null &&
+                  userData["time"].toString().isNotEmpty) {
+
+                _inTime = userData["time"].split(",")[0];
+
+              }
+
+            }
+
+            /// -------------------------
+            /// PERMISSION STATUS
+            /// -------------------------
+
+            String perStatus =
+            userData["per_status"].toString();
+
+            reasonSave =
+                userData["per_reason"].toString();
+
+            if (!fromReport) {
+
+              if (perStatus != "null" && perStatus.isNotEmpty) {
+
+                List splitStatus = perStatus.split(",");
+
+                /// LAST STATUS மட்டும்
+                _permissionStatus = splitStatus.last;
+
+                _isPermission = _permissionStatus == "1";
+
+              } else {
+
+                _permissionStatus = "";
+                _isPermission = false;
+
+              }
+
+            }
+
+            /// PERMISSION REASON
+            if (!fromReport) {
+              if (reasonSave != "null" && reasonSave.isNotEmpty) {
+
+                List splitReason = reasonSave.split(",");
+
+                permissionReason.text = splitReason.last;
+
+              }
+            }
+
+            /// DEBUG
+            print("permissionStatus = $_permissionStatus");
+            print("isPermission = $_isPermission");
+
+            /// LATE COUNT
+            getLateCount(
+              "${DateTime.now().day.toString().padLeft(2,"0")}-${DateTime.now().month.toString().padLeft(2,"0")}-${DateTime.now().year}",
+              "${DateTime.now().day.toString().padLeft(2,"0")}-${DateTime.now().month.toString().padLeft(2,"0")}-${DateTime.now().year}",
+            );
+
+          }
+
+        }
+
+        _attCheck = true;
+
+      } else {
+
+        _totalHrs = "";
+        _permissionStatus = "";
+        _attCheck = true;
+
+      }
+
     } catch (e) {
-      _totalHrs="";
-      _permissionStatus="";
+
+      print("Attendance Error: $e");
+
+      _totalHrs = "";
+      _permissionStatus = "";
       _attCheck = true;
+
     }
+
     notifyListeners();
   }
   DateTime parseTime(String time) {
@@ -1526,34 +1704,39 @@ void showDatePickerDialog(BuildContext context,List<UserModel>? list) {
     }
   }
   final TextEditingController permissionReason=TextEditingController();
-  Future putDailyPermission(context, String status,String lat,String lng) async {
+  Future putDailyPermission(context, String status, String lat, String lng) async {
+
     showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (BuildContext context) {
-          return AlertDialog(
-            title: Center(
-              child: Column(
-                children: [
-                  const CustomText(text: "Permission Marking",
-                    colors: Colors.grey,
-                    size: 15,
-                    isBold: true,),
-                  10.height,
-                  const CustomText(text: "Please Wait",
-                    colors: Colors.grey,
-                    size: 15,
-                    isBold: true,),
-                  20.height,
-                  LoadingAnimationWidget.staggeredDotsWave(
-                    color: colorsConst.secondary,
-                    size: 25,
-                  ),
-                ],
-              ),
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Center(
+            child: Column(
+              children: [
+                const CustomText(
+                  text: "Permission Marking",
+                  colors: Colors.grey,
+                  size: 15,
+                  isBold: true,
+                ),
+                10.height,
+                const CustomText(
+                  text: "Please Wait",
+                  colors: Colors.grey,
+                  size: 15,
+                  isBold: true,
+                ),
+                20.height,
+                LoadingAnimationWidget.staggeredDotsWave(
+                  color: colorsConst.secondary,
+                  size: 25,
+                ),
+              ],
             ),
-          );
-        }
+          ),
+        );
+      },
     );
 
     Map<String, String> requestData = {
@@ -1565,33 +1748,57 @@ void showDatePickerDialog(BuildContext context,List<UserModel>? list) {
       "lng": lng,
       "img": "",
       "status": status,
-      "cos_id":localData.storage.read("cos_id"),
+      "cos_id": localData.storage.read("cos_id"),
     };
-    final response =await attRepo.addAttendance(requestData,_profile);
+
+    final response = await attRepo.addAttendance(requestData, _profile);
     log(response.toString());
-    if(response.isNotEmpty){
-      log("Success");
-      if(status=="1"){
-        Navigator.pop(context);
-        Navigator.pop(context);
-      }else{
+
+    if (response.isNotEmpty) {
+      /// 🔴 IMPORTANT STATE UPDATE
+      _permissionStatus = status;
+
+      if (status == "1") {
+        _isPermission = true;
+      } else {
+        _isPermission = false;
+      }
+      /// CLOSE LOADING
+      Navigator.pop(context);
+
+      /// CLOSE DIALOG (ONLY FOR IN)
+      if (status == "1") {
         Navigator.pop(context);
       }
-      utils.showSuccessToast(text: status=="1"?"Permission check in marked successfully":"Permission check out marked successfully",context: context);
-      if(status=="2"){
-        _isPermission=false;
-        notifyListeners();
-      }
+
+      /// SUCCESS MESSAGE
+      utils.showSuccessToast(
+        text: status == "1"
+            ? "Permission check in marked successfully"
+            : "Permission check out marked successfully",
+        context: context,
+      );
+      print("permissionStatus 1234 = ${_permissionStatus}");
+      notifyListeners();
+
+      /// REFRESH DATA
       Provider.of<HomeProvider>(context, listen: false).getMainReport(false);
       getAttendanceReport(localData.storage.read("id"));
       getMainAttendance();
-      if(localData.storage.read("role")=="1"){
-        getLateCount(Provider.of<HomeProvider>(context, listen: false).startDate,Provider.of<HomeProvider>(context, listen: false).endDate,);
+      permissionReason.clear();
+      if (localData.storage.read("role") == "1") {
+        getLateCount(
+          Provider.of<HomeProvider>(context, listen: false).startDate,
+          Provider.of<HomeProvider>(context, listen: false).endDate,
+        );
       }
-    }else{
+
+    } else {
+      permissionReason.clear();
       log("Failed");
       utils.showErrorToast(context: context);
       Navigator.pop(context);
+
     }
   }
 

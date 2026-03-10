@@ -396,17 +396,17 @@ class _VisitReportState extends State<VisitReport> with SingleTickerProviderStat
                                 runSpacing: 6,
                                 children: [
 
-                                  if (custProvider.startDate.isNotEmpty)
+                                    if ((custProvider.startDate??"").isNotEmpty)
                                     filterChip("From: ${custProvider.startDate}"),
 
-                                  if (custProvider.endDate.isNotEmpty)
-                                    filterChip("To: ${custProvider.endDate}"),
+                                   if ((custProvider.endDate ?? "").isNotEmpty)
+                                  filterChip("To: ${custProvider.endDate}"),
 
-                                  if (custProvider.userName.isNotEmpty)
+                                   if ((custProvider.userName ?? "").isNotEmpty)
                                     filterChip("Emp: ${custProvider.userName}"),
-
-                                  if (custProvider.dailyType.isNotEmpty)
-                                    filterChip("Type: ${custProvider.dailyType}"),
+                                   //
+                                   // if ((custProvider.typeValue ?? "").isNotEmpty)
+                                   // filterChip("Type: ${custProvider.typeValue}"),
 
                                 ],
                               ),
