@@ -380,7 +380,7 @@ class TaskRepo {
             'cos_id': localData.storage.read("cos_id")
           }));
       print(taskScript);
-      print(response.body);
+      print("update_status ${response.body}");
       if (response.statusCode == 200) {
         final Map<String, dynamic> dataMap = jsonDecode(response.body);
         return dataMap;

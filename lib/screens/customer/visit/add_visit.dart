@@ -54,18 +54,27 @@ class _CusAddVisitState extends State<CusAddVisit> with TickerProviderStateMixin
       final employeeProvider = Provider.of<EmployeeProvider>(context, listen: false);
       if(!kIsWeb){
         Provider.of<TaskProvider>(context, listen: false).getAllTypes();
+        Provider.of<EmployeeProvider>(context, listen: false).getAllUsers();
+        Provider.of<CustomerProvider>(context, listen: false).getAllCustomers(true);
       }else{
         Provider.of<TaskProvider>(context, listen: false).getTaskType(false);
+        Provider.of<TaskProvider>(context, listen: false).getTaskStatuses();
+        Provider.of<EmployeeProvider>(context, listen: false).getAllUsers();
+        Provider.of<CustomerProvider>(context, listen: false).getAllCustomers(true);
       }
       if(widget.isDirect==true){
         if(kIsWeb){
           customerProvider.getLeadCategory();
           customerProvider.getVisitType();
           customerProvider.getCmtType();
+          Provider.of<EmployeeProvider>(context, listen: false).getAllUsers();
+          Provider.of<CustomerProvider>(context, listen: false).getAllCustomers(true);
         }else{
           customerProvider.getLead();
           customerProvider.getVisit();
           customerProvider.getCommentType();
+          Provider.of<EmployeeProvider>(context, listen: false).getAllUsers();
+          Provider.of<CustomerProvider>(context, listen: false).getAllCustomers(true);
         }
       }
       // customerProvider.setValue(widget.companyId.toString());
@@ -218,15 +227,20 @@ class _CusAddVisitState extends State<CusAddVisit> with TickerProviderStateMixin
                               width: kIsWeb?webWidth:phoneWidth,
                               hintText: constValue.contactName,
                               list: widget.numberList.isNotEmpty?widget.numberList:sendList,
-                              saveValue: custProvider.selectCustomer,
+                              saveValue: custProvider.selectCustomer?["id"],
                               onChanged: (Object? value) {
                                 setState(() {
-                                  custProvider.selectCustomer=value!;
-                                  var list=[];
-                                  list.add(value);
-                                  localData.storage.write("c_id",list[0]["id"]);
-                                  localData.storage.write("c_no",list[0]["no"]);
-                                  localData.storage.write("c_name",list[0]["name"]);
+
+                                  var selected = (widget.numberList.isNotEmpty
+                                      ? widget.numberList
+                                      : sendList)
+                                      .firstWhere((e) => e["id"] == value);
+
+                                  custProvider.selectCustomer = selected;
+
+                                  localData.storage.write("c_id", selected["id"]);
+                                  localData.storage.write("c_no", selected["no"]);
+                                  localData.storage.write("c_name", selected["name"]);
                                 });
                               },
                               dropText: 'name',),
@@ -249,7 +263,7 @@ class _CusAddVisitState extends State<CusAddVisit> with TickerProviderStateMixin
                               width: kIsWeb?webWidth:phoneWidth,
                               hintText: constValue.leadStatus,
                               list: custProvider.leadCategoryList,
-                              saveValue: custProvider.leadType,
+                              saveValue: custProvider.leadType?["id"],
                               onChanged: (Object? value) {
                                 custProvider.changeLeadType(value);
                               },
@@ -266,7 +280,7 @@ class _CusAddVisitState extends State<CusAddVisit> with TickerProviderStateMixin
                               width:kIsWeb?webWidth:phoneWidth,
                               hintText: constValue.visitType,
                               list: custProvider.callList,
-                              saveValue: custProvider.callType,
+                              saveValue: custProvider.callType?["id"],
                               onChanged: (Object? value) {
                                 custProvider.changeCallType(value);
                               },

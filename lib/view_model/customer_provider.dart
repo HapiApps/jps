@@ -565,23 +565,38 @@ void changeState(dynamic value){
   _update = true;
   notifyListeners();
 }
-void changeCusType(dynamic value){
+// void changeCusType(dynamic value){
+//     _type = value;
+//   _update = true;
+//   notifyListeners();
+// }
+  void changeCusType(dynamic value){
     _type = value;
-  _update = true;
-  notifyListeners();
-}
-void changeLeadType(dynamic value){
-  leadType = value!;
-  var list = [];
-  list.add(value);
-  // print(value);
-  // print(leadCategoryList);
-  // print(localData.storage.read("lead_id"));
-  localData.storage.write("lead_id", list[0]["id"]);
-  // print(localData.storage.read("lead_id"));
+    _update = true;
+    notifyListeners();
+  }
+// void changeLeadType(dynamic value){
+//   leadType = value!;
+//   var list = [];
+//   list.add(value);
+//   // print(value);
+//   // print(leadCategoryList);
+//   // print(localData.storage.read("lead_id"));
+//   localData.storage.write("lead_id", list[0]["id"]);
+//   // print(localData.storage.read("lead_id"));
+//
+//   notifyListeners();
+// }
+  void changeLeadType(dynamic value) {
 
-  notifyListeners();
-}
+    leadType = leadCategoryList
+        .firstWhere((element) => element["id"].toString() == value.toString());
+
+    localData.storage.write("lead_id", leadType["id"]);
+
+    notifyListeners();
+  }
+
 void changeCallType(dynamic value){
   callType = value!;
   var list = [];
@@ -589,6 +604,7 @@ void changeCallType(dynamic value){
   localData.storage.write("visit_id", list[0]["id"]);
   notifyListeners();
 }
+
 Future<void> getCustomerDetail(String id,bool isUpdate,bool isRefresh) async {
   if(isRefresh==true){
     _refresh=false;

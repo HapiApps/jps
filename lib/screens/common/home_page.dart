@@ -692,13 +692,13 @@ class _HomePageState extends State<HomePage> {
                                                             },img: assets.aTt,text: "Attendance Report"
                                                         ),
                                                         20.height,
-                                                        iconBox(
-                                                            callBack: (){
-                                                              homeProvider.updateIndex(5);
-                                                              utils.navigatePage(context, ()=>const DashBoard(child: ReportDashboard()));
-                                                            },img: assets.aTask,text: "Task Report"
-                                                        ),
-                                                        20.height,
+                                                        // iconBox(
+                                                        //     callBack: (){
+                                                        //       homeProvider.updateIndex(5);
+                                                        //       utils.navigatePage(context, ()=>const DashBoard(child: ReportDashboard()));
+                                                        //     },img: assets.aTask,text: "Task Report"
+                                                        // ),
+                                                        // 20.height,
                                                         // iconBox(
                                                         //     callBack: (){
                                                         //       homeProvider.updateIndex(16);
@@ -1876,7 +1876,7 @@ class _HomePageState extends State<HomePage> {
                                                 ),
                                                 alignment: Alignment.center,
                                                 child: CustomText(
-                                                  "Immediate (${homeProvider.mainReportList.isEmpty ? "0" : homeProvider.mainReportList[0]["High_count"]})",
+                                                  "Immediate (${homeProvider.mainReportList.isEmpty ? "0" : homeProvider.mainReportList[0]["Immediate_count"]})",
                                                   color: Color(0xffB35CFF),
                                                   weight: FontWeight.w600,
                                                 ),

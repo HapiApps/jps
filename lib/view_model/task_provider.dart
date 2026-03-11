@@ -1375,7 +1375,7 @@ class TaskProvider with ChangeNotifier {
   var _title;
   var _department;
   var _type;
-  var _status;
+  String? _status;
   bool _isUpdate=false;
   String _level = "Normal";
   String _taskSDate = "";
@@ -1394,7 +1394,7 @@ class TaskProvider with ChangeNotifier {
   get title => _title;
   get department => _department;
   get type => _type;
-  get status => _status;
+  String? get status => _status;
   String get level => _level;
   String get taskSDate => _taskSDate;
   String get taskEDate => _taskEDate;
@@ -1497,11 +1497,17 @@ class TaskProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  // void changeStatus(dynamic value) {
+  //   _status = value;
+  //   var list = [];
+  //   list.add(value);
+  //   localData.storage.write("status_id", list[0]["id"]);
+  //   notifyListeners();
+  // }
   void changeStatus(dynamic value) {
-    _status = value;
-    var list = [];
-    list.add(value);
-    localData.storage.write("status_id", list[0]["id"]);
+    _status = value is Map ? value["id"].toString() : value.toString();
+    localData.storage.write("status_id", _status);
+    print("Selected Status ID => $_status");
     notifyListeners();
   }
   void setStatusByName(String value) {
@@ -2110,52 +2116,67 @@ class TaskProvider with ChangeNotifier {
     }
     notifyListeners();
   }
+  void initValue() {
 
-  void initValue(){
     _isRecording = false;
     _selectedFiles.clear();
     _recordedAudioPaths.clear();
     selectedPhotos.clear();
     taskTitleCont.clear();
-    _type=null;
-    _status=null;
-    _assignedId="";
-    _level="Normal";
-    if(typeList.isNotEmpty){
-      _type=typeList[0]["id"];
+
+    _type = null;
+    _status = null;
+    _assignedId = "";
+    _level = "Normal";
+
+    if (typeList.isNotEmpty) {
+      _type = typeList[0]["id"].toString();
     }
-    final selectedStatus = statusList.firstWhere(
-            (status) => status["value"] == "Assigned",
-        orElse: () => {"id": "0", "value": "Unknown"}
-    );
-    _status = selectedStatus;
-    localData.storage.write("status_id", selectedStatus["id"]);
-    taskDt.text="${DateTime.now().day.toString().padLeft(2,"0")}-${DateTime.now().month.toString().padLeft(2,"0")}-${DateTime.now().year}";
+
+    if (statusList.isNotEmpty) {
+
+      final selectedStatus = statusList.firstWhere(
+            (status) => status["value"]?.trim() == "Assigned",
+        orElse: () => statusList.first,
+      );
+
+      _status = selectedStatus["id"].toString();
+    }
+
+    taskDt.text =
+    "${DateTime.now().day.toString().padLeft(2, "0")}-"
+        "${DateTime.now().month.toString().padLeft(2, "0")}-"
+        "${DateTime.now().year}";
+
     notifyListeners();
   }
-  void initEditValue(context,TaskData data){
+  void initEditValue(context, TaskData data) {
 
-    taskTitleCont.text=data.taskTitle.toString();
-    _level=data.level.toString();
-    taskDt.text=data.taskDate.toString();
-    _assignedId=data.assigned.toString();
-    _assName=data.assignedNames.toString();
-    _cusId=data.companyId.toString();
-    _cusName=data.projectName.toString();
-    _status=null;
-    _type=null;
-    notifyListeners();
+    taskTitleCont.text = data.taskTitle.toString();
+    _level = data.level.toString();
+    taskDt.text = data.taskDate.toString();
+    _assignedId = data.assigned.toString();
+    _assName = data.assignedNames.toString();
+    _cusId = data.companyId.toString();
+    _cusName = data.projectName.toString();
+
+    _status = null;
+    _type = null;
+
+    /// STATUS
     final selectedStatus = statusList.firstWhere(
-            (status) => status["value"] == data.statval,
-        orElse: () => {"id": "0", "value": "Unknown"}
+          (status) => status["value"]?.trim() == data.statval?.trim(),
+      orElse: () => <String, String>{
+        "id": statusList.isNotEmpty ? statusList[0]["id"]! : "",
+        "value": statusList.isNotEmpty ? statusList[0]["value"]! : "",
+      },
     );
-    _status = selectedStatus;
-    localData.storage.write("status_id", selectedStatus["id"]);
 
-    // final selectedType = typeList.firstWhere(
-    //       (status) => status["value"] == data.type, // Matching condition
-    //   orElse: () => {"id": typeList[0]["id"], "value": typeList[0]["value"]}, // Default if not found
-    // );
+    _status = selectedStatus["id"]?.toString();
+
+    localData.storage.write("status_id", _status);
+
+    /// TYPE
     final selectedType = typeList.firstWhere(
           (status) => status["value"] == data.type,
       orElse: () => <String, String>{
@@ -2164,15 +2185,12 @@ class TaskProvider with ChangeNotifier {
       },
     );
 
-
-
-// Set the selected type
     _type = selectedType["id"];
 
-// Save the ID in local storage
     localData.storage.write("type_id", selectedType["id"]);
 
-    changeAssignedIs(context,data.assignedNames.toString().split(","));
+    changeAssignedIs(context, data.assignedNames.toString().split(","));
+
     notifyListeners();
   }
   Future<void> addTask({context,required String id}) async {
@@ -2963,30 +2981,39 @@ class TaskProvider with ChangeNotifier {
     try {
       Map data = {
         "action": getAllData,
-        "search_type":"cmt_type",
-        "cat_id":"8",
+        "search_type": "cmt_type",
+        "cat_id": "8",
         "cos_id": localData.storage.read("cos_id")
       };
-      final response =await _taskRepo.getListDatas(data);
+
+      final response = await _taskRepo.getListDatas(data);
+
       log("Task status ${response.toString()}");
+
       if (response.isNotEmpty) {
-        List<Map<String, String>> list = response.map((e) => {
+
+        List<Map<String, String>> list = response.map<Map<String, String>>((e) => {
           "id": e['id'].toString(),
           "value": e['value'].toString(),
-          "categories": e['categories'].toString()
+          "categories": e['categories'].toString(),
         }).toList();
+
+        /// ⭐ always update provider list
+        statusList = list;
+
+        print("STATUS LIST $statusList");
+
+        /// save offline
         if(!kIsWeb){
           await LocalDatabase.insertTaskStatus(list);
-        }else{
-          statusList.clear();
-          statusList=list;
-          notifyListeners();
         }
+
+        notifyListeners();
       }
+
     } catch (e) {
-      // _refresh=true;
+      print("STATUS ERROR $e");
     }
-    notifyListeners();
   }
   Future<void> getAllTypes() async {
     typeList.clear();

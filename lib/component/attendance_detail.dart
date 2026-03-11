@@ -226,22 +226,40 @@ class AttendanceDetails extends StatelessWidget {
                               final item = chunked[index];
                               return Padding(
                                 padding: const EdgeInsets.fromLTRB(0, 5, 0, 0),
-                                child: Row(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.start,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    SizedBox(
-                                      // color: Colors.pink,
-                                      width: kIsWeb?webWidth/3:phoneWidth/3,
-                                      child: CustomText(text: "${item['in']} - ${item['out']}",size: 11,isBold: true,),
-                                    ),
-                                    SizedBox(
-                                      // color: Colors.yellow,
-                                      width: kIsWeb?webWidth/5:phoneWidth/5,
-                                      child: CustomText(text: item["out"]!=""?timeDifference("${item["in"]},${item["out"]}"):"-",size: 11,isBold: true),
-                                    ),
-                                    SizedBox(
-                                      // color: Colors.green,
-                                      width: kIsWeb?webWidth/3:phoneWidth/2.7,
-                                      child: CustomText(text: "${item['reason']}",size: 11,),
+                                    if(localData.storage.read("role") == "1")
+                                      SizedBox(
+                                        width: kIsWeb ? webWidth/4 : phoneWidth/3,
+                                        child: CustomText(
+                                          text: name,
+                                          size: 11,
+                                          isBold: true,
+                                        ),
+                                      ),
+                                    10.height,
+                                    Row(
+                                      children: [
+
+
+                                        SizedBox(
+                                          // color: Colors.pink,
+                                          width: kIsWeb?webWidth/3:phoneWidth/3,
+                                          child: CustomText(text: "${item['in']} - ${item['out']}",size: 11,isBold: true,),
+                                        ),
+                                        SizedBox(
+                                          // color: Colors.yellow,
+                                          width: kIsWeb?webWidth/5:phoneWidth/5,
+                                          child: CustomText(text: item["out"]!=""?timeDifference("${item["in"]},${item["out"]}"):"-",size: 11,isBold: true),
+                                        ),
+                                        SizedBox(
+                                          // color: Colors.green,
+                                          width: kIsWeb?webWidth/3:phoneWidth/2.7,
+                                          child: CustomText(text: "${item['reason']}",size: 11,),
+                                        ),
+                                      ],
                                     ),
                                   ],
                                 ),

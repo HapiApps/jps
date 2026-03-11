@@ -41,15 +41,19 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
-    Future.delayed(Duration.zero, () {
-      Provider.of<TaskProvider >(context, listen: false).initValue();
-      Provider.of<TaskProvider >(context, listen: false).getTaskType(false);
-      Provider.of<TaskProvider >(context, listen: false).getTaskStatuses();
-      if(Provider.of<TaskProvider >(context, listen: false).assignEmployees.isEmpty){
-        Provider.of<TaskProvider >(context, listen: false).getTaskUsers();
+    Future.delayed(Duration.zero, () async {
 
+      final taskProvider = Provider.of<TaskProvider>(context, listen: false);
 
+      await taskProvider.getTaskType(false);
+      await taskProvider.getTaskStatuses();
+
+    taskProvider.initValue();
+
+      if(taskProvider.assignEmployees.isEmpty){
+        taskProvider.getTaskUsers();
       }
+
     });
     animationController = AnimationController(
       vsync: this,
@@ -164,19 +168,16 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
                                   onChanged: (value) {},
                                   width: kIsWeb?webWidth:phoneWidth
                               ),
-                              MapDropDown(
-                                hintText: "Status",
-                                saveValue: taskProvider.status,
-                                list: taskProvider.statusList,
-                                onChanged: (Object? value) {
-                                  if(value.toString().contains("Completed")){
-                                  
-                                  }else{
-                                    taskProvider.changeStatus(value);
-                                  }
-                                },
-                                width: kIsWeb?webWidth:phoneWidth, dropText: 'value',
-                              ),
+                            MapDropDown(
+                              hintText: "Status",
+                              saveValue: taskProvider.status,
+                              list: taskProvider.statusList,
+                              dropText: 'value',
+                              onChanged: (value) {
+                                taskProvider.changeStatus(value);
+                              },
+                              width: kIsWeb ? webWidth : phoneWidth,
+                            ),
                               // Row(
                               //   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                               //   children: [
