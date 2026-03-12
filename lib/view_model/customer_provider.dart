@@ -596,7 +596,11 @@ void changeState(dynamic value){
 
     notifyListeners();
   }
-
+  void changeCallType1(dynamic value) {
+    callType = value.toString();
+    localData.storage.write("visit_id", callType);
+    notifyListeners();
+  }
 void changeCallType(dynamic value){
   callType = value!;
   var list = [];

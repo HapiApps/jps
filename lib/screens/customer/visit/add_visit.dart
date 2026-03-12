@@ -168,7 +168,7 @@ class _CusAddVisitState extends State<CusAddVisit> with TickerProviderStateMixin
                               list: taskProvider.typeList,
                               saveValue: taskProvider.selectType,
                               onChanged: (Object? value) {
-                                taskProvider.changeTypeValue(value);
+                                taskProvider.changeTypeValue1(value);
                               },
                               dropText: 'value',),
                             CustomTextField(
@@ -227,7 +227,9 @@ class _CusAddVisitState extends State<CusAddVisit> with TickerProviderStateMixin
                               width: kIsWeb?webWidth:phoneWidth,
                               hintText: constValue.contactName,
                               list: widget.numberList.isNotEmpty?widget.numberList:sendList,
-                              saveValue: custProvider.selectCustomer?["id"],
+                              saveValue: custProvider.selectCustomer != null
+                                  ? custProvider.selectCustomer["id"]
+                                  : null,
                               onChanged: (Object? value) {
                                 setState(() {
 
@@ -243,9 +245,11 @@ class _CusAddVisitState extends State<CusAddVisit> with TickerProviderStateMixin
                                   localData.storage.write("c_name", selected["name"]);
                                 });
                               },
-                              dropText: 'name',),
+                              dropText: 'name',
+                            ),
                             ///
-                            // MaxLineTextField(isRequired:true,
+                            // MaxLineTextField(
+                            // isRequired:true,
                             //   text: constValue.disPoints,
                             //   controller: custProvider.disPoint, maxLine: 5,
                             //   textCapitalization: TextCapitalization.sentences,
@@ -276,15 +280,16 @@ class _CusAddVisitState extends State<CusAddVisit> with TickerProviderStateMixin
                                   custProvider.getVisitType();
                                 }
                               },
-                              isRefresh: custProvider.callList.isEmpty?true:false,
-                              width:kIsWeb?webWidth:phoneWidth,
+                              isRefresh: custProvider.callList.isEmpty,
+                              width: kIsWeb ? webWidth : phoneWidth,
                               hintText: constValue.visitType,
                               list: custProvider.callList,
-                              saveValue: custProvider.callType?["id"],
+                              saveValue: custProvider.callType,
                               onChanged: (Object? value) {
-                                custProvider.changeCallType(value);
+                                custProvider.changeCallType1(value);
                               },
-                              dropText: 'value',),
+                              dropText: 'value',
+                            ),
                             MaxLineTextField(
                               width: kIsWeb?webWidth:phoneWidth,
                               isRequired: true,

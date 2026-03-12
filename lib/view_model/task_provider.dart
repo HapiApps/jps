@@ -2896,6 +2896,7 @@ class TaskProvider with ChangeNotifier {
   bool get addRefresh =>_addRefresh;
   dynamic _selectType;
   dynamic get selectType=>_selectType;
+
   void changeTypeValue(dynamic value){
     _selectType=null;
     _selectType=value;
@@ -2906,7 +2907,20 @@ class TaskProvider with ChangeNotifier {
 
     notifyListeners();
   }
+  void changeTypeValue1(dynamic value) {
 
+    if (value == null) return;
+
+    _selectType = value;
+    print("select type${_selectType}");
+    // localData.storage.write("type_id", value["id"].toString());
+    // localData.storage.write("typeName", value["value"]);
+    //
+    // print("Selected Type ID : ${value["id"]}");
+    // print("Selected Type Name : ${value["value"]}");
+
+    notifyListeners();
+  }
   Future<void> getTaskType(bool isRefresh) async {
     try {
       _selectType=null;
