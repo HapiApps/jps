@@ -127,6 +127,12 @@ class TaskProvider with ChangeNotifier {
     final parsedEndDate = dateFormat.parse(_endDate);
 
     _filterUserData = _searchAllTasks.where((contact) {
+
+      /// 🔴 EMPTY DATE CHECK
+      if (contact.taskDate == null || contact.taskDate.toString().isEmpty) {
+        return false;
+      }
+
       final taskDate = dateFormat.parse(contact.taskDate.toString());
       final taskDateOnly = DateTime(taskDate.year, taskDate.month, taskDate.day);
 
@@ -152,6 +158,7 @@ class TaskProvider with ChangeNotifier {
           isTypeMatch &&
           isEmpMatch &&
           isCusMatch;
+
     }).toList();
 
     notifyListeners();
@@ -2612,81 +2619,143 @@ class TaskProvider with ChangeNotifier {
   List<TaskData> get filterUserData => _filterUserData;
 
   Future<void> getAllTask(bool isRefresh,
-      {String? date1, String? date2, String? type}) async {
-    _checkAtt="";
-    _checkAttName="";
-    if(isRefresh==true){
-      _filter="1";
-      statusId="";
-      matched=0;
-      _filterDate=="";
-      _filterTasks=0;
-      _status=null;
+      {String? date1, String? date2, String? type})
+  async {
+
+    print("=====  getAllTask START =====");
+
+    _checkAtt = "";
+    _checkAttName = "";
+
+    if (isRefresh == true) {
+      print("Refreshing data...");
+
+      _filter = "1";
+      statusId = "";
+      matched = 0;
+      _filterDate = "";
+      _filterTasks = 0;
+      _status = null;
+
       search.clear();
       search2.clear();
+
       _allTasks.clear();
       _searchAllTasks.clear();
       _filterUserData.clear();
-      _viewRefresh=false;
+
+      dataSource.appointments!.clear();
+
+      _viewRefresh = false;
     }
+
     notifyListeners();
+
     try {
       Map data = {
         "action": taskDatas,
-        "search_type":"all_tasks",
+        "search_type": "all_tasks",
         "cos_id": localData.storage.read("cos_id"),
         "role": localData.storage.read("role"),
         "id": localData.storage.read("id"),
-        // "date1": date1,
-        // "date2": date2,
       };
-      final response =await _taskRepo.getReport(data);
-      print(data.toString());
-      print(response.toString());
+
+      print("API Request : $data");
+
+      final response = await _taskRepo.getReport(data);
+
+      print("API Response Type : ${response.runtimeType}");
+      print("API Response Length : ${response.length}");
+
       if (response.isNotEmpty) {
-        _allTasks=response;
-        _searchAllTasks=response;
-        _filterUserData=response;
-        for(var i=0;i<response.length;i++){
-          String dateStr = response[i].taskDate.toString(); // "24-05-2025"
+        print("Response not empty");
+
+        _allTasks = response;
+        _searchAllTasks = response;
+        _filterUserData = response;
+
+        print("_allTasks length : ${_allTasks.length}");
+
+        for (var i = 0; i < response.length; i++) {
+
+          print("Loop index : $i");
+
+          String? dateStr = response[i].taskDate;
+
+          print("Task Date String : $dateStr");
+
+          /// 🔴 EMPTY DATE SKIP
+          if (dateStr == null || dateStr.isEmpty) {
+            print("Task date empty - skipping index $i");
+            continue;
+          }
+
           DateTime parsedDate = DateFormat('dd-MM-yyyy').parse(dateStr);
-          DateTime dateObject = parsedDate;
+
+          print("Parsed Date : $parsedDate");
+
           Appointment app = Appointment(
-            startTime: dateObject,
-            endTime: dateObject,
+            startTime: parsedDate,
+            endTime: parsedDate,
             subject: response[i].statval.toString(),
             color: colorsConst.red2,
           );
+
           dataSource.appointments!.add(app);
-          dataSource.notifyListeners(CalendarDataSourceAction.add, <Appointment>[app]);
-          // print("Adding Appointment....");
-          var count=0;
-          var st = parsedDate;
-          if(utils.returnPadLeft(defaultMonth.toString())==utils.returnPadLeft(st.month.toString())){
-            count++;
+
+          dataSource.notifyListeners(
+            CalendarDataSourceAction.add,
+            <Appointment>[app],
+          );
+
+          /// THIS MONTH CHECK
+          if (utils.returnPadLeft(defaultMonth.toString()) ==
+              utils.returnPadLeft(parsedDate.month.toString())) {
+            _thisMonthLeave = "1";
           }
-          _thisMonthLeave=count.toString();
         }
-        for(var i=0;i<response.length;i++){
-          if(response[i].isChecked.toString()=="1"){
-            _checkAtt=response[i].id.toString();
-            _checkAttName=response[i].projectName.toString();
+
+        /// CHECKED TASK
+        for (var i = 0; i < response.length; i++) {
+          print("Checking isChecked : ${response[i].isChecked}");
+
+          if (response[i].isChecked.toString() == "1") {
+            _checkAtt = response[i].id.toString();
+            _checkAttName = response[i].projectName.toString();
+
+            print("Checked Task Found");
+            print("_checkAtt : $_checkAtt");
+            print("_checkAttName : $_checkAttName");
+
             break;
           }
         }
-        filterList();
-        print("_isFilter");
-        // print(_isFilter);
-        _viewRefresh=true;
+
+        print("Calling filterList()");
+       filterList();
+
+        _viewRefresh = true;
+
+      } else {
+        print("Response EMPTY");
       }
+
     } catch (e) {
-      _allTasks=[];
-      _checkAtt="";
-      _checkAttName="";
-      _searchAllTasks=[];
-      _filterUserData=[];
-      _viewRefresh=true;
+
+      print("ERROR OCCURRED : $e");
+
+      _allTasks = [];
+      _searchAllTasks = [];
+      _filterUserData = [];
+
+      _checkAtt = "";
+      _checkAttName = "";
+
+      _viewRefresh = true;
     }
+
+    print("===== getAllTask END =====");
+
     notifyListeners();
   }
   List<TaskData> _userAllTasks = <TaskData>[];

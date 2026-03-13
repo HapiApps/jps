@@ -54,9 +54,9 @@ class _AttendanceReportState extends State<AttendanceReport> {
       print("attendance report init ${widget.date1}");
       print("attendance report init ${widget.date2}");
       if (!mounted) return;
+      // Provider.of<AttendanceProvider>(context, listen: false).loadAttendanceDashboard(localData.storage.read("id"));
       print(Provider.of<EmployeeProvider>(context, listen: false).userData.length);
       Provider.of<AttendanceProvider>(context, listen: false).initDate(id:localData.storage.read("id"),role:localData.storage.read("role"),isRefresh:true,date1:widget.date1,date2:widget.date2,type:widget.type);
-      // Provider.of<AttendanceProvider>(context, listen: false).loadAttendanceDashboard(localData.storage.read("id"));
       Provider.of<AttendanceProvider>(context, listen: false).getAttendanceReport(localData.storage.read("id"));
       Provider.of<AttendanceProvider>(context, listen: false).getAbsentAttendanceReport(localData.storage.read("id"));
       Provider.of<LeaveProvider>(context, listen: false).allLeaves(widget.date1,widget.date2,true,"",localData.storage.read("id"));

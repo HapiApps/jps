@@ -184,8 +184,8 @@ class TaskRepo {
           },
           body: jsonEncode(data),
           encoding: Encoding.getByName("utf-8"));
-      // print("Respond ${data}");
-      // print("Resp ${request.body}");
+      print("Respond ${data}");
+   print("Resp ${request.body}");
       if (request.statusCode == 200){
         List response = json.decode(request.body);
         return response.map((json) => TaskData.fromJson(json)).toList();

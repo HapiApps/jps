@@ -40,6 +40,7 @@ import '../source/constant/api.dart';
 import '../source/constant/colors_constant.dart';
 import '../source/constant/local_data.dart';
 import '../source/utilities/utils.dart';
+import 'leave_provider.dart';
 
 class HomeProvider with ChangeNotifier{
 final HomeRepository homeRepo = HomeRepository();
@@ -822,6 +823,86 @@ Future<void> loginOuts(context) async {
     }
     notifyListeners();
   }
+  // Future<void> loadFullDashboard(BuildContext context) async {
+  //
+  //   _refresh = false;
+  //   notifyListeners();
+  //
+  //   try {
+  //
+  //     Map data = {
+  //       "action": home,
+  //       "id": localData.storage.read("id"),
+  //       "salesman_id": localData.storage.read("id"),
+  //       "role": localData.storage.read("role"),
+  //       "cos_id": localData.storage.read("cos_id"),
+  //       "st_dt": _startDate,
+  //       "en_dt": _endDate,
+  //       "date1": _startDate,
+  //       "date2": _endDate,
+  //     };
+  //
+  //     final response = await homeRepo.getFullDashboard(data);
+  //
+  //
+  //     /* ================= MAIN REPORT ================= */
+  //
+  //     _mainReportList = [response["main_report"]];
+  //     localData.storage.write("conveyance_amount",response[0]['conveyance_amount'].toString()=="null"||response[0]['conveyance_amount'].toString()==""?"0":response[0]['conveyance_amount'].toString());
+  //     localData.storage.write("travel_amount",response[0]['travel_amount'].toString()=="null"||response[0]['travel_amount'].toString()==""?"0":response[0]['travel_amount'].toString());
+  //     localData.storage.write("da_amount",response[0]['da_amount'].toString()=="null"||response[0]['da_amount'].toString()==""?"0":response[0]['da_amount'].toString());
+  //     /* ================= DASHBOARD VISIT ================= */
+  //
+  //     _visitCount = response["dashboard_report"];
+  //
+  //     /* ================= USERS ================= */
+  //
+  //     final attendanceProvider =
+  //     Provider.of<AttendanceProvider>(context, listen: false);
+  //
+  //     final employeeProvider =
+  //     Provider.of<EmployeeProvider>(context, listen: false);
+  //
+  //     final customerProvider =
+  //     Provider.of<CustomerProvider>(context, listen: false);
+  //
+  //     /* ================= ATTENDANCE ================= */
+  //
+  //     attendanceProvider.setAttendanceData(
+  //       (response["attendance"] as List)
+  //           .map((e) => AttendanceModel.fromJson(e))
+  //           .toList(),
+  //     );
+  //
+  //     /* ================= USERS ================= */
+  //
+  //     employeeProvider.setUserData(
+  //       (response["allusers"] as List)
+  //           .map((e) => UserModel.fromJson(e))
+  //           .toList(),
+  //     );
+  //
+  //     /* ================= CUSTOMERS ================= */
+  //
+  //     customerProvider.setCustomerData(
+  //       (response["allcustomers"] as List)
+  //           .map((e) => CustomerModel.fromJson(e))
+  //           .toList(),
+  //     );
+  //
+  //     /* ================= NOTIFICATIONS ================= */
+  //
+  //     employeeProvider.setNotifications(response["notifications"]);
+  //
+  //     _refresh = true;
+  //
+  //   } catch (e) {
+  //     _refresh = true;
+  //   }
+  //
+  //   notifyListeners();
+  // }
+
   Future<void> loadFullDashboard(BuildContext context) async {
 
     _refresh = false;
@@ -841,20 +922,56 @@ Future<void> loginOuts(context) async {
         "date2": _endDate,
       };
 
+      print("===== REQUEST DATA =====");
+      print(data);
+
       final response = await homeRepo.getFullDashboard(data);
 
+      print("===== FULL API RESPONSE =====");
+      print(response);
 
       /* ================= MAIN REPORT ================= */
 
+      print("===== MAIN REPORT =====");
+      print(response["main_report"]);
+
       _mainReportList = [response["main_report"]];
-      localData.storage.write("conveyance_amount",response[0]['conveyance_amount'].toString()=="null"||response[0]['conveyance_amount'].toString()==""?"0":response[0]['conveyance_amount'].toString());
-      localData.storage.write("travel_amount",response[0]['travel_amount'].toString()=="null"||response[0]['travel_amount'].toString()==""?"0":response[0]['travel_amount'].toString());
-      localData.storage.write("da_amount",response[0]['da_amount'].toString()=="null"||response[0]['da_amount'].toString()==""?"0":response[0]['da_amount'].toString());
+
+      var mainReport = response["main_report"];
+
+      localData.storage.write(
+          "conveyance_amount",
+          mainReport["conveyance_amount"] == null ||
+              mainReport["conveyance_amount"].toString().isEmpty
+              ? "0"
+              : mainReport["conveyance_amount"].toString());
+
+      localData.storage.write(
+          "travel_amount",
+          mainReport["travel_amount"] == null ||
+              mainReport["travel_amount"].toString().isEmpty
+              ? "0"
+              : mainReport["travel_amount"].toString());
+
+      localData.storage.write(
+          "da_amount",
+          mainReport["da_amount"] == null ||
+              mainReport["da_amount"].toString().isEmpty
+              ? "0"
+              : mainReport["da_amount"].toString());
+
+      print("Conveyance Amount : ${mainReport["conveyance_amount"]}");
+      print("Travel Amount : ${mainReport["travel_amount"]}");
+      print("DA Amount : ${mainReport["da_amount"]}");
+
       /* ================= DASHBOARD VISIT ================= */
+
+      print("===== VISIT REPORT =====");
+      print(response["dashboard_report"]);
 
       _visitCount = response["dashboard_report"];
 
-      /* ================= USERS ================= */
+      /* ================= PROVIDERS ================= */
 
       final attendanceProvider =
       Provider.of<AttendanceProvider>(context, listen: false);
@@ -867,6 +984,9 @@ Future<void> loginOuts(context) async {
 
       /* ================= ATTENDANCE ================= */
 
+      print("===== ATTENDANCE =====");
+      print(response["attendance"]);
+
       attendanceProvider.setAttendanceData(
         (response["attendance"] as List)
             .map((e) => AttendanceModel.fromJson(e))
@@ -874,6 +994,9 @@ Future<void> loginOuts(context) async {
       );
 
       /* ================= USERS ================= */
+
+      print("===== USERS =====");
+      print(response["allusers"]);
 
       employeeProvider.setUserData(
         (response["allusers"] as List)
@@ -883,6 +1006,9 @@ Future<void> loginOuts(context) async {
 
       /* ================= CUSTOMERS ================= */
 
+      print("===== CUSTOMERS =====");
+      print(response["allcustomers"]);
+
       customerProvider.setCustomerData(
         (response["allcustomers"] as List)
             .map((e) => CustomerModel.fromJson(e))
@@ -891,17 +1017,25 @@ Future<void> loginOuts(context) async {
 
       /* ================= NOTIFICATIONS ================= */
 
+      print("===== NOTIFICATIONS =====");
+      print(response["notifications"]);
+
       employeeProvider.setNotifications(response["notifications"]);
 
       _refresh = true;
 
-    } catch (e) {
+    } catch (e,stack) {
+      print("===== DASHBOARD ERROR =====");
+      print(e);
+      print(stack);
       _refresh = true;
     }
 
     notifyListeners();
   }
-Future<void> forgotPassword(context) async {
+
+
+  Future<void> forgotPassword(context) async {
   try{
       Map data = {
         "action":forgotPsd,
@@ -992,8 +1126,8 @@ Future<void> deleteUseAccount(context) async {
       }
     });
   }
-  dynamic _type;
-  dynamic get type =>_type;
+  String _type = "Today";
+  String get type => _type;
   String _month="";
   String get month => _month;
   var typeList = ["Today","Yesterday","Last 7 Days","Last 30 Days","This Week","This Month","Last 3 months"];
@@ -1015,10 +1149,14 @@ Future<void> deleteUseAccount(context) async {
     }else if(_type=="Last 3 months"){
       last3Month();
     }
-    getMainReport(false);
+    checkThisMonth();
+     getMainReport(false);
     getDashboardReport(false);Provider.of<AttendanceProvider>(context, listen: false).getLateCount(_startDate,_endDate);
     Provider.of<AttendanceProvider>(context, listen: false).getTotalHours(_startDate,_endDate);
-
+    Provider.of<AttendanceProvider>(context, listen: false).initDate(id:localData.storage.read("id"),role:localData.storage.read("role"),isRefresh:true,date1:_startDate,date2:_endDate,type:"");
+    Provider.of<AttendanceProvider>(context, listen: false).getAttendanceReport(localData.storage.read("id"));
+    Provider.of<AttendanceProvider>(context, listen: false).getAbsentAttendanceReport(localData.storage.read("id"));
+    Provider.of<LeaveProvider>(context, listen: false).allLeaves(_startDate,_endDate,true,"",localData.storage.read("id"));
     notifyListeners();
   }
   DateTime stDt = DateTime.now();

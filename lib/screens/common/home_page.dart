@@ -15,6 +15,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:master_code/screens/common/work_done.dart';
 import 'package:master_code/view_model/expense_provider.dart';
+import 'package:master_code/view_model/leave_provider.dart';
 import 'package:provider/provider.dart';
 import '../../component/animated_button.dart';
 import '../../component/custom_loading.dart';
@@ -97,6 +98,7 @@ class _HomePageState extends State<HomePage> {
         final homeProvider = Provider.of<HomeProvider>(context, listen: false);
         homeProvider.checkThisMonth();
         homeProvider.loadFullDashboard(context);
+        homeProvider.changeType(context, homeProvider.type);
       //  homeProvider.getDashboardReport(false);
        // Provider.of<AttendanceProvider>(context, listen: false).getLateCount(Provider.of<HomeProvider>(context, listen: false).startDate,Provider.of<HomeProvider>(context, listen: false).endDate,);
       });
@@ -417,8 +419,8 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     double screenWidth = MediaQuery.of(context).size.width;
     double screenHeight = MediaQuery.of(context).size.height;
-    return Consumer5<HomeProvider,CustomerProvider,AttendanceProvider,LocationProvider,EmployeeProvider>(
-      builder: (context,homeProvider,custProvider,attPvr,locPvr,empPvr,_){
+    return Consumer6<HomeProvider,CustomerProvider,AttendanceProvider,LocationProvider,EmployeeProvider,LeaveProvider>(
+      builder: (context,homeProvider,custProvider,attPvr,locPvr,empPvr,leaPro,_){
         print(" attPvr.isWorkDone == 1 ${attPvr.isWorkDone} ${ attPvr.isWorkDone == 1}");
         int visitPendingCount = homeProvider.mainReportList.isEmpty
             ? 0
@@ -1075,8 +1077,9 @@ class _HomePageState extends State<HomePage> {
                                                }
                                            },
                                           title: "Present",type: "1",
-                                          count: homeProvider.mainReportList.isEmpty ?"0":homeProvider.mainReportList[0]["unique_attendance_count"].toString()=="null"?"0": homeProvider.mainReportList[0]["unique_attendance_count"].toString(),
-                                          bgColor: Color(0xFFE8F5E9),
+                                         // count: homeProvider.mainReportList.isEmpty ?"0":homeProvider.mainReportList[0]["unique_attendance_count"].toString()=="null"?"0": homeProvider.mainReportList[0]["unique_attendance_count"].toString(),
+                                           count: attPvr.getDailyAttendance.toString().isNotEmpty ?attPvr.getDailyAttendance.length.toString(): "0",
+                                           bgColor: Color(0xFFE8F5E9),
                                           borderColor: ColorsConst.present,
                                           imagePath: DashboardAssets.present,
                                         ),
@@ -1090,7 +1093,8 @@ class _HomePageState extends State<HomePage> {
                                               utils.showWarningToast(context, text: "No absent employees found");
                                             }
                                           },
-                                           count: homeProvider.mainReportList.isEmpty ?"0":homeProvider.mainReportList[0]["no_attendance_count"].toString()=="null"?"0": homeProvider.mainReportList[0]["no_attendance_count"].toString(),
+                                           //count: homeProvider.mainReportList.isEmpty ?"0":homeProvider.mainReportList[0]["no_attendance_count"].toString()=="null"?"0": homeProvider.mainReportList[0]["no_attendance_count"].toString(),
+                                           count: attPvr.noAttendanceList.toString().isNotEmpty ?attPvr.noAttendanceList.length.toString(): "0",
                                            bgColor: Color(0xFFFFEBEE),
                                           borderColor: ColorsConst.absent,
                                           imagePath: DashboardAssets.absent,
@@ -1123,7 +1127,8 @@ class _HomePageState extends State<HomePage> {
                                               utils.showWarningToast(context, text: "No on leave employee found");
                                             }
                                           },
-                                          count: homeProvider.mainReportList.isEmpty?"0":"${int.parse(homeProvider.mainReportList[0]["fulldayleave_user"].toString()=="null"?"0":homeProvider.mainReportList[0]["fulldayleave_user"].toString())+int.parse(homeProvider.mainReportList[0]["sessionleave_user"].toString() =="null"?"0":homeProvider.mainReportList[0]["sessionleave_user"].toString())}",
+                                        //  count: homeProvider.mainReportList.isEmpty?"0":"${int.parse(homeProvider.mainReportList[0]["fulldayleave_user"].toString()=="null"?"0":homeProvider.mainReportList[0]["fulldayleave_user"].toString())+int.parse(homeProvider.mainReportList[0]["sessionleave_user"].toString() =="null"?"0":homeProvider.mainReportList[0]["sessionleave_user"].toString())}",
+                                          count: leaPro.myLevSearch.toString().isEmpty?"0":leaPro.myLevSearch.length.toString(),
                                           bgColor: Color(0xFFE3F2FD),
                                           borderColor: ColorsConst.onLeave,
                                           imagePath: DashboardAssets.onLeave,
@@ -1138,8 +1143,9 @@ class _HomePageState extends State<HomePage> {
                                             }
                                           },
                                           title: "Permission",type: "2",
-                                          count: homeProvider.mainReportList.isEmpty ?"0":homeProvider.mainReportList[0]["perm_count"].toString()=="null"?"0": homeProvider.mainReportList[0]["perm_count"].toString(),
-                                          bgColor: Colors.purple.shade200,
+                                         // count: homeProvider.mainReportList.isEmpty ?"0":homeProvider.mainReportList[0]["perm_count"].toString()=="null"?"0": homeProvider.mainReportList[0]["perm_count"].toString(),
+                                           count: attPvr.permisCount.toString(),
+                                           bgColor: Colors.purple.shade200,
                                           borderColor:Colors.purple,
                                           imagePath: DashboardAssets.late,
                                         ),
