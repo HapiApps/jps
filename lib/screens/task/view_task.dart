@@ -620,6 +620,10 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
 
                                   if (taskProvider.companyName.isNotEmpty)
                                     _filterChip(taskProvider.companyName),
+
+                                  if (taskProvider.audioPath!.isNotEmpty)
+                                    _filterChip(taskProvider.audioPath.toString()),
+
                                 ],
                               ),
                             ),
@@ -1041,7 +1045,17 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
                             ),
                           ],
                         ),
-
+                        // Row(
+                        //   children: [
+                        //     if (data.voiceMessage != null && data.voiceMessage!.isNotEmpty)
+                        //       IconButton(
+                        //         onPressed: () {
+                        //           // voice play function
+                        //         },
+                        //         icon: const Icon(Icons.keyboard_voice),
+                        //       ),
+                        //   ],
+                        // )
                       ],
                     ),
                     const Divider(),
