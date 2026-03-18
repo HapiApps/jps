@@ -1568,23 +1568,37 @@ Future<void> getUserLogs(String id) async {
 
     if (lastSeen == null) {
       unreadCount = notifyData.length;
+
       debugPrint("FIRST TIME → $unreadCount");
+
+      notifyListeners(); // 🔥 ADD THIS
       return;
     }
 
     final lastSeenTime = DateTime.parse(lastSeen);
 
+    // unreadCount = notifyData.where((n) {
+    //   final created = DateTime.parse(
+    //     n["created_ts"].toString().replaceFirst(' ', 'T'),
+    //   );
+    //
+    //   debugPrint("CREATED => $created | AFTER? ${created.isAfter(lastSeenTime)}");
+    //
+    //   return created.isAfter(lastSeenTime);
+    // }).length;
     unreadCount = notifyData.where((n) {
-      final created = DateTime.parse(
+      final created = DateTime.tryParse(
         n["created_ts"].toString().replaceFirst(' ', 'T'),
       );
 
-      debugPrint("CREATED => $created | AFTER? ${created.isAfter(lastSeenTime)}");
+      if (created == null) return false;
 
-      return created.isAfter(lastSeenTime);
+      return created.isAfter(lastSeenTime) ||
+          created.isAtSameMomentAs(lastSeenTime);
     }).length;
-
     debugPrint("FINAL UNREAD => $unreadCount");
+
+    notifyListeners(); // 🔥 ADD THIS
   }
 
 
@@ -1708,6 +1722,7 @@ Future<void> getNotifications({bool markSeen = false}) async {
   }
   notifyListeners();
 }
+
   String safeStr(dynamic value) {
     if (value == null) return "0";
     return value.toString();
@@ -1782,7 +1797,6 @@ Future<void> getNotifications({bool markSeen = false}) async {
       String id,
       String purposeId) async
   {
-
     try {
 
       String loginId = safeStr(localData.storage.read("id"));

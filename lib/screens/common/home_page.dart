@@ -40,6 +40,7 @@ import '../attendance/custom_attendance.dart';
 import '../controller/track_controller.dart';
 import '../customer/view_task.dart';
 import '../customer/visit/add_visit.dart';
+import '../customer/visit_report/visit_emp_details.dart';
 import '../customer/visit_report/visits_report.dart';
 import '../task/add_task.dart';
 import 'view_notification.dart';
@@ -106,8 +107,8 @@ class _HomePageState extends State<HomePage> {
      Provider.of<EmployeeProvider>(context, listen: false).getAllUsers();
      Provider.of<CustomerProvider>(context, listen: false).getAllCustomers(true);
         final provider = Provider.of<EmployeeProvider>(context, listen: false);
-       // provider.getNotifications();
-        provider.markNotificationsAsSeen();
+       provider.getNotifications();
+       // provider.markNotificationsAsSeen();
       });
     super.initState();
   }
@@ -527,7 +528,7 @@ class _HomePageState extends State<HomePage> {
                                       25.width,
                     Consumer<EmployeeProvider>(
                       builder: (context, emp, _) {
-                        // print("count ${emp.unreadCount}");
+                      print("count ${emp.unreadCount}");
                         return Stack(
                           children: [
                             InkWell(
@@ -1165,7 +1166,7 @@ class _HomePageState extends State<HomePage> {
                               InkWell(
                                 onTap:(){
                                   utils.navigatePage(context, ()=> DashBoard(child: VisitReport(date1: homeProvider.startDate, date2: homeProvider.endDate,month: homeProvider.month,type: homeProvider.type,)));
-                                },
+                                  },
                                 child:
                                 // homeProvider.vRefresh==false
                                 //     ? const Loading():

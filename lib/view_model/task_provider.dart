@@ -1715,16 +1715,29 @@ class TaskProvider with ChangeNotifier {
   List<String> get videos => _videos;
   List<TaskData> get _taskList {
     return _allTasks.where((task) {
-      String dateStr = task.taskDate ?? "";
-      DateTime st = DateFormat('dd-MM-yyyy').parse(dateStr);
 
-      bool sameMonth = utils.returnPadLeft(defaultMonth.toString()) ==
-          utils.returnPadLeft(st.month.toString());
+      String dateStr = task.taskDate ?? "";
+
+      // ❌ empty date skip
+      if (dateStr.isEmpty) return false;
+
+      DateTime? st;
+
+      try {
+        st = DateFormat('dd-MM-yyyy').parse(dateStr);
+      } catch (e) {
+        print("Invalid date: $dateStr");
+        return false; // ❌ wrong format skip
+      }
+
+      bool sameMonth =
+          utils.returnPadLeft(defaultMonth.toString()) ==
+              utils.returnPadLeft(st.month.toString());
 
       bool dateMatch = (filterDate == "" || filterDate == dateStr);
 
-      // return sameMonth;
       return sameMonth && dateMatch;
+
     }).toList();
   }
 

@@ -3581,12 +3581,44 @@ List<Marker> get liveMarker =>_liveMarker;
     }
     notifyListeners();
   }
+
+  List<Map<String, dynamic>> groupedList = [];
+
+  void groupEmployeeData() {
+    Map<String, Map<String, dynamic>> temp = {};
+
+    for (var item in _empWiseCount) {
+      String name = item["firstname"];
+      String type = item["value"]; // 🔥 backend value direct
+      int count = int.tryParse(item["total_count"].toString()) ?? 0;
+
+      if (!temp.containsKey(name)) {
+        temp[name] = {
+          "firstname": name,
+          "role": item["role"],
+          "types": {}, // 🔥 dynamic types
+          "total": 0,
+        };
+      }
+
+      /// 🔥 dynamic add
+      temp[name]!["types"][type] =
+          (temp[name]!["types"][type] ?? 0) + count;
+
+      temp[name]!["total"] += count;
+    }
+
+    groupedList = temp.values.toList();
+
+    print("🔥 GROUPED DATA: $groupedList");
+  }
   List _empWiseCount=[];
   List get empWiseCount => _empWiseCount;
   Future<void> getEmpWiseReport() async {
-    _refresh=false;
+    _refresh = false;
     _empWiseCount.clear();
     notifyListeners();
+
     try {
       Map data = {
         "action": getAllData,
@@ -3597,18 +3629,67 @@ List<Marker> get liveMarker =>_liveMarker;
         "date1": _startDate,
         "date2": _endDate
       };
-      final response =await custRepo.getDashboardReport(data);
+
+      /// 🔥 PRINT REQUEST DATA
+      print("===== API REQUEST =====");
+      print(data);
+
+      final response = await custRepo.getDashboardReport(data);
+
+      /// 🔥 PRINT RAW RESPONSE
+      print("===== API RESPONSE =====");
+      print(response);
+
       if (response.isNotEmpty) {
-        _empWiseCount=response;
-        _refresh=true;
-      }else{
-        _refresh=true;
+        _empWiseCount = response;
+        groupEmployeeData();
+        /// 🔥 PRINT LIST LENGTH
+        print("List Count: ${_empWiseCount.length}");
+
+        /// 🔥 PRINT EACH ITEM
+        for (var item in _empWiseCount) {
+          print("Item: $item");
+        }
+      } else {
+        print("⚠️ Empty Response");
       }
+
     } catch (e) {
-      _refresh=true;
+      /// 🔥 ERROR PRINT
+      print("❌ ERROR: $e");
+    } finally {
+      _refresh = true;
+      notifyListeners();
     }
-    notifyListeners();
   }
+  List<Map<String, dynamic>> groupedReport = [];
+  void groupVisitData(List response) {
+    Map<String, Map<String, dynamic>> temp = {};
+
+    for (var item in response) {
+
+      String date = item["date"];
+      String type = item["value"]; // 🔥 dynamic
+      int count = int.parse(item["total_count"].toString());
+
+      if (!temp.containsKey(date)) {
+        temp[date] = {
+          "date": date,
+          "types": {},
+          "total": 0,
+        };
+      }
+
+      // dynamic type add
+      temp[date]!["types"][type] =
+          (temp[date]!["types"][type] ?? 0) + count;
+
+      temp[date]!["total"] += count;
+    }
+
+    groupedReport = temp.values.toList();
+  }
+
   Future<void> getVisitHoursReport(context) async {
     try {
       Map data = {

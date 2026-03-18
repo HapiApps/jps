@@ -550,10 +550,11 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
                                 padding: const EdgeInsets.all(6.0),
                                 child: SvgPicture.asset(assets.tFilter,width: 20,height: 20,),
                               ),
-                            ),5.width
+                            ),
+                            5.width
                           ],
                         ),),
-                      GestureDetector(
+                       GestureDetector(
                           onTap: (){
                             taskProvider.downloadAllTask(context);
                           },
@@ -621,8 +622,8 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
                                   if (taskProvider.companyName.isNotEmpty)
                                     _filterChip(taskProvider.companyName),
 
-                                  if (taskProvider.audioPath!.isNotEmpty)
-                                    _filterChip(taskProvider.audioPath.toString()),
+                                  // if (taskProvider.audioPath!.isNotEmpty)
+                                  //   _filterChip(taskProvider.audioPath.toString()),
 
                                 ],
                               ),
