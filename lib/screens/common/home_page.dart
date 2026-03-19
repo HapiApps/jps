@@ -73,24 +73,14 @@ class _HomePageState extends State<HomePage> {
   void initState() {
     Future.delayed(Duration.zero, () {
       if (!mounted) return;
-      final homeProvider = Provider.of<HomeProvider>(context, listen: false);
       Provider.of<LocationProvider>(context, listen: false).requestNotificationPermissions();
       final id = localData.storage.read("id");
       Provider.of<AttendanceProvider>(context, listen: false).initDate(id:localData.storage.read("id"),role:localData.storage.read("role"),isRefresh: true,date1: "${DateTime.now().day.toString().padLeft(2,"0")}-${DateTime.now().month.toString().padLeft(2,"0")}-${DateTime.now().year.toString()}",date2: "${DateTime.now().day.toString().padLeft(2,"0")}-${DateTime.now().month.toString().padLeft(2,"0")}-${DateTime.now().year.toString()}");
       if (id != null && id.toString().isNotEmpty) {
-      //  Provider.of<AttendanceProvider>(context, listen: false).getAttendanceReport(id);
         print("Attendance ID ${id}");
       } else {
         print("Attendance ID missing! Cannot fetch report");
       }
-   //   Provider.of<AttendanceProvider>(context, listen: false).getTotalHours(Provider.of<HomeProvider>(context, listen: false).startDate,Provider.of<HomeProvider>(context, listen: false).endDate);
-      // if (localData.storage.read("refreshHomeData") == true) {
-      //   homeProvider.getMainReport(true);
-      //   homeProvider.getDashboardReport(true);
-      //   // print("***** Check");
-      //   localData.storage.write("refreshHomeData", false);
-      // }
-     // homeProvider.updateToken(context);
       FirebaseFirestore.instance
           .collection('attendance')
           .snapshots()
@@ -100,15 +90,12 @@ class _HomePageState extends State<HomePage> {
         homeProvider.checkThisMonth();
         homeProvider.loadFullDashboard(context);
         homeProvider.changeType(context, homeProvider.type);
-      //  homeProvider.getDashboardReport(false);
-       // Provider.of<AttendanceProvider>(context, listen: false).getLateCount(Provider.of<HomeProvider>(context, listen: false).startDate,Provider.of<HomeProvider>(context, listen: false).endDate,);
       });
-    //  Provider.of<AttendanceProvider>(context, listen: false).getLateCount(Provider.of<HomeProvider>(context, listen: false).startDate,Provider.of<HomeProvider>(context, listen: false).endDate,);
      Provider.of<EmployeeProvider>(context, listen: false).getAllUsers();
      Provider.of<CustomerProvider>(context, listen: false).getAllCustomers(true);
         final provider = Provider.of<EmployeeProvider>(context, listen: false);
-       provider.getNotifications();
-       // provider.markNotificationsAsSeen();
+      provider.getNotifications();
+
       });
     super.initState();
   }
@@ -422,7 +409,7 @@ class _HomePageState extends State<HomePage> {
     double screenHeight = MediaQuery.of(context).size.height;
     return Consumer6<HomeProvider,CustomerProvider,AttendanceProvider,LocationProvider,EmployeeProvider,LeaveProvider>(
       builder: (context,homeProvider,custProvider,attPvr,locPvr,empPvr,leaPro,_){
-        print(" attPvr.isWorkDone == 1 ${attPvr.isWorkDone} ${ attPvr.isWorkDone == 1}");
+       // print(" attPvr.isWorkDone == 1 ${attPvr.isWorkDone} ${ attPvr.isWorkDone == 1}");
         int visitPendingCount = homeProvider.mainReportList.isEmpty
             ? 0
             : homeProvider.inActiveVisit;
@@ -528,7 +515,6 @@ class _HomePageState extends State<HomePage> {
                                       25.width,
                     Consumer<EmployeeProvider>(
                       builder: (context, emp, _) {
-                      print("count ${emp.unreadCount}");
                         return Stack(
                           children: [
                             InkWell(

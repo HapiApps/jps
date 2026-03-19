@@ -1564,44 +1564,22 @@ Future<void> getUserLogs(String id) async {
     final prefs = await SharedPreferences.getInstance();
     String? lastSeen = prefs.getString("last_notification_seen");
 
-    debugPrint("LAST SEEN => $lastSeen");
-
     if (lastSeen == null) {
       unreadCount = notifyData.length;
+    } else {
+      final lastSeenTime = DateTime.parse(lastSeen);
 
-      debugPrint("FIRST TIME → $unreadCount");
-
-      notifyListeners(); // 🔥 ADD THIS
-      return;
+      unreadCount = notifyData.where((n) {
+        final created = DateTime.parse(
+          n["created_ts"].toString().replaceFirst(' ', 'T'),
+        );
+        return created.isAfter(lastSeenTime);
+      }).length;
     }
 
-    final lastSeenTime = DateTime.parse(lastSeen);
-
-    // unreadCount = notifyData.where((n) {
-    //   final created = DateTime.parse(
-    //     n["created_ts"].toString().replaceFirst(' ', 'T'),
-    //   );
-    //
-    //   debugPrint("CREATED => $created | AFTER? ${created.isAfter(lastSeenTime)}");
-    //
-    //   return created.isAfter(lastSeenTime);
-    // }).length;
-    unreadCount = notifyData.where((n) {
-      final created = DateTime.tryParse(
-        n["created_ts"].toString().replaceFirst(' ', 'T'),
-      );
-
-      if (created == null) return false;
-
-      return created.isAfter(lastSeenTime) ||
-          created.isAtSameMomentAs(lastSeenTime);
-    }).length;
-    debugPrint("FINAL UNREAD => $unreadCount");
-
-    notifyListeners(); // 🔥 ADD THIS
+    print("Unread Count => $unreadCount");
+    notifyListeners();
   }
-
-
 
   Future<void> markNotificationsAsSeen() async {
     if (notifyData.isEmpty) return;
@@ -1618,7 +1596,7 @@ Future<void> getUserLogs(String id) async {
       latest.toIso8601String(),
     );
 
-    debugPrint("✅ MARKED SEEN AT => $latest");
+    //debugPrint("✅ MARKED SEEN AT => $latest");
 
     unreadCount = 0;
     notifyListeners();
@@ -1702,10 +1680,12 @@ Future<void> getNotifications({bool markSeen = false}) async {
       "cos_id":localData.storage.read("cos_id"),
       "id":localData.storage.read("id"),
     };
+
     final response =await empRepo.getUserLogs(data);
     if (response.isNotEmpty) {
       _notifyData=response;
       notifyListeners();
+      print("notification In calculateUnreadCount");
       await calculateUnreadCount();
       if (markSeen) {
         await markNotificationsAsSeen();
@@ -1797,6 +1777,7 @@ Future<void> getNotifications({bool markSeen = false}) async {
       String id,
       String purposeId) async
   {
+
     try {
 
       String loginId = safeStr(localData.storage.read("id"));

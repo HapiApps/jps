@@ -768,7 +768,12 @@ Future<void> main() async {
         print("FOREGROUND Message: ${message.data}");
 
         // 🔔 நோட்டிஃபிகேஷன் வரும்போதே print ஆகும்
-        print("--- Notification RECEIVED (NOT CLICKED) ---");
+        final context = navigatorKey.currentContext;
+
+        if (context != null) {
+          final provider = Provider.of<EmployeeProvider>(context, listen: false);
+          provider.getNotifications();
+        }
 
         final title =
             message.notification?.title ?? message.data['title'] ?? 'Notification';
