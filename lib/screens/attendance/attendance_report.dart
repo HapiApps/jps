@@ -458,9 +458,33 @@ class _AttendanceReportState extends State<AttendanceReport> {
                                       utils.showWarningToast(context, text: "No Data Found");
                                     }else{
                                       if(attProvider.userName!=""){
-                                        excelReports.exportUserAttendanceToExcel(context,chunked: attProvider.getDailyAttendance, date: "${attProvider.startDate} ${attProvider.startDate==attProvider.endDate?"":"To ${attProvider.endDate}"}");
+                                        // excelReports.exportUserAttendanceToExcel(context,
+                                        //     chunked: attProvider.getDailyAttendance,
+                                        //     date: "${attProvider.startDate} ${attProvider.startDate==attProvider.endDate?"":"To ${attProvider.endDate}"}");
+                                        excelReports.exportFullAttendanceExcel(
+                                          context,
+                                          presentList: attProvider.getDailyAttendance,
+                                          absentList: attProvider.noAttendanceList,
+                                            leaveList: levPvr.myLevSearch,
+                                            lateList: attProvider.getDailyAttendance
+                                                .where((e) => isLate(e.time ?? ""))
+                                                .toList(),
+                                          permissionList: attProvider.getDailyAttendance.where((e) => e.perStatus != "null").toList(),
+                                          date: "${attProvider.startDate} ${attProvider.startDate==attProvider.endDate?"":"To ${attProvider.endDate}"}"
+                                        );
                                       }else{
-                                        excelReports.exportAttendanceToExcel(context,chunked: attProvider.getDailyAttendance, date: "${attProvider.startDate} ${attProvider.startDate==attProvider.endDate?"":"To ${attProvider.endDate}"}");
+                                        // excelReports.exportAttendanceToExcel(context,chunked: attProvider.getDailyAttendance, date: "${attProvider.startDate} ${attProvider.startDate==attProvider.endDate?"":"To ${attProvider.endDate}"}");
+                                        excelReports.exportFullAttendanceExcel(
+                                            context,
+                                            presentList: attProvider.getDailyAttendance,
+                                            absentList: attProvider.noAttendanceList,
+                                            leaveList: levPvr.myLevSearch,
+                                            lateList: attProvider.getDailyAttendance
+                                                .where((e) => isLate(e.time ?? ""))
+                                                .toList(),
+                                            permissionList: attProvider.getDailyAttendance.where((e) => e.perStatus != "null").toList(),
+                                            date: "${attProvider.startDate} ${attProvider.startDate==attProvider.endDate?"":"To ${attProvider.endDate}"}"
+                                        );
                                       }
                                     }
                                     },
@@ -826,7 +850,7 @@ class _AttendanceReportState extends State<AttendanceReport> {
                                   );
                                 }),
                           ):
-                        attProvider.selectedIndex==2&&
+                        attProvider.selectedIndex==2 &&
                         attProvider.lateCountShow!=0?
                         Flexible(
                           child: ListView.builder(
@@ -1418,15 +1442,37 @@ class _AttendanceReportState extends State<AttendanceReport> {
       },
     );
   }
-  bool isLate(String inTime) {
-    print("inTime");
-    print(inTime);
-    final format = DateFormat("hh:mm a");
+  bool isLate(String? inTime) {
+    try {
+      print("inTime => $inTime");
 
-    DateTime officeTime = format.parse("09:00 AM");
-    DateTime userTime = format.parse(inTime);
+      /// ❌ null / empty check
+      if (inTime == null || inTime.trim().isEmpty || inTime == "null") {
+        return false;
+      }
 
-    return userTime.isAfter(officeTime);
+      /// 🔹 if multiple time → take first (IN TIME)
+      if (inTime.contains(",")) {
+        inTime = inTime.split(",")[0].trim();
+      }
+
+      /// ❌ still empty
+      if (inTime.isEmpty || inTime == "-") return false;
+
+      final format = DateFormat("hh:mm a");
+
+      /// ✅ office time (change if needed)
+      DateTime officeTime = format.parse("09:00 AM");
+
+      /// ✅ safe parse
+      DateTime userTime = format.parse(inTime);
+
+      return userTime.isAfter(officeTime);
+
+    } catch (e) {
+      print("isLate ERROR => $inTime");
+      return false;
+    }
   }
   String formatCreatedDate(DateTime dateTime) {
     DateTime now = DateTime.now();

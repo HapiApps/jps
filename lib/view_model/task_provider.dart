@@ -956,11 +956,10 @@ class TaskProvider with ChangeNotifier {
   Future<void> generatePdf(List<DTaskModel> taskList, BuildContext context) async {
     final pdf = pw.Document();
 
-    // Load fonts (Google Noto for Unicode)
     final font = await PdfGoogleFonts.notoSansRegular();
     final boldFont = await PdfGoogleFonts.notoSansBold();
 
-    // Helper: load + compress images
+    /// 🔹 Image Loader
     Future<pw.MemoryImage?> loadAndCompressImage(String url,
         {int maxWidth = 600, int maxHeight = 600, int quality = 50}) async {
       try {
@@ -980,11 +979,12 @@ class TaskProvider with ChangeNotifier {
       return null;
     }
 
-    // Preload all task images
+    /// 🔹 Preload Images
     Map<DTaskModel, List<pw.MemoryImage>> taskImages = {};
     for (var task in taskList) {
       final images = <pw.MemoryImage>[];
       final docs = [task.docsType1, task.docsType2, task.docsType3];
+
       for (var docList in docs) {
         if (docList != null && docList.isNotEmpty) {
           for (var url in docList) {
@@ -998,197 +998,129 @@ class TaskProvider with ChangeNotifier {
       taskImages[task] = images;
     }
 
-    // Helper to chunk lists safely
-    List<List<T>> chunkList<T>(List<T> list, int chunkSize) {
-      final chunks = <List<T>>[];
-      for (var i = 0; i < list.length; i += chunkSize) {
-        chunks.add(list.sublist(i, i + chunkSize > list.length ? list.length : i + chunkSize));
-      }
-      return chunks;
-    }
-
-    // Helper to build a single task section
+    /// 🔹 Build Task Section
     pw.Widget buildTaskSection(DTaskModel task, List<pw.MemoryImage> images) {
-      // Prepare expense data
-      final expIds = task.expenseIds;
-      final expAmounts = task.expenseAmount;
-      final expStatus = task.expenseStatus;
-      Map<String, Map<String, List<List<String>>>> expenseData = {};
-      for (var id in expIds) {
-        expenseData[id] = {"travel": [], "da": [], "conv": []};
-      }
 
-      // Travel, DA, Conv details
-      void parseExpense(List<String>? details, String key, String delimiter) {
-        if (details != null) {
-          for (var block in details) {
-            final groups = block.split(delimiter);
-            for (var group in groups) {
-              final rows = group.split("||");
-              for (var row in rows) {
-                final parts = row.split("|").map((e) => e.trim()).toList();
-                if (parts.isNotEmpty && expenseData.containsKey(parts[0])) {
-                  expenseData[parts[0]]![key]!.add(parts.sublist(1));
-                }
-              }
+      /// 🔥 COMMENTS PARSE
+      List<Map<String, String>> comments = [];
+
+      if (task.commentsFull != null && task.commentsFull!.trim().isNotEmpty) {
+        final rawComments = task.commentsFull!.split("||");
+
+        for (var c in rawComments) {
+          final parts = c.split("|");
+
+          String name = parts.length > 0 ? parts[0].trim() : "";
+          String comment = parts.length > 1 ? parts[1].trim() : "";
+          String time = parts.length > 2 ? parts[2].trim() : "";
+
+          String date = "";
+          String formattedTime = "";
+
+          if (time.isNotEmpty) {
+            final dt = DateTime.tryParse(time);
+            if (dt != null) {
+              date = DateFormat('dd-MM-yyyy').format(dt);
+              formattedTime = DateFormat('hh:mm a').format(dt);
             }
           }
+
+          comments.add({
+            "name": name,
+            "comment": comment,
+            "date": date,
+            "time": formattedTime,
+          });
         }
       }
-
-      parseExpense(task.travelDetails, "travel", "||");
-      parseExpense(task.daDetails, "da", "###");
-      parseExpense(task.convDetails, "conv", "###");
 
       return pw.Column(
         crossAxisAlignment: pw.CrossAxisAlignment.start,
         children: [
+
           pw.Divider(),
-          pw.Text(
-            "Task Reports - ${task.taskDate}",
-            style: pw.TextStyle(fontSize: 16, font: boldFont),
-          ),
+
+          /// 🔹 Title
+          pw.Text("Task Reports - ${task.taskDate}",
+              style: pw.TextStyle(fontSize: 16, font: boldFont)),
+
           pw.SizedBox(height: 5),
+
+          /// 🔹 Basic Info
           pw.Text("Task: ${task.taskTitle}", style: pw.TextStyle(font: font)),
           pw.Text("Company: ${task.projectName}", style: pw.TextStyle(font: font)),
           pw.Text("Assigned To: ${task.assignedNames}", style: pw.TextStyle(font: font)),
           pw.Text("Created By: ${task.creator}", style: pw.TextStyle(font: font)),
+
           pw.SizedBox(height: 10),
 
-          // Attendance section
-          if (task.checkInTs.toString() != "null")
+          /// 🔥 COMMENTS SECTION
+          if (comments.isNotEmpty)
             pw.Column(
               crossAxisAlignment: pw.CrossAxisAlignment.start,
               children: [
-                pw.Text("Visits", style: pw.TextStyle(font: boldFont, fontSize: 14)),
+                pw.Text("Comments", style: pw.TextStyle(font: boldFont, fontSize: 14)),
                 pw.SizedBox(height: 5),
-                    () {
-                  final inTimeList = task.checkInTs.toString().split(",");
-                  final outTimeList = task.checkOutTs.toString().split(",");
-                  final isCheckedOutList = task.isCheckedOut.toString().split(",");
-                  final visitedRows = <List<String>>[];
 
-                  for (var i = 0; i < inTimeList.length; i++) {
-                    final inTime = inTimeList.length > i ? inTimeList[i].trim() : "";
-                    final outTime = outTimeList.length > i ? outTimeList[i].trim() : "";
-                    final isCheckedOut = isCheckedOutList.length > i ? isCheckedOutList[i].trim() : "";
-
-                    String datePart = "";
-                    String inTimeOnly = "";
-                    String outTimeOnly = "-";
-
-                    if (inTime.isNotEmpty) {
-                      final dt = DateTime.tryParse(inTime);
-                      if (dt != null) {
-                        datePart = DateFormat('dd-MM-yyyy').format(dt);
-                        inTimeOnly = DateFormat('hh:mm a').format(dt);
-                      }
-                    }
-
-                    if (outTime.isNotEmpty && isCheckedOut == "2") {
-                      final dtOut = DateTime.tryParse(outTime);
-                      if (dtOut != null) {
-                        outTimeOnly = DateFormat('hh:mm a').format(dtOut);
-                      }
-                    }
-
-                    visitedRows.add([datePart, inTimeOnly, outTimeOnly]);
-                  }
-
-                  return pw.Table.fromTextArray(
-                    headers: ['Date', 'Check-In', 'Check-Out'],
-                    data: visitedRows,
-                    headerStyle: pw.TextStyle(font: boldFont),
-                    cellStyle: pw.TextStyle(font: font),
-                    headerDecoration: pw.BoxDecoration(color: PdfColors.grey300),
+                ...comments.map((c) {
+                  return pw.Container(
+                    margin: const pw.EdgeInsets.only(bottom: 6),
+                    padding: const pw.EdgeInsets.all(6),
+                    decoration: pw.BoxDecoration(
+                      border: pw.Border.all(color: PdfColors.grey300),
+                      borderRadius: pw.BorderRadius.circular(4),
+                    ),
+                    child: pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                      children: [
+                        pw.Text(
+                          "${c["name"]} (${c["date"]} ${c["time"]})",
+                          style: pw.TextStyle(font: boldFont, fontSize: 10),
+                        ),
+                        pw.SizedBox(height: 2),
+                        pw.Text(
+                          c["comment"] ?? "",
+                          style: pw.TextStyle(font: font, fontSize: 10),
+                        ),
+                      ],
+                    ),
                   );
-                }(),
+                }).toList(),
               ],
             ),
+
           pw.SizedBox(height: 10),
 
-          // Expense Section
-          if (expenseData.isNotEmpty)
-            pw.Column(
-              crossAxisAlignment: pw.CrossAxisAlignment.start,
-              children: [
-                pw.Text("Expenses", style: pw.TextStyle(font: boldFont, fontSize: 14)),
-                pw.SizedBox(height: 5),
-                ...expenseData.keys.map((id) {
-                  final index = expIds.indexOf(id);
-                  final total = index < expAmounts.length ? expAmounts[index] : "0";
-                  final status = index < expStatus.length ? expStatus[index] : "0";
-
-                  return pw.Column(
-                    crossAxisAlignment: pw.CrossAxisAlignment.start,
-                    children: [
-                      pw.Text(
-                        "Expense - ₹$total (${status == "0" ? "Rejected" : status == "1" ? "In Process" : "Approved"})",
-                        style: pw.TextStyle(font: font),
-                      ),
-                      pw.SizedBox(height: 5),
-                      if (expenseData[id]!["travel"]!.isNotEmpty)
-                        pw.Table.fromTextArray(
-                          headers: ['From', 'To', 'Start Date', 'End Date', 'Mode', 'Amount'],
-                          data: expenseData[id]!["travel"]!,
-                        ),
-                      if (expenseData[id]!["da"]!.isNotEmpty)
-                        pw.Table.fromTextArray(
-                          headers: ['Day', 'Type', 'Amount'],
-                          data: expenseData[id]!["da"]!,
-                        ),
-                      if (expenseData[id]!["conv"]!.isNotEmpty)
-                        pw.Table.fromTextArray(
-                          headers: ['Date', 'From', 'To', 'Mode', 'Amount'],
-                          data: expenseData[id]!["conv"]!,
-                        ),
-                      pw.SizedBox(height: 10),
-                    ],
-                  );
-                }),
-              ],
-            ),
-
-          // Expense Images
+          /// 🔹 Images
           if (images.isNotEmpty)
             pw.Column(
               crossAxisAlignment: pw.CrossAxisAlignment.start,
               children: [
-                pw.Text("Expense Documents", style: pw.TextStyle(font: boldFont, fontSize: 14)),
+                pw.Text("Documents", style: pw.TextStyle(font: boldFont)),
                 pw.SizedBox(height: 5),
-                ...List.generate((images.length / 3).ceil(), (rowIndex) {
-                  final rowImages = images.skip(rowIndex * 3).take(3).toList();
-                  return pw.Row(
-                    mainAxisAlignment: pw.MainAxisAlignment.start,
-                    children: rowImages
-                        .map((img) => pw.Padding(
-                      padding: const pw.EdgeInsets.only(right: 5, bottom: 5),
-                      child: pw.Image(img, width: 160, height: 100, fit: pw.BoxFit.contain),
-                    ))
-                        .toList(),
-                  );
-                }),
+
+                ...images.map((img) => pw.Padding(
+                  padding: const pw.EdgeInsets.all(5),
+                  child: pw.Image(img, width: 150, height: 100),
+                ))
               ],
             ),
         ],
       );
     }
 
-    // 🔹 Split tasks into chunks (avoid TooManyPagesException)
-    const int chunkSize = 10; // adjust based on size (10–20 safe)
-    for (int i = 0; i < taskList.length; i += chunkSize) {
-      final chunk = taskList.skip(i).take(chunkSize).toList();
+    /// 🔹 Add Pages
+    for (var task in taskList) {
       pdf.addPage(
         pw.MultiPage(
-          pageFormat: PdfPageFormat.a4,
-          build: (context) => chunk
-              .map((task) => buildTaskSection(task, taskImages[task] ?? []))
-              .toList(),
+          build: (context) => [
+            buildTaskSection(task, taskImages[task] ?? [])
+          ],
         ),
       );
     }
 
-    Navigator.pop(context); // hide loader
+    Navigator.pop(context);
     await Printing.layoutPdf(onLayout: (format) async => pdf.save());
   }
 
@@ -2771,6 +2703,7 @@ class TaskProvider with ChangeNotifier {
 
     notifyListeners();
   }
+
   List<TaskData> _userAllTasks = <TaskData>[];
   List<TaskData> get userAllTasks => _userAllTasks;
   Future<void> getUserTasks(String id,String date1,String date2) async {

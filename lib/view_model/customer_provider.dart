@@ -3760,148 +3760,18 @@ List<Marker> get liveMarker =>_liveMarker;
   //   }
   // }
 
-  // Future<void> reportExport(BuildContext context, List list) async {
-  //   try {
-  //     /// 🔥 STEP 0: ALL TYPES (IMPORTANT)
-  //     List<String> allTypes = [
-  //       "Installation",
-  //       "Service - Warranty",
-  //       "Service - AMC",
-  //       "Service - Paid",
-  //       "Services"
-  //     ];
-  //
-  //     /// 🔥 STEP 1: GROUP DATA (DATE WISE + DEFAULT 0)
-  //     Map<String, Map<String, dynamic>> groupedData = {};
-  //
-  //     for (var item in list) {
-  //       if (item["report_date"] == null) continue;
-  //
-  //       String date = item["report_date"];
-  //       String value = item["value"];
-  //       int total = int.tryParse(item["total"].toString()) ?? 0;
-  //
-  //       if (!groupedData.containsKey(date)) {
-  //         groupedData[date] = {"date": date};
-  //
-  //         /// 🔥 default 0 for all types
-  //         for (var type in allTypes) {
-  //           groupedData[date]![type] = 0;
-  //         }
-  //       }
-  //
-  //       /// 🔥 update actual value
-  //       groupedData[date]![value] = total;
-  //     }
-  //
-  //     List finalList = groupedData.values.toList();
-  //
-  //     /// 🔥 STEP 2: CREATE WORKBOOK
-  //     final Workbook workbook = Workbook();
-  //     final Worksheet sheet = workbook.worksheets[0];
-  //
-  //     /// 🔥 STEP 3: HEADER LIST
-  //     List<String> headerList = ["Date", ...allTypes];
-  //
-  //     /// 🔥 TITLE
-  //     sheet
-  //         .getRangeByName(
-  //         'A1:${String.fromCharCode(65 + headerList.length - 1)}1')
-  //         .merge();
-  //
-  //     sheet.getRangeByIndex(1, 1).setText('JPS APP - Date Wise Report');
-  //     sheet.getRangeByIndex(1, 1).cellStyle.bold = true;
-  //     sheet.getRangeByIndex(1, 1).cellStyle.hAlign = HAlignType.center;
-  //
-  //     /// 🔥 HEADER WRITE
-  //     for (int i = 0; i < headerList.length; i++) {
-  //       sheet.getRangeByIndex(2, i + 1).setText(headerList[i]);
-  //     }
-  //
-  //     /// 🎨 HEADER STYLE
-  //     final headerRange = sheet.getRangeByName(
-  //         'A2:${String.fromCharCode(65 + headerList.length - 1)}2');
-  //
-  //     headerRange.cellStyle.bold = true;
-  //     headerRange.cellStyle.hAlign = HAlignType.center;
-  //     headerRange.cellStyle.backColor = '#CA1617';
-  //     headerRange.cellStyle.fontColor = '#FFFFFF';
-  //
-  //     /// 🔥 STEP 4: DATA WRITE
-  //     for (int i = 0; i < finalList.length; i++) {
-  //       final row = i + 3;
-  //
-  //       /// Date
-  //       sheet
-  //           .getRangeByIndex(row, 1)
-  //           .setText(finalList[i]["date"] ?? "");
-  //
-  //       /// Values
-  //       for (int j = 1; j < headerList.length; j++) {
-  //         String key = headerList[j];
-  //
-  //         sheet.getRangeByIndex(row, j + 1).setNumber(
-  //           double.tryParse(finalList[i][key]?.toString() ?? "0") ?? 0,
-  //         );
-  //       }
-  //     }
-  //
-  //     /// 📏 COLUMN WIDTH
-  //     sheet
-  //         .getRangeByName(
-  //         'A1:${String.fromCharCode(65 + headerList.length - 1)}${finalList.length + 2}')
-  //         .columnWidth = 25;
-  //
-  //     /// 🔲 BORDER
-  //     sheet
-  //         .getRangeByName(
-  //         'A2:${String.fromCharCode(65 + headerList.length - 1)}${finalList.length + 2}')
-  //         .cellStyle
-  //         .borders
-  //         .all
-  //         .lineStyle = LineStyle.thin;
-  //
-  //     /// 🔥 CENTER ALIGN
-  //     sheet
-  //         .getRangeByName(
-  //         'A3:${String.fromCharCode(65 + headerList.length - 1)}${finalList.length + 2}')
-  //         .cellStyle
-  //         .hAlign = HAlignType.center;
-  //
-  //     /// 💾 SAVE
-  //     final bytes = workbook.saveAsStream();
-  //     workbook.dispose();
-  //
-  //     if (kIsWeb) {
-  //       AnchorElement(
-  //         href: 'data:application/octet-stream;base64,${base64.encode(bytes)}',
-  //       )
-  //         ..setAttribute('download', 'JPS_Report.xlsx')
-  //         ..click();
-  //     } else {
-  //       final path = (await getApplicationSupportDirectory()).path;
-  //       final file = File('$path/JPS_Report.xlsx');
-  //       await file.writeAsBytes(bytes, flush: true);
-  //       OpenFile.open(file.path);
-  //     }
-  //   } catch (e) {
-  //     print("ERROR: $e");
-  //   }
-  // }
   Future<void> reportExport(BuildContext context, List list) async {
     try {
-      /// 🔥 STEP 1: GET ALL TYPES FROM API (DYNAMIC)
-      Set<String> allTypesSet = {};
+      /// 🔥 STEP 0: ALL TYPES (IMPORTANT)
+      List<String> allTypes = [
+        "Installation",
+        "Service - Warranty",
+        "Service - AMC",
+        "Service - Paid",
+        "Services"
+      ];
 
-      for (var item in list) {
-        if (item["value"] != null) {
-          allTypesSet.add(item["value"]);
-        }
-      }
-
-      List<String> allTypes = allTypesSet.toList();
-
-      /// 🔥 STEP 2: GROUP DATA (DATE WISE + DEFAULT 0)
+      /// 🔥 STEP 1: GROUP DATA (DATE WISE + DEFAULT 0)
       Map<String, Map<String, dynamic>> groupedData = {};
 
       for (var item in list) {
@@ -3914,7 +3784,7 @@ List<Marker> get liveMarker =>_liveMarker;
         if (!groupedData.containsKey(date)) {
           groupedData[date] = {"date": date};
 
-          /// 🔥 default 0 for all dynamic types
+          /// 🔥 default 0 for all types
           for (var type in allTypes) {
             groupedData[date]![type] = 0;
           }
@@ -3926,11 +3796,11 @@ List<Marker> get liveMarker =>_liveMarker;
 
       List finalList = groupedData.values.toList();
 
-      /// 🔥 STEP 3: CREATE EXCEL
+      /// 🔥 STEP 2: CREATE WORKBOOK
       final Workbook workbook = Workbook();
       final Worksheet sheet = workbook.worksheets[0];
 
-      /// 🔥 HEADER LIST
+      /// 🔥 STEP 3: HEADER LIST
       List<String> headerList = ["Date", ...allTypes];
 
       /// 🔥 TITLE
@@ -3962,7 +3832,8 @@ List<Marker> get liveMarker =>_liveMarker;
         final row = i + 3;
 
         /// Date
-        sheet.getRangeByIndex(row, 1)
+        sheet
+            .getRangeByIndex(row, 1)
             .setText(finalList[i]["date"] ?? "");
 
         /// Values
@@ -4017,6 +3888,135 @@ List<Marker> get liveMarker =>_liveMarker;
       print("ERROR: $e");
     }
   }
+  // Future<void> reportExport(BuildContext context, List list) async {
+  //   try {
+  //     /// 🔥 STEP 1: GET ALL TYPES FROM API (DYNAMIC)
+  //     Set<String> allTypesSet = {};
+  //
+  //     for (var item in list) {
+  //       if (item["value"] != null) {
+  //         allTypesSet.add(item["value"]);
+  //       }
+  //     }
+  //
+  //     List<String> allTypes = allTypesSet.toList();
+  //
+  //     /// 🔥 STEP 2: GROUP DATA (DATE WISE + DEFAULT 0)
+  //     Map<String, Map<String, dynamic>> groupedData = {};
+  //
+  //     for (var item in list) {
+  //       if (item["report_date"] == null) continue;
+  //
+  //       String date = item["report_date"];
+  //       String value = item["value"];
+  //       int total = int.tryParse(item["total"].toString()) ?? 0;
+  //
+  //       if (!groupedData.containsKey(date)) {
+  //         groupedData[date] = {"date": date};
+  //
+  //         /// 🔥 default 0 for all dynamic types
+  //         for (var type in allTypes) {
+  //           groupedData[date]![type] = 0;
+  //         }
+  //       }
+  //
+  //       /// 🔥 update actual value
+  //       groupedData[date]![value] = total;
+  //     }
+  //
+  //     List finalList = groupedData.values.toList();
+  //
+  //     /// 🔥 STEP 3: CREATE EXCEL
+  //     final Workbook workbook = Workbook();
+  //     final Worksheet sheet = workbook.worksheets[0];
+  //
+  //     /// 🔥 HEADER LIST
+  //     List<String> headerList = ["Date", ...allTypes];
+  //
+  //     /// 🔥 TITLE
+  //     sheet
+  //         .getRangeByName(
+  //         'A1:${String.fromCharCode(65 + headerList.length - 1)}1')
+  //         .merge();
+  //
+  //     sheet.getRangeByIndex(1, 1).setText('JPS APP - Date Wise Report');
+  //     sheet.getRangeByIndex(1, 1).cellStyle.bold = true;
+  //     sheet.getRangeByIndex(1, 1).cellStyle.hAlign = HAlignType.center;
+  //
+  //     /// 🔥 HEADER WRITE
+  //     for (int i = 0; i < headerList.length; i++) {
+  //       sheet.getRangeByIndex(2, i + 1).setText(headerList[i]);
+  //     }
+  //
+  //     /// 🎨 HEADER STYLE
+  //     final headerRange = sheet.getRangeByName(
+  //         'A2:${String.fromCharCode(65 + headerList.length - 1)}2');
+  //
+  //     headerRange.cellStyle.bold = true;
+  //     headerRange.cellStyle.hAlign = HAlignType.center;
+  //     headerRange.cellStyle.backColor = '#CA1617';
+  //     headerRange.cellStyle.fontColor = '#FFFFFF';
+  //
+  //     /// 🔥 STEP 4: DATA WRITE
+  //     for (int i = 0; i < finalList.length; i++) {
+  //       final row = i + 3;
+  //
+  //       /// Date
+  //       sheet.getRangeByIndex(row, 1)
+  //           .setText(finalList[i]["date"] ?? "");
+  //
+  //       /// Values
+  //       for (int j = 1; j < headerList.length; j++) {
+  //         String key = headerList[j];
+  //
+  //         sheet.getRangeByIndex(row, j + 1).setNumber(
+  //           double.tryParse(finalList[i][key]?.toString() ?? "0") ?? 0,
+  //         );
+  //       }
+  //     }
+  //
+  //     /// 📏 COLUMN WIDTH
+  //     sheet
+  //         .getRangeByName(
+  //         'A1:${String.fromCharCode(65 + headerList.length - 1)}${finalList.length + 2}')
+  //         .columnWidth = 25;
+  //
+  //     /// 🔲 BORDER
+  //     sheet
+  //         .getRangeByName(
+  //         'A2:${String.fromCharCode(65 + headerList.length - 1)}${finalList.length + 2}')
+  //         .cellStyle
+  //         .borders
+  //         .all
+  //         .lineStyle = LineStyle.thin;
+  //
+  //     /// 🔥 CENTER ALIGN
+  //     sheet
+  //         .getRangeByName(
+  //         'A3:${String.fromCharCode(65 + headerList.length - 1)}${finalList.length + 2}')
+  //         .cellStyle
+  //         .hAlign = HAlignType.center;
+  //
+  //     /// 💾 SAVE
+  //     final bytes = workbook.saveAsStream();
+  //     workbook.dispose();
+  //
+  //     if (kIsWeb) {
+  //       AnchorElement(
+  //         href: 'data:application/octet-stream;base64,${base64.encode(bytes)}',
+  //       )
+  //         ..setAttribute('download', 'JPS_Report.xlsx')
+  //         ..click();
+  //     } else {
+  //       final path = (await getApplicationSupportDirectory()).path;
+  //       final file = File('$path/JPS_Report.xlsx');
+  //       await file.writeAsBytes(bytes, flush: true);
+  //       OpenFile.open(file.path);
+  //     }
+  //   } catch (e) {
+  //     print("ERROR: $e");
+  //   }
+  // } //production
 
   // Future<void> downloadExcelReport(List dataList) async {
   //

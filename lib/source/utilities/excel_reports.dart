@@ -2,6 +2,8 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:excel/excel.dart';
 import 'package:flutter/foundation.dart';
+import 'package:intl/intl.dart';
+import 'package:master_code/model/leave/leave_model.dart';
 import 'package:master_code/source/constant/default_constant.dart';
 import 'package:master_code/source/utilities/utils.dart';
 import 'package:path_provider/path_provider.dart';
@@ -214,7 +216,258 @@ class ExcelReports {
       utils.showWarningToast(context, text: "Something Went Wrong");
     }
   }
+  Future<void> exportFullAttendanceExcel(
+      context, {
+        required List<AttendanceModel> presentList,
+        required List<AttendanceModel> absentList,
+        required List<AttendanceModel> lateList,
+        required List<AttendanceModel> permissionList,
+        required List<dynamic> leaveList,
+        required String date,
+      }) async {
+    try {
+      var excel = Excel.createExcel();
 
+      /// ❌ remove default sheet
+      excel.delete('Sheet1');
+
+      /// 🔹 DATE FORMAT
+      String formatDate(String? input) {
+        try {
+          if (input == null || input.isEmpty) return "-";
+          DateTime dt = DateTime.parse(input);
+          return DateFormat('dd-MM-yyyy').format(dt);
+        } catch (e) {
+          return input ?? "-";
+        }
+      }
+
+      /// 🔹 COMMON HEADER
+      List<String> headers = [
+        "Name",
+        "Role",
+        "Date",
+        "In Time",
+        "Out Time",
+        "Total Hours",
+        "Status"
+      ];
+
+      CellStyle headerStyle = CellStyle(
+        bold: true,
+        backgroundColorHex: "#45377D",
+        fontColorHex: "#FFFFFF",
+      );
+
+      /// 🔹 COMMON SHEET BUILDER
+      void createSheet(String name, List<List<dynamic>> rows) {
+        Sheet sheet = excel[name];
+
+        /// TITLE
+        sheet.merge(
+          CellIndex.indexByString("A1"),
+          CellIndex.indexByString("G1"),
+        );
+
+        sheet.cell(CellIndex.indexByString("A1")).value =
+        "$name Report - ${formatDate(date)}";
+
+        sheet.cell(CellIndex.indexByString("A1")).cellStyle = CellStyle(
+          bold: true,
+          fontSize: 12,
+        );
+
+        /// HEADER
+        sheet.appendRow(headers);
+
+        for (int i = 0; i < headers.length; i++) {
+          sheet
+              .cell(CellIndex.indexByColumnRow(columnIndex: i, rowIndex: 1))
+              .cellStyle = headerStyle;
+        }
+
+        /// DATA
+        for (var row in rows) {
+          sheet.appendRow(row);
+        }
+      }
+
+      /// ===============================
+      /// ✅ PRESENT
+      /// ===============================
+      List<List<dynamic>> presentRows = [];
+
+      for (var data in presentList) {
+        var inTime = "-";
+        var outTime = "-";
+        var timeD = "-";
+
+        final times = (data.time ?? "").split(",");
+
+        if (times.length > 1) {
+          if (data.status.toString().contains("1,2")) {
+            inTime = times[0];
+            outTime = times[1];
+          } else {
+            inTime = times[1];
+            outTime = times[0];
+          }
+
+          timeD = timeDifference(
+            data.createdTs!.split(",")[0],
+            data.createdTs!.split(",")[1],
+          );
+        } else if (times.isNotEmpty) {
+          inTime = times[0];
+        }
+
+        presentRows.add([
+          data.firstname,
+          data.role,
+          formatDate(data.date),
+          inTime,
+          outTime,
+          timeD,
+          "Present"
+        ]);
+      }
+
+      createSheet("Present", presentRows);
+
+      /// ===============================
+      /// ❌ ABSENT
+      /// ===============================
+      List<List<dynamic>> absentRows = [];
+
+      for (var data in absentList) {
+        absentRows.add([
+          data.firstname,
+          data.role,
+          formatDate(data.missingDate),
+          "-",
+          "-",
+          "-",
+          "Absent"
+        ]);
+      }
+
+      createSheet("Absent", absentRows);
+
+      /// ===============================
+      /// ⏰ LATE
+      /// ===============================
+      List<List<dynamic>> lateRows = [];
+
+      for (var data in lateList) {
+        var inTime = "-";
+        var outTime = "-";
+        var timeD = "-";
+
+        final times = (data.time ?? "").split(",");
+
+        if (times.length > 1) {
+          inTime = times[0];
+          outTime = times[1];
+
+          timeD = timeDifference(
+            data.createdTs!.split(",")[0],
+            data.createdTs!.split(",")[1],
+          );
+        }
+
+        lateRows.add([
+          data.firstname,
+          data.role,
+          formatDate(data.date),
+          inTime,
+          outTime,
+          timeD,
+          "Late"
+        ]);
+      }
+
+      createSheet("Late", lateRows);
+
+      /// ===============================
+      /// 🟡 PERMISSION
+      /// ===============================
+      List<List<dynamic>> permissionRows = [];
+
+      for (var data in permissionList) {
+        String perTime = data.perTime ?? "-";
+        String reason = data.perReason ?? "";
+
+        String text = "Permission";
+
+        if (perTime != "-") {
+          text += " ($perTime)";
+        }
+
+        if (reason.isNotEmpty) {
+          text += " - $reason";
+        }
+
+        permissionRows.add([
+          data.firstname,
+          data.role,
+          formatDate(data.date),
+          perTime,
+          "-",
+          "-",
+          text
+        ]);
+      }
+
+      createSheet("Permission", permissionRows);
+
+      /// ===============================
+      /// 🟣 LEAVE
+      /// ===============================
+      List<List<dynamic>> leaveRows = [];
+
+      for (var data in leaveList) {
+        String fromDate = formatDate(data.startDate);
+        String toDate = formatDate(data.endDate);
+        String reason = data.reason ?? "";
+
+        String leaveText = fromDate;
+
+        if (toDate != "-" && toDate != fromDate) {
+          leaveText = "$fromDate to $toDate";
+        }
+
+        if (reason.isNotEmpty) {
+          leaveText += " ($reason)";
+        }
+
+        leaveRows.add([
+          data.fName ?? "-",
+          data.role ?? "-",
+          leaveText,
+          "-",
+          "-",
+          "-",
+          "Leave"
+        ]);
+      }
+
+      createSheet("Leave", leaveRows);
+
+      /// 🔹 SAVE
+      final bytes = excel.encode();
+
+      if (!kIsWeb) {
+        _saveExcelMobile(
+          bytes!,
+          "Attendance_Report_${formatDate(date)}.xlsx",
+          context,
+        );
+      }
+
+    } catch (e) {
+      utils.showWarningToast(context, text: "Something went wrong");
+    }
+  }
   String timeDifference(String dateTimeString1, String dateTimeString2) {
     DateTime startTime = DateTime.parse(dateTimeString1);
     DateTime endTime = DateTime.parse(dateTimeString2);

@@ -1032,18 +1032,23 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
                           padding: const EdgeInsets.fromLTRB(20, 0, 0, 0),
                           child: Container(height: 16, width: 1, color: Colors.grey),
                         ),
-                        Row(
+                        Column(
                           children: [
-                            CustomText(
-                              text: "Created by:  ",
-                              size: 11,
-                              isBold: true,
+                            Row(
+                              children: [
+                                CustomText(
+                                  text: "Created by:  ",
+                                  size: 11,
+                                  isBold: true,
+                                ),
+                                CustomText(
+                                  text: "${data.creator ?? ""}",
+                                  size: 15,
+                                  isBold: true,
+                                ),
+                              ],
                             ),
-                            CustomText(
-                              text: "${data.creator ?? ""}",
-                              size: 15,
-                              isBold: true,
-                            ),
+
                           ],
                         ),
                         // Row(
@@ -1059,6 +1064,19 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
                         // )
                       ],
                     ),
+                    10.height,
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      children: [
+                        CustomText(text: "Created Time  :  ",colors: colorsConst.greyClr,isBold: true),
+                        CustomText(
+                          text: formatDateTime(data.createdTs),
+                          size: 15,
+                          isBold: true,
+                        ),
+                      ],
+                    ),
+
                     const Divider(),
                     /// STATUS + PRIORITY
                     Row(
@@ -1092,12 +1110,32 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
                             ],
                           ),
                         ),
+                     ],
+                    ),
+                    10.height,
+                    Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+
+
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.start,
+                          children: [
+                            data.commentCount.isNotEmpty?Text("(💬 ${data.commentCount})  - "):Text("No comments"),
+
+                            Text(
+                              data.lastComment ?? "",
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
                         GestureDetector(onTap: (){
                           utils.navigatePage(context, ()=> DashBoard(child: TaskChat(isVisit:false,
-                              taskId: data.id.toString(), assignedId: data.assigned.toString(), name: data.creator.toString(), assignedName: data.assignedNames.toString(),)));
+                            taskId: data.id.toString(), assignedId: data.assigned.toString(), name: data.creator.toString(), assignedName: data.assignedNames.toString(),)));
                         }, child: SvgPicture.asset(assets.tMessage,width: 20,height: 20,)),
                       ],
-                    ),
+                    ) ,
                   ],
                 ),
               ),
@@ -1149,6 +1187,13 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
       ),
     );
   }//hj
+  String formatDateTime(String? date) {
+    if (date == null || date.isEmpty) return "";
+
+    final parsedDate = DateTime.parse(date);
+
+    return DateFormat('dd-MM-yyyy h:mm a').format(parsedDate);
+  }
   String formatAssignedNames(String? names) {
     if (names == null || names.trim().isEmpty) return "";
 
@@ -1338,6 +1383,7 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
                               ],
                             ),3.height,
                             Divider(color: Colors.grey.shade200,),
+
                             // Row(
                             //   children: [
                             //     CircleAvatar(backgroundColor: data.statval.toString().contains("ompleted")?Colors.green:Colors.blue,radius: 4,),2.width,

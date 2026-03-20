@@ -24,6 +24,11 @@ class TaskData {
   final String? visitReportCount;
   final String? expenseReportCount;
 
+  /// 🔥 NEW FIELDS
+  final String? commentCount;
+  final String? lastComment;
+  final String? allComments;
+
   TaskData({
     this.id,
     this.taskTitle,
@@ -48,7 +53,11 @@ class TaskData {
     this.companyId,
     this.visitReportCount,
     this.expenseReportCount,
-    this.role
+    this.role,
+    /// 🔥 NEW
+    this.commentCount,
+    this.lastComment,
+    this.allComments,
   });
 
   factory TaskData.fromJson(Map<String?, dynamic> json) {
@@ -77,6 +86,10 @@ class TaskData {
       documents: json['documents'],
       visitReportCount: json['customer_visit_count'],
       expenseReportCount: json['expense_count'],
+      /// 🔥 NEW
+      commentCount: json['comment_count']?.toString(),
+      lastComment: json['last_comment'],
+      allComments: json['all_comments'],
     );
   }
 
@@ -105,6 +118,10 @@ class TaskData {
       'company_id': companyId,
       'customer_visit_count': visitReportCount,
       'expense_count': expenseReportCount,
+      /// 🔥 NEW
+      'comment_count': commentCount,
+      'last_comment': lastComment,
+      'all_comments': allComments,
     };
   }
 }
@@ -147,6 +164,9 @@ class DTaskModel {
   final List<String> docsType1;
   final List<String> docsType2;
   final List<String> docsType3;
+  // 🔥 NEW - Comments
+  final String commentsFull;
+  final List<String> commentsList;
 
   DTaskModel({
     required this.taskTitle,
@@ -178,6 +198,9 @@ class DTaskModel {
     required this.docsType1,
     required this.docsType2,
     required this.docsType3,
+    /// 🔥 NEW
+    required this.commentsFull,
+    required this.commentsList,
   });
 
   factory DTaskModel.fromJson(Map<String, dynamic> json) {
@@ -186,6 +209,14 @@ class DTaskModel {
         return [];
       }
       return val.toString().split(RegExp(separator)).map((e) => e.trim()).toList();
+    }
+
+    /// 🔥 COMMENTS PARSE
+    String commentsFull = json['comments_full'] ?? '';
+    List<String> commentsList = [];
+
+    if (commentsFull.isNotEmpty) {
+      commentsList = commentsFull.split(RegExp(r'\s*\|\|\s*'));
     }
 
     return DTaskModel(
@@ -207,6 +238,9 @@ class DTaskModel {
 
       checkOutTs: json['check_out_ts'].toString(),
       isCheckedOut: json['is_checked_out'].toString(),
+      /// 🔥 NEW
+      commentsFull: commentsFull,
+      commentsList: commentsList,
 
       expenseIds: parseList(json['exp_ids'], separator: r'\s*\|\|\s*'),
       expenseStatus: parseList(json['exp_status'], separator: r'\s*\|\|\s*'),
@@ -262,6 +296,8 @@ class DTaskModel {
       'docs_type1': joinList(docsType1, separator: '###'),
       'docs_type2': joinList(docsType2, separator: '###'),
       'docs_type3': joinList(docsType3, separator: '###'),
+      /// 🔥 NEW
+      'comments_full': commentsFull,
 
     };
   }
