@@ -723,7 +723,9 @@ Future<void> main() async {
   await GetStorage.init();
   final prefs = await SharedPreferences.getInstance();
   final homeScreen = prefs.getBool("homescreen") ?? false;
-
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
   if (!kIsWeb) {
     await Firebase.initializeApp(
         options: DefaultFirebaseOptions.currentPlatform);

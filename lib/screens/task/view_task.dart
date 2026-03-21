@@ -63,34 +63,53 @@ class _ViewTaskState extends State<ViewTask> with SingleTickerProviderStateMixin
       tabController.index;
     });
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<TaskProvider>(context, listen: false).search.clear();
-      Provider.of<TaskProvider>(context, listen: false).search2.clear();
-      Provider.of<EmployeeProvider>(context, listen: false).filterEmps();
-      if(kIsWeb){
-        Provider.of<TaskProvider>(context, listen: false).getTaskType(false);
-        Provider.of<TaskProvider>(context, listen: false).getTaskStatuses();
-        Provider.of<CustomerProvider>(context, listen: false).getLeadCategory();
-        Provider.of<CustomerProvider>(context, listen: false).getVisitType();
-        Provider.of<CustomerProvider>(context, listen: false).getCmtType();
-      }else{
-        Provider.of<TaskProvider>(context, listen: false).getAllTypes();
-        Provider.of<TaskProvider>(context, listen: false).getTypeSts();
-        Provider.of<CustomerProvider>(context, listen: false).getLead();
-        Provider.of<CustomerProvider>(context, listen: false).getVisit();
-        Provider.of<CustomerProvider>(context, listen: false).getCommentType();
-      }
+      if (!mounted) return; // 🔥 IMPORTANT FIX
+
       final taskProvider = Provider.of<TaskProvider>(context, listen: false);
-      taskProvider.initFilterValue(true,date1:widget.date1,date2:widget.date2,type:widget.type);
+      final empProvider = Provider.of<EmployeeProvider>(context, listen: false);
+      final custProvider = Provider.of<CustomerProvider>(context, listen: false);
+
+      taskProvider.search.clear();
+      taskProvider.search2.clear();
+
+      empProvider.filterEmps();
+
+      if (kIsWeb) {
+        taskProvider.getTaskType(false);
+        taskProvider.getTaskStatuses();
+        custProvider.getLeadCategory();
+        custProvider.getVisitType();
+        custProvider.getCmtType();
+      } else {
+        taskProvider.getAllTypes();
+        taskProvider.getTypeSts();
+        custProvider.getLead();
+        custProvider.getVisit();
+        custProvider.getCommentType();
+      }
+
+      taskProvider.initFilterValue(
+        true,
+        date1: widget.date1,
+        date2: widget.date2,
+        type: widget.type,
+      );
+
       taskProvider.dataSource = _getDataSource();
-      taskProvider.getAllTask(true,date1:widget.date1,date2:widget.date2,type:widget.type);
-      // if(localData.storage.read("role")=="1"){
-      //   taskProvider.getTaskUsers();
-      // }
+
+      taskProvider.getAllTask(
+        true,
+        date1: widget.date1,
+        date2: widget.date2,
+        type: widget.type,
+      );
     });
   }
   @override
+
   void dispose() {
     tabController.dispose();
+
     _myFocusScopeNode.dispose();
     super.dispose();
   }
@@ -344,79 +363,95 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
                                                   ),
                                                   20.height,
                                                   Row(
-                                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                                     children: [
-                                                      Column(
-                                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                                        children: [
-                                                          CustomText(
-                                                            text: "From Date",
-                                                            colors: colorsConst.greyClr,
-                                                            size: 12,
-                                                          ),
-                                                          InkWell(
-                                                            onTap: () {
-                                                              taskProvider.filterPick(
-                                                                context: context,
-                                                                isStartDate: true,
-                                                                date: taskProvider.startDate,
-                                                              );
-                                                            },
-                                                            child: Container(
-                                                              height: 30,
-                                                              width: kIsWeb?webHeight/2.8:phoneHeight/2.8,
-                                                              decoration: customDecoration.baseBackgroundDecoration(
-                                                                color: Colors.white,
-                                                                radius: 5,
-                                                                borderColor: colorsConst.litGrey,
-                                                              ),
-                                                              child: Row(
-                                                                mainAxisAlignment: MainAxisAlignment.center,
-                                                                children: [
-                                                                  CustomText(text: taskProvider.startDate),
-                                                                  5.width,
-                                                                  SvgPicture.asset(assets.calendar2),
-                                                                ],
-                                                              ),
+                                                      Expanded(
+                                                        child: Column(
+                                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                                          children: [
+                                                            CustomText(
+                                                              text: "From Date",
+                                                              colors: colorsConst.greyClr,
+                                                              size: 12,
                                                             ),
-                                                          )
-                                                        ],
+                                                            InkWell(
+                                                              onTap: () {
+                                                                taskProvider.filterPick(
+                                                                  context: context,
+                                                                  isStartDate: true,
+                                                                  date: taskProvider.startDate,
+                                                                );
+                                                              },
+                                                              child: Container(
+                                                                height: 30,
+                                                                width: double.infinity, // 🔥 IMPORTANT
+                                                                decoration: customDecoration.baseBackgroundDecoration(
+                                                                  color: Colors.white,
+                                                                  radius: 5,
+                                                                  borderColor: colorsConst.litGrey,
+                                                                ),
+                                                                child: Row(
+                                                                  mainAxisAlignment: MainAxisAlignment.center,
+                                                                  children: [
+                                                                    Expanded(
+                                                                      child: CustomText(
+                                                                        text: taskProvider.startDate,
+                                                                        //overflow: TextOverflow.ellipsis, // 🔥 FIX
+                                                                      ),
+                                                                    ),
+                                                                    5.width,
+                                                                    SvgPicture.asset(assets.calendar2),
+                                                                  ],
+                                                                ),
+                                                              ),
+                                                            )
+                                                          ],
+                                                        ),
                                                       ),
-                                                      Column(
-                                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                                        children: [
-                                                          CustomText(
-                                                            text: "To Date",
-                                                            colors: colorsConst.greyClr,
-                                                            size: 12,
-                                                          ),
-                                                          InkWell(
-                                                            onTap: () {
-                                                              taskProvider.filterPick(
-                                                                context: context,
-                                                                isStartDate: false,
-                                                                date: taskProvider.endDate,
-                                                              );
-                                                            },
-                                                            child: Container(
-                                                              height: 30,
-                                                              width: kIsWeb?webHeight/2.8:phoneHeight/2.8,
-                                                              decoration: customDecoration.baseBackgroundDecoration(
-                                                                color: Colors.white,
-                                                                radius: 5,
-                                                                borderColor: colorsConst.litGrey,
-                                                              ),
-                                                              child: Row(
-                                                                mainAxisAlignment: MainAxisAlignment.center,
-                                                                children: [
-                                                                  CustomText(text: taskProvider.endDate),
-                                                                  5.width,
-                                                                  SvgPicture.asset(assets.calendar2),
-                                                                ],
-                                                              ),
+
+                                                      10.width,
+
+                                                      Expanded(
+                                                        child: Column(
+                                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                                          children: [
+                                                            CustomText(
+                                                              text: "To Date",
+                                                              colors: colorsConst.greyClr,
+                                                              size: 12,
                                                             ),
-                                                          )
-                                                        ],
+                                                            InkWell(
+                                                              onTap: () {
+                                                                taskProvider.filterPick(
+                                                                  context: context,
+                                                                  isStartDate: false,
+                                                                  date: taskProvider.endDate,
+                                                                );
+                                                              },
+                                                              child: Container(
+                                                                height: 30,
+                                                                width: double.infinity, // 🔥 IMPORTANT
+                                                                decoration: customDecoration.baseBackgroundDecoration(
+                                                                  color: Colors.white,
+                                                                  radius: 5,
+                                                                  borderColor: colorsConst.litGrey,
+                                                                ),
+                                                                child: Row(
+                                                                  mainAxisAlignment: MainAxisAlignment.center,
+                                                                  children: [
+                                                                    Expanded(
+                                                                      child: CustomText(
+                                                                        text: taskProvider.endDate,
+                                                                        //overflow: TextOverflow.ellipsis, // 🔥 FIX
+                                                                      ),
+                                                                    ),
+                                                                    5.width,
+                                                                    SvgPicture.asset(assets.calendar2),
+                                                                  ],
+                                                                ),
+                                                              ),
+                                                            )
+                                                          ],
+                                                        ),
                                                       ),
                                                     ],
                                                   ),
@@ -527,7 +562,8 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
                                                         text: 'Apply Filters',
                                                         callback: () {
                                                           taskProvider.initFilterValue(false);
-                                                          taskProvider.filterList();
+                                                         taskProvider.filterList();
+
                                                           Navigator.of(context, rootNavigator: true).pop();
                                                         },
                                                         bgColor: colorsConst.primary,

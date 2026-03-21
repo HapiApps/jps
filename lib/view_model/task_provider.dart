@@ -53,7 +53,7 @@ import 'package:syncfusion_flutter_datepicker/datepicker.dart';
 class TaskProvider with ChangeNotifier {
   late VideoPlayerController videoPlayerController;
   final TaskRepo _taskRepo = TaskRepo();
-
+  bool _isDisposed = false;
   RoundedLoadingButtonController taskCtr = RoundedLoadingButtonController();
   RoundedLoadingButtonController taskStatusCtr = RoundedLoadingButtonController();
 
@@ -122,37 +122,62 @@ class TaskProvider with ChangeNotifier {
   //   notifyListeners();
   // }
   void filterList() {
+    if (_startDate.isEmpty || _endDate.isEmpty) return;
+
     final dateFormat = DateFormat('dd-MM-yyyy');
-    final parsedStartDate = dateFormat.parse(_startDate);
-    final parsedEndDate = dateFormat.parse(_endDate);
+
+    DateTime parsedStartDate;
+    DateTime parsedEndDate;
+
+    try {
+      parsedStartDate = dateFormat.parse(_startDate);
+      parsedEndDate = dateFormat.parse(_endDate);
+    } catch (e) {
+      return;
+    }
 
     _filterUserData = _searchAllTasks.where((contact) {
 
-      /// 🔴 EMPTY DATE CHECK
-      if (contact.taskDate == null || contact.taskDate.toString().isEmpty) {
+      /// 🔴 DATE CHECK
+      if (contact.taskDate == null ||
+          contact.taskDate.toString().isEmpty) {
         return false;
       }
 
-      final taskDate = dateFormat.parse(contact.taskDate.toString());
-      final taskDateOnly = DateTime(taskDate.year, taskDate.month, taskDate.day);
+      DateTime? taskDate;
+
+      try {
+        taskDate = dateFormat.parse(contact.taskDate.toString());
+      } catch (e) {
+        return false;
+      }
+
+      final taskDateOnly =
+      DateTime(taskDate.year, taskDate.month, taskDate.day);
 
       final isWithinDateRange =
           !taskDateOnly.isBefore(parsedStartDate) &&
               !taskDateOnly.isAfter(parsedEndDate);
 
-      final isTypeMatch = _fType == "" || _fType == contact.type;
+      /// 🔴 TYPE
+      final isTypeMatch =
+          _fType.isEmpty || _fType == contact.type;
 
-      final isEmpMatch = _assignedNames == "" ||
-          contact.assignedNames
-              .toString()
-              .split(',')
-              .map((e) => e.trim().toLowerCase())
-              .any((name) =>
+      /// 🔴 EMPLOYEE (SAFE)
+      final assignedList = (contact.assignedNames ?? "")
+          .split(',')
+          .map((e) => e.trim().toLowerCase())
+          .toList();
+
+      final isEmpMatch = _assignedNames.isEmpty ||
+          assignedList.any((name) =>
           name.contains(_assignedNames.toLowerCase()) ||
               _assignedNames.toLowerCase().contains(name));
 
+      /// 🔴 CUSTOMER
       final isCusMatch =
-          _companyName == "" || contact.projectName == _companyName;
+          _companyName.isEmpty ||
+              contact.projectName == _companyName;
 
       return isWithinDateRange &&
           isTypeMatch &&
@@ -161,7 +186,7 @@ class TaskProvider with ChangeNotifier {
 
     }).toList();
 
-    notifyListeners();
+    if (!_isDisposed) notifyListeners(); // 🔥 important
   }
 
   // void filterList() {
@@ -1010,7 +1035,7 @@ class TaskProvider with ChangeNotifier {
         for (var c in rawComments) {
           final parts = c.split("|");
 
-          String name = parts.length > 0 ? parts[0].trim() : "";
+          String name = parts.isNotEmpty ? parts[0].trim() : "";
           String comment = parts.length > 1 ? parts[1].trim() : "";
           String time = parts.length > 2 ? parts[2].trim() : "";
 
@@ -1054,38 +1079,78 @@ class TaskProvider with ChangeNotifier {
 
           pw.SizedBox(height: 10),
 
-          /// 🔥 COMMENTS SECTION
+          /// 🔥 COMMENTS TABLE
           if (comments.isNotEmpty)
             pw.Column(
               crossAxisAlignment: pw.CrossAxisAlignment.start,
               children: [
-                pw.Text("Comments", style: pw.TextStyle(font: boldFont, fontSize: 14)),
+
+                pw.Text("Comments",
+                    style: pw.TextStyle(font: boldFont, fontSize: 14)),
+
                 pw.SizedBox(height: 5),
 
-                ...comments.map((c) {
-                  return pw.Container(
-                    margin: const pw.EdgeInsets.only(bottom: 6),
-                    padding: const pw.EdgeInsets.all(6),
-                    decoration: pw.BoxDecoration(
-                      border: pw.Border.all(color: PdfColors.grey300),
-                      borderRadius: pw.BorderRadius.circular(4),
-                    ),
-                    child: pw.Column(
-                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                pw.Table(
+                  border: pw.TableBorder.all(color: PdfColors.grey300),
+                  columnWidths: {
+                    0: const pw.FlexColumnWidth(2),
+                    1: const pw.FlexColumnWidth(2),
+                    2: const pw.FlexColumnWidth(6),
+                  },
+                  children: [
+
+                    /// HEADER
+                    pw.TableRow(
+                      decoration: pw.BoxDecoration(color: PdfColors.grey200),
                       children: [
-                        pw.Text(
-                          "${c["name"]} (${c["date"]} ${c["time"]})",
-                          style: pw.TextStyle(font: boldFont, fontSize: 10),
+                        pw.Padding(
+                          padding: const pw.EdgeInsets.all(5),
+                          child: pw.Text("Time",
+                              style: pw.TextStyle(font: boldFont, fontSize: 10)),
                         ),
-                        pw.SizedBox(height: 2),
-                        pw.Text(
-                          c["comment"] ?? "",
-                          style: pw.TextStyle(font: font, fontSize: 10),
+                        pw.Padding(
+                          padding: const pw.EdgeInsets.all(5),
+                          child: pw.Text("Name",
+                              style: pw.TextStyle(font: boldFont, fontSize: 10)),
+                        ),
+                        pw.Padding(
+                          padding: const pw.EdgeInsets.all(5),
+                          child: pw.Text("Comment",
+                              style: pw.TextStyle(font: boldFont, fontSize: 10)),
                         ),
                       ],
                     ),
-                  );
-                }).toList(),
+
+                    /// DATA
+                    ...comments.map((c) {
+                      return pw.TableRow(
+                        children: [
+                          pw.Padding(
+                            padding: const pw.EdgeInsets.all(3),
+                            child: pw.Text(
+                              "${c["date"]} ${c["time"]}",
+                              style: pw.TextStyle(font: font, fontSize: 9),
+                            ),
+                          ),
+                          pw.Padding(
+                            padding: const pw.EdgeInsets.all(5),
+                            child: pw.Text(
+                              c["name"] ?? "",
+                              style: pw.TextStyle(font: font, fontSize: 9),
+                            ),
+                          ),
+                          pw.Padding(
+                            padding: const pw.EdgeInsets.all(5),
+                            child: pw.Text(
+                              c["comment"] ?? "",
+                              style: pw.TextStyle(font: font, fontSize: 9),
+                            ),
+                          ),
+                        ],
+                      );
+                    }).toList(),
+                  ],
+                ),
               ],
             ),
 
@@ -1123,7 +1188,6 @@ class TaskProvider with ChangeNotifier {
     Navigator.pop(context);
     await Printing.layoutPdf(onLayout: (format) async => pdf.save());
   }
-
 // Helper to chunk large lists into smaller lists (to prevent too many rows in one table)
   List<List<T>> chunkList<T>(List<T> list, int chunkSize) {
     List<List<T>> chunks = [];
@@ -2594,7 +2658,7 @@ class TaskProvider with ChangeNotifier {
       _viewRefresh = false;
     }
 
-    notifyListeners();
+
 
     try {
       Map data = {

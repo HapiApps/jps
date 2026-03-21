@@ -2365,7 +2365,7 @@ TextEditingController date= TextEditingController(text: "${DateTime.now().day.to
       if(type=="1"){
         getCountWiseReport(id);
       }else if(type=="visit"){
-        getVisitReport();
+        getVisitReport(context);
       }else{
         getReport(id);
       }
@@ -3347,22 +3347,21 @@ List<Marker> get liveMarker =>_liveMarker;
   List<CustomerReportModel> get dailyVisitReport=>_dailyVisitReport;
   List<CustomerReportModel> get searchDailyVisitReport=>_searchDailyVisitReport;
 
-  void changeDailyVisitType(value){
+  void changeDailyVisitType(value,BuildContext context){
     _repType=value;
     if(_repType=="Today"){
-      dailyVisit();
+      dailyVisit(context);
     }else if(_repType=="Yesterday"){
-      yesterdayVisit();
+      yesterdayVisit(context);
     }else if(_repType=="Last 7 Days"){
-      last7DaysVisit();
+      last7DaysVisit(context);
     }else if(_repType=="Last 30 Days"){
-      last30DaysVisit();
     }else if(_repType=="This Week"){
-      thisWeekVisit();
+      thisWeekVisit(context);
     }else if(_repType=="This Month"){
-      thisMonthVisit();
+      thisMonthVisit(context);
     }else if(_repType=="Last 3 months"){
-      last3MonthVisit();
+      last3MonthVisit(context);
     }else{
 
     }
@@ -3378,66 +3377,66 @@ List<Marker> get liveMarker =>_liveMarker;
     // filterList(true);
     notifyListeners();
   }
-  void dailyVisit() {
+  void dailyVisit(BuildContext context) {
     stDt=DateTime.now();
     enDt=DateTime.now();
     _startDate = DateFormat('dd-MM-yyyy').format(stDt);
     _endDate = DateFormat('dd-MM-yyyy').format(enDt);
-    getVisitReport();
-    getEmpWiseReport();
+    getVisitReport(context);
+    getEmpWiseReport(context);
     notifyListeners();
   }
-  void yesterdayVisit() {
+  void yesterdayVisit(BuildContext context) {
     stDt=DateTime.now().subtract(const Duration(days: 1));
     enDt=DateTime.now().subtract(const Duration(days: 1));
     _startDate = DateFormat('dd-MM-yyyy').format(stDt);
     _endDate = DateFormat('dd-MM-yyyy').format(enDt);
-    getVisitReport();
-    getEmpWiseReport();
+    getVisitReport(context);
+    getEmpWiseReport(context);
     notifyListeners();
   }
-  void last7DaysVisit() {
+  void last7DaysVisit(BuildContext context) {
     DateTime now = DateTime.now();
     DateTime lastWeekStart = now.subtract(const Duration(days: 6));
     DateTime lastWeekEnd = now.add(const Duration(days: 1));
     _startDate = DateFormat('dd-MM-yyyy').format(lastWeekStart);
     _endDate = DateFormat('dd-MM-yyyy').format(lastWeekEnd);
-    getVisitReport();
-    getEmpWiseReport();
+    getVisitReport(context);
+    getEmpWiseReport(context);
     notifyListeners();
   }
-  void last30DaysVisit() {
+  void last30DaysVisit(BuildContext context) {
     DateTime now = DateTime.now();
     DateTime lastMonthStart = now.subtract(const Duration(days: 30));
     DateTime lastMonthEnd = now.add(const Duration(days: 1));
     _startDate = DateFormat('dd-MM-yyyy').format(lastMonthStart);
     _endDate = DateFormat('dd-MM-yyyy').format(lastMonthEnd);
-    getVisitReport();
-    getEmpWiseReport();
+    getVisitReport(context);
+    getEmpWiseReport(context);
     notifyListeners();
   }
-  void thisWeekVisit() {
+  void thisWeekVisit(BuildContext context) {
     DateTime now = DateTime.now();
     int currentWeekday = now.weekday;
     DateTime stDt = now.subtract(Duration(days: currentWeekday - 1));
     DateTime enDt = now.add(Duration(days: 7 - currentWeekday));
     _startDate = DateFormat('dd-MM-yyyy').format(stDt);
     _endDate = DateFormat('dd-MM-yyyy').format(enDt);
-    getVisitReport();
-    getEmpWiseReport();
+    getVisitReport(context);
+    getEmpWiseReport(context);
     notifyListeners();
   }
-  void thisMonthVisit() {
+  void thisMonthVisit(BuildContext context) {
     DateTime now = DateTime.now();
     stDt = DateTime(now.year, now.month, 1);
     enDt = DateTime(now.year, now.month + 1, 0);
     _startDate = DateFormat('dd-MM-yyyy').format(stDt);
     _endDate = DateFormat('dd-MM-yyyy').format(enDt);
-    getVisitReport();
-    getEmpWiseReport();
+    getVisitReport(context);
+    getEmpWiseReport(context);
     notifyListeners();
   }
-  void last3MonthVisit() {
+  void last3MonthVisit(BuildContext context) {
     DateTime now = DateTime.now();
 
 // Subtract 3 months from today
@@ -3446,11 +3445,11 @@ List<Marker> get liveMarker =>_liveMarker;
 
     _startDate = DateFormat('dd-MM-yyyy').format(stDt);
     _endDate = DateFormat('dd-MM-yyyy').format(enDt);
-    getVisitReport();
-    getEmpWiseReport();
+    getVisitReport(context);
+    getEmpWiseReport(context);
     notifyListeners();
   }
-  void lastMonthVisit() {
+  void lastMonthVisit(BuildContext context) {
     DateTime now = DateTime.now();
     stDt = DateTime(now.year, now.month, 1);
     enDt = DateTime(now.year, now.month + 1, 0);
@@ -3458,8 +3457,8 @@ List<Marker> get liveMarker =>_liveMarker;
     enDt = DateTime(enDt.year, enDt.month - 1, 1);
     _startDate = DateFormat('dd-MM-yyyy').format(stDt);
     _endDate = DateFormat('dd-MM-yyyy').format(DateTime(enDt.year, enDt.month + 1, 0));
-    getVisitReport();
-    getEmpWiseReport();
+    getVisitReport(context);
+    getEmpWiseReport(context);
     notifyListeners();
   }
 
@@ -3510,7 +3509,8 @@ List<Marker> get liveMarker =>_liveMarker;
   //   // }
   //   notifyListeners();
   // }
-  Future<void> getVisitReport() async {
+  Future<void> getVisitReport(BuildContext context) async
+  {
     try {
       _refresh = false;
       _dailyVisitReport.clear();
@@ -3569,7 +3569,7 @@ List<Marker> get liveMarker =>_liveMarker;
         _searchDailyVisitReport = filteredList;
 
         log("FINAL LIST COUNT => ${_dailyVisitReport.length}");
-
+        // prepareFinalList(context);
         _refresh = true;
       } else {
         log("API RESPONSE EMPTY");
@@ -3583,7 +3583,62 @@ List<Marker> get liveMarker =>_liveMarker;
   }
 
   List<Map<String, dynamic>> groupedList = [];
+  List<UserModel> employeeList = []; // எல்லா employee list
+   List<Map<String, dynamic>> finalList = []; // UIக்கு use ஆகும் list
+  void prepareFinalEmpList(BuildContext context) {
+    final empProvider = Provider.of<EmployeeProvider>(context, listen: false);
 
+    List employeeList = empProvider.filterUserData;
+
+    Map<String, dynamic> visitMap = {
+      for (var item in groupedList) item["role"]: item
+    };
+
+    finalList = employeeList.map((emp) {
+      var visitData = visitMap[emp["id"]];
+
+      return {
+        "firstname": emp["firstname"],
+        "role": emp["id"],
+
+        /// 🔥 ZERO HANDLE
+        "total": visitData != null ? visitData["total"] ?? 0 : 0,
+
+        /// 🔥 TYPES HANDLE
+        "types": visitData != null ? visitData["types"] ?? {} : {},
+      };
+    }).toList();
+
+    notifyListeners();
+  }
+  // void groupEmployeeData() {
+  //   Map<String, Map<String, dynamic>> temp = {};
+  //
+  //   for (var item in _empWiseCount) {
+  //     String role = item["role"];   // 🔥 use role (ID)
+  //     String name = item["firstname"];
+  //     String type = item["value"];
+  //     int count = int.tryParse(item["total_count"].toString()) ?? 0;
+  //
+  //     if (!temp.containsKey(role)) {
+  //       temp[role] = {
+  //         "firstname": name,
+  //         "role": role,
+  //         "types": {},
+  //         "total": 0,
+  //       };
+  //     }
+  //
+  //     temp[role]!["types"][type] =
+  //         (temp[role]!["types"][type] ?? 0) + count;
+  //
+  //     temp[role]!["total"] += count;
+  //   }
+  //
+  //   groupedList = temp.values.toList();
+  //
+  //   print("🔥 GROUPED DATA: $groupedList");
+  // }
   void groupEmployeeData() {
     Map<String, Map<String, dynamic>> temp = {};
 
@@ -3614,7 +3669,7 @@ List<Marker> get liveMarker =>_liveMarker;
   }
   List _empWiseCount=[];
   List get empWiseCount => _empWiseCount;
-  Future<void> getEmpWiseReport() async {
+  Future<void> getEmpWiseReport(BuildContext context) async {
     _refresh = false;
     _empWiseCount.clear();
     notifyListeners();
@@ -3643,6 +3698,7 @@ List<Marker> get liveMarker =>_liveMarker;
       if (response.isNotEmpty) {
         _empWiseCount = response;
         groupEmployeeData();
+        prepareFinalEmpList(context);  // 🔥 ADD THIS
         /// 🔥 PRINT LIST LENGTH
         print("List Count: ${_empWiseCount.length}");
 

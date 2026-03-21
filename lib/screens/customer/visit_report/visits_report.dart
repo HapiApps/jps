@@ -55,8 +55,8 @@ class _VisitReportState extends State<VisitReport> with SingleTickerProviderStat
     WidgetsBinding.instance.addPostFrameCallback((timeStamp){
       Provider.of<CustomerProvider>(context, listen: false).getCommentType();
       Provider.of<CustomerProvider>(context, listen: false).initVisitReport(widget.date1,widget.date2,widget.type);
-      Provider.of<CustomerProvider>(context, listen: false).getVisitReport();
-      Provider.of<CustomerProvider>(context, listen: false).getEmpWiseReport();
+      Provider.of<CustomerProvider>(context, listen: false).getVisitReport(context);
+      Provider.of<CustomerProvider>(context, listen: false).getEmpWiseReport(context);
     });
     super.initState();
   }
@@ -284,7 +284,7 @@ class _VisitReportState extends State<VisitReport> with SingleTickerProviderStat
                                                                 icon: const Icon(Icons.keyboard_arrow_down_outlined),
                                                                 value: custProvider.repType,
                                                                 onChanged: (value) {
-                                                                  custProvider.changeDailyVisitType(value);
+                                                                  custProvider.changeDailyVisitType(value,context);
                                                                 },
                                                                 items: custProvider.typeList.map((list) {
                                                                   return DropdownMenuItem(
@@ -310,7 +310,7 @@ class _VisitReportState extends State<VisitReport> with SingleTickerProviderStat
                                                               callback: () {
                                                                 custProvider.initVisitReport(custProvider.startDate,custProvider.endDate,custProvider.reportType);
                                                                 custProvider.manageFilter(false);
-                                                                custProvider.getEmpWiseReport();
+                                                                custProvider.getEmpWiseReport(context);
                                                                 Navigator.of(context, rootNavigator: true).pop();
                                                               },
                                                               bgColor: Colors.grey.shade200,
@@ -321,7 +321,7 @@ class _VisitReportState extends State<VisitReport> with SingleTickerProviderStat
                                                               text: 'Apply Filters',
                                                               callback: () {
                                                                 custProvider.manageFilter(true);
-                                                                custProvider.getEmpWiseReport();
+                                                                custProvider.getEmpWiseReport(context);
                                                                 // custProvider.closeVisible();
                                                                 // custProvider.filterList();
                                                                 Navigator.of(context, rootNavigator: true).pop();
@@ -425,7 +425,7 @@ class _VisitReportState extends State<VisitReport> with SingleTickerProviderStat
 
                                             /// 🔥 STEP 4: delay + API call
                                             Future.delayed(const Duration(milliseconds: 300), () {
-                                              custProvider.getVisitReport();
+                                              custProvider.getVisitReport(context);
                                             });
                                           },
 
@@ -685,7 +685,7 @@ class _VisitReportState extends State<VisitReport> with SingleTickerProviderStat
                                                               icon: const Icon(Icons.keyboard_arrow_down_outlined),
                                                               value: custProvider.repType,
                                                               onChanged: (value) {
-                                                                custProvider.changeDailyVisitType(value);
+                                                                custProvider.changeDailyVisitType(value,context);
                                                               },
                                                               items: custProvider.typeList.map((list) {
                                                                 return DropdownMenuItem(
@@ -751,7 +751,7 @@ class _VisitReportState extends State<VisitReport> with SingleTickerProviderStat
                                                             callback: () {
                                                               custProvider.initVisitReport(custProvider.startDate,custProvider.endDate,custProvider.reportType);
                                                               custProvider.manageFilter(false);
-                                                              custProvider.getVisitReport();
+                                                              custProvider.getVisitReport(context);
                                                               Navigator.of(context, rootNavigator: true).pop();
                                                             },
                                                             bgColor: Colors.grey.shade200,
@@ -762,7 +762,7 @@ class _VisitReportState extends State<VisitReport> with SingleTickerProviderStat
                                                             text: 'Apply Filters',
                                                             callback: () {
                                                               custProvider.manageFilter(true);
-                                                              custProvider.getVisitReport();
+                                                              custProvider.getVisitReport(context);
                                                               // custProvider.closeVisible();
                                                               // custProvider.filterList();
                                                               Navigator.of(context, rootNavigator: true).pop();

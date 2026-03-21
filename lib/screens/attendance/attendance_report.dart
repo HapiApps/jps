@@ -132,7 +132,7 @@ class _AttendanceReportState extends State<AttendanceReport> {
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Container(
-                                width: attProvider.selectedIndex==0?phoneWidth/1.2:phoneWidth,
+                                width:phoneWidth/1.2,
                                 decoration: customDecoration.baseBackgroundDecoration(
                                   radius: 30,
                                   color: colorsConst.primary,
@@ -451,7 +451,7 @@ class _AttendanceReportState extends State<AttendanceReport> {
                                     ),5.width
                                   ],
                                 ),),
-                              if(attProvider.selectedIndex==0)
+                              // if(attProvider.selectedIndex==0)
                               GestureDetector(
                                   onTap: (){
                                     if(attProvider.getDailyAttendance.isEmpty){
