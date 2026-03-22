@@ -182,7 +182,7 @@ class _ViewTaskState extends State<ViewTask> with SingleTickerProviderStateMixin
                             controller: tabController,
                             children: [
                               ViewfilterUserData(date1: widget.date1,date2:widget.date2,type:widget.type),
-                              TaskCalendar(),
+                              TaskCalendar(taskPvr: taskProvider,),
                             ],
                           ),
                         ),
@@ -640,22 +640,22 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
                                 runSpacing: 8,
                                 children: [
                                   if (taskProvider.startDate != taskProvider.endDate)
-                                  if (taskProvider.startDate.isNotEmpty &&
-                                      taskProvider.endDate.isNotEmpty)
+                                    if ((taskProvider.startDate ?? "").isNotEmpty &&
+                                        (taskProvider.endDate ?? "").isNotEmpty)
                                     _filterChip(
                                       "${taskProvider.startDate} - ${taskProvider.endDate}",
                                     ),
 
-                                  if (taskProvider.filterType.isNotEmpty || taskProvider.filterType!="null")
+                                  if ((taskProvider.filterType ?? "").isNotEmpty && taskProvider.filterType != "null")
                                     _filterChip(taskProvider.filterType), // Last 7 days
 
-                                  if (taskProvider.assignedNames.isNotEmpty)
+                                  if ((taskProvider.assignedNames ?? "").isNotEmpty)
                                     _filterChip(taskProvider.assignedNames),
 
-                                  if (taskProvider.fType.isNotEmpty && taskProvider.fType!="null")
+                                  if ((taskProvider.fType ?? "").isNotEmpty && taskProvider.fType != "null")
                                     _filterChip(taskProvider.fType),
 
-                                  if (taskProvider.companyName.isNotEmpty)
+                                  if ((taskProvider.companyName ?? "").isNotEmpty)
                                     _filterChip(taskProvider.companyName),
 
                                   // if (taskProvider.audioPath!.isNotEmpty)
@@ -1157,7 +1157,7 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
                         Row(
                           mainAxisAlignment: MainAxisAlignment.start,
                           children: [
-                            data.commentCount.isNotEmpty?Text("(💬 ${data.commentCount})  - "):Text("No comments"),
+                            (data.commentCount ?? "").toString().isNotEmpty?Text("(💬 ${data.commentCount})  - "):Text("No comments"),
 
                             Text(
                               data.lastComment ?? "",

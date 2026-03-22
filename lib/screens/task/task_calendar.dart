@@ -20,7 +20,8 @@ import '../../view_model/task_provider.dart';
 import '../common/dashboard.dart';
 
 class TaskCalendar extends StatefulWidget {
-  const TaskCalendar({super.key});
+  final TaskProvider taskPvr;
+  const TaskCalendar({super.key, required this.taskPvr});
 
   @override
   CalendarAppointment createState() => CalendarAppointment();
@@ -36,277 +37,275 @@ class CalendarAppointment extends State<TaskCalendar> {
     final DateTime now = DateTime.now();
     final DateTime firstDayOfYear = DateTime(now.year-1, 12, 1);
     final DateTime lastDayOfYear = DateTime(now.year, 12, 31);
-    return Consumer<TaskProvider>(builder: (context,taskPvr,_){
-      return SafeArea(
-        child: Scaffold(
-            backgroundColor: colorsConst.bacColor,
-            // appBar: const PreferredSize(
-            //   preferredSize: Size(300, 50),
-            //   child: CustomAppbar(text: "Task Calendar",),
-            // ),
-          body: Center(
-            child: taskPvr.refresh == false?
-            Loading() :Column(
-              children: [
-                15.height,
-                SizedBox(
-                  width: kIsWeb?webWidth:phoneWidth,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(
-                        children: [
-                          CustomText(text: "Total Task",
-                              colors: colorsConst.secondary),
-                          CustomText(
-                            text: "  ${taskPvr.searchAllTasks.length}",
-                            colors: colorsConst.primary,
-                            isBold: true,)
-                        ],
-                      ),
-                      Row(
-                        children: [
-                          CustomText(text: "This Month",
-                              colors: colorsConst.secondary),
-                          CustomText(text: "  ${taskPvr.thisMonthLeave}",
-                              colors: colorsConst.appRed,
-                              isBold: true),
-                          // CustomText(text: "  ${taskPvr.filteredTasks.length}",
-                          //     colors: colorsConst.primary,
-                          //     isBold: true)
-                        ],
-                      ),
-                    ],
-                  ),
-                ), 10.height,
-                taskPvr.refresh == false?
-                const Padding(
-                  padding: EdgeInsets.fromLTRB(0, 150, 0, 0),
-                  child: Center(child: Loading()),
-                ) :
-                Expanded(
-                  child: SingleChildScrollView(
-                    child: Column(
+    return SafeArea(
+      child: Scaffold(
+          backgroundColor: colorsConst.bacColor,
+          // appBar: const PreferredSize(
+          //   preferredSize: Size(300, 50),
+          //   child: CustomAppbar(text: "Task Calendar",),
+          // ),
+        body: Center(
+          child: widget.taskPvr.refresh == false?
+          Loading() :Column(
+            children: [
+              15.height,
+              SizedBox(
+                width: kIsWeb?webWidth:phoneWidth,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
                       children: [
-                        Container(
-                          width: kIsWeb?webWidth:phoneWidth,
-                          height: 45,
-                          decoration: customDecoration.baseBackgroundDecoration(
-                            radius: 30,
-                            color: colorsConst.primary,
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                            children: [
-                              Center(child: Icon(Icons.search,color: Colors.white)),
-                              SizedBox(
-                                width: kIsWeb?webWidth:phoneWidth/1.1,
-                                child: TextFormField(
-                                  cursorColor: colorsConst.primary,
-                                  onChanged: (value) {
-                                    taskPvr.searchTask2(value.toString());
-                                  },
-                                  textInputAction: TextInputAction.done,
-                                  controller: taskPvr.search2,
-                                  decoration: InputDecoration(
-                                      hintText:"Search Name or ${constValue.customer}",
-                                      hintStyle: TextStyle(
-                                          color: colorsConst.primary,
-                                          fontSize: 14
-                                      ),
-                                      fillColor: Colors.white,
-                                      filled: true,
-                                      // prefixIcon: Icon(Icons.search,color: Colors.grey,),
-                                      suffixIcon: taskPvr.search2.text.isNotEmpty?
-                                      GestureDetector(
-                                          onTap: (){
-                                            taskPvr.search2.clear();
-                                            taskPvr.searchTask2("");
-                                          },
-                                          child: Container(
-                                              width: 10,height: 10,color: Colors.transparent,
-                                              child: Padding(
-                                                padding: const EdgeInsets.all(8.0),
-                                                child: SvgPicture.asset(assets.cancel2),
-                                              ))):null,
-                                    errorStyle: const TextStyle(
-                                      fontSize: 12.0,
-                                      height: 0.20,
-                                    ),
-                                    focusedBorder: OutlineInputBorder(
-                                        borderSide:  BorderSide(color: colorsConst.primary),
-                                        borderRadius: BorderRadius.circular(30)
-                                    ),
-                                    focusedErrorBorder: OutlineInputBorder(
-                                        borderSide: BorderSide(color: colorsConst.primary),
-                                        borderRadius: BorderRadius.circular(30)
-                                    ),
-                                    // errorStyle: const TextStyle(height:0.05,fontSize: 12),
-                                    contentPadding:const EdgeInsets.fromLTRB(10, 10, 10, 10),
-                                    errorBorder: OutlineInputBorder(
-                                        borderSide:  const BorderSide(color: Colors.transparent),
-                                        borderRadius: BorderRadius.circular(30)
-                                    ),
-                                    enabledBorder: OutlineInputBorder(
-                                      // grey.shade300
-                                        borderSide:  BorderSide(color: Colors.grey.shade300),
-                                        borderRadius: BorderRadius.circular(30)
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        10.height,
-                        Container(
-                          decoration: customDecoration
-                              .baseBackgroundDecoration(
-                              color: Colors.white,
-                              // borderColor: colorsConst.litGrey,
-                              radius: 10
-                          ),
-                          width: kIsWeb?webWidth:phoneWidth,
-                          height: 300,
-                          child: SfCalendar(
-                            controller: _calendarController,
-                            view: CalendarView.month,
-                            headerHeight: 50,
-                            cellBorderColor: Colors.transparent,
-                            todayTextStyle: const TextStyle(
-                              color: Colors.white,
-                            ),
-                            dataSource: taskPvr.dataSource,
-                            minDate: firstDayOfYear,
-                            maxDate: lastDayOfYear,
-                            // onTap: null,
-                            onLongPress: null,
-                            onSelectionChanged: null,
-                              onTap: (CalendarTapDetails value) {
-                                if (value.date != null) {
-                                  final tappedMonth = value.date!.month;
-                                  final visibleMonth = taskPvr.defaultMonth;
-
-                                  if (tappedMonth != visibleMonth) {
-                                    // 🔄 Switch calendar view to the tapped month
-                                    _calendarController.displayDate = value.date!;
-                                    return;
-                                  }
-
-                                  // ✅ Continue with tap action for current month dates
-                                  taskPvr.filterDateList(
-                                    DateFormat('dd-MM-yyyy').format(value.date!),
-                                    value.date!,
-                                  );
-                                  taskPvr.checkMonth2();
-                                }
-                              },
-                              onViewChanged: (details) {
-                                // _calendarController.selectedDate = null;
-                                // _calendarController.displayDate = null;
-                                taskPvr.checkMonth2();
-                                taskPvr.checkMonth(details);
-                              },
-                            monthCellBuilder: (BuildContext context, MonthCellDetails details) {
-                              bool hasAppointments = taskPvr.hasAppointment(details.date);
-                              bool isSelected = false;
-
-                              if (taskPvr.filterDate != "") {
-                                DateTime parsedFilterDate = DateFormat('dd-MM-yyyy').parse(taskPvr.filterDate);
-                                isSelected = isSameDate(details.date, parsedFilterDate);
-                              }
-
-                              // Get the middle date in the visibleDates list to determine current month in view
-                              int midIndex = details.visibleDates.length ~/ 2;
-                              int visibleMonth = details.visibleDates[midIndex].month;
-
-                              bool isInCurrentMonth = details.date.month == visibleMonth;
-                              Color textColor = isSelected
-                                  ? colorsConst.greyClr
-                                  : isInCurrentMonth
-                                  ? Colors.black
-                                  : colorsConst.litGrey; // 👉 other month dates in grey
-
-                              return Container(
-                                alignment: Alignment.topLeft,
-                                margin: const EdgeInsets.all(4),
-                                decoration: customDecoration.baseBackgroundDecoration(
-                                  color: hasAppointments
-                                      ? colorsConst.primary
-                                      : Colors.transparent,
-                                  radius: 50,
-                                ),
-                                child: Center(
-                                  child: CustomText(
-                                    text: details.date.day.toString(),
-                                    isBold: true,
-                                    colors: hasAppointments?Colors.white:isSelected?Colors.black:textColor,
-                                  ),
-                                ),
-                              );
-                            },
-                            monthViewSettings: MonthViewSettings(
-                              appointmentDisplayMode: MonthAppointmentDisplayMode.none,
-                              monthCellStyle: MonthCellStyle(
-                                textStyle: TextStyle(
-                                  color: colorsConst.appDarkGreen,
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.normal,
-                                ),
-                                trailingDatesTextStyle: TextStyle(
-                                  color: colorsConst.litGrey,
-                                ),
-                                leadingDatesTextStyle: TextStyle(
-                                  color: colorsConst.litGrey,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                        taskPvr.allTasks.isEmpty?
-                        CustomText(text: "\n\nNo tasks found", colors: colorsConst.secondary, size: 14,):
-                        (taskPvr.taskList.isEmpty)?
-                        CustomText(text: "\n\nNo tasks found", colors: colorsConst.secondary, size: 14,):
-                        // (taskPvr.filteredTasks.isEmpty&&taskPvr.filterDate==""&&taskPvr.filterTasks==0)?
-                        // CustomText(text: "\n\nNo tasks found", colors: colorsConst.secondary, size: 14,):
-                        // (taskPvr.filteredTasks.isNotEmpty&&taskPvr.filterDate!=""&&taskPvr.filterTasks==0)?
-                        // CustomText(text: "\n\nNo tasks found", colors: colorsConst.secondary, size: 14,):
-                        // (taskPvr.filteredTasks.isEmpty&&taskPvr.filterTasks==0)?
-                        // CustomText(text: "\n\nNo tasks found", colors: colorsConst.secondary, size: 14,):
-                        taskPvr.allTasks.isNotEmpty?
-                        SizedBox(
-                          child: ListView.builder(
-                              shrinkWrap: true,
-                              physics: const NeverScrollableScrollPhysics(),
-                              itemCount: taskPvr.allTasks.length,
-                              itemBuilder: (context, index) {
-                                TaskData data = taskPvr.allTasks[index]; // e.g., "24-05-2025"
-                                String dateStr = taskPvr.allTasks[index].taskDate.toString(); // e.g., "24-05-2025"
-                                DateTime dateTime = DateFormat('dd-MM-yyyy').parse(dateStr);
-                                var st = dateTime;
-                                taskPvr.allTasks.sort((a, b) =>a.taskDate!.compareTo(b.taskDate.toString()));
-                                return utils.returnPadLeft(
-                                    taskPvr.defaultMonth.toString()) ==
-                                    utils.returnPadLeft(st.month.toString())&&taskPvr.filterDate=="" ?
-                                dataList(kIsWeb?webWidth:phoneWidth, data):
-                                utils.returnPadLeft(
-                                    taskPvr.defaultMonth.toString()) ==
-                                    utils.returnPadLeft(st.month.toString())&&taskPvr.filterDate==data.taskDate.toString() ?
-                                dataList(kIsWeb?webWidth:phoneWidth, data):0.width;
-                              }),
-                        )
-                        :CustomText(text: "\n\nNo tasks found", colors: colorsConst.secondary, size: 14,),
-                        30.height
+                        CustomText(text: "Total Task",
+                            colors: colorsConst.secondary),
+                        CustomText(
+                          text: "  ${widget.taskPvr.searchAllTasks.length}",
+                          colors: colorsConst.primary,
+                          isBold: true,)
                       ],
                     ),
+                    Row(
+                      children: [
+                        CustomText(text: "This Month",
+                            colors: colorsConst.secondary),
+                        CustomText(text: "  ${widget.taskPvr.thisMonthLeave}",
+                            colors: colorsConst.appRed,
+                            isBold: true),
+                        // CustomText(text: "  ${taskPvr.filteredTasks.length}",
+                        //     colors: colorsConst.primary,
+                        //     isBold: true)
+                      ],
+                    ),
+                  ],
+                ),
+              ), 10.height,
+              widget.taskPvr.refresh == false?
+              const Padding(
+                padding: EdgeInsets.fromLTRB(0, 150, 0, 0),
+                child: Center(child: Loading()),
+              ) :
+              Expanded(
+                child: SingleChildScrollView(
+                  child: Column(
+                    children: [
+                      Container(
+                        width: kIsWeb?webWidth:phoneWidth,
+                        height: 45,
+                        decoration: customDecoration.baseBackgroundDecoration(
+                          radius: 30,
+                          color: colorsConst.primary,
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: [
+                            Center(child: Icon(Icons.search,color: Colors.white)),
+                            SizedBox(
+                              width: kIsWeb?webWidth:phoneWidth/1.1,
+                              child: TextFormField(
+                                cursorColor: colorsConst.primary,
+                                onChanged: (value) {
+                                  widget.taskPvr.searchTask2(value.toString());
+                                },
+                                textInputAction: TextInputAction.done,
+                                controller: widget.taskPvr.search2,
+                                decoration: InputDecoration(
+                                    hintText:"Search Name or ${constValue.customer}",
+                                    hintStyle: TextStyle(
+                                        color: colorsConst.primary,
+                                        fontSize: 14
+                                    ),
+                                    fillColor: Colors.white,
+                                    filled: true,
+                                    // prefixIcon: Icon(Icons.search,color: Colors.grey,),
+                                    suffixIcon: widget.taskPvr.search2.text.isNotEmpty?
+                                    GestureDetector(
+                                        onTap: (){
+                                          widget.taskPvr.search2.clear();
+                                          widget.taskPvr.searchTask2("");
+                                        },
+                                        child: Container(
+                                            width: 10,height: 10,color: Colors.transparent,
+                                            child: Padding(
+                                              padding: const EdgeInsets.all(8.0),
+                                              child: SvgPicture.asset(assets.cancel2),
+                                            ))):null,
+                                  errorStyle: const TextStyle(
+                                    fontSize: 12.0,
+                                    height: 0.20,
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                      borderSide:  BorderSide(color: colorsConst.primary),
+                                      borderRadius: BorderRadius.circular(30)
+                                  ),
+                                  focusedErrorBorder: OutlineInputBorder(
+                                      borderSide: BorderSide(color: colorsConst.primary),
+                                      borderRadius: BorderRadius.circular(30)
+                                  ),
+                                  // errorStyle: const TextStyle(height:0.05,fontSize: 12),
+                                  contentPadding:const EdgeInsets.fromLTRB(10, 10, 10, 10),
+                                  errorBorder: OutlineInputBorder(
+                                      borderSide:  const BorderSide(color: Colors.transparent),
+                                      borderRadius: BorderRadius.circular(30)
+                                  ),
+                                  enabledBorder: OutlineInputBorder(
+                                    // grey.shade300
+                                      borderSide:  BorderSide(color: Colors.grey.shade300),
+                                      borderRadius: BorderRadius.circular(30)
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      10.height,
+                      Container(
+                        decoration: customDecoration
+                            .baseBackgroundDecoration(
+                            color: Colors.white,
+                            // borderColor: colorsConst.litGrey,
+                            radius: 10
+                        ),
+                        width: kIsWeb?webWidth:phoneWidth,
+                        height: 300,
+                        child: SfCalendar(
+                          controller: _calendarController,
+                          view: CalendarView.month,
+                          headerHeight: 50,
+                          cellBorderColor: Colors.transparent,
+                          todayTextStyle: const TextStyle(
+                            color: Colors.white,
+                          ),
+                          dataSource:  widget.taskPvr.dataSource,
+                          minDate: firstDayOfYear,
+                          maxDate: lastDayOfYear,
+                          // onTap: null,
+                          onLongPress: null,
+                          onSelectionChanged: null,
+                            onTap: (CalendarTapDetails value) {
+                              if (value.date != null) {
+                                final tappedMonth = value.date!.month;
+                                final visibleMonth =  widget.taskPvr.defaultMonth;
+
+                                if (tappedMonth != visibleMonth) {
+                                  // 🔄 Switch calendar view to the tapped month
+                                  _calendarController.displayDate = value.date!;
+                                  return;
+                                }
+
+                                // ✅ Continue with tap action for current month dates
+                                widget.taskPvr.filterDateList(
+                                  DateFormat('dd-MM-yyyy').format(value.date!),
+                                  value.date!,
+                                );
+                                widget.taskPvr.checkMonth2();
+                              }
+                            },
+                            onViewChanged: (details) {
+                              // _calendarController.selectedDate = null;
+                              // _calendarController.displayDate = null;
+                              widget.taskPvr.checkMonth2();
+                              widget.taskPvr.checkMonth(details);
+                            },
+                          monthCellBuilder: (BuildContext context, MonthCellDetails details) {
+                            bool hasAppointments =  widget.taskPvr.hasAppointment(details.date);
+                            bool isSelected = false;
+
+                            if ( widget.taskPvr.filterDate != "") {
+                              DateTime parsedFilterDate = DateFormat('dd-MM-yyyy').parse( widget.taskPvr.filterDate);
+                              isSelected = isSameDate(details.date, parsedFilterDate);
+                            }
+
+                            // Get the middle date in the visibleDates list to determine current month in view
+                            int midIndex = details.visibleDates.length ~/ 2;
+                            int visibleMonth = details.visibleDates[midIndex].month;
+
+                            bool isInCurrentMonth = details.date.month == visibleMonth;
+                            Color textColor = isSelected
+                                ? colorsConst.greyClr
+                                : isInCurrentMonth
+                                ? Colors.black
+                                : colorsConst.litGrey; // 👉 other month dates in grey
+
+                            return Container(
+                              alignment: Alignment.topLeft,
+                              margin: const EdgeInsets.all(4),
+                              decoration: customDecoration.baseBackgroundDecoration(
+                                color: hasAppointments
+                                    ? colorsConst.primary
+                                    : Colors.transparent,
+                                radius: 50,
+                              ),
+                              child: Center(
+                                child: CustomText(
+                                  text: details.date.day.toString(),
+                                  isBold: true,
+                                  colors: hasAppointments?Colors.white:isSelected?Colors.black:textColor,
+                                ),
+                              ),
+                            );
+                          },
+                          monthViewSettings: MonthViewSettings(
+                            appointmentDisplayMode: MonthAppointmentDisplayMode.none,
+                            monthCellStyle: MonthCellStyle(
+                              textStyle: TextStyle(
+                                color: colorsConst.appDarkGreen,
+                                fontSize: 14,
+                                fontWeight: FontWeight.normal,
+                              ),
+                              trailingDatesTextStyle: TextStyle(
+                                color: colorsConst.litGrey,
+                              ),
+                              leadingDatesTextStyle: TextStyle(
+                                color: colorsConst.litGrey,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      widget.taskPvr.allTasks.isEmpty?
+                      CustomText(text: "\n\nNo tasks found", colors: colorsConst.secondary, size: 14,):
+                      ( widget.taskPvr.taskList.isEmpty)?
+                      CustomText(text: "\n\nNo tasks found", colors: colorsConst.secondary, size: 14,):
+                      // (taskPvr.filteredTasks.isEmpty&&taskPvr.filterDate==""&&taskPvr.filterTasks==0)?
+                      // CustomText(text: "\n\nNo tasks found", colors: colorsConst.secondary, size: 14,):
+                      // (taskPvr.filteredTasks.isNotEmpty&&taskPvr.filterDate!=""&&taskPvr.filterTasks==0)?
+                      // CustomText(text: "\n\nNo tasks found", colors: colorsConst.secondary, size: 14,):
+                      // (taskPvr.filteredTasks.isEmpty&&taskPvr.filterTasks==0)?
+                      // CustomText(text: "\n\nNo tasks found", colors: colorsConst.secondary, size: 14,):
+                      widget.taskPvr.allTasks.isNotEmpty?
+                      SizedBox(
+                        child: ListView.builder(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemCount:  widget.taskPvr.allTasks.length,
+                            itemBuilder: (context, index) {
+                              TaskData data =  widget.taskPvr.allTasks[index]; // e.g., "24-05-2025"
+                              String dateStr =  widget.taskPvr.allTasks[index].taskDate.toString(); // e.g., "24-05-2025"
+                              DateTime dateTime = DateFormat('dd-MM-yyyy').parse(dateStr);
+                              var st = dateTime;
+                              widget.taskPvr.allTasks.sort((a, b) =>a.taskDate!.compareTo(b.taskDate.toString()));
+                              return utils.returnPadLeft(
+                                  widget.taskPvr.defaultMonth.toString()) ==
+                                  utils.returnPadLeft(st.month.toString())&& widget.taskPvr.filterDate=="" ?
+                              dataList(kIsWeb?webWidth:phoneWidth, data):
+                              utils.returnPadLeft(
+                                  widget.taskPvr.defaultMonth.toString()) ==
+                                  utils.returnPadLeft(st.month.toString())&& widget.taskPvr.filterDate==data.taskDate.toString() ?
+                              dataList(kIsWeb?webWidth:phoneWidth, data):0.width;
+                            }),
+                      )
+                      :CustomText(text: "\n\nNo tasks found", colors: colorsConst.secondary, size: 14,),
+                      30.height
+                    ],
                   ),
-                )
-              ],
-            ),
-          )
-        ),
-      );
-    });
+                ),
+              )
+            ],
+          ),
+        )
+      ),
+    );
   }
   bool isSameDate(DateTime date1, DateTime date2) {
     return date1.year == date2.year &&
