@@ -44,7 +44,14 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
     Future.delayed(Duration.zero, () async {
 
       final taskProvider = Provider.of<TaskProvider>(context, listen: false);
+      if (taskProvider.statusList.isNotEmpty) {
+        taskProvider.setStatusByName(
+          taskProvider.statusList.first["value"],
+        );
+      }
 
+      /// ✅ set today date
+      taskProvider.setTodayDate();
       await taskProvider.getTaskType(false);
       await taskProvider.getTaskStatuses();
 

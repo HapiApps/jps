@@ -1156,7 +1156,7 @@ Future<void> deleteUseAccount(context) async {
     Provider.of<AttendanceProvider>(context, listen: false).initDate(id:localData.storage.read("id"),role:localData.storage.read("role"),isRefresh:true,date1:_startDate,date2:_endDate,type:"");
     Provider.of<AttendanceProvider>(context, listen: false).getAttendanceReport(localData.storage.read("id"));
     Provider.of<AttendanceProvider>(context, listen: false).getAbsentAttendanceReport(localData.storage.read("id"));
-    Provider.of<LeaveProvider>(context, listen: false).allLeaves(_startDate,_endDate,true,"",localData.storage.read("id"));
+    Provider.of<LeaveProvider>(context, listen: false).allLeaves(_startDate,_endDate,true,localData.storage.read("role"),localData.storage.read("id"));
     notifyListeners();
   }
   DateTime stDt = DateTime.now();

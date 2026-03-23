@@ -35,6 +35,7 @@ import '../../view_model/customer_provider.dart';
 import '../../view_model/employee_provider.dart';
 import '../../view_model/home_provider.dart';
 import '../../view_model/location_provider.dart';
+import '../../view_model/task_provider.dart';
 import '../attendance/attendance_report.dart';
 import '../attendance/custom_attendance.dart';
 import '../controller/track_controller.dart';
@@ -91,6 +92,12 @@ class _HomePageState extends State<HomePage> {
         homeProvider.loadFullDashboard(context);
         homeProvider.changeType(context, homeProvider.type);
       });
+      final taskProvider = Provider.of<TaskProvider>(context, listen: false);
+      if (taskProvider.statusList.isNotEmpty) {
+        taskProvider.setStatusByName(
+          taskProvider.statusList.first["value"],
+        );
+      }
      Provider.of<EmployeeProvider>(context, listen: false).getAllUsers();
      Provider.of<CustomerProvider>(context, listen: false).getAllCustomers(true);
         final provider = Provider.of<EmployeeProvider>(context, listen: false);

@@ -1514,18 +1514,37 @@ class TaskProvider with ChangeNotifier {
     print("Selected Status ID => $_status");
     notifyListeners();
   }
-  void setStatusByName(String value) {
-    // // Find the map where name matches
-    // final selectedStatus = statusList.firstWhere(
-    //       (status) => status["value"] == value,
-    //   orElse: () => {"id": "0", "value": "Unknown"},
-    // );
-    //
-    // _status = selectedStatus;
-    //
-    // localData.storage.write("status_id", selectedStatus["id"]);
-    _isUpdate=false;
+  void setTodayDate() {
+    final now = DateTime.now();
+
+    String formattedDate =
+        "${now.day.toString().padLeft(2, '0')}-"
+        "${now.month.toString().padLeft(2, '0')}-"
+        "${now.year}";
+
+    taskDt.text = formattedDate;
+
     notifyListeners();
+  }
+  void setStatusByName(String value) {
+    try {
+      final selectedStatus = statusList.firstWhere(
+            (status) =>
+        status["value"]
+            .toString()
+            .trim()
+            .toLowerCase() ==
+            value.trim().toLowerCase(),
+      );
+
+      _status = selectedStatus["id"].toString(); // ✅ store ID only
+      print("Selected Status ID => $_status");
+      localData.storage.write("status_id", _status);
+      _isUpdate = false;
+      notifyListeners();
+    } catch (e) {
+      print("Status not found: $value");
+    }
   }
   void changeLevel(String value) {
     _level = value;
@@ -2133,8 +2152,41 @@ class TaskProvider with ChangeNotifier {
     }
     notifyListeners();
   }
+  // void initValue() {
+  //
+  //   _isRecording = false;
+  //   _selectedFiles.clear();
+  //   _recordedAudioPaths.clear();
+  //   selectedPhotos.clear();
+  //   taskTitleCont.clear();
+  //
+  //   _type = null;
+  //   _status = null;
+  //   _assignedId = "";
+  //   _level = "Normal";
+  //
+  //   if (typeList.isNotEmpty) {
+  //     _type = typeList[0]["id"].toString();
+  //   }
+  //
+  //   if (statusList.isNotEmpty) {
+  //
+  //     final selectedStatus = statusList.firstWhere(
+  //           (status) => status["value"]?.trim() == "Assigned",
+  //       orElse: () => statusList.first,
+  //     );
+  //
+  //     _status = selectedStatus["id"].toString();
+  //   }
+  //
+  //   taskDt.text =
+  //   "${DateTime.now().day.toString().padLeft(2, "0")}-"
+  //       "${DateTime.now().month.toString().padLeft(2, "0")}-"
+  //       "${DateTime.now().year}";
+  //
+  //   notifyListeners();
+  // }
   void initValue() {
-
     _isRecording = false;
     _selectedFiles.clear();
     _recordedAudioPaths.clear();
@@ -2151,19 +2203,22 @@ class TaskProvider with ChangeNotifier {
     }
 
     if (statusList.isNotEmpty) {
+      final match = statusList.where(
+            (status) =>
+        status["value"].toString().trim() == "Assigned",
+      ).toList();
 
-      final selectedStatus = statusList.firstWhere(
-            (status) => status["value"]?.trim() == "Assigned",
-        orElse: () => statusList.first,
-      );
+      final selectedStatus =
+      match.isNotEmpty ? match.first : statusList.first;
 
       _status = selectedStatus["id"].toString();
     }
 
+    final now = DateTime.now();
     taskDt.text =
-    "${DateTime.now().day.toString().padLeft(2, "0")}-"
-        "${DateTime.now().month.toString().padLeft(2, "0")}-"
-        "${DateTime.now().year}";
+    "${now.day.toString().padLeft(2, "0")}-"
+        "${now.month.toString().padLeft(2, "0")}-"
+        "${now.year}";
 
     notifyListeners();
   }
@@ -2247,7 +2302,8 @@ class TaskProvider with ChangeNotifier {
         'type': _type.toString(),
         'assigned': assignedId,
         'level': level,
-        'status': localData.storage.read("status_id"),
+        // 'status': localData.storage.read("status_id"),
+        'status': _status.toString(),
         'user_id': localData.storage.read("id"),
         'task_date': taskDt.text.trim(),
         'task_time': "$taskSTime||$taskETime",

@@ -2680,7 +2680,7 @@ void changeStatus(bool value){
     myLev.clear();
     myLevSearch.clear();
     if(localData.storage.read("role")=="1"){
-      allLeaves(_startDate,_endDate,_filter,"",localData.storage.read("id"));
+      allLeaves(_startDate,_endDate,_filter,localData.storage.read("role"),localData.storage.read("id"));
     }else{
       myLeaves(_startDate,_endDate,_isLoading,localData.storage.read("id"));
     }

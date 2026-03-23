@@ -1251,7 +1251,7 @@ PickerDateRange? selectedDate;
     if(localData.storage.read("role")!="1"){
       getAttendanceReport(id,);
       getAbsentAttendanceReport(id);
-      Provider.of<LeaveProvider>(context, listen: false).allLeaves(_startDate,_endDate,true,"",localData.storage.read("id"));
+      Provider.of<LeaveProvider>(context, listen: false).allLeaves(_startDate,_endDate,true,localData.storage.read("role"),localData.storage.read("id"));
     }
     notifyListeners();
   }
@@ -1263,7 +1263,7 @@ PickerDateRange? selectedDate;
     if(localData.storage.read("role")!="1"){
       getAttendanceReport(id,);
       getAbsentAttendanceReport(id);
-      Provider.of<LeaveProvider>(context, listen: false).allLeaves(_startDate,_endDate,true,"",localData.storage.read("id"));
+      Provider.of<LeaveProvider>(context, listen: false).allLeaves(_startDate,_endDate,true,localData.storage.read("role"),localData.storage.read("id"));
     }
     notifyListeners();
   }
@@ -1276,7 +1276,7 @@ PickerDateRange? selectedDate;
     if(localData.storage.read("role")!="1"){
       getAttendanceReport(id,);
       getAbsentAttendanceReport(id);
-      Provider.of<LeaveProvider>(context, listen: false).allLeaves(_startDate,_endDate,true,"",localData.storage.read("id"));
+      Provider.of<LeaveProvider>(context, listen: false).allLeaves(_startDate,_endDate,true,localData.storage.read("role"),localData.storage.read("id"));
     }
     notifyListeners();
   }
@@ -1289,7 +1289,7 @@ PickerDateRange? selectedDate;
     if(localData.storage.read("role")!="1"){
       getAttendanceReport(id,);
       getAbsentAttendanceReport(id);
-      Provider.of<LeaveProvider>(context, listen: false).allLeaves(_startDate,_endDate,true,"",localData.storage.read("id"));
+      Provider.of<LeaveProvider>(context, listen: false).allLeaves(_startDate,_endDate,true,localData.storage.read("role"),localData.storage.read("id"));
     }
     notifyListeners();
   }
@@ -1303,7 +1303,7 @@ PickerDateRange? selectedDate;
     if(localData.storage.read("role")!="1"){
       getAttendanceReport(id,);
       getAbsentAttendanceReport(id);
-      Provider.of<LeaveProvider>(context, listen: false).allLeaves(_startDate,_endDate,true,"",localData.storage.read("id"));
+      Provider.of<LeaveProvider>(context, listen: false).allLeaves(_startDate,_endDate,true,localData.storage.read("role"),localData.storage.read("id"));
     }
     notifyListeners();
   }
@@ -1316,7 +1316,7 @@ PickerDateRange? selectedDate;
     if(localData.storage.read("role")!="1"){
       getAttendanceReport(id,);
       getAbsentAttendanceReport(id);
-      Provider.of<LeaveProvider>(context, listen: false).allLeaves(_startDate,_endDate,true,"",localData.storage.read("id"));
+      Provider.of<LeaveProvider>(context, listen: false).allLeaves(_startDate,_endDate,true,localData.storage.read("role"),localData.storage.read("id"));
     }
     notifyListeners();
   }

@@ -59,7 +59,7 @@ class _AttendanceReportState extends State<AttendanceReport> {
       Provider.of<AttendanceProvider>(context, listen: false).initDate(id:localData.storage.read("id"),role:localData.storage.read("role"),isRefresh:true,date1:widget.date1,date2:widget.date2,type:widget.type);
       Provider.of<AttendanceProvider>(context, listen: false).getAttendanceReport(localData.storage.read("id"));
       Provider.of<AttendanceProvider>(context, listen: false).getAbsentAttendanceReport(localData.storage.read("id"));
-      Provider.of<LeaveProvider>(context, listen: false).allLeaves(widget.date1,widget.date2,true,"",localData.storage.read("id"));
+      Provider.of<LeaveProvider>(context, listen: false).allLeaves(widget.date1,widget.date2,true,localData.storage.read("role"),localData.storage.read("id"));
 
     });
     super.initState();
@@ -396,7 +396,7 @@ class _AttendanceReportState extends State<AttendanceReport> {
                                                                             attProvider.getAttendanceReport(localData.storage.read("id"));
                                                                             attProvider.getAbsentAttendanceReport(localData.storage.read("id"));
                                                                             levPvr.changeFilter();
-                                                                            levPvr.allLeaves(attProvider.startDate,attProvider.endDate,true,"",localData.storage.read("id"));
+                                                                            levPvr.allLeaves(attProvider.startDate,attProvider.endDate,true,localData.storage.read("role"),localData.storage.read("id"));
                                                                             Navigator.of(context, rootNavigator: true).pop();
                                                                             },
                                                                           bgColor: Colors.grey.shade200,
@@ -419,7 +419,7 @@ class _AttendanceReportState extends State<AttendanceReport> {
                                                                             attProvider.getAttendanceReport(localData.storage.read("id"));
                                                                             attProvider.getAbsentAttendanceReport(localData.storage.read("id"));
                                                                             print("FILTER DATE : ${attProvider.startDate} to ${attProvider.endDate} ${attProvider.user}");
-                                                                            levPvr.allLeaves(attProvider.startDate,attProvider.endDate,true,"0",attProvider.user);
+                                                                            levPvr.allLeaves(attProvider.startDate,attProvider.endDate,true,localData.storage.read("role"),attProvider.user);
 
                                                                             /// 4️⃣ CLOSE FILTER POPUP
                                                                             Navigator.of(context, rootNavigator: true).pop();
@@ -454,38 +454,34 @@ class _AttendanceReportState extends State<AttendanceReport> {
                               // if(attProvider.selectedIndex==0)
                               GestureDetector(
                                   onTap: (){
-                                    if(attProvider.getDailyAttendance.isEmpty){
-                                      utils.showWarningToast(context, text: "No Data Found");
-                                    }else{
-                                      if(attProvider.userName!=""){
-                                        // excelReports.exportUserAttendanceToExcel(context,
-                                        //     chunked: attProvider.getDailyAttendance,
-                                        //     date: "${attProvider.startDate} ${attProvider.startDate==attProvider.endDate?"":"To ${attProvider.endDate}"}");
-                                        excelReports.exportFullAttendanceExcel(
+                                    if(attProvider.userName!=""){
+                                      // excelReports.exportUserAttendanceToExcel(context,
+                                      //     chunked: attProvider.getDailyAttendance,
+                                      //     date: "${attProvider.startDate} ${attProvider.startDate==attProvider.endDate?"":"To ${attProvider.endDate}"}");
+                                      excelReports.exportFullAttendanceExcel(
                                           context,
                                           presentList: attProvider.getDailyAttendance,
                                           absentList: attProvider.noAttendanceList,
-                                            leaveList: levPvr.myLevSearch,
-                                            lateList: attProvider.getDailyAttendance
-                                                .where((e) => isLate(e.time ?? ""))
-                                                .toList(),
+                                          leaveList: levPvr.myLevSearch,
+                                          lateList: attProvider.getDailyAttendance
+                                              .where((e) => isLate(e.time ?? ""))
+                                              .toList(),
                                           permissionList: attProvider.getDailyAttendance.where((e) => e.perStatus != "null").toList(),
                                           date: "${attProvider.startDate} ${attProvider.startDate==attProvider.endDate?"":"To ${attProvider.endDate}"}"
-                                        );
-                                      }else{
-                                        // excelReports.exportAttendanceToExcel(context,chunked: attProvider.getDailyAttendance, date: "${attProvider.startDate} ${attProvider.startDate==attProvider.endDate?"":"To ${attProvider.endDate}"}");
-                                        excelReports.exportFullAttendanceExcel(
-                                            context,
-                                            presentList: attProvider.getDailyAttendance,
-                                            absentList: attProvider.noAttendanceList,
-                                            leaveList: levPvr.myLevSearch,
-                                            lateList: attProvider.getDailyAttendance
-                                                .where((e) => isLate(e.time ?? ""))
-                                                .toList(),
-                                            permissionList: attProvider.getDailyAttendance.where((e) => e.perStatus != "null").toList(),
-                                            date: "${attProvider.startDate} ${attProvider.startDate==attProvider.endDate?"":"To ${attProvider.endDate}"}"
-                                        );
-                                      }
+                                      );
+                                    }else{
+                                      // excelReports.exportAttendanceToExcel(context,chunked: attProvider.getDailyAttendance, date: "${attProvider.startDate} ${attProvider.startDate==attProvider.endDate?"":"To ${attProvider.endDate}"}");
+                                      excelReports.exportFullAttendanceExcel(
+                                          context,
+                                          presentList: attProvider.getDailyAttendance,
+                                          absentList: attProvider.noAttendanceList,
+                                          leaveList: levPvr.myLevSearch,
+                                          lateList: attProvider.getDailyAttendance
+                                              .where((e) => isLate(e.time ?? ""))
+                                              .toList(),
+                                          permissionList: attProvider.getDailyAttendance.where((e) => e.perStatus != "null").toList(),
+                                          date: "${attProvider.startDate} ${attProvider.startDate==attProvider.endDate?"":"To ${attProvider.endDate}"}"
+                                      );
                                     }
                                     },
                                   child: SvgPicture.asset(assets.tDownload,width: 27,height: 27,)),
