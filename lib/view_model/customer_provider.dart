@@ -60,7 +60,12 @@ class CustomerProvider with ChangeNotifier{
   final CustomerRepository custRepo = CustomerRepository();
   TextEditingController search = TextEditingController();
   TextEditingController search2 = TextEditingController();
-  Future<void> getTaskComments(String id) async {
+  Future<void> getTaskComments(String id, {bool isPolling = false}) async {
+
+    if (!isPolling) {
+      _refresh = false;
+      notifyListeners();
+    }
     _refresh=false;
     _customerReport.clear();
     notifyListeners();
@@ -87,13 +92,144 @@ class CustomerProvider with ChangeNotifier{
     notifyListeners();
   }
 
+  // Future<void> tComment({
+  //   context,
+  //   required String taskId,
+  //   required String assignedId,
+  //   required String path
+  // })
+  // async {
+  //
+  //   final tempMessage = CustomerReportModel(
+  //     comments: disPoint.text.trim(),
+  //     createdBy: localData.storage.read("id"),
+  //     firstname: localData.storage.read("f_name"),
+  //     role: localData.storage.read("role"),
+  //     createdTs: DateTime.now(),
+  //     documents: path.isNotEmpty ? path : null,
+  //     isLocal: true,
+  //   );
+  //
+  //   _customerReport.add(tempMessage);
+  //   notifyListeners();
+  //
+  //   try {
+  //
+  //     List<Map<String, String>> customersList = [];
+  //
+  //     /// FILES
+  //     for (int i = 0; i < _selectedFiles.length; i++) {
+  //       customersList.add({
+  //         "image_$i": _selectedFiles[i]['path'],
+  //       });
+  //     }
+  //
+  //     /// AUDIO
+  //     for (int i = 0; i < _recordedAudioPaths.length; i++) {
+  //       customersList.add({
+  //         "image_${i + _selectedFiles.length}":
+  //         _recordedAudioPaths[i].audioPath,
+  //       });
+  //     }
+  //
+  //     /// PHOTOS
+  //     for (int i = 0; i < selectedPhotos.length; i++) {
+  //       customersList.add({
+  //         "image_${i + _selectedFiles.length + _recordedAudioPaths.length}":
+  //         selectedPhotos[i],
+  //       });
+  //     }
+  //
+  //     /// EXTRA PATH
+  //     if (path.isNotEmpty) {
+  //       customersList.add({
+  //         "image_0": path,
+  //       });
+  //     }
+  //
+  //     String jsonString = json.encode(customersList);
+  //
+  //     Map<String,String> data = {
+  //       "action": taskComments,
+  //       "cos_id": localData.storage.read("cos_id"),
+  //       "task_id": taskId,
+  //       "log_file": localData.storage.read("mobile_number"),
+  //       "created_by": localData.storage.read("id") ?? "0",
+  //       "comment": disPoint.text.trim(),
+  //       "data": jsonString,
+  //     };
+  //
+  //     final response = await custRepo.taskComments(data, customersList);
+  //     log(response.toString());
+  //
+  //     if (response.toString().contains("200")) {
+  //
+  //       _recordedAudioPaths.clear();
+  //
+  //       String role = localData.storage.read("role");
+  //
+  //       try {
+  //
+  //         /// ================= ADMIN COMMENTED =================
+  //         if(role == "1") {
+  //
+  //           await Provider.of<EmployeeProvider>(context, listen: false)
+  //               .sendSomeUserNotification(
+  //               "${disPoint.text.trim()} Added by ${localData.storage.read("f_name")}",
+  //               disPoint.text.trim(),
+  //               assignedId,
+  //               taskId
+  //           );
+  //
+  //         }
+  //
+  //         /// ================= EMPLOYEE COMMENTED =================
+  //         else {
+  //
+  //           await Provider.of<EmployeeProvider>(context, listen: false)
+  //               .sendAdminNotification(
+  //               "${localData.storage.read("f_name")} replied to task feedback",
+  //               disPoint.text.trim(),
+  //               assignedId,
+  //               "1",
+  //               taskId
+  //           );
+  //
+  //         }
+  //
+  //       } catch (e) {
+  //         print("Notification error: $e");
+  //       }
+  //
+  //       _customerReport.last.isLocal = false;
+  //       disPoint.clear();
+  //       addCtr.reset();
+  //
+  //     } else {
+  //
+  //       utils.showErrorToast(context: context);
+  //       addCtr.reset();
+  //
+  //     }
+  //
+  //   } catch (e) {
+  //
+  //     _customerReport.remove(tempMessage);
+  //     notifyListeners();
+  //     addCtr.reset();
+  //
+  //   }
+  //
+  //   notifyListeners();
+  // }
   Future<void> tComment({
     context,
     required String taskId,
     required String assignedId,
-    required String path
+    required String path,
   }) async {
 
+    /// ✅ 1. INSTANT UI (Optimistic)
     final tempMessage = CustomerReportModel(
       comments: disPoint.text.trim(),
       createdBy: localData.storage.read("id"),
@@ -109,32 +245,9 @@ class CustomerProvider with ChangeNotifier{
 
     try {
 
+      /// ✅ 2. MINIMAL PAYLOAD (REMOVE ALL LOOPS)
       List<Map<String, String>> customersList = [];
 
-      /// FILES
-      for (int i = 0; i < _selectedFiles.length; i++) {
-        customersList.add({
-          "image_$i": _selectedFiles[i]['path'],
-        });
-      }
-
-      /// AUDIO
-      for (int i = 0; i < _recordedAudioPaths.length; i++) {
-        customersList.add({
-          "image_${i + _selectedFiles.length}":
-          _recordedAudioPaths[i].audioPath,
-        });
-      }
-
-      /// PHOTOS
-      for (int i = 0; i < selectedPhotos.length; i++) {
-        customersList.add({
-          "image_${i + _selectedFiles.length + _recordedAudioPaths.length}":
-          selectedPhotos[i],
-        });
-      }
-
-      /// EXTRA PATH
       if (path.isNotEmpty) {
         customersList.add({
           "image_0": path,
@@ -143,7 +256,7 @@ class CustomerProvider with ChangeNotifier{
 
       String jsonString = json.encode(customersList);
 
-      Map<String,String> data = {
+      Map<String, String> data = {
         "action": taskComments,
         "cos_id": localData.storage.read("cos_id"),
         "task_id": taskId,
@@ -153,68 +266,84 @@ class CustomerProvider with ChangeNotifier{
         "data": jsonString,
       };
 
-      final response = await custRepo.taskComments(data, customersList);
-      log(response.toString());
+      /// ✅ 3. NON-BLOCKING API (REMOVE AWAIT)
+      custRepo.taskComments(data, customersList).then((response) async {
 
-      if (response.toString().contains("200")) {
+        if (response.toString().contains("200")) {
 
-        _recordedAudioPaths.clear();
+          _recordedAudioPaths.clear();
 
-        String role = localData.storage.read("role");
+          /// mark as synced
+          _customerReport.last.isLocal = false;
 
-        try {
+          /// clear input
+          disPoint.clear();
 
-          /// ================= ADMIN COMMENTED =================
-          if(role == "1") {
+          notifyListeners();
 
-            await Provider.of<EmployeeProvider>(context, listen: false)
-                .sendSomeUserNotification(
-                "${disPoint.text.trim()} Added by ${localData.storage.read("f_name")}",
-                disPoint.text.trim(),
-                assignedId,
-                taskId
-            );
+          /// 🔥 force refresh (important)
+         // await getTaskComments(taskId, isPolling: false);
+          Provider.of<TaskProvider>(context, listen: false).scrollToBottom();
+          /// ✅ notifications (delay → no lag)
+          Future.delayed(const Duration(milliseconds: 300), () {
 
-          }
+            String role = localData.storage.read("role");
 
-          /// ================= EMPLOYEE COMMENTED =================
-          else {
+            try {
 
-            await Provider.of<EmployeeProvider>(context, listen: false)
-                .sendAdminNotification(
-                "${localData.storage.read("f_name")} replied to task feedback",
-                disPoint.text.trim(),
-                assignedId,
-                "1",
-                taskId
-            );
+              if (role == "1") {
 
-          }
+                Provider.of<EmployeeProvider>(context, listen: false)
+                    .sendSomeUserNotification(
+                  "${disPoint.text.trim()} Added by ${localData.storage.read("f_name")}",
+                  disPoint.text.trim(),
+                  assignedId,
+                  taskId,
+                );
 
-        } catch (e) {
-          print("Notification error: $e");
+              } else {
+
+                Provider.of<EmployeeProvider>(context, listen: false)
+                    .sendAdminNotification(
+                  "${localData.storage.read("f_name")} replied to task feedback",
+                  disPoint.text.trim(),
+                  assignedId,
+                  "1",
+                  taskId,
+                );
+              }
+
+            } catch (e) {
+              print("Notification error: $e");
+            }
+
+          });
+
+        } else {
+
+          /// ❌ failed → rollback
+          _customerReport.remove(tempMessage);
+          notifyListeners();
+
+          utils.showErrorToast(context: context);
         }
 
-        _customerReport.last.isLocal = false;
-        disPoint.clear();
-        addCtr.reset();
+      }).catchError((e) {
 
-      } else {
+        /// ❌ error → rollback
+        _customerReport.remove(tempMessage);
+        notifyListeners();
 
-        utils.showErrorToast(context: context);
-        addCtr.reset();
-
-      }
+        utils.showWarningToast(context, text: "Failed");
+      });
 
     } catch (e) {
 
       _customerReport.remove(tempMessage);
       notifyListeners();
-      addCtr.reset();
 
+      utils.showWarningToast(context, text: "Error");
     }
-
-    notifyListeners();
   }
 bool _isVisible=false;
 int _visibleIndex=0;
@@ -588,9 +717,7 @@ void changeState(dynamic value){
 //   notifyListeners();
 // }
   void changeLeadType(dynamic value) {
-
-    leadType = leadCategoryList
-        .firstWhere((element) => element["id"].toString() == value.toString());
+    leadType = value; // 🔥 direct assign
 
     localData.storage.write("lead_id", leadType["id"]);
 
@@ -1684,6 +1811,195 @@ void initCmtValues(){
   _isRecording = false;
   notifyListeners();
 }
+  // Future<void> addComment({
+  //   context,
+  //   required String createdBy,
+  //   required String assignedId,
+  //   required String taskId,
+  //   required String visitId,
+  //   required String companyName,
+  //   required String companyId,
+  //   required List numberList,
+  //   required String path
+  // }) async
+  // {
+  //
+  //   final tempMessage = CustomerReportModel(
+  //     comments: disPoint.text.trim(),
+  //     createdBy: localData.storage.read("id"),
+  //     firstname: localData.storage.read("f_name"),
+  //     role: localData.storage.read("role"),
+  //     createdTs: DateTime.now(),
+  //     documents: path.isNotEmpty ? path : null,
+  //     isLocal: true,
+  //   );
+  //
+  //   _customerReport.add(tempMessage);
+  //   notifyListeners();
+  //
+  //   try {
+  //
+  //     List<Map<String, String>> customersList = [];
+  //
+  //     // files
+  //     for (int i = 0; i < _selectedFiles.length; i++) {
+  //       customersList.add({
+  //         "image_$i": _selectedFiles[i]['path'],
+  //       });
+  //     }
+  //
+  //     // audio
+  //     for (int i = _selectedFiles.length;
+  //     i < _selectedFiles.length + _recordedAudioPaths.length;
+  //     i++) {
+  //       customersList.add({
+  //         "image_$i": _recordedAudioPaths[i - _selectedFiles.length].audioPath,
+  //       });
+  //     }
+  //
+  //     // photos
+  //     for (int i = _selectedFiles.length + _recordedAudioPaths.length;
+  //     i <
+  //         _selectedFiles.length +
+  //             _recordedAudioPaths.length +
+  //             selectedPhotos.length;
+  //     i++) {
+  //       customersList.add({
+  //         "image_$i":
+  //         selectedPhotos[i - (_selectedFiles.length + _recordedAudioPaths.length)],
+  //       });
+  //     }
+  //
+  //     if (path != "") {
+  //       customersList.add({
+  //         "image_0": path,
+  //       });
+  //     }
+  //
+  //     String jsonString = json.encode(customersList);
+  //
+  //     Map<String, String> data = {
+  //       "action": addCmt,
+  //       "cos_id": localData.storage.read("cos_id"),
+  //       "visit_id": visitId,
+  //       "log_file": localData.storage.read("mobile_number"),
+  //       "created_by": localData.storage.read("id") ?? "0",
+  //       "comments": disPoint.text.trim(),
+  //       "date": commentDate.text.trim(),
+  //       "data": jsonString,
+  //     };
+  //
+  //     final response = await custRepo.addComments(data, customersList);
+  //
+  //     log(response.toString());
+  //
+  //     if (response.toString().contains("200")) {
+  //
+  //       _recordedAudioPaths.clear();
+  //
+  //       String myRole = localData.storage.read("role");
+  //       String myId   = localData.storage.read("id");
+  //       String createdUserId = createdBy.toString();
+  //
+  //       print("MyID: $myId");
+  //       print("CreatedBy: $createdUserId");
+  //       print("Role: $myRole");
+  //
+  //       /// ===============================
+  //       /// ADMIN COMMENT
+  //       /// ===============================
+  //       if (myRole == "1") {
+  //
+  //         try {
+  //
+  //           /// ADMIN == CREATOR
+  //           if (myId == createdUserId) {
+  //
+  //             /// Notify other admins only
+  //             Provider.of<EmployeeProvider>(context, listen: false)
+  //                 .sendAdminNotification(
+  //               "${localData.storage.read("f_name")} replied to your visit report",
+  //               disPoint.text.trim(),
+  //               createdUserId,
+  //               "1",
+  //               taskId,
+  //             );
+  //
+  //           }
+  //
+  //           /// ADMIN != CREATOR
+  //           else {
+  //
+  //             await Future.wait([
+  //
+  //               /// Notify other admins
+  //               Provider.of<EmployeeProvider>(context, listen: false)
+  //                   .sendUserNotification(
+  //                 "${localData.storage.read("f_name")} replied to visit report",
+  //                 disPoint.text.trim(),
+  //                 createdBy.toString(), // exclude self
+  //               ),
+  //
+  //               /// Notify visit creator (employee/admin)
+  //               Provider.of<EmployeeProvider>(context, listen: false)
+  //                   .sendAdminNotification(
+  //                 "${localData.storage.read("f_name")} replied to your visit report",
+  //                 disPoint.text.trim(),
+  //                 createdUserId,
+  //                 "1",
+  //                 taskId,
+  //               ),
+  //
+  //             ]);
+  //
+  //           }
+  //           getComments(taskId,isPolling: true);
+  //         } catch (e) {
+  //           print("Admin notification error: $e");
+  //         }
+  //       }
+  //
+  //       /// ===============================
+  //       /// EMPLOYEE COMMENT
+  //       /// ===============================
+  //       else {
+  //
+  //         try {
+  //
+  //           /// Notify all admins
+  //           Provider.of<EmployeeProvider>(context, listen: false)
+  //               .sendAdminNotification(
+  //             "${localData.storage.read("f_name")} replied to your visit report",
+  //             disPoint.text.trim(),
+  //             createdUserId,
+  //             "1",
+  //             taskId,
+  //           );
+  //
+  //         } catch (e) {
+  //           print("Employee notification error: $e");
+  //         }
+  //
+  //       }
+  //
+  //       _customerReport.last.isLocal = false;
+  //       disPoint.clear();
+  //       addCtr.reset();
+  //
+  //     } else {
+  //       utils.showErrorToast(context: context);
+  //       addCtr.reset();
+  //     }
+  //
+  //   } catch (e) {
+  //     _customerReport.remove(tempMessage);
+  //     utils.showWarningToast(context, text: "Failed");
+  //     addCtr.reset();
+  //   }
+  //
+  //   notifyListeners();
+  // }
+
   Future<void> addComment({
     context,
     required String createdBy,
@@ -1693,10 +2009,10 @@ void initCmtValues(){
     required String companyName,
     required String companyId,
     required List numberList,
-    required String path
-  }) async
-  {
+    required String path,
+  }) async {
 
+    /// ✅ 1. INSTANT UI (Optimistic update)
     final tempMessage = CustomerReportModel(
       comments: disPoint.text.trim(),
       createdBy: localData.storage.read("id"),
@@ -1712,38 +2028,10 @@ void initCmtValues(){
 
     try {
 
+      /// ✅ 2. MINIMAL PAYLOAD (NO LOOPS)
       List<Map<String, String>> customersList = [];
 
-      // files
-      for (int i = 0; i < _selectedFiles.length; i++) {
-        customersList.add({
-          "image_$i": _selectedFiles[i]['path'],
-        });
-      }
-
-      // audio
-      for (int i = _selectedFiles.length;
-      i < _selectedFiles.length + _recordedAudioPaths.length;
-      i++) {
-        customersList.add({
-          "image_$i": _recordedAudioPaths[i - _selectedFiles.length].audioPath,
-        });
-      }
-
-      // photos
-      for (int i = _selectedFiles.length + _recordedAudioPaths.length;
-      i <
-          _selectedFiles.length +
-              _recordedAudioPaths.length +
-              selectedPhotos.length;
-      i++) {
-        customersList.add({
-          "image_$i":
-          selectedPhotos[i - (_selectedFiles.length + _recordedAudioPaths.length)],
-        });
-      }
-
-      if (path != "") {
+      if (path.isNotEmpty) {
         customersList.add({
           "image_0": path,
         });
@@ -1762,118 +2050,107 @@ void initCmtValues(){
         "data": jsonString,
       };
 
-      final response = await custRepo.addComments(data, customersList);
+      /// ✅ 3. NON-BLOCKING API (NO AWAIT)
+      custRepo.addComments(data, customersList).then((response) async {
 
-      log(response.toString());
+        if (response.toString().contains("200")) {
 
-      if (response.toString().contains("200")) {
+          /// mark as synced
+          _customerReport.last.isLocal = false;
 
-        _recordedAudioPaths.clear();
+          /// clear input
+          disPoint.clear();
 
-        String myRole = localData.storage.read("role");
-        String myId   = localData.storage.read("id");
-        String createdUserId = createdBy.toString();
+          notifyListeners();
 
-        print("MyID: $myId");
-        print("CreatedBy: $createdUserId");
-        print("Role: $myRole");
+          /// 🔥 force refresh (important)
+          await getComments(taskId, isPolling: true);
 
-        /// ===============================
-        /// ADMIN COMMENT
-        /// ===============================
-        if (myRole == "1") {
+          /// ✅ notifications (delayed → no lag)
+          Future.delayed(const Duration(milliseconds: 300), () {
 
-          try {
+            String myRole = localData.storage.read("role");
+            String myId   = localData.storage.read("id");
+            String createdUserId = createdBy.toString();
 
-            /// ADMIN == CREATOR
-            if (myId == createdUserId) {
+            try {
 
-              /// Notify other admins only
-              Provider.of<EmployeeProvider>(context, listen: false)
-                  .sendAdminNotification(
-                "${localData.storage.read("f_name")} replied to your visit report",
-                disPoint.text.trim(),
-                createdUserId,
-                "1",
-                taskId,
-              );
+              if (myRole == "1") {
 
-            }
+                if (myId == createdUserId) {
 
-            /// ADMIN != CREATOR
-            else {
+                  Provider.of<EmployeeProvider>(context, listen: false)
+                      .sendAdminNotification(
+                    "${localData.storage.read("f_name")} replied",
+                    disPoint.text.trim(),
+                    createdUserId,
+                    "1",
+                    taskId,
+                  );
 
-              await Future.wait([
+                } else {
 
-                /// Notify other admins
-                Provider.of<EmployeeProvider>(context, listen: false)
-                    .sendUserNotification(
-                  "${localData.storage.read("f_name")} replied to visit report",
-                  disPoint.text.trim(),
-                  createdBy.toString(), // exclude self
-                ),
+                  Provider.of<EmployeeProvider>(context, listen: false)
+                      .sendUserNotification(
+                    "${localData.storage.read("f_name")} replied",
+                    disPoint.text.trim(),
+                    createdUserId,
+                  );
 
-                /// Notify visit creator (employee/admin)
+                  Provider.of<EmployeeProvider>(context, listen: false)
+                      .sendAdminNotification(
+                    "${localData.storage.read("f_name")} replied",
+                    disPoint.text.trim(),
+                    createdUserId,
+                    "1",
+                    taskId,
+                  );
+                }
+
+              } else {
+
                 Provider.of<EmployeeProvider>(context, listen: false)
                     .sendAdminNotification(
-                  "${localData.storage.read("f_name")} replied to your visit report",
+                  "${localData.storage.read("f_name")} replied",
                   disPoint.text.trim(),
                   createdUserId,
                   "1",
                   taskId,
-                ),
+                );
+              }
 
-              ]);
-
+            } catch (e) {
+              print("Notification error: $e");
             }
 
-          } catch (e) {
-            print("Admin notification error: $e");
-          }
+          });
+
+        } else {
+
+          /// ❌ failed → remove temp message
+          _customerReport.remove(tempMessage);
+          notifyListeners();
+
+          utils.showErrorToast(context: context);
         }
 
-        /// ===============================
-        /// EMPLOYEE COMMENT
-        /// ===============================
-        else {
+      }).catchError((e) {
 
-          try {
+        /// ❌ error → rollback
+        _customerReport.remove(tempMessage);
+        notifyListeners();
 
-            /// Notify all admins
-            Provider.of<EmployeeProvider>(context, listen: false)
-                .sendAdminNotification(
-              "${localData.storage.read("f_name")} replied to your visit report",
-              disPoint.text.trim(),
-              createdUserId,
-              "1",
-              taskId,
-            );
-
-          } catch (e) {
-            print("Employee notification error: $e");
-          }
-
-        }
-
-        _customerReport.last.isLocal = false;
-        disPoint.clear();
-        addCtr.reset();
-
-      } else {
-        utils.showErrorToast(context: context);
-        addCtr.reset();
-      }
+        utils.showWarningToast(context, text: "Failed");
+      });
 
     } catch (e) {
+
       _customerReport.remove(tempMessage);
-      utils.showWarningToast(context, text: "Failed");
-      addCtr.reset();
+      notifyListeners();
+
+      utils.showWarningToast(context, text: "Error");
     }
-
-    notifyListeners();
   }
-
-
   Future<void> getAllComments(String id,String contId) async {
   _cmtRefresh=false;
     _customerReport.clear();
@@ -1951,7 +2228,14 @@ Future<void> getEmpComments() async {
     }
     notifyListeners();
   }
-Future<void> getComments(String id) async {
+  Future<void> getComments(String id, {bool isPolling = false}) async {
+
+    /// ❌ FIRST TIME மட்டும் loading
+    if (!isPolling) {
+      _refresh = false;
+      notifyListeners();
+    }
+
     _refresh=false;
     _customerReport.clear();
     notifyListeners();
@@ -1968,12 +2252,12 @@ Future<void> getComments(String id) async {
       if (response.isNotEmpty) {
         _customerReport=response;
         print("vist tcommend ${_customerReport}");
-        _refresh=true;
+        _refresh=false;
       } else {
-        _refresh=true;
+        _refresh=false;
       }
     } catch (e) {
-      _refresh=true;
+      _refresh=false;
     }
     notifyListeners();
   }

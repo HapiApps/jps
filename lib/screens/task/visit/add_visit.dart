@@ -47,7 +47,7 @@ class _AddVisitState extends State<AddVisit> with TickerProviderStateMixin {
   void initState() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       setCustomer(Provider.of<CustomerProvider>(context, listen: false).customer);
-      // Provider.of<CustomerProvider>(context, listen: false).setValue(widget.companyId.toString());
+       Provider.of<CustomerProvider>(context, listen: false).setValue(widget.companyId.toString());
       Provider.of<CustomerProvider>(context, listen: false).initComment(widget.numberList,widget.type);
       companyName="";
       if(Provider.of<LocationProvider>(context, listen: false).latitude!=""&&Provider.of<LocationProvider>(context, listen: false).longitude!=""){
@@ -219,9 +219,13 @@ class _AddVisitState extends State<AddVisit> with TickerProviderStateMixin {
                               width: kIsWeb?webWidth:phoneWidth,
                               hintText: constValue.type,
                               list: custProvider.cmtTypeList,
-                              saveValue: custProvider.selectType,
+                              // saveValue: custProvider.selectType,
+                              saveValue: custProvider.selectType?['id'],
                               onChanged: (Object? value) {
-                                custProvider.changeType(value);
+                                final selected = custProvider.cmtTypeList
+                                    .firstWhere((e) => e['id'].toString() == value.toString());
+
+                                custProvider.changeType(selected);
                               },
                               dropText: 'value',),
                             CustomTextField(
@@ -231,7 +235,11 @@ class _AddVisitState extends State<AddVisit> with TickerProviderStateMixin {
                               onTap: (){
                                 utils.datePick(context:context,textEditingController: custProvider.commentDate);
                               },
-                              onChanged: null,
+                                onChanged: (value) {
+                                  custProvider.changeType(
+                                      custProvider.cmtTypeList.firstWhere((e) => e['id'] == value)
+                                  );
+                                }
                             ),
                             SizedBox(
                               width: kIsWeb?webWidth:phoneWidth,
@@ -311,9 +319,16 @@ class _AddVisitState extends State<AddVisit> with TickerProviderStateMixin {
                               width: kIsWeb?webWidth:phoneWidth,
                               hintText: constValue.leadStatus,
                               list: custProvider.leadCategoryList,
-                              saveValue: custProvider.leadType,
+                              saveValue: custProvider.leadType?['id'],
                               onChanged: (Object? value) {
-                                custProvider.changeLeadType(value);
+                                final selected = custProvider.leadCategoryList.firstWhere(
+                                      (e) => e['id'].toString() == value.toString(),
+                                  orElse: () => <String, String>{},
+                                );
+
+                                if (selected.isNotEmpty) {
+                                  custProvider.changeLeadType(selected);
+                                }
                               },
                               dropText: 'value',),
                             MapDropDown(
@@ -328,9 +343,12 @@ class _AddVisitState extends State<AddVisit> with TickerProviderStateMixin {
                               width:kIsWeb?webWidth:phoneWidth,
                               hintText: constValue.visitType,
                               list: custProvider.callList,
-                              saveValue: custProvider.callType,
+                              saveValue: custProvider.callType?['id'],
                               onChanged: (Object? value) {
-                                custProvider.changeCallType(value);
+                                final selected = custProvider.callList
+                                    .firstWhere((e) => e['id'].toString() == value.toString());
+
+                                custProvider.changeCallType(selected);
                               },
                               dropText: 'value',),
                             MaxLineTextField(

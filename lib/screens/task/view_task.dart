@@ -182,7 +182,7 @@ class _ViewTaskState extends State<ViewTask> with SingleTickerProviderStateMixin
                             controller: tabController,
                             children: [
                               ViewfilterUserData(date1: widget.date1,date2:widget.date2,type:widget.type),
-                              TaskCalendar(taskPvr: taskProvider,),
+                              TaskCalendar(taskPvr: taskProvider),
                             ],
                           ),
                         ),

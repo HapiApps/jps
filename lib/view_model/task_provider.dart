@@ -67,7 +67,21 @@ class TaskProvider with ChangeNotifier {
   String get endDate => _endDate;
   String _companyName="";
   String get companyName => _companyName;
-
+  void setFilterDate(String value) {
+    if (_filterDate == value) return; // 🔥 avoid unnecessary rebuild
+    _filterDate = value;
+    notifyListeners();
+  }
+  final ScrollController scrollController = ScrollController();
+  void scrollToBottom() {
+    if (scrollController.hasClients) {
+      scrollController.animateTo(
+        scrollController.position.maxScrollExtent,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+    }
+  }
   // void dateFilterList(String date1,String date2) {
   //   final dateFormat = DateFormat('dd-MM-yyyy');
   //   final parsedStartDate = dateFormat.parse(date1);

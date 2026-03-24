@@ -46,20 +46,56 @@ class _TaskChatState extends State<TaskChat> with SingleTickerProviderStateMixin
   late AnimationController animationController;
   late Animation<double> animation;
   final FocusScopeNode _myFocusScopeNode = FocusScopeNode();
-  final ScrollController _scrollController = ScrollController();
+
 
   final AudioRecorder _audioRecorder = AudioRecorder();
   final AudioPlayer _audioPlayer = AudioPlayer();
 
   bool isRecording = false;
   String? recordedPath;
+  Timer? pollingTimer;
+  bool isFetching = false;
   String lastCreatedBy = "0";
   Duration duration = Duration.zero;
   Timer? timer;
   Duration totalDuration = Duration.zero;
   Duration currentPosition = Duration.zero;
   bool isPlaying = false;
+  bool isPolling = false;
 
+  void startPolling() {
+    isPolling = true;
+    _poll();
+  }
+
+  void stopPolling() {
+    isPolling = false;
+  }
+
+  Future<void> _poll() async {
+    if (!mounted || !isPolling) return;
+
+    try {
+      if (widget.isVisit == true) {
+        await Provider.of<CustomerProvider>(context, listen: false)
+            .getComments(widget.taskId, isPolling: true);
+      } else {
+        await Provider.of<CustomerProvider>(context, listen: false)
+            .getTaskComments(widget.taskId, isPolling: true);
+      }
+
+    } catch (e) {
+      print("Polling error: $e");
+    }
+
+    // /// 🔥 IMPORTANT delay
+    // await Future.delayed(const Duration(seconds: 2));
+    //
+    // /// ✅ STOP CONDITION
+    // if (mounted && isPolling) {
+    //   _poll();
+   // }
+  }
   Future<void> startRecording() async {
     final status = await Permission.microphone.request();
 
@@ -102,32 +138,38 @@ class _TaskChatState extends State<TaskChat> with SingleTickerProviderStateMixin
     }
   }
   @override
+  @override
   void initState() {
-    WidgetsBinding.instance.addPostFrameCallback((timeStamp){
-      Provider.of<CustomerProvider>(context, listen: false).disPoint.clear();
-      Provider.of<CustomerProvider>(context, listen: false).recordedAudioPaths.clear();
-      if(widget.isVisit==true){
-        Provider.of<CustomerProvider>(context, listen: false).getComments(widget.taskId);
-      }else{
-        Provider.of<CustomerProvider>(context, listen: false).getTaskComments(widget.taskId);
+    WidgetsBinding.instance.addPostFrameCallback((timeStamp) async {
+
+      final custProvider = Provider.of<CustomerProvider>(context, listen: false);
+
+      custProvider.disPoint.clear();
+      custProvider.recordedAudioPaths.clear();
+
+      /// ✅ FIRST LOAD DATA
+      if (widget.isVisit == true) {
+        await custProvider.getComments(widget.taskId);
+      } else {
+        await custProvider.getTaskComments(widget.taskId);
       }
+
+      /// 🔥 NOW SCROLL (after data ready)
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        Provider.of<TaskProvider>(context, listen: false).scrollToBottom();
+      });
+
+      /// polling start
+      startPolling();
     });
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      scrollToBottom();
-    });
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_scrollController.hasClients) {
-        _scrollController.jumpTo(
-          _scrollController.position.maxScrollExtent,
-        );
-      }
-    });
+
     animationController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 1),
-    )..repeat(reverse: true); // Shrinks and expands
+    )..repeat(reverse: true);
 
     animation = Tween<double>(begin: 0.5, end: 1.5).animate(animationController);
+
     _audioPlayer.onDurationChanged.listen((d) {
       setState(() {
         totalDuration = d;
@@ -145,6 +187,7 @@ class _TaskChatState extends State<TaskChat> with SingleTickerProviderStateMixin
         isPlaying = state == PlayerState.playing;
       });
     });
+
     super.initState();
   }
   Future<void> togglePlay() async {
@@ -166,19 +209,20 @@ class _TaskChatState extends State<TaskChat> with SingleTickerProviderStateMixin
   }
   @override
   void dispose() {
+    stopPolling(); // 🔥 ADD THIS
     animationController.dispose();
     _myFocusScopeNode.dispose();
     super.dispose();
   }
-  void scrollToBottom() {
-    if (_scrollController.hasClients) {
-      _scrollController.animateTo(
-        _scrollController.position.maxScrollExtent,
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeOut,
-      );
-    }
-  }
+  // void scrollToBottom() {
+  //   if (_scrollController.hasClients) {
+  //     _scrollController.animateTo(
+  //       _scrollController.position.maxScrollExtent,
+  //       duration: const Duration(milliseconds: 300),
+  //       curve: Curves.easeOut,
+  //     );
+  //   }
+  // }
   @override
   Widget build(BuildContext context) {
     return Consumer2<CustomerProvider,TaskProvider>(builder: (context,custProvider,taskProvider,_){
@@ -421,6 +465,10 @@ class _TaskChatState extends State<TaskChat> with SingleTickerProviderStateMixin
                               companyName: widget.name,companyId:"", numberList: [], taskId: "0",
                             createdBy: widget.createdBy.toString(), assignedId: widget.assignedId.toString(),
                             path:recordedPath==null?"":recordedPath.toString(),);
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          Provider.of<TaskProvider>(context, listen: false).scrollToBottom();
+                        });
+
                         }else{
                           print("inn");
                           await custProvider.tComment(
@@ -428,7 +476,11 @@ class _TaskChatState extends State<TaskChat> with SingleTickerProviderStateMixin
                             taskId: widget.taskId.toString(),
                             assignedId: widget.assignedId.toString(),path:recordedPath==null?"":recordedPath.toString(),
                           );
+                          WidgetsBinding.instance.addPostFrameCallback((_) {
+                            Provider.of<TaskProvider>(context, listen: false).scrollToBottom();
+                          });
                         }
+
                         setState(() {
                           recordedPath=null;
                         });
@@ -455,9 +507,11 @@ class _TaskChatState extends State<TaskChat> with SingleTickerProviderStateMixin
             body: Stack(
               children: [
                 Positioned.fill(
-                  child: custProvider.refresh == false
+                  child:
+                  custProvider.refresh == false
                       ? const Loading()
-                      : custProvider.customerReport.isEmpty
+                      :
+                  custProvider.customerReport.isEmpty
                       ? const Center(
                     child: CustomText(
                       text: "No Comments Found",
@@ -465,7 +519,7 @@ class _TaskChatState extends State<TaskChat> with SingleTickerProviderStateMixin
                     ),
                   )
                       : ListView.builder(
-                    controller: _scrollController,
+                    controller: taskProvider.scrollController,
                     padding: const EdgeInsets.fromLTRB(10, 10, 10, 60),
                     physics: const BouncingScrollPhysics(),
                     addAutomaticKeepAlives: false,

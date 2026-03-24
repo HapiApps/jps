@@ -34,6 +34,7 @@ class _CommentChatState extends State<CommentChat> {
     });
     super.initState();
   }
+
   @override
   Widget build(BuildContext context) {
     return Consumer<CustomerProvider>(builder: (context,custProvider,_){

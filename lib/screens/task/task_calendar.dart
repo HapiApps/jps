@@ -182,25 +182,48 @@ class CalendarAppointment extends State<TaskCalendar> {
                           // onTap: null,
                           onLongPress: null,
                           onSelectionChanged: null,
-                            onTap: (CalendarTapDetails value) {
-                              if (value.date != null) {
-                                final tappedMonth = value.date!.month;
-                                final visibleMonth =  widget.taskPvr.defaultMonth;
+                            // onTap: (CalendarTapDetails value) {
+                            //   if (value.date != null) {
+                            //     final tappedMonth = value.date!.month;
+                            //     final visibleMonth =  widget.taskPvr.defaultMonth;
+                            //
+                            //     if (tappedMonth != visibleMonth) {
+                            //       // 🔄 Switch calendar view to the tapped month
+                            //       _calendarController.displayDate = value.date!;
+                            //       return;
+                            //     }
+                            //
+                            //     // ✅ Continue with tap action for current month dates
+                            //     widget.taskPvr.filterDateList(
+                            //       DateFormat('dd-MM-yyyy').format(value.date!),
+                            //       value.date!,
+                            //     );
+                            //     widget.taskPvr.checkMonth2();
+                            //   }
+                            // },
+                          onTap: (CalendarTapDetails value) {
+                            if (value.date != null) {
 
-                                if (tappedMonth != visibleMonth) {
-                                  // 🔄 Switch calendar view to the tapped month
-                                  _calendarController.displayDate = value.date!;
-                                  return;
-                                }
+                              final tappedMonth = value.date!.month;
+                              final visibleMonth = widget.taskPvr.defaultMonth;
 
-                                // ✅ Continue with tap action for current month dates
-                                widget.taskPvr.filterDateList(
-                                  DateFormat('dd-MM-yyyy').format(value.date!),
-                                  value.date!,
-                                );
-                                widget.taskPvr.checkMonth2();
+                              if (tappedMonth != visibleMonth) {
+                                _calendarController.displayDate = value.date!;
+                                return;
                               }
-                            },
+
+                              String selectedDate =
+                              DateFormat('dd-MM-yyyy').format(value.date!);
+
+                              /// ✅ ONLY THIS
+                              widget.taskPvr.setFilterDate(selectedDate);
+
+                              /// ❌ REMOVE THESE COMPLETELY
+                              // widget.taskPvr.filterDateList(...)
+                              // widget.taskPvr.checkMonth2()
+                              // widget.taskPvr.notifyListeners()
+                            }
+                          },
                             onViewChanged: (details) {
                               // _calendarController.selectedDate = null;
                               // _calendarController.displayDate = null;
@@ -276,24 +299,50 @@ class CalendarAppointment extends State<TaskCalendar> {
                       widget.taskPvr.allTasks.isNotEmpty?
                       SizedBox(
                         child: ListView.builder(
-                            shrinkWrap: true,
-                            physics: const NeverScrollableScrollPhysics(),
-                            itemCount:  widget.taskPvr.allTasks.length,
-                            itemBuilder: (context, index) {
-                              TaskData data =  widget.taskPvr.allTasks[index]; // e.g., "24-05-2025"
-                              String dateStr =  widget.taskPvr.allTasks[index].taskDate.toString(); // e.g., "24-05-2025"
-                              DateTime dateTime = DateFormat('dd-MM-yyyy').parse(dateStr);
-                              var st = dateTime;
-                              widget.taskPvr.allTasks.sort((a, b) =>a.taskDate!.compareTo(b.taskDate.toString()));
-                              return utils.returnPadLeft(
-                                  widget.taskPvr.defaultMonth.toString()) ==
-                                  utils.returnPadLeft(st.month.toString())&& widget.taskPvr.filterDate=="" ?
-                              dataList(kIsWeb?webWidth:phoneWidth, data):
-                              utils.returnPadLeft(
-                                  widget.taskPvr.defaultMonth.toString()) ==
-                                  utils.returnPadLeft(st.month.toString())&& widget.taskPvr.filterDate==data.taskDate.toString() ?
-                              dataList(kIsWeb?webWidth:phoneWidth, data):0.width;
-                            }),
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: widget.taskPvr.allTasks.length,
+                          itemBuilder: (context, index) {
+
+                            TaskData data = widget.taskPvr.allTasks[index];
+
+                            /// 🔹 Date safe
+                            String dateStr = data.taskDate?.toString() ?? "";
+
+                            DateTime? dateTime;
+                            try {
+                              if (dateStr.isNotEmpty) {
+                                dateTime = DateFormat('dd-MM-yyyy').parse(dateStr);
+                              }
+                            } catch (e) {
+                              print("Invalid Date => $dateStr");
+                              return const SizedBox();
+                            }
+
+                            if (dateTime == null) {
+                              return const SizedBox();
+                            }
+
+                            var st = dateTime;
+
+                            /// 🔹 Month check
+                            bool isSameMonth =
+                                utils.returnPadLeft(widget.taskPvr.defaultMonth.toString()) ==
+                                    utils.returnPadLeft(st.month.toString());
+
+                            /// 🔹 Date filter check
+                            bool isSameDate =
+                                widget.taskPvr.filterDate == data.taskDate.toString();
+
+                            /// 🔹 FINAL CONDITION
+                            if ((isSameMonth && (widget.taskPvr.filterDate ?? "").isEmpty) ||
+                                (isSameMonth && isSameDate)) {
+                              return dataList(kIsWeb ? webWidth : phoneWidth, data);
+                            }
+
+                            return const SizedBox();
+                          },
+                        ),
                       )
                       :CustomText(text: "\n\nNo tasks found", colors: colorsConst.secondary, size: 14,),
                       30.height
