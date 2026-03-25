@@ -125,12 +125,23 @@ class _TaskChatState extends State<TaskChat> with SingleTickerProviderStateMixin
     timer?.cancel();
 
     final path = await _audioRecorder.stop();
-    print("Recorded Path: $path");   // 👈 add this
+    print("Recorded Path: $path");
 
-    setState(() {
-      isRecording = false;
-      recordedPath = path;
-    });
+    if (path != null) {
+      setState(() {
+        isRecording = false;
+        recordedPath = path;
+        currentPosition = Duration.zero;
+      });
+
+      // 🔥 audio load பண்ணு
+      await _audioPlayer.play(DeviceFileSource(path));
+      await _audioPlayer.pause(); // play செய்யாம duration மட்டும் எடுக்க
+    } else {
+      setState(() {
+        isRecording = false;
+      });
+    }
   }
   Future<void> playAudio() async {
     if (recordedPath != null) {
@@ -355,8 +366,10 @@ class _TaskChatState extends State<TaskChat> with SingleTickerProviderStateMixin
                     ),
                   ),
                   IconButton(
-                    icon: Icon(isRecording ? Icons.stop : Icons.mic, color: Colors.green),
+                  icon: Icon(isRecording ? Icons.stop : Icons.mic, color: Colors.green),
+                  //  icon: Icon(Icons.mic, color: Colors.green),
                     onPressed: () {
+                     // startRecording();
                       if (isRecording) {
                         stopRecording();
                       } else {
@@ -442,60 +455,52 @@ class _TaskChatState extends State<TaskChat> with SingleTickerProviderStateMixin
                         backgroundColor: colorsConst.primary,
                         elevation: 2,
                       ),
-                      onPressed: () async {
-                        _myFocusScopeNode.unfocus();
-                        if (custProvider.disPoint.text.trim().isEmpty &&
-                            // custProvider.recordedAudioPaths.isEmpty) {
-                            recordedPath==null) {
-                          utils.showWarningToast(
-                            context,
-                            text: "Type a comment or record audio",
-                          );
-                          return;
-                        }
-                        isRecording=false;
-                        /// ✅ Get last comment creator safely
+      onPressed: () async {
+      _myFocusScopeNode.unfocus();
 
-                        // print("BottomSheet LastCreatedBy => $lastCreatedBy");
-                        // print("CreatedEId lastCreatedBy : ${lastCreatedBy}");
-                        if(widget.isVisit==true){
-                        print("innn");
-                          // print("created lastCreatedBy:${ lastCreatedBy}");
-                          await custProvider.addComment(context: context,visitId: widget.taskId.toString(),
-                              companyName: widget.name,companyId:"", numberList: [], taskId: "0",
-                            createdBy: widget.createdBy.toString(), assignedId: widget.assignedId.toString(),
-                            path:recordedPath==null?"":recordedPath.toString(),);
-                        WidgetsBinding.instance.addPostFrameCallback((_) {
-                          Provider.of<TaskProvider>(context, listen: false).scrollToBottom();
-                        });
+      // ❗ recording நடக்குது → முதலில் stop
+      if (isRecording) {
+      await stopRecording();
+      return; // ❗ இங்கே return பண்ணணும்
+      }
 
-                        }else{
-                          print("inn");
-                          await custProvider.tComment(
-                            context: context,
-                            taskId: widget.taskId.toString(),
-                            assignedId: widget.assignedId.toString(),path:recordedPath==null?"":recordedPath.toString(),
-                          );
-                          WidgetsBinding.instance.addPostFrameCallback((_) {
-                            Provider.of<TaskProvider>(context, listen: false).scrollToBottom();
-                          });
-                        }
+      // ❗ empty check
+      if (custProvider.disPoint.text.trim().isEmpty && recordedPath == null) {
+      utils.showWarningToast(
+      context,
+      text: "Type a comment or record audio",
+      );
+      return;
+      }
 
-                        setState(() {
-                          recordedPath=null;
-                        });
-                        // Future.microtask(() {
-                        //   if (_scrollController.hasClients) {
-                        //     _scrollController.animateTo(
-                        //       _scrollController.position.maxScrollExtent,
-                        //       duration: const Duration(milliseconds: 300),
-                        //       curve: Curves.easeOut,
-                        //     );
-                        //   }
-                        // });
-                      },
-                      child: const Icon(
-                        Icons.send,
+      // ✅ SEND
+      if(widget.isVisit==true){
+      await custProvider.addComment(
+      context: context,
+      visitId: widget.taskId.toString(),
+      companyName: widget.name,
+      companyId:"",
+      numberList: [],
+      taskId: "0",
+      createdBy: widget.createdBy.toString(),
+      assignedId: widget.assignedId.toString(),
+      path: recordedPath ?? "",
+      );
+      } else {
+      await custProvider.tComment(
+      context: context,
+      taskId: widget.taskId.toString(),
+      assignedId: widget.assignedId.toString(),
+      path: recordedPath ?? "",
+      );
+      }
+
+      setState(() {
+      recordedPath = null;
+      });
+      },
+                      child: Icon(
+                        isRecording ? Icons.stop : Icons.send,
                         color: Colors.white,
                         size: 20,
                       ),

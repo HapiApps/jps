@@ -286,13 +286,13 @@ class CustomerProvider with ChangeNotifier{
           Provider.of<TaskProvider>(context, listen: false).scrollToBottom();
           /// ✅ notifications (delay → no lag)
           Future.delayed(const Duration(milliseconds: 300), () {
-
+                print("Print chat$taskId");
             String role = localData.storage.read("role");
 
             try {
 
               if (role == "1") {
-
+                print("Print chat$taskId");
                 Provider.of<EmployeeProvider>(context, listen: false)
                     .sendSomeUserNotification(
                   "${disPoint.text.trim()} Added by ${localData.storage.read("f_name")}",
@@ -302,13 +302,13 @@ class CustomerProvider with ChangeNotifier{
                 );
 
               } else {
-
+                print("Print chat$taskId");
                 Provider.of<EmployeeProvider>(context, listen: false)
                     .sendAdminNotification(
                   "${localData.storage.read("f_name")} replied to task feedback",
                   disPoint.text.trim(),
                   assignedId,
-                  "1",
+                  taskId,
                   taskId,
                 );
               }
@@ -722,6 +722,18 @@ void changeState(dynamic value){
     localData.storage.write("lead_id", leadType["id"]);
 
     notifyListeners();
+  }
+  void changeLeadType1(Object? value) {
+    try {
+      final selected = leadCategoryList.firstWhere(
+            (e) => e['id'].toString() == value.toString(),
+      );
+
+      leadType = selected;
+      notifyListeners();
+    } catch (e) {
+      print("LeadType not found");
+    }
   }
   void changeCallType1(dynamic value) {
     callType = value.toString();

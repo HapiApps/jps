@@ -1757,6 +1757,7 @@ Future<void> getNotifications({bool markSeen = false}) async {
         "id": filteredId,
         "platform": safeStr(localData.storage.read("platform")),
         "purpose_id": purposeId.isNotEmpty ? purposeId : "0",
+        "task_id": purposeId.isNotEmpty ? purposeId : "0",
         "sender_name": localData.storage.read("f_name"),
       };
 
@@ -1776,7 +1777,8 @@ Future<void> getNotifications({bool markSeen = false}) async {
       String msgTittle,
       String msgBody,
       String id,
-      String purposeId) async
+      String purposeId)
+  async
   {
 
     try {
@@ -1796,6 +1798,7 @@ Future<void> getNotifications({bool markSeen = false}) async {
         "id": id,
         "platform": safeStr(localData.storage.read("platform")),
         "purpose_id": purposeId.isNotEmpty ? purposeId : "0",
+        "task_id": purposeId.isNotEmpty ? purposeId : "0",
         "sender_name": localData.storage.read("f_name"),
       };
 
@@ -1811,32 +1814,7 @@ Future<void> getNotifications({bool markSeen = false}) async {
 
     notifyListeners();
   }
-  Future<void> sendUserNotification(String msgTittle,String msgBody,String id) async {
-    try {
-      Map<String,String> data = {
-        "action": userNotification,
-        "msgTittle": msgTittle,
-        "msgBody": msgBody,
-        "send_by": safeStr(localData.storage.read("id")),
-        "id": id,
-        "platform": safeStr(localData.storage.read("platform")),
-      };
-      final response = await empRepo.notification(data);
-      if (response.isNotEmpty) {
-        // utils.showSuccessToast(context: context,text: "Account deleted successfully",);
-        // LocalDatabase.deleteDb();
-        // utils.navigatePage(context,()=>const LoginPage());
-        // loginCtr.reset();
-      } else {
-        // utils.showErrorToast(context: context);
-        // loginCtr.reset();
-      }
-    }catch(e){
-      // utils.showErrorToast(context: context);
-      // loginCtr.reset();
-    }
-    notifyListeners();
-  }
+
   Future<void> sendAdminNotification(String msgTittle,String msgBody,String role,String purposeId,String assignedId) async
   {
     Map<String,String> data = {
@@ -1866,6 +1844,32 @@ Future<void> getNotifications({bool markSeen = false}) async {
     notifyListeners();
   }
 
+  Future<void> sendUserNotification(String msgTittle,String msgBody,String id) async {
+    try {
+      Map<String,String> data = {
+        "action": userNotification,
+        "msgTittle": msgTittle,
+        "msgBody": msgBody,
+        "send_by": safeStr(localData.storage.read("id")),
+        "id": id,
+        "platform": safeStr(localData.storage.read("platform")),
+      };
+      final response = await empRepo.notification(data);
+      if (response.isNotEmpty) {
+        // utils.showSuccessToast(context: context,text: "Account deleted successfully",);
+        // LocalDatabase.deleteDb();
+        // utils.navigatePage(context,()=>const LoginPage());
+        // loginCtr.reset();
+      } else {
+        // utils.showErrorToast(context: context);
+        // loginCtr.reset();
+      }
+    }catch(e){
+      // utils.showErrorToast(context: context);
+      // loginCtr.reset();
+    }
+    notifyListeners();
+  }
 String addressId="";
 String oldImage="";
 String oldImage2="";

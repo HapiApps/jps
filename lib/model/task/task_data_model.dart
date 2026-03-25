@@ -27,6 +27,7 @@ class TaskData {
   /// 🔥 NEW FIELDS
   final String? commentCount;
   final String? lastComment;
+  final String? lastCommentBy;
   final String? allComments;
 
   TaskData({
@@ -57,6 +58,7 @@ class TaskData {
     /// 🔥 NEW
     this.commentCount,
     this.lastComment,
+    this.lastCommentBy,
     this.allComments,
   });
 
@@ -89,6 +91,7 @@ class TaskData {
       /// 🔥 NEW
       commentCount: json['comment_count']?.toString(),
       lastComment: json['last_comment'],
+      lastCommentBy: json['last_comment_by'],
       allComments: json['all_comments'],
     );
   }
@@ -121,6 +124,7 @@ class TaskData {
       /// 🔥 NEW
       'comment_count': commentCount,
       'last_comment': lastComment,
+      'last_comment_by': lastCommentBy,
       'all_comments': allComments,
     };
   }

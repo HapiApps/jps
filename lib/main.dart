@@ -755,66 +755,91 @@ Future<void> main() async {
     );
     FlutterForegroundTask.setTaskHandler(MyTaskHandler());
 
-    // ❌ கீழே இருந்த duplicate initialize அமைப்புகள் நீக்கப்பட்டுவிட்டன.
-    /*
-    const AndroidInitializationSettings initializationSettingsAndroid =
-    AndroidInitializationSettings('@mipmap/ic_launcher');
-    // ... (மற்ற initialize அமைப்புகள்) ...
-    await flutterLocalNotificationsPlugin.initialize(initializationSettings); // இந்த வரி நீக்கப்பட்டுவிட்டது
-    */
 
     /// ******************************
     ///     FOREGROUND MESSAGE
     /// ******************************
     FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
-        print("FOREGROUND Message: ${message.data}");
+      print("FOREGROUND Message: ${message.data}");
 
-        // 🔔 நோட்டிஃபிகேஷன் வரும்போதே print ஆகும்
-        final context = navigatorKey.currentContext;
+      final context = navigatorKey.currentContext;
 
-        if (context != null) {
-          final provider = Provider.of<EmployeeProvider>(context, listen: false);
-          provider.getNotifications();
-        }
+      // 🔔 notification list refresh
+      if (context != null) {
+        final empProvider =
+        Provider.of<EmployeeProvider>(context, listen: false);
+        empProvider.getNotifications();
+      }
 
-        final title =
-            message.notification?.title ?? message.data['title'] ?? 'Notification';
-        final body = message.notification?.body ?? message.data['body'] ?? '';
-        final name = message.data['name'] ?? '';
+      // ✅ SAFE DATA READ
+      final title =
+          message.notification?.title ?? message.data['title'] ?? 'Notification';
 
-        const AndroidNotificationDetails androidDetails =
-        AndroidNotificationDetails(
-          'JPS',
-          'JPS',
-          importance: Importance.max,
-          priority: Priority.high,
-          playSound: true,
-          enableVibration: true,
-          icon: '@mipmap/ic_launcher',
+      final body =
+          message.notification?.body ?? message.data['body'] ?? '';
+
+      final name = message.data['name'] ?? '';
+
+      // 🔥 முக்கியம் (both keys support)
+      final taskId =
+          message.data['task_id'] ?? message.data['purpose_id'] ?? "";
+
+      print("CHAT TASK ID => $taskId");
+      print("FULL DATA => ${message.data}");
+      // ✅ CHAT AUTO REFRESH
+      if (context != null && taskId.isNotEmpty) {
+        final customerProvider =
+        Provider.of<CustomerProvider>(context, listen: false);
+        final taskProvider =
+        Provider.of<TaskProvider>(context, listen: false);
+        // ❗ only same chat screen update
+
+          // ❗ backend delay handle
+          await Future.delayed(const Duration(milliseconds: 500));
+
+          await customerProvider.getTaskComments(taskId);
+
+          // scroll bottom
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            taskProvider.scrollToBottom();
+          });
+
+      }
+
+      /// 🔔 LOCAL NOTIFICATION
+      const AndroidNotificationDetails androidDetails =
+      AndroidNotificationDetails(
+        'JPS',
+        'JPS',
+        importance: Importance.max,
+        priority: Priority.high,
+        playSound: true,
+        enableVibration: true,
+        icon: '@mipmap/ic_launcher',
+      );
+
+      const NotificationDetails platformDetails =
+      NotificationDetails(android: androidDetails);
+
+      if (title.toString().contains("A new task has been assigned")) {
+        await flutterLocalNotificationsPlugin.show(
+          message.hashCode,
+          body,
+          "Created by $name .Task",
+          platformDetails,
+          payload: jsonEncode(message.data),
         );
-
-        const NotificationDetails platformDetails = NotificationDetails(android: androidDetails);
-
-        // நோட்டிஃபிகேஷன் காண்பிக்கப்படுகிறது
-        if(title.toString().contains("A new task has been assigned")){
-          await flutterLocalNotificationsPlugin.show(
-            message.hashCode,
-            body,
-            // title,
-            "Created by $name .Task",
-            platformDetails,
-            payload: jsonEncode(message.data), // payload சேர்க்கப்பட்டுள்ளது
-          );
-        }else{
-          await flutterLocalNotificationsPlugin.show(
-            message.hashCode,
-            body,
-            title,
-            platformDetails,
-            payload: jsonEncode(message.data), // payload சேர்க்கப்பட்டுள்ளது
-          );
-        }
-    });
+      } else {
+        await flutterLocalNotificationsPlugin.show(
+          message.hashCode,
+          body,
+          title,
+          platformDetails,
+          payload: jsonEncode(message.data),
+        );
+      }
+    }
+    );
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
       if (message.notification?.title
           ?.contains("task") ??

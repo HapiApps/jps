@@ -267,9 +267,11 @@ class _CusAddVisitState extends State<CusAddVisit> with TickerProviderStateMixin
                               width: kIsWeb?webWidth:phoneWidth,
                               hintText: constValue.leadStatus,
                               list: custProvider.leadCategoryList,
-                              saveValue: custProvider.leadType?["id"],
+                              saveValue: custProvider.leadType == null
+                                  ? null
+                                  : custProvider.leadType["id"].toString(),
                               onChanged: (Object? value) {
-                                custProvider.changeLeadType(value);
+                                custProvider.changeLeadType1(value);
                               },
                               dropText: 'value',),
                             MapDropDown(

@@ -284,22 +284,34 @@ class _AddVisitState extends State<AddVisit> with TickerProviderStateMixin {
                               ),
                             ),
                             10.height,
-                            MapDropDown(isRequired:true,
-                              width: kIsWeb?webWidth:phoneWidth,
+                            MapDropDown(
+                              isRequired: true,
+                              width: kIsWeb ? webWidth : phoneWidth,
                               hintText: constValue.contactName,
-                              list: widget.isDirect==false?widget.numberList:sendList,
-                              saveValue: custProvider.selectCustomer,
+                              list: widget.isDirect == false ? widget.numberList : sendList,
+
+                              // ✅ save only id
+                              saveValue: custProvider.selectCustomer?["id"],
+
                               onChanged: (Object? value) {
                                 setState(() {
-                                  custProvider.selectCustomer=value!;
-                                  var list=[];
-                                  list.add(value);
-                                  localData.storage.write("c_id",list[0]["id"]);
-                                  localData.storage.write("c_no",list[0]["no"]);
-                                  localData.storage.write("c_name",list[0]["name"]);
+
+                                  // 🔥 find full object from list
+                                  final selected = (widget.isDirect == false
+                                      ? widget.numberList
+                                      : sendList)
+                                      .firstWhere((e) => e["id"].toString() == value.toString());
+
+                                  custProvider.selectCustomer = selected;
+
+                                  localData.storage.write("c_id", selected["id"]);
+                                  localData.storage.write("c_no", selected["no"]);
+                                  localData.storage.write("c_name", selected["name"]);
                                 });
                               },
-                              dropText: 'name',),
+
+                              dropText: 'name',
+                            ),
                             ///
                             // MaxLineTextField(isRequired:true,
                             //   text: constValue.disPoints,

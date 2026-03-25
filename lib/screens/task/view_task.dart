@@ -1164,6 +1164,11 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
+                            Text(
+                              "  (last comment by ${data.lastCommentBy})" ?? "",
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ],
                         ),
                         GestureDetector(onTap: (){
