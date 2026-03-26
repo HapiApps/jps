@@ -21,6 +21,7 @@ class TaskData {
   final String? assigned;
   final String? companyId;
   final String? role;
+  final String? hasVoice;
   final String? visitReportCount;
   final String? expenseReportCount;
 
@@ -30,7 +31,8 @@ class TaskData {
   final String? lastCommentBy;
   final String? allComments;
 
-  TaskData({
+  TaskData(
+    {
     this.id,
     this.taskTitle,
     this.projectName,
@@ -60,7 +62,8 @@ class TaskData {
     this.lastComment,
     this.lastCommentBy,
     this.allComments,
-  });
+      this.hasVoice,
+    });
 
   factory TaskData.fromJson(Map<String?, dynamic> json) {
     return TaskData(
@@ -93,6 +96,7 @@ class TaskData {
       lastComment: json['last_comment'],
       lastCommentBy: json['last_comment_by'],
       allComments: json['all_comments'],
+      hasVoice: json['has_voice']?.toString(),
     );
   }
 
@@ -126,6 +130,7 @@ class TaskData {
       'last_comment': lastComment,
       'last_comment_by': lastCommentBy,
       'all_comments': allComments,
+      'has_voice': hasVoice,
     };
   }
 }

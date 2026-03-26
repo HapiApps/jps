@@ -106,23 +106,22 @@ class _VisitReportState extends State<VisitReport> with SingleTickerProviderStat
                           color: Colors.transparent,
                           radius: 5
                       ),
-                      child: TabBar(
-                        indicatorSize: TabBarIndicatorSize.tab,
-                        indicatorWeight: 0,
-                        indicator: customDecoration.baseBackgroundDecoration(
-                            color: Colors.white,
-                            borderColor: colorsConst.primary,
-                            radius: 5
-                        ),
-                        labelColor: Colors.green,
-                        unselectedLabelColor: Colors.green,
+                      child:TabBar(
                         controller: tabController,
-                        tabs:  const [
-                          Tab(child:CustomText(text: "Visits")),
-                          Tab(child:CustomText(text: "Reports")),
-
+                        indicator: BoxDecoration(
+                          color: colorsConst.primary,
+                          borderRadius: BorderRadius.circular(25),
+                        ),
+                        indicatorSize: TabBarIndicatorSize.tab,
+                        labelColor: Colors.white,
+                        unselectedLabelColor: colorsConst.primary,
+                        labelStyle: const TextStyle(fontWeight: FontWeight.bold),
+                        tabs: const [
+                          Tab(text: "Visits"),
+                          Tab(text: "Reports"),
                         ],
-                      )
+                      ),
+
                   ),
                   Expanded(
                     child: TabBarView(

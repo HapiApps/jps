@@ -98,7 +98,8 @@ class _AttendanceReportState extends State<AttendanceReport> {
   Widget build(BuildContext context) {
     var webWidth=MediaQuery.of(context).size.width * 0.5;
     var phoneWidth=MediaQuery.of(context).size.width * 0.95;
-    return Consumer4<AttendanceProvider,EmployeeProvider,HomeProvider,LeaveProvider>(builder: (context,attProvider,empProvider,homeProvider,levPvr,_){
+    return Consumer4<AttendanceProvider,EmployeeProvider,HomeProvider,LeaveProvider>
+      (builder: (context,attProvider,empProvider,homeProvider,levPvr,_){
       return FocusScope(
         node: _myFocusScopeNode,
         child: SafeArea(
@@ -141,7 +142,7 @@ class _AttendanceReportState extends State<AttendanceReport> {
                                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
                                     Container(
-                                      width: attProvider.selectedIndex==0?phoneWidth/1.5:phoneWidth/1.2,
+                                      width: attProvider.selectedIndex==0?phoneWidth/1.5:phoneWidth/1.5,
                                       height: 45,
                                       decoration: customDecoration.baseBackgroundDecoration(
                                         radius: 30,

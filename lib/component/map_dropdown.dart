@@ -170,7 +170,10 @@ class MapDropDown extends StatelessWidget {
                     borderColor: Colors.grey.shade300),
                 child: DropdownButtonHideUnderline(
                   child: DropdownButton(
-                    hint: CustomText(text: hintText, colors: Colors.grey),
+                    hint: Padding(
+                      padding: const EdgeInsets.only(left: 8.0),
+                      child: CustomText(text: hintText, colors: Colors.grey),
+                    ),
                     isExpanded: true,
                     value: saveValue,
                     icon: const Icon(Icons.keyboard_arrow_down_rounded),

@@ -230,7 +230,8 @@ class AttendanceDetails extends StatelessWidget {
                                   mainAxisAlignment: MainAxisAlignment.start,
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    if(localData.storage.read("role") == "1")
+
+                                    if(localData.storage.read("role") == "1" && chunked.isNotEmpty)
                                       SizedBox(
                                         width: kIsWeb ? webWidth/4 : phoneWidth/3,
                                         child: CustomText(
@@ -242,8 +243,6 @@ class AttendanceDetails extends StatelessWidget {
                                     10.height,
                                     Row(
                                       children: [
-
-
                                         SizedBox(
                                           // color: Colors.pink,
                                           width: kIsWeb?webWidth/3:phoneWidth/3,
