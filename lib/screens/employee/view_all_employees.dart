@@ -448,7 +448,7 @@ class _ViewEmployeesState extends State<ViewEmployees> with SingleTickerProvider
                                 ),
                                 child: Padding(
                                   padding: const EdgeInsets.all(6.0),
-                                  child: SvgPicture.asset(assets.filter,width: 15,height: 15,),
+                                  child: SvgPicture.asset(assets.tFilter,width: 15,height: 15,color: colorsConst.primary,),
                                 ),
                               ),
                             ),
