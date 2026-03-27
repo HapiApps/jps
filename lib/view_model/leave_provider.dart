@@ -997,16 +997,26 @@ void changeSetting(){
   void changeReportType(dynamic value){
     _report = value;
   notifyListeners();
-}  void changeLeaveType(dynamic value){
-   _type = value;
-    var list = [];
-    list.add(value);
-    _typeId = list[0]["id"];
-  notifyListeners();
-}  void changeType(dynamic value){
-    _dayType = value;
-  notifyListeners();
 }
+void changeLeaveType(dynamic value) {
+    if (value == null) return;
+
+    _type = value;
+
+    if (value is Map && value.containsKey("id")) {
+      _type = value["id"].toString();
+      print("Selected Value => $value");
+      print("Type ID => $_type");
+    } else {
+      _type = "";
+    }
+
+    notifyListeners();
+  }
+  void changeType(Object? value){
+    _dayType = value.toString();
+    notifyListeners();
+  }
 void changePage(context){
     _settingPage = false;
     _addType=false;
@@ -1593,7 +1603,7 @@ void setList(){
 
         String title = "New Leave Request";
         String body =
-            "${localData.storage.read("f_name")} applied for leave";
+            "${localData.storage.read("f_name")} Requested for leave";
         try {
           await empProvider.sendAdminNotification(
               title,

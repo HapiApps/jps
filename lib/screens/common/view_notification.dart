@@ -17,6 +17,7 @@ import '../../source/constant/colors_constant.dart';
 import '../../source/styles/decoration.dart';
 import '../../source/utilities/utils.dart';
 import '../../view_model/employee_provider.dart';
+import '../../view_model/leave_provider.dart';
 import '../leave_management/leave_dashboard.dart';
 import '../leave_management/leave_report.dart';
 import 'dashboard.dart';
@@ -411,7 +412,7 @@ class _ViewNotificationState extends State<ViewNotification> with SingleTickerPr
                             ? "Feedback":
                         title.toLowerCase().contains("visit report")
                             ? "Visit Report":
-                        title.contains("Requested for")
+                        body.toLowerCase().contains("requested")
                             ? "Leave"
                             : "Task";
                         final sortedData = empProvider.notifyData;
@@ -454,7 +455,12 @@ class _ViewNotificationState extends State<ViewNotification> with SingleTickerPr
                                       DateTime.parse(empProvider.notifyData[index]["created_ts"])),month: "",type: "Today",)));
                                 }else if(type=="Leave"){
                                   if(localData.storage.read("role")=="1"){
-                                    utils.navigatePage(context, ()=>const DashBoard(child: LeaveManagementDashboard()));
+                                    Provider.of<LeaveProvider>(context, listen: false).changeIndex(2);
+
+                                    utils.navigatePage(
+                                        context,
+                                            ()=>const DashBoard(child: LeaveManagementDashboard())
+                                    );
                                   }else{
                                     utils.navigatePage(context, ()=> DashBoard(child: ViewMyLeaves(date1:DateFormat("dd-MM-yyyy").format(
                                         DateTime.parse(empProvider.notifyData[index]["created_ts"])),date2:DateFormat("dd-MM-yyyy").format(

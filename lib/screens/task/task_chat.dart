@@ -73,7 +73,9 @@ class _TaskChatState extends State<TaskChat> with SingleTickerProviderStateMixin
   }
 
   Future<void> _poll() async {
-    if (!mounted || !isPolling) return;
+    if (!mounted || !isPolling || isFetching) return;
+
+    isFetching = true;
 
     try {
       if (widget.isVisit == true) {
@@ -83,18 +85,17 @@ class _TaskChatState extends State<TaskChat> with SingleTickerProviderStateMixin
         await Provider.of<CustomerProvider>(context, listen: false)
             .getTaskComments(widget.taskId, isPolling: true);
       }
-
     } catch (e) {
       print("Polling error: $e");
     }
 
-    // /// 🔥 IMPORTANT delay
-    // await Future.delayed(const Duration(seconds: 2));
-    //
-    // /// ✅ STOP CONDITION
-    // if (mounted && isPolling) {
-    //   _poll();
-   // }
+    isFetching = false;
+
+    await Future.delayed(const Duration(seconds: 3));
+
+    if (mounted && isPolling) {
+      _poll();
+    }
   }
   Future<void> startRecording() async {
     final status = await Permission.microphone.request();
