@@ -338,6 +338,7 @@ class CustomerRepository{
   }
   Future<List> getDashboardReport(Map data) async {
     try{
+      print(data.toString());
       final request = await http.post(Uri.parse(phpFile),
           headers: {
             "Accept": "application/text",
@@ -345,7 +346,7 @@ class CustomerRepository{
           },
           body: jsonEncode(data),
           encoding: Encoding.getByName("utf-8"));
-      print(data.toString());
+
       print(request.body);
       if (request.statusCode == 200){
         List response = json.decode(request.body);

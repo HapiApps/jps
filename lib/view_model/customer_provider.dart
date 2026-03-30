@@ -4054,6 +4054,7 @@ List<Marker> get liveMarker =>_liveMarker;
         "date2": _endDate
       };
       final response =await custRepo.getDashboardReport(data);
+      log("Visit Res $response");
       if (response.isNotEmpty) {
         reportExportEmployeeSectionWise(
           context,

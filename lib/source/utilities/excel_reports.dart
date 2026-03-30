@@ -379,7 +379,7 @@ class ExcelReports {
             absent = int.tryParse(record["absent"]?.toString() ?? "0") ?? 0;
             late = int.tryParse(record["late"]?.toString() ?? "0") ?? 0;
             permission =
-                int.tryParse(record["permission"]?.toString() ?? "0") ?? 0;
+                int.tryParse(record["permission"]!.toString() == "0"? "0" :"1") ?? 0;
 
             leaveCount =
                 int.tryParse(record["leave_count"]?.toString() ?? "0") ?? 0;
@@ -397,7 +397,16 @@ class ExcelReports {
               } catch (e) {}
             }
           }
+          String formatTime12(String? time) {
+            try {
+              if (time == null || time.isEmpty) return "-";
 
+              DateTime parsedTime = DateFormat("HH:mm:ss").parse(time);
+              return DateFormat("hh:mm a").format(parsedTime); // 12-hour format
+            } catch (e) {
+              return time ?? "-";
+            }
+          }
           /// Fill Row Values
           sheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: rowIndex)).value =
               formatDate(d);
@@ -406,10 +415,10 @@ class ExcelReports {
               present;
 
           sheet.cell(CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: rowIndex)).value =
-              record?["in_time"] ?? "-";
+              formatTime12(record?["in_time"]);
 
           sheet.cell(CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: rowIndex)).value =
-              record?["out_time"] ?? "-";
+              formatTime12(record?["out_time"]);
 
           sheet.cell(CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: rowIndex)).value =
               absent;
@@ -421,10 +430,10 @@ class ExcelReports {
               permission;
 
           sheet.cell(CellIndex.indexByColumnRow(columnIndex: 7, rowIndex: rowIndex)).value =
-              record?["per_in"] ?? "-";
+              formatTime12(record?["per_in"]);
 
           sheet.cell(CellIndex.indexByColumnRow(columnIndex: 8, rowIndex: rowIndex)).value =
-              record?["per_out"] ?? "-";
+              formatTime12(record?["per_out"]);
 
           sheet.cell(CellIndex.indexByColumnRow(columnIndex: 9, rowIndex: rowIndex)).value =
               record?["permission_reason"] ?? "-";
@@ -449,22 +458,57 @@ class ExcelReports {
         int totalM = totalMinutes % 60;
 
         /// ================= TOTAL ROW =================
-        sheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: rowIndex)).value =
-        "Total";
-        sheet.cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: rowIndex)).value =
-            totalPresent;
-        sheet.cell(CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: rowIndex)).value =
-            totalAbsent;
+        sheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: rowIndex)).value = "Total";
+
+        /// Present
+        sheet.cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: rowIndex)).value = totalPresent;
+
+        /// In_Time → usually no total
+        sheet.cell(CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: rowIndex)).value = "";
+
+        /// Out_Time → total hours
         sheet.cell(CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: rowIndex)).value =
-            totalLate;
-        sheet.cell(CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: rowIndex)).value =
-            totalPermission;
-        sheet.cell(CellIndex.indexByColumnRow(columnIndex: 5, rowIndex: rowIndex)).value =
-            totalLeave;
-        sheet.cell(CellIndex.indexByColumnRow(columnIndex: 6, rowIndex: rowIndex)).value =
         "";
-        sheet.cell(CellIndex.indexByColumnRow(columnIndex: 7, rowIndex: rowIndex)).value =
-        "${totalH}h ${totalM}m";
+
+        /// Absent
+        sheet.cell(CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: rowIndex)).value = totalAbsent;
+
+        /// Late
+        sheet.cell(CellIndex.indexByColumnRow(columnIndex: 5, rowIndex: rowIndex)).value = totalLate;
+
+        /// Permission
+        sheet.cell(CellIndex.indexByColumnRow(columnIndex: 6, rowIndex: rowIndex)).value = totalPermission;
+
+        /// Permission In → (optional count if needed)
+        sheet.cell(CellIndex.indexByColumnRow(columnIndex: 7, rowIndex: rowIndex)).value = "";
+
+        /// Permission Out → (optional)
+        sheet.cell(CellIndex.indexByColumnRow(columnIndex: 8, rowIndex: rowIndex)).value = "";
+
+        /// Permission Reason
+        sheet.cell(CellIndex.indexByColumnRow(columnIndex: 9, rowIndex: rowIndex)).value = "";
+
+        /// Leave
+        sheet.cell(CellIndex.indexByColumnRow(columnIndex: 10, rowIndex: rowIndex)).value = totalLeave;
+
+        /// Leave Reason
+        sheet.cell(CellIndex.indexByColumnRow(columnIndex: 11, rowIndex: rowIndex)).value = "";
+        // sheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: rowIndex)).value =
+        // "Total";
+        // sheet.cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: rowIndex)).value =
+        //     totalPresent;
+        // sheet.cell(CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: rowIndex)).value =
+        //     totalAbsent;
+        // sheet.cell(CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: rowIndex)).value =
+        //     totalLate;
+        // sheet.cell(CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: rowIndex)).value =
+        //     totalPermission;
+        // sheet.cell(CellIndex.indexByColumnRow(columnIndex: 5, rowIndex: rowIndex)).value =
+        //     totalLeave;
+        // sheet.cell(CellIndex.indexByColumnRow(columnIndex: 6, rowIndex: rowIndex)).value =
+        // "";
+        // sheet.cell(CellIndex.indexByColumnRow(columnIndex: 7, rowIndex: rowIndex)).value =
+        // "${totalH}h ${totalM}m";
 
         /// Total Row Style
         for (int col = 0; col <= 7; col++) {

@@ -87,6 +87,7 @@ class _AttendanceReportState extends State<AttendanceReport> {
     "Leave",
     "Permission",
   ];
+  bool isLoading = false;
   @override
   void dispose() {
     _myFocusScopeNode.dispose();
@@ -452,36 +453,46 @@ class _AttendanceReportState extends State<AttendanceReport> {
                                 ),),
                               // if(attProvider.selectedIndex==0)
                               GestureDetector(
-                                  onTap: (){
-                                    if(attProvider.userName!=""){
-                                      // excelReports.exportUserAttendanceToExcel(context,
-                                      //     chunked: attProvider.getDailyAttendance,
-                                      //     date: "${attProvider.startDate} ${attProvider.startDate==attProvider.endDate?"":"To ${attProvider.endDate}"}");
+                                  onTap: () async {
+                                    if (isLoading) return;
 
-                                      excelReports.downloadAttendanceExcelReport(
+                                    setState(() {
+                                      isLoading = true;
+                                    });
+
+                                    try {
+                                      if (attProvider.userName != "") {
+                                        await excelReports.downloadAttendanceExcelReport(
                                           context,
-                                          stDate:attProvider.startDate, enDate: attProvider.endDate
-                                      );
-                                    }else{
-                                      // excelReports.exportAttendanceToExcel(context,chunked: attProvider.getDailyAttendance, date: "${attProvider.startDate} ${attProvider.startDate==attProvider.endDate?"":"To ${attProvider.endDate}"}");
-                                      // excelReports.exportAttendanceSingleSheetExcel(
-                                      //     context,
-                                      //     presentList: attProvider.getDailyAttendance,
-                                      //     absentList: attProvider.noAttendanceList,
-                                      //     leaveList: levPvr.myLevSearch,
-                                      //     lateList: attProvider.getDailyAttendance
-                                      //         .where((e) => isLate(e.time ?? ""))
-                                      //         .toList(),
-                                      //     permissionList: attProvider.getDailyAttendance.where((e) => e.perStatus != "null").toList(),
-                                      //     date: "${attProvider.startDate} ${attProvider.startDate==attProvider.endDate?"":"To ${attProvider.endDate}"}"
-                                      // );
-                                      excelReports.downloadAttendanceExcelReport(
+                                          stDate: attProvider.startDate,
+                                          enDate: attProvider.endDate,
+                                        );
+                                      } else {
+                                        await excelReports.downloadAttendanceExcelReport(
                                           context,
-                                          stDate:attProvider.startDate, enDate: attProvider.endDate
-                                      );
+                                          stDate: attProvider.startDate,
+                                          enDate: attProvider.endDate,
+                                        );
+                                      }
+                                    } catch (e) {
+                                      print("Download Error: $e");
+                                    } finally {
+                                      setState(() {
+                                        isLoading = false;
+                                      });
                                     }
-                                    },
-                                  child: SvgPicture.asset(assets.tDownload,width: 27,height: 27,)),
+                                  },
+                                child: isLoading
+                                    ? SizedBox(
+                                  width: 27,
+                                  height: 27,
+                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                )
+                                    : SvgPicture.asset(
+                                  assets.tDownload,
+                                  width: 27,
+                                  height: 27,
+                                ),),
                             ],
                           ),
                         if(localData.storage.read("role") !="1")

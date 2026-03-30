@@ -1,5 +1,5 @@
- // const String domain="https://aci.hrides.in"; //pro
- const String domain="https://thirumald.hapirides.in";  //dev
+  const String domain="https://aci.hrides.in"; //pro
+ //const String domain="https://thirumald.hapirides.in";  //dev
 
 const String path="ACI";
 const String scriptFile="script.php";
