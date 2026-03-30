@@ -12,6 +12,10 @@ import '../../model/attendance_model.dart';
 import 'package:syncfusion_flutter_xlsio/xlsio.dart' hide Column, Row, CellStyle;
 import 'package:universal_html/html.dart' show AnchorElement;
 import 'package:flutter/foundation.dart' show kIsWeb;
+
+import '../../repo/customer_repo.dart';
+import '../constant/api.dart';
+import '../constant/local_data.dart';
 // import 'dart:html' as html;  // Only used in web
 
 final ExcelReports excelReports = ExcelReports._();
@@ -19,6 +23,7 @@ final ExcelReports excelReports = ExcelReports._();
 class ExcelReports {
   ExcelReports._();
   String appColor="#45377D";
+  final CustomerRepository custRepo = CustomerRepository();
   Future<void> exportAttendanceToExcel(context,{required List<AttendanceModel> chunked, required String date}) async {
     try{
       // chunked.sort((a, b) =>
@@ -217,20 +222,50 @@ class ExcelReports {
     }
   }
   //
-  Future<void> exportFullAttendanceExcel(
+  Future<void> downloadAttendanceExcelReport(context,{required String stDate, required String enDate}) async {
+    try {
+      Map data = {
+        "action": getAllData,
+        "search_type": "attendance_report_full",
+        "salesman_id": localData.storage.read("id"),
+        "role": localData.storage.read("role"),
+        "cos_id": localData.storage.read("cos_id"),
+        "st_dt": stDate,
+        "en_dt": enDate,
+      };
+
+      final response = await custRepo.getDashboardReport(data);
+      print("Attendance Report $response");
+      if (response.isNotEmpty) {
+        exportAttendanceSingleSheetExcel(
+          context,
+          attendanceList: response,
+          leaveList: [],
+          startDate: stDate,
+          endDate: enDate,
+        );
+      } else {
+        utils.showWarningToast(context, text: "No data found");
+      }
+    } catch (e) {
+      print("Attendance Excel Error => $e");
+      utils.showWarningToast(context, text: "Something went wrong");
+    }
+  }
+  Future<void> exportAttendanceSingleSheetExcel(
       context, {
-        required List<AttendanceModel> presentList,
-        required List<AttendanceModel> absentList,
-        required List<AttendanceModel> lateList,
-        required List<AttendanceModel> permissionList,
-        required List<dynamic> leaveList,
-        required String date,
+        required List attendanceList,
+        required List leaveList,
+        required String startDate,
+        required String endDate,
       }) async {
     try {
       var excel = Excel.createExcel();
       excel.delete('Sheet1');
 
-      /// ================= DATE =================
+      Sheet sheet = excel["Sheet1"];
+
+      /// ================= DATE FORMAT =================
       String formatDate(String? input) {
         try {
           if (input == null || input.isEmpty) return "-";
@@ -240,312 +275,538 @@ class ExcelReports {
         }
       }
 
-      /// ================= TIME PARSER =================
-      DateTime parseTime(String input) {
-        if (input.toLowerCase().contains("am") ||
-            input.toLowerCase().contains("pm")) {
-          return DateFormat("hh:mm a").parse(input.toUpperCase());
-        } else if (input.split(":").length == 3) {
-          return DateFormat("HH:mm:ss").parse(input);
-        } else {
-          return DateFormat("HH:mm").parse(input);
-        }
-      }
-
-      /// ================= FORMAT TIME =================
-      String formatTime(String? input) {
-        try {
-          if (input == null || input.isEmpty) return "-";
-          return DateFormat("hh:mm a").format(parseTime(input));
-        } catch (e) {
-          return "-";
-        }
-      }
-
-      /// ================= TOTAL HOURS =================
-      String getTimeDiff(String? start, String? end) {
-        try {
-          if (start == null || end == null || start.isEmpty || end.isEmpty) {
-            return "0h 0m";
-          }
-
-          DateTime s = parseTime(start);
-          DateTime e = parseTime(end);
-
-          /// 🔥 FIX negative issue
-          if (e.isBefore(s)) {
-            final temp = s;
-            s = e;
-            e = temp;
-          }
-
-          final diff = e.difference(s);
-          return "${diff.inHours}h ${diff.inMinutes % 60}m";
-        } catch (e) {
-          return "0h 0m";
-        }
-      }
-
-      /// ================= LATE =================
-      Map<String, dynamic> getLateInfo(String inTime) {
-        try {
-          final office = parseTime("09:00 AM");
-          final user = parseTime(inTime);
-
-          if (user.isAfter(office)) {
-            final diff = user.difference(office);
-            return {
-              "minutes": diff.inMinutes,
-              "text": "${diff.inMinutes} mins"
-            };
-          }
-          return {"minutes": 0, "text": "0 mins"};
-        } catch (e) {
-          return {"minutes": 0, "text": "-"};
-        }
-      }
-
-      /// ================= STYLE =================
+      /// ================= HEADER STYLE =================
       CellStyle headerStyle = CellStyle(
         bold: true,
         backgroundColorHex: "#45377D",
         fontColorHex: "#FFFFFF",
+        horizontalAlign: HorizontalAlign.Center,
       );
 
-      /// ============================================================
-      /// ✅ PRESENT
-      /// ============================================================
-      Sheet presentSheet = excel["Present"];
+      CellStyle titleStyle = CellStyle(
+        bold: true,
+        horizontalAlign: HorizontalAlign.Left,
+      );
 
-      presentSheet.appendRow([
-        "Date", "Name", "Role", "In Time", "Out Time", "Total Hours"
-      ]);
+      CellStyle totalStyle = CellStyle(
+        bold: true,
+        backgroundColorHex: "#FFF2CC",
+      );
 
-      for (int i = 0; i < 6; i++) {
-        presentSheet
-            .cell(CellIndex.indexByColumnRow(columnIndex: i, rowIndex: 0))
-            .cellStyle = headerStyle;
+      /// ================= GROUP EMPLOYEE WISE =================
+      Set<String> employeeSet = {};
+      Set<String> dateSet = {};
+
+      for (var item in attendanceList) {
+        if (item["firstname"] != null) employeeSet.add(item["firstname"]);
+        if (item["date"] != null) dateSet.add(item["date"]);
       }
 
-      for (var data in presentList) {
-        String inTime = "";
-        String outTime = "";
+      List<String> employees = employeeSet.toList()..sort();
+      List<String> dates = dateSet.toList()..sort();
 
-        final times = (data.time ?? "").split(",");
+      int rowIndex = 0;
 
-        if (data.status.toString().contains("1,2")) {
-          inTime = times.isNotEmpty ? times[0].trim() : "";
-          outTime = times.length > 1 ? times[1].trim() : "";
-        } else if (data.status.toString().contains("2,1")) {
-          inTime = times.length > 1 ? times[1].trim() : "";
-          outTime = times.isNotEmpty ? times[0].trim() : "";
-        } else {
-          inTime = times.isNotEmpty ? times[0].trim() : "";
-        }
+      for (String emp in employees) {
+        /// ================= TITLE ROW =================
+        sheet
+            .cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: rowIndex))
+            .value = "$emp - Employee ( $startDate to $endDate ) Attendance Report";
 
-        String total = getTimeDiff(inTime, outTime);
+        /// merge A to H
+        sheet.merge(
+          CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: rowIndex),
+          CellIndex.indexByColumnRow(columnIndex: 7, rowIndex: rowIndex),
+        );
 
-        presentSheet.appendRow([
-          formatDate(data.date),
-          data.firstname ?? "-",
-          data.role ?? "-",
-          formatTime(inTime),
-          formatTime(outTime),
-          total,
-        ]);
-      }
+        sheet
+            .cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: rowIndex))
+            .cellStyle = titleStyle;
 
-      /// ============================================================
-      /// ❌ ABSENT
-      /// ============================================================
-      Sheet absentSheet = excel["Absent"];
+        rowIndex++;
 
-      absentSheet.appendRow(["Date", "Name", "Role"]);
+        /// ================= HEADER ROW =================
+        List headers = [
+          "Date",
+          "present",
+          "absent",
+          "late",
+          "permission",
+          "Leave",
+          "Reason",
+          "Total Hour"
+        ];
 
-      for (int i = 0; i < 3; i++) {
-        absentSheet
-            .cell(CellIndex.indexByColumnRow(columnIndex: i, rowIndex: 0))
-            .cellStyle = headerStyle;
-      }
+        for (int col = 0; col < headers.length; col++) {
+          sheet
+              .cell(CellIndex.indexByColumnRow(columnIndex: col, rowIndex: rowIndex))
+              .value = headers[col];
 
-      for (var data in absentList) {
-        absentSheet.appendRow([
-          formatDate(data.missingDate),
-          data.firstname ?? "-",
-          data.role ?? "-",
-        ]);
-      }
-
-      /// ============================================================
-      /// ⏰ LATE
-      /// ============================================================
-      Sheet lateSheet = excel["Late"];
-
-      lateSheet.appendRow([
-        "Date","Name","Role","In Time","Out Time","Total Hours","Late By"
-      ]);
-
-      for (int i = 0; i < 7; i++) {
-        lateSheet
-            .cell(CellIndex.indexByColumnRow(columnIndex: i, rowIndex: 0))
-            .cellStyle = headerStyle;
-      }
-
-      for (var data in lateList) {
-        String inTime = "";
-        String outTime = "";
-
-        final times = (data.time ?? "").split(",");
-
-        if (times.isNotEmpty) inTime = times[0];
-        if (times.length > 1) outTime = times[1];
-
-        String total = getTimeDiff(inTime, outTime);
-        String lateBy =
-        inTime.isNotEmpty ? getLateInfo(inTime)["text"] : "0 mins";
-
-        lateSheet.appendRow([
-          formatDate(data.date),
-          data.firstname ?? "-",
-          data.role ?? "-",
-          formatTime(inTime),
-          formatTime(outTime),
-          total,
-          lateBy,
-        ]);
-      }
-
-      /// ============================================================
-      /// 🟡 PERMISSION
-      /// ============================================================
-      List<List<dynamic>> permissionRows = [];
-
-      /// manual permission
-      for (var data in permissionList) {
-        String start = "-";
-        String end = "-";
-        String mins = "-";
-
-        if (data.perCreatedTs != null &&
-            data.perCreatedTs.toString().contains(",")) {
-          final parts = data.perCreatedTs?.split(",");
-
-          try {
-            DateTime s = DateTime.parse(parts![0]);
-            DateTime e = DateTime.parse(parts![1]);
-
-            start = DateFormat("hh:mm a").format(s);
-            end = DateFormat("hh:mm a").format(e);
-            mins = e.difference(s).inMinutes.toString();
-          } catch (e) {}
-        }
-
-        permissionRows.add([
-          data.firstname ?? "-",
-          data.role ?? "-",
-          start,
-          end,
-          mins,
-          data.perReason ?? "-",
-        ]);
-      }
-
-      /// late → permission
-      for (var data in lateList) {
-        final times = (data.time ?? "").split(",");
-
-        if (times.isNotEmpty) {
-          final late = getLateInfo(times[0]);
-
-          if (late["minutes"] > 0) {
-            permissionRows.add([
-              data.firstname ?? "-",
-              data.role ?? "-",
-              "09:00 AM",
-              formatTime(times[0]),
-              "${late["minutes"]}",
-              "Late Coming",
-            ]);
-          }
-        }
-      }
-
-      if (permissionRows.isNotEmpty) {
-        Sheet permissionSheet = excel["Permission"];
-
-        permissionSheet.appendRow([
-          "Name","Role","Start Time","End Time","Minutes","Reason"
-        ]);
-
-        for (int i = 0; i < 6; i++) {
-          permissionSheet
-              .cell(CellIndex.indexByColumnRow(columnIndex: i, rowIndex: 0))
+          sheet
+              .cell(CellIndex.indexByColumnRow(columnIndex: col, rowIndex: rowIndex))
               .cellStyle = headerStyle;
         }
 
-        for (var row in permissionRows) {
-          permissionSheet.appendRow(row);
+        rowIndex++;
+
+        int totalPresent = 0;
+        int totalAbsent = 0;
+        int totalLate = 0;
+        int totalPermission = 0;
+        int totalLeave = 0;
+        int totalMinutes = 0;
+
+        /// ================= DATE LOOP =================
+        for (String d in dates) {
+          Map<String, dynamic>? record;
+
+          try {
+            record = attendanceList.firstWhere(
+                  (e) => e["firstname"] == emp && e["date"] == d,
+            );
+          } catch (e) {
+            record = null;
+          }
+
+          int present = 0;
+          int absent = 0;
+          int late = 0;
+          int permission = 0;
+          int leaveCount = 0;
+          String totalHour = "0h 0m";
+          String reason = "-";
+
+          if (record != null) {
+            present = int.tryParse(record["present"]?.toString() ?? "0") ?? 0;
+            absent = int.tryParse(record["absent"]?.toString() ?? "0") ?? 0;
+            late = int.tryParse(record["late"]?.toString() ?? "0") ?? 0;
+            permission =
+                int.tryParse(record["permission"]?.toString() ?? "0") ?? 0;
+
+            leaveCount =
+                int.tryParse(record["leave_count"]?.toString() ?? "0") ?? 0;
+
+            reason = record["reason"]?.toString() ?? "-";
+            totalHour = record["total_hour"]?.toString() ?? "0h 0m";
+
+            if (totalHour.contains("h") && totalHour.contains("m")) {
+              try {
+                int h = int.parse(totalHour.split("h")[0].trim());
+                int m = int.parse(
+                  totalHour.split("h")[1].replaceAll("m", "").trim(),
+                );
+                totalMinutes += (h * 60) + m;
+              } catch (e) {}
+            }
+          }
+
+          /// Fill Row Values
+          sheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: rowIndex)).value =
+              formatDate(d);
+          sheet.cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: rowIndex)).value =
+              present;
+          sheet.cell(CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: rowIndex)).value =
+              absent;
+          sheet.cell(CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: rowIndex)).value =
+              late;
+          sheet.cell(CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: rowIndex)).value =
+              permission;
+          sheet.cell(CellIndex.indexByColumnRow(columnIndex: 5, rowIndex: rowIndex)).value =
+              leaveCount;
+          sheet.cell(CellIndex.indexByColumnRow(columnIndex: 6, rowIndex: rowIndex)).value =
+              reason;
+          sheet.cell(CellIndex.indexByColumnRow(columnIndex: 7, rowIndex: rowIndex)).value =
+              totalHour;
+
+          rowIndex++;
+
+          totalPresent += present;
+          totalAbsent += absent;
+          totalLate += late;
+          totalPermission += permission;
+          totalLeave += leaveCount;
         }
-      }
 
-      /// ============================================================
-      /// 🟣 LEAVE
-      /// ============================================================
-      Sheet leaveSheet = excel["Leave"];
+        /// ================= TOTAL HOURS =================
+        int totalH = totalMinutes ~/ 60;
+        int totalM = totalMinutes % 60;
 
-      leaveSheet.appendRow([
-        "From Date","To Date","Name","Role","No of Days","Reason"
-      ]);
+        /// ================= TOTAL ROW =================
+        sheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: rowIndex)).value =
+        "Total";
+        sheet.cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: rowIndex)).value =
+            totalPresent;
+        sheet.cell(CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: rowIndex)).value =
+            totalAbsent;
+        sheet.cell(CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: rowIndex)).value =
+            totalLate;
+        sheet.cell(CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: rowIndex)).value =
+            totalPermission;
+        sheet.cell(CellIndex.indexByColumnRow(columnIndex: 5, rowIndex: rowIndex)).value =
+            totalLeave;
+        sheet.cell(CellIndex.indexByColumnRow(columnIndex: 6, rowIndex: rowIndex)).value =
+        "";
+        sheet.cell(CellIndex.indexByColumnRow(columnIndex: 7, rowIndex: rowIndex)).value =
+        "${totalH}h ${totalM}m";
 
-      for (int i = 0; i < 6; i++) {
-        leaveSheet
-            .cell(CellIndex.indexByColumnRow(columnIndex: i, rowIndex: 0))
-            .cellStyle = headerStyle;
-      }
-
-      if (leaveList.isEmpty) {
-        leaveSheet.appendRow(["No Data", "", "", "", "", ""]);
-      } else {
-        for (var data in leaveList) {
-          DateTime? start = DateTime.tryParse(data.startDate ?? "");
-          DateTime? end = DateTime.tryParse(data.endDate ?? "");
-
-          String fromDate =
-          start != null ? DateFormat('dd-MM-yyyy').format(start) : "-";
-
-          String toDate =
-          end != null ? DateFormat('dd-MM-yyyy').format(end) : "-";
-
-          int days =
-          (start != null && end != null) ? end.difference(start).inDays + 1 : 0;
-
-          leaveSheet.appendRow([
-            fromDate,
-            toDate,
-            data.fName ?? "-",
-            data.role ?? "-",
-            days,
-            data.reason ?? "-",
-          ]);
+        /// Total Row Style
+        for (int col = 0; col <= 7; col++) {
+          sheet
+              .cell(CellIndex.indexByColumnRow(columnIndex: col, rowIndex: rowIndex))
+              .cellStyle = totalStyle;
         }
+
+        rowIndex++;
+
+        /// gap row
+        rowIndex++;
       }
 
-      /// ================= SAVE =================
       final bytes = excel.encode();
 
       if (!kIsWeb && bytes != null) {
         _saveExcelMobile(
           bytes,
-          "Attendance_Report_${formatDate(date)}.xlsx",
+          "Attendance_Report_${formatDate(startDate)}_to_${formatDate(endDate)}.xlsx",
           context,
         );
       }
-
     } catch (e) {
       print("Excel Error => $e");
       utils.showWarningToast(context, text: "Something went wrong");
     }
   }
+
+  // Future<void> exportFullAttendanceExcel(
+  //     context, {
+  //       required List<AttendanceModel> presentList,
+  //       required List<AttendanceModel> absentList,
+  //       required List<AttendanceModel> lateList,
+  //       required List<AttendanceModel> permissionList,
+  //       required List<dynamic> leaveList,
+  //       required String date,
+  //     }) async {
+  //   try {
+  //     var excel = Excel.createExcel();
+  //     excel.delete('Sheet1');
+  //
+  //     /// ================= DATE =================
+  //     String formatDate(String? input) {
+  //       try {
+  //         if (input == null || input.isEmpty) return "-";
+  //         return DateFormat('dd-MM-yyyy').format(DateTime.parse(input));
+  //       } catch (e) {
+  //         return input ?? "-";
+  //       }
+  //     }
+  //
+  //     /// ================= TIME PARSER =================
+  //     DateTime parseTime(String input) {
+  //       if (input.toLowerCase().contains("am") ||
+  //           input.toLowerCase().contains("pm")) {
+  //         return DateFormat("hh:mm a").parse(input.toUpperCase());
+  //       } else if (input.split(":").length == 3) {
+  //         return DateFormat("HH:mm:ss").parse(input);
+  //       } else {
+  //         return DateFormat("HH:mm").parse(input);
+  //       }
+  //     }
+  //
+  //     /// ================= FORMAT TIME =================
+  //     String formatTime(String? input) {
+  //       try {
+  //         if (input == null || input.isEmpty) return "-";
+  //         return DateFormat("hh:mm a").format(parseTime(input));
+  //       } catch (e) {
+  //         return "-";
+  //       }
+  //     }
+  //
+  //     /// ================= TOTAL HOURS =================
+  //     String getTimeDiff(String? start, String? end) {
+  //       try {
+  //         if (start == null || end == null || start.isEmpty || end.isEmpty) {
+  //           return "0h 0m";
+  //         }
+  //
+  //         DateTime s = parseTime(start);
+  //         DateTime e = parseTime(end);
+  //
+  //         /// 🔥 FIX negative issue
+  //         if (e.isBefore(s)) {
+  //           final temp = s;
+  //           s = e;
+  //           e = temp;
+  //         }
+  //
+  //         final diff = e.difference(s);
+  //         return "${diff.inHours}h ${diff.inMinutes % 60}m";
+  //       } catch (e) {
+  //         return "0h 0m";
+  //       }
+  //     }
+  //
+  //     /// ================= LATE =================
+  //     Map<String, dynamic> getLateInfo(String inTime) {
+  //       try {
+  //         final office = parseTime("09:00 AM");
+  //         final user = parseTime(inTime);
+  //
+  //         if (user.isAfter(office)) {
+  //           final diff = user.difference(office);
+  //           return {
+  //             "minutes": diff.inMinutes,
+  //             "text": "${diff.inMinutes} mins"
+  //           };
+  //         }
+  //         return {"minutes": 0, "text": "0 mins"};
+  //       } catch (e) {
+  //         return {"minutes": 0, "text": "-"};
+  //       }
+  //     }
+  //
+  //     /// ================= STYLE =================
+  //     CellStyle headerStyle = CellStyle(
+  //       bold: true,
+  //       backgroundColorHex: "#45377D",
+  //       fontColorHex: "#FFFFFF",
+  //     );
+  //
+  //     /// ============================================================
+  //     /// ✅ PRESENT
+  //     /// ============================================================
+  //     Sheet presentSheet = excel["Present"];
+  //
+  //     presentSheet.appendRow([
+  //       "Date", "Name", "Role", "In Time", "Out Time", "Total Hours"
+  //     ]);
+  //
+  //     for (int i = 0; i < 6; i++) {
+  //       presentSheet
+  //           .cell(CellIndex.indexByColumnRow(columnIndex: i, rowIndex: 0))
+  //           .cellStyle = headerStyle;
+  //     }
+  //
+  //     for (var data in presentList) {
+  //       String inTime = "";
+  //       String outTime = "";
+  //
+  //       final times = (data.time ?? "").split(",");
+  //
+  //       if (data.status.toString().contains("1,2")) {
+  //         inTime = times.isNotEmpty ? times[0].trim() : "";
+  //         outTime = times.length > 1 ? times[1].trim() : "";
+  //       } else if (data.status.toString().contains("2,1")) {
+  //         inTime = times.length > 1 ? times[1].trim() : "";
+  //         outTime = times.isNotEmpty ? times[0].trim() : "";
+  //       } else {
+  //         inTime = times.isNotEmpty ? times[0].trim() : "";
+  //       }
+  //
+  //       String total = getTimeDiff(inTime, outTime);
+  //
+  //       presentSheet.appendRow([
+  //         formatDate(data.date),
+  //         data.firstname ?? "-",
+  //         data.role ?? "-",
+  //         formatTime(inTime),
+  //         formatTime(outTime),
+  //         total,
+  //       ]);
+  //     }
+  //
+  //     /// ============================================================
+  //     /// ❌ ABSENT
+  //     /// ============================================================
+  //     Sheet absentSheet = excel["Absent"];
+  //
+  //     absentSheet.appendRow(["Date", "Name", "Role"]);
+  //
+  //     for (int i = 0; i < 3; i++) {
+  //       absentSheet
+  //           .cell(CellIndex.indexByColumnRow(columnIndex: i, rowIndex: 0))
+  //           .cellStyle = headerStyle;
+  //     }
+  //
+  //     for (var data in absentList) {
+  //       absentSheet.appendRow([
+  //         formatDate(data.missingDate),
+  //         data.firstname ?? "-",
+  //         data.role ?? "-",
+  //       ]);
+  //     }
+  //
+  //     /// ============================================================
+  //     /// ⏰ LATE
+  //     /// ============================================================
+  //     Sheet lateSheet = excel["Late"];
+  //
+  //     lateSheet.appendRow([
+  //       "Date","Name","Role","In Time","Out Time","Total Hours","Late By"
+  //     ]);
+  //
+  //     for (int i = 0; i < 7; i++) {
+  //       lateSheet
+  //           .cell(CellIndex.indexByColumnRow(columnIndex: i, rowIndex: 0))
+  //           .cellStyle = headerStyle;
+  //     }
+  //
+  //     for (var data in lateList) {
+  //       String inTime = "";
+  //       String outTime = "";
+  //
+  //       final times = (data.time ?? "").split(",");
+  //
+  //       if (times.isNotEmpty) inTime = times[0];
+  //       if (times.length > 1) outTime = times[1];
+  //
+  //       String total = getTimeDiff(inTime, outTime);
+  //       String lateBy =
+  //       inTime.isNotEmpty ? getLateInfo(inTime)["text"] : "0 mins";
+  //
+  //       lateSheet.appendRow([
+  //         formatDate(data.date),
+  //         data.firstname ?? "-",
+  //         data.role ?? "-",
+  //         formatTime(inTime),
+  //         formatTime(outTime),
+  //         total,
+  //         lateBy,
+  //       ]);
+  //     }
+  //
+  //     /// ============================================================
+  //     /// 🟡 PERMISSION
+  //     /// ============================================================
+  //     List<List<dynamic>> permissionRows = [];
+  //
+  //     /// manual permission
+  //     for (var data in permissionList) {
+  //       String start = "-";
+  //       String end = "-";
+  //       String mins = "-";
+  //
+  //       if (data.perCreatedTs != null &&
+  //           data.perCreatedTs.toString().contains(",")) {
+  //         final parts = data.perCreatedTs?.split(",");
+  //
+  //         try {
+  //           DateTime s = DateTime.parse(parts![0]);
+  //           DateTime e = DateTime.parse(parts![1]);
+  //
+  //           start = DateFormat("hh:mm a").format(s);
+  //           end = DateFormat("hh:mm a").format(e);
+  //           mins = e.difference(s).inMinutes.toString();
+  //         } catch (e) {}
+  //       }
+  //
+  //       permissionRows.add([
+  //         data.firstname ?? "-",
+  //         data.role ?? "-",
+  //         start,
+  //         end,
+  //         mins,
+  //         data.perReason ?? "-",
+  //       ]);
+  //     }
+  //
+  //     /// late → permission
+  //     for (var data in lateList) {
+  //       final times = (data.time ?? "").split(",");
+  //
+  //       if (times.isNotEmpty) {
+  //         final late = getLateInfo(times[0]);
+  //
+  //         if (late["minutes"] > 0) {
+  //           permissionRows.add([
+  //             data.firstname ?? "-",
+  //             data.role ?? "-",
+  //             "09:00 AM",
+  //             formatTime(times[0]),
+  //             "${late["minutes"]}",
+  //             "Late Coming",
+  //           ]);
+  //         }
+  //       }
+  //     }
+  //
+  //     if (permissionRows.isNotEmpty) {
+  //       Sheet permissionSheet = excel["Permission"];
+  //
+  //       permissionSheet.appendRow([
+  //         "Name","Role","Start Time","End Time","Minutes","Reason"
+  //       ]);
+  //
+  //       for (int i = 0; i < 6; i++) {
+  //         permissionSheet
+  //             .cell(CellIndex.indexByColumnRow(columnIndex: i, rowIndex: 0))
+  //             .cellStyle = headerStyle;
+  //       }
+  //
+  //       for (var row in permissionRows) {
+  //         permissionSheet.appendRow(row);
+  //       }
+  //     }
+  //
+  //     /// ============================================================
+  //     /// 🟣 LEAVE
+  //     /// ============================================================
+  //     Sheet leaveSheet = excel["Leave"];
+  //
+  //     leaveSheet.appendRow([
+  //       "From Date","To Date","Name","Role","No of Days","Reason"
+  //     ]);
+  //
+  //     for (int i = 0; i < 6; i++) {
+  //       leaveSheet
+  //           .cell(CellIndex.indexByColumnRow(columnIndex: i, rowIndex: 0))
+  //           .cellStyle = headerStyle;
+  //     }
+  //
+  //     if (leaveList.isEmpty) {
+  //       leaveSheet.appendRow(["No Data", "", "", "", "", ""]);
+  //     } else {
+  //       for (var data in leaveList) {
+  //         DateTime? start = DateTime.tryParse(data.startDate ?? "");
+  //         DateTime? end = DateTime.tryParse(data.endDate ?? "");
+  //
+  //         String fromDate =
+  //         start != null ? DateFormat('dd-MM-yyyy').format(start) : "-";
+  //
+  //         String toDate =
+  //         end != null ? DateFormat('dd-MM-yyyy').format(end) : "-";
+  //
+  //         int days =
+  //         (start != null && end != null) ? end.difference(start).inDays + 1 : 0;
+  //
+  //         leaveSheet.appendRow([
+  //           fromDate,
+  //           toDate,
+  //           data.fName ?? "-",
+  //           data.role ?? "-",
+  //           days,
+  //           data.reason ?? "-",
+  //         ]);
+  //       }
+  //     }
+  //
+  //     /// ================= SAVE =================
+  //     final bytes = excel.encode();
+  //
+  //     if (!kIsWeb && bytes != null) {
+  //       _saveExcelMobile(
+  //         bytes,
+  //         "Attendance_Report_${formatDate(date)}.xlsx",
+  //         context,
+  //       );
+  //     }
+  //
+  //   } catch (e) {
+  //     print("Excel Error => $e");
+  //     utils.showWarningToast(context, text: "Something went wrong");
+  //   }
+  // }
+
   String timeDifference(String dateTimeString1, String dateTimeString2) {
     DateTime startTime = DateTime.parse(dateTimeString1);
     DateTime endTime = DateTime.parse(dateTimeString2);

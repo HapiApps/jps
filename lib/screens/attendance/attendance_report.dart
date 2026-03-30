@@ -50,9 +50,7 @@ class _AttendanceReportState extends State<AttendanceReport> {
   void initState() {
     showType = widget.showType;
     check();
-    Future.delayed(Duration.zero, () {
-      print("attendance report init ${widget.date1}");
-      print("attendance report init ${widget.date2}");
+    Future.delayed(Duration.zero, () {;
       if (!mounted) return;
       // Provider.of<AttendanceProvider>(context, listen: false).loadAttendanceDashboard(localData.storage.read("id"));
       print(Provider.of<EmployeeProvider>(context, listen: false).userData.length);
@@ -455,33 +453,32 @@ class _AttendanceReportState extends State<AttendanceReport> {
                               // if(attProvider.selectedIndex==0)
                               GestureDetector(
                                   onTap: (){
+                                    print(attProvider.getDailyAttendance.first);
                                     if(attProvider.userName!=""){
                                       // excelReports.exportUserAttendanceToExcel(context,
                                       //     chunked: attProvider.getDailyAttendance,
                                       //     date: "${attProvider.startDate} ${attProvider.startDate==attProvider.endDate?"":"To ${attProvider.endDate}"}");
-                                      excelReports.exportFullAttendanceExcel(
+
+                                      excelReports.downloadAttendanceExcelReport(
                                           context,
-                                          presentList: attProvider.getDailyAttendance,
-                                          absentList: attProvider.noAttendanceList,
-                                          leaveList: levPvr.myLevSearch,
-                                          lateList: attProvider.getDailyAttendance
-                                              .where((e) => isLate(e.time ?? ""))
-                                              .toList(),
-                                          permissionList: attProvider.getDailyAttendance.where((e) => e.perStatus != "null").toList(),
-                                          date: "${attProvider.startDate} ${attProvider.startDate==attProvider.endDate?"":"To ${attProvider.endDate}"}"
+                                          stDate:attProvider.startDate, enDate: attProvider.endDate
                                       );
                                     }else{
                                       // excelReports.exportAttendanceToExcel(context,chunked: attProvider.getDailyAttendance, date: "${attProvider.startDate} ${attProvider.startDate==attProvider.endDate?"":"To ${attProvider.endDate}"}");
-                                      excelReports.exportFullAttendanceExcel(
+                                      // excelReports.exportAttendanceSingleSheetExcel(
+                                      //     context,
+                                      //     presentList: attProvider.getDailyAttendance,
+                                      //     absentList: attProvider.noAttendanceList,
+                                      //     leaveList: levPvr.myLevSearch,
+                                      //     lateList: attProvider.getDailyAttendance
+                                      //         .where((e) => isLate(e.time ?? ""))
+                                      //         .toList(),
+                                      //     permissionList: attProvider.getDailyAttendance.where((e) => e.perStatus != "null").toList(),
+                                      //     date: "${attProvider.startDate} ${attProvider.startDate==attProvider.endDate?"":"To ${attProvider.endDate}"}"
+                                      // );
+                                      excelReports.downloadAttendanceExcelReport(
                                           context,
-                                          presentList: attProvider.getDailyAttendance,
-                                          absentList: attProvider.noAttendanceList,
-                                          leaveList: levPvr.myLevSearch,
-                                          lateList: attProvider.getDailyAttendance
-                                              .where((e) => isLate(e.time ?? ""))
-                                              .toList(),
-                                          permissionList: attProvider.getDailyAttendance.where((e) => e.perStatus != "null").toList(),
-                                          date: "${attProvider.startDate} ${attProvider.startDate==attProvider.endDate?"":"To ${attProvider.endDate}"}"
+                                          stDate:attProvider.startDate, enDate: attProvider.endDate
                                       );
                                     }
                                     },
