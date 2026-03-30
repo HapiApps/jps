@@ -453,7 +453,6 @@ class _AttendanceReportState extends State<AttendanceReport> {
                               // if(attProvider.selectedIndex==0)
                               GestureDetector(
                                   onTap: (){
-                                    print(attProvider.getDailyAttendance.first);
                                     if(attProvider.userName!=""){
                                       // excelReports.exportUserAttendanceToExcel(context,
                                       //     chunked: attProvider.getDailyAttendance,

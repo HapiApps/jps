@@ -233,9 +233,7 @@ class ExcelReports {
         "st_dt": stDate,
         "en_dt": enDate,
       };
-
       final response = await custRepo.getDashboardReport(data);
-      print("Attendance Report $response");
       if (response.isNotEmpty) {
         exportAttendanceSingleSheetExcel(
           context,
@@ -265,7 +263,6 @@ class ExcelReports {
 
       Sheet sheet = excel["Sheet1"];
 
-      /// ================= DATE FORMAT =================
       String formatDate(String? input) {
         try {
           if (input == null || input.isEmpty) return "-";
@@ -316,11 +313,10 @@ class ExcelReports {
         /// merge A to H
         sheet.merge(
           CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: rowIndex),
-          CellIndex.indexByColumnRow(columnIndex: 7, rowIndex: rowIndex),
+          CellIndex.indexByColumnRow(columnIndex: 11, rowIndex: rowIndex),
         );
 
-        sheet
-            .cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: rowIndex))
+        sheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: rowIndex))
             .cellStyle = titleStyle;
 
         rowIndex++;
@@ -328,22 +324,24 @@ class ExcelReports {
         /// ================= HEADER ROW =================
         List headers = [
           "Date",
-          "present",
-          "absent",
-          "late",
-          "permission",
+          "Present",
+          "In_Time",
+          "Out_Time",
+          "Absent",
+          "Late",
+          "Permission",
+          "Permission_In",
+          "Permission_Out",
+          "Permission Reason",
           "Leave",
-          "Reason",
-          "Total Hour"
+          "Leave Reason",
         ];
 
         for (int col = 0; col < headers.length; col++) {
-          sheet
-              .cell(CellIndex.indexByColumnRow(columnIndex: col, rowIndex: rowIndex))
+          sheet.cell(CellIndex.indexByColumnRow(columnIndex: col, rowIndex: rowIndex))
               .value = headers[col];
 
-          sheet
-              .cell(CellIndex.indexByColumnRow(columnIndex: col, rowIndex: rowIndex))
+          sheet.cell(CellIndex.indexByColumnRow(columnIndex: col, rowIndex: rowIndex))
               .cellStyle = headerStyle;
         }
 
@@ -403,20 +401,39 @@ class ExcelReports {
           /// Fill Row Values
           sheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: rowIndex)).value =
               formatDate(d);
+
           sheet.cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: rowIndex)).value =
               present;
+
           sheet.cell(CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: rowIndex)).value =
-              absent;
+              record?["in_time"] ?? "-";
+
           sheet.cell(CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: rowIndex)).value =
-              late;
+              record?["out_time"] ?? "-";
+
           sheet.cell(CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: rowIndex)).value =
-              permission;
+              absent;
+
           sheet.cell(CellIndex.indexByColumnRow(columnIndex: 5, rowIndex: rowIndex)).value =
-              leaveCount;
+              late;
+
           sheet.cell(CellIndex.indexByColumnRow(columnIndex: 6, rowIndex: rowIndex)).value =
-              reason;
+              permission;
+
           sheet.cell(CellIndex.indexByColumnRow(columnIndex: 7, rowIndex: rowIndex)).value =
-              totalHour;
+              record?["per_in"] ?? "-";
+
+          sheet.cell(CellIndex.indexByColumnRow(columnIndex: 8, rowIndex: rowIndex)).value =
+              record?["per_out"] ?? "-";
+
+          sheet.cell(CellIndex.indexByColumnRow(columnIndex: 9, rowIndex: rowIndex)).value =
+              record?["permission_reason"] ?? "-";
+
+          sheet.cell(CellIndex.indexByColumnRow(columnIndex: 10, rowIndex: rowIndex)).value =
+              leaveCount;
+
+          sheet.cell(CellIndex.indexByColumnRow(columnIndex: 11, rowIndex: rowIndex)).value =
+              reason;
 
           rowIndex++;
 
