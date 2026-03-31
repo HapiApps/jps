@@ -91,7 +91,27 @@ class CustomerProvider with ChangeNotifier{
     }
     notifyListeners();
   }
+  Future<void> getTaskMainComments(String id, {bool isPolling = false}) async {
+    try {
+      Map data = {
+        "action": getAllData,
+        "search_type": "task_comments",
+        "cos_id": localData.storage.read("cos_id"),
+        "id": localData.storage.read("cos_id"),
+        "role": localData.storage.read("role"),
+        "cus_id": id,
+      };
 
+      final response = await custRepo.getComments(data);
+
+      if (response.isNotEmpty) {
+        _customerReport = response;
+        notifyListeners();
+      }
+    } catch (e) {
+      print("getTaskMainComments error => $e");
+    }
+  }
   // Future<void> tComment({
   //   context,
   //   required String taskId,
@@ -228,10 +248,12 @@ class CustomerProvider with ChangeNotifier{
     required String assignedId,
     required String path,
   }) async {
+    /// ✅ Store comment before clearing controller
+    final commentText = disPoint.text.trim();
 
     /// ✅ 1. INSTANT UI (Optimistic)
     final tempMessage = CustomerReportModel(
-      comments: disPoint.text.trim(),
+      comments: commentText,
       createdBy: localData.storage.read("id"),
       firstname: localData.storage.read("f_name"),
       role: localData.storage.read("role"),
@@ -244,8 +266,7 @@ class CustomerProvider with ChangeNotifier{
     notifyListeners();
 
     try {
-
-      /// ✅ 2. MINIMAL PAYLOAD (REMOVE ALL LOOPS)
+      /// ✅ 2. MINIMAL PAYLOAD
       List<Map<String, String>> customersList = [];
 
       if (path.isNotEmpty) {
@@ -262,15 +283,13 @@ class CustomerProvider with ChangeNotifier{
         "task_id": taskId,
         "log_file": localData.storage.read("mobile_number"),
         "created_by": localData.storage.read("id") ?? "0",
-        "comment": disPoint.text.trim(),
+        "comment": commentText, // ✅ use stored comment
         "data": jsonString,
       };
 
-      /// ✅ 3. NON-BLOCKING API (REMOVE AWAIT)
+      /// ✅ 3. NON-BLOCKING API
       custRepo.taskComments(data, customersList).then((response) async {
-
         if (response.toString().contains("200")) {
-
           _recordedAudioPaths.clear();
 
           /// mark as synced
@@ -281,64 +300,58 @@ class CustomerProvider with ChangeNotifier{
 
           notifyListeners();
 
-          /// 🔥 force refresh (important)
-         // await getTaskComments(taskId, isPolling: false);
+          /// scroll bottom
           Provider.of<TaskProvider>(context, listen: false).scrollToBottom();
-          /// ✅ notifications (delay → no lag)
+
+          /// ✅ notifications
           Future.delayed(const Duration(milliseconds: 300), () {
-                print("Print chat$taskId");
             String role = localData.storage.read("role");
 
             try {
-
               if (role == "1") {
-                print("Print chat$taskId");
                 Provider.of<EmployeeProvider>(context, listen: false)
                     .sendSomeUserNotification(
-                  "${disPoint.text.trim()} Added by ${localData.storage.read("f_name")}",
-                  disPoint.text.trim(),
+                  "$commentText Added by ${localData.storage.read("f_name")}",
+                  commentText,
                   assignedId,
                   taskId,
                 );
-
               } else {
-                print("Print chat$taskId");
                 Provider.of<EmployeeProvider>(context, listen: false)
                     .sendAdminNotification(
                   "${localData.storage.read("f_name")} replied to task feedback",
-                  disPoint.text.trim(),
+                  commentText,
                   assignedId,
                   taskId,
                   taskId,
                 );
               }
-
+              final taskProvider = Provider.of<TaskProvider>(context, listen: false);
+              // taskProvider.getAllTask(
+              //   true,
+              //   date1: date1,
+              //   date2: date2,
+              //   type: "Today",
+              // );
             } catch (e) {
               print("Notification error: $e");
             }
-
           });
-
         } else {
-
           /// ❌ failed → rollback
           _customerReport.remove(tempMessage);
           notifyListeners();
 
           utils.showErrorToast(context: context);
         }
-
       }).catchError((e) {
-
         /// ❌ error → rollback
         _customerReport.remove(tempMessage);
         notifyListeners();
 
         utils.showWarningToast(context, text: "Failed");
       });
-
     } catch (e) {
-
       _customerReport.remove(tempMessage);
       notifyListeners();
 
@@ -603,6 +616,13 @@ void closeVisible(){
   String date1="${DateTime.now().day.toString().padLeft(2,"0")}-${DateTime.now().month.toString().padLeft(2,"0")}-${DateTime.now().year}";
   String date2="${DateTime.now().add(const Duration(days: 1)).day.toString().padLeft(2,"0")}-${DateTime.now().add(const Duration(days: 1)).month.toString().padLeft(2,"0")}-${DateTime.now().add(const Duration(days: 1)).year}";
 List lineAtt=[];
+
+  String today() {
+    final now = DateTime.now();
+    return "${now.day.toString().padLeft(2, '0')}-"
+        "${now.month.toString().padLeft(2, '0')}-"
+        "${now.year}";
+  }
 // Future<void> getCustomerAtt() async {
 //   _refresh=false;
 //   notifyListeners();

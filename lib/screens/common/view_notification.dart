@@ -448,7 +448,7 @@ class _ViewNotificationState extends State<ViewNotification> with SingleTickerPr
                               onTap:(){
                                 if(type=="Feedback"){
                                   utils.navigatePage(context, ()=> DashBoard(child: TaskChat(isVisit:false,
-                                      taskId: empProvider.notifyData[index]["purpose_id"], assignedId: "",assignedName: "", name: createdBy)));
+                                      taskId: empProvider.notifyData[index]["purpose_id"], assignedId: "",assignedName: "", name: createdBy, date1: '', date2: '', type: '',)));
                                 }else if(type=="Visit Report"){
                                   utils.navigatePage(context, ()=> DashBoard(child: VisitReport(date1: DateFormat("dd-MM-yyyy").format(
                                       DateTime.parse(empProvider.notifyData[index]["created_ts"])), date2: DateFormat("dd-MM-yyyy").format(

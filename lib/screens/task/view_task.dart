@@ -94,7 +94,7 @@ class _ViewTaskState extends State<ViewTask> with SingleTickerProviderStateMixin
         date2: widget.date2,
         type: widget.type,
       );
-
+print("type: ${widget.type}");
       taskProvider.dataSource = _getDataSource();
 
       taskProvider.getAllTask(
@@ -1167,16 +1167,41 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
                               overflow: TextOverflow.ellipsis,
                             ),
                             Text(
-                              "  (last comment by ${data.lastCommentBy})" ?? "",
+                              data.lastCommentBy == null || data.lastCommentBy.toString().trim().isEmpty
+                                  ? ""
+                                  : "  (last comment by ${data.lastCommentBy})",
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                            ),
+                            )
                           ],
                         ),
-                        GestureDetector(onTap: (){
-                          utils.navigatePage(context, ()=> DashBoard(child: TaskChat(isVisit:false,
-                            taskId: data.id.toString(), assignedId: data.assigned.toString(), name: data.creator.toString(), assignedName: data.assignedNames.toString(),)));
-                        }, child: SvgPicture.asset(assets.tMessage,width: 20,height: 20,)),
+                        GestureDetector(
+                          onTap: () async {
+                            final result = await Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => DashBoard(
+                                  child: TaskChat(
+                                    isVisit: false,
+                                    taskId: data.id.toString(),
+                                    assignedId: data.assigned.toString(),
+                                    name: data.creator.toString(),
+                                    assignedName: data.assignedNames.toString(),
+                                    date1: widget.date1,
+                                    date2: widget.date2,
+                                    type: widget.type,
+                                  ),
+                                ),
+                              ),
+                            );
+
+                            if (result == true) {
+                              Provider.of<TaskProvider>(context, listen: false).getAllTask(false);
+                              // 🔥 un refresh method name change panniko
+                            }
+                          },
+                          child: SvgPicture.asset(assets.tMessage, width: 20, height: 20),
+                        )
                       ],
                     ) ,
                   ],
@@ -1475,7 +1500,9 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
                     Icon(Icons.add),
                     IconButton(onPressed: (){
                       utils.navigatePage(context, ()=> DashBoard(child: TaskChat(isVisit:false,
-                          taskId: data.id.toString(), assignedId: data.assigned.toString(), name: data.creator.toString(), assignedName: data.assignedNames.toString(),)));
+                          taskId: data.id.toString(), assignedId: data.assigned.toString(),
+                        name: data.creator.toString(), assignedName: data.assignedNames.toString(), date1: widget.date1
+                        , date2: widget.date2, type: widget.type,)));
                     }, icon: SvgPicture.asset(assets.tMessage,width: 10,height: 10,)),
                   ],
                 ),

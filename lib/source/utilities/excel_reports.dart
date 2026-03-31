@@ -256,7 +256,8 @@ class ExcelReports {
         required List leaveList,
         required String startDate,
         required String endDate,
-      }) async {
+      })
+  async {
     try {
       var excel = Excel.createExcel();
       excel.delete('Sheet1');
@@ -287,8 +288,17 @@ class ExcelReports {
 
       CellStyle totalStyle = CellStyle(
         bold: true,
+        horizontalAlign: HorizontalAlign.Center,
         backgroundColorHex: "#FFF2CC",
       );
+      CellStyle totalStyle1 = CellStyle(
+        bold: true,
+        backgroundColorHex: "#FFFFFF", // White
+        fontColorHex: "#000000",
+        horizontalAlign: HorizontalAlign.Center,
+        verticalAlign: VerticalAlign.Center,
+      );
+      /// ✅ DATA ROW FULL YELLOW STYLE
 
       /// ================= GROUP EMPLOYEE WISE =================
       Set<String> employeeSet = {};
@@ -444,6 +454,13 @@ class ExcelReports {
           sheet.cell(CellIndex.indexByColumnRow(columnIndex: 11, rowIndex: rowIndex)).value =
               reason;
 
+          /// ✅ Apply Yellow Style For Full Row
+          for (int col = 0; col <= 11; col++) {
+            sheet
+                .cell(CellIndex.indexByColumnRow(columnIndex: col, rowIndex: rowIndex))
+                .cellStyle = totalStyle1;
+          }
+
           rowIndex++;
 
           totalPresent += present;
@@ -511,7 +528,7 @@ class ExcelReports {
         // "${totalH}h ${totalM}m";
 
         /// Total Row Style
-        for (int col = 0; col <= 7; col++) {
+        for (int col = 0; col <= 11; col++) {
           sheet
               .cell(CellIndex.indexByColumnRow(columnIndex: col, rowIndex: rowIndex))
               .cellStyle = totalStyle;
@@ -528,7 +545,7 @@ class ExcelReports {
       if (!kIsWeb && bytes != null) {
         _saveExcelMobile(
           bytes,
-          "Attendance_Report_${formatDate(startDate)}_to_${formatDate(endDate)}.xlsx",
+          "JPS_Attendance_Report_${formatDate(startDate)}_to_${formatDate(endDate)}.xlsx",
           context,
         );
       }

@@ -467,7 +467,7 @@ class CalendarAppointment extends State<TaskCalendar> {
                               taskId: data.id.toString(),
                               assignedId: data.assigned.toString(),
                               name: data.creator.toString(),
-                              assignedName: data.assignedNames.toString(),
+                              assignedName: data.assignedNames.toString(), date1: '', date2: '', type: '',
                             ),
                           );
                         }, icon: SvgPicture.asset(assets.tMessage,width: 25,height: 25,))

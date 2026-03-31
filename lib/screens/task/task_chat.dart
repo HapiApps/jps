@@ -35,8 +35,11 @@ class TaskChat extends StatefulWidget {
   final String name;
   final bool isVisit;
   final String? createdBy;
+  final String date1;
+  final String date2;
+  final String type;
   const TaskChat({super.key, required this.taskId, required this.assignedId, required this.name, required this.isVisit,
-    this.createdBy, required this.assignedName});
+    this.createdBy, required this.assignedName, required this.date1, required this.date2, required this.type});
 
   @override
   State<TaskChat> createState() => _TaskChatState();
@@ -63,40 +66,41 @@ class _TaskChatState extends State<TaskChat> with SingleTickerProviderStateMixin
   bool isPlaying = false;
   bool isPolling = false;
 
-  void startPolling() {
-    isPolling = true;
-    _poll();
-  }
+  // void startPolling() {
+  //   isPolling = true;
+  //   _poll();
+  // }
+  //
+  // void stopPolling() {
+  //   isPolling = false;
+  // }
+  //
+  // Future<void> _poll() async {
+  //   if (!mounted || !isPolling || isFetching) return;
+  //
+  //   isFetching = true;
+  //
+  //   try {
+  //     if (widget.isVisit == true) {
+  //       await Provider.of<CustomerProvider>(context, listen: false)
+  //           .getComments(widget.taskId, isPolling: true);
+  //     } else {
+  //       await Provider.of<CustomerProvider>(context, listen: false)
+  //           .getTaskComments(widget.taskId, isPolling: true);
+  //     }
+  //   } catch (e) {
+  //     print("Polling error: $e");
+  //   }
+  //
+  //   isFetching = false;
+  //
+  //   await Future.delayed(const Duration(seconds: 3));
+  //
+  //   if (mounted && isPolling) {
+  //     _poll();
+  //   }
+  // }
 
-  void stopPolling() {
-    isPolling = false;
-  }
-
-  Future<void> _poll() async {
-    if (!mounted || !isPolling || isFetching) return;
-
-    isFetching = true;
-
-    try {
-      if (widget.isVisit == true) {
-        await Provider.of<CustomerProvider>(context, listen: false)
-            .getComments(widget.taskId, isPolling: true);
-      } else {
-        await Provider.of<CustomerProvider>(context, listen: false)
-            .getTaskComments(widget.taskId, isPolling: true);
-      }
-    } catch (e) {
-      print("Polling error: $e");
-    }
-
-    isFetching = false;
-
-    await Future.delayed(const Duration(seconds: 3));
-
-    if (mounted && isPolling) {
-      _poll();
-    }
-  }
   Future<void> startRecording() async {
     final status = await Permission.microphone.request();
 
@@ -172,7 +176,7 @@ class _TaskChatState extends State<TaskChat> with SingleTickerProviderStateMixin
       });
 
       /// polling start
-      startPolling();
+      // startPolling();
     });
 
     animationController = AnimationController(
@@ -221,7 +225,7 @@ class _TaskChatState extends State<TaskChat> with SingleTickerProviderStateMixin
   }
   @override
   void dispose() {
-    stopPolling(); // 🔥 ADD THIS
+    // stopPolling(); // 🔥 ADD THIS
     animationController.dispose();
     _myFocusScopeNode.dispose();
     super.dispose();
@@ -243,529 +247,541 @@ class _TaskChatState extends State<TaskChat> with SingleTickerProviderStateMixin
       return FocusScope(
         node: _myFocusScopeNode,
         child: SafeArea(
-          child: Scaffold(
-            backgroundColor: Color(0xffEAEAEA),
-            appBar: PreferredSize(
-              preferredSize: const Size(300, 60),
-              child: localData.storage.read("role").toString() == "1"
-                  ? CustomAppbar(
-                text: (widget.assignedName != null &&
-                    widget.assignedName.toString() != "null" &&
-                    widget.assignedName.toString().isNotEmpty)
-                    ? widget.assignedName.toString()
-                    : "",
-              )
-                  : (widget.name != null &&
-                  widget.name.toString() != "null" &&
-                  widget.name.toString().isNotEmpty)
-                  ? CustomAppbar(text: widget.name.toString())
-                  : const SizedBox(),
-            ),
-            // bottomSheet: Padding(
-            //   padding: const EdgeInsets.all(8.0),
-            //   child: Row(
-            //     mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            //     children: [
-            //       SizedBox(
-            //         width: MediaQuery.of(context).size.width*0.63,
-            //         child: TextFormField(
-            //           // maxLines: maxLine,
-            //             textCapitalization: TextCapitalization.sentences,
-            //             textInputAction: TextInputAction.done,
-            //             keyboardType: TextInputType.text,
-            //             controller:custProvider.disPoint,
-            //             decoration: customStyle.inputDecoration(text: "Type a comment", fieldClr: Colors.white,radius: 50)
-            //         ),
-            //       ),
-            //       IconButton(
-            //           onPressed: (){
-            //             _myFocusScopeNode.unfocus();
-            //             custProvider.timer?.cancel();
-            //             HapticFeedback.vibrate();
-            //             if(custProvider.isRecording){
-            //               custProvider.stopRecording();
-            //             }else{
-            //               custProvider.startRecording();
-            //             }
-            //           },
-            //           icon: Icon(custProvider.isRecording?Icons.send:Icons.mic,color: Colors.green,)),
-            //       SizedBox(
-            //         height: 45,
-            //         width: 45,
-            //         child: ElevatedButton(
-            //           style: ElevatedButton.styleFrom(
-            //             shape: const CircleBorder(),
-            //             padding: EdgeInsets.zero,
-            //             backgroundColor: colorsConst.primary,
-            //             elevation: 2,
-            //           ),
-            //           onPressed: () async {
-            //             _myFocusScopeNode.unfocus();
-            //             if (custProvider.disPoint.text.trim().isEmpty &&
-            //                 custProvider.recordedAudioPaths.isEmpty) {
-            //               utils.showWarningToast(
-            //                 context,
-            //                 text: "Type a comment or record audio",
-            //               );
-            //               return;
-            //             }
-            //             WidgetsBinding.instance.addPostFrameCallback((_) {
-            //               if (_scrollController.hasClients) {
-            //                 _scrollController.animateTo(
-            //                   _scrollController.position.maxScrollExtent,
-            //                   duration: const Duration(milliseconds: 300),
-            //                   curve: Curves.easeOut,
-            //                 );
-            //               }
-            //             });
-            //             if(widget.isVisit==true){
-            //               await custProvider.addComment(context: context,visitId: widget.taskId.toString(),
-            //                   companyName: widget.name,companyId:"", numberList: [], taskId: "0", createdBy: widget.createdBy.toString());
-            //             }else{
-            //               await custProvider.tComment(
-            //                 context: context,
-            //                 taskId: widget.taskId.toString(),
-            //                 assignedId: widget.assignedId.toString(),
-            //               );
-            //             }
-            //
-            //             // Future.microtask(() {
-            //             //   if (_scrollController.hasClients) {
-            //             //     _scrollController.animateTo(
-            //             //       _scrollController.position.maxScrollExtent,
-            //             //       duration: const Duration(milliseconds: 300),
-            //             //       curve: Curves.easeOut,
-            //             //     );
-            //             //   }
-            //             // });
-            //           },
-            //           child: const Icon(
-            //             Icons.send,
-            //             color: Colors.white,
-            //             size: 20,
-            //           ),
-            //         ),
-            //       ),
-            //     ],
-            //   ),
-            // ),
-            bottomSheet: Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  if (recordedPath == null&&isRecording==false)
-                    SizedBox(
-                    width: MediaQuery.of(context).size.width*0.63,
-                    child: TextFormField(
-                      // maxLines: maxLine,
-                        textCapitalization: TextCapitalization.sentences,
-                        textInputAction: TextInputAction.done,
-                        keyboardType: TextInputType.text,
-                        controller:custProvider.disPoint,
-                        decoration: customStyle.inputDecoration(text: "Type a comment", fieldClr: Colors.white,radius: 50)
-                    ),
-                  ),
-                  IconButton(
-                  icon: Icon(isRecording ? Icons.stop : Icons.mic, color: Colors.green),
-                  //  icon: Icon(Icons.mic, color: Colors.green),
-                    onPressed: () {
-                     // startRecording();
-                      if (isRecording) {
-                        stopRecording();
-                      } else {
-                        startRecording();
-                      }
-                    },
-                  ),
-                  if (isRecording)
-                    Text(
-                      "${duration.inSeconds}s Recording...",
-                      style: TextStyle(color: Colors.red),
-                    ),
-                  if (recordedPath != null && !isRecording)
-                    Container(
-                      height: 40,
-                      width: phoneWidth/2,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(5),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black12,
-                            blurRadius: 4,
-                          )
-                        ],
-                      ),
-                      child: Row(
-                        children: [
-
-                          /// ▶ PLAY / PAUSE
-                          IconButton(
-                            icon: Icon(
-                              isPlaying ? Icons.pause : Icons.play_arrow,
-                              size: 30,
-                              color: Colors.green,
-                            ),
-                            onPressed: togglePlay,
-                          ),
-
-                          /// 🎚 SLIDER
-                          Expanded(
-                            child: Slider(
-                              activeColor: Colors.green,
-                              inactiveColor: Colors.grey.shade300,
-                              value: currentPosition.inSeconds.toDouble(),
-                              min: 0,
-                              max: totalDuration.inSeconds.toDouble() == 0
-                                  ? 1
-                                  : totalDuration.inSeconds.toDouble(),
-                              onChanged: (value) async {
-                                final position = Duration(seconds: value.toInt());
-                                await _audioPlayer.seek(position);
-                              },
-                            ),
-                          ),
-
-                          /// ⏱ TIME
-                          Text(
-                            formatTime(currentPosition),
-                            style: TextStyle(fontSize: 12),
-                          ),
-
-                          SizedBox(width: 5),
-                        ],
-                      ),
-                    ),
-                  if (recordedPath != null)
-                  IconButton(
-                    icon: SvgPicture.asset(assets.deleteValue,width: 20,height: 20,),
-                    onPressed: (){
-                      setState(() {
-                        recordedPath=null;
-                      });
-                    },
-                  ),
-                  SizedBox(
-                    height: 45,
-                    width: 45,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        shape: const CircleBorder(),
-                        padding: EdgeInsets.zero,
-                        backgroundColor: colorsConst.primary,
-                        elevation: 2,
-                      ),
-      onPressed: () async {
-      _myFocusScopeNode.unfocus();
-
-      // ❗ recording நடக்குது → முதலில் stop
-      if (isRecording) {
-      await stopRecording();
-      return; // ❗ இங்கே return பண்ணணும்
-      }
-
-      // ❗ empty check
-      if (custProvider.disPoint.text.trim().isEmpty && recordedPath == null) {
-      utils.showWarningToast(
-      context,
-      text: "Type a comment or record audio",
-      );
-      return;
-      }
-
-      // ✅ SEND
-      if(widget.isVisit==true){
-      await custProvider.addComment(
-      context: context,
-      visitId: widget.taskId.toString(),
-      companyName: widget.name,
-      companyId:"",
-      numberList: [],
-      taskId: "0",
-      createdBy: widget.createdBy.toString(),
-      assignedId: widget.assignedId.toString(),
-      path: recordedPath ?? "",
-      );
-      } else {
-      await custProvider.tComment(
-      context: context,
-      taskId: widget.taskId.toString(),
-      assignedId: widget.assignedId.toString(),
-      path: recordedPath ?? "",
-      );
-      }
-
-      setState(() {
-      recordedPath = null;
-      });
-      },
-                      child: Icon(
-                        isRecording ? Icons.stop : Icons.send,
-                        color: Colors.white,
-                        size: 20,
-                      ),
-                    ),
-                  ),
-                ],
+          child: WillPopScope(
+            onWillPop: () async {
+              Navigator.pop(context, true); // ✅ send refresh signal
+              return false;
+            },
+            child: Scaffold(
+              backgroundColor: Color(0xffEAEAEA),
+              appBar: PreferredSize(
+                preferredSize: const Size(300, 60),
+                child: localData.storage.read("role").toString() == "1"
+                    ? CustomAppbar(
+                  callback: () {
+                    Navigator.pop(context, true); // ✅ return true for reload
+                  },
+                  text: (widget.assignedName != null &&
+                      widget.assignedName.toString() != "null" &&
+                      widget.assignedName.toString().isNotEmpty)
+                      ? widget.assignedName.toString()
+                      : "",
+                )
+                    : (widget.name != null &&
+                    widget.name.toString() != "null" &&
+                    widget.name.toString().isNotEmpty)
+                    ? CustomAppbar(text: widget.name.toString(),callback: () {
+                  Navigator.pop(context, true); // ✅ return true for reload
+                },)
+                    : const SizedBox(),
               ),
-            ),
-            body: Stack(
-              children: [
-                Positioned.fill(
-                  child:
-                  custProvider.refresh == false
-                      ? const Loading()
-                      :
-                  custProvider.customerReport.isEmpty
-                      ? const Center(
-                    child: CustomText(
-                      text: "No Comments Found",
-                      size: 15,
+              // bottomSheet: Padding(
+              //   padding: const EdgeInsets.all(8.0),
+              //   child: Row(
+              //     mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              //     children: [
+              //       SizedBox(
+              //         width: MediaQuery.of(context).size.width*0.63,
+              //         child: TextFormField(
+              //           // maxLines: maxLine,
+              //             textCapitalization: TextCapitalization.sentences,
+              //             textInputAction: TextInputAction.done,
+              //             keyboardType: TextInputType.text,
+              //             controller:custProvider.disPoint,
+              //             decoration: customStyle.inputDecoration(text: "Type a comment", fieldClr: Colors.white,radius: 50)
+              //         ),
+              //       ),
+              //       IconButton(
+              //           onPressed: (){
+              //             _myFocusScopeNode.unfocus();
+              //             custProvider.timer?.cancel();
+              //             HapticFeedback.vibrate();
+              //             if(custProvider.isRecording){
+              //               custProvider.stopRecording();
+              //             }else{
+              //               custProvider.startRecording();
+              //             }
+              //           },
+              //           icon: Icon(custProvider.isRecording?Icons.send:Icons.mic,color: Colors.green,)),
+              //       SizedBox(
+              //         height: 45,
+              //         width: 45,
+              //         child: ElevatedButton(
+              //           style: ElevatedButton.styleFrom(
+              //             shape: const CircleBorder(),
+              //             padding: EdgeInsets.zero,
+              //             backgroundColor: colorsConst.primary,
+              //             elevation: 2,
+              //           ),
+              //           onPressed: () async {
+              //             _myFocusScopeNode.unfocus();
+              //             if (custProvider.disPoint.text.trim().isEmpty &&
+              //                 custProvider.recordedAudioPaths.isEmpty) {
+              //               utils.showWarningToast(
+              //                 context,
+              //                 text: "Type a comment or record audio",
+              //               );
+              //               return;
+              //             }
+              //             WidgetsBinding.instance.addPostFrameCallback((_) {
+              //               if (_scrollController.hasClients) {
+              //                 _scrollController.animateTo(
+              //                   _scrollController.position.maxScrollExtent,
+              //                   duration: const Duration(milliseconds: 300),
+              //                   curve: Curves.easeOut,
+              //                 );
+              //               }
+              //             });
+              //             if(widget.isVisit==true){
+              //               await custProvider.addComment(context: context,visitId: widget.taskId.toString(),
+              //                   companyName: widget.name,companyId:"", numberList: [], taskId: "0", createdBy: widget.createdBy.toString());
+              //             }else{
+              //               await custProvider.tComment(
+              //                 context: context,
+              //                 taskId: widget.taskId.toString(),
+              //                 assignedId: widget.assignedId.toString(),
+              //               );
+              //             }
+              //
+              //             // Future.microtask(() {
+              //             //   if (_scrollController.hasClients) {
+              //             //     _scrollController.animateTo(
+              //             //       _scrollController.position.maxScrollExtent,
+              //             //       duration: const Duration(milliseconds: 300),
+              //             //       curve: Curves.easeOut,
+              //             //     );
+              //             //   }
+              //             // });
+              //           },
+              //           child: const Icon(
+              //             Icons.send,
+              //             color: Colors.white,
+              //             size: 20,
+              //           ),
+              //         ),
+              //       ),
+              //     ],
+              //   ),
+              // ),
+              bottomSheet: Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    if (recordedPath == null&&isRecording==false)
+                      SizedBox(
+                      width: MediaQuery.of(context).size.width*0.63,
+                      child: TextFormField(
+                        // maxLines: maxLine,
+                          textCapitalization: TextCapitalization.sentences,
+                          textInputAction: TextInputAction.done,
+                          keyboardType: TextInputType.text,
+                          controller:custProvider.disPoint,
+                          decoration: customStyle.inputDecoration(text: "Type a comment", fieldClr: Colors.white,radius: 50)
+                      ),
                     ),
-                  )
-                      : ListView.builder(
-                    controller: taskProvider.scrollController,
-                    padding: const EdgeInsets.fromLTRB(10, 10, 10, 60),
-                    physics: const BouncingScrollPhysics(),
-                    addAutomaticKeepAlives: false,
-                    addRepaintBoundaries: true,
-                    itemCount: custProvider.customerReport.length,
-                    itemBuilder: (context, index) {
-
-
-                      if (custProvider.customerReport.isNotEmpty) {
-                       Future.delayed(Duration.zero,(){
-                         setState(() {
-                           lastCreatedBy =
-                               custProvider.customerReport.last.createdBy?.toString() ?? "0";
-                         });
-                       });
-                      }
-                      CustomerReportModel data = custProvider.customerReport[index];
-                      var createdBy = "";
-                      String CreatedEId=data.createdBy.toString();
-                      // print("CreatedEId: ${CreatedEId}");
-                      // print("CreatedEId lastCreatedBy : ${lastCreatedBy}");
-                      String timestamp = data.createdTs.toString();
-                      DateTime dateTime = DateTime.parse(timestamp);
-                      String dayOfWeek = DateFormat('EEEE').format(dateTime);
-                      DateTime today = DateTime.now();
-                      if (dateTime.day == today.day && dateTime.month == today.month && dateTime.year == today.year) {
-                        dayOfWeek = 'Today';
-                      } else if (dateTime.isAfter(today.subtract(const Duration(days: 1))) &&
-                          dateTime.isBefore(today)) {
-                        dayOfWeek = 'Yesterday';
-                      } else {
-                        dayOfWeek = "${dateTime.day}/${dateTime.month}/${dateTime.year}";
-                      }
-                      print(custProvider.customerReport[index].documents.toString());
-                      createdBy = "${dateTime.day}/${dateTime.month}/${dateTime.year}";
-                      final showDateHeader = index == 0 || createdBy != getCreatedDate(custProvider.customerReport[index - 1]);
-                      return Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          if (showDateHeader==true)
-                            Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 10),
-                              child: CustomText(text:dayOfWeek),
-                            ),
-                          Align(
-                            alignment:custProvider.customerReport[index].createdBy==localData.storage.read("id") ? Alignment.centerRight : Alignment.centerLeft,
-                            child: custProvider.customerReport[index].documents.toString().endsWith(".m4a")?
-                            Container(
-                                decoration: customDecoration.baseBackgroundDecoration(
-                                    color: Colors.white,borderColor: custProvider.customerReport[index].createdBy==localData.storage.read("id") ? colorsConst.primary : colorsConst.primary.withOpacity(0.2),radius: 5
-                                ),
-                                constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.5),
-                                margin: const EdgeInsets.symmetric(vertical: 4),
-                                child: AudioTile( key: ValueKey(custProvider.customerReport[index].documents),
-                                    audioUrl: custProvider.customerReport[index].isLocal==true?
-                                    custProvider.customerReport[index].documents.toString():'$imageFile?path=${custProvider.customerReport[index].documents}')):Container(
-                              constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.55),
-                              margin: const EdgeInsets.symmetric(vertical: 4),
-                              padding: const EdgeInsets.all(10),
-                              decoration: BoxDecoration(
-                                color: custProvider.customerReport[index].createdBy==localData.storage.read("id") ? colorsConst.primary : colorsConst.primary.withOpacity(0.2),
-                                borderRadius: BorderRadius.circular(30),
-                                // border: Border.all(
-                                //   color: custProvider.customerReport[index].createdBy==localData.storage.read("id") ? Colors.grey.shade300 : Colors.grey.shade300,
-                                // ),
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                                children: [
-                                  if(custProvider.customerReport[index].createdBy!=localData.storage.read("id"))
-                                    Row(
-                                      children: [
-                                        CustomText(text:custProvider.customerReport[index].firstname.toString(),colors: colorsConst.primary,),
-                                        CustomText(text:" ( ${custProvider.customerReport[index].role} )",colors: colorsConst.greyClr,),
-                                      ],
-                                    ),
-                                  CustomText(text:custProvider.customerReport[index].comments.toString(),
-                                    colors: custProvider.customerReport[index].createdBy!=localData.storage.read("id") ?Colors.black:Colors.white,),
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.end,
-                                    children: [
-                                      CustomText(
-                                        text: DateFormat('hh:mm a')
-                                            .format(DateTime.parse(data.createdTs.toString())),
-                                        size: 10,
-                                        colors: custProvider.customerReport[index].createdBy
-                                            != localData.storage.read("id")
-                                            ? Colors.black
-                                            : Colors.white,
-                                      ),
-                                      if (data.isLocal == true)
-                                        Padding(
-                                          padding: const EdgeInsets.only(left: 4),
-                                          child: Icon(
-                                            Icons.schedule,
-                                            size: 12,
-                                            color: custProvider.customerReport[index].createdBy
-                                                != localData.storage.read("id")
-                                                ? Colors.black
-                                                : Colors.white,
-                                          ),
-                                        ),
-                                    ],
-                                  ),
-                                  // Row(
-                                  //   mainAxisAlignment: MainAxisAlignment.end,
-                                  //   children: [
-                                  //     CustomText(text:DateFormat('hh:mm a').format(DateTime.parse(data.createdTs.toString())),size: 10,colors: custProvider.customerReport[index].createdBy!=localData.storage.read("id") ?Colors.black:Colors.white,),
-                                  //   ],
-                                  // ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ],
-                      );
-                    },
-                  ),
-                ),
-                if(custProvider.isRecording)
-                  Positioned(
-                    left: 0,
-                    right: 0,
-                    bottom: 70,
-                    child: Container(
-                        width: kIsWeb?webWidth:phoneWidth,
-                        height: 65,
-                        alignment: Alignment.centerLeft,
-                        decoration: customDecoration.baseBackgroundDecoration(
-                            color: Colors.white,radius: 10
+                    IconButton(
+                    icon: Icon(isRecording ? Icons.stop : Icons.mic, color: Colors.green),
+                    //  icon: Icon(Icons.mic, color: Colors.green),
+                      onPressed: () {
+                       // startRecording();
+                        if (isRecording) {
+                          stopRecording();
+                        } else {
+                          startRecording();
+                        }
+                      },
+                    ),
+                    if (isRecording)
+                      Text(
+                        "${duration.inSeconds}s Recording...",
+                        style: TextStyle(color: Colors.red),
+                      ),
+                    if (recordedPath != null && !isRecording)
+                      Container(
+                        height: 40,
+                        width: phoneWidth/2,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(5),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black12,
+                              blurRadius: 4,
+                            )
+                          ],
                         ),
                         child: Row(
                           children: [
-                            10.width,
-                            AnimatedBuilder(
-                              animation: animation,
-                              builder: (context, child) {
-                                return Transform.scale(
-                                    scale: taskProvider.isRecording?animation.value:1.0,
-                                    child: const Icon(Icons.mic,color: Colors.green,size: 15,)
-                                );
-                              },
-                            ),10.width,
-                            CustomText(text:"${custProvider.recordingDuration.toStringAsFixed(2)}s",
-                              colors: Colors.red,
-                              size: 15,
-                              isBold: true,
+
+                            /// ▶ PLAY / PAUSE
+                            IconButton(
+                              icon: Icon(
+                                isPlaying ? Icons.pause : Icons.play_arrow,
+                                size: 30,
+                                color: Colors.green,
+                              ),
+                              onPressed: togglePlay,
                             ),
-                          ],
-                        )
-                    ),
-                  ),
-                if(custProvider.recordedAudioPaths.isNotEmpty)
-                  Positioned(
-                    left: 0,
-                    right: 0,
-                    bottom: 70,
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(0, 10, 0, 0),
-                      child: Row(
-                        mainAxisAlignment: custProvider.recordedAudioPaths.isNotEmpty && custProvider.isRecording==false?MainAxisAlignment.spaceAround:MainAxisAlignment.center,
-                        children: [
-                          Container(
-                            width: kIsWeb?webWidth/1.5:phoneWidth/1.3,
-                            height: 65,
-                            decoration: customDecoration.baseBackgroundDecoration(
-                                color: Colors.white,radius: 10
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                IconButton(
-                                    onPressed: () {
-                                      if(custProvider.recordedAudioPaths[0].play==true){
-                                        custProvider.recordedAudioPaths[0].play=false;
-                                        custProvider.stopAudio();
-                                      }else{
-                                        custProvider.recordedAudioPaths[0].play=true;
-                                        custProvider.playAudio(custProvider.recordedAudioPaths[0].audioPath,0);
-                                      }
-                                    },
-                                    icon: Icon(custProvider.recordedAudioPaths[0].play==true?Icons.pause:Icons.play_arrow,size: 30,
-                                        color: custProvider.recordedAudioPaths[0].play==true?colorsConst.primary:colorsConst.litGrey)
-                                ),
-                                SizedBox(
-                                  // color: Colors.pinkAccent,
-                                  width: kIsWeb?webWidth/1.5:phoneWidth/2.1,
-                                  child: Slider(
-                                    activeColor: colorsConst.primary,
-                                    inactiveColor: colorsConst.litGrey,
-                                    onChanged: custProvider.recordedAudioPaths[0].play
-                                        ? (value) {
-                                      final positionValue = value * custProvider.recordedAudioPaths[0].duration.inMilliseconds;
-                                      custProvider.audioPlayer.seek(Duration(milliseconds: positionValue.round()));
-                                    }
-                                        : null,
-                                    value: custProvider.recordedAudioPaths[0].play == false
-                                        ? 0
-                                        : (custProvider.recordedAudioPaths[0].position.inMilliseconds > 0 &&
-                                        custProvider.recordedAudioPaths[0].duration.inMilliseconds > 0)
-                                        ? custProvider.recordedAudioPaths[0].position.inMilliseconds /
-                                        custProvider.recordedAudioPaths[0].duration.inMilliseconds
-                                        : 0.0,
-                                  ),
-                                ),
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.start,
-                                  children: [
-                                    CustomText(text: custProvider.recordedAudioPaths[0].second.toStringAsFixed(2),colors: colorsConst.greyClr,size: 13,),
-                                    5.width,
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-                          2.width,
-                          Container(
-                            color: Colors.white,
-                            padding: EdgeInsets.all(10),
-                            child: IconButton(
-                                onPressed: (){
-                                  utils.customDialog(
-                                      context: context,
-                                      title: "Do you want to",
-                                      title2:"Delete this audio?",
-                                      callback: (){
-                                        Navigator.pop(context);
-                                        custProvider.removeAudio(0);
-                                      },
-                                      isLoading: false);
+
+                            /// 🎚 SLIDER
+                            Expanded(
+                              child: Slider(
+                                activeColor: Colors.green,
+                                inactiveColor: Colors.grey.shade300,
+                                value: currentPosition.inSeconds.toDouble(),
+                                min: 0,
+                                max: totalDuration.inSeconds.toDouble() == 0
+                                    ? 1
+                                    : totalDuration.inSeconds.toDouble(),
+                                onChanged: (value) async {
+                                  final position = Duration(seconds: value.toInt());
+                                  await _audioPlayer.seek(position);
                                 },
-                                icon: SvgPicture.asset(assets.deleteValue)
+                              ),
                             ),
-                          ),
-                        ],
+
+                            /// ⏱ TIME
+                            Text(
+                              formatTime(currentPosition),
+                              style: TextStyle(fontSize: 12),
+                            ),
+
+                            SizedBox(width: 5),
+                          ],
+                        ),
+                      ),
+                    if (recordedPath != null)
+                    IconButton(
+                      icon: SvgPicture.asset(assets.deleteValue,width: 20,height: 20,),
+                      onPressed: (){
+                        setState(() {
+                          recordedPath=null;
+                        });
+                      },
+                    ),
+                    SizedBox(
+                      height: 45,
+                      width: 45,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          shape: const CircleBorder(),
+                          padding: EdgeInsets.zero,
+                          backgroundColor: colorsConst.primary,
+                          elevation: 2,
+                        ),
+                  onPressed: () async {
+                  _myFocusScopeNode.unfocus();
+
+                  // ❗ recording நடக்குது → முதலில் stop
+                  if (isRecording) {
+                  await stopRecording();
+                  return; // ❗ இங்கே return பண்ணணும்
+                  }
+
+                  // ❗ empty check
+                  if (custProvider.disPoint.text.trim().isEmpty && recordedPath == null) {
+                  utils.showWarningToast(
+                  context,
+                  text: "Type a comment or record audio",
+                  );
+                  return;
+                  }
+
+                  // ✅ SEND
+                  if(widget.isVisit==true){
+                  await custProvider.addComment(
+                  context: context,
+                  visitId: widget.taskId.toString(),
+                  companyName: widget.name,
+                  companyId:"",
+                  numberList: [],
+                  taskId: "0",
+                  createdBy: widget.createdBy.toString(),
+                  assignedId: widget.assignedId.toString(),
+                  path: recordedPath ?? "",
+                  );
+                  } else {
+                  await custProvider.tComment(
+                  context: context,
+                  taskId: widget.taskId.toString(),
+                  assignedId: widget.assignedId.toString(),
+                  path: recordedPath ?? "",
+                  );
+
+                  }
+
+                  setState(() {
+                  recordedPath = null;
+                  });
+                  },
+                        child: Icon(
+                          isRecording ? Icons.stop : Icons.send,
+                          color: Colors.white,
+                          size: 20,
+                        ),
                       ),
                     ),
+                  ],
+                ),
+              ),
+              body: Stack(
+                children: [
+                  Positioned.fill(
+                    child:
+                    custProvider.refresh == false
+                        ? const Loading()
+                        :
+                    custProvider.customerReport.isEmpty
+                        ? const Center(
+                      child: CustomText(
+                        text: "No Comments Found",
+                        size: 15,
+                      ),
+                    )
+                        : ListView.builder(
+                      controller: taskProvider.scrollController,
+                      padding: const EdgeInsets.fromLTRB(10, 10, 10, 60),
+                      physics: const BouncingScrollPhysics(),
+                      addAutomaticKeepAlives: false,
+                      addRepaintBoundaries: true,
+                      itemCount: custProvider.customerReport.length,
+                      itemBuilder: (context, index) {
+
+
+                        if (custProvider.customerReport.isNotEmpty) {
+                         Future.delayed(Duration.zero,(){
+                           setState(() {
+                             lastCreatedBy =
+                                 custProvider.customerReport.last.createdBy?.toString() ?? "0";
+                           });
+                         });
+                        }
+                        CustomerReportModel data = custProvider.customerReport[index];
+                        var createdBy = "";
+                        String CreatedEId=data.createdBy.toString();
+                        // print("CreatedEId: ${CreatedEId}");
+                        // print("CreatedEId lastCreatedBy : ${lastCreatedBy}");
+                        String timestamp = data.createdTs.toString();
+                        DateTime dateTime = DateTime.parse(timestamp);
+                        String dayOfWeek = DateFormat('EEEE').format(dateTime);
+                        DateTime today = DateTime.now();
+                        if (dateTime.day == today.day && dateTime.month == today.month && dateTime.year == today.year) {
+                          dayOfWeek = 'Today';
+                        } else if (dateTime.isAfter(today.subtract(const Duration(days: 1))) &&
+                            dateTime.isBefore(today)) {
+                          dayOfWeek = 'Yesterday';
+                        } else {
+                          dayOfWeek = "${dateTime.day}/${dateTime.month}/${dateTime.year}";
+                        }
+                        print(custProvider.customerReport[index].documents.toString());
+                        createdBy = "${dateTime.day}/${dateTime.month}/${dateTime.year}";
+                        final showDateHeader = index == 0 || createdBy != getCreatedDate(custProvider.customerReport[index - 1]);
+                        return Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            if (showDateHeader==true)
+                              Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 10),
+                                child: CustomText(text:dayOfWeek),
+                              ),
+                            Align(
+                              alignment:custProvider.customerReport[index].createdBy==localData.storage.read("id") ? Alignment.centerRight : Alignment.centerLeft,
+                              child: custProvider.customerReport[index].documents.toString().endsWith(".m4a")?
+                              Container(
+                                  decoration: customDecoration.baseBackgroundDecoration(
+                                      color: Colors.white,borderColor: custProvider.customerReport[index].createdBy==localData.storage.read("id") ? colorsConst.primary : colorsConst.primary.withOpacity(0.2),radius: 5
+                                  ),
+                                  constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.5),
+                                  margin: const EdgeInsets.symmetric(vertical: 4),
+                                  child: AudioTile( key: ValueKey(custProvider.customerReport[index].documents),
+                                      audioUrl: custProvider.customerReport[index].isLocal==true?
+                                      custProvider.customerReport[index].documents.toString():'$imageFile?path=${custProvider.customerReport[index].documents}')):Container(
+                                constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.55),
+                                margin: const EdgeInsets.symmetric(vertical: 4),
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  color: custProvider.customerReport[index].createdBy==localData.storage.read("id") ? colorsConst.primary : colorsConst.primary.withOpacity(0.2),
+                                  borderRadius: BorderRadius.circular(30),
+                                  // border: Border.all(
+                                  //   color: custProvider.customerReport[index].createdBy==localData.storage.read("id") ? Colors.grey.shade300 : Colors.grey.shade300,
+                                  // ),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                  children: [
+                                    if(custProvider.customerReport[index].createdBy!=localData.storage.read("id"))
+                                      Row(
+                                        children: [
+                                          CustomText(text:custProvider.customerReport[index].firstname.toString(),colors: colorsConst.primary,),
+                                          CustomText(text:" ( ${custProvider.customerReport[index].role} )",colors: colorsConst.greyClr,),
+                                        ],
+                                      ),
+                                    CustomText(text:custProvider.customerReport[index].comments.toString(),
+                                      colors: custProvider.customerReport[index].createdBy!=localData.storage.read("id") ?Colors.black:Colors.white,),
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.end,
+                                      children: [
+                                        CustomText(
+                                          text: DateFormat('hh:mm a')
+                                              .format(DateTime.parse(data.createdTs.toString())),
+                                          size: 10,
+                                          colors: custProvider.customerReport[index].createdBy
+                                              != localData.storage.read("id")
+                                              ? Colors.black
+                                              : Colors.white,
+                                        ),
+                                        if (data.isLocal == true)
+                                          Padding(
+                                            padding: const EdgeInsets.only(left: 4),
+                                            child: Icon(
+                                              Icons.schedule,
+                                              size: 12,
+                                              color: custProvider.customerReport[index].createdBy
+                                                  != localData.storage.read("id")
+                                                  ? Colors.black
+                                                  : Colors.white,
+                                            ),
+                                          ),
+                                      ],
+                                    ),
+                                    // Row(
+                                    //   mainAxisAlignment: MainAxisAlignment.end,
+                                    //   children: [
+                                    //     CustomText(text:DateFormat('hh:mm a').format(DateTime.parse(data.createdTs.toString())),size: 10,colors: custProvider.customerReport[index].createdBy!=localData.storage.read("id") ?Colors.black:Colors.white,),
+                                    //   ],
+                                    // ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        );
+                      },
+                    ),
                   ),
-              ],
+                  if(custProvider.isRecording)
+                    Positioned(
+                      left: 0,
+                      right: 0,
+                      bottom: 70,
+                      child: Container(
+                          width: kIsWeb?webWidth:phoneWidth,
+                          height: 65,
+                          alignment: Alignment.centerLeft,
+                          decoration: customDecoration.baseBackgroundDecoration(
+                              color: Colors.white,radius: 10
+                          ),
+                          child: Row(
+                            children: [
+                              10.width,
+                              AnimatedBuilder(
+                                animation: animation,
+                                builder: (context, child) {
+                                  return Transform.scale(
+                                      scale: taskProvider.isRecording?animation.value:1.0,
+                                      child: const Icon(Icons.mic,color: Colors.green,size: 15,)
+                                  );
+                                },
+                              ),10.width,
+                              CustomText(text:"${custProvider.recordingDuration.toStringAsFixed(2)}s",
+                                colors: Colors.red,
+                                size: 15,
+                                isBold: true,
+                              ),
+                            ],
+                          )
+                      ),
+                    ),
+                  if(custProvider.recordedAudioPaths.isNotEmpty)
+                    Positioned(
+                      left: 0,
+                      right: 0,
+                      bottom: 70,
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(0, 10, 0, 0),
+                        child: Row(
+                          mainAxisAlignment: custProvider.recordedAudioPaths.isNotEmpty && custProvider.isRecording==false?MainAxisAlignment.spaceAround:MainAxisAlignment.center,
+                          children: [
+                            Container(
+                              width: kIsWeb?webWidth/1.5:phoneWidth/1.3,
+                              height: 65,
+                              decoration: customDecoration.baseBackgroundDecoration(
+                                  color: Colors.white,radius: 10
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  IconButton(
+                                      onPressed: () {
+                                        if(custProvider.recordedAudioPaths[0].play==true){
+                                          custProvider.recordedAudioPaths[0].play=false;
+                                          custProvider.stopAudio();
+                                        }else{
+                                          custProvider.recordedAudioPaths[0].play=true;
+                                          custProvider.playAudio(custProvider.recordedAudioPaths[0].audioPath,0);
+                                        }
+                                      },
+                                      icon: Icon(custProvider.recordedAudioPaths[0].play==true?Icons.pause:Icons.play_arrow,size: 30,
+                                          color: custProvider.recordedAudioPaths[0].play==true?colorsConst.primary:colorsConst.litGrey)
+                                  ),
+                                  SizedBox(
+                                    // color: Colors.pinkAccent,
+                                    width: kIsWeb?webWidth/1.5:phoneWidth/2.1,
+                                    child: Slider(
+                                      activeColor: colorsConst.primary,
+                                      inactiveColor: colorsConst.litGrey,
+                                      onChanged: custProvider.recordedAudioPaths[0].play
+                                          ? (value) {
+                                        final positionValue = value * custProvider.recordedAudioPaths[0].duration.inMilliseconds;
+                                        custProvider.audioPlayer.seek(Duration(milliseconds: positionValue.round()));
+                                      }
+                                          : null,
+                                      value: custProvider.recordedAudioPaths[0].play == false
+                                          ? 0
+                                          : (custProvider.recordedAudioPaths[0].position.inMilliseconds > 0 &&
+                                          custProvider.recordedAudioPaths[0].duration.inMilliseconds > 0)
+                                          ? custProvider.recordedAudioPaths[0].position.inMilliseconds /
+                                          custProvider.recordedAudioPaths[0].duration.inMilliseconds
+                                          : 0.0,
+                                    ),
+                                  ),
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.start,
+                                    children: [
+                                      CustomText(text: custProvider.recordedAudioPaths[0].second.toStringAsFixed(2),colors: colorsConst.greyClr,size: 13,),
+                                      5.width,
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                            2.width,
+                            Container(
+                              color: Colors.white,
+                              padding: EdgeInsets.all(10),
+                              child: IconButton(
+                                  onPressed: (){
+                                    utils.customDialog(
+                                        context: context,
+                                        title: "Do you want to",
+                                        title2:"Delete this audio?",
+                                        callback: (){
+                                          Navigator.pop(context);
+                                          custProvider.removeAudio(0);
+                                        },
+                                        isLoading: false);
+                                  },
+                                  icon: SvgPicture.asset(assets.deleteValue)
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                ],
+              ),
             ),
           ),
         ),

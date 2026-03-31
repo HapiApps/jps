@@ -36,7 +36,7 @@ class VisitReportDetails extends StatelessWidget {
         print("created by 12 task :${data.createdBy.toString()}");
         print("created by 12 task :${data.companyName.toString()}");
         utils.navigatePage(context, ()=> DashBoard(child: TaskChat(isVisit:true,createdBy: data.createdBy.toString(),
-            taskId: data.id.toString(), assignedId: "", assignedName:"",name: data.companyName.toString())));
+            taskId: data.id.toString(), assignedId: "", assignedName:"",name: data.companyName.toString(), date1: '', date2: '', type: '',)));
         // utils.navigatePage(context, ()=>CommentChat(visitId: data.id.toString(), companyName: data.companyName.toString(), numberList: [], companyId: '',createdBy: data.createdBy.toString(),));
       },
       child: Padding(

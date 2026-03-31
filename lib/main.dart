@@ -797,7 +797,7 @@ Future<void> main() async {
           // ❗ backend delay handle
           await Future.delayed(const Duration(milliseconds: 500));
 
-          await customerProvider.getTaskComments(taskId);
+          await customerProvider.getTaskMainComments(taskId);
 
           // scroll bottom
           WidgetsBinding.instance.addPostFrameCallback((_) {
