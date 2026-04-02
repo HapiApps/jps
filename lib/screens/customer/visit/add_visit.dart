@@ -154,21 +154,26 @@ class _CusAddVisitState extends State<CusAddVisit> with TickerProviderStateMixin
                                 // CustomText(text: widget.type,colors: colorsConst.greyClr,isItalic: true,),
                               ],
                             ),
+                            //type
                             MapDropDown(isRequired:true,
                               isRefresh: taskProvider.typeList.isEmpty?true:false,
                               callback: (){
                                 if(!kIsWeb){
-                                  taskProvider.getAllTypes();
+                                  taskProvider.getTaskType(true);
                                 }else{
-                                  taskProvider.getTaskType(false);
+                                  taskProvider.getAllTypes();
                                 }
                               },
                               width: kIsWeb?webWidth:phoneWidth,
                               hintText: constValue.type,
-                              list: taskProvider.typeList,
-                              saveValue: taskProvider.selectType,
+                              list: custProvider.cmtTypeList,
+                              // saveValue: custProvider.selectType,
+                              saveValue: custProvider.selectType?['id'],
                               onChanged: (Object? value) {
-                                taskProvider.changeTypeValue1(value);
+                                final selected = custProvider.cmtTypeList
+                                    .firstWhere((e) => e['id'].toString() == value.toString());
+
+                                custProvider.changeType(selected);
                               },
                               dropText: 'value',),
                             CustomTextField(
@@ -255,25 +260,27 @@ class _CusAddVisitState extends State<CusAddVisit> with TickerProviderStateMixin
                             //   textCapitalization: TextCapitalization.sentences,
                             //   textInputAction: TextInputAction.done,
                             // ),
-                            MapDropDown(
-                              callback: (){
-                                if(!kIsWeb){
-                                  custProvider.refreshLead();
-                                }else{
-                                  custProvider.getLeadCategory();
-                                }
-                              },
-                              isRefresh: custProvider.leadCategoryList.isEmpty?true:false,
-                              width: kIsWeb?webWidth:phoneWidth,
-                              hintText: constValue.leadStatus,
-                              list: custProvider.leadCategoryList,
-                              saveValue: custProvider.leadType == null
-                                  ? null
-                                  : custProvider.leadType["id"].toString(),
-                              onChanged: (Object? value) {
-                                custProvider.changeLeadType1(value);
-                              },
-                              dropText: 'value',),
+                            //lead
+          MapDropDown(
+            callback: () {
+              if (!kIsWeb) {
+                custProvider.refreshLead();
+              } else {
+                custProvider.getLeadCategory();
+              }
+            },
+            isRefresh: custProvider.leadCategoryList.isEmpty,
+            width: kIsWeb ? webWidth : phoneWidth,
+            hintText: constValue.leadStatus,
+            list: custProvider.leadCategoryList,
+            saveValue: custProvider.leadType == null
+                ? null
+                : custProvider.leadType["id"].toString(),
+            onChanged: (Object? value) {
+              custProvider.changeLeadType1(value);
+            },
+            dropText: 'value',
+          ),
                             MapDropDown(
                               callback: (){
                                 if(!kIsWeb){
@@ -368,7 +375,7 @@ class _CusAddVisitState extends State<CusAddVisit> with TickerProviderStateMixin
                                 //   custProvider.addCtr.reset();
                                 // }
                                 // else{
-                                if(taskProvider.selectType==null){
+                                if(custProvider.leadType==null){
                                   utils.showWarningToast(context, text: "Select a visit type");
                                   custProvider.addCtr.reset();
                                 }

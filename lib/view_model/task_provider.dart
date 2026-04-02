@@ -3057,17 +3057,27 @@ class TaskProvider with ChangeNotifier {
 
     notifyListeners();
   }
-  void changeTypeValue1(dynamic value) {
+  String? typeId;
+  String? typeName;
 
+  void changeTypeValue1(Object? value) {
     if (value == null) return;
 
-    _selectType = value;
-    print("select type${_selectType}");
-    // localData.storage.write("type_id", value["id"].toString());
-    // localData.storage.write("typeName", value["value"]);
-    //
-    // print("Selected Type ID : ${value["id"]}");
-    // print("Selected Type Name : ${value["value"]}");
+    final selected = typeList.firstWhere(
+          (e) => e['id'].toString() == value.toString(),
+      orElse: () => <String, String>{},
+    );
+
+    if (selected.isEmpty) {
+      print("Type not found");
+      return;
+    }
+
+    _selectType = selected;
+
+    localData.storage.write("type_id", selected["id"].toString());
+
+    print("Saved TYPE ID => ${selected["id"]}");
 
     notifyListeners();
   }

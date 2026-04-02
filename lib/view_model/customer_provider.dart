@@ -736,24 +736,44 @@ void changeState(dynamic value){
 //
 //   notifyListeners();
 // }
+//   void changeLeadType(dynamic value) {
+//     leadType = value; // 🔥 direct assign
+//
+//     localData.storage.write("lead_id", leadType["id"]);
+//
+//     notifyListeners();
+//   }
+  //lead
   void changeLeadType(dynamic value) {
-    leadType = value; // 🔥 direct assign
+    leadType = value;
 
-    localData.storage.write("lead_id", leadType["id"]);
+    localData.storage.write("lead_id", value["id"].toString());
 
     notifyListeners();
   }
+
   void changeLeadType1(Object? value) {
     try {
+      if (value == null) return;
+
       final selected = leadCategoryList.firstWhere(
             (e) => e['id'].toString() == value.toString(),
       );
 
       leadType = selected;
+
+      // ✅ Local storage save
+      localData.storage.write("lead_id", selected["id"].toString());
+      localData.storage.write("lead_value", selected["value"].toString());
+
+      print("Saved Lead ID => ${selected["id"]}");
+      print("Saved Lead Value => ${selected["value"]}");
+
       notifyListeners();
     } catch (e) {
       print("LeadType not found");
     }
+
   }
   void changeCallType1(dynamic value) {
     callType = value.toString();
@@ -1764,15 +1784,22 @@ List<CustomerAttendanceModel> _customerAttendanceReport = <CustomerAttendanceMod
 List<CustomerReportModel> _searchCustomerReport = <CustomerReportModel>[];
 List<CustomerReportModel> get customerReport=>_customerReport;
 List<CustomerAttendanceModel> get customerAttendanceReport=>_customerAttendanceReport;
-void changeType(dynamic value){
-  _selectType=null;
-  _selectType=value;
-  var list=[];
-  list.add(value);
-  localData.storage.write("type_id",list[0]["id"]);
+// void changeType(dynamic value){
+//   _selectType=null;
+//   _selectType=value;
+//   var list=[];
+//   list.add(value);
+//   localData.storage.write("type_id",list[0]["id"]);
+//
+//   notifyListeners();
+// }
+  void changeType(dynamic value) {
+    _selectType = value;
 
-  notifyListeners();
-}
+    localData.storage.write("type_id", value["id"].toString());
+
+    notifyListeners();
+  }
 void changeReview(dynamic value){
   _selectReview=value.toString();
   notifyListeners();
@@ -2495,6 +2522,11 @@ TextEditingController date= TextEditingController(text: "${DateTime.now().day.to
         "lng": lng,
       };
       final response =await custRepo.addVisit(data);
+      final typeId = localData.storage.read("type_id");
+      final leadId = localData.storage.read("lead_id");
+
+      print("FINAL TYPE ID => $typeId");
+      print("FINAL LEAD ID => $leadId");
       log(response.toString());
       if (response.toString().contains('ok')) {
 
