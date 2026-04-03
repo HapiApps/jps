@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:developer';
 import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:excel/excel.dart';
 import 'package:master_code/source/extentions/extensions.dart';
 import 'package:master_code/source/utilities/utils.dart';
 import 'package:audioplayers/audioplayers.dart';
@@ -13,6 +14,7 @@ import 'package:group_button/group_button.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
+import 'package:open_file/open_file.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:record/record.dart';
@@ -557,55 +559,419 @@ class TaskProvider with ChangeNotifier {
   }
 
   Future<void> downloadAllTask(context) async {
-    // _searchAllTasks.clear();
     notifyListeners();
     try {
-      // Show loading dialog
       showDialog(
         context: context,
         barrierDismissible: false,
         builder: (_) => const Center(child: CircularProgressIndicator()),
       );
+
       Map data = {
         "action": taskDatas,
-        "search_type":"download_reports",
+        "search_type": "download_reports",
         "cos_id": localData.storage.read("cos_id"),
         "role": localData.storage.read("role"),
         "id": localData.storage.read("id"),
-        "date1":_startDate,
-        "date2":_endDate
+        "date1": _startDate,
+        "date2": _endDate
       };
-      final response =await _taskRepo.downloadReport(data);
-      // print(data.toString());
-      // log("response.toString()");
-      // log(response.toString());
+
+      final response = await _taskRepo.downloadReport(data);
+
       if (response.isNotEmpty) {
         List<DTaskModel> test = response.where((contact) {
-
           final isTypeMatch = _fType == "" || _fType == contact.type;
-          final isEmpMatch = _userName == "" || contact.assignedNames.toString().contains(_userName);
-          final isCusMatch = _companyName == "" || contact.projectName == _companyName;
+          final isEmpMatch =
+              _userName == "" || contact.assignedNames.toString().contains(_userName);
+          final isCusMatch =
+              _companyName == "" || contact.projectName == _companyName;
+
           return isTypeMatch && isEmpMatch && isCusMatch;
         }).toList();
-        if(test.isNotEmpty){
-          generatePdf(test,context);
-        }else{
+
+        if (test.isNotEmpty) {
+          await exportTaskEmployeeWiseExcel(
+            taskList: test,
+            fromDate: _startDate,
+            toDate: _endDate,
+          );
+
+          Navigator.pop(context); // close loader
+        } else {
           utils.showWarningToast(context, text: "No Task Found");
           Navigator.pop(context);
-          notifyListeners();
         }
-      }else{
+      } else {
         utils.showWarningToast(context, text: "No Task Found");
         Navigator.pop(context);
-        notifyListeners();
       }
     } catch (e) {
       utils.showWarningToast(context, text: "No Task Found");
       Navigator.pop(context);
-      notifyListeners();
     }
+
     notifyListeners();
   }
+  Future<void> generatePdf(List<DTaskModel> taskList, BuildContext context) async {
+    final pdf = pw.Document();
+
+    final font = await PdfGoogleFonts.notoSansRegular();
+    final boldFont = await PdfGoogleFonts.notoSansBold();
+
+    /// 🔹 Image Loader
+    Future<pw.MemoryImage?> loadAndCompressImage(String url,
+        {int maxWidth = 600, int maxHeight = 600, int quality = 50}) async {
+      try {
+        final response = await http.get(Uri.parse("$imageFile?path=$url"));
+        if (response.statusCode == 200 && response.bodyBytes.isNotEmpty) {
+          img.Image? image = img.decodeImage(response.bodyBytes);
+          if (image != null) {
+            image = img.copyResize(
+              image,
+              width: image.width > maxWidth ? maxWidth : image.width,
+              height: image.height > maxHeight ? maxHeight : image.height,
+            );
+            return pw.MemoryImage(img.encodeJpg(image, quality: quality));
+          }
+        }
+      } catch (_) {}
+      return null;
+    }
+
+    /// 🔹 Preload Images
+    Map<DTaskModel, List<pw.MemoryImage>> taskImages = {};
+    for (var task in taskList) {
+      final images = <pw.MemoryImage>[];
+      final docs = [task.docsType1, task.docsType2, task.docsType3];
+
+      for (var docList in docs) {
+        if (docList != null && docList.isNotEmpty) {
+          for (var url in docList) {
+            if (url.isNotEmpty && url != "null") {
+              final imgData = await loadAndCompressImage(url);
+              if (imgData != null) images.add(imgData);
+            }
+          }
+        }
+      }
+      taskImages[task] = images;
+    }
+
+    /// 🔹 Build Task Section
+    pw.Widget buildTaskSection(DTaskModel task, List<pw.MemoryImage> images) {
+
+      /// 🔥 COMMENTS PARSE
+      List<Map<String, String>> comments = [];
+
+      if (task.commentsFull != null && task.commentsFull!.trim().isNotEmpty) {
+        final rawComments = task.commentsFull!.split("||");
+
+        for (var c in rawComments) {
+          final parts = c.split("|");
+
+          String name = parts.isNotEmpty ? parts[0].trim() : "";
+          String comment = parts.length > 1 ? parts[1].trim() : "";
+          String time = parts.length > 2 ? parts[2].trim() : "";
+
+          String date = "";
+          String formattedTime = "";
+
+          if (time.isNotEmpty) {
+            final dt = DateTime.tryParse(time);
+            if (dt != null) {
+              date = DateFormat('dd-MM-yyyy').format(dt);
+              formattedTime = DateFormat('hh:mm a').format(dt);
+            }
+          }
+
+          comments.add({
+            "name": name,
+            "comment": comment,
+            "date": date,
+            "time": formattedTime,
+          });
+        }
+      }
+
+      return pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+
+          pw.Divider(),
+
+          /// 🔹 Title
+          pw.Text("Task Reports - ${task.taskDate}",
+              style: pw.TextStyle(fontSize: 16, font: boldFont)),
+
+          pw.SizedBox(height: 5),
+
+          /// 🔹 Basic Info
+          pw.Text("Task: ${task.taskTitle}", style: pw.TextStyle(font: font)),
+          pw.Text("Company: ${task.projectName}", style: pw.TextStyle(font: font)),
+          pw.Text("Assigned To: ${task.assignedNames}", style: pw.TextStyle(font: font)),
+          pw.Text("Created By: ${task.creator}", style: pw.TextStyle(font: font)),
+
+          pw.SizedBox(height: 10),
+
+          /// 🔥 COMMENTS TABLE
+          if (comments.isNotEmpty)
+            pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+
+                pw.Text("Comments",
+                    style: pw.TextStyle(font: boldFont, fontSize: 14)),
+
+                pw.SizedBox(height: 5),
+
+                pw.Table(
+                  border: pw.TableBorder.all(color: PdfColors.grey300),
+                  columnWidths: {
+                    0: const pw.FlexColumnWidth(2),
+                    1: const pw.FlexColumnWidth(2),
+                    2: const pw.FlexColumnWidth(6),
+                  },
+                  children: [
+
+                    /// HEADER
+                    pw.TableRow(
+                      decoration: pw.BoxDecoration(color: PdfColors.grey200),
+                      children: [
+                        pw.Padding(
+                          padding: const pw.EdgeInsets.all(5),
+                          child: pw.Text("Time",
+                              style: pw.TextStyle(font: boldFont, fontSize: 10)),
+                        ),
+                        pw.Padding(
+                          padding: const pw.EdgeInsets.all(5),
+                          child: pw.Text("Name",
+                              style: pw.TextStyle(font: boldFont, fontSize: 10)),
+                        ),
+                        pw.Padding(
+                          padding: const pw.EdgeInsets.all(5),
+                          child: pw.Text("Comment",
+                              style: pw.TextStyle(font: boldFont, fontSize: 10)),
+                        ),
+                      ],
+                    ),
+
+                    /// DATA
+                    ...comments.map((c) {
+                      return pw.TableRow(
+                        children: [
+                          pw.Padding(
+                            padding: const pw.EdgeInsets.all(3),
+                            child: pw.Text(
+                              "${c["date"]} ${c["time"]}",
+                              style: pw.TextStyle(font: font, fontSize: 9),
+                            ),
+                          ),
+                          pw.Padding(
+                            padding: const pw.EdgeInsets.all(5),
+                            child: pw.Text(
+                              c["name"] ?? "",
+                              style: pw.TextStyle(font: font, fontSize: 9),
+                            ),
+                          ),
+                          pw.Padding(
+                            padding: const pw.EdgeInsets.all(5),
+                            child: pw.Text(
+                              c["comment"] ?? "",
+                              style: pw.TextStyle(font: font, fontSize: 9),
+                            ),
+                          ),
+                        ],
+                      );
+                    }).toList(),
+                  ],
+                ),
+              ],
+            ),
+
+          pw.SizedBox(height: 10),
+
+          /// 🔹 Images
+          if (images.isNotEmpty)
+            pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                pw.Text("Documents", style: pw.TextStyle(font: boldFont)),
+                pw.SizedBox(height: 5),
+
+                ...images.map((img) => pw.Padding(
+                  padding: const pw.EdgeInsets.all(5),
+                  child: pw.Image(img, width: 150, height: 100),
+                ))
+              ],
+            ),
+        ],
+      );
+    }
+
+    /// 🔹 Add Pages
+    for (var task in taskList) {
+      pdf.addPage(
+        pw.MultiPage(
+          build: (context) => [
+            buildTaskSection(task, taskImages[task] ?? [])
+          ],
+        ),
+      );
+    }
+
+    Navigator.pop(context);
+    await Printing.layoutPdf(onLayout: (format) async => pdf.save());
+  }
+
+
+
+
+  Future<void> exportTaskEmployeeWiseExcel({
+    required List<DTaskModel> taskList,
+    required String fromDate,
+    required String toDate,
+  }) async {
+    var excel = Excel.createExcel();
+    excel.delete('Sheet1');
+
+    Sheet sheet = excel["Sheet1"];
+
+    /// STYLE - MAIN TITLE
+    CellStyle titleStyle = CellStyle(
+      bold: true,
+      fontSize: 16,
+      horizontalAlign: HorizontalAlign.Center,
+      verticalAlign: VerticalAlign.Center,
+    );
+
+    /// STYLE - YELLOW HEADER
+    CellStyle headerStyle = CellStyle(
+      bold: true,
+      backgroundColorHex: "#FFFF00",
+      fontColorHex: "#000000",
+      horizontalAlign: HorizontalAlign.Center,
+      verticalAlign: VerticalAlign.Center,
+    );
+
+    /// STYLE - EMPLOYEE TITLE
+    CellStyle empStyle = CellStyle(
+      bold: true,
+      backgroundColorHex: "#D9E1F2",
+      fontColorHex: "#000000",
+      horizontalAlign: HorizontalAlign.Left,
+      verticalAlign: VerticalAlign.Center,
+    );
+
+    /// 🔥 TOP HEADING
+    sheet.appendRow(["JPS TASK REPORT DETAILS"]);
+    sheet.merge(
+      CellIndex.indexByString("A1"),
+      CellIndex.indexByString("H1"),
+    );
+    sheet.cell(CellIndex.indexByString("A1")).cellStyle = titleStyle;
+
+    /// EMPTY ROW
+    sheet.appendRow([""]);
+
+    /// GROUP BY EMPLOYEE
+    Map<String, List<DTaskModel>> groupedTasks = {};
+
+    for (var task in taskList) {
+      String empName = task.assignedNames ?? "Unknown";
+      groupedTasks.putIfAbsent(empName, () => []);
+      groupedTasks[empName]!.add(task);
+    }
+
+    int rowIndex = 2; // because 2 rows already added
+
+    /// LOOP EMPLOYEE WISE
+    groupedTasks.forEach((empName, tasks) {
+
+      /// ✅ SORT DATE ASCENDING (1 to 30)
+      tasks.sort((a, b) {
+        DateTime da = DateTime.tryParse(a.taskDate ?? "") ?? DateTime(2000);
+        DateTime db = DateTime.tryParse(b.taskDate ?? "") ?? DateTime(2000);
+        return da.compareTo(db);
+      });
+
+      /// EMPLOYEE NAME + DATE RANGE
+      sheet.appendRow([
+        "$empName ($fromDate to $toDate)",
+      ]);
+
+      sheet.merge(
+        CellIndex.indexByString("A${rowIndex + 1}"),
+        CellIndex.indexByString("H${rowIndex + 1}"),
+      );
+
+      sheet.cell(CellIndex.indexByString("A${rowIndex + 1}")).cellStyle = empStyle;
+      rowIndex++;
+
+      /// HEADER ROW
+      sheet.appendRow([
+        "Task Created Date",
+        "Task Title",
+        "Company",
+        "Task Type",
+        "Service Date",
+        "Assigned To",
+        "Created By",
+        "Status",
+
+      ]);
+
+      for (int col = 0; col < 8; col++) {
+        sheet
+            .cell(CellIndex.indexByColumnRow(columnIndex: col, rowIndex: rowIndex))
+            .cellStyle = headerStyle;
+      }
+      rowIndex++;
+
+      /// TASK DATA
+      for (var task in tasks) {
+        sheet.appendRow([
+          task.taskDate ?? task.taskDate ?? "",
+          task.taskTitle ?? "",
+          task.projectName ?? "",
+          task.type ?? "",
+          task.taskDate ?? "",
+          task.assignedNames ?? "",
+          task.creator ?? "",
+          task.status ?? "",
+
+        ]);
+        rowIndex++;
+      }
+
+      /// GAP AFTER EACH EMPLOYEE
+
+      sheet.appendRow([""]);
+      rowIndex += 1;
+    });
+
+    /// COLUMN WIDTH
+    sheet.setColWidth(0, 20);
+    sheet.setColWidth(1, 80);
+    sheet.setColWidth(2, 45);
+    sheet.setColWidth(3, 30);
+    sheet.setColWidth(7, 18);
+    sheet.setColWidth(4, 25);
+    sheet.setColWidth(5, 20);
+    sheet.setColWidth(6, 15);
+
+
+    /// SAVE FILE
+    final dir = await getApplicationDocumentsDirectory();
+    String filePath = "${dir.path}/Employee_Task_Report.xlsx";
+
+    File(filePath)
+      ..createSync(recursive: true)
+      ..writeAsBytesSync(excel.encode()!);
+
+    await OpenFile.open(filePath);
+  }
+
 
   String parseDate(String value) {
     try {
@@ -992,216 +1358,7 @@ class TaskProvider with ChangeNotifier {
   //   Navigator.pop(context); // hide loading
   //   await Printing.layoutPdf(onLayout: (format) async => pdf.save());
   // }
-  Future<void> generatePdf(List<DTaskModel> taskList, BuildContext context) async {
-    final pdf = pw.Document();
 
-    final font = await PdfGoogleFonts.notoSansRegular();
-    final boldFont = await PdfGoogleFonts.notoSansBold();
-
-    /// 🔹 Image Loader
-    Future<pw.MemoryImage?> loadAndCompressImage(String url,
-        {int maxWidth = 600, int maxHeight = 600, int quality = 50}) async {
-      try {
-        final response = await http.get(Uri.parse("$imageFile?path=$url"));
-        if (response.statusCode == 200 && response.bodyBytes.isNotEmpty) {
-          img.Image? image = img.decodeImage(response.bodyBytes);
-          if (image != null) {
-            image = img.copyResize(
-              image,
-              width: image.width > maxWidth ? maxWidth : image.width,
-              height: image.height > maxHeight ? maxHeight : image.height,
-            );
-            return pw.MemoryImage(img.encodeJpg(image, quality: quality));
-          }
-        }
-      } catch (_) {}
-      return null;
-    }
-
-    /// 🔹 Preload Images
-    Map<DTaskModel, List<pw.MemoryImage>> taskImages = {};
-    for (var task in taskList) {
-      final images = <pw.MemoryImage>[];
-      final docs = [task.docsType1, task.docsType2, task.docsType3];
-
-      for (var docList in docs) {
-        if (docList != null && docList.isNotEmpty) {
-          for (var url in docList) {
-            if (url.isNotEmpty && url != "null") {
-              final imgData = await loadAndCompressImage(url);
-              if (imgData != null) images.add(imgData);
-            }
-          }
-        }
-      }
-      taskImages[task] = images;
-    }
-
-    /// 🔹 Build Task Section
-    pw.Widget buildTaskSection(DTaskModel task, List<pw.MemoryImage> images) {
-
-      /// 🔥 COMMENTS PARSE
-      List<Map<String, String>> comments = [];
-
-      if (task.commentsFull != null && task.commentsFull!.trim().isNotEmpty) {
-        final rawComments = task.commentsFull!.split("||");
-
-        for (var c in rawComments) {
-          final parts = c.split("|");
-
-          String name = parts.isNotEmpty ? parts[0].trim() : "";
-          String comment = parts.length > 1 ? parts[1].trim() : "";
-          String time = parts.length > 2 ? parts[2].trim() : "";
-
-          String date = "";
-          String formattedTime = "";
-
-          if (time.isNotEmpty) {
-            final dt = DateTime.tryParse(time);
-            if (dt != null) {
-              date = DateFormat('dd-MM-yyyy').format(dt);
-              formattedTime = DateFormat('hh:mm a').format(dt);
-            }
-          }
-
-          comments.add({
-            "name": name,
-            "comment": comment,
-            "date": date,
-            "time": formattedTime,
-          });
-        }
-      }
-
-      return pw.Column(
-        crossAxisAlignment: pw.CrossAxisAlignment.start,
-        children: [
-
-          pw.Divider(),
-
-          /// 🔹 Title
-          pw.Text("Task Reports - ${task.taskDate}",
-              style: pw.TextStyle(fontSize: 16, font: boldFont)),
-
-          pw.SizedBox(height: 5),
-
-          /// 🔹 Basic Info
-          pw.Text("Task: ${task.taskTitle}", style: pw.TextStyle(font: font)),
-          pw.Text("Company: ${task.projectName}", style: pw.TextStyle(font: font)),
-          pw.Text("Assigned To: ${task.assignedNames}", style: pw.TextStyle(font: font)),
-          pw.Text("Created By: ${task.creator}", style: pw.TextStyle(font: font)),
-
-          pw.SizedBox(height: 10),
-
-          /// 🔥 COMMENTS TABLE
-          if (comments.isNotEmpty)
-            pw.Column(
-              crossAxisAlignment: pw.CrossAxisAlignment.start,
-              children: [
-
-                pw.Text("Comments",
-                    style: pw.TextStyle(font: boldFont, fontSize: 14)),
-
-                pw.SizedBox(height: 5),
-
-                pw.Table(
-                  border: pw.TableBorder.all(color: PdfColors.grey300),
-                  columnWidths: {
-                    0: const pw.FlexColumnWidth(2),
-                    1: const pw.FlexColumnWidth(2),
-                    2: const pw.FlexColumnWidth(6),
-                  },
-                  children: [
-
-                    /// HEADER
-                    pw.TableRow(
-                      decoration: pw.BoxDecoration(color: PdfColors.grey200),
-                      children: [
-                        pw.Padding(
-                          padding: const pw.EdgeInsets.all(5),
-                          child: pw.Text("Time",
-                              style: pw.TextStyle(font: boldFont, fontSize: 10)),
-                        ),
-                        pw.Padding(
-                          padding: const pw.EdgeInsets.all(5),
-                          child: pw.Text("Name",
-                              style: pw.TextStyle(font: boldFont, fontSize: 10)),
-                        ),
-                        pw.Padding(
-                          padding: const pw.EdgeInsets.all(5),
-                          child: pw.Text("Comment",
-                              style: pw.TextStyle(font: boldFont, fontSize: 10)),
-                        ),
-                      ],
-                    ),
-
-                    /// DATA
-                    ...comments.map((c) {
-                      return pw.TableRow(
-                        children: [
-                          pw.Padding(
-                            padding: const pw.EdgeInsets.all(3),
-                            child: pw.Text(
-                              "${c["date"]} ${c["time"]}",
-                              style: pw.TextStyle(font: font, fontSize: 9),
-                            ),
-                          ),
-                          pw.Padding(
-                            padding: const pw.EdgeInsets.all(5),
-                            child: pw.Text(
-                              c["name"] ?? "",
-                              style: pw.TextStyle(font: font, fontSize: 9),
-                            ),
-                          ),
-                          pw.Padding(
-                            padding: const pw.EdgeInsets.all(5),
-                            child: pw.Text(
-                              c["comment"] ?? "",
-                              style: pw.TextStyle(font: font, fontSize: 9),
-                            ),
-                          ),
-                        ],
-                      );
-                    }).toList(),
-                  ],
-                ),
-              ],
-            ),
-
-          pw.SizedBox(height: 10),
-
-          /// 🔹 Images
-          if (images.isNotEmpty)
-            pw.Column(
-              crossAxisAlignment: pw.CrossAxisAlignment.start,
-              children: [
-                pw.Text("Documents", style: pw.TextStyle(font: boldFont)),
-                pw.SizedBox(height: 5),
-
-                ...images.map((img) => pw.Padding(
-                  padding: const pw.EdgeInsets.all(5),
-                  child: pw.Image(img, width: 150, height: 100),
-                ))
-              ],
-            ),
-        ],
-      );
-    }
-
-    /// 🔹 Add Pages
-    for (var task in taskList) {
-      pdf.addPage(
-        pw.MultiPage(
-          build: (context) => [
-            buildTaskSection(task, taskImages[task] ?? [])
-          ],
-        ),
-      );
-    }
-
-    Navigator.pop(context);
-    await Printing.layoutPdf(onLayout: (format) async => pdf.save());
-  }
 // Helper to chunk large lists into smaller lists (to prevent too many rows in one table)
   List<List<T>> chunkList<T>(List<T> list, int chunkSize) {
     List<List<T>> chunks = [];
