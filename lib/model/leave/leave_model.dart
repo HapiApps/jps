@@ -37,23 +37,23 @@ class LeaveModel {
     this.session,
   });
 
-  factory LeaveModel.fromJson(Map<String?, dynamic> json) => LeaveModel(
-    session: json["session"],
-    creater: json["creater"],
-    id: json["id"],
-    userId: json["user_id"],
-    dayType: json["day_type"],
-    dayCount: json["day_count"],
-    levType: json["lev_type"],
-    reason: json["reason"],
-    startDate: json["start_date"],
-    endDate: json["end_date"],
-    status: json["status"],
-    level: json["level"],
-    createdTs: json["created_ts"],
-    createdBy: json["created_by"],
-    fName: json["f_name"],
-    role: json["role"],
-    type: json["type"],
+  factory LeaveModel.fromJson(Map<String, dynamic> json) => LeaveModel(
+    session: json["session"]?.toString() ?? "",
+    creater: json["creater"]?.toString() ?? "",
+    id: json["id"]?.toString() ?? "",
+    userId: json["user_id"]?.toString() ?? "",
+    dayType: json["day_type"]?.toString() ?? "",
+    dayCount: json["day_count"]?.toString() ?? "0",   // ✅ IMPORTANT
+    levType: json["lev_type"]?.toString() ?? "",
+    reason: json["reason"]?.toString() ?? "",
+    startDate: json["start_date"]?.toString() ?? "",
+    endDate: json["end_date"]?.toString() ?? "",
+    status: json["status"]?.toString() ?? "",
+    level: json["level"]?.toString() ?? "",
+    createdTs: json["created_ts"]?.toString() ?? "",
+    createdBy: json["created_by"]?.toString() ?? "",
+    fName: json["f_name"]?.toString() ?? "",
+    role: json["role"]?.toString() ?? "",
+    type: json["type"]?.toString() ?? "",
   );
 }

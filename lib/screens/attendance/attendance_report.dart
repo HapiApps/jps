@@ -419,7 +419,26 @@ class _AttendanceReportState extends State<AttendanceReport> {
                                                                             attProvider.getAttendanceReport(localData.storage.read("id"));
                                                                             attProvider.getAbsentAttendanceReport(localData.storage.read("id"));
                                                                             print("FILTER DATE : ${attProvider.startDate} to ${attProvider.endDate} ${attProvider.user}");
-                                                                            levPvr.allLeaves(attProvider.startDate,attProvider.endDate,true,localData.storage.read("role"),attProvider.user);
+                                                                            String role = localData.storage.read("role").toString();
+
+                                                                            if (role == "1") {
+                                                                              // Admin
+                                                                              if (attProvider.user.isEmpty) {
+                                                                                // ✅ employee select pannala → ALL leave
+                                                                                levPvr.allLeaves(attProvider.startDate, attProvider.endDate, true, role,
+                                                                                    localData.storage.read("id").toString());
+                                                                              } else {
+                                                                                // ✅ employee selected → that employee leave only
+                                                                                levPvr.allLeaves(attProvider.startDate, attProvider.endDate, true, "0",
+                                                                                    attProvider.user);
+                                                                                // levPvr.myLeaves(attProvider.startDate, attProvider.endDate, true,
+                                                                                //     attProvider.user);
+                                                                              }
+                                                                            } else {
+                                                                              // Normal user
+                                                                              levPvr.myLeaves(attProvider.startDate, attProvider.endDate, true,
+                                                                                  localData.storage.read("id").toString());
+                                                                            }
 
                                                                             /// 4️⃣ CLOSE FILTER POPUP
                                                                             Navigator.of(context, rootNavigator: true).pop();
@@ -1000,170 +1019,183 @@ class _AttendanceReportState extends State<AttendanceReport> {
                         levPvr.myLevSearch.isNotEmpty?
                         Flexible(
                               child: itemBuilder(levPvr.myLevSearch,levPvr)):
-                        attProvider.selectedIndex==4
-                        &&attProvider.permisCount!=0
-                            ?
-                        Flexible(
-                          child: ListView.builder(
-                            itemCount: attProvider.getDailyAttendance.length,
-                            itemBuilder: (context, index) {
+      attProvider.selectedIndex == 4 && attProvider.permisCount != 0
+      ? Flexible(
+      child: Builder(
+      builder: (context) {
 
-                              final sortedData =
-                              List<AttendanceModel>.from(attProvider.getDailyAttendance);
+      /// ✅ FILTER EMPLOYEE (if selected)
+      List<AttendanceModel> filteredList = attProvider.user.isEmpty
+      ? List<AttendanceModel>.from(attProvider.getDailyAttendance)
+          : attProvider.getDailyAttendance
+          .where((e) =>
+      e.salesmanId.toString() ==
+      attProvider.user.toString())
+          .toList();
 
-                              sortedData.sort((a, b) {
+      /// ✅ SORT BY LATEST DATE
+      filteredList.sort((a, b) {
+      DateTime aTime =
+      DateTime.parse(a.createdTs.toString().split(',')[0]);
+      DateTime bTime =
+      DateTime.parse(b.createdTs.toString().split(',')[0]);
+      return bTime.compareTo(aTime);
+      });
 
-                                DateTime aTime =
-                                DateTime.parse(a.createdTs.toString().split(',')[0]);
+      /// ✅ IF NO DATA AFTER FILTER
+      if (filteredList.isEmpty) {
+      return Padding(
+      padding: const EdgeInsets.fromLTRB(0, 150, 0, 0),
+      child: CustomText(
+      text: constValue.noData,
+      size: 15,
+      ),
+      );
+      }
 
-                                DateTime bTime =
-                                DateTime.parse(b.createdTs.toString().split(',')[0]);
+      return ListView.builder(
+      itemCount: filteredList.length,
+      itemBuilder: (context, index) {
+      AttendanceModel data = filteredList[index];
 
-                                return bTime.compareTo(aTime);
+      /// ---------------- TIME SAFE LOGIC ----------------
 
-                              });
+      var inTime = "-";
+      var outTime = "-";
+      var timeD = "-";
 
-                              AttendanceModel data = sortedData[index];
+      final times = (data.time ?? "").split(",");
 
-                              /// ---------------- TIME SAFE LOGIC ----------------
+      if (data.status.toString().contains("1,2")) {
+      inTime = times.isNotEmpty ? times[0].trim() : "-";
+      outTime = times.length > 1 ? times[1].trim() : "-";
 
-                              var inTime  = "-";
-                              var outTime = "-";
-                              var timeD   = "-";
+      if (inTime != "-" && outTime != "-") {
+      timeD = attProvider.timeDifferences(inTime, outTime);
+      }
+      } else if (data.status.toString().contains("2,1")) {
+      inTime = times.length > 1 ? times[1].trim() : "-";
+      outTime = times.isNotEmpty ? times[0].trim() : "-";
 
-                              final times = (data.time ?? "").split(",");
+      if (inTime != "-" && outTime != "-") {
+      timeD = attProvider.timeDifferences(inTime, outTime);
+      }
+      } else {
+      inTime = times.isNotEmpty ? times[0].trim() : "-";
+      outTime = "-";
+      timeD = "-";
+      }
 
-                              if (data.status.toString().contains("1,2")) {
+      /// ---------------- LOCATION SAFE ----------------
 
-                                inTime  = times.isNotEmpty ? times[0].trim() : "-";
-                                outTime = times.length > 1 ? times[1].trim() : "-";
+      List<String> lat =
+      data.lats?.toString().split(",") ?? [];
+      List<String> lng =
+      data.lngs?.toString().split(",") ?? [];
 
-                                if(inTime != "-" && outTime != "-"){
-                                  timeD = attProvider.timeDifferences(inTime, outTime);
-                                }
+      String lat1 = lat.isNotEmpty ? lat[0] : "";
+      String lng1 = lng.isNotEmpty ? lng[0] : "";
 
-                              }
-                              else if (data.status.toString().contains("2,1")) {
+      String lat2 =
+      (lat.length > 1 && data.status.toString().contains("2"))
+      ? lat[1]
+          : "";
 
-                                inTime  = times.length > 1 ? times[1].trim() : "-";
-                                outTime = times.isNotEmpty ? times[0].trim() : "-";
+      String lng2 =
+      (lng.length > 1 && data.status.toString().contains("2"))
+      ? lng[1]
+          : "";
 
-                                if(inTime != "-" && outTime != "-"){
-                                  timeD = attProvider.timeDifferences(inTime, outTime);
-                                }
+      /// ---------------- DATE HEADER ----------------
 
-                              }
-                              else {
+      String timestamp = data.createdTs.toString();
+      List<String> createdTimes = timestamp.split(',');
 
-                                inTime  = times.isNotEmpty ? times[0].trim() : "-";
-                                outTime = "-";
-                                timeD   = "-";
+      DateTime startTime = DateTime.parse(createdTimes[0]);
+      String createdBy = formatCreatedDate(startTime);
 
-                              }
+      String? prevCreatedBy;
+      if (index != 0) {
+      String prevTimestamp =
+      filteredList[index - 1].createdTs.toString();
+      List<String> prevTimes = prevTimestamp.split(',');
+      DateTime prevStart = DateTime.parse(prevTimes[0]);
+      prevCreatedBy = formatCreatedDate(prevStart);
+      }
 
-                              /// ---------------- LOCATION SAFE ----------------
+      final showDateHeader =
+      index == 0 || createdBy != prevCreatedBy;
 
-                              List<String> lat = data.lats?.toString().split(",") ?? [];
-                              List<String> lng = data.lngs?.toString().split(",") ?? [];
+      /// ---------------- UI ----------------
 
-                              String lat1 = lat.isNotEmpty ? lat[0] : "";
-                              String lng1 = lng.isNotEmpty ? lng[0] : "";
+      return data.perStatus.toString() != "null"
+      ? Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+      if (showDateHeader)
+      Padding(
+      padding:
+      const EdgeInsets.fromLTRB(0, 10, 0, 10),
+      child: CustomText(
+      text: createdBy,
+      colors: colorsConst.greyClr,
+      size: 12,
+      ),
+      ),
 
-                              String lat2 = (lat.length > 1 && data.status.toString().contains("2"))
-                                  ? lat[1]
-                                  : "";
+      InkWell(
+      onTap: () {
+      utils.navigatePage(
+      context,
+      () => DashBoard(
+      child: CustomAttendanceReport(
+      userId: data.salesmanId.toString(),
+      userName: data.firstname.toString(),
+      ),
+      ),
+      );
+      },
+      child: AttendanceDetails(
+      isName: attProvider.userName != "",
+      showDate: index == 0,
+      date: data.date.toString(),
+      img: data.image.toString(),
+      inTime: inTime,
+      outTime: outTime,
+      timeD: timeD,
+      name: data.firstname.toString(),
+      role: data.role.toString(),
+      callback: () {
+      utils.navigatePage(
+      context,
+      () => CheckLocation(
+      lat1: lat1,
+      long1: lng1,
+      lat2: lat2,
+      long2: lng2,
+      ),
+      );
+      },
+      perStatus: data.perStatus.toString(),
+      perReason: data.perReason.toString(),
+      perTime: data.perTime.toString(),
+      perCreatedTs: data.perCreatedTs.toString(),
+      ),
+      ),
 
-                              String lng2 = (lng.length > 1 && data.status.toString().contains("2"))
-                                  ? lng[1]
-                                  : "";
-
-                              /// ---------------- DATE HEADER ----------------
-
-                              String timestamp = data.createdTs.toString();
-                              List<String> createdTimes = timestamp.split(',');
-
-                              DateTime startTime = DateTime.parse(createdTimes[0]);
-                              String createdBy = formatCreatedDate(startTime);
-
-                              String? prevCreatedBy;
-                              if (index != 0) {
-                                String prevTimestamp = sortedData[index - 1].createdTs.toString();
-                                List<String> prevTimes = prevTimestamp.split(',');
-                                DateTime prevStart = DateTime.parse(prevTimes[0]);
-                                prevCreatedBy = formatCreatedDate(prevStart);
-                              }
-
-                              final showDateHeader = index == 0 || createdBy != prevCreatedBy;
-
-                              /// ---------------- UI ----------------
-
-                              return data.perStatus.toString() != "null"
-                                  ? Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-
-                                  if(showDateHeader)
-                                    Padding(
-                                      padding: const EdgeInsets.fromLTRB(0, 10, 0, 10),
-                                      child: CustomText(
-                                        text: createdBy,
-                                        colors: colorsConst.greyClr,
-                                        size: 12,
-                                      ),
-                                    ),
-
-                                  InkWell(
-                                    onTap: () {
-                                      utils.navigatePage(
-                                        context,
-                                            () => DashBoard(
-                                          child: CustomAttendanceReport(
-                                            userId: data.salesmanId.toString(),
-                                            userName: data.firstname.toString(),
-                                          ),
-                                        ),
-                                      );
-                                    },
-                                    child: AttendanceDetails(
-                                      isName: attProvider.userName != "",
-                                      showDate: index == 0,
-                                      date: data.date.toString(),
-                                      img: data.image.toString(),
-                                      inTime: inTime,
-                                      outTime: outTime,
-                                      timeD: timeD,
-                                      name: data.firstname.toString(),
-                                      role: data.role.toString(),
-                                      callback: () {
-                                        utils.navigatePage(
-                                          context,
-                                              () => CheckLocation(
-                                            lat1: lat1,
-                                            long1: lng1,
-                                            lat2: lat2,
-                                            long2: lng2,
-                                          ),
-                                        );
-                                      },
-                                      perStatus: data.perStatus.toString(),
-                                      perReason: data.perReason.toString(),
-                                      perTime: data.perTime.toString(),
-                                      perCreatedTs: data.perCreatedTs.toString(),
-                                    ),
-                                  ),
-
-                                  5.height
-                                ],
-                              )
-                                  : 0.height;
-                            },
-                          ),
-                        ):
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(0, 150, 0, 0),
-                          child: CustomText(
-                              text: constValue.noData, size: 15),
-                        )
+      5.height
+      ],
+      )
+          : 0.height;
+      },
+      );
+      },
+      ),
+      )
+          : Padding(
+      padding: const EdgeInsets.fromLTRB(0, 150, 0, 0),
+      child: CustomText(text: constValue.noData, size: 15),
+      ),
                       ]
                   ),
                 ),

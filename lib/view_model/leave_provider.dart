@@ -998,18 +998,25 @@ void changeSetting(){
     _report = value;
   notifyListeners();
 }
-void changeLeaveType(dynamic value) {
+// void changeLeaveType(dynamic value) {
+//     if (value == null) return;
+//
+//     _type = value;
+//
+//     if (value is Map && value.containsKey("id")) {
+//       _type = value["id"].toString();
+//       print("Selected Value => $value");
+//       print("Type ID => $_type");
+//     } else {
+//       _type = "";
+//     }
+//
+//     notifyListeners();
+//   }
+  void changeLeaveType(dynamic value) {
     if (value == null) return;
 
-    _type = value;
-
-    if (value is Map && value.containsKey("id")) {
-      _type = value["id"].toString();
-      print("Selected Value => $value");
-      print("Type ID => $_type");
-    } else {
-      _type = "";
-    }
+    _type = value.toString().trim();   // ✅ store type name
 
     notifyListeners();
   }
@@ -1570,7 +1577,7 @@ void setList(){
         "search_type": "apply",
         "reason": reason.text.trim(),
         "day_type": dayType.toString(),
-        "lev_type": typeId,
+        "lev_type": type,
         "start_date": stDate,
         "end_date": enDate == "" ? stDate : enDate,
         "platform": localData.storage.read("platform"),
@@ -2000,28 +2007,55 @@ void changeStatus(bool value){
   Future<void> getLeaveTypes() async {
     try {
       Map data = {
-        "action":getLeaveData,
-        "search_type":"leave_types",
-        "cos_id":localData.storage.read("cos_id")
+        "action": getLeaveData,
+        "search_type": "leave_types",
+        "cos_id": localData.storage.read("cos_id")
       };
+
       final response = await leaveRepo.getList(data);
-      if(response.isNotEmpty) {
-        types.clear();
+
+      types.clear();
+
+      if (response.isNotEmpty) {
+
+        /// ✅ Remove duplicate types
+        Set<String> addedTypes = {};
+
         for (var i = 0; i < response.length; i++) {
+
+          String leaveType = response[i]["type"].toString().trim();
+
+          /// ✅ Skip duplicates
+          if (addedTypes.contains(leaveType)) continue;
+          addedTypes.add(leaveType);
+
           types.add({
             "id": response[i]["id"],
-            "type": response[i]["type"],
-            "days": TextEditingController(text: '0')
+            "type": leaveType,
+            "days": TextEditingController(text: '0'),
           });
-          _getTypes = true;
         }
-      }
-      else{
-        _getTypes=true;
+
+        /// ✅ Reset selected type if not exists in list
+        if (type != null && type.toString().isNotEmpty) {
+          bool exists = types.any((e) => e["type"].toString() == type.toString());
+          if (!exists) {
+            _type = null;
+          }
+        } else {
+          _type = null;
+        }
+
+        _getTypes = true;
+      } else {
+        _type = null;
+        _getTypes = true;
       }
     } catch (e) {
-      _getTypes=true;
+      _type = null;
+      _getTypes = true;
     }
+
     notifyListeners();
   }
   void initDates({required String id, required String role, bool? isRefresh, String? date1, String? date2, String? type}){

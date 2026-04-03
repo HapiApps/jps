@@ -197,7 +197,8 @@ class _ApplyLeaveState extends State<ApplyLeave> {
                           callback: (){
                             levProvider.getLeaveTypes();
                           },
-                          saveValue: levProvider.type, hintText: "Leave Type",
+                          saveValue: levProvider.type == "" ? null : levProvider.type,
+                          hintText: "Leave Type",
                           onChanged: (value) {
                             levProvider.changeLeaveType(value);
                           },

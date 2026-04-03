@@ -345,7 +345,8 @@ class _VisitReportState extends State<VisitReport> with SingleTickerProviderStat
                                       width:kIsWeb?webWidth/6:phoneWidth/6,
                                       height: 45,
                                       decoration: customDecoration.baseBackgroundDecoration(
-                                          color: custProvider.filter==true?colorsConst.primary:Colors.grey.shade300,radius: 5
+                                          color: Colors.grey.shade300,radius: 5
+                                        // color: custProvider.filter==true?colorsConst.primary:Colors.grey.shade300,radius: 5
                                       ),
                                       child: Padding(
                                         padding: const EdgeInsets.all(6.0),
