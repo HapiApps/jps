@@ -833,8 +833,6 @@ class TaskProvider with ChangeNotifier {
     required String toDate,
   }) async {
     var excel = Excel.createExcel();
-    excel.delete('Sheet1');
-
     Sheet sheet = excel["Sheet1"];
 
     /// STYLE - MAIN TITLE
@@ -963,7 +961,7 @@ class TaskProvider with ChangeNotifier {
 
     /// SAVE FILE
     final dir = await getApplicationDocumentsDirectory();
-    String filePath = "${dir.path}/Employee_Task_Report.xlsx ($fromDate to $toDate)";
+    String filePath = "${dir.path}/Employee_Task_Report_($fromDate to $toDate).xlsx";
 
     File(filePath)
       ..createSync(recursive: true)
