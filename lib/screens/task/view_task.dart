@@ -590,11 +590,64 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
                             5.width
                           ],
                         ),),
-                       GestureDetector(
-                          onTap: (){
-                            taskProvider.downloadAllTask(context);
-                          },
-                          child: SvgPicture.asset(assets.tDownload,width: 27,height: 27,)),
+                       Column(
+                         children: [
+                           // GestureDetector(
+                           //    onTap: (){
+                           //      taskProvider.downloadAllTask(context);
+                           //    },
+                           //    child: SvgPicture.asset(assets.tDownload,width: 27,height: 27,)),
+                           //
+                           //                       GestureDetector(
+                           //    onTap: (){
+                           //      taskProvider.downloadAllTaskComment(context);
+                           //    },
+                           //    child: SvgPicture.asset(assets.tDownload,width: 27,height: 27,)
+                           //                       ),
+                           GestureDetector(
+                             onTap: () {
+                               showDialog(
+                                 context: context,
+                                 builder: (context) {
+                                   return AlertDialog(
+                                     title: Text("Download"),
+                                     content: Column(
+                                       mainAxisSize: MainAxisSize.min,
+                                       children: [
+
+                                         ListTile(
+                                           leading: Icon(Icons.task),
+                                           title: Text("Task Details"),
+                                           onTap: () {
+                                             Navigator.pop(context);
+                                             taskProvider.downloadAllTask(context);
+                                           },
+                                         ),
+
+                                         Divider(),
+
+                                         ListTile(
+                                           leading: Icon(Icons.comment),
+                                           title: Text("Task Comment Details"),
+                                           onTap: () {
+                                             Navigator.pop(context);
+                                             taskProvider.downloadAllTaskComment(context);
+                                           },
+                                         ),
+                                       ],
+                                     ),
+                                   );
+                                 },
+                               );
+                             },
+                             child: SvgPicture.asset(
+                               assets.tDownload,
+                               width: 27,
+                               height: 27,
+                             ),
+                           ),
+                         ],
+                       ),
                       // CustomLoadingButton(callback: (){
                       // }, text: "PF", isLoading: false,
                       //     backgroundColor: colorsConst.primary, radius: 5, width: 60)

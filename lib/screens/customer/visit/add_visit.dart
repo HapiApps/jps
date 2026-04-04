@@ -190,7 +190,7 @@ class _CusAddVisitState extends State<CusAddVisit> with TickerProviderStateMixin
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.start,
                                 children: [
-                                  CustomText(text: "Visit Location",colors: Colors.grey.shade400,),
+                                  CustomText(text: "Visit Location",colors: Colors.black,),
                                 ],
                               ),
                             ),5.height,

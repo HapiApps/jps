@@ -181,9 +181,12 @@ class MapDropDown extends StatelessWidget {
                     items: list.map((item) {
                       return DropdownMenuItem(
                         value: item['id'],   // ⭐ ID மட்டும்
-                        child: CustomText(
-                          text: item[dropText] ?? '',
-                          size: 15,
+                        child: Padding(
+                          padding: const EdgeInsets.only(left: 8.0),
+                          child: CustomText(
+                            text: item[dropText] ?? '',
+                            size: 15,
+                          ),
                         ),
                       );
                     }).toList(),

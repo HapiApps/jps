@@ -101,7 +101,7 @@ class _HomePageState extends State<HomePage> {
      Provider.of<EmployeeProvider>(context, listen: false).getAllUsers();
      Provider.of<CustomerProvider>(context, listen: false).getAllCustomers(true);
         final provider = Provider.of<EmployeeProvider>(context, listen: false);
-      provider.getNotifications();
+         provider.getNotifications();
 
       });
     super.initState();

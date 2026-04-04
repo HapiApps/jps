@@ -613,6 +613,309 @@ class TaskProvider with ChangeNotifier {
 
     notifyListeners();
   }
+  Future<void> downloadAllTaskComment(context) async {
+    notifyListeners();
+
+    try {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => const Center(child: CircularProgressIndicator()),
+      );
+
+      Map data = {
+        "action": taskDatas,
+        "search_type": "download_reports",
+        "cos_id": localData.storage.read("cos_id"),
+        "role": localData.storage.read("role"),
+        "id": localData.storage.read("id"),
+        "date1": _startDate,
+        "date2": _endDate
+      };
+
+      final response = await _taskRepo.downloadReport(data);
+
+      if (response.isNotEmpty) {
+        List<DTaskModel> test = response.where((contact) {
+          final isTypeMatch = _fType == "" || _fType == contact.type;
+          final isEmpMatch =
+              _userName == "" || contact.assignedNames.toString().contains(_userName);
+          final isCusMatch =
+              _companyName == "" || contact.projectName == _companyName;
+
+          return isTypeMatch && isEmpMatch && isCusMatch;
+        }).toList();
+
+        if (test.isNotEmpty) {
+
+          /// ✅ CLOSE LOADER BEFORE PDF OPEN
+          Navigator.pop(context);
+
+          /// ✅ CALL PDF SHEET EXPORT
+          await  exportTaskWithCommentsBlockExcel(
+            taskList: test,
+            fromDate: _startDate,
+            toDate: _endDate,
+          );
+
+        } else {
+          Navigator.pop(context);
+          utils.showWarningToast(context, text: "No Task Found");
+        }
+      } else {
+        Navigator.pop(context);
+        utils.showWarningToast(context, text: "No Task Found");
+      }
+    } catch (e) {
+      Navigator.pop(context);
+      utils.showWarningToast(context, text: "No Task Found");
+    }
+
+    notifyListeners();
+  }
+  Future<void> exportTaskWithCommentsBlockExcel({
+    required List<DTaskModel> taskList,
+    required String fromDate,
+    required String toDate,
+  }) async {
+    try {
+      var excel = Excel.createExcel();
+      Sheet sheet = excel["Sheet1"];
+
+
+      /// STYLES
+      CellStyle titleStyle = CellStyle(
+        bold: true,
+        fontSize: 16,
+        horizontalAlign: HorizontalAlign.Center,
+        verticalAlign: VerticalAlign.Center,
+      );
+
+      CellStyle headerStyle = CellStyle(
+        bold: true,
+        backgroundColorHex: "#D9E1F2",
+        fontColorHex: "#000000",
+        horizontalAlign: HorizontalAlign.Center,
+        verticalAlign: VerticalAlign.Center,
+      );
+
+      CellStyle subHeaderStyle = CellStyle(
+        bold: true,
+        backgroundColorHex: "#FFF2CC",
+        fontColorHex: "#000000",
+        horizontalAlign: HorizontalAlign.Center,
+        verticalAlign: VerticalAlign.Center,
+      );
+
+      CellStyle dataStyle = CellStyle(
+        horizontalAlign: HorizontalAlign.Left,
+        verticalAlign: VerticalAlign.Top,
+        textWrapping: TextWrapping.WrapText,
+      );
+
+      /// TITLE ROW
+      sheet.appendRow([" TASK COMMENT REPORT DETAILS ($fromDate to $toDate)"]);
+      sheet.merge(
+        CellIndex.indexByString("A1"),
+        CellIndex.indexByString("H1"),
+      );
+      sheet.cell(CellIndex.indexByString("A1")).cellStyle = titleStyle;
+
+      sheet.appendRow([""]);
+
+      int rowIndex = 2;
+
+      /// FUNCTION SAFE TEXT
+      String safeText(dynamic value) {
+        if (value == null) return "";
+        String text = value.toString();
+        if (text == "null") return "";
+        return text.trim();
+      }
+
+      /// FUNCTION PARSE COMMENTS
+      List<Map<String, String>> parseComments(String? commentsFull) {
+        List<Map<String, String>> comments = [];
+
+        if (commentsFull == null || commentsFull.trim().isEmpty) return comments;
+
+        List<String> rawComments = commentsFull.split("||");
+
+        for (var c in rawComments) {
+          List<String> parts = c.split("|");
+
+          String name = parts.isNotEmpty ? parts[0].trim() : "";
+          String comment = parts.length > 1 ? parts[1].trim() : "";
+          String time = parts.length > 2 ? parts[2].trim() : "";
+
+          String formattedTime = "";
+
+          if (time.isNotEmpty) {
+            try {
+              DateTime dt = DateTime.parse(time);
+              formattedTime =
+              "${DateFormat("dd-MM-yyyy").format(dt)} ${DateFormat("hh:mm a").format(dt)}";
+            } catch (e) {
+              formattedTime = time;
+            }
+          }
+
+          comments.add({
+            "time": formattedTime,
+            "name": name,
+            "comment": comment,
+          });
+        }
+
+        return comments;
+      }
+
+      /// LOOP TASKS
+      for (int i = 0; i < taskList.length; i++) {
+        final task = taskList[i];
+
+        /// -------------------------------
+        /// TASK DETAILS TABLE HEADER
+        /// -------------------------------
+        sheet.appendRow([
+          "Task Date",
+          "Task Title",
+          "Company",
+          "Task Type",
+          "Assigned",
+          "Created By",
+          "Status",
+        ]);
+
+        for (int col = 0; col < 7; col++) {
+          sheet
+              .cell(CellIndex.indexByColumnRow(
+              columnIndex: col, rowIndex: rowIndex))
+              .cellStyle = headerStyle;
+        }
+
+        rowIndex++;
+
+        /// TASK DETAILS DATA ROW
+        sheet.appendRow([
+          safeText(task.taskDate),
+          safeText(task.taskTitle),
+          safeText(task.projectName),
+          safeText(task.type),
+          safeText(task.assignedNames),
+          safeText(task.creator),
+          safeText(task.status),
+        ]);
+
+        for (int col = 0; col < 7; col++) {
+          sheet
+              .cell(CellIndex.indexByColumnRow(
+              columnIndex: col, rowIndex: rowIndex))
+              .cellStyle = dataStyle;
+        }
+
+        rowIndex++;
+
+        /// EMPTY ROW
+        sheet.appendRow([""]);
+        rowIndex++;
+
+        /// -------------------------------
+        /// COMMENTS SECTION TITLE
+        /// -------------------------------
+        sheet.appendRow(["COMMENTS"]);
+        sheet.merge(
+          CellIndex.indexByString("A${rowIndex + 1}"),
+          CellIndex.indexByString("G${rowIndex + 1}"),
+        );
+
+        sheet
+            .cell(CellIndex.indexByString("A${rowIndex + 1}"))
+            .cellStyle = subHeaderStyle;
+
+        rowIndex++;
+
+        /// COMMENTS HEADER
+        sheet.appendRow(["Date Time", "Sender", "Comments"]);
+
+        for (int col = 0; col < 3; col++) {
+          sheet
+              .cell(CellIndex.indexByColumnRow(
+              columnIndex: col, rowIndex: rowIndex))
+              .cellStyle = headerStyle;
+        }
+
+        rowIndex++;
+
+        /// COMMENTS DATA
+        List<Map<String, String>> comments = parseComments(task.commentsFull);
+
+        if (comments.isEmpty) {
+          sheet.appendRow(["-", "-", "No Comments"]);
+          rowIndex++;
+        } else {
+          for (var c in comments) {
+            sheet.appendRow([
+              c["time"] ?? "",
+              c["name"] ?? "",
+              c["comment"] ?? "",
+            ]);
+
+            sheet
+                .cell(CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: rowIndex))
+                .cellStyle = dataStyle;
+
+            rowIndex++;
+          }
+        }
+
+        /// GAP BETWEEN TASKS
+        sheet.appendRow([""]);
+        sheet.appendRow([""]);
+        rowIndex += 2;
+      }
+
+      /// COLUMN WIDTH
+      sheet.setColWidth(0, 18); // date
+      sheet.setColWidth(1, 40); // title
+      sheet.setColWidth(2, 30); // company
+      sheet.setColWidth(3, 20); // type
+      sheet.setColWidth(4, 18); // assigned
+      sheet.setColWidth(5, 18); // created by
+      sheet.setColWidth(6, 15); // status
+      sheet.setColWidth(7, 10);
+
+      /// COMMENTS COLUMN WIDTH
+      sheet.setColWidth(0, 22);
+      sheet.setColWidth(1, 18);
+      sheet.setColWidth(2, 60);
+
+      /// SAVE FILE
+      final dir = await getApplicationDocumentsDirectory();
+
+      String cleanFromDate = fromDate.replaceAll("/", "-").replaceAll(":", "-");
+      String cleanToDate = toDate.replaceAll("/", "-").replaceAll(":", "-");
+
+      String filePath =
+          "${dir.path}/Task_Comments_Block_${cleanFromDate}_to_${cleanToDate}.xlsx";
+
+      final bytes = excel.encode();
+      if (bytes == null) {
+        print("Excel Encode Failed");
+        return;
+      }
+
+      final file = File(filePath);
+      await file.writeAsBytes(bytes, flush: true);
+
+      print("Excel Saved Successfully => $filePath");
+
+      await OpenFile.open(filePath);
+    } catch (e) {
+      print("Excel Export Error => $e");
+    }
+  }
+
   Future<void> generatePdf(List<DTaskModel> taskList, BuildContext context) async {
     final pdf = pw.Document();
 
@@ -831,7 +1134,8 @@ class TaskProvider with ChangeNotifier {
     required List<DTaskModel> taskList,
     required String fromDate,
     required String toDate,
-  }) async {
+  })
+  async {
     var excel = Excel.createExcel();
     Sheet sheet = excel["Sheet1"];
 

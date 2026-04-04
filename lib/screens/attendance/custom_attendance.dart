@@ -507,11 +507,11 @@ class _CheckAttendanceState extends State<CheckAttendance> {
                               colors: Colors.black,
                             ),
                             2.width,
-                            CustomText(
-                             text: "/12 hrs",
-                              size: 12,
-                              colors: Colors.black54,
-                            ),
+                            // CustomText(
+                            //  text: "/12 hrs",
+                            //   size: 12,
+                            //   colors: Colors.black54,
+                            // ),
                           ],
                         ),
                       ],
