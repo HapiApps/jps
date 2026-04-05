@@ -75,6 +75,13 @@ class _TaskDetailsState extends State<TaskDetails> with SingleTickerProviderStat
     }
     super.initState();
   }
+  String formatDateTime(String? date) {
+    if (date == null || date.isEmpty) return "";
+
+    final parsedDate = DateTime.parse(date);
+
+    return DateFormat('dd-MM-yyyy h:mm a').format(parsedDate);
+  }
   void changeLevel() {
     setState(() {
       if (level == "High") {
@@ -211,6 +218,24 @@ class _TaskDetailsState extends State<TaskDetails> with SingleTickerProviderStat
                                     taskId: widget.data.id.toString(), assignedId: widget.data.assigned.toString(),
                                   name: widget.data.creator.toString(), assignedName: widget.data.assignedNames.toString(), date1: '', date2: '', type: '',)));
                               }, child: SvgPicture.asset(assets.tMessage,width: 25,height: 25,))
+                            ],
+                          ),
+                          10.height,
+                          Row(
+                            children: [
+                              SizedBox(
+                                  width: kIsWeb?webWidth/4:phoneWidth/4,
+                                  child: CustomText(text:"Created by",colors: colorsConst.greyClr,)),
+                              CustomText(text:widget.data.creator.toString(),),
+                            ],
+                          ),
+                          10.height,
+                          Row(
+                            children: [
+                              SizedBox(
+                                  width: kIsWeb?webWidth/4:phoneWidth/4,
+                                  child: CustomText(text:"Created time",colors: colorsConst.greyClr,)),
+                              CustomText(text:formatDateTime(widget.data.createdTs.toString()),),
                             ],
                           ),
                           Divider(color: Colors.grey.shade200,),

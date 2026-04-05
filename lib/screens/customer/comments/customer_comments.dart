@@ -19,7 +19,13 @@ class ViewInteractionHistory extends StatefulWidget {
   final String companyId;
   final String contactId;
   final String companyName;
-  const ViewInteractionHistory({super.key, required this.companyId, required this.companyName, required this.contactId});
+
+  const ViewInteractionHistory({
+    super.key,
+    required this.companyId,
+    required this.companyName,
+    required this.contactId,
+  });
 
   @override
   State<ViewInteractionHistory> createState() => _ViewInteractionHistoryState();
@@ -29,207 +35,411 @@ class _ViewInteractionHistoryState extends State<ViewInteractionHistory> {
   @override
   void initState() {
     Future.delayed(Duration.zero, () {
-      Provider.of<CustomerProvider>(context, listen: false).getAllComments(widget.companyId,widget.contactId);
+      Provider.of<CustomerProvider>(context, listen: false)
+          .getAllComments(widget.companyId, widget.contactId);
     });
     super.initState();
   }
+
+  /// Null / empty / "null" string handle pannum
+  String getText(String? value) {
+    if (value == null || value.trim().isEmpty || value.trim() == "null") {
+      return "-";
+    }
+    return value;
+  }
+
   @override
   Widget build(BuildContext context) {
-    var webWidth=MediaQuery.of(context).size.width * 0.5;
-    var phoneWidth=MediaQuery.of(context).size.width * 0.9;
-    return Consumer<CustomerProvider>(builder: (context,custProvider,_){
+    var webWidth = MediaQuery.of(context).size.width * 0.5;
+    var phoneWidth = MediaQuery.of(context).size.width * 0.9;
+
+    return Consumer<CustomerProvider>(builder: (context, custProvider, _) {
       return SafeArea(
         child: Scaffold(
           backgroundColor: colorsConst.bacColor,
           appBar: PreferredSize(
             preferredSize: const Size(300, 70),
-            child: CustomAppbar(text: constValue.comment,
-              callback: (){
+            child: CustomAppbar(
+              text: constValue.comment,
+              callback: () {
                 Future.microtask(() => Navigator.pop(context));
-              },),
+              },
+            ),
           ),
           body: Column(
             children: [
-              custProvider.cmtRefresh==false?
-              const Padding(
+              custProvider.cmtRefresh == false
+                  ? const Padding(
                 padding: EdgeInsets.fromLTRB(0, 200, 0, 0),
                 child: Loading(),
-              ):
-              custProvider.customerReport.isEmpty?
-              const Padding(
-                padding: EdgeInsets.fromLTRB(0, 200, 0, 0),
-                child: Center(child: CustomText(text: "No History Found",size: 15,)),
               )
-                  :Expanded(
+                  : custProvider.customerReport.isEmpty
+                  ? const Padding(
+                padding: EdgeInsets.fromLTRB(0, 200, 0, 0),
+                child: Center(
+                    child: CustomText(
+                      text: "No History Found",
+                      size: 15,
+                    )),
+              )
+                  : Expanded(
                 child: ListView.builder(
                     itemCount: custProvider.customerReport.length,
-                    itemBuilder: (context,index){
-                      CustomerReportModel data = custProvider.customerReport[index];
-                      var documentsList=data.documents.toString().split('||');
-                      var commentsList=data.comments.toString().split('||');
-                      // print(documentsList);
+                    itemBuilder: (context, index) {
+                      CustomerReportModel data =
+                      custProvider.customerReport[index];
+
+                      var documentsList =
+                      getText(data.documents).split('||');
+                      var commentsList =
+                      getText(data.comments).split('||');
+
+                      bool hasDocuments = !(data.documents == null ||
+                          data.documents.toString().trim().isEmpty ||
+                          data.documents.toString().trim() == "null");
+
+                      bool hasComments = !(data.comments == null ||
+                          data.comments.toString().trim().isEmpty ||
+                          data.comments.toString().trim() == "null");
+
                       return Column(
                         children: [
                           Container(
-                              width: kIsWeb?webWidth:phoneWidth,
-                              decoration: customDecoration.baseBackgroundDecoration(
+                              width: kIsWeb ? webWidth : phoneWidth,
+                              decoration: customDecoration
+                                  .baseBackgroundDecoration(
                                   color: Colors.white,
                                   radius: 5,
-                                  borderColor: Colors.grey.shade200,isShadow: true,shadowColor: Colors.grey.shade200
-                              ),
+                                  borderColor:
+                                  Colors.grey.shade200,
+                                  isShadow: true,
+                                  shadowColor:
+                                  Colors.grey.shade200),
                               child: Padding(
-                                padding: const EdgeInsets.fromLTRB(7, 5, 7, 0),
+                                padding: const EdgeInsets.fromLTRB(
+                                    7, 5, 7, 0),
                                 child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  crossAxisAlignment:
+                                  CrossAxisAlignment.start,
                                   children: [
                                     Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      mainAxisAlignment:
+                                      MainAxisAlignment
+                                          .spaceBetween,
                                       children: [
-                                        CustomText(text: data.type.toString(),colors: colorsConst.primary,),
+                                        CustomText(
+                                          text: getText(data.type),
+                                          colors:
+                                          colorsConst.primary,
+                                        ),
                                         Row(
                                           children: [
-                                            CustomText(text: "Visit Date  ",colors: colorsConst.greyClr,),
-                                            CustomText(text: data.date.toString(),colors: colorsConst.orange,),
+                                            CustomText(
+                                              text: "Visit Date  ",
+                                              colors: colorsConst
+                                                  .greyClr,
+                                            ),
+                                            CustomText(
+                                              text: getText(data.date),
+                                              colors: colorsConst
+                                                  .orange,
+                                            ),
                                           ],
                                         ),
                                       ],
                                     ),
                                     Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      mainAxisAlignment:
+                                      MainAxisAlignment
+                                          .spaceBetween,
                                       children: [
                                         Row(
                                           children: [
-                                            const CustomText(text: "Added By : ",colors: Colors.grey),
-                                            CustomText(text: data.firstname.toString()),
+                                            const CustomText(
+                                                text: "Added By : ",
+                                                colors: Colors.grey),
+                                            CustomText(
+                                                text: getText(
+                                                    data.firstname)),
                                           ],
                                         ),
                                       ],
                                     ),
                                     5.height,
                                     Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      mainAxisAlignment:
+                                      MainAxisAlignment
+                                          .spaceBetween,
                                       children: [
                                         Row(
                                           children: [
-                                            CustomText(text: "${constValue.contactName} : ",colors: Colors.grey),
-                                            CustomText(text: data.name.toString()),
+                                            CustomText(
+                                                text:
+                                                "${constValue.contactName} : ",
+                                                colors: Colors.grey),
+                                            CustomText(
+                                                text:
+                                                getText(data.name)),
                                           ],
                                         ),
                                         Row(
                                           children: [
-                                            CustomText(text: data.phoneNo.toString(),colors: Colors.grey,isItalic: true,),2.width,
-                                            Icon(Icons.call,color: colorsConst.blueClr,size: 15,)
+                                            CustomText(
+                                              text: getText(
+                                                  data.phoneNo),
+                                              colors: Colors.grey,
+                                              isItalic: true,
+                                            ),
+                                            2.width,
+                                            Icon(
+                                              Icons.call,
+                                              color: colorsConst
+                                                  .blueClr,
+                                              size: 15,
+                                            )
                                           ],
                                         ),
-                                      ],
-                                    ),5.height,
-                                    const DotLine(),5.height,
-                                    Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        SizedBox(
-                                            width: MediaQuery.of(context).size.width*0.33,
-                                            child: CustomText(text: constValue.leadStatus,colors: Colors.grey,)),
-                                        SizedBox(
-                                            width: MediaQuery.of(context).size.width*0.4,
-                                            child: CustomText(text: data.lead.toString())),
-                                      ],
-                                    ),5.height,
-                                    Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        SizedBox(
-                                            width: MediaQuery.of(context).size.width*0.33,
-                                            child: CustomText(text: constValue.visitType,colors: Colors.grey,)),
-                                        SizedBox(
-                                            width: MediaQuery.of(context).size.width*0.4,
-                                            child: CustomText(text: data.callVisitType.toString())),
-                                      ],
-                                    ),5.height,
-                                    Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        SizedBox(
-                                          // color: Colors.yellow,
-                                            width: MediaQuery.of(context).size.width*0.33,
-                                            child: CustomText(text: constValue.disPoints,colors: Colors.grey,)),
-                                        SizedBox(
-                                          // color: Colors.pink,
-                                            width: MediaQuery.of(context).size.width*0.4,
-                                            child: CustomText(text: data.discussionPoints.toString())),
-                                      ],
-                                    ),5.height,
-                                    Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        SizedBox(
-                                            width: MediaQuery.of(context).size.width*0.33,
-                                            child: CustomText(text: constValue.addPoints,colors: Colors.grey,)),
-                                        SizedBox(
-                                            width: MediaQuery.of(context).size.width*0.4,
-                                            child: CustomText(text: data.actionTaken.toString())),
                                       ],
                                     ),
-                                    if(documentsList[0]!="null")
+                                    5.height,
+                                    const DotLine(),
+                                    5.height,
+                                    Row(
+                                      mainAxisAlignment:
+                                      MainAxisAlignment
+                                          .spaceBetween,
+                                      children: [
+                                        SizedBox(
+                                            width:
+                                            MediaQuery.of(context)
+                                                .size
+                                                .width *
+                                                0.33,
+                                            child: CustomText(
+                                              text: constValue
+                                                  .leadStatus,
+                                              colors: Colors.grey,
+                                            )),
+                                        SizedBox(
+                                            width:
+                                            MediaQuery.of(context)
+                                                .size
+                                                .width *
+                                                0.4,
+                                            child: CustomText(
+                                                text: getText(
+                                                    data.lead))),
+                                      ],
+                                    ),
+                                    5.height,
+                                    Row(
+                                      mainAxisAlignment:
+                                      MainAxisAlignment
+                                          .spaceBetween,
+                                      children: [
+                                        SizedBox(
+                                            width:
+                                            MediaQuery.of(context)
+                                                .size
+                                                .width *
+                                                0.33,
+                                            child: CustomText(
+                                              text:
+                                              constValue.visitType,
+                                              colors: Colors.grey,
+                                            )),
+                                        SizedBox(
+                                            width:
+                                            MediaQuery.of(context)
+                                                .size
+                                                .width *
+                                                0.4,
+                                            child: CustomText(
+                                                text: getText(data
+                                                    .callVisitType))),
+                                      ],
+                                    ),
+                                    5.height,
+                                    Row(
+                                      mainAxisAlignment:
+                                      MainAxisAlignment
+                                          .spaceBetween,
+                                      children: [
+                                        SizedBox(
+                                            width:
+                                            MediaQuery.of(context)
+                                                .size
+                                                .width *
+                                                0.33,
+                                            child: CustomText(
+                                              text: constValue
+                                                  .disPoints,
+                                              colors: Colors.grey,
+                                            )),
+                                        SizedBox(
+                                            width:
+                                            MediaQuery.of(context)
+                                                .size
+                                                .width *
+                                                0.4,
+                                            child: CustomText(
+                                                text: getText(data
+                                                    .discussionPoints))),
+                                      ],
+                                    ),
+                                    5.height,
+                                    Row(
+                                      mainAxisAlignment:
+                                      MainAxisAlignment
+                                          .spaceBetween,
+                                      children: [
+                                        SizedBox(
+                                            width:
+                                            MediaQuery.of(context)
+                                                .size
+                                                .width *
+                                                0.33,
+                                            child: CustomText(
+                                              text: constValue
+                                                  .addPoints,
+                                              colors: Colors.grey,
+                                            )),
+                                        SizedBox(
+                                            width:
+                                            MediaQuery.of(context)
+                                                .size
+                                                .width *
+                                                0.4,
+                                            child: CustomText(
+                                                text: getText(
+                                                    data.actionTaken))),
+                                      ],
+                                    ),
+
+                                    /// Documents / Comments section
+                                    if (hasDocuments || hasComments)
                                       Column(
                                         children: [
                                           const DotLine(),
-                                          Padding(
-                                            padding: const EdgeInsets.fromLTRB(0, 10, 0, 10),
-                                            child: SizedBox(
-                                              width: MediaQuery.of(context).size.width*0.8,
-                                              child: ListView.builder(
+
+                                          /// Comments list
+                                          if (hasComments)
+                                            Padding(
+                                              padding:
+                                              const EdgeInsets
+                                                  .fromLTRB(
+                                                  0, 10, 0, 10),
+                                              child: SizedBox(
+                                                width: MediaQuery.of(
+                                                    context)
+                                                    .size
+                                                    .width *
+                                                    0.8,
+                                                child: ListView
+                                                    .builder(
+                                                    shrinkWrap:
+                                                    true,
+                                                    physics:
+                                                    const NeverScrollableScrollPhysics(),
+                                                    itemCount:
+                                                    commentsList
+                                                        .length,
+                                                    itemBuilder:
+                                                        (context,
+                                                        i) {
+                                                      return CustomText(
+                                                          text: getText(
+                                                              commentsList[i]));
+                                                    }),
+                                              ),
+                                            ),
+
+                                          /// Documents Grid
+                                          if (hasDocuments)
+                                            Padding(
+                                              padding:
+                                              const EdgeInsets
+                                                  .fromLTRB(
+                                                  0, 10, 0, 10),
+                                              child: GridView.builder(
+                                                  gridDelegate:
+                                                  const SliverGridDelegateWithFixedCrossAxisCount(
+                                                    crossAxisCount: 3,
+                                                    crossAxisSpacing:
+                                                    50,
+                                                    mainAxisSpacing:
+                                                    50,
+                                                    mainAxisExtent: 70,
+                                                  ),
+                                                  itemCount:
+                                                  documentsList
+                                                      .length,
                                                   shrinkWrap: true,
-                                                  itemCount:commentsList.length,
-                                                  itemBuilder: (context,i){
-                                                    return CustomText(text: commentsList[i]);
+                                                  physics:
+                                                  const NeverScrollableScrollPhysics(),
+                                                  itemBuilder:
+                                                      (context, i) {
+                                                    return SizedBox(
+                                                        width: 70,
+                                                        height: 70,
+                                                        child: documentsList[
+                                                        i]
+                                                            .endsWith(
+                                                            ".jpg")
+                                                            ||
+                                                            documentsList[
+                                                            i]
+                                                                .endsWith(
+                                                                ".png")
+                                                            ||
+                                                            documentsList[
+                                                            i]
+                                                                .endsWith(
+                                                                ".jpeg")
+                                                            ? CachedNetworkImage(
+                                                          imageUrl:
+                                                          '$imageFile?path=${documentsList[i]}',
+                                                          fit: BoxFit
+                                                              .cover,
+                                                          imageBuilder: (context, imageProvider) =>
+                                                              Container(
+                                                                decoration:
+                                                                BoxDecoration(
+                                                                  borderRadius: BorderRadius.circular(10),
+                                                                  image: DecorationImage(
+                                                                    image: imageProvider,
+                                                                    fit: BoxFit.cover,
+                                                                  ),
+                                                                ),
+                                                              ),
+                                                          errorWidget: (context, url, error) =>
+                                                              Icon(
+                                                                Icons.error,
+                                                                color: colorsConst.litGrey,
+                                                                size: 20,
+                                                              ),
+                                                          placeholder: (context, url) =>
+                                                          const Loading(size: 10,),
+                                                        )
+                                                            : documentsList[i]
+                                                            .endsWith(".mp4")
+                                                            ? Image.asset(assets.video)
+                                                            : Image.asset(assets.volume));
                                                   }),
                                             ),
-                                          ),
-                                          Padding(
-                                            padding: const EdgeInsets.fromLTRB(0, 10, 0, 10),
-                                            child: GridView.builder(
-                                                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                                                  crossAxisCount: 3,
-                                                  crossAxisSpacing: 50,
-                                                  mainAxisSpacing: 50,
-                                                  mainAxisExtent: 70,
-                                                ),
-                                                itemCount: documentsList.length,
-                                                shrinkWrap: true,
-                                                physics: const NeverScrollableScrollPhysics(),
-                                                itemBuilder: (context,index){
-                                                  // print(docList);
-                                                  //   print('$imageFile?path=${docList[index]}');
-                                                  return  SizedBox(
-                                                      width: 70,height:70,
-                                                      child: documentsList[index].endsWith(".jpg")||documentsList[index].endsWith(".png")||documentsList[index].endsWith(".jpeg")?
-                                                      CachedNetworkImage(
-                                                          imageUrl: '$imageFile?path=${documentsList[index]}',
-                                                          fit: BoxFit.cover,
-                                                          imageBuilder: (context, imageProvider) => Container(
-                                                            decoration: BoxDecoration(
-                                                              borderRadius: BorderRadius.circular(10),
-                                                              image: DecorationImage(
-                                                                image: imageProvider,
-                                                                fit: BoxFit.cover,
-                                                              ),
-                                                            ),
-                                                          ),
-                                                          errorWidget: (context, url, error) => Icon(Icons.error,color: colorsConst.litGrey,size: 20,),
-                                                          placeholder: (context, url) => const Loading(size: 10,))
-                                                          :documentsList[index].endsWith(".mp4")?Image.asset(assets.video):Image.asset(assets.volume)
-                                                  );
-                                                }
-                                            ),
-                                          ),
                                         ],
                                       ),
+
                                     10.height,
                                   ],
                                 ),
                               )),
-                          index==custProvider.customerReport.length-1?80.height:10.height
+                          index ==
+                              custProvider.customerReport.length -
+                                  1
+                              ? 80.height
+                              : 10.height
                         ],
                       );
                     }),
@@ -241,7 +451,6 @@ class _ViewInteractionHistoryState extends State<ViewInteractionHistory> {
     });
   }
 }
-
 
 // class CusComments extends StatefulWidget {
 //   final String taskId;

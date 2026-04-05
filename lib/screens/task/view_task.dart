@@ -1095,6 +1095,9 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
                         _infoBlock("Company", data.projectName ?? ""),
                         const SizedBox(width: 40),
                         _infoBlock("Task Type", data.type ?? ""),
+                        const SizedBox(width: 30),
+                        _infoBlock("Created by", data.creator ?? ""),
+
                       ],
                     ),
 
@@ -1105,14 +1108,21 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Row(
+                        Column(
                           children: [
-                            Image.asset("assets/images/clock.png"),
-                            const SizedBox(width: 6),
+                            CustomText(
+                              //text: DateFormat("dd MMM yyyy, hh:mm a").format(DateTime.parse(data.taskDate)),
+                              text: "Service date ",
+                              size: 13,
+                                colors: const Color(0xff7E7E7E),
+                               isBold: true,
+                            ),
+                            const SizedBox(height: 3),
                             CustomText(
                               //text: DateFormat("dd MMM yyyy, hh:mm a").format(DateTime.parse(data.taskDate)),
                               text: data.taskDate,
                               size: 13,
+                              isBold: true,
                             ),
                           ],
                         ),
@@ -1124,35 +1134,42 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
                         Column(
                           children: [
                             Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                CustomText(
-                                  text: "Created by:  ",
-                                  size: 11,
-                                  isBold: true,
+                                _statusChip(
+                                  data.statval ?? "",
+                                  data.statval == "Completed"
+                                      ? const Color(0xff1FAF38)
+                                      : Color(0xff007AAE),
+                                  Colors.white,
                                 ),
-                                CustomText(
-                                  text: "${data.creator ?? ""}",
-                                  size: 15,
-                                  isBold: true,
+                                20.width,
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 14, vertical: 6),
+                                  decoration: BoxDecoration(
+                                    color: priorityBg,
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Icon(Icons.circle,
+                                          size: 8, color: priorityTextColor),
+                                      const SizedBox(width: 6),
+                                      CustomText(
+                                        text: priorityText,
+                                        colors: priorityTextColor,
+                                        size: 13,
+                                      ),
+                                    ],
+                                  ),
                                 ),
-
                               ],
                             ),
 
                           ],
                         ),
-                        Row(
-                          children: [
-                            if (data.hasVoice != null && data.hasVoice!.isNotEmpty)
-                              IconButton(
-                                onPressed: () {
-                                  // voice play function
-                                },
-                                icon: const Icon(Icons.keyboard_voice,color: Colors.red,),
-                              ),
 
-                          ],
-                        )
                       ],
                     ),
                     10.height,
@@ -1165,69 +1182,7 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
                           size: 15,
                           isBold: true,
                         ),
-                      ],
-                    ),
-
-                    const Divider(),
-                    /// STATUS + PRIORITY
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        _statusChip(
-                          data.statval ?? "",
-                          data.statval == "Completed"
-                              ? const Color(0xff1FAF38)
-                              : Color(0xff007AAE),
-                          Colors.white,
-                        ),
-                        20.width,
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 14, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: priorityBg,
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(Icons.circle,
-                                  size: 8, color: priorityTextColor),
-                              const SizedBox(width: 6),
-                              CustomText(
-                                text: priorityText,
-                                colors: priorityTextColor,
-                                size: 13,
-                              ),
-                            ],
-                          ),
-                        ),
-                     ],
-                    ),
-                    10.height,
-                    Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-
-
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.start,
-                          children: [
-                            (data.commentCount ?? "").toString().isNotEmpty?Text("(💬 ${data.commentCount})  - "):Text("No comments"),
-
-                            Text(
-                              data.lastComment ?? "",
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            Text(
-                              data.lastCommentBy == null || data.lastCommentBy.toString().trim().isEmpty
-                                  ? ""
-                                  : "  (last comment by ${data.lastCommentBy})",
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            )
-                          ],
-                        ),
+                        50.width,
                         GestureDetector(
                           onTap: () async {
                             final result = await Navigator.push(
@@ -1255,6 +1210,82 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
                           },
                           child: SvgPicture.asset(assets.tMessage, width: 20, height: 20),
                         )
+                      ],
+
+                    ),
+
+                    const Divider(),
+                    /// STATUS + PRIORITY
+                    // Row(
+                    //   mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    //   children: [
+                    //     _statusChip(
+                    //       data.statval ?? "",
+                    //       data.statval == "Completed"
+                    //           ? const Color(0xff1FAF38)
+                    //           : Color(0xff007AAE),
+                    //       Colors.white,
+                    //     ),
+                    //     20.width,
+                    //     Container(
+                    //       padding: const EdgeInsets.symmetric(
+                    //           horizontal: 14, vertical: 6),
+                    //       decoration: BoxDecoration(
+                    //         color: priorityBg,
+                    //         borderRadius: BorderRadius.circular(20),
+                    //       ),
+                    //       child: Row(
+                    //         children: [
+                    //           Icon(Icons.circle,
+                    //               size: 8, color: priorityTextColor),
+                    //           const SizedBox(width: 6),
+                    //           CustomText(
+                    //             text: priorityText,
+                    //             colors: priorityTextColor,
+                    //             size: 13,
+                    //           ),
+                    //         ],
+                    //       ),
+                    //     ),
+                    //  ],
+                    // ),
+                    // 10.height,
+                    Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+
+
+                        Column(
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.start,
+                              children: [
+                                Icon(Icons.message,color: Colors.red,),
+                                (data.commentCount ?? "").toString().isNotEmpty?Text("(${data.commentCount})  - "):Text("No comments"),
+
+                                Text(
+                                  data.lastComment ?? "",
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                Text(
+                                  data.lastCommentBy == null || data.lastCommentBy.toString().trim().isEmpty
+                                      ? ""
+                                      : "  (last comment by ${data.lastCommentBy})",
+                                  maxLines: 1,
+                                  style: TextStyle(
+                                    color: Colors.red.shade900,   // 👈 color here
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+
                       ],
                     ) ,
                   ],

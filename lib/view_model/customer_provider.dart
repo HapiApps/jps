@@ -60,6 +60,7 @@ class CustomerProvider with ChangeNotifier{
   final CustomerRepository custRepo = CustomerRepository();
   TextEditingController search = TextEditingController();
   TextEditingController search2 = TextEditingController();
+  String? callTypeId;
   Future<void> getTaskComments(String id, {bool isPolling = false}) async {
 
     if (!isPolling) {
@@ -571,6 +572,74 @@ void closeVisible(){
   List<CustomerModel> get customer => _customerData;
   List<CustomerModel> get filterCustomerData => _filterCustomerData;
   List<CustomerModel> get customerDetailData => _customerDetailData;
+  List<Map<String, dynamic>> selectedCustomers = [];
+  List<Map<String, dynamic>> multiSelectedCustomerList = [];
+  void setMultiSelectedCustomers(List<Map<String, dynamic>> list) {
+    multiSelectedCustomerList = list;
+    notifyListeners();
+  }
+  void openMultiSelectCustomerDialog(BuildContext context, List listData) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setStateDialog) {
+            return AlertDialog(
+              title: const Text("Select Customers"),
+              content: SizedBox(
+                width: double.maxFinite,
+                height: 300,
+                child: ListView.builder(
+                  itemCount: listData.length,
+                  itemBuilder: (context, index) {
+                    final item = listData[index];
+
+                    bool isSelected = selectedCustomers
+                        .any((element) => element["id"] == item["id"]);
+
+                    return CheckboxListTile(
+                      value: isSelected,
+                      title: Text(item["name"].toString()),
+                      subtitle: Text(item["no"].toString()),
+                      onChanged: (val) {
+                        setStateDialog(() {
+                          if (val == true) {
+                            selectedCustomers.add(item);
+                          } else {
+                            selectedCustomers.removeWhere(
+                                    (element) => element["id"] == item["id"]);
+                          }
+                        });
+                      },
+                    );
+                  },
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                  },
+                  child: const Text("Cancel"),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+
+                    /// optional: save selected list in provider
+                    multiSelectedCustomerList = selectedCustomers;
+
+                    print("Selected => $selectedCustomers");
+                  },
+                  child: const Text("Done"),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
   void setCustomerData(List<CustomerModel> data) {
     _customerData = data;
     _searchCustomerDate = data;
@@ -782,6 +851,7 @@ void changeState(dynamic value){
   }
 void changeCallType(dynamic value){
   callType = value!;
+  callType = value.toString();
   var list = [];
   list.add(value);
   localData.storage.write("visit_id", list[0]["id"]);

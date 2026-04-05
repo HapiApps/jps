@@ -94,6 +94,7 @@ class _CusAddVisitState extends State<CusAddVisit> with TickerProviderStateMixin
     companyId=widget.companyId.toString();
     companyName=widget.companyName.toString();
   }
+
   @override
   void dispose() {
     _myFocusScopeNode.dispose();
@@ -228,29 +229,63 @@ class _CusAddVisitState extends State<CusAddVisit> with TickerProviderStateMixin
                               ),
                             ),
                             10.height,
-                            MapDropDown(
-                              width: kIsWeb?webWidth:phoneWidth,
-                              hintText: constValue.contactName,
-                              list: widget.numberList.isNotEmpty?widget.numberList:sendList,
-                              saveValue: custProvider.selectCustomer != null
-                                  ? custProvider.selectCustomer["id"]
-                                  : null,
-                              onChanged: (Object? value) {
-                                setState(() {
+                            // MapDropDown(
+                            //   width: kIsWeb?webWidth:phoneWidth,
+                            //   hintText: constValue.contactName,
+                            //   list: widget.numberList.isNotEmpty?widget.numberList:sendList,
+                            //   saveValue: custProvider.selectCustomer != null
+                            //       ? custProvider.selectCustomer["id"]
+                            //       : null,
+                            //   onChanged: (Object? value) {
+                            //     setState(() {
+                            //
+                            //       var selected = (widget.numberList.isNotEmpty
+                            //           ? widget.numberList
+                            //           : sendList)
+                            //           .firstWhere((e) => e["id"] == value);
+                            //
+                            //       custProvider.selectCustomer = selected;
+                            //
+                            //       localData.storage.write("c_id", selected["id"]);
+                            //       localData.storage.write("c_no", selected["no"]);
+                            //       localData.storage.write("c_name", selected["name"]);
+                            //     });
+                            //   },
+                            //   dropText: 'name',
+                            // ), //// customer company
+                            InkWell(
+                              onTap: () {
+                                final listData =
+                                widget.numberList.isNotEmpty ? widget.numberList : sendList;
 
-                                  var selected = (widget.numberList.isNotEmpty
-                                      ? widget.numberList
-                                      : sendList)
-                                      .firstWhere((e) => e["id"] == value);
-
-                                  custProvider.selectCustomer = selected;
-
-                                  localData.storage.write("c_id", selected["id"]);
-                                  localData.storage.write("c_no", selected["no"]);
-                                  localData.storage.write("c_name", selected["name"]);
-                                });
+                                custProvider.openMultiSelectCustomerDialog(context, listData);
                               },
-                              dropText: 'name',
+                              child: Container(
+                                height: 50,
+                                width: kIsWeb ? webWidth : phoneWidth,
+                                padding: const EdgeInsets.symmetric(horizontal: 12),
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(color: Colors.grey.shade300),
+                                  color: Colors.white,
+                                ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        custProvider.selectedCustomers.isEmpty
+                                            ? "Select Contact Name"
+                                            : custProvider.selectedCustomers.map((e) => e["name"]).join(", "),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(fontSize: 13),
+                                      ),
+                                    ),
+                                    const Icon(Icons.keyboard_arrow_down),
+                                  ],
+                                ),
+                              ),
                             ),
                             ///
                             // MaxLineTextField(

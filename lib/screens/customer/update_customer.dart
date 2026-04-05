@@ -589,15 +589,20 @@ class _UpdateCustomerState extends State<UpdateCustomer> with TickerProviderStat
                                     custProvider.getLeadCategory();
                                   }
                                 },
-                                isRequired: true,
                                 isRefresh: custProvider.leadCategoryList.isEmpty?true:false,
                                 width: kIsWeb?webWidth:phoneWidth,
                                 hintText: constValue.leadStatus,
                                 list: custProvider.leadCategoryList,
-                                saveValue: custProvider.leadType,
+                                saveValue: custProvider.leadType?['id'],
                                 onChanged: (Object? value) {
-                                  custProvider.changeLeadType(value);
-                                  custProvider.makeChanges();
+                                  final selected = custProvider.leadCategoryList.firstWhere(
+                                        (e) => e['id'].toString() == value.toString(),
+                                    orElse: () => <String, String>{},
+                                  );
+
+                                  if (selected.isNotEmpty) {
+                                    custProvider.changeLeadType(selected);
+                                  }
                                 },
                                 dropText: 'value',),
                               MapDropDown(
@@ -613,9 +618,11 @@ class _UpdateCustomerState extends State<UpdateCustomer> with TickerProviderStat
                                 width:kIsWeb?webWidth:phoneWidth,
                                 hintText: constValue.visitType,
                                 list: custProvider.callList,
-                                saveValue: custProvider.callType,
+                                saveValue: custProvider.callType?['id'],
                                 onChanged: (Object? value) {
-                                  custProvider.changeCallType(value);
+                                  final selected = custProvider.callList
+                                      .firstWhere((e) => e['id'].toString() == value.toString());
+                                  custProvider.changeCallType(selected);
                                   custProvider.makeChanges();
                                 },
                                 dropText: 'value',),

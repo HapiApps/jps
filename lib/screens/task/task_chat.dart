@@ -577,86 +577,110 @@ class _TaskChatState extends State<TaskChat> with SingleTickerProviderStateMixin
                         print(custProvider.customerReport[index].documents.toString());
                         createdBy = "${dateTime.day}/${dateTime.month}/${dateTime.year}";
                         final showDateHeader = index == 0 || createdBy != getCreatedDate(custProvider.customerReport[index - 1]);
-                        return Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            if (showDateHeader==true)
-                              Padding(
-                                padding: const EdgeInsets.symmetric(vertical: 10),
-                                child: CustomText(text:dayOfWeek),
+                        return Align(
+                          alignment: custProvider.customerReport[index].createdBy ==
+                              localData.storage.read("id")
+                              ? Alignment.centerRight
+                              : Alignment.centerLeft,
+                          child: IntrinsicWidth(
+                            child: Container(
+                              constraints: BoxConstraints(
+                                maxWidth: MediaQuery.of(context).size.width * 0.70,
                               ),
-                            Align(
-                              alignment:custProvider.customerReport[index].createdBy==localData.storage.read("id") ? Alignment.centerRight : Alignment.centerLeft,
-                              child: custProvider.customerReport[index].documents.toString().endsWith(".m4a")?
-                              Container(
-                                  decoration: customDecoration.baseBackgroundDecoration(
-                                      color: Colors.white,borderColor: custProvider.customerReport[index].createdBy==localData.storage.read("id") ? colorsConst.primary : colorsConst.primary.withOpacity(0.2),radius: 5
-                                  ),
-                                  constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.5),
-                                  margin: const EdgeInsets.symmetric(vertical: 4),
-                                  child: AudioTile( key: ValueKey(custProvider.customerReport[index].documents),
-                                      audioUrl: custProvider.customerReport[index].isLocal==true?
-                                      custProvider.customerReport[index].documents.toString():'$imageFile?path=${custProvider.customerReport[index].documents}')):Container(
-                                constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.55),
-                                margin: const EdgeInsets.symmetric(vertical: 4),
-                                padding: const EdgeInsets.all(10),
-                                decoration: BoxDecoration(
-                                  color: custProvider.customerReport[index].createdBy==localData.storage.read("id") ? colorsConst.primary : colorsConst.primary.withOpacity(0.2),
-                                  borderRadius: BorderRadius.circular(30),
-                                  // border: Border.all(
-                                  //   color: custProvider.customerReport[index].createdBy==localData.storage.read("id") ? Colors.grey.shade300 : Colors.grey.shade300,
-                                  // ),
+                              margin: const EdgeInsets.symmetric(vertical: 4),
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                              decoration: BoxDecoration(
+                                color: custProvider.customerReport[index].createdBy ==
+                                    localData.storage.read("id")
+                                    ? const Color(0xFFDCF8C6) // sender green
+                                    : Colors.white, // receiver white
+                                borderRadius: BorderRadius.only(
+                                  topLeft: const Radius.circular(12),
+                                  topRight: const Radius.circular(12),
+                                  bottomLeft: custProvider.customerReport[index].createdBy ==
+                                      localData.storage.read("id")
+                                      ? const Radius.circular(12)
+                                      : const Radius.circular(0),
+                                  bottomRight: custProvider.customerReport[index].createdBy ==
+                                      localData.storage.read("id")
+                                      ? const Radius.circular(0)
+                                      : const Radius.circular(12),
                                 ),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                                  children: [
-                                    if(custProvider.customerReport[index].createdBy!=localData.storage.read("id"))
-                                      Row(
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.08),
+                                    blurRadius: 5,
+                                    offset: const Offset(0, 2),
+                                  )
+                                ],
+                                border: Border.all(
+                                  color: Colors.grey.withOpacity(0.2),
+                                ),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+
+                                  // name only for receiver
+                                  if (custProvider.customerReport[index].createdBy !=
+                                      localData.storage.read("id"))
+                                    Padding(
+                                      padding: const EdgeInsets.only(bottom: 4),
+                                      child: Row(
                                         children: [
-                                          CustomText(text:custProvider.customerReport[index].firstname.toString(),colors: colorsConst.primary,),
-                                          CustomText(text:" ( ${custProvider.customerReport[index].role} )",colors: colorsConst.greyClr,),
-                                        ],
-                                      ),
-                                    CustomText(text:custProvider.customerReport[index].comments.toString(),
-                                      colors: custProvider.customerReport[index].createdBy!=localData.storage.read("id") ?Colors.black:Colors.white,),
-                                    Row(
-                                      mainAxisAlignment: MainAxisAlignment.end,
-                                      children: [
-                                        CustomText(
-                                          text: DateFormat('hh:mm a')
-                                              .format(DateTime.parse(data.createdTs.toString())),
-                                          size: 10,
-                                          colors: custProvider.customerReport[index].createdBy
-                                              != localData.storage.read("id")
-                                              ? Colors.black
-                                              : Colors.white,
-                                        ),
-                                        if (data.isLocal == true)
-                                          Padding(
-                                            padding: const EdgeInsets.only(left: 4),
-                                            child: Icon(
-                                              Icons.schedule,
-                                              size: 12,
-                                              color: custProvider.customerReport[index].createdBy
-                                                  != localData.storage.read("id")
-                                                  ? Colors.black
-                                                  : Colors.white,
+                                          Text(
+                                            custProvider.customerReport[index].firstname.toString(),
+                                            style: const TextStyle(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w600,
+                                              color: Color(0xFF0D47A1),
                                             ),
                                           ),
-                                      ],
+                                          CustomText(text:" ( "
+                                              "${custProvider.customerReport[index].role} )",
+                                            colors: colorsConst.greyClr,),
+                                        ],
+                                      ),
                                     ),
-                                    // Row(
-                                    //   mainAxisAlignment: MainAxisAlignment.end,
-                                    //   children: [
-                                    //     CustomText(text:DateFormat('hh:mm a').format(DateTime.parse(data.createdTs.toString())),size: 10,colors: custProvider.customerReport[index].createdBy!=localData.storage.read("id") ?Colors.black:Colors.white,),
-                                    //   ],
-                                    // ),
-                                  ],
-                                ),
+
+                                  Text(
+                                    custProvider.customerReport[index].comments.toString(),
+                                    style: const TextStyle(
+                                      fontSize: 13,
+                                      color: Colors.black87,
+                                    ),
+                                  ),
+
+                                  const SizedBox(height: 6),
+
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.end,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        DateFormat('hh:mm a').format(
+                                            DateTime.parse(data.createdTs.toString())),
+                                        style: TextStyle(
+                                          fontSize: 10,
+                                          color: Colors.grey.shade700,
+                                        ),
+                                      ),
+                                      if (data.isLocal == true)
+                                        Padding(
+                                          padding: const EdgeInsets.only(left: 4),
+                                          child: Icon(
+                                            Icons.schedule,
+                                            size: 12,
+                                            color: Colors.grey.shade600,
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                ],
                               ),
                             ),
-                          ],
+                          ),
                         );
                       },
                     ),

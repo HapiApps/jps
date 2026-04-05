@@ -27,7 +27,8 @@ class CustomerData extends StatefulWidget {
   final String dayOfWeek;
   final VoidCallback? shareCallback;
   final VoidCallback? mailCallback;
-  const CustomerData({super.key, required this.customerData, required this.callback, required this.iconCallback, this.show=false, required this.callback2, required this.editCallBack, required this.reportCallBack, required this.visitsCallBack, required this.showDateHeader, required this.dayOfWeek, required this.taskCallBack, required this.iconCallback2, this.shareCallback, this.mailCallback});
+  const CustomerData({super.key,
+    required this.customerData, required this.callback, required this.iconCallback, this.show=false, required this.callback2, required this.editCallBack, required this.reportCallBack, required this.visitsCallBack, required this.showDateHeader, required this.dayOfWeek, required this.taskCallBack, required this.iconCallback2, this.shareCallback, this.mailCallback});
 
   @override
   State<CustomerData> createState() => _CustomerDataState();
@@ -54,6 +55,7 @@ class _CustomerDataState extends State<CustomerData> {
         InkWell(
         onTap: widget.callback2,
         child: Column(
+
           children: [
             if (widget.showDateHeader)
               CustomText(
@@ -65,7 +67,7 @@ class _CustomerDataState extends State<CustomerData> {
                   width: kIsWeb?webWidth:phoneWidth,
                 decoration: customDecoration.baseBackgroundDecoration(
                     color: Colors.white,
-                    radius: 5,
+                    radius: 10,
                     borderColor: Colors.grey.shade200,isShadow: true,shadowColor: Colors.grey.shade200
                 ),
                 child: Padding(
@@ -84,7 +86,7 @@ class _CustomerDataState extends State<CustomerData> {
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
                                   SizedBox(
-                                      width:kIsWeb?webWidth/1.15:phoneWidth/1.15,
+                                      width:kIsWeb?webWidth/1.15:phoneWidth/1.13,
                                       // color: Colors.pinkAccent,
                                       child: Padding(
                                         padding: const EdgeInsets.fromLTRB(5, 0, 0, 0),
@@ -94,8 +96,15 @@ class _CustomerDataState extends State<CustomerData> {
                                             Row(
                                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                               children: [
-                                                CustomText(text: data.companyName.toString().trim(),isBold: localData.storage.read("role") =="1"?false:true,colors: localData.storage.read("role") =="1"?colorsConst.greyClr:colorsConst.primary,),
-                                                Row(
+                                                Column(
+                                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                                  children: [
+                                                    CustomText(text: "Company",isBold: localData.storage.read("role") =="1"?true:true,colors: localData.storage.read("role") =="1"?Colors.black:Colors.black,),
+                                                    CustomText(text: data.companyName.toString().trim(),isBold: localData.storage.read("role") =="1"?false:true,colors: localData.storage.read("role") =="1"?colorsConst.primary:colorsConst.primary,),
+
+                                                  ],
+                                                ),
+                                                 Row(
                                                   children: [
                                                     SizedBox(
                                                         width: MediaQuery.of(context).size.width*0.11,
@@ -103,40 +112,62 @@ class _CustomerDataState extends State<CustomerData> {
                                                     SizedBox(
                                                         width: MediaQuery.of(context).size.width*0.11,
                                                         child: IconButton(onPressed: widget.shareCallback, icon: SvgPicture.asset(assets.share,width: 20,height: 20,))),
+                                                    if(localData.storage.read("role") =="1")
+                                                      Padding(
+                                                        padding: const EdgeInsets.fromLTRB(0, 0, 0, 10),
+                                                        child: Row(
+                                                          children: [
+                                                            SizedBox(
+                                                              // color: Colors.pink,
+                                                              width:30,height:30,
+                                                              child: IconButton(
+                                                                  onPressed:widget.iconCallback,
+                                                                  icon: Icon(Icons.keyboard_arrow_down_rounded,size:23,color: colorsConst.greyClr,)),
+                                                            ),
+                                                            SizedBox(
+                                                              width:30,height:30,
+                                                              // color: Colors.yellow,
+                                                              child: IconButton(
+                                                                  onPressed:(){
+                                                                    utils.makingPhoneCall(ph: phoneList[index].toString());
+                                                                  },
+                                                                  icon: Icon(Icons.call,color: colorsConst.blueClr,)),
+                                                            ),
+                                                            10.height
+                                                          ],
+                                                        ),
+                                                      ),
                                                   ],
                                                 ),
                                               ],
                                             ),
-                                            if(localData.storage.read("role") =="1")15.height,
-                                            CustomText(text: usersList[index].toString().trim(),colors: colorsConst.greyClr,),
+                                            if(localData.storage.read("role") =="1")5.height,
+                                            Row(
+                                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                              children: [
+                                                Column(
+                                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                                  children: [
+                                                    CustomText(text: "Customer Name",colors: Colors.black,isBold: true,),
+                                                    CustomText(text: usersList[index].toString().trim(),colors: colorsConst.greyClr,),
+                                                  ],
+                                                ),
+                                                20.width,
+                                                Column(
+                                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                                  children: [
+                                                    CustomText(text: "Created by",colors: Colors.black,isBold: true,),
+                                                    CustomText(text: data.creator.toString(),colors: colorsConst.greyClr,),
+                                                  ],
+                                                ),
+
+                                              ],
+                                            ),
+
                                           ],
                                         ),
                                       )),
-                                  if(localData.storage.read("role") =="1")
-                                    Padding(
-                                      padding: const EdgeInsets.fromLTRB(0, 0, 5, 0),
-                                      child: Column(
-                                        children: [
-                                          SizedBox(
-                                            // color: Colors.pink,
-                                            width:30,height:30,
-                                            child: IconButton(
-                                              onPressed:widget.iconCallback,
-                                              icon: Icon(Icons.keyboard_arrow_down_rounded,size:23,color: colorsConst.greyClr,)),
-                                          ),
-                                          SizedBox(
-                                            width:30,height:30,
-                                            // color: Colors.yellow,
-                                            child: IconButton(
-                                              onPressed:(){
-                                                utils.makingPhoneCall(ph: phoneList[index].toString());
-                                              },
-                                              icon: Icon(Icons.call,color: colorsConst.blueClr,)),
-                                          ),
-                                          10.height
-                                        ],
-                                      ),
-                                    ),
+
                                   // if(localData.storage.read("role") =="1")
                                   // IconButton(
                                   //   onPressed:widget.visitsCallBack,
@@ -170,7 +201,7 @@ class _CustomerDataState extends State<CustomerData> {
                                         child: CustomText(text: "Edit ${constValue.customer}",colors: colorsConst.blueClr,)),
                                     // TextButton( onPressed : widget.taskCallBack,child: CustomText(text: "View Task",colors: colorsConst.appRed,)),
                                     // TextButton( onPressed : widget.reportCallBack,child: CustomText(text: "Report",colors: colorsConst.appYellow,)),
-                                    TextButton(onPressed: widget.visitsCallBack, child: CustomText(text: "Add Visit",colors: colorsConst.blueClr,)),
+                                    TextButton(onPressed: widget.visitsCallBack, child: CustomText(text: "View Visit",colors: colorsConst.blueClr,)),
                                     Padding(
                                       padding: const EdgeInsets.fromLTRB(0, 0, 3, 3),
                                       child: InkWell(
