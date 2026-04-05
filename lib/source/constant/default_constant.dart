@@ -126,7 +126,7 @@ class ConstantValues{
   final String  comArea = "Street Name";
   final String  landmark = "Landmark";
   final String  referredBy = "Referred  By";
-  final String  type = "Type";
+  final String  type = " Visit Type";
   final String role = "Role";
   final String comment = "View Full History";
   final String comments = "Comments";

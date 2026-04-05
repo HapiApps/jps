@@ -33,7 +33,7 @@ class PanelButton extends StatelessWidget {
                 child: Container(
                     width: 30,height: 30,
                     decoration: customDecoration.baseBackgroundDecoration(
-                      color: isColor==true?colorsConst.primary:colorsConst.primary.withOpacity(0.5),
+                      color: isColor==true?colorsConst.primary:colorsConst.primary,
                       radius: 5,
                     ),
                     child: Padding(

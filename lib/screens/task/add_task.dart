@@ -3,6 +3,7 @@ import 'package:master_code/component/custom_radio_button.dart';
 import 'package:master_code/component/map_dropdown.dart';
 import 'package:master_code/component/maxline_textfield.dart';
 import 'package:master_code/screens/task/search_custom_dropdown.dart';
+import 'package:master_code/screens/task/task_types.dart';
 import 'package:master_code/source/extentions/extensions.dart';
 import 'package:master_code/view_model/customer_provider.dart';
 import 'package:flutter/foundation.dart';
@@ -91,7 +92,7 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
               backgroundColor: colorsConst.bacColor,
               appBar: const PreferredSize(
                 preferredSize: Size(300, 50),
-                child: CustomAppbar(text: "Create Task"),
+                child: CustomAppbar(text: "Add Task"),
               ),
               body: Center(
                 child: SizedBox(
@@ -105,11 +106,27 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
                               Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
+
                                   Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                     children: [
-                                      CustomText(text: "Type"),
-                                      CustomText(text: "*",colors: colorsConst.appRed,isBold: true,size: 15,),
-                                    ],
+                                      Row(
+                                        children: [
+                                          CustomText(text: "Visit Type"),
+                                          CustomText(text: "*",colors: colorsConst.appRed,isBold: true,size: 15,),
+
+                                        ],
+                                      ),
+
+                                      IconButton(onPressed: (){
+                                        showDialog(
+                                          context: context,
+                                          barrierDismissible: false,
+                                          builder: (context) => const AddTypePopup(),
+                                        );
+                                      },
+                                          icon: Icon(Icons.add,color: Colors.red,))
+                                       ],
                                   ),10.height,
                                   GridView.builder(
                                     itemCount: taskProvider.typeList.length,
@@ -161,7 +178,7 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
                               ),
                               MaxLineTextField(
                                 width: kIsWeb?webWidth:phoneWidth,
-                                text: "Description",isRequired: true,
+                                text: " Task Title / Description",isRequired: true,
                                 controller: taskProvider.taskTitleCont,
                                 // si: kIsWeb?webWidth:phoneWidth,
                                 textCapitalization: TextCapitalization.sentences, maxLine: 2,

@@ -3542,41 +3542,50 @@ class TaskProvider with ChangeNotifier {
   }
   Future<void> getTaskType(bool isRefresh) async {
     try {
-      _selectType=null;
-      if(isRefresh==true){
-        _addRefresh=false;
+      _selectType = null;
+
+      if (isRefresh == true) {
+        _addRefresh = false;
         notifyListeners();
       }
+
       Map data = {
         "action": getAllData,
-        "search_type":"cmt_type",
-        "cat_id":"7",
+        "search_type": "cmt_type",
+        "cat_id": "7",
         "cos_id": localData.storage.read("cos_id")
       };
-      final response =await _taskRepo.getListDatas(data);
-      log(data.toString());
-      log(response.toString());
+
+      final response = await _taskRepo.getListDatas(data);
+
+      log("Data => ${data.toString()}");
+      log("Response task list=> ${response.toString()}");
+
       if (response.isNotEmpty) {
         List<Map<String, String>> list = response.map((e) => {
           "id": e['id'].toString(),
           "value": e['value'].toString().trim(),
-          "categories": e['categories'].toString()
+          "categories": e['categories'].toString(),
+          "created_ts": e['created_ts'].toString(),
+          "created_by": e['created_by'].toString(),
         }).toList();
-        if(!kIsWeb){
+
+        if (!kIsWeb) {
           await LocalDatabase.insertTaskType(list);
           getAllTypes();
-        }else{
+        } else {
           typeList.clear();
-          typeList=list;
-          _addRefresh=true;
+          typeList = list;
+          _addRefresh = true;
           notifyListeners();
         }
-      }else{
-        _addRefresh=true;
+      } else {
+        _addRefresh = true;
       }
     } catch (e) {
-      _addRefresh=true;
+      _addRefresh = true;
     }
+
     notifyListeners();
   }
   TextEditingController typeCtr = TextEditingController();
@@ -3653,7 +3662,7 @@ class TaskProvider with ChangeNotifier {
     List storedLeads = await LocalDatabase.getTaskTypes();
     typeList=storedLeads;
     _addRefresh=true;
-    print("typeList......${typeList}");
+    print("local db typeList......${typeList}");
     _selectType=null;
     notifyListeners();
   }

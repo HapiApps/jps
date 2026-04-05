@@ -117,8 +117,8 @@ class _VisitReportState extends State<VisitReport> with SingleTickerProviderStat
                         unselectedLabelColor: colorsConst.primary,
                         labelStyle: const TextStyle(fontWeight: FontWeight.bold),
                         tabs: const [
-                          Tab(text: "Visits"),
-                          Tab(text: "Reports"),
+                          Tab(text: "Visits Summary"),
+                          Tab(text: "visits Details"),
                         ],
                       ),
 

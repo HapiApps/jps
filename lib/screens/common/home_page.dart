@@ -1186,7 +1186,7 @@ class _HomePageState extends State<HomePage> {
                                           Row(
                                             children: [
                                               const CustomText(
-                                                "Total Visits  ",
+                                                "Customer Visits  ",
                                                 size: 18,
                                                 weight: FontWeight.bold,
                                               ),
@@ -1234,7 +1234,7 @@ class _HomePageState extends State<HomePage> {
                                             ), ///ADDED NEW,
                                           ),
                                         ],
-                                      ),15.height,
+                                      ),7.height,
 
                                       /// Big Count
 
@@ -1244,16 +1244,43 @@ class _HomePageState extends State<HomePage> {
                                         children: [
                                           /// LEFT SECTION
                                           Expanded(
-                                            flex: 55,
+                                            flex: 40,
                                             child: Column(
                                               crossAxisAlignment: CrossAxisAlignment.start,
                                               children: [
-                                                CustomText(
-                                                  "Active Visits(${homeProvider.activeVisit})",
-                                                  size: 16,
-                                                  weight: FontWeight.bold,
-                                                  color: colorsConst.primary,
+                                                Container(
+                                                  width: screenWidth/2,
+
+                                                  height:30,
+                                                  decoration: BoxDecoration(
+                                                    color: Colors.green,
+                                                    borderRadius: BorderRadius.circular(20),
+                                                  ),
+                                                  child: Padding(
+                                                    padding: const EdgeInsets.only(left: 8.0,bottom: 3),
+                                                    child: Row(
+
+                                                      crossAxisAlignment: CrossAxisAlignment.center,
+                                                      mainAxisAlignment: MainAxisAlignment.start,
+                                                      children: [
+
+                                                        Icon(
+                                                          Icons.calendar_month,
+                                                          size: 16,
+                                                          color: Colors.white,
+                                                        ),
+                                                        5.width,
+                                                        CustomText(
+                                                          "Active Visits : ${homeProvider.activeVisit}",
+                                                          size: 13,
+                                                          weight: FontWeight.bold,
+                                                          color: Colors.white,
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ),
                                                 ),
+
                                                 const SizedBox(height: 8),
                                                 /// Scrollable List (3 visible items height)
                                                 SizedBox(
@@ -1328,6 +1355,33 @@ class _HomePageState extends State<HomePage> {
                                             child: Column(
                                               children: [
                                                 /// Larger Pie Chart (closer to reference)
+                                                Container(
+                                                  width: screenWidth/2,
+                                                  decoration: BoxDecoration(
+                                                    color: colorsConst.primary,
+                                                    borderRadius: BorderRadius.circular(20),
+                                                  ),
+                                                  child: Padding(
+                                                    padding: const EdgeInsets.all(8.0),
+                                                    child: Row(
+                                                      children: [
+                                                        Icon(
+                                                          Icons.calendar_month,
+                                                          size: 16,
+                                                          color: Colors.white,
+                                                        ),
+                                                        SizedBox(width: 6),
+                                                        CustomText(
+                                                          "Pending Visits: ${homeProvider.inActiveVisit}",
+                                                          size: 12,
+                                                          weight: FontWeight.w600,
+                                                          color: Colors.white,
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                ),
+                                                15.height,
                                                 SizedBox(
                                                   height: 80,
                                                   child:
@@ -1356,33 +1410,8 @@ class _HomePageState extends State<HomePage> {
                                                       ],
                                                     ),
                                                   ),
-                                                ),15.height,
-                                                Container(
-                                                  width: screenWidth/2,
-                                                  decoration: BoxDecoration(
-                                                    color: colorsConst.primary,
-                                                    borderRadius: BorderRadius.circular(20),
-                                                  ),
-                                                  child: Padding(
-                                                    padding: const EdgeInsets.all(8.0),
-                                                    child: Row(
-                                                      children: [
-                                                        Icon(
-                                                          Icons.calendar_month,
-                                                          size: 16,
-                                                          color: Colors.white,
-                                                        ),
-                                                        SizedBox(width: 6),
-                                                        CustomText(
-                                                          "Pending Visits: ${homeProvider.inActiveVisit}",
-                                                          size: 12,
-                                                          weight: FontWeight.w600,
-                                                          color: Colors.white,
-                                                        ),
-                                                      ],
-                                                    ),
-                                                  ),
                                                 ),
+
 
                                                 // 20.height,
                                                 // Container(

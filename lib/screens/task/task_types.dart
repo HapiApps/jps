@@ -1,3 +1,4 @@
+import 'package:intl/intl.dart';
 import 'package:master_code/component/custom_loading.dart';
 import 'package:master_code/component/custom_loading_button.dart';
 import 'package:master_code/component/custom_textfield.dart';
@@ -38,7 +39,14 @@ class _ViewTaskTypesState extends State<ViewTaskTypes>{
       }
     });
   }
-
+  String formatDate12Hour(String date) {
+    try {
+      DateTime dt = DateTime.parse(date);
+      return DateFormat("dd-MM-yyyy  hh:mm a").format(dt);
+    } catch (e) {
+      return "-";
+    }
+  }
   @override
   Widget build(BuildContext context) {
     var webWidth=MediaQuery.of(context).size.width * 0.5;
@@ -54,8 +62,13 @@ class _ViewTaskTypesState extends State<ViewTaskTypes>{
                   isButton: true,
                   buttonCallback: (){
                 homeProvider.updateIndex(0);
-                utils.navigatePage(context, ()=>const DashBoard(child: AddType()));
-              }),
+                showDialog(
+                  context: context,
+                  barrierDismissible: false,
+                  builder: (context) => const AddTypePopup(),
+                );
+              }
+              ),
             ),
             body: taskProvider.addRefresh==false?
             const Loading():
@@ -81,26 +94,72 @@ class _ViewTaskTypesState extends State<ViewTaskTypes>{
                           if(index==0)
                           15.height,
                           Container(
-                            width: kIsWeb?webWidth:phoneWidth,
+                            width: kIsWeb ? webWidth : phoneWidth,
                             decoration: customDecoration.baseBackgroundDecoration(
-                              color: Colors.white,radius: 1
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                CustomText(text: "    ${data["value"].toString().trim()}"),
-                                IconButton(onPressed: (){
-                                  utils.customDialog(
-                                      context: context,
-                                      title: "Are you sure you want to delete",
-                                      callback: (){
-                                        taskProvider.deleteType(context,data["id"].toString());
-                                      },
-                                      roundedLoadingButtonController: taskProvider.taskCtr,
-                                      isLoading: true
-                                  );
-                                }, icon: SvgPicture.asset(assets.deleteValue))
-                              ],
+                                color: Colors.white, radius: 1),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        CustomText(
+                                          text: data["value"].toString().trim(),
+                                          size: 15,
+                                         // fontWeight: FontWeight.w600,
+                                        ),
+                                        5.height,
+                                        Row(
+                                          children: [
+                                            CustomText(
+                                              text: "Created By: ",
+                                              size: 12,
+                                              colors: Colors.grey,
+                                            ),
+                                            CustomText(
+                                              text: data["created_by"] ?? "-",
+                                              size: 12,
+                                              colors: Colors.black87,
+                                            ),
+                                          ],
+                                        ),
+                                        3.height,
+                                        Row(
+                                          children: [
+                                            CustomText(
+                                              text: "Time: ",
+                                              size: 12,
+                                              colors: Colors.grey,
+                                            ),
+                                            CustomText(
+                                              text: formatDate12Hour(data["created_ts"] ?? ""),
+                                              size: 12,
+                                              colors: Colors.black87,
+                                            ),
+                                          ],
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+
+                                  IconButton(
+                                    onPressed: () {
+                                      utils.customDialog(
+                                          context: context,
+                                          title: "Are you sure you want to delete",
+                                          callback: () {
+                                            taskProvider.deleteType(context, data["id"].toString());
+                                          },
+                                          roundedLoadingButtonController: taskProvider.taskCtr,
+                                          isLoading: true);
+                                    },
+                                    icon: SvgPicture.asset(assets.deleteValue),
+                                  )
+                                ],
+                              ),
                             ),
                           ),
                           8.height,
@@ -116,14 +175,16 @@ class _ViewTaskTypesState extends State<ViewTaskTypes>{
 
 
 
-class AddType extends StatefulWidget {
-  const AddType({super.key});
+
+
+class AddTypePopup extends StatefulWidget {
+  const AddTypePopup({super.key});
 
   @override
-  State<AddType> createState() => _AddTypeState();
+  State<AddTypePopup> createState() => _AddTypePopupState();
 }
 
-class _AddTypeState extends State<AddType>{
+class _AddTypePopupState extends State<AddTypePopup> {
   final FocusScopeNode _myFocusScopeNode = FocusScopeNode();
 
   @override
@@ -133,67 +194,80 @@ class _AddTypeState extends State<AddType>{
     });
     super.initState();
   }
+
   @override
   void dispose() {
     _myFocusScopeNode.dispose();
     super.dispose();
   }
+
   @override
   Widget build(BuildContext context) {
-    var webWidth=MediaQuery.of(context).size.width * 0.5;
-    var phoneWidth=MediaQuery.of(context).size.width * 0.9;
-    return Consumer<TaskProvider>(builder: (context,taskProvider,_){
+    var webWidth = MediaQuery.of(context).size.width * 0.4;
+    var phoneWidth = MediaQuery.of(context).size.width * 0.9;
+
+    return Consumer<TaskProvider>(builder: (context, taskProvider, _) {
       return FocusScope(
         node: _myFocusScopeNode,
-        child: SafeArea(
-          child: Scaffold(
-              backgroundColor: colorsConst.bacColor,
-              appBar: const PreferredSize(
-                preferredSize: Size(300, 50),
-                child: CustomAppbar(text: "Add Task Types"),
-              ),
-              body: Center(
-                child: SizedBox(
-                  width: kIsWeb?webWidth:phoneWidth,
-                  // color: Colors.red,
-                  child:
-                  Column(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      CustomTextField(
-                          width: kIsWeb?webWidth:phoneWidth,
-                          isRequired: true,
-                          textInputAction: TextInputAction.done,
-                          text: "Type", controller: taskProvider.typeCtr),
-                      100.height,
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          CustomLoadingButton(
-                              callback: (){
-                                Future.microtask(() => Navigator.pop(context));
-                              }, isLoading: false,text: "Cancel",
-                              backgroundColor: Colors.white, textColor: colorsConst.primary,radius: 10,
-                              width: kIsWeb?webWidth/2.2:phoneWidth/2.2),
-                          CustomLoadingButton(
-                              callback: (){
-                                if (taskProvider.typeCtr.text.trim().isEmpty) {
-                                  utils.showWarningToast(context, text: "Please fill type");
-                                  taskProvider.taskCtr.reset();
-                                }else {
-                                  _myFocusScopeNode.unfocus();
-                                  taskProvider.insertTaskType(context);
-                                }
-                              }, isLoading: true,text: "Save",controller: taskProvider.taskCtr,
-                              backgroundColor: colorsConst.primary,radius: 10,
-                              width: kIsWeb?webWidth/2.2:phoneWidth/2.2),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              )
+        child: AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(15),
           ),
+          title: const Text(
+            "Add Task Types",
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+          content: SizedBox(
+            width: kIsWeb ? webWidth : phoneWidth,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CustomTextField(
+                  width: kIsWeb ? webWidth : phoneWidth,
+                  isRequired: true,
+                  textInputAction: TextInputAction.done,
+                  text: "Type",
+                  controller: taskProvider.typeCtr,
+                ),
+                const SizedBox(height: 20),
+              ],
+            ),
+          ),
+          actions: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                CustomLoadingButton(
+                  callback: () {
+                    Navigator.pop(context);
+                  },
+                  isLoading: false,
+                  text: "Cancel",
+                  backgroundColor: Colors.white,
+                  textColor: colorsConst.primary,
+                  radius: 10,
+                  width: kIsWeb ? webWidth / 2.4 : phoneWidth / 2.8,
+                ),
+                CustomLoadingButton(
+                  callback: () {
+                    if (taskProvider.typeCtr.text.trim().isEmpty) {
+                      utils.showWarningToast(context, text: "Please fill type");
+                      taskProvider.taskCtr.reset();
+                    } else {
+                      _myFocusScopeNode.unfocus();
+                      taskProvider.insertTaskType(context);
+                    }
+                  },
+                  isLoading: true,
+                  text: "Save",
+                  controller: taskProvider.taskCtr,
+                  backgroundColor: colorsConst.primary,
+                  radius: 10,
+                  width: kIsWeb ? webWidth / 2.4 : phoneWidth / 2.8,
+                ),
+              ],
+            ),
+          ],
         ),
       );
     });

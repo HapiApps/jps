@@ -30,6 +30,7 @@ class CustomerDropdown extends StatelessWidget {
                   CustomText(text:"*",colors:colorsConst.appRed,size:18,isBold: false,),
               ],
             ),
+          7.height,
           Container(
             width: size,
             height: 47,

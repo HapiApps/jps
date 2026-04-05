@@ -10,7 +10,7 @@ class LocalDatabase {
     String path = join(await getDatabasesPath(), 'ACI.db');
     _db = await openDatabase(
       path,
-      version: 3, // 🔼 Updated version number
+      version: 4, // 🔼 Updated version number
       onCreate: (db, version) async {
         await db.execute('''
           CREATE TABLE lead_category (
@@ -50,7 +50,9 @@ class LocalDatabase {
           CREATE TABLE task_type (
             id TEXT PRIMARY KEY,
             value TEXT,
-            categories TEXT
+            categories TEXT,
+             created_ts TEXT,
+             created_by TEXT
           )
         ''');
         await db.execute('''
@@ -63,7 +65,7 @@ class LocalDatabase {
       },
       // 🔼 Added onUpgrade to handle existing DBs
       onUpgrade: (db, oldVersion, newVersion) async {
-        if (oldVersion < 2) {
+        if (oldVersion < 3) {
           await db.execute('''
             CREATE TABLE expense_type (
               id TEXT PRIMARY KEY,
@@ -72,27 +74,38 @@ class LocalDatabase {
             )
           ''');
         }
-        if (oldVersion < 3) {
+        if (oldVersion < 4) {
+
           await db.execute('''
-          CREATE TABLE task_type (
-            id TEXT PRIMARY KEY,
-            value TEXT,
-            categories TEXT
-          )
-        ''');
-        await db.execute('''
-          CREATE TABLE task_status (
-            id TEXT PRIMARY KEY,
-            value TEXT,
-            categories TEXT
-          )
-        ''');
+    CREATE TABLE IF NOT EXISTS task_type (
+      id TEXT PRIMARY KEY,
+      value TEXT,
+      categories TEXT
+    )
+  ''');
+
+          try {
+            await db.execute("ALTER TABLE task_type ADD COLUMN created_ts TEXT");
+          } catch (e) {}
+
+          try {
+            await db.execute("ALTER TABLE task_type ADD COLUMN created_by TEXT");
+          } catch (e) {}
+
           await db.execute('''
-          CREATE TABLE grades (
-            id TEXT PRIMARY KEY,
-            grade TEXT
-          )
-        ''');
+    CREATE TABLE IF NOT EXISTS task_status (
+      id TEXT PRIMARY KEY,
+      value TEXT,
+      categories TEXT
+    )
+  ''');
+
+          await db.execute('''
+    CREATE TABLE IF NOT EXISTS grades (
+      id TEXT PRIMARY KEY,
+      grade TEXT
+    )
+  ''');
         }
       },
     );

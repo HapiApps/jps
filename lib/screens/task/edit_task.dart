@@ -131,7 +131,7 @@ class _EditTaskState extends State<EditTask> with SingleTickerProviderStateMixin
                                   ],
                                 ),
                                 CustomTextField(
-                                  text: "Description",isRequired: true,
+                                  text: "Task Title / Description",isRequired: true,
                                   controller: taskProvider.taskTitleCont,
                                   width: kIsWeb?webWidth:phoneWidth,
                                   textCapitalization: TextCapitalization.sentences,
