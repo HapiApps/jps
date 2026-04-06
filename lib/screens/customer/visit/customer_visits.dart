@@ -103,13 +103,13 @@ class _CusVisitsState extends State<CusVisits> {
                                               CustomText(text: data.date.toString(),colors: colorsConst.orange,),
                                             ],
                                           ),
-                                          GestureDetector(
-                                              onTap: (){
-                                                utils.navigatePage(context, ()=> DashBoard(child:
-                                                CommentChat(visitId: data.id.toString(),
-                                                    companyName: widget.companyName, numberList: widget.customerList, companyId: widget.companyId.toString(),createdBy: data.createdBy.toString(),)));
-                                              },
-                                              child: SvgPicture.asset(assets.comment, width: 20,height: 20,)),
+                                          // GestureDetector(
+                                          //     onTap: (){
+                                          //       utils.navigatePage(context, ()=> DashBoard(child:
+                                          //       CommentChat(visitId: data.id.toString(),
+                                          //           companyName: widget.companyName, numberList: widget.customerList, companyId: widget.companyId.toString(),createdBy: data.createdBy.toString(),)));
+                                          //     },
+                                          //     child: SvgPicture.asset(assets.comment, width: 20,height: 20,)),
                                         ],
                                       ),
                                       Row(

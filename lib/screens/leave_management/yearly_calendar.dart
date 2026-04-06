@@ -98,7 +98,7 @@ class CalendarAppointment extends State<FixedLeave> {
                                     colors: colorsConst.primary),
                                 CustomText(
                                   text: "  ${365 - levProvider.total}",
-                                  colors: colorsConst.appRed,
+                                  colors: Colors.black,
                                   isBold: true,)
                               ],
                             ),
@@ -107,7 +107,7 @@ class CalendarAppointment extends State<FixedLeave> {
                                 CustomText(text: "Leave Days",
                                     colors: colorsConst.primary),
                                 CustomText(text: "  ${levProvider.total}",
-                                    colors: colorsConst.appRed,
+                                    colors:Colors.black,
                                     isBold: true)
                               ],
                             ),

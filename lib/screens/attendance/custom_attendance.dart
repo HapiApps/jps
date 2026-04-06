@@ -14,11 +14,13 @@ import '../../source/constant/assets_constant.dart';
 import '../../source/constant/colors_constant.dart';
 import '../../source/utilities/utils.dart';
 import '../../component/custom_text.dart';
+import '../../view_model/leave_provider.dart';
 import '../../view_model/location_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:master_code/view_model/home_provider.dart';
 
 import '../common/dashboard.dart';
+import '../leave_management/leave_dashboard.dart';
 import 'attendance_report.dart';
 
 class CheckAttendance extends StatefulWidget {
@@ -478,6 +480,12 @@ class _CheckAttendanceState extends State<CheckAttendance> {
                 onTap:(){
                   // homeProvider.updateIndex(4);
                   // utils.navigatePage(context, ()=> DashBoard(child: AttendanceReport(type: homeProvider.type,showType: "Present",date1: homeProvider.startDate,date2:homeProvider.endDate,empList: [])));
+                  Provider.of<LeaveProvider>(context, listen: false).changeIndex(2);
+
+                  utils.navigatePage(
+                      context,
+                          ()=>const DashBoard(child: LeaveManagementDashboard())
+                  );
                 },
                 child: Container(
                   height: 90,
@@ -489,34 +497,96 @@ class _CheckAttendanceState extends State<CheckAttendance> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.center,
                       mainAxisAlignment: MainAxisAlignment.center,
-                      children:  [
-                        CustomText(
-                          text:"Total Hours Worked",
-                          isBold: true,
-                          colors: Colors.black87,
-                        ),
-                        SizedBox(height: 6),
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+
+
+                        /// ✅ Leave Count + Leave Applied Count Box
+                        Column(
+                          mainAxisAlignment: MainAxisAlignment.start,
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            CustomText(
-                              text:attProvider.totalHrs2==""?"0 mins":attProvider.totalHrs2,
-                              size: 13,
-                              isBold: true,
-                              colors: Colors.black,
+
+                            /// 🟢 Leave Count
+
+                            Container(
+                              width: 130,
+                              height: 30,
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 5),
+                              decoration: BoxDecoration(
+                                color: Colors.red.withOpacity(0.12),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: Colors.red, width: 1),
+                              ),
+                              child: Row(
+                                children: [
+                                  CustomText(
+                                    text: "Leave Applied: ",
+                                    size: 12,
+                                    colors: Colors.red.shade800,
+                                    isBold: true,
+                                  ),
+                                  const SizedBox(height: 6),
+                                  // CustomText(
+                                  //   text: attProvider.leaveAppliedCount == null
+                                  //       ? "0"
+                                  //       : attProvider.leaveAppliedCount.toString(),
+                                  //   size: 16,
+                                  //   isBold: true,
+                                  //   colors: Colors.red.shade900,
+                                  // ),
+                                  CustomText(
+
+                                      text: homeProvider.mainReportList[0]["today_apply_leave"].toString(),
+
+                                    size: 16,
+                                    isBold: true,
+                                    colors: Colors.red.shade900,
+                                  ),
+                                ],
+                              ),
                             ),
-                            2.width,
-                            // CustomText(
-                            //  text: "/12 hrs",
-                            //   size: 12,
-                            //   colors: Colors.black54,
-                            // ),
+                            const SizedBox(height:5),
+                            Container(
+                              width: 130,  height: 30,
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 5),
+                              decoration: BoxDecoration(
+                                color: Colors.green.withOpacity(0.12),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: Colors.green, width: 1),
+                              ),
+                              child: Row(
+                                children: [
+                                  CustomText(
+                                    text: "On Leave : ",
+                                    size: 12,
+                                    colors: Colors.green.shade800,
+                                    isBold: true,
+                                  ),
+
+                                  // CustomText(
+                                  //   text: attProvider.leaveCount == null
+                                  //       ? "0"
+                                  //       : attProvider.leaveCount.toString(),
+                                  //   size: 16,
+                                  //   isBold: true,
+                                  //   colors: Colors.green.shade900,
+                                  // ),
+                                  CustomText(
+                                    text: homeProvider.mainReportList[0]["fulldayleave_user"].toString(),
+                                    size: 16,
+                                    isBold: true,
+                                    colors: Colors.black,
+                                  ),
+                                ],
+                              ),
+                            ),
+                            /// 🔴 Leave Applied Count
+
                           ],
                         ),
                       ],
                     ),
-                  ),
+                  )
                 ),
               )
             ],

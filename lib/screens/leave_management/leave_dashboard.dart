@@ -7,104 +7,216 @@ import '../../source/constant/assets_constant.dart';
 import '../../source/constant/colors_constant.dart';
 import '../../view_model/leave_provider.dart';
 import 'yearly_calendar.dart';
+
 class LeaveManagementDashboard extends StatefulWidget {
   const LeaveManagementDashboard({super.key});
 
   @override
-  State<LeaveManagementDashboard> createState() => _LeaveManagementDashboardState();
+  State<LeaveManagementDashboard> createState() =>
+      _LeaveManagementDashboardState();
 }
 
 class _LeaveManagementDashboardState extends State<LeaveManagementDashboard> {
   @override
   void initState() {
-    Provider.of<LeaveProvider >(context, listen: false).setList();
-    WidgetsBinding.instance.addPostFrameCallback((timeStamp){
-      Provider.of<LeaveProvider >(context, listen: false).iniValues();
-      Provider.of<EmployeeProvider >(context, listen: false).getAllUsers();
-      Provider.of<LeaveProvider >(context, listen: false).getLeaveTypes();
-    });
     super.initState();
+
+    WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
+      final levProvider = Provider.of<LeaveProvider>(context, listen: false);
+
+      levProvider.setList();
+      levProvider.iniValues();
+
+      /// ✅ DEFAULT PAGE = REPORT TAB (index = 2)
+      levProvider.changeIndex(2);
+
+      Provider.of<EmployeeProvider>(context, listen: false).getAllUsers();
+      Provider.of<LeaveProvider>(context, listen: false).getLeaveTypes();
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<LeaveProvider>(builder: (context,levProvider,_){
+    return Consumer<LeaveProvider>(builder: (context, levProvider, _) {
       return Scaffold(
         backgroundColor: colorsConst.bacColor,
+
+        /// ✅ MOBILE BOTTOM NAVIGATION
         bottomNavigationBar: !kIsWeb
             ? BottomNavigationBar(
-            backgroundColor: colorsConst.primary,
-            currentIndex: levProvider.selectedIndex,
-            unselectedItemColor: colorsConst.primary.withOpacity(0.5),
-            selectedItemColor: colorsConst.primary,
-            unselectedLabelStyle: TextStyle(
-                color: colorsConst.greyClr
+          currentIndex: levProvider.selectedIndex,
+          type: BottomNavigationBarType.fixed,
+          backgroundColor: Colors.white,
+          selectedItemColor: colorsConst.primary,
+          unselectedItemColor: Colors.grey,
+          showSelectedLabels: true,
+          showUnselectedLabels: true,
+          onTap: (int index) {
+            levProvider.changeIndex(index);
+          },
+          items: [
+            BottomNavigationBarItem(
+              icon: SvgPicture.asset(
+                assets.fixLeaves,
+                width: 22,
+                height: 22,
+                color: levProvider.selectedIndex == 0
+                    ? colorsConst.primary
+                    : Colors.grey,
+              ),
+              label: 'Leaves',
             ),
-            type: BottomNavigationBarType.shifting,
-            onTap: (int index) {
-              levProvider.changeIndex(index);
-            },
-            items: [
-              BottomNavigationBarItem(
-                  icon: SvgPicture.asset(
-                      assets.fixLeaves, width: 20, height: 20),
-                  label: 'Leaves'),
-              BottomNavigationBarItem(
-                  icon: SvgPicture.asset(
-                    assets.leaveTye, width: 20, height: 20,), label: 'Type'),
-              BottomNavigationBarItem(
-                  icon: SvgPicture.asset(
-                    assets.userReport, width: 20, height: 20,),
-                  label: 'Report'),
-              BottomNavigationBarItem(
-                  icon: SvgPicture.asset(
-                    assets.applyLeave, width: 20, height: 20,), label: 'Apply'),
-              BottomNavigationBarItem(
-                  icon: SvgPicture.asset(
-                    assets.editRules, width: 20, height: 20,), label: 'Rules'),
-              // icon: SvgPicture.asset(assets.report,colorFilter: const ColorFilter.mode(Colors.grey, BlendMode.color),width: 20,height: 20,), label: 'Rules'),
-            ])
+            BottomNavigationBarItem(
+              icon: SvgPicture.asset(
+                assets.leaveTye,
+                width: 22,
+                height: 22,
+                color: levProvider.selectedIndex == 1
+                    ? colorsConst.primary
+                    : Colors.grey,
+              ),
+              label: 'Type',
+            ),
+            BottomNavigationBarItem(
+              icon: SvgPicture.asset(
+                assets.userReport,
+                width: 22,
+                height: 22,
+                color: levProvider.selectedIndex == 2
+                    ? colorsConst.primary
+                    : Colors.grey,
+              ),
+              label: 'Report',
+            ),
+            BottomNavigationBarItem(
+              icon: SvgPicture.asset(
+                assets.applyLeave,
+                width: 22,
+                height: 22,
+                color: levProvider.selectedIndex == 3
+                    ? colorsConst.primary
+                    : Colors.grey,
+              ),
+              label: 'Apply',
+            ),
+            BottomNavigationBarItem(
+              icon: SvgPicture.asset(
+                assets.editRules,
+                width: 22,
+                height: 22,
+                color: levProvider.selectedIndex == 4
+                    ? colorsConst.primary
+                    : Colors.grey,
+              ),
+              label: 'Rules',
+            ),
+          ],
+        )
             : null,
+
+        /// ✅ WEB NAVIGATION RAIL
         body: Row(
-          mainAxisSize: MainAxisSize.max,
           children: [
             if (kIsWeb)
               NavigationRail(
                 backgroundColor: colorsConst.primary,
-                minWidth: kIsWeb ? 75.0 : 35.0,
-                leading: SvgPicture.asset(assets.logo),
+                minWidth: 80,
                 selectedIndex: levProvider.selectedIndex,
                 onDestinationSelected: (int index) {
                   levProvider.changeIndex(index);
                 },
                 labelType: NavigationRailLabelType.all,
-                selectedLabelTextStyle: TextStyle(
-                  color: colorsConst.primary,
-                ),
-
-                unselectedLabelTextStyle: const TextStyle(
+                selectedLabelTextStyle: const TextStyle(
                   color: Colors.white,
+                  fontWeight: FontWeight.bold,
                 ),
-                // navigation rail items
-                destinations: const [
+                unselectedLabelTextStyle: const TextStyle(
+                  color: Colors.white70,
+                ),
+                destinations: [
                   NavigationRailDestination(
-                      icon: Icon(Icons.home, size: 0,), label: Text('Leaves')),
+                    icon: SvgPicture.asset(
+                      assets.fixLeaves,
+                      width: 22,
+                      height: 22,
+                      color: Colors.white70,
+                    ),
+                    selectedIcon: SvgPicture.asset(
+                      assets.fixLeaves,
+                      width: 22,
+                      height: 22,
+                      color: Colors.white,
+                    ),
+                    label: const Text("Leaves"),
+                  ),
                   NavigationRailDestination(
-                      icon: Icon(Icons.feed, size: 0), label: Text('Type    ')),
+                    icon: SvgPicture.asset(
+                      assets.leaveTye,
+                      width: 22,
+                      height: 22,
+                      color: Colors.white70,
+                    ),
+                    selectedIcon: SvgPicture.asset(
+                      assets.leaveTye,
+                      width: 22,
+                      height: 22,
+                      color: Colors.white,
+                    ),
+                    label: const Text("Type"),
+                  ),
                   NavigationRailDestination(
-                      icon: Icon(Icons.favorite, size: 0),
-                      label: Text('Report')),
+                    icon: SvgPicture.asset(
+                      assets.userReport,
+                      width: 22,
+                      height: 22,
+                      color: Colors.white70,
+                    ),
+                    selectedIcon: SvgPicture.asset(
+                      assets.userReport,
+                      width: 22,
+                      height: 22,
+                      color: Colors.white,
+                    ),
+                    label: const Text("Report"),
+                  ),
                   NavigationRailDestination(
-                      icon: Icon(Icons.settings, size: 0),
-                      label: Text('Apply  ')),
+                    icon: SvgPicture.asset(
+                      assets.applyLeave,
+                      width: 22,
+                      height: 22,
+                      color: Colors.white70,
+                    ),
+                    selectedIcon: SvgPicture.asset(
+                      assets.applyLeave,
+                      width: 22,
+                      height: 22,
+                      color: Colors.white,
+                    ),
+                    label: const Text("Apply"),
+                  ),
                   NavigationRailDestination(
-                      icon: Icon(Icons.settings, size: 0),
-                      label: Text('Rules  ')),
+                    icon: SvgPicture.asset(
+                      assets.editRules,
+                      width: 22,
+                      height: 22,
+                      color: Colors.white70,
+                    ),
+                    selectedIcon: SvgPicture.asset(
+                      assets.editRules,
+                      width: 22,
+                      height: 22,
+                      color: Colors.white,
+                    ),
+                    label: const Text("Rules"),
+                  ),
                 ],
               ),
+
+            /// ✅ PAGE CONTENT
             Expanded(
-                // child: levProvider.mainContents[levProvider.selectedIndex]
-              child: const FixedLeave()
+              child: levProvider.mainContents.isNotEmpty
+                  ? levProvider.mainContents[levProvider.selectedIndex]
+                  : const FixedLeave(),
             ),
           ],
         ),

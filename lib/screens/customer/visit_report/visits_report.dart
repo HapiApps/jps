@@ -118,7 +118,7 @@ class _VisitReportState extends State<VisitReport> with SingleTickerProviderStat
                         labelStyle: const TextStyle(fontWeight: FontWeight.bold),
                         tabs: const [
                           Tab(text: "Visits Summary"),
-                          Tab(text: "visits Details"),
+                          Tab(text: "Summary Details"),
                         ],
                       ),
 
@@ -474,7 +474,7 @@ class _VisitReportState extends State<VisitReport> with SingleTickerProviderStat
                                                         mainAxisAlignment: MainAxisAlignment.end,
                                                         children: [
                                                           CustomText(
-                                                            text: "Total Visit : ",
+                                                            text: "Total Visits: ",
                                                             colors: Colors.black,
                                                           ),
                                                           CustomText(

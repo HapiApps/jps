@@ -1,5 +1,4 @@
 import 'dart:async';
-
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
@@ -10,8 +9,6 @@ import 'package:master_code/source/extentions/extensions.dart';
 import 'package:master_code/view_model/task_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:record/record.dart';
-import 'package:rounded_loading_button_plus/rounded_loading_button.dart';
-import 'package:universal_html/js_util.dart' as _customerReport;
 import '../../../component/custom_appbar.dart';
 import '../../../component/custom_loading.dart';
 import '../../../component/custom_text.dart';
@@ -23,7 +20,6 @@ import '../../../source/utilities/utils.dart';
 import '../../../view_model/customer_provider.dart';
 import 'package:provider/provider.dart';
 
-import '../../component/audio_player.dart';
 import '../../source/constant/api.dart';
 import '../../source/constant/assets_constant.dart';
 import '../../source/styles/decoration.dart';
@@ -38,8 +34,19 @@ class TaskChat extends StatefulWidget {
   final String date1;
   final String date2;
   final String type;
-  const TaskChat({super.key, required this.taskId, required this.assignedId, required this.name, required this.isVisit,
-    this.createdBy, required this.assignedName, required this.date1, required this.date2, required this.type});
+
+  const TaskChat({
+    super.key,
+    required this.taskId,
+    required this.assignedId,
+    required this.name,
+    required this.isVisit,
+    this.createdBy,
+    required this.assignedName,
+    required this.date1,
+    required this.date2,
+    required this.type,
+  });
 
   @override
   State<TaskChat> createState() => _TaskChatState();
@@ -50,62 +57,98 @@ class _TaskChatState extends State<TaskChat> with SingleTickerProviderStateMixin
   late Animation<double> animation;
   final FocusScopeNode _myFocusScopeNode = FocusScopeNode();
 
-
   final AudioRecorder _audioRecorder = AudioRecorder();
   final AudioPlayer _audioPlayer = AudioPlayer();
 
   bool isRecording = false;
   String? recordedPath;
-  Timer? pollingTimer;
-  bool isFetching = false;
-  String lastCreatedBy = "0";
+
   Duration duration = Duration.zero;
   Timer? timer;
+
+  // 🔥 Player state for recorded audio preview
   Duration totalDuration = Duration.zero;
   Duration currentPosition = Duration.zero;
   bool isPlaying = false;
-  bool isPolling = false;
 
-  // void startPolling() {
-  //   isPolling = true;
-  //   _poll();
-  // }
-  //
-  // void stopPolling() {
-  //   isPolling = false;
-  // }
-  //
-  // Future<void> _poll() async {
-  //   if (!mounted || !isPolling || isFetching) return;
-  //
-  //   isFetching = true;
-  //
-  //   try {
-  //     if (widget.isVisit == true) {
-  //       await Provider.of<CustomerProvider>(context, listen: false)
-  //           .getComments(widget.taskId, isPolling: true);
-  //     } else {
-  //       await Provider.of<CustomerProvider>(context, listen: false)
-  //           .getTaskComments(widget.taskId, isPolling: true);
-  //     }
-  //   } catch (e) {
-  //     print("Polling error: $e");
-  //   }
-  //
-  //   isFetching = false;
-  //
-  //   await Future.delayed(const Duration(seconds: 3));
-  //
-  //   if (mounted && isPolling) {
-  //     _poll();
-  //   }
-  // }
+  // 🔥 currently playing chat audio
+  String? playingUrl;
+  Duration networkTotal = Duration.zero;
+  Duration networkCurrent = Duration.zero;
+  bool networkPlaying = false;
+
+  @override
+  void initState() {
+    WidgetsBinding.instance.addPostFrameCallback((timeStamp) async {
+      final custProvider = Provider.of<CustomerProvider>(context, listen: false);
+
+      custProvider.disPoint.clear();
+
+      if (widget.isVisit == true) {
+        await custProvider.getComments(widget.taskId);
+      } else {
+        await custProvider.getTaskComments(widget.taskId);
+      }
+
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        Provider.of<TaskProvider>(context, listen: false).scrollToBottom();
+      });
+    });
+
+    animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 1),
+    )..repeat(reverse: true);
+
+    animation = Tween<double>(begin: 0.5, end: 1.5).animate(animationController);
+
+    /// 🔥 Duration Fix (Recorded Preview)
+    _audioPlayer.onDurationChanged.listen((d) {
+      setState(() {
+        totalDuration = d;
+      });
+    });
+
+    _audioPlayer.onPositionChanged.listen((p) {
+      setState(() {
+        currentPosition = p;
+      });
+    });
+
+    _audioPlayer.onPlayerStateChanged.listen((state) {
+      setState(() {
+        isPlaying = state == PlayerState.playing;
+      });
+    });
+
+    /// 🔥 Duration Fix (Network Audio inside Chat)
+    _audioPlayer.onDurationChanged.listen((d) {
+      setState(() {
+        networkTotal = d;
+      });
+    });
+
+    _audioPlayer.onPositionChanged.listen((p) {
+      setState(() {
+        networkCurrent = p;
+      });
+    });
+
+    _audioPlayer.onPlayerStateChanged.listen((state) {
+      setState(() {
+        networkPlaying = state == PlayerState.playing;
+      });
+    });
+
+    super.initState();
+  }
 
   Future<void> startRecording() async {
     final status = await Permission.microphone.request();
 
     if (status.isGranted) {
-      String path = '/storage/emulated/0/Download/audio_${DateTime.now().millisecondsSinceEpoch}.m4a';
+      String path =
+          '/storage/emulated/0/Download/audio_${DateTime.now().millisecondsSinceEpoch}.m4a';
 
       await _audioRecorder.start(
         const RecordConfig(),
@@ -126,6 +169,7 @@ class _TaskChatState extends State<TaskChat> with SingleTickerProviderStateMixin
       print("Permission denied");
     }
   }
+
   Future<void> stopRecording() async {
     timer?.cancel();
 
@@ -137,688 +181,503 @@ class _TaskChatState extends State<TaskChat> with SingleTickerProviderStateMixin
         isRecording = false;
         recordedPath = path;
         currentPosition = Duration.zero;
+        totalDuration = Duration.zero;
       });
 
-      // 🔥 audio load பண்ணு
-      await _audioPlayer.play(DeviceFileSource(path));
-      await _audioPlayer.pause(); // play செய்யாம duration மட்டும் எடுக்க
+      // 🔥 duration fetch fix
+      await _audioPlayer.setSource(DeviceFileSource(path));
+      await _audioPlayer.resume();
+      await Future.delayed(const Duration(milliseconds: 200));
+      await _audioPlayer.pause();
     } else {
       setState(() {
         isRecording = false;
       });
     }
   }
-  Future<void> playAudio() async {
-    if (recordedPath != null) {
-      await _audioPlayer.play(DeviceFileSource(recordedPath!));
-    }
-  }
-  @override
-  @override
-  void initState() {
-    WidgetsBinding.instance.addPostFrameCallback((timeStamp) async {
 
-      final custProvider = Provider.of<CustomerProvider>(context, listen: false);
-
-      custProvider.disPoint.clear();
-      custProvider.recordedAudioPaths.clear();
-
-      /// ✅ FIRST LOAD DATA
-      if (widget.isVisit == true) {
-        await custProvider.getComments(widget.taskId);
-      } else {
-        await custProvider.getTaskComments(widget.taskId);
-      }
-
-      /// 🔥 NOW SCROLL (after data ready)
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        Provider.of<TaskProvider>(context, listen: false).scrollToBottom();
-      });
-
-      /// polling start
-      // startPolling();
-    });
-
-    animationController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 1),
-    )..repeat(reverse: true);
-
-    animation = Tween<double>(begin: 0.5, end: 1.5).animate(animationController);
-
-    _audioPlayer.onDurationChanged.listen((d) {
-      setState(() {
-        totalDuration = d;
-      });
-    });
-
-    _audioPlayer.onPositionChanged.listen((p) {
-      setState(() {
-        currentPosition = p;
-      });
-    });
-
-    _audioPlayer.onPlayerStateChanged.listen((state) {
-      setState(() {
-        isPlaying = state == PlayerState.playing;
-      });
-    });
-
-    super.initState();
-  }
-  Future<void> togglePlay() async {
+  Future<void> togglePlayRecorded() async {
     if (recordedPath == null) return;
 
     if (isPlaying) {
       await _audioPlayer.pause();
     } else {
-      await _audioPlayer.play(
-        DeviceFileSource(recordedPath!),
-      );
+      await _audioPlayer.play(DeviceFileSource(recordedPath!));
     }
   }
+
+  Future<void> playNetworkAudio(String url) async {
+    try {
+      if (playingUrl == url && networkPlaying) {
+        await _audioPlayer.pause();
+        return;
+      }
+
+      playingUrl = url;
+      networkCurrent = Duration.zero;
+      networkTotal = Duration.zero;
+
+      await _audioPlayer.stop();
+      await _audioPlayer.play(UrlSource(url));
+    } catch (e) {
+      print("Audio play error => $e");
+    }
+  }
+
   String formatTime(Duration d) {
     String twoDigits(int n) => n.toString().padLeft(2, '0');
     final minutes = twoDigits(d.inMinutes);
     final seconds = twoDigits(d.inSeconds.remainder(60));
     return "$minutes:$seconds";
   }
+
   @override
   void dispose() {
-    // stopPolling(); // 🔥 ADD THIS
     animationController.dispose();
     _myFocusScopeNode.dispose();
+    _audioPlayer.dispose();
+    _audioRecorder.dispose();
     super.dispose();
   }
-  // void scrollToBottom() {
-  //   if (_scrollController.hasClients) {
-  //     _scrollController.animateTo(
-  //       _scrollController.position.maxScrollExtent,
-  //       duration: const Duration(milliseconds: 300),
-  //       curve: Curves.easeOut,
-  //     );
-  //   }
-  // }
+
   @override
   Widget build(BuildContext context) {
-    return Consumer2<CustomerProvider,TaskProvider>(builder: (context,custProvider,taskProvider,_){
-      var webWidth=MediaQuery.of(context).size.width * 0.5;
-      var phoneWidth=MediaQuery.of(context).size.width * 0.9;
-      return FocusScope(
-        node: _myFocusScopeNode,
-        child: SafeArea(
-          child: WillPopScope(
-            onWillPop: () async {
-              Navigator.pop(context, true); // ✅ send refresh signal
-              return false;
-            },
-            child: Scaffold(
-              backgroundColor: Color(0xffEAEAEA),
-              appBar: PreferredSize(
-                preferredSize: const Size(300, 60),
-                child: localData.storage.read("role").toString() == "1"
-                    ? CustomAppbar(
-                  callback: () {
-                    Navigator.pop(context, true); // ✅ return true for reload
-                  },
-                  text: (widget.assignedName != null &&
-                      widget.assignedName.toString() != "null" &&
-                      widget.assignedName.toString().isNotEmpty)
-                      ? widget.assignedName.toString()
-                      : "",
-                )
-                    : (widget.name != null &&
-                    widget.name.toString() != "null" &&
-                    widget.name.toString().isNotEmpty)
-                    ? CustomAppbar(text: widget.name.toString(),callback: () {
-                  Navigator.pop(context, true); // ✅ return true for reload
-                },)
-                    : const SizedBox(),
-              ),
-              // bottomSheet: Padding(
-              //   padding: const EdgeInsets.all(8.0),
-              //   child: Row(
-              //     mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              //     children: [
-              //       SizedBox(
-              //         width: MediaQuery.of(context).size.width*0.63,
-              //         child: TextFormField(
-              //           // maxLines: maxLine,
-              //             textCapitalization: TextCapitalization.sentences,
-              //             textInputAction: TextInputAction.done,
-              //             keyboardType: TextInputType.text,
-              //             controller:custProvider.disPoint,
-              //             decoration: customStyle.inputDecoration(text: "Type a comment", fieldClr: Colors.white,radius: 50)
-              //         ),
-              //       ),
-              //       IconButton(
-              //           onPressed: (){
-              //             _myFocusScopeNode.unfocus();
-              //             custProvider.timer?.cancel();
-              //             HapticFeedback.vibrate();
-              //             if(custProvider.isRecording){
-              //               custProvider.stopRecording();
-              //             }else{
-              //               custProvider.startRecording();
-              //             }
-              //           },
-              //           icon: Icon(custProvider.isRecording?Icons.send:Icons.mic,color: Colors.green,)),
-              //       SizedBox(
-              //         height: 45,
-              //         width: 45,
-              //         child: ElevatedButton(
-              //           style: ElevatedButton.styleFrom(
-              //             shape: const CircleBorder(),
-              //             padding: EdgeInsets.zero,
-              //             backgroundColor: colorsConst.primary,
-              //             elevation: 2,
-              //           ),
-              //           onPressed: () async {
-              //             _myFocusScopeNode.unfocus();
-              //             if (custProvider.disPoint.text.trim().isEmpty &&
-              //                 custProvider.recordedAudioPaths.isEmpty) {
-              //               utils.showWarningToast(
-              //                 context,
-              //                 text: "Type a comment or record audio",
-              //               );
-              //               return;
-              //             }
-              //             WidgetsBinding.instance.addPostFrameCallback((_) {
-              //               if (_scrollController.hasClients) {
-              //                 _scrollController.animateTo(
-              //                   _scrollController.position.maxScrollExtent,
-              //                   duration: const Duration(milliseconds: 300),
-              //                   curve: Curves.easeOut,
-              //                 );
-              //               }
-              //             });
-              //             if(widget.isVisit==true){
-              //               await custProvider.addComment(context: context,visitId: widget.taskId.toString(),
-              //                   companyName: widget.name,companyId:"", numberList: [], taskId: "0", createdBy: widget.createdBy.toString());
-              //             }else{
-              //               await custProvider.tComment(
-              //                 context: context,
-              //                 taskId: widget.taskId.toString(),
-              //                 assignedId: widget.assignedId.toString(),
-              //               );
-              //             }
-              //
-              //             // Future.microtask(() {
-              //             //   if (_scrollController.hasClients) {
-              //             //     _scrollController.animateTo(
-              //             //       _scrollController.position.maxScrollExtent,
-              //             //       duration: const Duration(milliseconds: 300),
-              //             //       curve: Curves.easeOut,
-              //             //     );
-              //             //   }
-              //             // });
-              //           },
-              //           child: const Icon(
-              //             Icons.send,
-              //             color: Colors.white,
-              //             size: 20,
-              //           ),
-              //         ),
-              //       ),
-              //     ],
-              //   ),
-              // ),
-              bottomSheet: Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    if (recordedPath == null&&isRecording==false)
-                      SizedBox(
-                      width: MediaQuery.of(context).size.width*0.63,
-                      child: TextFormField(
-                        // maxLines: maxLine,
-                          textCapitalization: TextCapitalization.sentences,
-                          textInputAction: TextInputAction.done,
-                          keyboardType: TextInputType.text,
-                          controller:custProvider.disPoint,
-                          decoration: customStyle.inputDecoration(text: "Type a comment", fieldClr: Colors.white,radius: 50)
-                      ),
-                    ),
-                    IconButton(
-                    icon: Icon(isRecording ? Icons.stop : Icons.mic, color: Colors.green),
-                    //  icon: Icon(Icons.mic, color: Colors.green),
-                      onPressed: () {
-                       // startRecording();
-                        if (isRecording) {
-                          stopRecording();
-                        } else {
-                          startRecording();
-                        }
-                      },
-                    ),
-                    if (isRecording)
-                      Text(
-                        "${duration.inSeconds}s Recording...",
-                        style: TextStyle(color: Colors.red),
-                      ),
-                    if (recordedPath != null && !isRecording)
-                      Container(
-                        height: 40,
-                        width: phoneWidth/2,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(5),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black12,
-                              blurRadius: 4,
-                            )
-                          ],
-                        ),
-                        child: Row(
-                          children: [
+    return Consumer2<CustomerProvider, TaskProvider>(
+      builder: (context, custProvider, taskProvider, _) {
+        var webWidth = MediaQuery.of(context).size.width * 0.5;
+        var phoneWidth = MediaQuery.of(context).size.width * 0.9;
 
-                            /// ▶ PLAY / PAUSE
-                            IconButton(
-                              icon: Icon(
-                                isPlaying ? Icons.pause : Icons.play_arrow,
-                                size: 30,
-                                color: Colors.green,
-                              ),
-                              onPressed: togglePlay,
-                            ),
-
-                            /// 🎚 SLIDER
-                            Expanded(
-                              child: Slider(
-                                activeColor: Colors.green,
-                                inactiveColor: Colors.grey.shade300,
-                                value: currentPosition.inSeconds.toDouble(),
-                                min: 0,
-                                max: totalDuration.inSeconds.toDouble() == 0
-                                    ? 1
-                                    : totalDuration.inSeconds.toDouble(),
-                                onChanged: (value) async {
-                                  final position = Duration(seconds: value.toInt());
-                                  await _audioPlayer.seek(position);
-                                },
-                              ),
-                            ),
-
-                            /// ⏱ TIME
-                            Text(
-                              formatTime(currentPosition),
-                              style: TextStyle(fontSize: 12),
-                            ),
-
-                            SizedBox(width: 5),
-                          ],
-                        ),
-                      ),
-                    if (recordedPath != null)
-                    IconButton(
-                      icon: SvgPicture.asset(assets.deleteValue,width: 20,height: 20,),
-                      onPressed: (){
-                        setState(() {
-                          recordedPath=null;
-                        });
-                      },
-                    ),
-                    SizedBox(
-                      height: 45,
-                      width: 45,
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          shape: const CircleBorder(),
-                          padding: EdgeInsets.zero,
-                          backgroundColor: colorsConst.primary,
-                          elevation: 2,
-                        ),
-                  onPressed: () async {
-                  _myFocusScopeNode.unfocus();
-
-                  // ❗ recording நடக்குது → முதலில் stop
-                  if (isRecording) {
-                  await stopRecording();
-                  return; // ❗ இங்கே return பண்ணணும்
-                  }
-
-                  // ❗ empty check
-                  if (custProvider.disPoint.text.trim().isEmpty && recordedPath == null) {
-                  utils.showWarningToast(
-                  context,
-                  text: "Type a comment or record audio",
-                  );
-                  return;
-                  }
-
-                  // ✅ SEND
-                  if(widget.isVisit==true){
-                  await custProvider.addComment(
-                  context: context,
-                  visitId: widget.taskId.toString(),
-                  companyName: widget.name,
-                  companyId:"",
-                  numberList: [],
-                  taskId: "0",
-                  createdBy: widget.createdBy.toString(),
-                  assignedId: widget.assignedId.toString(),
-                  path: recordedPath ?? "",
-                  );
-                  } else {
-                  await custProvider.tComment(
-                  context: context,
-                  taskId: widget.taskId.toString(),
-                  assignedId: widget.assignedId.toString(),
-                  path: recordedPath ?? "",
-                  );
-
-                  }
-
-                  setState(() {
-                  recordedPath = null;
-                  });
-                  },
-                        child: Icon(
-                          isRecording ? Icons.stop : Icons.send,
-                          color: Colors.white,
-                          size: 20,
-                        ),
-                      ),
-                    ),
-                  ],
+        return FocusScope(
+          node: _myFocusScopeNode,
+          child: SafeArea(
+            child: WillPopScope(
+              onWillPop: () async {
+                Navigator.pop(context, true);
+                return false;
+              },
+              child: Scaffold(
+                backgroundColor: const Color(0xffEAEAEA),
+                appBar: PreferredSize(
+                  preferredSize: const Size(300, 60),
+                  child: localData.storage.read("role").toString() == "1"
+                      ? CustomAppbar(
+                    callback: () {
+                      Navigator.pop(context, true);
+                    },
+                    text: widget.assignedName.toString(),
+                  )
+                      : CustomAppbar(
+                    text: widget.name.toString(),
+                    callback: () {
+                      Navigator.pop(context, true);
+                    },
+                  ),
                 ),
-              ),
-              body: Stack(
-                children: [
-                  Positioned.fill(
-                    child:
-                    custProvider.refresh == false
-                        ? const Loading()
-                        :
-                    custProvider.customerReport.isEmpty
-                        ? const Center(
-                      child: CustomText(
-                        text: "No Comments Found",
-                        size: 15,
+
+                /// 🔥 BOTTOM INPUT
+                bottomSheet: Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      if (recordedPath == null && isRecording == false)
+                        SizedBox(
+                          width: MediaQuery.of(context).size.width * 0.63,
+                          child: TextFormField(
+                            textCapitalization: TextCapitalization.sentences,
+                            textInputAction: TextInputAction.done,
+                            keyboardType: TextInputType.text,
+                            controller: custProvider.disPoint,
+                            decoration: customStyle.inputDecoration(
+                              text: "Type a comment",
+                              fieldClr: Colors.white,
+                              radius: 50,
+                            ),
+                          ),
+                        ),
+
+                      IconButton(
+                        icon: Icon(
+                          isRecording ? Icons.stop : Icons.mic,
+                          color: Colors.green,
+                        ),
+                        onPressed: () async {
+                          if (isRecording) {
+                            await stopRecording();
+                          } else {
+                            await startRecording();
+                          }
+                        },
                       ),
-                    )
-                        : ListView.builder(
-                      controller: taskProvider.scrollController,
-                      padding: const EdgeInsets.fromLTRB(10, 10, 10, 60),
-                      physics: const BouncingScrollPhysics(),
-                      addAutomaticKeepAlives: false,
-                      addRepaintBoundaries: true,
-                      itemCount: custProvider.customerReport.length,
-                      itemBuilder: (context, index) {
 
+                      if (isRecording)
+                        Text(
+                          "${duration.inSeconds}s Recording...",
+                          style: const TextStyle(color: Colors.red),
+                        ),
 
-                        if (custProvider.customerReport.isNotEmpty) {
-                         Future.delayed(Duration.zero,(){
-                           setState(() {
-                             lastCreatedBy =
-                                 custProvider.customerReport.last.createdBy?.toString() ?? "0";
-                           });
-                         });
-                        }
-                        CustomerReportModel data = custProvider.customerReport[index];
-                        var createdBy = "";
-                        String CreatedEId=data.createdBy.toString();
-                        // print("CreatedEId: ${CreatedEId}");
-                        // print("CreatedEId lastCreatedBy : ${lastCreatedBy}");
-                        String timestamp = data.createdTs.toString();
-                        DateTime dateTime = DateTime.parse(timestamp);
-                        String dayOfWeek = DateFormat('EEEE').format(dateTime);
-                        DateTime today = DateTime.now();
-                        if (dateTime.day == today.day && dateTime.month == today.month && dateTime.year == today.year) {
-                          dayOfWeek = 'Today';
-                        } else if (dateTime.isAfter(today.subtract(const Duration(days: 1))) &&
-                            dateTime.isBefore(today)) {
-                          dayOfWeek = 'Yesterday';
-                        } else {
-                          dayOfWeek = "${dateTime.day}/${dateTime.month}/${dateTime.year}";
-                        }
-                        print(custProvider.customerReport[index].documents.toString());
-                        createdBy = "${dateTime.day}/${dateTime.month}/${dateTime.year}";
-                        final showDateHeader = index == 0 || createdBy != getCreatedDate(custProvider.customerReport[index - 1]);
-                        return Align(
-                          alignment: custProvider.customerReport[index].createdBy ==
-                              localData.storage.read("id")
-                              ? Alignment.centerRight
-                              : Alignment.centerLeft,
-                          child: IntrinsicWidth(
-                            child: Container(
-                              constraints: BoxConstraints(
-                                maxWidth: MediaQuery.of(context).size.width * 0.70,
-                              ),
-                              margin: const EdgeInsets.symmetric(vertical: 4),
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                              decoration: BoxDecoration(
-                                color: custProvider.customerReport[index].createdBy ==
-                                    localData.storage.read("id")
-                                    ? const Color(0xFFDCF8C6) // sender green
-                                    : Colors.white, // receiver white
-                                borderRadius: BorderRadius.only(
-                                  topLeft: const Radius.circular(12),
-                                  topRight: const Radius.circular(12),
-                                  bottomLeft: custProvider.customerReport[index].createdBy ==
-                                      localData.storage.read("id")
-                                      ? const Radius.circular(12)
-                                      : const Radius.circular(0),
-                                  bottomRight: custProvider.customerReport[index].createdBy ==
-                                      localData.storage.read("id")
-                                      ? const Radius.circular(0)
-                                      : const Radius.circular(12),
+                      if (recordedPath != null && !isRecording)
+                        Container(
+                          height: 40,
+                          width: phoneWidth / 2,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(5),
+                            boxShadow: const [
+                              BoxShadow(
+                                color: Colors.black12,
+                                blurRadius: 4,
+                              )
+                            ],
+                          ),
+                          child: Row(
+                            children: [
+                              IconButton(
+                                icon: Icon(
+                                  isPlaying ? Icons.pause : Icons.play_arrow,
+                                  size: 30,
+                                  color: Colors.green,
                                 ),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.08),
-                                    blurRadius: 5,
-                                    offset: const Offset(0, 2),
-                                  )
-                                ],
-                                border: Border.all(
-                                  color: Colors.grey.withOpacity(0.2),
+                                onPressed: togglePlayRecorded,
+                              ),
+
+                              Expanded(
+                                child: Slider(
+                                  activeColor: Colors.green,
+                                  inactiveColor: Colors.grey.shade300,
+                                  value: currentPosition.inSeconds.toDouble(),
+                                  min: 0,
+                                  max: totalDuration.inSeconds.toDouble() == 0
+                                      ? 1
+                                      : totalDuration.inSeconds.toDouble(),
+                                  onChanged: (value) async {
+                                    final position =
+                                    Duration(seconds: value.toInt());
+                                    await _audioPlayer.seek(position);
+                                  },
                                 ),
                               ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
 
-                                  // name only for receiver
-                                  if (custProvider.customerReport[index].createdBy !=
-                                      localData.storage.read("id"))
-                                    Padding(
-                                      padding: const EdgeInsets.only(bottom: 4),
-                                      child: Row(
-                                        children: [
-                                          Text(
-                                            custProvider.customerReport[index].firstname.toString(),
-                                            style: const TextStyle(
-                                              fontSize: 12,
-                                              fontWeight: FontWeight.w600,
-                                              color: Color(0xFF0D47A1),
-                                            ),
+                              Text(
+                                formatTime(currentPosition),
+                                style: const TextStyle(fontSize: 12),
+                              ),
+                              const SizedBox(width: 5),
+                            ],
+                          ),
+                        ),
+
+                      if (recordedPath != null)
+                        IconButton(
+                          icon: SvgPicture.asset(
+                            assets.deleteValue,
+                            width: 20,
+                            height: 20,
+                          ),
+                          onPressed: () {
+                            setState(() {
+                              recordedPath = null;
+                            });
+                          },
+                        ),
+
+                      SizedBox(
+                        height: 45,
+                        width: 45,
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            shape: const CircleBorder(),
+                            padding: EdgeInsets.zero,
+                            backgroundColor: colorsConst.primary,
+                            elevation: 2,
+                          ),
+                          onPressed: () async {
+                            _myFocusScopeNode.unfocus();
+
+                            if (isRecording) {
+                              await stopRecording();
+                              return;
+                            }
+
+                            if (custProvider.disPoint.text.trim().isEmpty &&
+                                recordedPath == null) {
+                              utils.showWarningToast(
+                                context,
+                                text: "Type a comment or record audio",
+                              );
+                              return;
+                            }
+
+                            if (widget.isVisit == true) {
+                              await custProvider.addComment(
+                                context: context,
+                                visitId: widget.taskId.toString(),
+                                companyName: widget.name,
+                                companyId: "",
+                                numberList: [],
+                                taskId: "0",
+                                createdBy: widget.createdBy.toString(),
+                                assignedId: widget.assignedId.toString(),
+                                path: recordedPath ?? "",
+                              );
+                            } else {
+                              await custProvider.tComment(
+                                context: context,
+                                taskId: widget.taskId.toString(),
+                                assignedId: widget.assignedId.toString(),
+                                path: recordedPath ?? "",
+                              );
+                            }
+
+                            setState(() {
+                              recordedPath = null;
+                              totalDuration = Duration.zero;
+                              currentPosition = Duration.zero;
+                            });
+                          },
+                          child: Icon(
+                            isRecording ? Icons.stop : Icons.send,
+                            color: Colors.white,
+                            size: 20,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                /// 🔥 CHAT BODY
+                body: custProvider.refresh == false
+                    ? const Loading()
+                    : custProvider.customerReport.isEmpty
+                    ? const Center(
+                  child: CustomText(
+                    text: "No Comments Found",
+                    size: 15,
+                  ),
+                )
+                    : ListView.builder(
+                  controller: taskProvider.scrollController,
+                  padding: const EdgeInsets.fromLTRB(10, 10, 10, 80),
+                  physics: const BouncingScrollPhysics(),
+                  itemCount: custProvider.customerReport.length,
+                  itemBuilder: (context, index) {
+                    CustomerReportModel data =
+                    custProvider.customerReport[index];
+
+                    bool isSender = data.createdBy.toString() ==
+                        localData.storage.read("id").toString();
+
+                    bool isAudio = data.documents != null &&
+                        data.documents.toString().isNotEmpty &&
+                        data.documents.toString().endsWith(".m4a");
+
+                    String audioUrl =
+                        "$imageFile?path=${data.documents}";
+
+                    return Align(
+                      alignment: isSender
+                          ? Alignment.centerRight
+                          : Alignment.centerLeft,
+                      child: IntrinsicWidth(
+                        child: ConstrainedBox(
+                          constraints: BoxConstraints(
+                            maxWidth:
+                            MediaQuery.of(context).size.width *
+                                0.70,
+                          ),
+                          child: Container(
+                            margin: const EdgeInsets.symmetric(
+                                vertical: 4),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 10),
+                            decoration: BoxDecoration(
+                              color: isSender
+                                  ? const Color(0xFFDCF8C6)
+                                  : Colors.white,
+                              borderRadius: BorderRadius.only(
+                                topLeft: const Radius.circular(12),
+                                topRight: const Radius.circular(12),
+                                bottomLeft: isSender
+                                    ? const Radius.circular(12)
+                                    : Radius.zero,
+                                bottomRight: isSender
+                                    ? Radius.zero
+                                    : const Radius.circular(12),
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color:
+                                  Colors.black.withOpacity(0.08),
+                                  blurRadius: 5,
+                                  offset: const Offset(0, 2),
+                                )
+                              ],
+                            ),
+                            child: Column(
+                              crossAxisAlignment:
+                              CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                if (!isSender)
+                                  Padding(
+                                    padding: const EdgeInsets.only(
+                                        bottom: 4),
+                                    child: Row(
+                                      children: [
+                                        Text(
+                                          data.firstname.toString(),
+                                          style: const TextStyle(
+                                            fontSize: 12,
+                                            fontWeight:
+                                            FontWeight.w600,
+                                            color: Color(0xFF0D47A1),
                                           ),
-                                          CustomText(text:" ( "
-                                              "${custProvider.customerReport[index].role} )",
-                                            colors: colorsConst.greyClr,),
-                                        ],
-                                      ),
+                                        ),
+                                        const SizedBox(width: 5),
+                                        Text(
+                                          "( ${data.role} )",
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            color:
+                                            Colors.grey.shade600,
+                                          ),
+                                        ),
+                                      ],
                                     ),
+                                  ),
 
+                                /// 🔥 AUDIO MESSAGE UI
+                                if (isAudio)
+                                  Container(
+                                    height: 45,
+                                    width: 240,
+                                    padding:
+                                    const EdgeInsets.symmetric(
+                                        horizontal: 6),
+                                    decoration: BoxDecoration(
+                                      color: Colors.grey.shade100,
+                                      borderRadius:
+                                      BorderRadius.circular(10),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        IconButton(
+                                          icon: Icon(
+                                            (playingUrl == audioUrl &&
+                                                networkPlaying)
+                                                ? Icons.pause
+                                                : Icons.play_arrow,
+                                            color: Colors.green,
+                                          ),
+                                          onPressed: () {
+                                            playNetworkAudio(
+                                                audioUrl.toString());
+                                          },
+                                        ),
+                                        Expanded(
+                                          child: Slider(
+                                            activeColor: Colors.green,
+                                            inactiveColor: Colors
+                                                .grey.shade300,
+                                            value: (playingUrl ==
+                                                audioUrl &&
+                                                networkTotal
+                                                    .inSeconds >
+                                                    0)
+                                                ? networkCurrent
+                                                .inSeconds
+                                                .toDouble()
+                                                .clamp(
+                                                0,
+                                                networkTotal
+                                                    .inSeconds
+                                                    .toDouble())
+                                                : 0,
+                                            min: 0,
+                                            max: (playingUrl ==
+                                                audioUrl &&
+                                                networkTotal
+                                                    .inSeconds >
+                                                    0)
+                                                ? networkTotal
+                                                .inSeconds
+                                                .toDouble()
+                                                : 1,
+                                            onChanged: (value) async {
+                                              if (playingUrl ==
+                                                  audioUrl) {
+                                                await _audioPlayer.seek(
+                                                    Duration(
+                                                        seconds: value
+                                                            .toInt()));
+                                              }
+                                            },
+                                          ),
+                                        ),
+                                        Text(
+                                          (playingUrl == audioUrl)
+                                              ? formatTime(
+                                              networkCurrent)
+                                              : "00:00",
+                                          style: const TextStyle(
+                                              fontSize: 11),
+                                        ),
+                                        const SizedBox(width: 5),
+                                      ],
+                                    ),
+                                  )
+                                else
                                   Text(
-                                    custProvider.customerReport[index].comments.toString(),
+                                    data.comments.toString(),
                                     style: const TextStyle(
                                       fontSize: 13,
                                       color: Colors.black87,
                                     ),
                                   ),
 
-                                  const SizedBox(height: 6),
+                                const SizedBox(height: 6),
 
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.end,
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Text(
-                                        DateFormat('hh:mm a').format(
-                                            DateTime.parse(data.createdTs.toString())),
-                                        style: TextStyle(
-                                          fontSize: 10,
-                                          color: Colors.grey.shade700,
+                                Row(
+                                  mainAxisAlignment:
+                                  MainAxisAlignment.end,
+                                  children: [
+                                    Text(
+                                      DateFormat('hh:mm a').format(
+                                          DateTime.parse(data.createdTs
+                                              .toString())),
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        color: Colors.grey.shade700,
+                                      ),
+                                    ),
+                                    if (data.isLocal == true)
+                                      Padding(
+                                        padding:
+                                        const EdgeInsets.only(
+                                            left: 4),
+                                        child: Icon(
+                                          Icons.schedule,
+                                          size: 12,
+                                          color:
+                                          Colors.grey.shade600,
                                         ),
                                       ),
-                                      if (data.isLocal == true)
-                                        Padding(
-                                          padding: const EdgeInsets.only(left: 4),
-                                          child: Icon(
-                                            Icons.schedule,
-                                            size: 12,
-                                            color: Colors.grey.shade600,
-                                          ),
-                                        ),
-                                    ],
-                                  ),
-                                ],
-                              ),
+                                  ],
+                                ),
+                              ],
                             ),
                           ),
-                        );
-                      },
-                    ),
-                  ),
-                  if(custProvider.isRecording)
-                    Positioned(
-                      left: 0,
-                      right: 0,
-                      bottom: 70,
-                      child: Container(
-                          width: kIsWeb?webWidth:phoneWidth,
-                          height: 65,
-                          alignment: Alignment.centerLeft,
-                          decoration: customDecoration.baseBackgroundDecoration(
-                              color: Colors.white,radius: 10
-                          ),
-                          child: Row(
-                            children: [
-                              10.width,
-                              AnimatedBuilder(
-                                animation: animation,
-                                builder: (context, child) {
-                                  return Transform.scale(
-                                      scale: taskProvider.isRecording?animation.value:1.0,
-                                      child: const Icon(Icons.mic,color: Colors.green,size: 15,)
-                                  );
-                                },
-                              ),10.width,
-                              CustomText(text:"${custProvider.recordingDuration.toStringAsFixed(2)}s",
-                                colors: Colors.red,
-                                size: 15,
-                                isBold: true,
-                              ),
-                            ],
-                          )
-                      ),
-                    ),
-                  if(custProvider.recordedAudioPaths.isNotEmpty)
-                    Positioned(
-                      left: 0,
-                      right: 0,
-                      bottom: 70,
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(0, 10, 0, 0),
-                        child: Row(
-                          mainAxisAlignment: custProvider.recordedAudioPaths.isNotEmpty && custProvider.isRecording==false?MainAxisAlignment.spaceAround:MainAxisAlignment.center,
-                          children: [
-                            Container(
-                              width: kIsWeb?webWidth/1.5:phoneWidth/1.3,
-                              height: 65,
-                              decoration: customDecoration.baseBackgroundDecoration(
-                                  color: Colors.white,radius: 10
-                              ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  IconButton(
-                                      onPressed: () {
-                                        if(custProvider.recordedAudioPaths[0].play==true){
-                                          custProvider.recordedAudioPaths[0].play=false;
-                                          custProvider.stopAudio();
-                                        }else{
-                                          custProvider.recordedAudioPaths[0].play=true;
-                                          custProvider.playAudio(custProvider.recordedAudioPaths[0].audioPath,0);
-                                        }
-                                      },
-                                      icon: Icon(custProvider.recordedAudioPaths[0].play==true?Icons.pause:Icons.play_arrow,size: 30,
-                                          color: custProvider.recordedAudioPaths[0].play==true?colorsConst.primary:colorsConst.litGrey)
-                                  ),
-                                  SizedBox(
-                                    // color: Colors.pinkAccent,
-                                    width: kIsWeb?webWidth/1.5:phoneWidth/2.1,
-                                    child: Slider(
-                                      activeColor: colorsConst.primary,
-                                      inactiveColor: colorsConst.litGrey,
-                                      onChanged: custProvider.recordedAudioPaths[0].play
-                                          ? (value) {
-                                        final positionValue = value * custProvider.recordedAudioPaths[0].duration.inMilliseconds;
-                                        custProvider.audioPlayer.seek(Duration(milliseconds: positionValue.round()));
-                                      }
-                                          : null,
-                                      value: custProvider.recordedAudioPaths[0].play == false
-                                          ? 0
-                                          : (custProvider.recordedAudioPaths[0].position.inMilliseconds > 0 &&
-                                          custProvider.recordedAudioPaths[0].duration.inMilliseconds > 0)
-                                          ? custProvider.recordedAudioPaths[0].position.inMilliseconds /
-                                          custProvider.recordedAudioPaths[0].duration.inMilliseconds
-                                          : 0.0,
-                                    ),
-                                  ),
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.start,
-                                    children: [
-                                      CustomText(text: custProvider.recordedAudioPaths[0].second.toStringAsFixed(2),colors: colorsConst.greyClr,size: 13,),
-                                      5.width,
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ),
-                            2.width,
-                            Container(
-                              color: Colors.white,
-                              padding: EdgeInsets.all(10),
-                              child: IconButton(
-                                  onPressed: (){
-                                    utils.customDialog(
-                                        context: context,
-                                        title: "Do you want to",
-                                        title2:"Delete this audio?",
-                                        callback: (){
-                                          Navigator.pop(context);
-                                          custProvider.removeAudio(0);
-                                        },
-                                        isLoading: false);
-                                  },
-                                  icon: SvgPicture.asset(assets.deleteValue)
-                              ),
-                            ),
-                          ],
                         ),
                       ),
-                    ),
-                ],
+                    );
+                  },
+                ),
               ),
             ),
           ),
-        ),
-      );
-    });
-  }
-
-  String getCreatedDate(data) {
-    final timestamp = data.createdTs.toString();
-    final dateTime = DateTime.parse(timestamp);
-    return "${dateTime.day}/${dateTime.month}/${dateTime.year}";
+        );
+      },
+    );
   }
 }
-
-
-
