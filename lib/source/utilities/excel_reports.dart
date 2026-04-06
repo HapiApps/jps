@@ -256,13 +256,14 @@ class ExcelReports {
         required List leaveList,
         required String startDate,
         required String endDate,
-      })
-  async {
+      }) async {
     try {
       var excel = Excel.createExcel();
       excel.delete('Sheet1');
 
       Sheet sheet = excel["Sheet1"];
+
+      /// ================= HELPERS =================
 
       String formatDate(String? input) {
         try {
@@ -273,32 +274,61 @@ class ExcelReports {
         }
       }
 
+      String formatTime12(String? time) {
+        try {
+          if (time == null || time.isEmpty) return "-";
+          DateTime parsedTime = DateFormat("HH:mm:ss").parse(time);
+          return DateFormat("hh:mm a").format(parsedTime);
+        } catch (e) {
+          return time ?? "-";
+        }
+      }
+
+      int timeToMinutes(String? time) {
+        try {
+          if (time == null || time.isEmpty || time == "-") return 0;
+          DateTime t = DateFormat("HH:mm:ss").parse(time);
+          return (t.hour * 60) + t.minute;
+        } catch (e) {
+          return 0;
+        }
+      }
+
+      String minutesToHourFormat(int minutes) {
+        int h = minutes ~/ 60;
+        int m = minutes % 60;
+        return "${h}h ${m}m";
+      }
+
       /// ================= HEADER STYLE =================
       CellStyle headerStyle = CellStyle(
         bold: true,
         backgroundColorHex: "#45377D",
         fontColorHex: "#FFFFFF",
         horizontalAlign: HorizontalAlign.Center,
+        verticalAlign: VerticalAlign.Center,
       );
 
       CellStyle titleStyle = CellStyle(
         bold: true,
         horizontalAlign: HorizontalAlign.Left,
+        verticalAlign: VerticalAlign.Center,
       );
 
       CellStyle totalStyle = CellStyle(
         bold: true,
         horizontalAlign: HorizontalAlign.Center,
+        verticalAlign: VerticalAlign.Center,
         backgroundColorHex: "#FFF2CC",
       );
-      CellStyle totalStyle1 = CellStyle(
-        bold: true,
-        backgroundColorHex: "#FFFFFF", // White
+
+      CellStyle normalStyle = CellStyle(
+        bold: false,
+        backgroundColorHex: "#FFFFFF",
         fontColorHex: "#000000",
         horizontalAlign: HorizontalAlign.Center,
         verticalAlign: VerticalAlign.Center,
       );
-      /// ✅ DATA ROW FULL YELLOW STYLE
 
       /// ================= GROUP EMPLOYEE WISE =================
       Set<String> employeeSet = {};
@@ -318,15 +348,16 @@ class ExcelReports {
         /// ================= TITLE ROW =================
         sheet
             .cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: rowIndex))
-            .value = "$emp - Employee ( $startDate to $endDate ) Attendance Report";
+            .value =
+        "$emp - Employee ( $startDate to $endDate ) Attendance Report";
 
-        /// merge A to H
         sheet.merge(
           CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: rowIndex),
-          CellIndex.indexByColumnRow(columnIndex: 11, rowIndex: rowIndex),
+          CellIndex.indexByColumnRow(columnIndex: 13, rowIndex: rowIndex),
         );
 
-        sheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: rowIndex))
+        sheet
+            .cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: rowIndex))
             .cellStyle = titleStyle;
 
         rowIndex++;
@@ -337,21 +368,25 @@ class ExcelReports {
           "Present",
           "In_Time",
           "Out_Time",
+          "Work Hours", // ⭐ NEW
           "Absent",
           "Late",
           "Permission",
           "Permission_In",
           "Permission_Out",
+          "Permission Hours", // ⭐ NEW
           "Permission Reason",
           "Leave",
           "Leave Reason",
         ];
 
         for (int col = 0; col < headers.length; col++) {
-          sheet.cell(CellIndex.indexByColumnRow(columnIndex: col, rowIndex: rowIndex))
+          sheet
+              .cell(CellIndex.indexByColumnRow(columnIndex: col, rowIndex: rowIndex))
               .value = headers[col];
 
-          sheet.cell(CellIndex.indexByColumnRow(columnIndex: col, rowIndex: rowIndex))
+          sheet
+              .cell(CellIndex.indexByColumnRow(columnIndex: col, rowIndex: rowIndex))
               .cellStyle = headerStyle;
         }
 
@@ -362,7 +397,9 @@ class ExcelReports {
         int totalLate = 0;
         int totalPermission = 0;
         int totalLeave = 0;
-        int totalMinutes = 0;
+
+        int totalWorkMinutes = 0;
+        int totalPermissionMinutes = 0;
 
         /// ================= DATE LOOP =================
         for (String d in dates) {
@@ -381,84 +418,122 @@ class ExcelReports {
           int late = 0;
           int permission = 0;
           int leaveCount = 0;
-          String totalHour = "0h 0m";
           String reason = "-";
+
+          String inTime = "-";
+          String outTime = "-";
+          String perIn = "-";
+          String perOut = "-";
+          String perReason = "-";
 
           if (record != null) {
             present = int.tryParse(record["present"]?.toString() ?? "0") ?? 0;
             absent = int.tryParse(record["absent"]?.toString() ?? "0") ?? 0;
             late = int.tryParse(record["late"]?.toString() ?? "0") ?? 0;
-            permission =
-                int.tryParse(record["permission"]!.toString() == "0"? "0" :"1") ?? 0;
+
+            permission = int.tryParse(
+                record["permission"]?.toString() == "0" ? "0" : "1") ??
+                0;
 
             leaveCount =
                 int.tryParse(record["leave_count"]?.toString() ?? "0") ?? 0;
 
             reason = record["reason"]?.toString() ?? "-";
-            totalHour = record["total_hour"]?.toString() ?? "0h 0m";
 
-            if (totalHour.contains("h") && totalHour.contains("m")) {
-              try {
-                int h = int.parse(totalHour.split("h")[0].trim());
-                int m = int.parse(
-                  totalHour.split("h")[1].replaceAll("m", "").trim(),
-                );
-                totalMinutes += (h * 60) + m;
-              } catch (e) {}
-            }
+            inTime = record["in_time"]?.toString() ?? "-";
+            outTime = record["out_time"]?.toString() ?? "-";
+
+            perIn = record["per_in"]?.toString() ?? "-";
+            perOut = record["per_out"]?.toString() ?? "-";
+
+            perReason = record["permission_reason"]?.toString() ?? "-";
           }
-          String formatTime12(String? time) {
-            try {
-              if (time == null || time.isEmpty) return "-";
 
-              DateTime parsedTime = DateFormat("HH:mm:ss").parse(time);
-              return DateFormat("hh:mm a").format(parsedTime); // 12-hour format
-            } catch (e) {
-              return time ?? "-";
-            }
+          /// ================= WORK HOURS CALC =================
+          int workMinutes = 0;
+          int inMin = timeToMinutes(inTime);
+          int outMin = timeToMinutes(outTime);
+
+          if (inMin > 0 && outMin > 0 && outMin > inMin) {
+            workMinutes = outMin - inMin;
           }
-          /// Fill Row Values
-          sheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: rowIndex)).value =
-              formatDate(d);
 
-          sheet.cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: rowIndex)).value =
-              present;
+          /// ================= PERMISSION HOURS CALC =================
+          int permissionMinutes = 0;
+          int perInMin = timeToMinutes(perIn);
+          int perOutMin = timeToMinutes(perOut);
 
-          sheet.cell(CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: rowIndex)).value =
-              formatTime12(record?["in_time"]);
+          if (perInMin > 0 && perOutMin > 0 && perOutMin > perInMin) {
+            permissionMinutes = perOutMin - perInMin;
+          }
 
-          sheet.cell(CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: rowIndex)).value =
-              formatTime12(record?["out_time"]);
+          totalWorkMinutes += workMinutes;
+          totalPermissionMinutes += permissionMinutes;
 
-          sheet.cell(CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: rowIndex)).value =
-              absent;
+          /// ================= Fill Row Values =================
+          sheet
+              .cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: rowIndex))
+              .value = formatDate(d);
 
-          sheet.cell(CellIndex.indexByColumnRow(columnIndex: 5, rowIndex: rowIndex)).value =
-              late;
+          sheet
+              .cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: rowIndex))
+              .value = present;
 
-          sheet.cell(CellIndex.indexByColumnRow(columnIndex: 6, rowIndex: rowIndex)).value =
-              permission;
+          sheet
+              .cell(CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: rowIndex))
+              .value = formatTime12(inTime);
 
-          sheet.cell(CellIndex.indexByColumnRow(columnIndex: 7, rowIndex: rowIndex)).value =
-              formatTime12(record?["per_in"]);
+          sheet
+              .cell(CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: rowIndex))
+              .value = formatTime12(outTime);
 
-          sheet.cell(CellIndex.indexByColumnRow(columnIndex: 8, rowIndex: rowIndex)).value =
-              formatTime12(record?["per_out"]);
+          /// ⭐ Work Hours
+          sheet
+              .cell(CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: rowIndex))
+              .value = minutesToHourFormat(workMinutes);
 
-          sheet.cell(CellIndex.indexByColumnRow(columnIndex: 9, rowIndex: rowIndex)).value =
-              record?["permission_reason"] ?? "-";
+          sheet
+              .cell(CellIndex.indexByColumnRow(columnIndex: 5, rowIndex: rowIndex))
+              .value = absent;
 
-          sheet.cell(CellIndex.indexByColumnRow(columnIndex: 10, rowIndex: rowIndex)).value =
-              leaveCount;
+          sheet
+              .cell(CellIndex.indexByColumnRow(columnIndex: 6, rowIndex: rowIndex))
+              .value = late;
 
-          sheet.cell(CellIndex.indexByColumnRow(columnIndex: 11, rowIndex: rowIndex)).value =
-              reason;
+          sheet
+              .cell(CellIndex.indexByColumnRow(columnIndex: 7, rowIndex: rowIndex))
+              .value = permission;
 
-          /// ✅ Apply Yellow Style For Full Row
-          for (int col = 0; col <= 11; col++) {
+          sheet
+              .cell(CellIndex.indexByColumnRow(columnIndex: 8, rowIndex: rowIndex))
+              .value = formatTime12(perIn);
+
+          sheet
+              .cell(CellIndex.indexByColumnRow(columnIndex: 9, rowIndex: rowIndex))
+              .value = formatTime12(perOut);
+
+          /// ⭐ Permission Hours
+          sheet
+              .cell(CellIndex.indexByColumnRow(columnIndex: 10, rowIndex: rowIndex))
+              .value = minutesToHourFormat(permissionMinutes);
+
+          sheet
+              .cell(CellIndex.indexByColumnRow(columnIndex: 11, rowIndex: rowIndex))
+              .value = perReason;
+
+          sheet
+              .cell(CellIndex.indexByColumnRow(columnIndex: 12, rowIndex: rowIndex))
+              .value = leaveCount;
+
+          sheet
+              .cell(CellIndex.indexByColumnRow(columnIndex: 13, rowIndex: rowIndex))
+              .value = reason;
+
+          /// Apply Normal Style
+          for (int col = 0; col <= 13; col++) {
             sheet
                 .cell(CellIndex.indexByColumnRow(columnIndex: col, rowIndex: rowIndex))
-                .cellStyle = totalStyle1;
+                .cellStyle = normalStyle;
           }
 
           rowIndex++;
@@ -470,65 +545,67 @@ class ExcelReports {
           totalLeave += leaveCount;
         }
 
-        /// ================= TOTAL HOURS =================
-        int totalH = totalMinutes ~/ 60;
-        int totalM = totalMinutes % 60;
-
         /// ================= TOTAL ROW =================
-        sheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: rowIndex)).value = "Total";
+        sheet
+            .cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: rowIndex))
+            .value = "Total";
 
-        /// Present
-        sheet.cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: rowIndex)).value = totalPresent;
+        sheet
+            .cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: rowIndex))
+            .value = totalPresent;
 
-        /// In_Time → usually no total
-        sheet.cell(CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: rowIndex)).value = "";
+        sheet
+            .cell(CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: rowIndex))
+            .value = "";
 
-        /// Out_Time → total hours
-        sheet.cell(CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: rowIndex)).value =
-        "";
+        sheet
+            .cell(CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: rowIndex))
+            .value = "";
 
-        /// Absent
-        sheet.cell(CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: rowIndex)).value = totalAbsent;
+        /// ⭐ TOTAL WORK HOURS
+        sheet
+            .cell(CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: rowIndex))
+            .value = minutesToHourFormat(totalWorkMinutes);
 
-        /// Late
-        sheet.cell(CellIndex.indexByColumnRow(columnIndex: 5, rowIndex: rowIndex)).value = totalLate;
+        sheet
+            .cell(CellIndex.indexByColumnRow(columnIndex: 5, rowIndex: rowIndex))
+            .value = totalAbsent;
 
-        /// Permission
-        sheet.cell(CellIndex.indexByColumnRow(columnIndex: 6, rowIndex: rowIndex)).value = totalPermission;
+        sheet
+            .cell(CellIndex.indexByColumnRow(columnIndex: 6, rowIndex: rowIndex))
+            .value = totalLate;
 
-        /// Permission In → (optional count if needed)
-        sheet.cell(CellIndex.indexByColumnRow(columnIndex: 7, rowIndex: rowIndex)).value = "";
+        sheet
+            .cell(CellIndex.indexByColumnRow(columnIndex: 7, rowIndex: rowIndex))
+            .value = totalPermission;
 
-        /// Permission Out → (optional)
-        sheet.cell(CellIndex.indexByColumnRow(columnIndex: 8, rowIndex: rowIndex)).value = "";
+        sheet
+            .cell(CellIndex.indexByColumnRow(columnIndex: 8, rowIndex: rowIndex))
+            .value = "";
 
-        /// Permission Reason
-        sheet.cell(CellIndex.indexByColumnRow(columnIndex: 9, rowIndex: rowIndex)).value = "";
+        sheet
+            .cell(CellIndex.indexByColumnRow(columnIndex: 9, rowIndex: rowIndex))
+            .value = "";
 
-        /// Leave
-        sheet.cell(CellIndex.indexByColumnRow(columnIndex: 10, rowIndex: rowIndex)).value = totalLeave;
+        /// ⭐ TOTAL PERMISSION HOURS
+        sheet
+            .cell(CellIndex.indexByColumnRow(columnIndex: 10, rowIndex: rowIndex))
+            .value = minutesToHourFormat(totalPermissionMinutes);
 
-        /// Leave Reason
-        sheet.cell(CellIndex.indexByColumnRow(columnIndex: 11, rowIndex: rowIndex)).value = "";
-        // sheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: rowIndex)).value =
-        // "Total";
-        // sheet.cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: rowIndex)).value =
-        //     totalPresent;
-        // sheet.cell(CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: rowIndex)).value =
-        //     totalAbsent;
-        // sheet.cell(CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: rowIndex)).value =
-        //     totalLate;
-        // sheet.cell(CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: rowIndex)).value =
-        //     totalPermission;
-        // sheet.cell(CellIndex.indexByColumnRow(columnIndex: 5, rowIndex: rowIndex)).value =
-        //     totalLeave;
-        // sheet.cell(CellIndex.indexByColumnRow(columnIndex: 6, rowIndex: rowIndex)).value =
-        // "";
-        // sheet.cell(CellIndex.indexByColumnRow(columnIndex: 7, rowIndex: rowIndex)).value =
-        // "${totalH}h ${totalM}m";
+        sheet
+            .cell(CellIndex.indexByColumnRow(columnIndex: 11, rowIndex: rowIndex))
+            .value = "";
+
+        sheet
+            .cell(CellIndex.indexByColumnRow(columnIndex: 12, rowIndex: rowIndex))
+            .value = totalLeave;
+
+        sheet
+            .cell(CellIndex.indexByColumnRow(columnIndex: 13, rowIndex: rowIndex))
+            .value = "";
 
         /// Total Row Style
-        for (int col = 0; col <= 11; col++) {
+        for (int col = 0; col <= 13; col++) {
           sheet
               .cell(CellIndex.indexByColumnRow(columnIndex: col, rowIndex: rowIndex))
               .cellStyle = totalStyle;
@@ -553,7 +630,311 @@ class ExcelReports {
       print("Excel Error => $e");
       utils.showWarningToast(context, text: "Something went wrong");
     }
-  }
+
+  // Future<void> exportAttendanceSingleSheetExcel(
+  //     context, {
+  //       required List attendanceList,
+  //       required List leaveList,
+  //       required String startDate,
+  //       required String endDate,
+  //     })
+  // async {
+  //   try {
+  //     var excel = Excel.createExcel();
+  //     excel.delete('Sheet1');
+  //
+  //     Sheet sheet = excel["Sheet1"];
+  //
+  //     String formatDate(String? input) {
+  //       try {
+  //         if (input == null || input.isEmpty) return "-";
+  //         return DateFormat('dd-MM-yyyy').format(DateTime.parse(input));
+  //       } catch (e) {
+  //         return input ?? "-";
+  //       }
+  //     }
+  //
+  //     /// ================= HEADER STYLE =================
+  //     CellStyle headerStyle = CellStyle(
+  //       bold: true,
+  //       backgroundColorHex: "#45377D",
+  //       fontColorHex: "#FFFFFF",
+  //       horizontalAlign: HorizontalAlign.Center,
+  //     );
+  //
+  //     CellStyle titleStyle = CellStyle(
+  //       bold: true,
+  //       horizontalAlign: HorizontalAlign.Left,
+  //     );
+  //
+  //     CellStyle totalStyle = CellStyle(
+  //       bold: true,
+  //       horizontalAlign: HorizontalAlign.Center,
+  //       backgroundColorHex: "#FFF2CC",
+  //     );
+  //     CellStyle totalStyle1 = CellStyle(
+  //       bold: true,
+  //       backgroundColorHex: "#FFFFFF", // White
+  //       fontColorHex: "#000000",
+  //       horizontalAlign: HorizontalAlign.Center,
+  //       verticalAlign: VerticalAlign.Center,
+  //     );
+  //     /// ✅ DATA ROW FULL YELLOW STYLE
+  //
+  //     /// ================= GROUP EMPLOYEE WISE =================
+  //     Set<String> employeeSet = {};
+  //     Set<String> dateSet = {};
+  //
+  //     for (var item in attendanceList) {
+  //       if (item["firstname"] != null) employeeSet.add(item["firstname"]);
+  //       if (item["date"] != null) dateSet.add(item["date"]);
+  //     }
+  //
+  //     List<String> employees = employeeSet.toList()..sort();
+  //     List<String> dates = dateSet.toList()..sort();
+  //
+  //     int rowIndex = 0;
+  //
+  //     for (String emp in employees) {
+  //       /// ================= TITLE ROW =================
+  //       sheet
+  //           .cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: rowIndex))
+  //           .value = "$emp - Employee ( $startDate to $endDate ) Attendance Report";
+  //
+  //       /// merge A to H
+  //       sheet.merge(
+  //         CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: rowIndex),
+  //         CellIndex.indexByColumnRow(columnIndex: 11, rowIndex: rowIndex),
+  //       );
+  //
+  //       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: rowIndex))
+  //           .cellStyle = titleStyle;
+  //
+  //       rowIndex++;
+  //
+  //       /// ================= HEADER ROW =================
+  //       List headers = [
+  //         "Date",
+  //         "Present",
+  //         "In_Time",
+  //         "Out_Time",
+  //         "Absent",
+  //         "Late",
+  //         "Permission",
+  //         "Permission_In",
+  //         "Permission_Out",
+  //         "Permission Reason",
+  //         "Leave",
+  //         "Leave Reason",
+  //       ];
+  //
+  //       for (int col = 0; col < headers.length; col++) {
+  //         sheet.cell(CellIndex.indexByColumnRow(columnIndex: col, rowIndex: rowIndex))
+  //             .value = headers[col];
+  //
+  //         sheet.cell(CellIndex.indexByColumnRow(columnIndex: col, rowIndex: rowIndex))
+  //             .cellStyle = headerStyle;
+  //       }
+  //
+  //       rowIndex++;
+  //
+  //       int totalPresent = 0;
+  //       int totalAbsent = 0;
+  //       int totalLate = 0;
+  //       int totalPermission = 0;
+  //       int totalLeave = 0;
+  //       int totalMinutes = 0;
+  //
+  //       /// ================= DATE LOOP =================
+  //       for (String d in dates) {
+  //         Map<String, dynamic>? record;
+  //
+  //         try {
+  //           record = attendanceList.firstWhere(
+  //                 (e) => e["firstname"] == emp && e["date"] == d,
+  //           );
+  //         } catch (e) {
+  //           record = null;
+  //         }
+  //
+  //         int present = 0;
+  //         int absent = 0;
+  //         int late = 0;
+  //         int permission = 0;
+  //         int leaveCount = 0;
+  //         String totalHour = "0h 0m";
+  //         String reason = "-";
+  //
+  //         if (record != null) {
+  //           present = int.tryParse(record["present"]?.toString() ?? "0") ?? 0;
+  //           absent = int.tryParse(record["absent"]?.toString() ?? "0") ?? 0;
+  //           late = int.tryParse(record["late"]?.toString() ?? "0") ?? 0;
+  //           permission =
+  //               int.tryParse(record["permission"]!.toString() == "0"? "0" :"1") ?? 0;
+  //
+  //           leaveCount =
+  //               int.tryParse(record["leave_count"]?.toString() ?? "0") ?? 0;
+  //
+  //           reason = record["reason"]?.toString() ?? "-";
+  //           totalHour = record["total_hour"]?.toString() ?? "0h 0m";
+  //
+  //           if (totalHour.contains("h") && totalHour.contains("m")) {
+  //             try {
+  //               int h = int.parse(totalHour.split("h")[0].trim());
+  //               int m = int.parse(
+  //                 totalHour.split("h")[1].replaceAll("m", "").trim(),
+  //               );
+  //               totalMinutes += (h * 60) + m;
+  //             } catch (e) {}
+  //           }
+  //         }
+  //         String formatTime12(String? time) {
+  //           try {
+  //             if (time == null || time.isEmpty) return "-";
+  //
+  //             DateTime parsedTime = DateFormat("HH:mm:ss").parse(time);
+  //             return DateFormat("hh:mm a").format(parsedTime); // 12-hour format
+  //           } catch (e) {
+  //             return time ?? "-";
+  //           }
+  //         }
+  //         /// Fill Row Values
+  //         sheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: rowIndex)).value =
+  //             formatDate(d);
+  //
+  //         sheet.cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: rowIndex)).value =
+  //             present;
+  //
+  //         sheet.cell(CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: rowIndex)).value =
+  //             formatTime12(record?["in_time"]);
+  //
+  //         sheet.cell(CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: rowIndex)).value =
+  //             formatTime12(record?["out_time"]);
+  //
+  //         sheet.cell(CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: rowIndex)).value =
+  //             absent;
+  //
+  //         sheet.cell(CellIndex.indexByColumnRow(columnIndex: 5, rowIndex: rowIndex)).value =
+  //             late;
+  //
+  //         sheet.cell(CellIndex.indexByColumnRow(columnIndex: 6, rowIndex: rowIndex)).value =
+  //             permission;
+  //
+  //         sheet.cell(CellIndex.indexByColumnRow(columnIndex: 7, rowIndex: rowIndex)).value =
+  //             formatTime12(record?["per_in"]);
+  //
+  //         sheet.cell(CellIndex.indexByColumnRow(columnIndex: 8, rowIndex: rowIndex)).value =
+  //             formatTime12(record?["per_out"]);
+  //
+  //         sheet.cell(CellIndex.indexByColumnRow(columnIndex: 9, rowIndex: rowIndex)).value =
+  //             record?["permission_reason"] ?? "-";
+  //
+  //         sheet.cell(CellIndex.indexByColumnRow(columnIndex: 10, rowIndex: rowIndex)).value =
+  //             leaveCount;
+  //
+  //         sheet.cell(CellIndex.indexByColumnRow(columnIndex: 11, rowIndex: rowIndex)).value =
+  //             reason;
+  //
+  //         /// ✅ Apply Yellow Style For Full Row
+  //         for (int col = 0; col <= 11; col++) {
+  //           sheet
+  //               .cell(CellIndex.indexByColumnRow(columnIndex: col, rowIndex: rowIndex))
+  //               .cellStyle = totalStyle1;
+  //         }
+  //
+  //         rowIndex++;
+  //
+  //         totalPresent += present;
+  //         totalAbsent += absent;
+  //         totalLate += late;
+  //         totalPermission += permission;
+  //         totalLeave += leaveCount;
+  //       }
+  //
+  //       /// ================= TOTAL HOURS =================
+  //       int totalH = totalMinutes ~/ 60;
+  //       int totalM = totalMinutes % 60;
+  //
+  //       /// ================= TOTAL ROW =================
+  //       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: rowIndex)).value = "Total";
+  //
+  //       /// Present
+  //       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: rowIndex)).value = totalPresent;
+  //
+  //       /// In_Time → usually no total
+  //       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: rowIndex)).value = "";
+  //
+  //       /// Out_Time → total hours
+  //       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: rowIndex)).value =
+  //       "";
+  //
+  //       /// Absent
+  //       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: rowIndex)).value = totalAbsent;
+  //
+  //       /// Late
+  //       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 5, rowIndex: rowIndex)).value = totalLate;
+  //
+  //       /// Permission
+  //       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 6, rowIndex: rowIndex)).value = totalPermission;
+  //
+  //       /// Permission In → (optional count if needed)
+  //       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 7, rowIndex: rowIndex)).value = "";
+  //
+  //       /// Permission Out → (optional)
+  //       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 8, rowIndex: rowIndex)).value = "";
+  //
+  //       /// Permission Reason
+  //       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 9, rowIndex: rowIndex)).value = "";
+  //
+  //       /// Leave
+  //       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 10, rowIndex: rowIndex)).value = totalLeave;
+  //
+  //       /// Leave Reason
+  //       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 11, rowIndex: rowIndex)).value = "";
+  //       // sheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: rowIndex)).value =
+  //       // "Total";
+  //       // sheet.cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: rowIndex)).value =
+  //       //     totalPresent;
+  //       // sheet.cell(CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: rowIndex)).value =
+  //       //     totalAbsent;
+  //       // sheet.cell(CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: rowIndex)).value =
+  //       //     totalLate;
+  //       // sheet.cell(CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: rowIndex)).value =
+  //       //     totalPermission;
+  //       // sheet.cell(CellIndex.indexByColumnRow(columnIndex: 5, rowIndex: rowIndex)).value =
+  //       //     totalLeave;
+  //       // sheet.cell(CellIndex.indexByColumnRow(columnIndex: 6, rowIndex: rowIndex)).value =
+  //       // "";
+  //       // sheet.cell(CellIndex.indexByColumnRow(columnIndex: 7, rowIndex: rowIndex)).value =
+  //       // "${totalH}h ${totalM}m";
+  //
+  //       /// Total Row Style
+  //       for (int col = 0; col <= 11; col++) {
+  //         sheet
+  //             .cell(CellIndex.indexByColumnRow(columnIndex: col, rowIndex: rowIndex))
+  //             .cellStyle = totalStyle;
+  //       }
+  //
+  //       rowIndex++;
+  //
+  //       /// gap row
+  //       rowIndex++;
+  //     }
+  //
+  //     final bytes = excel.encode();
+  //
+  //     if (!kIsWeb && bytes != null) {
+  //       _saveExcelMobile(
+  //         bytes,
+  //         "JPS_Attendance_Report_${formatDate(startDate)}_to_${formatDate(endDate)}.xlsx",
+  //         context,
+  //       );
+  //     }
+  //   } catch (e) {
+  //     print("Excel Error => $e");
+  //     utils.showWarningToast(context, text: "Something went wrong");
+  //   }
+  // }
 
 
   String timeDifference(String dateTimeString1, String dateTimeString2) {
