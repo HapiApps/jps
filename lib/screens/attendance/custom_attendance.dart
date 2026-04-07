@@ -267,20 +267,25 @@ class _CheckAttendanceState extends State<CheckAttendance> {
                                       width: 20,
                                       height: 20,
                                       decoration: BoxDecoration(
-                                        color:isPermissionActive
-                                            ? Color(0xffD9D9D9)
-                                            : Color(0xffD9D9D9),
+                                        color: isPermissionActive
+                                            ? colorsConst.primary       // Active color
+                                            : Color(0xffD9D9D9),       // Inactive color
                                         borderRadius: BorderRadius.circular(4),
-                                        border: Border.all(color: Color(0xffD9D9D9), width: 1.2),
+                                        border: Border.all(
+                                          color: isPermissionActive
+                                              ? colorsConst.primary   // Match border with active color
+                                              : Color(0xffD9D9D9),   // Inactive border
+                                          width: 1.2,
+                                        ),
                                       ),
-                                      child:
-                                      isPermissionActive? Icon(
+                                      child: isPermissionActive
+                                          ? Icon(
                                         Icons.check,
                                         size: 14,
-                                        color: colorsConst.primary,
+                                        color: Colors.white,   // Check icon color for visibility
                                       )
                                           : null,
-                                    ),
+                                    )
                                   ),
                                   const SizedBox(width: 6),
                                   const CustomText(

@@ -22,6 +22,8 @@ import '../../../source/styles/decoration.dart';
 import '../../../source/utilities/utils.dart';
 import '../../../view_model/task_provider.dart';
 import '../../common/dashboard.dart';
+import '../../task/search_custom_dropdown.dart';
+import '../../task/search_dropdown_list.dart';
 import '../viamap.dart';
 import '../visit_report/visits_report.dart';
 
@@ -229,64 +231,91 @@ class _CusAddVisitState extends State<CusAddVisit> with TickerProviderStateMixin
                               ),
                             ),
                             10.height,
-                            // MapDropDown(
-                            //   width: kIsWeb?webWidth:phoneWidth,
-                            //   hintText: constValue.contactName,
-                            //   list: widget.numberList.isNotEmpty?widget.numberList:sendList,
-                            //   saveValue: custProvider.selectCustomer != null
-                            //       ? custProvider.selectCustomer["id"]
-                            //       : null,
-                            //   onChanged: (Object? value) {
-                            //     setState(() {
-                            //
-                            //       var selected = (widget.numberList.isNotEmpty
-                            //           ? widget.numberList
-                            //           : sendList)
-                            //           .firstWhere((e) => e["id"] == value);
-                            //
-                            //       custProvider.selectCustomer = selected;
-                            //
-                            //       localData.storage.write("c_id", selected["id"]);
-                            //       localData.storage.write("c_no", selected["no"]);
-                            //       localData.storage.write("c_name", selected["name"]);
-                            //     });
-                            //   },
-                            //   dropText: 'name',
-                            // ), //// customer company
-                            InkWell(
-                              onTap: () {
-                                final listData =
-                                widget.numberList.isNotEmpty ? widget.numberList : sendList;
+                            SearchCustomDropdownList(
+                              text: "Customer",
+                              hintText: custProvider.selectCustomerName.isEmpty
+                                  ? "Select Customer"
+                                  : custProvider.selectCustomerName, // Only show names
+                              valueList: widget.numberList.isNotEmpty ? widget.numberList : sendList,
+                              displayKey: "name", // Only display name
+                              onChanged: (value) {
+                                if (value != null && value is List) {
+                                  // Convert to Map and remove duplicates based on "id"
+                                  List<Map<String, dynamic>> selectedCustomers =
+                                  value.map((e) => e as Map<String, dynamic>).toList();
 
-                                custProvider.openMultiSelectCustomerDialog(context, listData);
+                                  // Remove duplicates by 'id'
+                                  final uniqueCustomers = <Map<String, dynamic>>[];
+                                  final ids = <String>{};
+                                  for (var c in selectedCustomers) {
+                                    if (!ids.contains(c["id"].toString())) {
+                                      uniqueCustomers.add(c);
+                                      ids.add(c["id"].toString());
+                                    }
+                                  }
+
+                                  // Join names for display
+                                  String displayNames = uniqueCustomers.map((e) => e["name"].toString()).join(", ");
+
+                                  setState(() {
+                                    custProvider.selectedCustomers = uniqueCustomers;
+                                    custProvider.selectCustomerName = displayNames;
+
+                                    // Save in storage
+                                    localData.storage.write("c_names", displayNames);
+                                    localData.storage.write(
+                                        "c_ids", uniqueCustomers.map((e) => e["id"].toString()).toList());
+                                    localData.storage.write(
+                                        "c_nos", uniqueCustomers.map((e) => e["no"].toString()).toList());
+                                  });
+                                } else {
+                                  // If nothing selected, clear everything
+                                  setState(() {
+                                    custProvider.selectedCustomers = [];
+                                    custProvider.selectCustomerName = "";
+
+                                    localData.storage.remove("c_names");
+                                    localData.storage.remove("c_ids");
+                                    localData.storage.remove("c_nos");
+                                  });
+                                }
                               },
-                              child: Container(
-                                height: 50,
-                                width: kIsWeb ? webWidth : phoneWidth,
-                                padding: const EdgeInsets.symmetric(horizontal: 12),
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(10),
-                                  border: Border.all(color: Colors.grey.shade300),
-                                  color: Colors.white,
-                                ),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Expanded(
-                                      child: Text(
-                                        custProvider.selectedCustomers.isEmpty
-                                            ? "Select Contact Name"
-                                            : custProvider.selectedCustomers.map((e) => e["name"]).join(", "),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: const TextStyle(fontSize: 13),
-                                      ),
-                                    ),
-                                    const Icon(Icons.keyboard_arrow_down),
-                                  ],
-                                ),
-                              ),
+                              width: kIsWeb ? webWidth : phoneWidth,
                             ),
+                            // InkWell(
+                            //   onTap: () {
+                            //     final listData =
+                            //     widget.numberList.isNotEmpty ? widget.numberList : sendList;
+                            //
+                            //     custProvider.openMultiSelectCustomerDialog(context, listData);
+                            //   },
+                            //   child: Container(
+                            //     height: 50,
+                            //     width: kIsWeb ? webWidth : phoneWidth,
+                            //     padding: const EdgeInsets.symmetric(horizontal: 12),
+                            //     decoration: BoxDecoration(
+                            //       borderRadius: BorderRadius.circular(10),
+                            //       border: Border.all(color: Colors.grey.shade300),
+                            //       color: Colors.white,
+                            //     ),
+                            //     child: Row(
+                            //       mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            //       children: [
+                            //         Expanded(
+                            //           child: Text(
+                            //             custProvider.selectedCustomers.isEmpty
+                            //                 ? "Select Contact Name"
+                            //                 : custProvider.selectedCustomers.map((e) => e["name"]).join(", "),
+                            //             maxLines: 1,
+                            //             overflow: TextOverflow.ellipsis,
+                            //             style: const TextStyle(fontSize: 13),
+                            //           ),
+                            //         ),
+                            //         const Icon(Icons.keyboard_arrow_down),
+                            //       ],
+                            //     ),
+                            //   ),
+                            // ),
                             ///
                             // MaxLineTextField(
                             // isRequired:true,

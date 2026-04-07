@@ -247,7 +247,8 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
               const Loading():
               Column(
                 children: [
-                  10.height,Row(
+                  10.height,
+                  Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Container(
@@ -590,64 +591,7 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
                             5.width
                           ],
                         ),),
-                       Column(
-                         children: [
-                           // GestureDetector(
-                           //    onTap: (){
-                           //      taskProvider.downloadAllTask(context);
-                           //    },
-                           //    child: SvgPicture.asset(assets.tDownload,width: 27,height: 27,)),
-                           //
-                           //                       GestureDetector(
-                           //    onTap: (){
-                           //      taskProvider.downloadAllTaskComment(context);
-                           //    },
-                           //    child: SvgPicture.asset(assets.tDownload,width: 27,height: 27,)
-                           //                       ),
-                           GestureDetector(
-                             onTap: () {
-                               showDialog(
-                                 context: context,
-                                 builder: (context) {
-                                   return AlertDialog(
-                                     title: Text("Download"),
-                                     content: Column(
-                                       mainAxisSize: MainAxisSize.min,
-                                       children: [
 
-                                         ListTile(
-                                           leading: Icon(Icons.task),
-                                           title: Text("Task Details"),
-                                           onTap: () {
-                                             Navigator.pop(context);
-                                             taskProvider.downloadAllTask(context);
-                                           },
-                                         ),
-
-                                         Divider(),
-
-                                         ListTile(
-                                           leading: Icon(Icons.comment),
-                                           title: Text("Task Comment Details"),
-                                           onTap: () {
-                                             Navigator.pop(context);
-                                             taskProvider.downloadAllTaskComment(context);
-                                           },
-                                         ),
-                                       ],
-                                     ),
-                                   );
-                                 },
-                               );
-                             },
-                             child: SvgPicture.asset(
-                               assets.tDownload,
-                               width: 27,
-                               height: 27,
-                             ),
-                           ),
-                         ],
-                       ),
                       // CustomLoadingButton(callback: (){
                       // }, text: "PF", isLoading: false,
                       //     backgroundColor: colorsConst.primary, radius: 5, width: 60)
@@ -659,6 +603,120 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            InkWell(
+                              onTap: () async {
+                                taskProvider.downloadAllTask(context);
+                              },
+                              borderRadius: BorderRadius.circular(12),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                                decoration: BoxDecoration(
+                                  color: Colors.red,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    SvgPicture.asset(
+                                      assets.tDownload,
+                                      width: 20,
+                                      height: 20,
+                                      color: Colors.white,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    const Text(
+                                      "task sheet",
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 14,
+                                      ),
+                                    )
+                                  ],
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            InkWell(
+                              onTap: () async {
+                                await taskProvider.downloadAllTaskComment(context);
+                              },
+                              borderRadius: BorderRadius.circular(12),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                                decoration: BoxDecoration(
+                                  color: Colors.green,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    SvgPicture.asset(
+                                      assets.tDownload,
+                                      width: 20,
+                                      height: 20,
+                                      color: Colors.white,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    const Text(
+                                      "comment sheet",
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 14,
+                                      ),
+                                    )
+                                  ],
+                                ),
+                              ),
+                            )
+                            // GestureDetector(
+                            //   onTap: () {
+                            //     showDialog(
+                            //       context: context,
+                            //       builder: (context) {
+                            //         return AlertDialog(
+                            //           title: Text("Download"),
+                            //           content: Column(
+                            //             mainAxisSize: MainAxisSize.min,
+                            //             children: [
+                            //
+                            //               ListTile(
+                            //                 leading: Icon(Icons.task),
+                            //                 title: Text("Task Details"),
+                            //                 onTap: () {
+                            //                   Navigator.pop(context);
+                            //                   taskProvider.downloadAllTask(context);
+                            //                 },
+                            //               ),
+                            //
+                            //               Divider(),
+                            //
+                            //               ListTile(
+                            //                 leading: Icon(Icons.comment),
+                            //                 title: Text("Task Comment Details"),
+                            //                 onTap: () {
+                            //                   Navigator.pop(context);
+                            //                   taskProvider.downloadAllTaskComment(context);
+                            //                 },
+                            //               ),
+                            //             ],
+                            //           ),
+                            //         );
+                            //       },
+                            //     );
+                            //   },
+                            //   child: SvgPicture.asset(
+                            //     assets.tDownload,
+                            //     width: 27,
+                            //     height: 27,
+                            //   ),
+                            // ),
+                          ],
+                        ),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [

@@ -61,6 +61,10 @@ class CustomerProvider with ChangeNotifier{
   TextEditingController search = TextEditingController();
   TextEditingController search2 = TextEditingController();
   String? callTypeId;
+  String selectCustomerId = "";
+  String selectCustomerName = "";
+  String selectCustomerNo = "";
+
   Future<void> getTaskComments(String id, {bool isPolling = false}) async {
 
     if (!isPolling) {
@@ -4195,6 +4199,37 @@ List<Marker> get liveMarker =>_liveMarker;
     }
     notifyListeners();
   }
+  Future<void> getVisitHoursEmpReport(context) async {
+    try {
+      Map data = {
+        "action": getAllData,
+        "search_type": "visit_hours_emp_report",
+        "id": localData.storage.read("id"),
+        "role": localData.storage.read("role"),
+        "cos_id": localData.storage.read("cos_id"),
+        "date1": _startDate,
+        "date2": _endDate
+      };
+      final response =await custRepo.getDashboardReport(data);
+      log("Visit Res $response");
+      if (response.isNotEmpty) {
+        reportExportEmployeeReportSectionWise(
+          context,
+          response,
+          _startDate,
+          _endDate,
+        );
+        addCtr.reset();
+      }else{
+        utils.showWarningToast(context,text: "No data found");
+        addCtr.reset();
+      }
+    } catch (e) {
+      utils.showWarningToast(context,text: "No data found");
+      addCtr.reset();
+    }
+    notifyListeners();
+  }
   // Future<void> reportExport(BuildContext context,List list)async{
   //   try{
   //     addCtr.reset();
@@ -4370,7 +4405,8 @@ List<Marker> get liveMarker =>_liveMarker;
   // } //dev
 
   Future<void> reportExportEmployeeSectionWise(
-      BuildContext context, List list, String startDate, String endDate) async {
+      BuildContext context, List list, String startDate, String endDate)
+  async {
     try {
 
       List<String> generateDateRange(String start, String end) {
@@ -4563,6 +4599,210 @@ List<Marker> get liveMarker =>_liveMarker;
     }
   }
 
+  Future<void> reportExportEmployeeReportSectionWise(
+      BuildContext context,
+      List list,
+      String startDate,
+      String endDate,
+      ) async {
+    try {
+
+      List<String> generateDateRange(String start, String end) {
+        List<String> dates = [];
+
+        DateTime startDt = DateFormat("dd-MM-yyyy").parse(start);
+        DateTime endDt = DateFormat("dd-MM-yyyy").parse(end);
+
+        for (DateTime d = startDt;
+        !d.isAfter(endDt);
+        d = d.add(const Duration(days: 1))) {
+          dates.add(DateFormat("dd-MM-yyyy").format(d));
+        }
+
+        return dates;
+      }
+
+      String convertApiDate(String input) {
+        try {
+          return DateFormat("dd-MM-yyyy").format(DateTime.parse(input));
+        } catch (e) {
+          return input;
+        }
+      }
+
+      /// 🔥 Collect Types + Employees
+      Set<String> allTypesSet = {};
+      Set<String> allEmployeesSet = {};
+
+      for (var item in list) {
+        if (item["visit_type"] != null && item["visit_type"].toString().trim().isNotEmpty) {
+          allTypesSet.add(item["visit_type"].toString().trim());
+        }
+
+        if (item["emp_name"] != null && item["emp_name"].toString().trim().isNotEmpty) {
+          allEmployeesSet.add(item["emp_name"].toString().trim());
+        }
+      }
+
+      List<String> allTypes = allTypesSet.toList()..sort();
+      List<String> allEmployees = allEmployeesSet.toList()..sort();
+
+      List<String> allDates = generateDateRange(startDate, endDate);
+
+      /// 🔥 Grouped Map (emp -> date -> type -> count)
+      Map<String, Map<String, Map<String, int>>> grouped = {};
+
+      for (var emp in allEmployees) {
+        grouped[emp] = {};
+        for (var date in allDates) {
+          grouped[emp]![date] = {};
+          for (var type in allTypes) {
+            grouped[emp]![date]![type] = 0;
+          }
+        }
+      }
+
+      /// 🔥 Fill actual values
+      for (var item in list) {
+        String? emp = item["emp_name"]?.toString();
+        String? apiDate = item["report_date"]?.toString();
+        String? type = item["visit_type"]?.toString();
+
+        if (emp == null || emp.trim().isEmpty) continue;
+        if (apiDate == null || apiDate.trim().isEmpty) continue;
+        if (type == null || type.trim().isEmpty) continue;
+
+        String date = convertApiDate(apiDate);
+        type = type.trim();
+
+        int total = int.tryParse(item["total_visits"]?.toString() ?? "0") ?? 0;
+
+        if (!grouped.containsKey(emp)) continue;
+        if (!grouped[emp]!.containsKey(date)) continue;
+
+        grouped[emp]![date]![type] = total;
+      }
+
+      /// 🔥 Create Excel
+      final Workbook workbook = Workbook();
+      final Worksheet sheet = workbook.worksheets[0];
+
+      int currentRow = 1;
+
+      for (var emp in allEmployees) {
+
+        int totalColumns = 1 + allTypes.length + 1; // Date + Types + Total
+
+        sheet
+            .getRangeByName(
+            'A$currentRow:${String.fromCharCode(65 + totalColumns - 1)}$currentRow')
+            .merge();
+
+        sheet
+            .getRangeByIndex(currentRow, 1)
+            .setText('$emp ( $startDate to $endDate ) Visit Report');
+
+        sheet.getRangeByIndex(currentRow, 1).cellStyle.bold = true;
+        sheet.getRangeByIndex(currentRow, 1).cellStyle.hAlign = HAlignType.left;
+
+        currentRow++;
+
+        /// Header
+        sheet.getRangeByIndex(currentRow, 1).setText("Date");
+
+        for (int i = 0; i < allTypes.length; i++) {
+          sheet.getRangeByIndex(currentRow, i + 2).setText(allTypes[i]);
+        }
+
+        sheet.getRangeByIndex(currentRow, allTypes.length + 2).setText("Total");
+
+        final headerRange = sheet.getRangeByName(
+            'A$currentRow:${String.fromCharCode(65 + totalColumns - 1)}$currentRow');
+
+        headerRange.cellStyle.bold = true;
+        headerRange.cellStyle.hAlign = HAlignType.center;
+        headerRange.cellStyle.backColor = '#EDEDED';
+
+        currentRow++;
+
+        /// Totals
+        Map<String, int> typeGrandTotal = {};
+        for (var t in allTypes) {
+          typeGrandTotal[t] = 0;
+        }
+
+        int grandTotal = 0;
+
+        /// Data Rows
+        for (var date in allDates) {
+          sheet.getRangeByIndex(currentRow, 1).setText(date);
+
+          int rowTotal = 0;
+
+          for (int j = 0; j < allTypes.length; j++) {
+            String type = allTypes[j];
+            int value = grouped[emp]![date]![type] ?? 0;
+
+            sheet.getRangeByIndex(currentRow, j + 2).setNumber(value.toDouble());
+
+            rowTotal += value;
+            typeGrandTotal[type] = (typeGrandTotal[type] ?? 0) + value;
+          }
+
+          sheet
+              .getRangeByIndex(currentRow, allTypes.length + 2)
+              .setNumber(rowTotal.toDouble());
+
+          grandTotal += rowTotal;
+          currentRow++;
+        }
+
+        /// Final Total Row
+        sheet.getRangeByIndex(currentRow, 1).setText("Total");
+        sheet.getRangeByIndex(currentRow, 1).cellStyle.bold = true;
+
+        for (int j = 0; j < allTypes.length; j++) {
+          String type = allTypes[j];
+          sheet
+              .getRangeByIndex(currentRow, j + 2)
+              .setNumber((typeGrandTotal[type] ?? 0).toDouble());
+        }
+
+        sheet
+            .getRangeByIndex(currentRow, allTypes.length + 2)
+            .setNumber(grandTotal.toDouble());
+
+        final totalRange = sheet.getRangeByName(
+            'A$currentRow:${String.fromCharCode(65 + totalColumns - 1)}$currentRow');
+
+        totalRange.cellStyle.bold = true;
+        totalRange.cellStyle.backColor = '#FFF2CC';
+
+        currentRow += 2;
+      }
+
+      sheet.getRangeByName('A1:Z500').columnWidth = 20;
+
+      final bytes = workbook.saveAsStream();
+      workbook.dispose();
+
+      if (kIsWeb) {
+        AnchorElement(
+          href: 'data:application/octet-stream;base64,${base64.encode(bytes)}',
+        )
+          ..setAttribute('download', 'Visit_Report.xlsx')
+          ..click();
+      } else {
+        final path = (await getApplicationSupportDirectory()).path;
+        final file = File('$path/Visit_Report.xlsx');
+        await file.writeAsBytes(bytes, flush: true);
+        OpenFile.open(file.path);
+      }
+
+    } catch (e) {
+      print("ERROR: $e");
+    }
+  }
 
   // Future<void> reportExport(BuildContext context, List list) async {
   //   try {

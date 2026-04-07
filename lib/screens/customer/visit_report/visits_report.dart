@@ -532,23 +532,26 @@ class _VisitReportState extends State<VisitReport> with SingleTickerProviderStat
                               ),
                             ],
                           ),
-                          Column(
+                          Column(  //Employee visit
                           children: [
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                CustomTextField(
-                                  text: "",radius: 30,
-                                  controller: custProvider.search,
-                                  width: kIsWeb?webWidth/1.2:phoneWidth/1.2,
-                                  hintText: "${constValue.companyName}/${constValue.customer}/Emp/No",
-                                  isIcon: true,
-                                  iconData: Icons.search,
-                                  textInputAction: TextInputAction.done,
-                                  isShadow: true,
-                                  onChanged: (value) {
-                                    custProvider.searchVisitReport(value.toString());
-                                  },
+                                SizedBox(
+                                  width: 200,
+                                  child: CustomTextField(
+                                    text: "",radius: 30,
+                                    controller: custProvider.search,
+                                    width: kIsWeb?webWidth/1.2:phoneWidth/1.2,
+                                    hintText: "${constValue.companyName}/${constValue.customer}/Emp/No",
+                                    isIcon: true,
+                                    iconData: Icons.search,
+                                    textInputAction: TextInputAction.done,
+                                    isShadow: true,
+                                    onChanged: (value) {
+                                      custProvider.searchVisitReport(value.toString());
+                                    },
+                                  ),
                                 ),
                                 InkWell(
                                   onTap: (){
@@ -702,28 +705,28 @@ class _VisitReportState extends State<VisitReport> with SingleTickerProviderStat
                                                         ],
                                                       ),
                                                       10.height,
-                                                      Column(
-                                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                                        children: [
-                                                          CustomText(
-                                                            text: "Employee Name",
-                                                            colors: colorsConst.greyClr,
-                                                            size: 12,
-                                                          ),
-                                                          EmployeeDropdown(
-                                                            callback: (){
-                                                              ePvr.getAllUsers();
-                                                            },
-                                                            isHint: false,
-                                                            text:  custProvider.userName,
-                                                            employeeList: ePvr.filterUserData,
-                                                            onChanged: (UserModel? value) {
-                                                              custProvider.selectUser(value!);
-                                                            },
-                                                            size:kIsWeb?webWidth/1.2:phoneWidth/1.2,
-                                                          ),
-                                                        ],
-                                                      ),
+                                                      // Column(
+                                                      //   crossAxisAlignment: CrossAxisAlignment.start,
+                                                      //   children: [
+                                                      //     CustomText(
+                                                      //       text: "Employee Name",
+                                                      //       colors: colorsConst.greyClr,
+                                                      //       size: 12,
+                                                      //     ),
+                                                      //     EmployeeDropdown(
+                                                      //       callback: (){
+                                                      //         ePvr.getAllUsers();
+                                                      //       },
+                                                      //       isHint: false,
+                                                      //       text:  custProvider.userName,
+                                                      //       employeeList: ePvr.filterUserData,
+                                                      //       onChanged: (UserModel? value) {
+                                                      //         custProvider.selectUser(value!);
+                                                      //       },
+                                                      //       size:kIsWeb?webWidth/1.2:phoneWidth/1.2,
+                                                      //     ),
+                                                      //   ],
+                                                      // ),
                                                       // 10.height,
                                                       // Column(
                                                       //   crossAxisAlignment: CrossAxisAlignment.start,
@@ -787,7 +790,7 @@ class _VisitReportState extends State<VisitReport> with SingleTickerProviderStat
                                     width:kIsWeb?webWidth/6:phoneWidth/6,
                                     height: 45,
                                     decoration: customDecoration.baseBackgroundDecoration(
-                                        color: custProvider.filter==true?colorsConst.primary:Colors.grey.shade300,radius: 5
+                                        color: custProvider.filter==true?Colors.grey.shade300:Colors.grey.shade300,radius: 5
                                     ),
                                     child: Padding(
                                       padding: const EdgeInsets.all(6.0),
@@ -795,6 +798,11 @@ class _VisitReportState extends State<VisitReport> with SingleTickerProviderStat
                                     ),
                                   ),
                                 ),
+                                CustomLoadingButton(callback: (){
+                                  custProvider.getVisitHoursEmpReport(context);
+                                }, isLoading: true, backgroundColor: colorsConst.primary,
+                                  controller: custProvider.addCtr,
+                                  radius: 5, width: 100,text: "Download",),
 
                               ],
                             ),

@@ -489,7 +489,7 @@ class _AttendanceReportState extends State<AttendanceReport> {
                                       } else {
                                         await excelReports.downloadAttendanceExcelReport(
                                           context,
-                                          stDate: attProvider.startDate,
+                                          stDate: attProvider.startDate,//
                                           enDate: attProvider.endDate,
                                         );
                                       }
@@ -515,12 +515,60 @@ class _AttendanceReportState extends State<AttendanceReport> {
                             ],
                           ),
                         if(localData.storage.read("role") !="1")
-                        CustomDropDown(
-                              text: "", valueList: attProvider.typeList,
-                              saveValue: attProvider.type,color: Colors.white,
-                              onChanged: (value){
-                                attProvider.changeType(value,localData.storage.read("id"),localData.storage.read("role"),false,widget.empList,context);
-                              }, width: kIsWeb?webWidth:phoneWidth),
+                        Row(
+                          children: [
+                            SizedBox(
+                              width: 300,
+                              child: CustomDropDown(
+                                    text: "", valueList: attProvider.typeList,
+                                    saveValue: attProvider.type,color: Colors.white,
+                                    onChanged: (value){
+                                      attProvider.changeType(value,localData.storage.read("id"),localData.storage.read("role"),false,widget.empList,context);
+                                    }, width: kIsWeb?webWidth:phoneWidth),
+                            ), 20.width,
+                            GestureDetector(
+                              onTap: () async {
+                                if (isLoading) return;
+
+                                setState(() {
+                                  isLoading = true;
+                                });
+
+                                try {
+                                  if (attProvider.userName != "") {
+                                    await excelReports.downloadAttendanceExcelReport(
+                                      context,
+                                      stDate: attProvider.startDate,
+                                      enDate: attProvider.endDate,
+                                    );
+                                  } else {
+                                    await excelReports.downloadAttendanceExcelReport(
+                                      context,
+                                      stDate: attProvider.startDate,//
+                                      enDate: attProvider.endDate,
+                                    );
+                                  }
+                                } catch (e) {
+                                  print("Download Error: $e");
+                                } finally {
+                                  setState(() {
+                                    isLoading = false;
+                                  });
+                                }
+                              },
+                              child: isLoading
+                                  ? SizedBox(
+                                width: 27,
+                                height: 27,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              )
+                                  : SvgPicture.asset(
+                                assets.tDownload,
+                                width: 27,
+                                height: 27,
+                              ),),
+                          ],
+                        ),
                         10.height,
                         SizedBox(
                           width: kIsWeb?webWidth:phoneWidth,
