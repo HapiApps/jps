@@ -228,6 +228,7 @@ class _AddVisitState extends State<AddVisit> with TickerProviderStateMixin {
                                 custProvider.changeType(selected);
                               },
                               dropText: 'value',),
+
                             CustomTextField(
                               width: kIsWeb?webWidth:phoneWidth,
                               text: "Date", controller: custProvider.commentDate,

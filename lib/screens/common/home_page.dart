@@ -562,133 +562,118 @@ class _HomePageState extends State<HomePage> {
                                       Column(
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
-                                          Container(
-                                            width: 25,
-                                            height: 25,
-                                            decoration: BoxDecoration(
-                                              color: colorsConst.primary,
-                                              borderRadius: BorderRadius.circular(2),
-                                              boxShadow: [
-                                                BoxShadow(
-                                                  color: Colors.black.withOpacity(0.15),
-                                                  blurRadius: 6,
-                                                  offset: const Offset(0, 3),
-                                                ),
-                                              ],
+                                          IconButton(
+                                            icon: Image.asset(
+                                              DashboardAssets.reportIcon,
+                                              width: 58,
+                                              height: 58,
+                                             // color: ColorsConst.primaryDark1,
                                             ),
-                                            child: IconButton(
-                                              icon: Image.asset(
-                                                DashboardAssets.reportIcon,
-                                                width: 28,
-                                                height: 28,
-                                                color: Colors.white,
-                                              ),
-                                              onPressed: () {
-                                                showDialog(
-                                                  context: context,
-                                                  builder: (context) {
-                                                    return Consumer<HomeProvider>(
-                                                      builder: (context, homeProvider, _) {
-                                                        return AlertDialog(
-                                                          actions: [
-                                                            SizedBox(
-                                                              width: kIsWeb
-                                                                  ? MediaQuery.of(context).size.width * 0.3
-                                                                  : MediaQuery.of(context).size.width * 0.9,
-                                                              child: Column(
-                                                                crossAxisAlignment: CrossAxisAlignment.start,
-                                                                children: [
-                                                                  Row(
-                                                                    mainAxisAlignment: MainAxisAlignment.end,
-                                                                    children: [
-                                                                      IconButton(
-                                                                        icon: SvgPicture.asset(
-                                                                          assets.cancel,
-                                                                          width: 20,
-                                                                          height: 20,
-                                                                        ),
-                                                                        onPressed: () {
-                                                                          Navigator.pop(context);
-                                                                        },
-                                                                      ),
-                                                                    ],
-                                                                  ),
-
-                                                                  Center(
-                                                                    child: CustomText(
-                                                                      "Choose a report",
-                                                                      weight: FontWeight.bold,
-                                                                    ),
-                                                                  ),
-                                                                  20.height,
-
-                                                                  iconBox(
-                                                                    callBack: () {
-                                                                      homeProvider.updateIndex(4);
-                                                                      Navigator.pop(context);
-                                                                      utils.navigatePage(
-                                                                        context,
-                                                                            () => DashBoard(
-                                                                          child: AttendanceReport(
-                                                                            type: homeProvider.type,
-                                                                            showType: "0",
-                                                                            date1: homeProvider.startDate,
-                                                                            date2: homeProvider.endDate,
-                                                                            empList: empPvr.userData,
-                                                                          ),
-                                                                        ),
-                                                                      );
-                                                                    },
-                                                                    img: assets.aTt,
-                                                                    text: "Attendance Report",
-                                                                  ),
-                                                                  20.height,
-
-                                                                  iconBox(
-                                                                    callBack: () {
-                                                                      Navigator.pop(context);
-                                                                      utils.navigatePage(
-                                                                        context,
-                                                                            () => DashBoard(
-                                                                          child: VisitReport(
-                                                                            date1: homeProvider.startDate,
-                                                                            date2: homeProvider.endDate,
-                                                                            month: homeProvider.month,
-                                                                            type: homeProvider.type,
-                                                                          ),
-                                                                        ),
-                                                                      );
-                                                                    },
-                                                                    img: assets.aLoc,
-                                                                    text: "Visit Report",
-                                                                  ),
-                                                                  20.height,
-
-                                                                  Center(
-                                                                    child: TextButton(
-                                                                      child: CustomText(
-                                                                        "Cancel",
-                                                                        color: colorsConst.appRed,
+                                            onPressed: () {
+                                              showDialog(
+                                                context: context,
+                                                builder: (context) {
+                                                  return Consumer<HomeProvider>(
+                                                    builder: (context, homeProvider, _) {
+                                                      return AlertDialog(
+                                                        actions: [
+                                                          SizedBox(
+                                                            width: kIsWeb
+                                                                ? MediaQuery.of(context).size.width * 0.3
+                                                                : MediaQuery.of(context).size.width * 0.9,
+                                                            child: Column(
+                                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                                              children: [
+                                                                Row(
+                                                                  mainAxisAlignment: MainAxisAlignment.end,
+                                                                  children: [
+                                                                    IconButton(
+                                                                      icon: SvgPicture.asset(
+                                                                        assets.cancel,
+                                                                        width: 20,
+                                                                        height: 20,
                                                                       ),
                                                                       onPressed: () {
                                                                         Navigator.pop(context);
                                                                       },
                                                                     ),
+                                                                  ],
+                                                                ),
+
+                                                                Center(
+                                                                  child: CustomText(
+                                                                    "Choose a report",
+                                                                    weight: FontWeight.bold,
                                                                   ),
-                                                                ],
-                                                              ),
-                                                            )
-                                                          ],
-                                                        );
-                                                      },
-                                                    );
-                                                  },
-                                                );
-                                              },
-                                            ),
+                                                                ),
+                                                                20.height,
+
+                                                                iconBox(
+                                                                  callBack: () {
+                                                                    homeProvider.updateIndex(4);
+                                                                    Navigator.pop(context);
+                                                                    utils.navigatePage(
+                                                                      context,
+                                                                          () => DashBoard(
+                                                                        child: AttendanceReport(
+                                                                          type: homeProvider.type,
+                                                                          showType: "0",
+                                                                          date1: homeProvider.startDate,
+                                                                          date2: homeProvider.endDate,
+                                                                          empList: empPvr.userData,
+                                                                        ),
+                                                                      ),
+                                                                    );
+                                                                  },
+                                                                  img: assets.aTt,
+                                                                  text: "Attendance Report",
+                                                                ),
+                                                                20.height,
+
+                                                                iconBox(
+                                                                  callBack: () {
+                                                                    Navigator.pop(context);
+                                                                    utils.navigatePage(
+                                                                      context,
+                                                                          () => DashBoard(
+                                                                        child: VisitReport(
+                                                                          date1: homeProvider.startDate,
+                                                                          date2: homeProvider.endDate,
+                                                                          month: homeProvider.month,
+                                                                          type: homeProvider.type,
+                                                                        ),
+                                                                      ),
+                                                                    );
+                                                                  },
+                                                                  img: assets.aLoc,
+                                                                  text: "Visit Report",
+                                                                ),
+                                                                20.height,
+
+                                                                Center(
+                                                                  child: TextButton(
+                                                                    child: CustomText(
+                                                                      "Cancel",
+                                                                      color: colorsConst.appRed,
+                                                                    ),
+                                                                    onPressed: () {
+                                                                      Navigator.pop(context);
+                                                                    },
+                                                                  ),
+                                                                ),
+                                                              ],
+                                                            ),
+                                                          )
+                                                        ],
+                                                      );
+                                                    },
+                                                  );
+                                                },
+                                              );
+                                            },
                                           ),
 
-                                          const SizedBox(height: 5),
+
 
                                           const CustomText(
                                             "Reports",

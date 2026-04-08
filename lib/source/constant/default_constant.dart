@@ -127,6 +127,7 @@ class ConstantValues{
   final String  landmark = "Landmark";
   final String  referredBy = "Referred  By";
   final String  type = " Visit Type";
+  final String  cusType = " Customer Type";
   final String role = "Role";
   final String comment = "View Full History";
   final String comments = "Comments";

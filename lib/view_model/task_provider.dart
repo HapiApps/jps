@@ -3551,12 +3551,15 @@ class TaskProvider with ChangeNotifier {
   }
 
   var typeList=[];
+  var customerList=[];
   var statusList=[];
 
   bool _addRefresh = true;
   bool get addRefresh =>_addRefresh;
   dynamic _selectType;
   dynamic get selectType=>_selectType;
+  dynamic _selectType1;
+  dynamic get selectType1=>_selectType1;
 
   void changeTypeValue(dynamic value){
     _selectType=null;
@@ -3628,6 +3631,53 @@ class TaskProvider with ChangeNotifier {
         } else {
           typeList.clear();
           typeList = list;
+          _addRefresh = true;
+          notifyListeners();
+        }
+      } else {
+        _addRefresh = true;
+      }
+    } catch (e) {
+      _addRefresh = true;
+    }
+
+    notifyListeners();
+  }
+  Future<void> getCustomerType(bool isRefresh) async {
+    try {
+      _selectType1 = null;
+
+      if (isRefresh == true) {
+        _addRefresh = false;
+        notifyListeners();
+      }
+
+      Map data = {
+        "action": getAllData,
+        "search_type": "cus_type",
+        "cat_id": "12",
+        "cos_id": localData.storage.read("cos_id")
+      };
+
+      final response = await _taskRepo.getListDatas(data);
+
+      log("Data => ${data.toString()}");
+      log("Response task list=> ${response.toString()}");
+
+      if (response.isNotEmpty) {
+        List<Map<String, String>> list = response.map((e) => {
+          "id": e['id'].toString(),
+          "value": e['value'].toString().trim(),
+          "categories": e['categories'].toString(),
+          "created_ts": e['created_ts'].toString(),
+          "created_by": e['created_by'].toString(),
+        }).toList();
+        if (!kIsWeb) {
+          await LocalDatabase.insertCusType(list);
+          getAllCusTypes();
+        } else {
+          customerList.clear();
+          customerList = list;
           _addRefresh = true;
           notifyListeners();
         }
@@ -3738,7 +3788,30 @@ class TaskProvider with ChangeNotifier {
     statusList=storedLeads;
     notifyListeners();
   }
+  Future<void> getAllCusTypes() async {
+    customerList.clear();
 
+    List storedLeads = await LocalDatabase.getCusTypes();
+    customerList = storedLeads;
+
+    _addRefresh = true;
+
+    print("local db typeList......$customerList");
+
+    // ✅ first time auto select
+    if (customerList.isNotEmpty) {
+      _selectType ??= customerList[0];
+    }
+
+    notifyListeners();
+  }
+  Future<void> refreshCusTypes() async {
+    _type=null;
+    customerList.clear();
+    List storedLeads = await LocalDatabase.getCusTypes();
+    customerList=storedLeads;
+    notifyListeners();
+  }
 
   Future<void> fetchUserNameList() async {
     _isLoading = true;

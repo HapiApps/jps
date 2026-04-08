@@ -1120,7 +1120,7 @@ int _listItem=0;
 int get listItem=>_listItem;
   dynamic state,_type,leadType,leadStatus,callType,selectCustomer;
  dynamic get type=> _type;
-  var leadCategoryList=[],callList=[],cmtTypeList=[];
+  var leadCategoryList=[],callList=[],cmtTypeList=[],cusTypeList=[];
   var stateList = [
     "Andaman and Nicobar Islands",
     "Andhra Pradesh",
@@ -1331,6 +1331,23 @@ int get listItem=>_listItem;
     cmtTypeList=storedLeads;
     if(cmtTypeList.isNotEmpty){
       _selectType=cmtTypeList[0];
+    }
+    notifyListeners();
+  }
+  Future<void> getCusType() async {
+    _dailyType=null;
+    cusTypeList.clear();
+    List storedLeads = await LocalDatabase.getCusTypes();
+    cmtTypeList=storedLeads;
+    notifyListeners();
+  }
+  Future<void> refreshCusType() async {
+    _selectType=null;
+    cusTypeList.clear();
+    List storedLeads = await LocalDatabase.getCusTypes();
+    cusTypeList=storedLeads;
+    if(cusTypeList.isNotEmpty){
+      _selectType=cusTypeList[0];
     }
     notifyListeners();
   }

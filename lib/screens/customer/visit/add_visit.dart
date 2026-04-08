@@ -179,6 +179,33 @@ class _CusAddVisitState extends State<CusAddVisit> with TickerProviderStateMixin
                                 custProvider.changeType(selected);
                               },
                               dropText: 'value',),
+                            MapDropDown(
+                              isRequired: true,
+                              isRefresh: custProvider.cusTypeList.isEmpty ? true : false,
+                              callback: () {
+                                if (!kIsWeb) {
+                                  taskProvider.getCustomerType(true);
+                                } else {
+                                  taskProvider.getAllCusTypes();
+                                }
+                              },
+                              width: kIsWeb ? webWidth : phoneWidth,
+                              hintText: constValue.cusType,
+                              list: custProvider.cusTypeList,
+
+                              // ✅ Correct saveValue
+                              saveValue: custProvider.selectType != null
+                                  ? custProvider.selectType['id'].toString()
+                                  : null,
+
+                              onChanged: (Object? value) {
+                                final selected = custProvider.cusTypeList.firstWhere(
+                                        (e) => e['id'].toString() == value.toString());
+
+                                custProvider.changeType(selected);
+                              },
+                              dropText: 'value',
+                            ),
                             CustomTextField(
                               width: kIsWeb?webWidth:phoneWidth,
                               text: "Date", controller: custProvider.commentDate,

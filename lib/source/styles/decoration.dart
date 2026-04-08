@@ -9,7 +9,8 @@ class CustomDecoration{
           borderRadius: BorderRadius.circular(radius!),
         color: color,
         border: Border.all(
-          color: borderColor ?? Colors.transparent
+          color: borderColor ?? Colors.transparent,
+          width: 2
         ),
         boxShadow: [
           if(isShadow==true)

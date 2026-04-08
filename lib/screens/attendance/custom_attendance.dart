@@ -12,6 +12,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 import '../../source/constant/assets_constant.dart';
 import '../../source/constant/colors_constant.dart';
+import '../../source/constant/local_data.dart';
 import '../../source/utilities/utils.dart';
 import '../../component/custom_text.dart';
 import '../../view_model/leave_provider.dart';
@@ -47,19 +48,30 @@ class _CheckAttendanceState extends State<CheckAttendance> {
         builder: (context,attProvider,locPvr,homeProvider,_){
       var split =attProvider.permissionStatus.toString().split(",");
       String lastPermissionStatus = "";
+      bool isPermissionActive = lastPermissionStatus == "1";
+      Color getAttendanceColor() {
+        if (isPermissionActive) return colorsConst.appRed;
 
+        if (attProvider.mainCheckOut == true) return Colors.grey;
+
+        return attProvider.mainAttendance == 0
+            ? colorsConst.appGreen
+            : colorsConst.appRed;
+      }
       if (attProvider.permissionStatus.isNotEmpty) {
         lastPermissionStatus =
             attProvider.permissionStatus.split(",").last;
       }
 
-      bool isPermissionActive = lastPermissionStatus == "1";
+
       print("permissionStatus  ${attProvider.permissionStatus}");
       print("isPermissionActive ${isPermissionActive}");
       return attProvider.attCheck==false?const Loading():
       Container(
         decoration: customDecoration.baseBackgroundDecoration(
-          color: colorsConst.primary,radius: 10
+          borderColor: Colors.red,
+
+          color: Colors.white,radius: 10
         ),
         child: Padding(
           padding: const EdgeInsets.all(5.0),
@@ -102,197 +114,221 @@ class _CheckAttendanceState extends State<CheckAttendance> {
                                   const CustomText(
                                    text:  "Verify",
                                     size: 13,
-                                    colors: Colors.white,
+                                    colors: Colors.blue,isBold: true,
                                   ),
                                   5.width,
                                   GestureDetector(
-                                    // onTap: attProvider.permissionStatus==""||split.last=="2"?() {
-                                    onTap: attProvider.permissionStatus != "1"?() {
-                                      if(attProvider.mainCheckOut == true){
-                                        utils.showWarningToast(context, text: "Permission cannot be added after marking attendance.");
-                                      }else{
-                                    //  attProvider.managePermission();
-
-                                      // attProvider.setPermissionStatus("${attProvider.status}");
-                                      //
-                                      // if (attProvider.status == "1") {
-                                      //   attProvider.setPermission(true);
-                                      // } else {
-                                      //   attProvider.setPermission(false);
-                                      // }
-
-                                        if(split.last=="2"){
+                                    onTap: attProvider.permissionStatus != "1"
+                                        ? () {
+                                      if (attProvider.mainCheckOut == true) {
+                                        utils.showWarningToast(context,
+                                            text: "Permission cannot be added after marking attendance.");
+                                      } else {
+                                        if (split.last == "2") {
                                           attProvider.permissionReason.clear();
                                         }
+
                                         showDialog(
-                                            context: context,
-                                            barrierDismissible: false,
-                                            builder: (BuildContext context){
-                                              return AlertDialog(
-                                                actions: [
-                                                  Center(
-                                                    child: SizedBox(
-                                                      // color: Colors.yellow,
-                                                      width: kIsWeb?MediaQuery.of(context).size.width*0.3:MediaQuery.of(context).size.width*0.8,
-                                                      child: Column(
-                                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                                        children: [
-                                                          Center(child: CustomText(text: "Permission\n",colors: Colors.black,size: 15,isBold: true,)),
-                                                          Column(
-                                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                                            children: [
-                                                              Row(
-                                                                children: [
-                                                                  CustomText(text: "Reason",colors: colorsConst.greyClr,),
-                                                                  CustomText(text: "*",colors: colorsConst.appRed,size: 20,),
-                                                                ],
-                                                              ),5.height,
-                                                              TextField(
-                                                                textCapitalization: TextCapitalization.sentences,
-                                                                minLines: 1, // Minimum height (1 line)
-                                                                maxLines: null, // Auto-expand based on content
-                                                                controller: attProvider.permissionReason,textInputAction: TextInputAction.done,
-                                                                decoration: InputDecoration(
-                                                                  hintText:"",
-                                                                  hintStyle: const TextStyle(
-                                                                      color: Colors.grey,
-                                                                      fontSize: 14
-                                                                  ),
-                                                                  fillColor: Colors.white,
-                                                                  filled: true,
-                                                                  enabledBorder: OutlineInputBorder(
-                                                                    // grey.shade300
-                                                                      borderSide:  BorderSide(color: Colors.grey.shade300),
-                                                                      borderRadius: BorderRadius.circular(10)
-                                                                  ),
-                                                                  focusedBorder: OutlineInputBorder(
-                                                                      borderSide:  BorderSide(color: colorsConst.primary),
-                                                                      borderRadius: BorderRadius.circular(10)
-                                                                  ),
-                                                                  focusedErrorBorder: OutlineInputBorder(
-                                                                      borderSide: BorderSide(color: colorsConst.primary),
-                                                                      borderRadius: BorderRadius.circular(10)
-                                                                  ),
-                                                                  contentPadding:const EdgeInsets.fromLTRB(10, 10, 10, 10),
-                                                                  errorBorder: OutlineInputBorder(
-                                                                      borderSide:  BorderSide(color: Colors.grey.shade300),
-                                                                      borderRadius: BorderRadius.circular(10)
-                                                                  ),
+                                          context: context,
+                                          barrierDismissible: false,
+                                          builder: (BuildContext context) {
+                                            return AlertDialog(
+                                              actions: [
+                                                Center(
+                                                  child: SizedBox(
+                                                    width: kIsWeb
+                                                        ? MediaQuery.of(context).size.width * 0.3
+                                                        : MediaQuery.of(context).size.width * 0.8,
+                                                    child: Column(
+                                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                                      children: [
+                                                        Center(
+                                                          child: CustomText(
+                                                            text: "Permission\n",
+                                                            colors: Colors.black,
+                                                            size: 15,
+                                                            isBold: true,
+                                                          ),
+                                                        ),
+                                                        Column(
+                                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                                          children: [
+                                                            Row(
+                                                              children: [
+                                                                CustomText(
+                                                                    text: "Reason",
+                                                                    colors: colorsConst.greyClr),
+                                                                CustomText(
+                                                                    text: "*",
+                                                                    colors: colorsConst.appRed,
+                                                                    size: 20),
+                                                              ],
+                                                            ),
+                                                            5.height,
+                                                            TextField(
+                                                              textCapitalization:
+                                                              TextCapitalization.sentences,
+                                                              minLines: 1,
+                                                              maxLines: null,
+                                                              controller: attProvider.permissionReason,
+                                                              textInputAction: TextInputAction.done,
+                                                              decoration: InputDecoration(
+                                                                hintText: "",
+                                                                fillColor: Colors.white,
+                                                                filled: true,
+                                                                enabledBorder: OutlineInputBorder(
+                                                                  borderSide: BorderSide(
+                                                                      color: Colors.grey.shade300),
+                                                                  borderRadius: BorderRadius.circular(10),
                                                                 ),
-                                                              ),
-                                                            ],
-                                                          ),20.height,
-                                                          Row(
-                                                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                                                            children: [
-                                                              OutlinedButton(
-                                                                onPressed: (){
-                                                                //  attProvider.managePermission();
-                                                                  attProvider.permissionReason.clear();
-                                                                  Navigator.pop(context);
-                                                                },
-                                                                style: OutlinedButton.styleFrom(
-                                                                    backgroundColor: Colors.grey.shade200,
-                                                                    side: const BorderSide(color: Colors.white)
+                                                                focusedBorder: OutlineInputBorder(
+                                                                  borderSide: BorderSide(
+                                                                      color: colorsConst.primary),
+                                                                  borderRadius: BorderRadius.circular(10),
                                                                 ),
-                                                                child: CustomText(text: "Cancel",colors: colorsConst.secondary,size: 15,isBold: true,),
+                                                                contentPadding: const EdgeInsets.fromLTRB(
+                                                                    10, 10, 10, 10),
                                                               ),
-                                                              OutlinedButton(
-                                                                onPressed: ()async{
-                                                                  if(attProvider.permissionReason.text.trim().isNotEmpty){
-                                                                    Map<Permission, PermissionStatus> status = await [
-                                                                      Permission.location,
-                                                                    ].request();
-                                                                    if (status[Permission.location] == PermissionStatus.granted) {
-                                                                      bool isLocationServiceEnabled = await Geolocator.isLocationServiceEnabled();
-                                                                      if (!isLocationServiceEnabled) {
-                                                                        utils.showWarningToast(context, text: "Location services are disabled. Please enable them.");
-                                                                      }else{
-                                                                        if(locPvr.latitude==""&&locPvr.longitude==""){
-                                                                          utils.showWarningToast(text:"Check Your Location",context);
-                                                                          await locPvr.manageLocation(context,true);
-                                                                        }else{
-                                                                          if(attProvider.isSelfie==false){
-                                                                           // attProvider.putDailyPermission(context,attProvider.permissionStatus==""||split.last=="2"?"1":"2",locPvr.latitude,locPvr.longitude);
-                                                                            attProvider.putDailyPermission(
-                                                                                context,
-                                                                                "1",
-                                                                                locPvr.latitude,
-                                                                                locPvr.longitude
-                                                                            );
-                                                                          }else{
-                                                                            attProvider.signDialog(context: context,
-                                                                              img: attProvider.profile,
-                                                                              onTap:(newImg){
-                                                                                attProvider.profilePick(newImg);
-                                                                                //attProvider.putDailyPermission(context,attProvider.permissionStatus==""||split.last=="2"?"1":"2",locPvr.latitude,locPvr.longitude);
-                                                                                attProvider.putDailyPermission(
-                                                                                    context,
-                                                                                    "1",
-                                                                                    locPvr.latitude,
-                                                                                    locPvr.longitude
-                                                                                );
-                                                                              },
-                                                                            );
-                                                                          }
+                                                            ),
+                                                          ],
+                                                        ),
+                                                        20.height,
+
+                                                        Row(
+                                                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                                          children: [
+                                                            OutlinedButton(
+                                                              onPressed: () {
+                                                                attProvider.permissionReason.clear();
+                                                                Navigator.pop(context);
+                                                              },
+                                                              style: OutlinedButton.styleFrom(
+                                                                backgroundColor: Colors.grey.shade200,
+                                                                side:
+                                                                const BorderSide(color: Colors.white),
+                                                              ),
+                                                              child: CustomText(
+                                                                text: "Cancel",
+                                                                colors: colorsConst.secondary,
+                                                                size: 15,
+                                                                isBold: true,
+                                                              ),
+                                                            ),
+                                                            OutlinedButton(
+                                                              onPressed: () async {
+                                                                if (attProvider.permissionReason.text
+                                                                    .trim()
+                                                                    .isNotEmpty) {
+                                                                  Map<Permission, PermissionStatus>
+                                                                  status = await [
+                                                                    Permission.location,
+                                                                  ].request();
+
+                                                                  if (status[Permission.location] ==
+                                                                      PermissionStatus.granted) {
+                                                                    bool isLocationServiceEnabled =
+                                                                    await Geolocator
+                                                                        .isLocationServiceEnabled();
+
+                                                                    if (!isLocationServiceEnabled) {
+                                                                      utils.showWarningToast(context,
+                                                                          text:
+                                                                          "Location services are disabled. Please enable them.");
+                                                                    } else {
+                                                                      if (locPvr.latitude == "" &&
+                                                                          locPvr.longitude == "") {
+                                                                        utils.showWarningToast(
+                                                                            text: "Check Your Location",
+                                                                            context);
+                                                                        await locPvr.manageLocation(
+                                                                            context, true);
+                                                                      } else {
+                                                                        if (attProvider.isSelfie == false) {
+                                                                          attProvider.putDailyPermission(
+                                                                              context,
+                                                                              "1",
+                                                                              locPvr.latitude,
+                                                                              locPvr.longitude);
+                                                                        } else {
+                                                                          attProvider.signDialog(
+                                                                            context: context,
+                                                                            img: attProvider.profile,
+                                                                            onTap: (newImg) {
+                                                                              attProvider
+                                                                                  .profilePick(newImg);
+                                                                              attProvider.putDailyPermission(
+                                                                                  context,
+                                                                                  "1",
+                                                                                  locPvr.latitude,
+                                                                                  locPvr.longitude);
+                                                                            },
+                                                                          );
                                                                         }
                                                                       }
                                                                     }
-                                                                    else{
-                                                                      await locPvr.manageLocation(context,true);
-                                                                    }
-                                                                  }else{
-                                                                    utils.showWarningToast(context, text: "Please type a reason");
+                                                                  } else {
+                                                                    await locPvr.manageLocation(
+                                                                        context, true);
                                                                   }
-                                                                },
-                                                                style: OutlinedButton.styleFrom(
-                                                                    backgroundColor: colorsConst.primary,
-                                                                    side: BorderSide(color: colorsConst.primary)
-                                                                ),
-                                                                child: const CustomText(text: "Ok",colors: Colors.white,size: 15,isBold: true,),
+                                                                } else {
+                                                                  utils.showWarningToast(context,
+                                                                      text: "Please type a reason");
+                                                                }
+                                                              },
+                                                              style: OutlinedButton.styleFrom(
+                                                                backgroundColor: colorsConst.primary,
+                                                                side: BorderSide(
+                                                                    color: colorsConst.primary),
                                                               ),
-                                                            ],
-                                                          ),40.height,
-                                                        ],
-                                                      ),
+                                                              child: const CustomText(
+                                                                text: "Ok",
+                                                                colors: Colors.white,
+                                                                size: 15,
+                                                                isBold: true,
+                                                              ),
+                                                            ),
+                                                          ],
+                                                        ),
+                                                        40.height,
+                                                      ],
                                                     ),
                                                   ),
-                                                ],
-                                              );
-                                            }
+                                                ),
+                                              ],
+                                            );
+                                          },
                                         );
                                       }
-                                    }:null,
+                                    }
+                                        : null,
+
                                     child: Container(
-                                      width: 20,
-                                      height: 20,
+                                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                                       decoration: BoxDecoration(
-                                        color: isPermissionActive
-                                            ? colorsConst.primary       // Active color
-                                            : Color(0xffD9D9D9),       // Inactive color
-                                        borderRadius: BorderRadius.circular(4),
-                                        border: Border.all(
-                                          color: isPermissionActive
-                                              ? colorsConst.primary   // Match border with active color
-                                              : Color(0xffD9D9D9),   // Inactive border
-                                          width: 1.2,
-                                        ),
+                                        color: attProvider.permissionStatus != "1"
+                                            ? Colors.green // ✅ Permission Not Active
+                                            : Colors.grey.shade400, // ✅ Permission Active
+                                        borderRadius: BorderRadius.circular(8),
                                       ),
-                                      child: isPermissionActive
-                                          ? Icon(
-                                        Icons.check,
-                                        size: 14,
-                                        color: Colors.white,   // Check icon color for visibility
-                                      )
-                                          : null,
-                                    )
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(
+                                            Icons.lock_clock,
+                                            size: 16,
+                                            color: Colors.white,
+                                          ),
+                                          const SizedBox(width: 6),
+                                          const CustomText(
+                                            text: "Permission",
+                                            size: 13,
+                                            colors: Colors.white,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
                                   ),
-                                  const SizedBox(width: 6),
-                                  const CustomText(
-                                    text: "Permission",
-                                    size: 13,
-                                    colors: Colors.white,
-                                  ),
+
                                 ],
                               ),
                     ],
@@ -425,62 +461,141 @@ class _CheckAttendanceState extends State<CheckAttendance> {
                     //       :"        Attendance Out",colors: attProvider.mainAttendance==0?colorsConst.appGreen
                     //       :attProvider.mainCheckOut == true?Colors.grey:colorsConst.appRed,size: 13,),
                     // ),
-            isPermissionActive
-                ? SwipeButton(
-              width: MediaQuery.of(context).size.width * 0.9,
-              height: 35,
-              thumb: Padding(
-                padding: const EdgeInsets.fromLTRB(10, 0, 10, 0),
-                child: SvgPicture.asset(assets.arrow),
-              ),
-              activeThumbColor: colorsConst.appRed,
-              activeTrackColor: Colors.white,
-              onSwipe: () async {
-                attProvider.putDailyPermission(
-                    context,
-                    "2",
-                    locPvr.latitude,
-                    locPvr.longitude);
-              },
-              child: const CustomText(
-                text: "Permission Out",
-                colors: Colors.red,
-                size: 15,
-              ),
-            )
-                : SwipeButton(
-              width: MediaQuery.of(context).size.width * 0.9,
-              height: 35,
-              thumb: Padding(
-                padding: const EdgeInsets.fromLTRB(10, 0, 10, 0),
-                child: SvgPicture.asset(assets.arrow),
-              ),
-              activeThumbColor: attProvider.mainAttendance == 0
-                  ? colorsConst.appGreen
-                  : colorsConst.appRed,
-              activeTrackColor: Colors.white,
-              onSwipe: () async {
-                attProvider.putDailyAttendance(
-                    context,
-                    attProvider.mainAttendance == 0 ? "1" : "2",
-                    locPvr.latitude,
-                    locPvr.longitude);
-              },
-              child: CustomText(
-                text: attProvider.mainAttendance == 0
-                    ? "Attendance In"
-                    : "Attendance Out",
-                colors: attProvider.mainAttendance == 0
-                    ? colorsConst.appGreen
-                    : colorsConst.appRed,
-                size: 13,
-              ),
-            ),
+            // isPermissionActive
+            //     ? SwipeButton(
+            //   width: MediaQuery.of(context).size.width * 0.9,
+            //   height: 35,
+            //   thumb: Padding(
+            //     padding: const EdgeInsets.fromLTRB(10, 0, 10, 0),
+            //     child: SvgPicture.asset(assets.arrow),
+            //   ),
+            //   activeThumbColor: colorsConst.appRed,
+            //   activeTrackColor: Colors.white,
+            //   onSwipe: () async {
+            //     attProvider.putDailyPermission(
+            //         context,
+            //         "2",
+            //         locPvr.latitude,
+            //         locPvr.longitude);
+            //   },
+            //   child: const CustomText(
+            //     text: "Permission Out",
+            //     colors: Colors.red,
+            //     size: 15,
+            //   ),
+            // )
+            //     : SwipeButton(
+            //   width: MediaQuery.of(context).size.width * 0.9,
+            //   height: 35,
+            //   thumb: Padding(
+            //     padding: const EdgeInsets.fromLTRB(10, 0, 10, 0),
+            //     child: SvgPicture.asset(assets.arrow),
+            //   ),
+            //   activeThumbColor: attProvider.mainAttendance == 0
+            //       ? colorsConst.appGreen
+            //       : colorsConst.appRed,
+            //   activeTrackColor: Colors.white,
+            //   onSwipe: () async {
+            //     attProvider.putDailyAttendance(
+            //         context,
+            //         attProvider.mainAttendance == 0 ? "1" : "2",
+            //         locPvr.latitude,
+            //         locPvr.longitude);
+            //   },
+            //   child: CustomText(
+            //     text: attProvider.mainAttendance == 0
+            //         ? "Attendance In"
+            //         : attProvider.mainCheckOut == true?
+            //          "  Attendance Marked"
+            //         :"Attendance Out",
+            //     colors: attProvider.mainAttendance == 0
+            //         ? colorsConst.appGreen
+            //         : colorsConst.appRed,
+            //     size: 13,
+            //   ),
+            // ),
 
+                    Container(
+                      width: MediaQuery.of(context).size.width * 0.9,
+                      height: 35,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(30),
+
+                        // ✅ Border Color same as status
+                        border: Border.all(
+                          color: getAttendanceColor(),
+                          width: 1.5,
+                        ),
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(30),
+                        child: isPermissionActive
+                            ? SwipeButton(
+                          width: MediaQuery.of(context).size.width * 0.9,
+                          height: 35,
+                          thumb: Padding(
+                            padding: const EdgeInsets.fromLTRB(10, 0, 10, 0),
+                            child: SvgPicture.asset(assets.arrow),
+                          ),
+                          activeThumbColor: colorsConst.appRed,
+                          activeTrackColor: Colors.white,
+                          onSwipe: () async {
+                            attProvider.putDailyPermission(
+                              context,
+                              "2",
+                              locPvr.latitude,
+                              locPvr.longitude,
+                            );
+                          },
+                          child: CustomText(
+                            text: "Permission Out",
+                            colors: colorsConst.appRed,
+                            size: 15,
+                          ),
+                        )
+                            : SwipeButton(
+                          width: MediaQuery.of(context).size.width * 0.9,
+                          height: 35,
+                          thumb: Padding(
+                            padding: const EdgeInsets.fromLTRB(10, 0, 10, 0),
+                            child: SvgPicture.asset(assets.arrow),
+                          ),
+
+                          // ✅ Thumb color
+                          activeThumbColor: getAttendanceColor(),
+                          activeTrackColor: Colors.white,
+
+                          // ✅ Disable swipe when marked
+                          onSwipe: attProvider.mainCheckOut == true
+                              ? null
+                              : () async {
+                            attProvider.putDailyAttendance(
+                              context,
+                              attProvider.mainAttendance == 0 ? "1" : "2",
+                              locPvr.latitude,
+                              locPvr.longitude,
+                            );
+                          },
+
+                          child: CustomText(
+                            text: attProvider.mainAttendance == 0
+                                ? "Attendance In"
+                                : attProvider.mainCheckOut == true
+                                ? "              Attendance Marked"
+                                : "    Attendance Out",
+
+                            // ✅ Text color
+                            colors: getAttendanceColor(),
+                            size: 13,
+                          ),
+                        ),
+                      ),
+                    )
 
                   ],
                 ),
               ),
+              if(localData.storage.read("role")=="1")
               InkWell(
                 onTap:(){
                   // homeProvider.updateIndex(4);

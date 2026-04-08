@@ -7,6 +7,7 @@ class ColorsConst{
   /// Original Color
 //   final Color primary=  const Color(0xff45377D); /// aci blue
   final Color primary=  const Color(0xffA50008); /// JPS red
+  final Color primaryLight1=  const Color(0xffefa6aa); /// JPS red
   final Color late=  const Color(0xffDD9830); /// JPS red
   final Color active=  const Color(0xff075985); /// JPS red
   final Color inactive	=  const Color(0xff475569); /// JPS red
@@ -82,6 +83,7 @@ class ColorsConst{
   final Color normal=  const Color(0xff5C6BC0);
   final Color high=  const Color(0xffFF9500);
   static const Color primaryDark = Color(0xFF1A85DB);
+  static const Color primaryDark1 = Color(0xFFB50202);
   static const Color lightBlueCard = Color(0xFFDCEBFA);
 
   static const Color textBlack = Color(0xFF111111);
