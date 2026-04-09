@@ -303,7 +303,7 @@ class _CheckAttendanceState extends State<CheckAttendance> {
                                         : null,
 
                                     child: Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
                                       decoration: BoxDecoration(
                                         color: attProvider.permissionStatus != "1"
                                             ? Colors.green // ✅ Permission Not Active
@@ -321,7 +321,7 @@ class _CheckAttendanceState extends State<CheckAttendance> {
                                           const SizedBox(width: 6),
                                           const CustomText(
                                             text: "Permission",
-                                            size: 13,
+                                            size: 12,
                                             colors: Colors.white,
                                           ),
                                         ],

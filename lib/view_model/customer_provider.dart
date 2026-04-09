@@ -1884,6 +1884,7 @@ List<CustomerAttendanceModel> get customerAttendanceReport=>_customerAttendanceR
 //
 //   notifyListeners();
 // }
+
   void changeType(dynamic value) {
     _selectType = value;
 
@@ -2586,13 +2587,23 @@ TextEditingController date= TextEditingController(text: "${DateTime.now().day.to
     required List sendList,required String lat,required String lng,required VoidCallback callBack}) async
   {
     try {
+      List customerIds = localData.storage.read("c_ids") ?? [];
+
+// if already string, keep it
+      String customerIdString = "";
+
+      if (customerIds is List) {
+        customerIdString = customerIds.map((e) => e.toString()).toList().join(",");
+      } else {
+        customerIdString = customerIds.toString();
+      }
       Map data = {
         "action":addVst,
         "task_id":taskId,
         "log_file":localData.storage.read("mobile_number"),
         "cos_id":localData.storage.read("cos_id"),
         "company_id":companyId,
-        "customer_id":localData.storage.read("c_id"),
+        "customer_id": customerIdString,
         "mobile_number":localData.storage.read("c_no"),
         "customer_name":localData.storage.read("c_name"),
         "type":localData.storage.read("type_id"),
@@ -2601,6 +2612,7 @@ TextEditingController date= TextEditingController(text: "${DateTime.now().day.to
         "action_taken":points.text.trim(),
         "lead":localData.storage.read("lead_id"),
         "call_visit_type":localData.storage.read("visit_id"),
+        "cus_type": selectType['id'].toString(),
         "date":commentDate.text.trim(),
         "review":selectReview,
         "door_no": address.text.trim(),
@@ -5879,5 +5891,28 @@ List<Marker> get liveMarker =>_liveMarker;
     }
     notifyListeners();
   }
+  void updateCustomers(List<Map<String, dynamic>> list, String names) {
+    selectedCustomers = list;
+    print("selectedCustomers $selectedCustomers");
+    selectCustomerName = names;
 
+    localData.storage.write("c_names", names);
+    localData.storage.write(
+        "c_ids", list.map((e) => e["id"].toString()).toList());
+    localData.storage.write(
+        "c_nos", list.map((e) => e["no"].toString()).toList());
+print("customer all is${localData.storage.read("c_ids")}");
+    notifyListeners();
+  }
+
+  void clearCustomers() {
+    selectedCustomers = [];
+    selectCustomerName = "";
+
+    localData.storage.remove("c_names");
+    localData.storage.remove("c_ids");
+    localData.storage.remove("c_nos");
+
+    notifyListeners();
+  }
 }

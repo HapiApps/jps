@@ -1959,7 +1959,16 @@ class TaskProvider with ChangeNotifier {
     _changeTaskStatus = value;
     notifyListeners();
   }
-
+  Future<void> refreshCusType() async {
+    _selectType=null;
+    cusTypeList.clear();
+    List storedLeads = await LocalDatabase.getCusTypes();
+    cusTypeList=storedLeads;
+    if(cusTypeList.isNotEmpty){
+      _selectType=cusTypeList[0];
+    }
+    notifyListeners();
+  }
   // void changeAssignedIs(context, List<dynamic> names) {
   //   List<String> ids = [];
   //   var list = Provider.of<EmployeeProvider>(context, listen: false).filterUserData;
@@ -2018,14 +2027,25 @@ class TaskProvider with ChangeNotifier {
   }
 
   void changeType(dynamic value) {
+    _selectType = value;
     _type = value;
+    localData.storage.write("type_id", value["id"].toString());
     // print(value);
     // var list = [];
     // list.add(value);
     localData.storage.write("type_id", value);
     notifyListeners();
   }
-
+  void changeCusType(dynamic value) {
+    _selectType = value;
+    _type = value;
+    localData.storage.write("cus_type", value["id"].toString());
+    // print(value);
+    // var list = [];
+    // list.add(value);
+    localData.storage.write("cus_type", value);
+    notifyListeners();
+  }
   // void changeStatus(dynamic value) {
   //   _status = value;
   //   var list = [];
@@ -3552,6 +3572,7 @@ class TaskProvider with ChangeNotifier {
 
   var typeList=[];
   var customerList=[];
+  var cusTypeList=[];
   var statusList=[];
 
   bool _addRefresh = true;
@@ -3645,7 +3666,7 @@ class TaskProvider with ChangeNotifier {
   }
   Future<void> getCustomerType(bool isRefresh) async {
     try {
-      _selectType1 = null;
+      _selectType= null;
 
       if (isRefresh == true) {
         _addRefresh = false;
@@ -3676,8 +3697,8 @@ class TaskProvider with ChangeNotifier {
           await LocalDatabase.insertCusType(list);
           getAllCusTypes();
         } else {
-          customerList.clear();
-          customerList = list;
+          cusTypeList.clear();
+          cusTypeList = list;
           _addRefresh = true;
           notifyListeners();
         }
@@ -3789,27 +3810,26 @@ class TaskProvider with ChangeNotifier {
     notifyListeners();
   }
   Future<void> getAllCusTypes() async {
-    customerList.clear();
+    cusTypeList.clear();
 
     List storedLeads = await LocalDatabase.getCusTypes();
-    customerList = storedLeads;
+    cusTypeList = storedLeads;
 
     _addRefresh = true;
 
-    print("local db typeList......$customerList");
+    print("local db typeList.customer .....$cusTypeList");
 
-    // ✅ first time auto select
-    if (customerList.isNotEmpty) {
-      _selectType ??= customerList[0];
+    if (cusTypeList.isNotEmpty) {
+      _selectType ??= cusTypeList[0];
     }
 
     notifyListeners();
   }
   Future<void> refreshCusTypes() async {
     _type=null;
-    customerList.clear();
+    cusTypeList.clear();
     List storedLeads = await LocalDatabase.getCusTypes();
-    customerList=storedLeads;
+    cusTypeList=storedLeads;
     notifyListeners();
   }
 

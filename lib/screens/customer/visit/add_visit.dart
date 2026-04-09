@@ -60,6 +60,7 @@ class _CusAddVisitState extends State<CusAddVisit> with TickerProviderStateMixin
         Provider.of<CustomerProvider>(context, listen: false).getAllCustomers(true);
       }else{
         Provider.of<TaskProvider>(context, listen: false).getTaskType(false);
+        Provider.of<TaskProvider>(context, listen: false).getCustomerType(false);
         Provider.of<TaskProvider>(context, listen: false).getTaskStatuses();
         Provider.of<EmployeeProvider>(context, listen: false).getAllUsers();
         Provider.of<CustomerProvider>(context, listen: false).getAllCustomers(true);
@@ -69,6 +70,7 @@ class _CusAddVisitState extends State<CusAddVisit> with TickerProviderStateMixin
           customerProvider.getLeadCategory();
           customerProvider.getVisitType();
           customerProvider.getCmtType();
+          Provider.of<TaskProvider>(context, listen: false).getCustomerType(false);
           Provider.of<EmployeeProvider>(context, listen: false).getAllUsers();
           Provider.of<CustomerProvider>(context, listen: false).getAllCustomers(true);
         }else{
@@ -181,29 +183,33 @@ class _CusAddVisitState extends State<CusAddVisit> with TickerProviderStateMixin
                               dropText: 'value',),
                             MapDropDown(
                               isRequired: true,
-                              isRefresh: custProvider.cusTypeList.isEmpty ? true : false,
+                              isRefresh: taskProvider.cusTypeList.isEmpty,
+
                               callback: () {
                                 if (!kIsWeb) {
-                                  taskProvider.getCustomerType(true);
+                                  taskProvider.refreshCusType();
                                 } else {
                                   taskProvider.getAllCusTypes();
                                 }
                               },
+
                               width: kIsWeb ? webWidth : phoneWidth,
                               hintText: constValue.cusType,
-                              list: custProvider.cusTypeList,
 
-                              // ✅ Correct saveValue
-                              saveValue: custProvider.selectType != null
-                                  ? custProvider.selectType['id'].toString()
+                              list: taskProvider.cusTypeList,
+
+                              saveValue: taskProvider.selectType != null
+                                  ? taskProvider.selectType['id'].toString()
                                   : null,
 
-                              onChanged: (Object? value) {
-                                final selected = custProvider.cusTypeList.firstWhere(
-                                        (e) => e['id'].toString() == value.toString());
+                              onChanged: (value) {
+                                final selected = taskProvider.cusTypeList.firstWhere(
+                                      (e) => e['id'].toString() == value.toString(),
+                                );
 
-                                custProvider.changeType(selected);
+                                taskProvider.changeCusType(selected); // ✅ same provider
                               },
+
                               dropText: 'value',
                             ),
                             CustomTextField(
@@ -258,56 +264,42 @@ class _CusAddVisitState extends State<CusAddVisit> with TickerProviderStateMixin
                               ),
                             ),
                             10.height,
-                            SearchCustomDropdownList(
-                              text: "Customer",
-                              hintText: custProvider.selectCustomerName.isEmpty
-                                  ? "Select Customer"
-                                  : custProvider.selectCustomerName, // Only show names
-                              valueList: widget.numberList.isNotEmpty ? widget.numberList : sendList,
-                              displayKey: "name", // Only display name
-                              onChanged: (value) {
-                                if (value != null && value is List) {
-                                  // Convert to Map and remove duplicates based on "id"
-                                  List<Map<String, dynamic>> selectedCustomers =
-                                  value.map((e) => e as Map<String, dynamic>).toList();
+                            Consumer<CustomerProvider>(
+                              builder: (context, custProvider, child) {
+                                return SearchCustomDropdownList(
+                                  text: "Customer",
+                                  hintText: custProvider.selectCustomerName.isEmpty
+                                      ? "Select Customer"
+                                      : custProvider.selectCustomerName,
+                                  valueList: widget.numberList.isNotEmpty
+                                      ? widget.numberList
+                                      : sendList.map((e) => e["name"].toString()).toList(),
+                                  displayKey: "name",
+                                  onChanged: (value) {
+                                    if (value != null && value is List) {
+                                      List<Map<String, dynamic>> selectedCustomers =
+                                      value.map((e) => e as Map<String, dynamic>).toList();
 
-                                  // Remove duplicates by 'id'
-                                  final uniqueCustomers = <Map<String, dynamic>>[];
-                                  final ids = <String>{};
-                                  for (var c in selectedCustomers) {
-                                    if (!ids.contains(c["id"].toString())) {
-                                      uniqueCustomers.add(c);
-                                      ids.add(c["id"].toString());
+                                      final uniqueCustomers = <Map<String, dynamic>>[];
+                                      final ids = <String>{};
+
+                                      for (var c in selectedCustomers) {
+                                        if (!ids.contains(c["id"].toString())) {
+                                          uniqueCustomers.add(c);
+                                          ids.add(c["id"].toString());
+                                        }
+                                      }
+                                      String displayNames = uniqueCustomers.map((e) => e["name"].toString()).join(", ");
+                                      print("Display ${displayNames}");
+                                      custProvider.updateCustomers(uniqueCustomers, displayNames);
+                                      taskProvider.changeType(value);
+                                    } else {
+                                      custProvider.clearCustomers();
                                     }
-                                  }
-
-                                  // Join names for display
-                                  String displayNames = uniqueCustomers.map((e) => e["name"].toString()).join(", ");
-
-                                  setState(() {
-                                    custProvider.selectedCustomers = uniqueCustomers;
-                                    custProvider.selectCustomerName = displayNames;
-
-                                    // Save in storage
-                                    localData.storage.write("c_names", displayNames);
-                                    localData.storage.write(
-                                        "c_ids", uniqueCustomers.map((e) => e["id"].toString()).toList());
-                                    localData.storage.write(
-                                        "c_nos", uniqueCustomers.map((e) => e["no"].toString()).toList());
-                                  });
-                                } else {
-                                  // If nothing selected, clear everything
-                                  setState(() {
-                                    custProvider.selectedCustomers = [];
-                                    custProvider.selectCustomerName = "";
-
-                                    localData.storage.remove("c_names");
-                                    localData.storage.remove("c_ids");
-                                    localData.storage.remove("c_nos");
-                                  });
-                                }
+                                  },
+                                  width: kIsWeb ? webWidth : phoneWidth,
+                                );
                               },
-                              width: kIsWeb ? webWidth : phoneWidth,
                             ),
                             // InkWell(
                             //   onTap: () {
@@ -479,8 +471,16 @@ class _CusAddVisitState extends State<CusAddVisit> with TickerProviderStateMixin
                                   custProvider.addCtr.reset();
                                 }else{
                                   _myFocusScopeNode.unfocus();
-                                  custProvider.addVisit(context: context,companyId: widget.isDirect==true?companyId:widget.companyId.toString(), companyName: widget.isDirect==true?companyName:widget.companyName,
-                                    sendList: widget.numberList,lat: locPvr.latitude,lng: locPvr.longitude, taskId: widget.taskId, tType: widget.type, desc: widget.desc,
+                                  custProvider.addVisit(
+                                    context: context,companyId: widget.isDirect==true?
+                                    companyId:widget.companyId.toString(),
+                                    companyName: widget.isDirect==true?companyName:widget.companyName,
+                                    sendList: widget.numberList,
+                                    lat: locPvr.latitude,
+                                    lng: locPvr.longitude,
+                                    taskId: widget.taskId,
+                                    tType: widget.type,
+                                    desc: widget.desc,
                                     callBack: () {
                                       // if(widget.isDirect==true){
                                       //   Navigator.pop(context);
