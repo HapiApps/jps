@@ -1338,7 +1338,7 @@ int get listItem=>_listItem;
     _dailyType=null;
     cusTypeList.clear();
     List storedLeads = await LocalDatabase.getCusTypes();
-    cmtTypeList=storedLeads;
+    cusTypeList=storedLeads;
     notifyListeners();
   }
   Future<void> refreshCusType() async {
@@ -2583,7 +2583,7 @@ TextEditingController date= TextEditingController(text: "${DateTime.now().day.to
     }
     notifyListeners();
   }
-  Future<void> addVisit({required  context,required String companyId, required String taskId, required String companyName,required String tType, required String desc,
+  Future<void> addVisit({required  context,required String companyId, required String taskId, required String companyName, required List<String> cusName,required String tType, required String desc,
     required List sendList,required String lat,required String lng,required VoidCallback callBack}) async
   {
     try {
@@ -2605,14 +2605,14 @@ TextEditingController date= TextEditingController(text: "${DateTime.now().day.to
         "company_id":companyId,
         "customer_id": customerIdString,
         "mobile_number":localData.storage.read("c_no"),
-        "customer_name":localData.storage.read("c_name"),
+        "customer_name":cusName.join(","),
         "type":localData.storage.read("type_id"),
         "created_by":localData.storage.read("id")??"0",
         "discussion_points":disPoint.text.trim(),
         "action_taken":points.text.trim(),
         "lead":localData.storage.read("lead_id"),
         "call_visit_type":localData.storage.read("visit_id"),
-        "cus_type": selectType['id'].toString(),
+        "cus_type": localData.storage.read("cus_type")["id"].toString(),
         "date":commentDate.text.trim(),
         "review":selectReview,
         "door_no": address.text.trim(),

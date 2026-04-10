@@ -252,7 +252,7 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Container(
-                        width: kIsWeb?webHeight/1.2:phoneHeight/1.2,
+                        width: kIsWeb?webHeight/1.2:phoneHeight/1.4,
                         decoration: customDecoration.baseBackgroundDecoration(
                           radius: 30,
                           color: colorsConst.primary,
@@ -261,7 +261,7 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Container(
-                              width: kIsWeb?webHeight/1.5:phoneHeight/1.5,
+                              width: kIsWeb?webHeight/1.5:phoneHeight/1.8,
                               height: 45,
                               decoration: customDecoration.baseBackgroundDecoration(
                                 radius: 30,
@@ -289,12 +289,10 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
                                           taskProvider.search.clear();
                                           taskProvider.searchTask("");
                                         },
-                                        child: Container(
-                                            width: 10,height: 10,color: Colors.transparent,
-                                            child: Padding(
-                                              padding: const EdgeInsets.all(8.0),
-                                              child: SvgPicture.asset(assets.cancel2),
-                                            ))):null,
+                                        child: Padding(
+                                          padding: const EdgeInsets.all(8.0),
+                                          child: SvgPicture.asset(assets.cancel2),
+                                        )):null,
                                   errorStyle: const TextStyle(
                                     fontSize: 12.0,
                                     height: 0.20,
@@ -591,7 +589,106 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
                             5.width
                           ],
                         ),),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          InkWell(
+                            onTap: () async {
+                              taskProvider.downloadAllTask(context);
+                            },
+                            borderRadius: BorderRadius.circular(12),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                SvgPicture.asset(
+                                  assets.tDownload,
+                                  width: 20,
+                                  height: 20,
 
+                                ),
+                                const SizedBox(width: 8),
+                                const Text(
+                                  "Task",
+                                  style: TextStyle(
+                                    color: Colors.black,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12,
+                                  ),
+                                )
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          InkWell(
+                            onTap: () async {
+                              await taskProvider.downloadAllTaskComment(context);
+                            },
+                            borderRadius: BorderRadius.circular(12),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                SvgPicture.asset(
+                                  assets.tDownload,
+                                  width: 20,
+                                  height: 20,
+
+                                ),
+                                const SizedBox(width: 8),
+                                const Text(
+                                  "Comments",
+                                  style: TextStyle(
+                                    color: Colors.black,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12,
+                                  ),
+                                )
+                              ],
+                            ),
+                          )
+                          // GestureDetector(
+                          //   onTap: () {
+                          //     showDialog(
+                          //       context: context,
+                          //       builder: (context) {
+                          //         return AlertDialog(
+                          //           title: Text("Download"),
+                          //           content: Column(
+                          //             mainAxisSize: MainAxisSize.min,
+                          //             children: [
+                          //
+                          //               ListTile(
+                          //                 leading: Icon(Icons.task),
+                          //                 title: Text("Task Details"),
+                          //                 onTap: () {
+                          //                   Navigator.pop(context);
+                          //                   taskProvider.downloadAllTask(context);
+                          //                 },
+                          //               ),
+                          //
+                          //               Divider(),
+                          //
+                          //               ListTile(
+                          //                 leading: Icon(Icons.comment),
+                          //                 title: Text("Task Comment Details"),
+                          //                 onTap: () {
+                          //                   Navigator.pop(context);
+                          //                   taskProvider.downloadAllTaskComment(context);
+                          //                 },
+                          //               ),
+                          //             ],
+                          //           ),
+                          //         );
+                          //       },
+                          //     );
+                          //   },
+                          //   child: SvgPicture.asset(
+                          //     assets.tDownload,
+                          //     width: 27,
+                          //     height: 27,
+                          //   ),
+                          // ),
+                        ],
+                      ),
                       // CustomLoadingButton(callback: (){
                       // }, text: "PF", isLoading: false,
                       //     backgroundColor: colorsConst.primary, radius: 5, width: 60)
@@ -603,122 +700,9 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+
                         Row(
                           mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
-                            InkWell(
-                              onTap: () async {
-                                taskProvider.downloadAllTask(context);
-                              },
-                              borderRadius: BorderRadius.circular(12),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                                decoration: BoxDecoration(
-                                  color: Colors.red,
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    SvgPicture.asset(
-                                      assets.tDownload,
-                                      width: 20,
-                                      height: 20,
-                                      color: Colors.white,
-                                    ),
-                                    const SizedBox(width: 8),
-                                    const Text(
-                                      "task sheet",
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 14,
-                                      ),
-                                    )
-                                  ],
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            InkWell(
-                              onTap: () async {
-                                await taskProvider.downloadAllTaskComment(context);
-                              },
-                              borderRadius: BorderRadius.circular(12),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                                decoration: BoxDecoration(
-                                  color: Colors.green,
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    SvgPicture.asset(
-                                      assets.tDownload,
-                                      width: 20,
-                                      height: 20,
-                                      color: Colors.white,
-                                    ),
-                                    const SizedBox(width: 8),
-                                    const Text(
-                                      "comment sheet",
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 14,
-                                      ),
-                                    )
-                                  ],
-                                ),
-                              ),
-                            )
-                            // GestureDetector(
-                            //   onTap: () {
-                            //     showDialog(
-                            //       context: context,
-                            //       builder: (context) {
-                            //         return AlertDialog(
-                            //           title: Text("Download"),
-                            //           content: Column(
-                            //             mainAxisSize: MainAxisSize.min,
-                            //             children: [
-                            //
-                            //               ListTile(
-                            //                 leading: Icon(Icons.task),
-                            //                 title: Text("Task Details"),
-                            //                 onTap: () {
-                            //                   Navigator.pop(context);
-                            //                   taskProvider.downloadAllTask(context);
-                            //                 },
-                            //               ),
-                            //
-                            //               Divider(),
-                            //
-                            //               ListTile(
-                            //                 leading: Icon(Icons.comment),
-                            //                 title: Text("Task Comment Details"),
-                            //                 onTap: () {
-                            //                   Navigator.pop(context);
-                            //                   taskProvider.downloadAllTaskComment(context);
-                            //                 },
-                            //               ),
-                            //             ],
-                            //           ),
-                            //         );
-                            //       },
-                            //     );
-                            //   },
-                            //   child: SvgPicture.asset(
-                            //     assets.tDownload,
-                            //     width: 27,
-                            //     height: 27,
-                            //   ),
-                            // ),
-                          ],
-                        ),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             if(taskProvider.isFilter==true)
                             const Text(

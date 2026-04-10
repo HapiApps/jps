@@ -98,17 +98,38 @@ class VisitReportDetails extends StatelessWidget {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Row(
-                              children: [
-                                const CustomText(text: "Customer Name : ",colors: Colors.grey),
-                                SizedBox(
-                                    // color: Colors.yellow,
-                                    width: isAddCmt==true&&kIsWeb?webWidth
-                                        :isAddCmt==false&&kIsWeb?webWidth
-                                        :isAddCmt==true&&kIsWeb?phoneWidth/1:phoneWidth/2.8,
-                                    child: CustomText(text: data.name.toString()=="null"?"-":data.name.toString())),
-                              ],
-                            ),
+                            // Row(
+                            //   children: [
+                            //     const CustomText(text: "Customer Name : ",colors: Colors.grey),
+                            //     SizedBox(
+                            //         // color: Colors.yellow,
+                            //         width: isAddCmt==true&&kIsWeb?webWidth
+                            //             :isAddCmt==false&&kIsWeb?webWidth
+                            //             :isAddCmt==true&&kIsWeb?phoneWidth/1:phoneWidth/2.8,
+                            //         child: CustomText(text: data.name.toString()=="null"?"-":data.name.toString())),
+                            //   ],
+                            // ),
+
+                        Row(
+                        children: [
+                        const CustomText(text: "Customer Name : ", colors: Colors.grey),
+                        SizedBox(
+                          width: isAddCmt == true && kIsWeb
+                              ? webWidth
+                              : isAddCmt == false && kIsWeb
+                              ? webWidth
+                              : isAddCmt == true && kIsWeb
+                              ? phoneWidth / 1
+                              : phoneWidth / 2.8,
+                          child: CustomText(
+                            text: (data.name == null || data.name.toString() == "null" || data.name!.isEmpty)
+                                ? "-"
+                                : data.name.toString().replaceAll(" || ", ", "),
+                          ),
+                        ),
+                      ],
+                    ),
+
                             if(data.phoneNo.toString()!="null"&&data.phoneNo.toString()!="")
                             GestureDetector(
                               onTap: (){
@@ -141,6 +162,16 @@ class VisitReportDetails extends StatelessWidget {
                                 child: CustomText(text: data.lead.toString()=="null"?"":data.lead.toString())),
                           ],
                         ),5.height,
+                        Row(
+                          children: [
+                            const CustomText(text: "Customer Type :                ",colors: Colors.grey),
+                            SizedBox(
+                              // color: Colors.yellow,
+                                width: kIsWeb?phoneWidth/1.8:phoneWidth/1.8,
+                                child: CustomText(text: data.cusType.toString()=="null"?"-":data.cusType.toString())),
+                          ],
+                        ),
+                        5.height,
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [

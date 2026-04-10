@@ -27,7 +27,7 @@ class ConstantValues{
   final String applyDate = "Applied Date";
   final String addVisit = "Add Visit";
   final String visit = "Visits";
-  final String visitRepo = "Visit Report";
+  final String visitRepo = "Daily Work Plan Report";
 
   final String planDay = "What is Your Plan For the Day?";
   final String checkPdf = "pdf";

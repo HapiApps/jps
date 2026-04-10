@@ -108,6 +108,8 @@ int _expType=0;
 int get expType =>_expType;
 int _taskType=0;
 int get taskype =>_taskType;
+int _noAttendanceCount = 0;
+int get noAttendanceCount => _noAttendanceCount;
 final List<Widget> _mainContents = [
   const HomePage(),
   const ViewEmployees(),
@@ -938,6 +940,19 @@ Future<void> loginOuts(context) async {
       _mainReportList = [response["main_report"]];
 
       var mainReport = response["main_report"];
+      _noAttendanceCount = int.tryParse(
+          mainReport["no_attendance_count"].toString()) ??
+          0;
+      // 🔥 no attendance count store
+      localData.storage.write(
+        "no_attendance_count",
+        mainReport["no_attendance_count"] == null ||
+            mainReport["no_attendance_count"].toString().isEmpty
+            ? "0"
+            : mainReport["no_attendance_count"].toString(),
+      );
+      print("✅ no_attendance_count variablr : $_noAttendanceCount");
+      print("No Attendance Count local : ${mainReport["no_attendance_count"]}");
 
       localData.storage.write(
           "conveyance_amount",

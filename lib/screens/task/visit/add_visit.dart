@@ -22,6 +22,7 @@ import '../../../source/utilities/utils.dart';
 import '../../../view_model/employee_provider.dart';
 import '../../common/dashboard.dart';
 import '../../customer/viamap.dart';
+import '../search_dropdown_list.dart';
 import '../task_report.dart';
 
 class AddVisit extends StatefulWidget {
@@ -228,7 +229,37 @@ class _AddVisitState extends State<AddVisit> with TickerProviderStateMixin {
                                 custProvider.changeType(selected);
                               },
                               dropText: 'value',),
+                            MapDropDown(
+                              isRequired: true,
+                              isRefresh: taskPvr.cusTypeList.isEmpty,
 
+                              callback: () {
+                                if (!kIsWeb) {
+                                  taskPvr.refreshCusType();
+                                } else {
+                                  taskPvr.getAllCusTypes();
+                                }
+                              },
+
+                              width: kIsWeb ? webWidth : phoneWidth,
+                              hintText: constValue.cusType,
+
+                              list: taskPvr.cusTypeList,
+
+                              saveValue: taskPvr.selectType != null
+                                  ? taskPvr.selectType['id'].toString()
+                                  : null,
+
+                              onChanged: (value) {
+                                final selected = taskPvr.cusTypeList.firstWhere(
+                                      (e) => e['id'].toString() == value.toString(),
+                                );
+
+                                taskPvr.changeCusType(selected); // ✅ same provider
+                              },
+
+                              dropText: 'value',
+                            ),
                             CustomTextField(
                               width: kIsWeb?webWidth:phoneWidth,
                               text: "Date", controller: custProvider.commentDate,
@@ -285,33 +316,71 @@ class _AddVisitState extends State<AddVisit> with TickerProviderStateMixin {
                               ),
                             ),
                             10.height,
-                            MapDropDown(
-                              isRequired: true,
-                              width: kIsWeb ? webWidth : phoneWidth,
-                              hintText: constValue.contactName,
-                              list: widget.isDirect == false ? widget.numberList : sendList,
-
-                              // ✅ save only id
-                              saveValue: custProvider.selectCustomer?["id"],
-
-                              onChanged: (Object? value) {
-                                setState(() {
-
-                                  // 🔥 find full object from list
-                                  final selected = (widget.isDirect == false
+                            // MapDropDown(
+                            //   isRequired: true,
+                            //   width: kIsWeb ? webWidth : phoneWidth,
+                            //   hintText: constValue.contactName,
+                            //   list: widget.isDirect == false ? widget.numberList : sendList,
+                            //
+                            //   // ✅ save only id
+                            //   saveValue: custProvider.selectCustomer?["id"],
+                            //
+                            //   onChanged: (Object? value) {
+                            //     setState(() {
+                            //
+                            //       // 🔥 find full object from list
+                            //       final selected = (widget.isDirect == false
+                            //           ? widget.numberList
+                            //           : sendList)
+                            //           .firstWhere((e) => e["id"].toString() == value.toString());
+                            //
+                            //       custProvider.selectCustomer = selected;
+                            //
+                            //       localData.storage.write("c_id", selected["id"]);
+                            //       localData.storage.write("c_no", selected["no"]);
+                            //       localData.storage.write("c_name", selected["name"]);
+                            //     });
+                            //   },
+                            //
+                            //   dropText: 'name',
+                            // ),
+                            10.height,
+                            Consumer<CustomerProvider>(
+                              builder: (context, custProvider, child) {
+                                return SearchCustomDropdownList(
+                                  text: "Customer",
+                                  hintText: custProvider.selectCustomerName.isEmpty
+                                      ? "Select Customer"
+                                      : custProvider.selectCustomerName,
+                                  valueList: widget.numberList.isNotEmpty
                                       ? widget.numberList
-                                      : sendList)
-                                      .firstWhere((e) => e["id"].toString() == value.toString());
+                                      : sendList.map((e) => e["name"].toString()).toList(),
+                                  displayKey: "name",
+                                  onChanged: (value) {
+                                    if (value != null && value is List) {
+                                      List<Map<String, dynamic>> selectedCustomers =
+                                      value.map((e) => e as Map<String, dynamic>).toList();
 
-                                  custProvider.selectCustomer = selected;
+                                      final uniqueCustomers = <Map<String, dynamic>>[];
+                                      final ids = <String>{};
 
-                                  localData.storage.write("c_id", selected["id"]);
-                                  localData.storage.write("c_no", selected["no"]);
-                                  localData.storage.write("c_name", selected["name"]);
-                                });
+                                      for (var c in selectedCustomers) {
+                                        if (!ids.contains(c["id"].toString())) {
+                                          uniqueCustomers.add(c);
+                                          ids.add(c["id"].toString());
+                                        }
+                                      }
+                                      String displayNames = uniqueCustomers.map((e) => e["name"].toString()).join(", ");
+                                      print("Display ${displayNames}");
+                                      custProvider.updateCustomers(uniqueCustomers, displayNames);
+
+                                    } else {
+                                      custProvider.clearCustomers();
+                                    }
+                                  },
+                                  width: kIsWeb ? webWidth : phoneWidth,
+                                );
                               },
-
-                              dropText: 'name',
                             ),
                             ///
                             // MaxLineTextField(isRequired:true,
@@ -438,7 +507,7 @@ class _AddVisitState extends State<AddVisit> with TickerProviderStateMixin {
                                 if(custProvider.selectType==null){
                                   utils.showWarningToast(context, text: "Select a visit type");
                                   custProvider.addCtr.reset();
-                                }else if(custProvider.selectCustomer==null){
+                                }else if(sendList.map((e) => e["name"].toString()).toList().isEmpty){
                                   utils.showWarningToast(context, text: "Select a ${constValue.contactName}");
                                   custProvider.addCtr.reset();
                                 }else if(custProvider.disPoint.text.trim().isEmpty){
@@ -448,14 +517,14 @@ class _AddVisitState extends State<AddVisit> with TickerProviderStateMixin {
                                   _myFocusScopeNode.unfocus();
                                   custProvider.addVisit(context: context,companyId: widget.companyId.toString(), companyName: widget.companyName,
                                       sendList: widget.numberList,lat: locPvr.latitude,lng: locPvr.longitude,
-                                      taskId: widget.taskId, tType: widget.type, desc: widget.desc,
+                                      taskId: widget.taskId, tType: widget.type, desc: widget.desc, cusName:sendList.map((e) => e["name"].toString()).toList(),
                                       callBack: (){
                                         utils.navigatePage(context, ()=>
                                             DashBoard(child: VisitReport(date1: home.startDate, date2: home.endDate,month: home.month,type: home.type,)));
 
                                         //  Future.microtask(() => Navigator.pop(context));
 
-                                  }
+                                  },
                                       );
                                 }
                               },text: 'Save',

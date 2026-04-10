@@ -54,7 +54,7 @@ class _SearchCustomDropdownState extends State<SearchCustomDropdown> {
           widget.isOptional == false ? 0.height : 5.height,
           Container(
               width: widget.width,
-              height: 50,
+              height: 53,
               alignment: Alignment.center,
               decoration: customDecoration.baseBackgroundDecoration(
                   radius: 10, color: Colors.white, borderColor: Colors.grey.shade300),

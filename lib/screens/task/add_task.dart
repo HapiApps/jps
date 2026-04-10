@@ -131,7 +131,7 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
                                   GridView.builder(
                                     itemCount: taskProvider.typeList.length,
                                     gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                                      crossAxisCount: 2,
+                                      crossAxisCount: 1,
                                       crossAxisSpacing: kIsWeb?5:10,
                                       mainAxisSpacing: kIsWeb?5:10,
                                       mainAxisExtent: 20,
@@ -140,7 +140,7 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
                                     physics: const NeverScrollableScrollPhysics(),
                                     itemBuilder: (context,index){
                                       return CustomRadioButton(
-                                        width: MediaQuery.of(context).size.width*0.37,
+                                        width: MediaQuery.of(context).size.width*0.50,
                                         text: taskProvider.typeList[index]["value"].toString().trim(),
                                         onChanged: (Object? value) {
                                           taskProvider.changeType(taskProvider.typeList[index]["id"]);

@@ -6,7 +6,7 @@ class DashboardAssets {
   static const String tracking = "assets/images/tracking.png";
   static const String reminder = "assets/images/reminder.png";
   static const String menu = "assets/images/menu.png";
-  static const String reportIcon = "assets/images/Vector.png";
+  static const String reportIcon = "assets/images/vec.png";
 
   /// Work Log
   static const String checkInArrow = "assets/images/check_in.png";

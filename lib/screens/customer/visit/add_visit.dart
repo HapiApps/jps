@@ -292,7 +292,7 @@ class _CusAddVisitState extends State<CusAddVisit> with TickerProviderStateMixin
                                       String displayNames = uniqueCustomers.map((e) => e["name"].toString()).join(", ");
                                       print("Display ${displayNames}");
                                       custProvider.updateCustomers(uniqueCustomers, displayNames);
-                                      taskProvider.changeType(value);
+
                                     } else {
                                       custProvider.clearCustomers();
                                     }
@@ -476,6 +476,7 @@ class _CusAddVisitState extends State<CusAddVisit> with TickerProviderStateMixin
                                     companyId:widget.companyId.toString(),
                                     companyName: widget.isDirect==true?companyName:widget.companyName,
                                     sendList: widget.numberList,
+                                    cusName:sendList.map((e) => e["name"].toString()).toList() ,
                                     lat: locPvr.latitude,
                                     lng: locPvr.longitude,
                                     taskId: widget.taskId,

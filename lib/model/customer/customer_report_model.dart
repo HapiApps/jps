@@ -11,6 +11,7 @@ class CustomerReportModel {
   String? actionTaken;
   String? lead;
   String? callVisitType;
+  String? cusType;
   String? id;
   String? commentsList;
   String? commentsTs;
@@ -33,6 +34,7 @@ class CustomerReportModel {
     this.actionTaken,
     this.lead,
     this.callVisitType,
+    this.cusType,
     this.id,
     this.commentsList,
     this.commentsTs,
@@ -60,6 +62,7 @@ class CustomerReportModel {
         actionTaken: json["action_taken"],
         lead: json["lead"],
         callVisitType: json["call_visit_type"],
+        cusType: json["cus_type_name"],
         id: json["id"],
         commentsList: json["commentsList"],
         commentsTs: json["commentsTs"],

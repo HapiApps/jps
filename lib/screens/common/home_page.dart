@@ -563,12 +563,13 @@ class _HomePageState extends State<HomePage> {
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
                                           IconButton(
-                                            icon: Image.asset(
-                                              DashboardAssets.reportIcon,
-                                              width: 58,
-                                              height: 58,
-                                             // color: ColorsConst.primaryDark1,
-                                            ),
+                                            icon: Icon(Icons.description_sharp,color: Colors.red.shade900,),
+                                            // icon: Image.asset(
+                                            //   DashboardAssets.reportIcon,
+                                            //   width: 58,
+                                            //   height: 58,
+                                            //  // color: ColorsConst.primaryDark1,
+                                            // ),
                                             onPressed: () {
                                               showDialog(
                                                 context: context,
@@ -646,7 +647,7 @@ class _HomePageState extends State<HomePage> {
                                                                     );
                                                                   },
                                                                   img: assets.aLoc,
-                                                                  text: "Visit Report",
+                                                                  text: "Daily Work Plan Report",
                                                                 ),
                                                                 20.height,
 
@@ -672,10 +673,7 @@ class _HomePageState extends State<HomePage> {
                                               );
                                             },
                                           ),
-
-
-
-                                          const CustomText(
+                                          CustomText(
                                             "Reports",
                                             color: Colors.black,
                                             weight: FontWeight.w600,
@@ -685,6 +683,126 @@ class _HomePageState extends State<HomePage> {
                                       ),
 
                                       //Image.asset(DashboardAssets.menu),
+                                      // Column(
+                                      //   mainAxisSize: MainAxisSize.min,
+                                      //   children: [
+                                      //     GestureDetector(
+                                      //       child: Image.asset(DashboardAssets.reportIcon),
+                                      //       onTap: () {
+                                      //         showDialog(
+                                      //           context: context,
+                                      //           builder: (context) {
+                                      //             return Consumer<HomeProvider>(
+                                      //               builder: (context, homeProvider, _) {
+                                      //                 return AlertDialog(
+                                      //                   actions: [
+                                      //                     SizedBox(
+                                      //                       width: kIsWeb
+                                      //                           ? MediaQuery.of(context).size.width * 0.3
+                                      //                           : MediaQuery.of(context).size.width * 0.9,
+                                      //                       child: Column(
+                                      //                         crossAxisAlignment: CrossAxisAlignment.start,
+                                      //                         children: [
+                                      //                           Row(
+                                      //                             mainAxisAlignment: MainAxisAlignment.end,
+                                      //                             children: [
+                                      //                               IconButton(
+                                      //                                 icon: SvgPicture.asset(
+                                      //                                   assets.cancel,
+                                      //                                   width: 20,
+                                      //                                   height: 20,
+                                      //                                 ),
+                                      //                                 onPressed: () {
+                                      //                                   Navigator.pop(context);
+                                      //                                 },
+                                      //                               ),
+                                      //                             ],
+                                      //                           ),
+                                      //
+                                      //                           Center(
+                                      //                             child: CustomText(
+                                      //                               "Choose a report",
+                                      //                               weight: FontWeight.bold,
+                                      //                             ),
+                                      //                           ),
+                                      //                           20.height,
+                                      //
+                                      //                           iconBox(
+                                      //                             callBack: () {
+                                      //                               homeProvider.updateIndex(4);
+                                      //                               Navigator.pop(context);
+                                      //                               utils.navigatePage(
+                                      //                                 context,
+                                      //                                     () => DashBoard(
+                                      //                                   child: AttendanceReport(
+                                      //                                     type: homeProvider.type,
+                                      //                                     showType: "0",
+                                      //                                     date1: homeProvider.startDate,
+                                      //                                     date2: homeProvider.endDate,
+                                      //                                     empList: empPvr.userData,
+                                      //                                   ),
+                                      //                                 ),
+                                      //                               );
+                                      //                             },
+                                      //                             img: assets.aTt,
+                                      //                             text: "Attendance Report",
+                                      //                           ),
+                                      //                           20.height,
+                                      //
+                                      //                           iconBox(
+                                      //                             callBack: () {
+                                      //                               Navigator.pop(context);
+                                      //                               utils.navigatePage(
+                                      //                                 context,
+                                      //                                     () => DashBoard(
+                                      //                                   child: VisitReport(
+                                      //                                     date1: homeProvider.startDate,
+                                      //                                     date2: homeProvider.endDate,
+                                      //                                     month: homeProvider.month,
+                                      //                                     type: homeProvider.type,
+                                      //                                   ),
+                                      //                                 ),
+                                      //                               );
+                                      //                             },
+                                      //                             img: assets.aLoc,
+                                      //                             text: "Daily Work Plan Report",
+                                      //                           ),
+                                      //                           20.height,
+                                      //
+                                      //                           Center(
+                                      //                             child: TextButton(
+                                      //                               child: CustomText(
+                                      //                                 "Cancel",
+                                      //                                 color: colorsConst.appRed,
+                                      //                               ),
+                                      //                               onPressed: () {
+                                      //                                 Navigator.pop(context);
+                                      //                               },
+                                      //                             ),
+                                      //                           ),
+                                      //                         ],
+                                      //                       ),
+                                      //                     )
+                                      //                   ],
+                                      //                 );
+                                      //               },
+                                      //             );
+                                      //           },
+                                      //         );
+                                      //       },
+                                      //
+                                      //     ),
+                                      //     CustomText(
+                                      //       "Reports",
+                                      //       color: Colors.black,
+                                      //       weight: FontWeight.w600,
+                                      //       size: 12,
+                                      //     ),
+                                      //
+                                      //
+                                      //
+                                      //   ],
+                                      // ),
                                     ],
                                   ),
                                 ],
@@ -1114,8 +1232,8 @@ class _HomePageState extends State<HomePage> {
                                               utils.showWarningToast(context, text: "No absent employees found");
                                             }
                                           },
-                                           //count: homeProvider.mainReportList.isEmpty ?"0":homeProvider.mainReportList[0]["no_attendance_count"].toString()=="null"?"0": homeProvider.mainReportList[0]["no_attendance_count"].toString(),
-                                           count: attPvr.noAttendanceList.toString().isNotEmpty ?attPvr.noAttendanceList.length.toString(): "0",
+                                           count: homeProvider.mainReportList.isEmpty ?"0":homeProvider.mainReportList[0]["no_attendance_count"].toString()=="null"?"0": homeProvider.mainReportList[0]["no_attendance_count"].toString(),
+                                         //  count: attPvr.noAttendanceList.toString().isNotEmpty ?attPvr.noAttendanceList.length.toString(): "0",
                                            bgColor: Color(0xFFFFEBEE),
                                           borderColor: ColorsConst.absent,
                                           imagePath: DashboardAssets.absent,

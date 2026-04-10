@@ -787,7 +787,7 @@ class _VisitReportState extends State<VisitReport> with SingleTickerProviderStat
                                     );
                                   },
                                   child: Container(
-                                    width:kIsWeb?webWidth/6:phoneWidth/6,
+                                    width:kIsWeb?webWidth/6:phoneWidth/8,
                                     height: 45,
                                     decoration: customDecoration.baseBackgroundDecoration(
                                         color: custProvider.filter==true?Colors.grey.shade300:Colors.grey.shade300,radius: 5
@@ -802,7 +802,7 @@ class _VisitReportState extends State<VisitReport> with SingleTickerProviderStat
                                   custProvider.getVisitHoursEmpReport(context);
                                 }, isLoading: true, backgroundColor: colorsConst.primary,
                                   controller: custProvider.addCtr,
-                                  radius: 5, width: 100,text: "Download",),
+                                  radius: 5, width: 80,text: "Download",),
 
                               ],
                             ),
