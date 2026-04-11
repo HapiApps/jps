@@ -433,6 +433,61 @@ class _AddVisitState extends State<AddVisit> with TickerProviderStateMixin {
                                 custProvider.changeCallType(selected);
                               },
                               dropText: 'value',),
+                            CustomTextField(
+                                width: kIsWeb?webWidth:phoneWidth,
+                                text: "Date", controller: custProvider.commentDate,
+                                isRequired: true,
+                                onTap: (){
+                                  utils.datePick(context:context,textEditingController: custProvider.commentDate);
+                                },
+                                onChanged: (value) {
+                                  custProvider.changeType(
+                                      custProvider.cmtTypeList.firstWhere((e) => e['id'] == value)
+                                  );
+                                }
+                            ),
+                            SizedBox(
+                              width: kIsWeb?webWidth:phoneWidth,
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.start,
+                                children: [
+                                  CustomText(text: "Visit Location",colors: Colors.black),
+                                ],
+                              ),
+                            ),5.height,
+                            Container(
+                              width: kIsWeb?webWidth:phoneWidth,
+                              decoration: customDecoration.baseBackgroundDecoration(
+                                  color: Colors.white,radius: 10,borderColor: Colors.grey.shade300
+                              ),
+                              child:
+                              Padding(
+                                padding: const EdgeInsets.all(8.0),
+                                child: Row(
+                                  children: [
+                                    SizedBox(
+                                      width: kIsWeb?MediaQuery.of(context).size.width*0.3:MediaQuery.of(context).size.width*0.68,
+                                      // color: Colors.yellow,
+                                      child: CustomText(
+                                        text: [custProvider.address.text,custProvider.comArea.text,custProvider.city.text,
+                                          custProvider.state ?? '',custProvider.country.text,custProvider.pinCode.text,
+                                        ].where((e) => e.trim().isNotEmpty).join(', '),
+                                      ),
+                                    ),
+                                    InkWell(
+                                        onTap: () async {
+                                          _myFocusScopeNode.unfocus();
+                                          if(locPvr.latitude==""&&locPvr.longitude==""){
+                                            await locPvr.manageLocation(context,true);
+                                          }else{
+                                            utils.navigatePage(context, ()=> const ViaMap());
+                                          }
+                                        },
+                                        child: Icon(Icons.location_on_outlined,color: colorsConst.appRed,))
+                                  ],
+                                ),
+                              ),
+                            ),
                             MaxLineTextField(
                               width: kIsWeb?webWidth:phoneWidth,
                               isRequired: true,

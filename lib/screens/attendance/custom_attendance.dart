@@ -69,7 +69,7 @@ class _CheckAttendanceState extends State<CheckAttendance> {
       return attProvider.attCheck==false?const Loading():
       Container(
         decoration: customDecoration.baseBackgroundDecoration(
-          borderColor: Colors.red,
+          // borderColor: Colors.red,
 
           color: Colors.white,radius: 10
         ),
