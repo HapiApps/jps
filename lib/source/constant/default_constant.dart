@@ -87,6 +87,7 @@ class ConstantValues{
   final String customers = "Customers";
 
   final String customer = "Customer";
+  final String customer1 = "   Customer";
   final String customerName = "Company Name";
   final String updateCustomer = "Update Customer";
   final String addCustomer = "Add Customer";

@@ -386,29 +386,17 @@ class _VisitReportState extends State<VisitReport> with SingleTickerProviderStat
                                 child: ListView.builder(
                                   itemCount: custProvider.groupedList.length,
                                   itemBuilder: (context, index) {
-
                                     var data = custProvider.groupedList[index];
+
+                                    /// ✅ convert types map to list for indexing (odd/even)
+                                    final typeList = data["types"].entries.toList();
 
                                     return Column(
                                       children: [
                                         if (index == 0) 10.height,
 
                                         InkWell(
-                                          // onTap: () {
-                                          //   tabController.animateTo(0);
-                                          //   custProvider.manageFilter(true);
-                                          //
-                                          //   custProvider.selectUser(
-                                          //     UserModel(
-                                          //       id: data["role"],
-                                          //       firstname: data["firstname"],
-                                          //     ),
-                                          //   );
-                                          //
-                                          //   custProvider.getVisitReport();
-                                          // },
                                           onTap: () {
-
                                             /// 🔥 STEP 1: select user first
                                             custProvider.selectUser(
                                               UserModel(
@@ -428,7 +416,6 @@ class _VisitReportState extends State<VisitReport> with SingleTickerProviderStat
                                               custProvider.getVisitReport(context);
                                             });
                                           },
-
                                           child: Container(
                                             width: MediaQuery.of(context).size.width * 0.9,
                                             margin: const EdgeInsets.symmetric(vertical: 5),
@@ -437,20 +424,17 @@ class _VisitReportState extends State<VisitReport> with SingleTickerProviderStat
                                               borderColor: Colors.grey.shade200,
                                               radius: 5,
                                             ),
-
                                             child: Padding(
                                               padding: const EdgeInsets.fromLTRB(10, 12, 10, 12),
-
                                               child: Column(
                                                 crossAxisAlignment: CrossAxisAlignment.start,
                                                 children: [
-
-                                                  /// 🔹 NAME + ROLE
+                                                  /// 🔹 NAME + ROLE + TOTAL VISITS
                                                   Row(
                                                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                                     children: [
                                                       SizedBox(
-                                                        width: MediaQuery.of(context).size.width * 0.60,
+                                                        width: MediaQuery.of(context).size.width * 0.55,
                                                         child: Row(
                                                           children: [
                                                             CustomText(
@@ -464,11 +448,8 @@ class _VisitReportState extends State<VisitReport> with SingleTickerProviderStat
                                                               colors: colorsConst.blue2,
                                                               size: 15,
                                                             ),
-
                                                           ],
                                                         ),
-
-
                                                       ),
                                                       Row(
                                                         mainAxisAlignment: MainAxisAlignment.end,
@@ -484,7 +465,6 @@ class _VisitReportState extends State<VisitReport> with SingleTickerProviderStat
                                                           ),
                                                         ],
                                                       ),
-                                                      //const Icon(Icons.arrow_forward_ios, size: 14),
                                                     ],
                                                   ),
 
@@ -493,32 +473,53 @@ class _VisitReportState extends State<VisitReport> with SingleTickerProviderStat
                                                     child: DotLine(),
                                                   ),
 
-                                                  /// 🔥 TOTAL
-
-
                                                   const SizedBox(height: 5),
 
-                                                  /// 🔥 TYPES (Dynamic)
-                                                  ...data["types"].entries.map<Widget>((entry) {
-                                                    return Padding(
-                                                      padding: const EdgeInsets.symmetric(vertical: 2),
+                                                  /// 🔥 TYPES (Tabbar Style Line + Odd/Even Color)
+                                                  ...typeList.asMap().entries.map((item) {
+                                                    int i = item.key;
+                                                    var entry = item.value;
+
+                                                    bool isEven = i % 2 == 0;
+
+                                                    return Container(
+                                                      margin: const EdgeInsets.symmetric(vertical: 2),
+                                                      padding: const EdgeInsets.symmetric(
+                                                          vertical: 8, horizontal: 8),
+                                                      decoration: BoxDecoration(
+                                                        color: isEven ? Colors.grey.shade100 : colorsConst.primary.withOpacity(0.1),
+
+                                                        /// ✅ Tabbar style underline (full width line)
+                                                        border: Border(
+                                                          bottom: BorderSide(
+                                                            color: isEven ?colorsConst.primary.withOpacity(0.4):Colors.grey.shade500 ,
+                                                            width: 1.2,
+                                                          ),
+                                                        ),
+                                                      ),
                                                       child: Row(
                                                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                                         children: [
-                                                          CustomText(
-                                                            text: entry.key,
-                                                            colors: colorsConst.greyClr,
+                                                          Text(
+                                                            entry.key,
+                                                            style: TextStyle(
+                                                              fontSize: 14,
+                                                              color: colorsConst.greyClr,
+                                                              fontWeight: FontWeight.w500,
+                                                            ),
                                                           ),
-                                                          CustomText(
-                                                            text: entry.value.toString(),
-                                                            colors: colorsConst.primary,
-                                                            isBold: true,
+                                                          Text(
+                                                            entry.value.toString(),
+                                                            style: TextStyle(
+                                                              fontSize: 14,
+                                                              color: colorsConst.primary,
+                                                              fontWeight: FontWeight.bold,
+                                                            ),
                                                           ),
                                                         ],
                                                       ),
                                                     );
                                                   }).toList(),
-
                                                 ],
                                               ),
                                             ),
@@ -528,7 +529,6 @@ class _VisitReportState extends State<VisitReport> with SingleTickerProviderStat
                                     );
                                   },
                                 ),
-
                               ),
                             ],
                           ),

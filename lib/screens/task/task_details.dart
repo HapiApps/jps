@@ -334,60 +334,60 @@ class _TaskDetailsState extends State<TaskDetails> with SingleTickerProviderStat
                             ),
                           Divider(color: Colors.grey.shade200,),
                           5.height,
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              GestureDetector(
-                                onTap: (){
-                                  utils.navigatePage(context, ()=> DashBoard(child:
-                                  AddVisit(taskId:widget.data.id.toString(),companyId: widget.data.companyId.toString(),companyName: widget.data.projectName.toString(),
-                                      numberList: const [],isDirect: true, type: widget.data.type.toString(), desc: widget.data.taskTitle.toString())));
-                                  (() {
-                                    type="1";
-                                  });
-                                },
-                                child: Container(
-                                  height: 40,
-                                  width: kIsWeb?webWidth/1.2:phoneWidth/1.2,
-                                  decoration: customDecoration.baseBackgroundDecoration(
-                                      color: Colors.white,radius: 5,
-                                      borderColor: colorsConst.primary
-                                  ),
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      SvgPicture.asset(assets.rep2),10.width,
-                                      CustomText(text: "Add Visit Report",colors: colorsConst.primary,size: 14,),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                              // GestureDetector(
-                              //   onTap: (){
-                              //     setState(() {
-                              //       type="2";
-                              //     });
-                              //   },
-                              //   child: Container(
-                              //     width: kIsWeb?webWidth/2:phoneWidth/2,
-                              //     decoration: customDecoration.baseBackgroundDecoration(
-                              //         color: Colors.white,radius: 30,
-                              //         borderColor: colorsConst.primary
-                              //     ),
-                              //     child: Padding(
-                              //       padding: const EdgeInsets.all(5.0),
-                              //       child: Row(
-                              //         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                              //         children: [
-                              //           SvgPicture.asset(assets.rep1),
-                              //           CustomText(text: "Add Expense report",colors: type=="2"?colorsConst.primary:Colors.black,size: 13.5,),
-                              //         ],
-                              //       ),
-                              //     ),
-                              //   ),
-                              // ),
-                            ],
-                          ),
+                          // Row(
+                          //   mainAxisAlignment: MainAxisAlignment.center,
+                          //   children: [
+                          //     GestureDetector(
+                          //       onTap: (){
+                          //         utils.navigatePage(context, ()=> DashBoard(child:
+                          //         AddVisit(taskId:widget.data.id.toString(),companyId: widget.data.companyId.toString(),companyName: widget.data.projectName.toString(),
+                          //             numberList: const [],isDirect: true, type: widget.data.type.toString(), desc: widget.data.taskTitle.toString())));
+                          //         (() {
+                          //           type="1";
+                          //         });
+                          //       },
+                          //       child: Container(
+                          //         height: 40,
+                          //         width: kIsWeb?webWidth/1.2:phoneWidth/1.2,
+                          //         decoration: customDecoration.baseBackgroundDecoration(
+                          //             color: Colors.white,radius: 5,
+                          //             borderColor: colorsConst.primary
+                          //         ),
+                          //         child: Row(
+                          //           mainAxisAlignment: MainAxisAlignment.center,
+                          //           children: [
+                          //             SvgPicture.asset(assets.rep2),10.width,
+                          //             CustomText(text: "Add Visit Report",colors: colorsConst.primary,size: 14,),
+                          //           ],
+                          //         ),
+                          //       ),
+                          //     ),
+                          //     // GestureDetector(
+                          //     //   onTap: (){
+                          //     //     setState(() {
+                          //     //       type="2";
+                          //     //     });
+                          //     //   },
+                          //     //   child: Container(
+                          //     //     width: kIsWeb?webWidth/2:phoneWidth/2,
+                          //     //     decoration: customDecoration.baseBackgroundDecoration(
+                          //     //         color: Colors.white,radius: 30,
+                          //     //         borderColor: colorsConst.primary
+                          //     //     ),
+                          //     //     child: Padding(
+                          //     //       padding: const EdgeInsets.all(5.0),
+                          //     //       child: Row(
+                          //     //         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          //     //         children: [
+                          //     //           SvgPicture.asset(assets.rep1),
+                          //     //           CustomText(text: "Add Expense report",colors: type=="2"?colorsConst.primary:Colors.black,size: 13.5,),
+                          //     //         ],
+                          //     //       ),
+                          //     //     ),
+                          //     //   ),
+                          //     // ),
+                          //   ],
+                          // ),
                           // const CustomText(text: "Assigned to",isBold: true,),
                           // CustomText(text: widget.data.assignedNames.toString()!="null"&&widget.data.assignedNames.toString()!=""?widget.data.assignedNames.toString():"-",colors: colorsConst.blueClr,),
                         ],

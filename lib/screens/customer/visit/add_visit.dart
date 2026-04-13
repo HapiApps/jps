@@ -159,28 +159,6 @@ class _CusAddVisitState extends State<CusAddVisit> with TickerProviderStateMixin
                                 // CustomText(text: widget.type,colors: colorsConst.greyClr,isItalic: true,),
                               ],
                             ),
-                            //type
-                            MapDropDown(isRequired:true,
-                              isRefresh: taskProvider.typeList.isEmpty?true:false,
-                              callback: (){
-                                if(!kIsWeb){
-                                  taskProvider.getTaskType(true);
-                                }else{
-                                  taskProvider.getAllTypes();
-                                }
-                              },
-                              width: kIsWeb?webWidth:phoneWidth,
-                              hintText: constValue.type,
-                              list: custProvider.cmtTypeList,
-                              // saveValue: custProvider.selectType,
-                              saveValue: custProvider.selectType?['id'],
-                              onChanged: (Object? value) {
-                                final selected = custProvider.cmtTypeList
-                                    .firstWhere((e) => e['id'].toString() == value.toString());
-
-                                custProvider.changeType(selected);
-                              },
-                              dropText: 'value',),
                             MapDropDown(
                               isRequired: true,
                               isRefresh: taskProvider.cusTypeList.isEmpty,
@@ -211,57 +189,6 @@ class _CusAddVisitState extends State<CusAddVisit> with TickerProviderStateMixin
                               },
 
                               dropText: 'value',
-                            ),
-                            CustomTextField(
-                              width: kIsWeb?webWidth:phoneWidth,
-                              text: "Date", controller: custProvider.commentDate,
-                              isRequired: true,
-                              onTap: (){
-                                utils.datePick(context:context,textEditingController: custProvider.commentDate);
-                              },
-                              onChanged: null,
-                            ),
-                            SizedBox(
-                              width: kIsWeb?webWidth:phoneWidth,
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.start,
-                                children: [
-                                  CustomText(text: "Visit Location",colors: Colors.black,),
-                                ],
-                              ),
-                            ),5.height,
-                            Container(
-                              width: kIsWeb?webWidth:phoneWidth,
-                              decoration: customDecoration.baseBackgroundDecoration(
-                                color: Colors.white,radius: 10,borderColor: Colors.grey.shade300
-                              ),
-                              child:
-                              Padding(
-                                padding: const EdgeInsets.all(8.0),
-                                child: Row(
-                                  children: [
-                                    SizedBox(
-                                      width: kIsWeb?MediaQuery.of(context).size.width*0.3:MediaQuery.of(context).size.width*0.68,
-                                      // color: Colors.yellow,
-                                      child: CustomText(
-                                        text: [custProvider.address.text,custProvider.comArea.text,custProvider.city.text,
-                                          custProvider.state ?? '',custProvider.country.text,custProvider.pinCode.text,
-                                        ].where((e) => e.trim().isNotEmpty).join(', '),
-                                      ),
-                                    ),
-                                    InkWell(
-                                      onTap: () async {
-                                        _myFocusScopeNode.unfocus();
-                                        if(locPvr.latitude==""&&locPvr.longitude==""){
-                                          await locPvr.manageLocation(context,true);
-                                        }else{
-                                          utils.navigatePage(context, ()=> const ViaMap());
-                                        }
-                                      },
-                                        child: Icon(Icons.location_on_outlined,color: colorsConst.appRed,))
-                                  ],
-                                ),
-                              ),
                             ),
                             10.height,
                             Consumer<CustomerProvider>(
@@ -301,6 +228,31 @@ class _CusAddVisitState extends State<CusAddVisit> with TickerProviderStateMixin
                                 );
                               },
                             ),
+                            //type
+                            MapDropDown(isRequired:true,
+                              isRefresh: taskProvider.typeList.isEmpty?true:false,
+                              callback: (){
+                                if(!kIsWeb){
+                                  taskProvider.getTaskType(true);
+                                }else{
+                                  taskProvider.getAllTypes();
+                                }
+                              },
+                              width: kIsWeb?webWidth:phoneWidth,
+                              hintText: constValue.type,
+                              list: custProvider.cmtTypeList,
+                              // saveValue: custProvider.selectType,
+                              saveValue: custProvider.selectType?['id'],
+                              onChanged: (Object? value) {
+                                final selected = custProvider.cmtTypeList
+                                    .firstWhere((e) => e['id'].toString() == value.toString());
+
+                                custProvider.changeType(selected);
+                              },
+                              dropText: 'value',),
+
+
+
                             // InkWell(
                             //   onTap: () {
                             //     final listData =
@@ -344,7 +296,7 @@ class _CusAddVisitState extends State<CusAddVisit> with TickerProviderStateMixin
                             //   textInputAction: TextInputAction.done,
                             // ),
                             //lead
-          MapDropDown(
+                           MapDropDown(
             callback: () {
               if (!kIsWeb) {
                 custProvider.refreshLead();
@@ -381,6 +333,59 @@ class _CusAddVisitState extends State<CusAddVisit> with TickerProviderStateMixin
                                 custProvider.changeCallType1(value);
                               },
                               dropText: 'value',
+                            ),
+
+                            CustomTextField(
+                              width: kIsWeb?webWidth:phoneWidth,
+                              text: "Date", controller: custProvider.commentDate,
+                              isRequired: true,
+                              onTap: (){
+                                utils.datePick(context:context,textEditingController: custProvider.commentDate);
+                              },
+                              onChanged: null,
+                            ),
+                            SizedBox(
+                              width: kIsWeb?webWidth:phoneWidth,
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.start,
+                                children: [
+                                  CustomText(text: "Visit Location",colors: Colors.black,),
+                                ],
+                              ),
+                            ),
+                            5.height,
+                            Container(
+                              width: kIsWeb?webWidth:phoneWidth,
+                              decoration: customDecoration.baseBackgroundDecoration(
+                                  color: Colors.white,radius: 10,borderColor: Colors.grey.shade300
+                              ),
+                              child:
+                              Padding(
+                                padding: const EdgeInsets.all(8.0),
+                                child: Row(
+                                  children: [
+                                    SizedBox(
+                                      width: kIsWeb?MediaQuery.of(context).size.width*0.3:MediaQuery.of(context).size.width*0.68,
+                                      // color: Colors.yellow,
+                                      child: CustomText(
+                                        text: [custProvider.address.text,custProvider.comArea.text,custProvider.city.text,
+                                          custProvider.state ?? '',custProvider.country.text,custProvider.pinCode.text,
+                                        ].where((e) => e.trim().isNotEmpty).join(', '),
+                                      ),
+                                    ),
+                                    InkWell(
+                                        onTap: () async {
+                                          _myFocusScopeNode.unfocus();
+                                          if(locPvr.latitude==""&&locPvr.longitude==""){
+                                            await locPvr.manageLocation(context,true);
+                                          }else{
+                                            utils.navigatePage(context, ()=> const ViaMap());
+                                          }
+                                        },
+                                        child: Icon(Icons.location_on_outlined,color: colorsConst.appRed,))
+                                  ],
+                                ),
+                              ),
                             ),
                             MaxLineTextField(
                               width: kIsWeb?webWidth:phoneWidth,

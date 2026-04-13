@@ -1,6 +1,8 @@
 import 'package:master_code/component/custom_text.dart';
 import 'package:master_code/screens/common/setting.dart';
-import 'package:master_code/screens/group_attendance/project_attendance.dart';
+import 'package:master_code/screens/common/view_notification.dart';
+import 'package:master_code/screens/customer/visit_report/visits_report.dart';
+import 'package:master_code/screens/track/live_location.dart';
 import 'package:master_code/source/constant/colors_constant.dart';
 import 'package:master_code/source/constant/default_constant.dart';
 import 'package:master_code/source/extentions/extensions.dart';
@@ -11,15 +13,15 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
 import '../../component/panel_button.dart';
 import '../../source/constant/assets_constant.dart';
+import '../../source/constant/dashboard_assets.dart';
 import '../../source/constant/local_data.dart';
+import '../../view_model/employee_provider.dart';
 import '../../view_model/home_provider.dart';
+import '../attendance/attendance_report.dart';
 import '../customer/view_all_customer.dart';
 import '../employee/view_all_employees.dart';
-import '../expense/expense_page.dart';
 import '../leave_management/leave_dashboard.dart';
 import '../leave_management/leave_report.dart';
-import '../payroll/payroll_dashboard.dart';
-import '../project/view_all_project.dart';
 import '../task/view_task.dart';
 import 'home_page.dart';
 
@@ -31,221 +33,470 @@ class DashBoard extends StatefulWidget {
   State<DashBoard> createState() => _DashBoardState();
 }
 
-class _DashBoardState extends State<DashBoard> with SingleTickerProviderStateMixin{
-  final ScrollController scrollController=ScrollController();
+class _DashBoardState extends State<DashBoard> {
+  final ScrollController scrollController = ScrollController();
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<HomeProvider>(builder: (context, homeProvider, _) {
-      final homeProvider = context.read<HomeProvider>();
-      return SafeArea(
-        child: Scaffold(
-          backgroundColor: colorsConst.bacColor,
-          bottomNavigationBar: homeProvider.isOpen==true?Container(
-            height: kIsWeb?MediaQuery.of(context).size.width*0.2:MediaQuery.of(context).size.width*0.62,
-            width: kIsWeb?MediaQuery.of(context).size.width*0.5:MediaQuery.of(context).size.width,
-            decoration: const BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(20),
-                  topRight: Radius.circular(20)
-                ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.grey,
-                  offset: Offset(2, 2),
-                  blurRadius: 5,
-                  spreadRadius: 1,
-                ),
-              ],
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(0, 5, kIsWeb?90:10, kIsWeb?50:5),
-                      child: InkWell(onTap: (){
-                        homeProvider.changeButton();
-                      }, child: SvgPicture.asset(assets.cancel)),
-                    )
-                  ],
-                ),
-                Scrollbar(
-                  controller: scrollController,
-                  thumbVisibility: true,
-                  trackVisibility: true,
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(0, 0, 0, 5),
-                    child: SingleChildScrollView(
-                      controller: scrollController,
-                      scrollDirection: Axis.horizontal,
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          Column(
-                            children: [
-                              PanelButton(image: assets.home,callback: (){
-                                homeProvider.updateIndex(0);
-                                utils.navigatePage(context, ()=>const DashBoard(child: HomePage()));
-                                homeProvider.panelClose();
-                              },
-                                isColor: homeProvider.selectedIndex==0?true:false, text: 'Home',),
-                              PanelButton(image: assets.report,callback: (){
-                                homeProvider.updateIndex(10);
-                                utils.navigatePage(context, ()=> DashBoard(child: ViewTask(date1: homeProvider.startDate, date2: homeProvider.endDate, type: homeProvider.type)));
-                                homeProvider.panelClose();
-                              },
-                                isColor: homeProvider.selectedIndex==10?true:false, text: 'Task',),
-                            ],
-                          ),
-                            // Column(
-                            //   children: [
-                            //     localData.storage.read("role") =="1"?
-                            //     PanelButton(image: assets.grpAtt,callback: (){
-                            //       homeProvider.updateIndex(14);
-                            //       utils.navigatePage(context, ()=>const DashBoard(child: ProjectAttendance()));
-                            //       homeProvider.panelClose();
-                            //     }, isColor: homeProvider.selectedIndex==14?true:false, text: "      Group Attendance",):
-                            //
-                            //     PanelButton(image: assets.expense,callback: (){
-                            //       homeProvider.updateIndex(9);
-                            //       utils.navigatePage(context, ()=>const DashBoard(child: ExpensePage()));
-                            //       homeProvider.panelClose();
-                            //     },isColor: homeProvider.selectedIndex==9?true:false, text: 'Expense',),
-                            //     PanelButton(image: assets.project,callback: (){
-                            //       homeProvider.updateIndex(13);
-                            //       utils.navigatePage(context, ()=>const DashBoard(child: ViewProject()));
-                            //       homeProvider.panelClose();
-                            //     },
-                            //       isColor: homeProvider.selectedIndex==13?true:false, text: constValue.project,),
-                            //   ],
-                            // ),
-                          if(localData.storage.read("role") =="1")
-                            Column(
-                              children: [
-                                PanelButton(image: assets.leave,callback: (){
-                                  homeProvider.updateIndex(11);
-                                  utils.navigatePage(context, ()=>const DashBoard(child: LeaveManagementDashboard()));
-                                  homeProvider.panelClose();
-                                },
-                                  isColor: homeProvider.selectedIndex==11?true:false, text: 'Leave',),
-                                PanelButton(image: assets.employees,callback: (){
-                                  homeProvider.updateIndex(1);
-                                  utils.navigatePage(context, ()=>const DashBoard(child: ViewEmployees()));
-                                  homeProvider.panelClose();
-                                },
-                                  isColor: homeProvider.selectedIndex==1?true:false, text: 'Employee',),
-                                // PanelButton(image: assets.payroll,callback: (){
-                                //   homeProvider.updateIndex(12);
-                                //   utils.navigatePage(context, ()=>const DashBoard(child: PayrollDashboard()));
-                                //   homeProvider.panelClose();
-                                // },
-                                //   isColor: homeProvider.selectedIndex==12?true:false, text: 'Payroll',),
-                              ],
+    return Consumer<HomeProvider>(
+      builder: (context, homeProvider, _) {
+        return SafeArea(
+          child: Scaffold(
+            backgroundColor: ColorsConst.background2,
+
+            /// ✅ Drawer Menu
+            drawer: SizedBox(
+              width: MediaQuery.of(context).size.width * 0.60, // ✅ 75% width
+              child: Drawer(
+                child: SafeArea(
+                  child: Column(
+                    children: [
+                      /// 🔥 Drawer Header
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(15),
+                        color: ColorsConst.background2,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            CustomText(
+                              text: "JPS",
+                              colors: colorsConst.primary,
+                              size: 18,
+                              isBold: true,
                             ),
 
-                          // if(localData.storage.read("role") =="1")
-                          // Column(
-                          //     children: [
-                          //         PanelButton(image: assets.employees,callback: (){
-                          //         homeProvider.updateIndex(1);
-                          //         utils.navigatePage(context, ()=>const DashBoard(child: ViewEmployees()));
-                          //         homeProvider.panelClose();
-                          //         },
-                          //         isColor: homeProvider.selectedIndex==1?true:false, text: 'Employee',),
-                          //       // PanelButton(image: assets.expense,callback: (){
-                          //       //   homeProvider.updateIndex(9);
-                          //       //   utils.navigatePage(context, ()=>const DashBoard(child: ExpensePage()));
-                          //       //   homeProvider.panelClose();
-                          //       // },isColor: homeProvider.selectedIndex==9?true:false, text: 'Expense',),
-                          //     ],
-                          //   ),
-                          Column(
-                            children: [
-                              PanelButton(image: assets.customer,callback: (){
-                                homeProvider.updateIndex(2);
-                                utils.navigatePage(context, ()=>const DashBoard(child: ViewCustomer()));
-                                homeProvider.panelClose();
-                              },
-                                isColor: homeProvider.selectedIndex==2?true:false, text: constValue.customer,),
-                              PanelButton(image: assets.setting,callback: (){
-                                homeProvider.updateIndex(7);
-                                utils.navigatePage(context, ()=>const DashBoard(child: Setting()));
-                                homeProvider.panelClose();
-                              },
-                                isColor: homeProvider.selectedIndex==7?true:false, text: 'Settings',),
-                            ],
+                        InkWell(
+                          onTap: () {
+                            Navigator.pop(context); // ✅ Drawer close
+                          },
+                          child:  Icon(
+                            Icons.close,
+                            color: colorsConst.primary,
+                            size: 22,
                           ),
-                          if(localData.storage.read("role") !="1")
-                            Column(
+                            // 5.height,
+                            // CustomText(
+                            //   text: "Version ${localData.versionNumber}",
+                            //   colors: Colors.white70,
+                            // ),
+                        ),
+                          ],
+                        ),
+                      ),
+
+                      /// 🔥 Menu List
+                      Expanded(
+                        child: SingleChildScrollView(
+                          child: Padding(
+                            padding: const EdgeInsets.all(12),
+                            child: Column(
                               children: [
-                                PanelButton(image: assets.leave,callback: (){
-                                  homeProvider.updateIndex(11);
-                                  utils.navigatePage(context, ()=> DashBoard(child: ViewMyLeaves(date1:homeProvider.startDate,date2:homeProvider.endDate,isDirect: true)));
-                                  homeProvider.panelClose();
-                                },
-                                  isColor: homeProvider.selectedIndex==11?true:false, text: 'Apply\nLeave',),
-                                Padding(
-                                  padding: const EdgeInsets.fromLTRB(10, 7, 0, 0),
-                                  child: SizedBox(
-                                    height: kIsWeb?MediaQuery.of(context).size.width*0.04:MediaQuery.of(context).size.width*0.15,
+                                /// Home
+                                PanelButton(
+                                  image: assets.home,
+                                  callback: () {
+                                    Navigator.pop(context);
+                                    homeProvider.updateIndex(0);
+                                    utils.navigatePage(
+                                      context,
+                                          () => const DashBoard(child: HomePage()),
+                                    );
+                                  },
+                                  isColor: homeProvider.selectedIndex == 0,
+                                  text: ' Home',
+                                ),
+
+                                /// Task
+                                PanelButton(
+                                  image: assets.report,
+                                  callback: () {
+                                    Navigator.pop(context);
+                                    homeProvider.updateIndex(10);
+                                    utils.navigatePage(
+                                      context,
+                                          () => DashBoard(
+                                        child: ViewTask(
+                                          date1: homeProvider.startDate,
+                                          date2: homeProvider.endDate,
+                                          type: homeProvider.type,
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                  isColor: homeProvider.selectedIndex == 10,
+                                  text: ' Task',
+                                ),
+
+                                /// Admin Only
+                                if (localData.storage.read("role") == "1") ...[
+                                  PanelButton(
+                                    image: assets.leave,
+                                    callback: () {
+                                      Navigator.pop(context);
+                                      homeProvider.updateIndex(11);
+                                      utils.navigatePage(
+                                        context,
+                                            () => const DashBoard(
+                                          child: LeaveManagementDashboard(),
+                                        ),
+                                      );
+                                    },
+                                    isColor: homeProvider.selectedIndex == 11,
+                                    text: '  Leave',
                                   ),
-                                )
+
+                                  PanelButton(
+                                    image: assets.employees,
+                                    callback: () {
+                                      Navigator.pop(context);
+                                      homeProvider.updateIndex(1);
+                                      utils.navigatePage(
+                                        context,
+                                            () => const DashBoard(
+                                          child: ViewEmployees(),
+                                        ),
+                                      );
+                                    },
+                                    isColor: homeProvider.selectedIndex == 1,
+                                    text: '   Employee',
+                                  ),
+                                ],
+
+                                /// Customer
+                                PanelButton(
+                                  image: assets.customer,
+                                  callback: () {
+                                    Navigator.pop(context);
+                                    homeProvider.updateIndex(2);
+                                    utils.navigatePage(
+                                      context,
+                                          () => const DashBoard(
+                                        child: ViewCustomer(),
+                                      ),
+                                    );
+                                  },
+                                  isColor: homeProvider.selectedIndex == 2,
+                                  text: constValue.customer1,
+                                ),
+
+                                /// Settings
+                                PanelButton(
+                                  image: assets.setting,
+                                  callback: () {
+                                    Navigator.pop(context);
+                                    homeProvider.updateIndex(7);
+                                    utils.navigatePage(
+                                      context,
+                                          () => const DashBoard(
+                                        child: Setting(),
+                                      ),
+                                    );
+                                  },
+                                  isColor: homeProvider.selectedIndex == 7,
+                                  text: '  Settings',
+                                ),
+
+                                /// Employee Only
+                                if (localData.storage.read("role") != "1")
+                                  PanelButton(
+                                    image: assets.leave,
+                                    callback: () {
+                                      Navigator.pop(context);
+                                      homeProvider.updateIndex(11);
+                                      utils.navigatePage(
+                                        context,
+                                            () => DashBoard(
+                                          child: ViewMyLeaves(
+                                            date1: homeProvider.startDate,
+                                            date2: homeProvider.endDate,
+                                            isDirect: true,
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                    isColor: homeProvider.selectedIndex == 11,
+                                    text: 'Apply\nLeave',
+                                  ),
                               ],
                             ),
-                          ///
-                          // Column(
-                          //     children: [
-                          //
-                          //       Padding(
-                          //         padding: const EdgeInsets.fromLTRB(10, 7, 0, 0),
-                          //         child: SizedBox(
-                          //           height: kIsWeb?MediaQuery.of(context).size.width*0.04:MediaQuery.of(context).size.width*0.15,
-                          //         ),
-                          //       )
-                          //     ],
-                          //   ),
-                        ],
+                          ),
+                        ),
                       ),
-                    ),
+
+                      /// 🔥 Footer Version
+                      Padding(
+                        padding: const EdgeInsets.only(left: 110),
+                        child: CustomText(
+                          text: "Version ${localData.versionNumber}",
+                          colors: Colors.grey,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                5.height,
-                SizedBox(
-                  width:MediaQuery.of(context).size.width*0.85,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        CustomText(text: "Version ${localData.versionNumber}",colors: Colors.grey.shade400,),
-                      ],
-                    ))
-              ],
+              ),
             ),
-          ):
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 5, 20, 5),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
+
+            /// ✅ AppBar with Drawer Button
+            appBar:widget.child is HomePage
+          ? AppBar(
+          backgroundColor: ColorsConst.background2,
+            iconTheme:  IconThemeData(color: colorsConst.primary,),
+            automaticallyImplyLeading: true,
+            toolbarHeight: 60,
+            titleSpacing: 0,
+            title: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                FloatingActionButton(
-                  heroTag: null,
-                  backgroundColor: colorsConst.primary,
-                  onPressed: (){
-                  homeProvider.changeButton();
-                },child: const Icon(Icons.menu),),
-                CustomText(text: "Version ${localData.versionNumber}",colors: Colors.grey,)
+                /// ARUU Logo
+                Padding(
+                  padding: const EdgeInsets.only(left: 10),
+                  child: Image.asset(
+                    assets.logo,
+                    height: 40,
+                  ),
+                ),
+
+                /// Right Side Icons
+                Row(
+                  children: [
+                    /// Tracking icon (Admin only)
+                    if (localData.storage.read("role") == "1")
+                      InkWell(
+                        onTap: () {
+                          homeProvider.updateIndex(3);
+                          utils.navigatePage(
+                            context,
+                                () => const DashBoard(child: TrackingLive()),
+                          );
+                        },
+                        child: Image.asset(
+                          assets.tracks,
+                          height: 35,
+                          width: 35,
+                          color: colorsConst.primary,
+                        ),
+                      ),
+
+                    20.width,
+
+                    /// Notification with Badge
+                    Consumer<EmployeeProvider>(
+                      builder: (context, emp, _) {
+                        return Stack(
+                          children: [
+                            InkWell(
+                              onTap: () {
+                                utils.navigatePage(
+                                  context,
+                                      () => const DashBoard(child: ViewNotification()),
+                                );
+                              },
+                              child: Image.asset(
+                                DashboardAssets.reminder,
+                                width: 40,
+                                height: 50,
+                                color: colorsConst.primary,
+                              ),
+                            ),
+
+                            if (emp.unreadCount > 0)
+                              Positioned(
+                                right: 0,
+                                top: 0,
+                                child: Container(
+                                  padding: const EdgeInsets.all(5),
+                                  decoration: const BoxDecoration(
+                                    color: Colors.red,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: Text(
+                                    emp.unreadCount.toString(),
+                                    style:  TextStyle(
+                                      color: colorsConst.primary,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                          ],
+                        );
+                      },
+                    ),
+
+                    10.width,
+
+                    /// Reports Button
+                    Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon:  Icon(
+                            Icons.description_sharp,
+                            color: colorsConst.primary,
+                          ),
+                          onPressed: () {
+                            showDialog(
+                              context: context,
+                              builder: (context) {
+                                return Consumer2<HomeProvider, EmployeeProvider>(
+                                  builder: (context, homeProvider, empro, _) {
+                                    return AlertDialog(
+                                      content: SizedBox(
+                                        width: kIsWeb
+                                            ? MediaQuery.of(context).size.width * 0.3
+                                            : MediaQuery.of(context).size.width * 0.9,
+                                        child: Column(
+                                          mainAxisSize: MainAxisSize.min,
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Row(
+                                              mainAxisAlignment: MainAxisAlignment.end,
+                                              children: [
+                                                IconButton(
+                                                  icon: SvgPicture.asset(
+                                                    assets.cancel,
+                                                    width: 20,
+                                                    height: 20,
+                                                  ),
+                                                  onPressed: () {
+                                                    Navigator.pop(context);
+                                                  },
+                                                ),
+                                              ],
+                                            ),
+
+                                            Center(
+                                              child: CustomText(
+                                                text: "Choose a report",
+                                                isBold: true,
+                                              ),
+                                            ),
+                                            20.height,
+
+                                            Row(
+                                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                              children: [
+                                                /// Attendance Report
+                                                InkWell(
+                                                  onTap: () {
+                                                    homeProvider.updateIndex(4);
+                                                    Navigator.pop(context);
+
+                                                    utils.navigatePage(
+                                                      context,
+                                                          () => DashBoard(
+                                                        child: AttendanceReport(
+                                                          type: homeProvider.type,
+                                                          showType: "0",
+                                                          date1: homeProvider.startDate,
+                                                          date2: homeProvider.endDate,
+                                                          empList: empro.userData,
+                                                        ),
+                                                      ),
+                                                    );
+                                                  },
+                                                  child: Column(
+                                                    mainAxisSize: MainAxisSize.min,
+                                                    children: [
+                                                      Image.asset(
+                                                        assets.aTt,
+                                                        width: 50,
+                                                        height: 50,
+                                                      ),
+                                                      5.height,
+                                                      CustomText(
+                                                        text: "Attendance",
+                                                        isBold: true,
+                                                        size: 12,
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+
+                                                /// Daily Work Plan
+                                                InkWell(
+                                                  onTap: () {
+                                                    Navigator.pop(context);
+
+                                                    utils.navigatePage(
+                                                      context,
+                                                          () => DashBoard(
+                                                        child: VisitReport(
+                                                          date1: homeProvider.startDate,
+                                                          date2: homeProvider.endDate,
+                                                          month: homeProvider.month,
+                                                          type: homeProvider.type,
+                                                        ),
+                                                      ),
+                                                    );
+                                                  },
+                                                  child: Column(
+                                                    mainAxisSize: MainAxisSize.min,
+                                                    children: [
+                                                      Image.asset(
+                                                        assets.aLoc,
+                                                        width: 50,
+                                                        height: 50,
+                                                      ),
+                                                      5.height,
+                                                      CustomText(
+                                                        text: "Daily Plan",
+                                                        isBold: true,
+                                                        size: 12,
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+
+                                            20.height,
+
+                                            Center(
+                                              child: TextButton(
+                                                child: CustomText(
+                                                  text: "Cancel",
+                                                  colors: colorsConst.appRed,
+                                                ),
+                                                onPressed: () {
+                                                  Navigator.pop(context);
+                                                },
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                );
+                              },
+                            );
+                          },
+                        ),
+                        CustomText(
+                          text: "Reports",
+                          colors: colorsConst.primary,
+                          isBold: true,
+                          size: 10,
+                        ),
+                      ],
+                    ),
+
+                    5.width,
+                  ],
+                ),
               ],
             ),
+          )
+              : null,
+
+            body: widget.child,
           ),
-          body: widget.child,
-          // body: homeProvider.mainContents[homeProvider.selectedIndex],
-            ),
-      );
-    });
+        );
+      },
+    );
   }
 }
-
