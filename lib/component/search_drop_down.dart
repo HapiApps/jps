@@ -30,7 +30,7 @@ class CustomerDropdown extends StatelessWidget {
                   CustomText(text:"*",colors:colorsConst.appRed,size:18,isBold: false,),
               ],
             ),
-          7.height,
+          4.height,
           Container(
             width: size,
             height: 47,
@@ -47,7 +47,7 @@ class CustomerDropdown extends StatelessWidget {
                   // labelText: widget.label,
                     hintText: "$text",
                     hintStyle: const TextStyle(color: Colors.grey,fontSize: 13,fontFamily:'Poppins'),
-                    contentPadding: const EdgeInsets.fromLTRB(12, 12, 0, 0),
+                    contentPadding: const EdgeInsets.fromLTRB(12, 4, 0, 0),
                     border: InputBorder.none
                 ),
               ),

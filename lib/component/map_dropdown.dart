@@ -161,7 +161,7 @@ class MapDropDown extends StatelessWidget {
               ),
 
             Padding(
-              padding: const EdgeInsets.fromLTRB(0, 1, 0, 4),
+              padding: const EdgeInsets.fromLTRB(0, 4, 0, 4),
               child: Container(
                 width: fieldWidth,
                 height: 43,

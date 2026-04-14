@@ -51,10 +51,10 @@ class _SearchCustomDropdownState extends State<SearchCustomDropdown> {
                   : 0.height,
             ],
           ),
-          widget.isOptional == false ? 0.height : 5.height,
+          widget.isOptional == false ? 0.height : 4.height,
           Container(
               width: widget.width,
-              height: 53,
+             constraints: const BoxConstraints(minHeight: 53),
               alignment: Alignment.center,
               decoration: customDecoration.baseBackgroundDecoration(
                   radius: 10, color: Colors.white, borderColor: Colors.grey.shade300),
@@ -123,7 +123,7 @@ class _SearchCustomDropdownState extends State<SearchCustomDropdown> {
                             onChanged: (val) => onItemSelect(),
                           ),
                         ),
-                        const SizedBox(width: 10),
+                        const SizedBox(width: 5),
                         CustomText(text:item.toString(),size: 15,),
                       ],
                     ),

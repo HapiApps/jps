@@ -701,8 +701,26 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
 
+
+
+
+                        /// ✅ STATUS TABS (Search கீழே)
+                        SizedBox(
+                          height: 40,
+                          child: ListView(
+                            scrollDirection: Axis.horizontal,
+                            children: [
+                              _statusTab(taskProvider, "All", ""),
+                              _statusTab(taskProvider, "Assigned", "Assigned"),
+                              _statusTab(taskProvider, "Started", "Started"),
+                              _statusTab(taskProvider, "Completed", "Completed"),
+                            ],
+                          ),
+                        ),
+
+                        10.height,
                         Row(
-                          mainAxisAlignment: MainAxisAlignment.end,
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             if(taskProvider.isFilter==true)
                             const Text(
@@ -738,7 +756,7 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
                                     if ((taskProvider.startDate ?? "").isNotEmpty &&
                                         (taskProvider.endDate ?? "").isNotEmpty)
                                     _filterChip(
-                                      "${taskProvider.startDate} - ${taskProvider.endDate}",
+                                      "${taskProvider.startDate}  to  ${taskProvider.endDate}",
                                     ),
 
                                   if ((taskProvider.filterType ?? "").isNotEmpty && taskProvider.filterType != "null")
@@ -861,131 +879,7 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
                     ),
                   ),
 
-                  // Expanded(
-                  //   child: ListView.builder(
-                  //       itemCount: taskProvider.filterUserData.length,
-                  //       itemBuilder: (context, index) {
-                  //         final sortedData = taskProvider.filterUserData;
-                  //         final data = sortedData[index];
-                  //         var createdBy = "";
-                  //         String timestamp = data.createdTs.toString();
-                  //         DateTime dateTime = DateTime.parse(timestamp);
-                  //         String dayOfWeek = DateFormat('EEEE').format(dateTime);
-                  //         DateTime today = DateTime.now();
-                  //         if (dateTime.day == today.day && dateTime.month == today.month && dateTime.year == today.year) {
-                  //           dayOfWeek = 'Today';
-                  //         } else if (dateTime.isAfter(today.subtract(const Duration(days: 1))) &&
-                  //             dateTime.isBefore(today)) {
-                  //           dayOfWeek = 'Yesterday';
-                  //         } else {
-                  //           dayOfWeek = "${dateTime.day}/${dateTime.month}/${dateTime.year}";
-                  //         }
-                  //         createdBy = "${dateTime.day}/${dateTime.month}/${dateTime.year}";
-                  //         final showDateHeader = index == 0 || createdBy != getCreatedDate(sortedData[index - 1]);
-                  //         return InkWell(
-                  //           onTap: (){
-                  //             _myFocusScopeNode.unfocus();
-                  //             Provider.of<HomeProvider >(context, listen: false).panelClose();
-                  //             utils.navigatePage(context, ()=>DashBoard(child: TaskDetails(
-                  //                 data:data,isDirect:true,coId: "0", numberList: const [])));
-                  //           },
-                  //           child: Column(
-                  //             children: [
-                  //               if (showDateHeader)
-                  //                 CustomText(
-                  //                     text: dayOfWeek,
-                  //                     colors: colorsConst.greyClr
-                  //                 ),
-                  //               taskProvider.statusId==""?
-                  //               detail(
-                  //                   width: kIsWeb?webHeight:phoneHeight,
-                  //                   data: data, callBack: () async {
-                  //                 _myFocusScopeNode.unfocus();
-                  //                 if(locPvr.latitude!=""&&locPvr.longitude!=""){
-                  //                   if(taskProvider.checkAtt==""){
-                  //                     taskProvider.signDialog(context: context,
-                  //                       img: taskProvider.profile,
-                  //                       onTap:(newImg){
-                  //                         taskProvider.profilePick(newImg);
-                  //                         taskProvider.taskAttDirect(
-                  //                             context,
-                  //                             status:data.isChecked.toString()=="null"||data.isChecked.toString()=="2"?"1":"2",
-                  //                             taskId: data.id.toString(),
-                  //                             lat:locPvr.latitude,
-                  //                             lng:locPvr.longitude);
-                  //                       },
-                  //                     );
-                  //                   }
-                  //                   else if(taskProvider.checkAtt==data.id.toString()){
-                  //                     taskProvider.signDialog(context: context,
-                  //                       img: taskProvider.profile,
-                  //                       onTap:(newImg){
-                  //                         taskProvider.profilePick(newImg);
-                  //                         taskProvider.taskAttDirect(
-                  //                             context,
-                  //                             status:data.isChecked.toString()=="null"||data.isChecked.toString()=="2"?"1":"2",
-                  //                             taskId: data.id.toString(),
-                  //                             lat:locPvr.latitude,
-                  //                             lng:locPvr.longitude);
-                  //                       },
-                  //                     );
-                  //                   }else{
-                  //                     utils.showWarningToast(context, text: "Please check out previous ${taskProvider.checkAttName} task");
-                  //                   }
-                  //                 }else{
-                  //                   utils.showWarningToast(context, text: "Check your location accuracy.");
-                  //                   await locPvr.manageLocation(context, true);
-                  //                 }
-                  //               })
-                  //                   :taskProvider.statusId!=""&&taskProvider.statusId==data.statval?
-                  //               detail(
-                  //                   width: kIsWeb?webHeight:phoneHeight,
-                  //                   data: data, callBack: () async {
-                  //                 _myFocusScopeNode.unfocus();
-                  //                 if(locPvr.latitude!=""&&locPvr.longitude!=""){
-                  //                   if(taskProvider.checkAtt==""){
-                  //                     taskProvider.signDialog(context: context,
-                  //                       img: taskProvider.profile,
-                  //                       onTap:(newImg){
-                  //                         taskProvider.profilePick(newImg);
-                  //                         taskProvider.taskAttDirect(
-                  //                             context,
-                  //                             status:data.isChecked.toString()=="null"||data.isChecked.toString()=="2"?"1":"2",
-                  //                             taskId: data.id.toString(),
-                  //                             lat:locPvr.latitude,
-                  //                             lng:locPvr.longitude);
-                  //                       },
-                  //                     );
-                  //                   }
-                  //                   else if(taskProvider.checkAtt==data.id.toString()){
-                  //                     taskProvider.signDialog(context: context,
-                  //                       img: taskProvider.profile,
-                  //                       onTap:(newImg){
-                  //                         taskProvider.profilePick(newImg);
-                  //                         taskProvider.taskAttDirect(
-                  //                             context,
-                  //                             status:data.isChecked.toString()=="null"||data.isChecked.toString()=="2"?"1":"2",
-                  //                             taskId: data.id.toString(),
-                  //                             lat:locPvr.latitude,
-                  //                             lng:locPvr.longitude);
-                  //                       },
-                  //                     );
-                  //                   }else{
-                  //                     utils.showWarningToast(context, text: "Please check out previous ${taskProvider.checkAttName} task");
-                  //                   }
-                  //                 }else{
-                  //                   utils.showWarningToast(context, text: "Check your location accuracy.");
-                  //                   await locPvr.manageLocation(context, true);
-                  //                 }
-                  //               }):const SizedBox.shrink(),
-                  //               if(index==taskProvider.filterUserData.length-1)
-                  //                 50.height
-                  //             ],
-                  //           ),
-                  //         );
-                  //         // :0.width;
-                  //       }),
-                  // ),
+
                 ],
               ),
             ),
@@ -1010,7 +904,36 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
     );
   }
 
+  Widget _statusTab(TaskProvider taskProvider, String text, String id) {
+    bool isSelected = taskProvider.statusIds == id;
 
+    return InkWell(
+      onTap: () {
+        taskProvider.changeFilterStatusTab(id);
+      },
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 5),
+        padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? colorsConst.primary : Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isSelected ? colorsConst.primary : Colors.grey.shade300,
+          ),
+        ),
+        child: Center(
+          child: Text(
+            text,
+            style: TextStyle(
+              color: isSelected ? Colors.white : Colors.black,
+              fontWeight: FontWeight.bold,
+              fontSize: 12,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
   Widget _taskCard(dynamic data) {
     Color priorityBg;
     Color priorityTextColor;
@@ -1131,18 +1054,63 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
                       ),
                     ),
                     const SizedBox(height: 10),
+                    _infoBlock("Company", data.projectName ?? ""),
+                    const SizedBox(height: 10),
                     /// COMPANY + TASK TYPE
                     Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _infoBlock("Company", data.projectName ?? ""),
-                        const SizedBox(width: 40),
+
+
                         _infoBlock("Task Type", data.type ?? ""),
                         const SizedBox(width: 30),
                         _infoBlock("Created by", data.creator ?? ""),
+                        const SizedBox(width: 30),
+                        GestureDetector(
+                          onTap: () async {
+                            final result = await Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => DashBoard(
+                                  child: TaskChat(
+                                    isVisit: false,
+                                    taskId: data.id.toString(),
+                                    assignedId: data.assigned.toString(),
+                                    name: data.creator.toString(),
+                                    assignedName: data.assignedNames.toString(),
+                                    date1: widget.date1,
+                                    date2: widget.date2,
+                                    type: widget.type,
+                                  ),
+                                ),
+                              ),
+                            );
 
+                            if (result == true) {
+                              Provider.of<TaskProvider>(context, listen: false).getAllTask(false);
+                              // 🔥 un refresh method name change panniko
+                            }
+                          },
+                          child: SvgPicture.asset(assets.tMessage, width: 20, height: 20),
+                        )
                       ],
                     ),
+                    10.height,
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      children: [
+                        CustomText(text: "Created Time  :  ",colors: colorsConst.greyClr,isBold: true),
+                        CustomText(
+                          text: formatDateTime(data.createdTs),
+                          size: 15,
+                          isBold: true,
+                        ),
 
+
+                      ],
+
+                    ),
                     const SizedBox(height: 5),
                     const Divider(),
 
@@ -1154,7 +1122,7 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
                           children: [
                             CustomText(
                               //text: DateFormat("dd MMM yyyy, hh:mm a").format(DateTime.parse(data.taskDate)),
-                              text: "Service date ",
+                              text: "Task date ",
                               size: 13,
                                 colors: const Color(0xff7E7E7E),
                                isBold: true,
@@ -1215,46 +1183,7 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
                       ],
                     ),
                     10.height,
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.start,
-                      children: [
-                        CustomText(text: "Created Time  :  ",colors: colorsConst.greyClr,isBold: true),
-                        CustomText(
-                          text: formatDateTime(data.createdTs),
-                          size: 15,
-                          isBold: true,
-                        ),
-                        50.width,
-                        GestureDetector(
-                          onTap: () async {
-                            final result = await Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => DashBoard(
-                                  child: TaskChat(
-                                    isVisit: false,
-                                    taskId: data.id.toString(),
-                                    assignedId: data.assigned.toString(),
-                                    name: data.creator.toString(),
-                                    assignedName: data.assignedNames.toString(),
-                                    date1: widget.date1,
-                                    date2: widget.date2,
-                                    type: widget.type,
-                                  ),
-                                ),
-                              ),
-                            );
 
-                            if (result == true) {
-                              Provider.of<TaskProvider>(context, listen: false).getAllTask(false);
-                              // 🔥 un refresh method name change panniko
-                            }
-                          },
-                          child: SvgPicture.asset(assets.tMessage, width: 20, height: 20),
-                        )
-                      ],
-
-                    ),
 
                     const Divider(),
                     /// STATUS + PRIORITY
@@ -1635,93 +1564,7 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
                 ],
               ),
             ),
-            // const Padding(
-            //   padding: EdgeInsets.fromLTRB(0, 0, 0, 5),
-            //   child: DotLine(),
-            // ),
-            // Padding(
-            //   padding: const EdgeInsets.fromLTRB(kIsWeb?10:5, 0, 5, 0),
-            //   child: Row(
-            //     mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            //     children: [
-            //       if(data.assignedNames.toString()!="null")
-            //         SizedBox(
-            //           // color:Colors.pinkAccent,
-            //             width: kIsWeb?MediaQuery.of(context).size.width*0.3:MediaQuery.of(context).size.width*0.6,
-            //             child: CustomText(text: data.assignedNames.toString())),
-            //       if((localData.storage.read("role")=="1"&&data.assignedNames.toString().contains(localData.storage.read("f_name"))||localData.storage.read("role")!="1")&&(!kIsWeb&&!data.statval.toString().contains("ompleted")))
-            //         SizedBox(
-            //           width:MediaQuery.of(context).size.width*0.3,
-            //           height: 30,
-            //           child: ElevatedButton(
-            //             style: ElevatedButton.styleFrom(
-            //                 backgroundColor: data.isChecked.toString()=="null"?colorsConst.litGrey
-            //                     :data.isChecked.toString()=="2"?colorsConst.litGrey:colorsConst.appGreen,
-            //                 shape: const StadiumBorder()
-            //             ),
-            //             onPressed: callBack,
-            //             child: Row(
-            //               mainAxisAlignment: MainAxisAlignment.center,
-            //               children: [
-            //                 Icon(Icons.location_on_outlined,color: data.isChecked.toString()=="null"?Colors.black: data.isChecked.toString()=="2"?Colors.black: Colors.white,size: 15,),
-            //                 CustomText(text: data.isChecked.toString()=="null"?"Check In":data.isChecked.toString()=="1"?"Check Out":"Check In",
-            //                   colors: data.isChecked.toString()=="null"?Colors.black:data.isChecked.toString()=="2"?Colors.black: Colors.white,isBold: true,),
-            //               ],
-            //             ),
-            //           ),
-            //         ),
-            //       // if(data.statval.toString().contains("ompleted")||kIsWeb)
-            //       //   TextButton(
-            //       //       onPressed: (){
-            //       //         _myFocusScopeNode.unfocus();
-            //       //         utils.navigatePage(context, ()=>DashBoard(child:
-            //       //         TaskReport(taskId: data.id.toString(),coId: data.companyId.toString(),numberList: const [], isTask: true,
-            //       //           coName: data.projectName.toString(),description: data.taskTitle.toString(),type: data.type.toString(),
-            //       //           callback: () {
-            //       //             Future.microtask(() => Navigator.pop(context));
-            //       //           }, index: 0,
-            //       //         )));
-            //       //       },
-            //       //       child: CustomText(text: "View Report",colors: colorsConst.appDarkGreen,)),
-            //     ],
-            //   ),
-            // ),
-            // if(!kIsWeb)
-            //   Row(
-            //     mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            //     children: [
-            //       TextButton(
-            //           onPressed: (){
-            //             _myFocusScopeNode.unfocus();
-            //             utils.navigatePage(context, ()=> DashBoard(child: CreateExpense(taskId: data.id.toString(),data: data,coId: "",numberList: const [], companyName: data.projectName.toString(), type: data.type.toString(), desc: data.taskTitle.toString(),
-            //                 date: data.taskDate.toString())));
-            //           },
-            //           child: CustomText(text: "Add Expense",colors: colorsConst.blueClr,)),
-            //       TextButton(
-            //           onPressed: (){
-            //             _myFocusScopeNode.unfocus();
-            //             utils.navigatePage(context, ()=> DashBoard(child:
-            //             AddVisit(taskId:data.id.toString(),companyId: data.companyId.toString(),companyName: data.projectName.toString(),
-            //                 numberList: const [],isDirect: true, type: data.type.toString(), desc: data.taskTitle.toString())));
-            //           },
-            //           child: CustomText(text: "Add Visit Report",colors: colorsConst.bankColor,)),
-            //       TextButton(
-            //           onPressed: (){
-            //             _myFocusScopeNode.unfocus();
-            //             // homeProvider.showTaskType(5);
-            //             // homeProvider.changeTaskList(taskId: data.id.toString(),coId: data.companyId.toString(),numberList: [],isDirect: true);
-            //
-            //             utils.navigatePage(context, ()=>DashBoard(child:
-            //             TaskReport(taskId: data.id.toString(),coId: data.companyId.toString(),numberList: const [], isTask: true,
-            //               coName: data.projectName.toString(),description: data.taskTitle.toString(),type: data.type.toString(),
-            //               callback: () {
-            //                 Future.microtask(() => Navigator.pop(context));
-            //               }, index: 0,
-            //             )));
-            //           },
-            //           child: CustomText(text: "View Report",colors: colorsConst.appDarkGreen,)),
-            //     ],
-            //   ),
+
           ],
         ),
       ),
@@ -1739,3 +1582,216 @@ class _DataSource extends CalendarDataSource {
     appointments = source;
   }
 }
+
+// Expanded(
+//   child: ListView.builder(
+//       itemCount: taskProvider.filterUserData.length,
+//       itemBuilder: (context, index) {
+//         final sortedData = taskProvider.filterUserData;
+//         final data = sortedData[index];
+//         var createdBy = "";
+//         String timestamp = data.createdTs.toString();
+//         DateTime dateTime = DateTime.parse(timestamp);
+//         String dayOfWeek = DateFormat('EEEE').format(dateTime);
+//         DateTime today = DateTime.now();
+//         if (dateTime.day == today.day && dateTime.month == today.month && dateTime.year == today.year) {
+//           dayOfWeek = 'Today';
+//         } else if (dateTime.isAfter(today.subtract(const Duration(days: 1))) &&
+//             dateTime.isBefore(today)) {
+//           dayOfWeek = 'Yesterday';
+//         } else {
+//           dayOfWeek = "${dateTime.day}/${dateTime.month}/${dateTime.year}";
+//         }
+//         createdBy = "${dateTime.day}/${dateTime.month}/${dateTime.year}";
+//         final showDateHeader = index == 0 || createdBy != getCreatedDate(sortedData[index - 1]);
+//         return InkWell(
+//           onTap: (){
+//             _myFocusScopeNode.unfocus();
+//             Provider.of<HomeProvider >(context, listen: false).panelClose();
+//             utils.navigatePage(context, ()=>DashBoard(child: TaskDetails(
+//                 data:data,isDirect:true,coId: "0", numberList: const [])));
+//           },
+//           child: Column(
+//             children: [
+//               if (showDateHeader)
+//                 CustomText(
+//                     text: dayOfWeek,
+//                     colors: colorsConst.greyClr
+//                 ),
+//               taskProvider.statusId==""?
+//               detail(
+//                   width: kIsWeb?webHeight:phoneHeight,
+//                   data: data, callBack: () async {
+//                 _myFocusScopeNode.unfocus();
+//                 if(locPvr.latitude!=""&&locPvr.longitude!=""){
+//                   if(taskProvider.checkAtt==""){
+//                     taskProvider.signDialog(context: context,
+//                       img: taskProvider.profile,
+//                       onTap:(newImg){
+//                         taskProvider.profilePick(newImg);
+//                         taskProvider.taskAttDirect(
+//                             context,
+//                             status:data.isChecked.toString()=="null"||data.isChecked.toString()=="2"?"1":"2",
+//                             taskId: data.id.toString(),
+//                             lat:locPvr.latitude,
+//                             lng:locPvr.longitude);
+//                       },
+//                     );
+//                   }
+//                   else if(taskProvider.checkAtt==data.id.toString()){
+//                     taskProvider.signDialog(context: context,
+//                       img: taskProvider.profile,
+//                       onTap:(newImg){
+//                         taskProvider.profilePick(newImg);
+//                         taskProvider.taskAttDirect(
+//                             context,
+//                             status:data.isChecked.toString()=="null"||data.isChecked.toString()=="2"?"1":"2",
+//                             taskId: data.id.toString(),
+//                             lat:locPvr.latitude,
+//                             lng:locPvr.longitude);
+//                       },
+//                     );
+//                   }else{
+//                     utils.showWarningToast(context, text: "Please check out previous ${taskProvider.checkAttName} task");
+//                   }
+//                 }else{
+//                   utils.showWarningToast(context, text: "Check your location accuracy.");
+//                   await locPvr.manageLocation(context, true);
+//                 }
+//               })
+//                   :taskProvider.statusId!=""&&taskProvider.statusId==data.statval?
+//               detail(
+//                   width: kIsWeb?webHeight:phoneHeight,
+//                   data: data, callBack: () async {
+//                 _myFocusScopeNode.unfocus();
+//                 if(locPvr.latitude!=""&&locPvr.longitude!=""){
+//                   if(taskProvider.checkAtt==""){
+//                     taskProvider.signDialog(context: context,
+//                       img: taskProvider.profile,
+//                       onTap:(newImg){
+//                         taskProvider.profilePick(newImg);
+//                         taskProvider.taskAttDirect(
+//                             context,
+//                             status:data.isChecked.toString()=="null"||data.isChecked.toString()=="2"?"1":"2",
+//                             taskId: data.id.toString(),
+//                             lat:locPvr.latitude,
+//                             lng:locPvr.longitude);
+//                       },
+//                     );
+//                   }
+//                   else if(taskProvider.checkAtt==data.id.toString()){
+//                     taskProvider.signDialog(context: context,
+//                       img: taskProvider.profile,
+//                       onTap:(newImg){
+//                         taskProvider.profilePick(newImg);
+//                         taskProvider.taskAttDirect(
+//                             context,
+//                             status:data.isChecked.toString()=="null"||data.isChecked.toString()=="2"?"1":"2",
+//                             taskId: data.id.toString(),
+//                             lat:locPvr.latitude,
+//                             lng:locPvr.longitude);
+//                       },
+//                     );
+//                   }else{
+//                     utils.showWarningToast(context, text: "Please check out previous ${taskProvider.checkAttName} task");
+//                   }
+//                 }else{
+//                   utils.showWarningToast(context, text: "Check your location accuracy.");
+//                   await locPvr.manageLocation(context, true);
+//                 }
+//               }):const SizedBox.shrink(),
+//               if(index==taskProvider.filterUserData.length-1)
+//                 50.height
+//             ],
+//           ),
+//         );
+//         // :0.width;
+//       }),
+// ),
+// const Padding(
+//   padding: EdgeInsets.fromLTRB(0, 0, 0, 5),
+//   child: DotLine(),
+// ),
+// Padding(
+//   padding: const EdgeInsets.fromLTRB(kIsWeb?10:5, 0, 5, 0),
+//   child: Row(
+//     mainAxisAlignment: MainAxisAlignment.spaceBetween,
+//     children: [
+//       if(data.assignedNames.toString()!="null")
+//         SizedBox(
+//           // color:Colors.pinkAccent,
+//             width: kIsWeb?MediaQuery.of(context).size.width*0.3:MediaQuery.of(context).size.width*0.6,
+//             child: CustomText(text: data.assignedNames.toString())),
+//       if((localData.storage.read("role")=="1"&&data.assignedNames.toString().contains(localData.storage.read("f_name"))||localData.storage.read("role")!="1")&&(!kIsWeb&&!data.statval.toString().contains("ompleted")))
+//         SizedBox(
+//           width:MediaQuery.of(context).size.width*0.3,
+//           height: 30,
+//           child: ElevatedButton(
+//             style: ElevatedButton.styleFrom(
+//                 backgroundColor: data.isChecked.toString()=="null"?colorsConst.litGrey
+//                     :data.isChecked.toString()=="2"?colorsConst.litGrey:colorsConst.appGreen,
+//                 shape: const StadiumBorder()
+//             ),
+//             onPressed: callBack,
+//             child: Row(
+//               mainAxisAlignment: MainAxisAlignment.center,
+//               children: [
+//                 Icon(Icons.location_on_outlined,color: data.isChecked.toString()=="null"?Colors.black: data.isChecked.toString()=="2"?Colors.black: Colors.white,size: 15,),
+//                 CustomText(text: data.isChecked.toString()=="null"?"Check In":data.isChecked.toString()=="1"?"Check Out":"Check In",
+//                   colors: data.isChecked.toString()=="null"?Colors.black:data.isChecked.toString()=="2"?Colors.black: Colors.white,isBold: true,),
+//               ],
+//             ),
+//           ),
+//         ),
+//       // if(data.statval.toString().contains("ompleted")||kIsWeb)
+//       //   TextButton(
+//       //       onPressed: (){
+//       //         _myFocusScopeNode.unfocus();
+//       //         utils.navigatePage(context, ()=>DashBoard(child:
+//       //         TaskReport(taskId: data.id.toString(),coId: data.companyId.toString(),numberList: const [], isTask: true,
+//       //           coName: data.projectName.toString(),description: data.taskTitle.toString(),type: data.type.toString(),
+//       //           callback: () {
+//       //             Future.microtask(() => Navigator.pop(context));
+//       //           }, index: 0,
+//       //         )));
+//       //       },
+//       //       child: CustomText(text: "View Report",colors: colorsConst.appDarkGreen,)),
+//     ],
+//   ),
+// ),
+// if(!kIsWeb)
+//   Row(
+//     mainAxisAlignment: MainAxisAlignment.spaceBetween,
+//     children: [
+//       TextButton(
+//           onPressed: (){
+//             _myFocusScopeNode.unfocus();
+//             utils.navigatePage(context, ()=> DashBoard(child: CreateExpense(taskId: data.id.toString(),data: data,coId: "",numberList: const [], companyName: data.projectName.toString(), type: data.type.toString(), desc: data.taskTitle.toString(),
+//                 date: data.taskDate.toString())));
+//           },
+//           child: CustomText(text: "Add Expense",colors: colorsConst.blueClr,)),
+//       TextButton(
+//           onPressed: (){
+//             _myFocusScopeNode.unfocus();
+//             utils.navigatePage(context, ()=> DashBoard(child:
+//             AddVisit(taskId:data.id.toString(),companyId: data.companyId.toString(),companyName: data.projectName.toString(),
+//                 numberList: const [],isDirect: true, type: data.type.toString(), desc: data.taskTitle.toString())));
+//           },
+//           child: CustomText(text: "Add Visit Report",colors: colorsConst.bankColor,)),
+//       TextButton(
+//           onPressed: (){
+//             _myFocusScopeNode.unfocus();
+//             // homeProvider.showTaskType(5);
+//             // homeProvider.changeTaskList(taskId: data.id.toString(),coId: data.companyId.toString(),numberList: [],isDirect: true);
+//
+//             utils.navigatePage(context, ()=>DashBoard(child:
+//             TaskReport(taskId: data.id.toString(),coId: data.companyId.toString(),numberList: const [], isTask: true,
+//               coName: data.projectName.toString(),description: data.taskTitle.toString(),type: data.type.toString(),
+//               callback: () {
+//                 Future.microtask(() => Navigator.pop(context));
+//               }, index: 0,
+//             )));
+//           },
+//           child: CustomText(text: "View Report",colors: colorsConst.appDarkGreen,)),
+//     ],
+//   ),

@@ -207,7 +207,7 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
                               //   children: [
                               CustomTextField(
                                 width: kIsWeb?webWidth:phoneWidth,
-                                text: "Service Date",
+                                text: "Task Date",
                                 controller: taskProvider.taskDt,
                                 hintText: "DD-MM-YYYY",
                                 readOnly: true,
@@ -219,7 +219,7 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
                               Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const CustomText(text: "Priority Level"),10.height,
+                                  const CustomText(text: "Priority Level"),5.height,
                                   Row(
                                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                     children: [
@@ -261,7 +261,7 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
                                     CustomText(text: "Notes/Attachments:",isBold: true,)
                                   ],
                                 ),
-                              ),10.height,
+                              ),5.height,
                               SizedBox(
                                 width: kIsWeb?webWidth:phoneWidth,
                                 child: ListView.builder(

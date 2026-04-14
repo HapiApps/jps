@@ -461,8 +461,10 @@ class _HomePageState extends State<HomePage> {
             .where((e) => e.isWorkDone == "1")
             .length;
 
+        final role = localData.storage.read("role").toString();
+
         final notSubmittedCount = attPvr.getDailyAttendance
-            .where((e) => e.isWorkDone != "1" && localData.storage.read("role") == 1)
+            .where((e) => e.isWorkDone != "1" && role != "1")
             .length;
         return StreamBuilder(
             stream:FirebaseFirestore.instance.collection('attendance').snapshots(),
@@ -483,7 +485,7 @@ class _HomePageState extends State<HomePage> {
                       padding: const EdgeInsets.all(10),
                       child: homeProvider.versionCheck==false
                           ?const Center(child: Loading())
-                          :homeProvider.currentVersion!=""&&homeProvider.versionCheck==true&&
+                          :homeProvider.currentVersion!=""&& homeProvider.versionCheck==true&&
                           homeProvider.versionActive==false?
                       const UpdateApp()
                       //     :homeProvider.refresh==false||homeProvider.vRefresh==false?

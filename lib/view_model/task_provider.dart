@@ -84,6 +84,11 @@ class TaskProvider with ChangeNotifier {
       );
     }
   }
+  void changeFilterStatusTab(String id) {
+    _statusIds = id;
+    filterList();
+    notifyListeners();
+  }
   // void dateFilterList(String date1,String date2) {
   //   final dateFormat = DateFormat('dd-MM-yyyy');
   //   final parsedStartDate = dateFormat.parse(date1);
@@ -155,8 +160,7 @@ class TaskProvider with ChangeNotifier {
     _filterUserData = _searchAllTasks.where((contact) {
 
       /// 🔴 DATE CHECK
-      if (contact.taskDate == null ||
-          contact.taskDate.toString().isEmpty) {
+      if (contact.taskDate == null || contact.taskDate.toString().isEmpty) {
         return false;
       }
 
@@ -168,18 +172,16 @@ class TaskProvider with ChangeNotifier {
         return false;
       }
 
-      final taskDateOnly =
-      DateTime(taskDate.year, taskDate.month, taskDate.day);
+      final taskDateOnly = DateTime(taskDate.year, taskDate.month, taskDate.day);
 
       final isWithinDateRange =
           !taskDateOnly.isBefore(parsedStartDate) &&
               !taskDateOnly.isAfter(parsedEndDate);
 
       /// 🔴 TYPE
-      final isTypeMatch =
-          _fType.isEmpty || _fType == contact.type;
+      final isTypeMatch = _fType.isEmpty || _fType == contact.type;
 
-      /// 🔴 EMPLOYEE (SAFE)
+      /// 🔴 EMPLOYEE
       final assignedList = (contact.assignedNames ?? "")
           .split(',')
           .map((e) => e.trim().toLowerCase())
@@ -192,17 +194,23 @@ class TaskProvider with ChangeNotifier {
 
       /// 🔴 CUSTOMER
       final isCusMatch =
-          _companyName.isEmpty ||
-              contact.projectName == _companyName;
+          _companyName.isEmpty || contact.projectName == _companyName;
+
+      /// ✅ STATUS FILTER
+      final taskStatus = (contact.statval ?? "").toString().trim();
+      final selectedStatus = _statusIds.toString().trim();
+
+      final isStatusMatch = selectedStatus.isEmpty || taskStatus == selectedStatus;
 
       return isWithinDateRange &&
           isTypeMatch &&
           isEmpMatch &&
-          isCusMatch;
+          isCusMatch &&
+          isStatusMatch;   // ✅ THIS IS IMPORTANT
 
     }).toList();
 
-    if (!_isDisposed) notifyListeners(); // 🔥 important
+    if (!_isDisposed) notifyListeners();
   }
 
   // void filterList() {
@@ -1806,6 +1814,8 @@ class TaskProvider with ChangeNotifier {
   var _statusT;
   String _filter="1";
   String statusId="";
+  String _statusIds = "";
+  String get statusIds => _statusIds;
   int matched=0;
   get statusT => _statusT;
   String get filter => _filter;

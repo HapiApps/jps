@@ -31,7 +31,7 @@ class MaxLineTextField extends StatelessWidget {
                 CustomText(text:"*",colors:colorsConst.appRed,size:20,isBold: false,),
             ],
           ),
-        ),        5.height,
+        ),        3.height,
         SizedBox(
           width: width,
           child: TextFormField(
