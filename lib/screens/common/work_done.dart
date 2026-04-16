@@ -44,8 +44,9 @@ class _WorkDoneEmployeesPageState extends State<WorkDoneEmployeesPage>
     /// ❌ NOT DONE LIST (Exclude Role 1)
     final notDoneList = attPvr.getDailyAttendance
         .where((e) =>
-    e.isWorkDone != "1" &&
-        localData.storage.read("role") == 1) // ✅ Correct Role Filter
+    e.isWorkDone == "0"
+        && e.role != 1
+    ) // ✅ Correct Role Filter
         .toList();
 
     final submittedCount = doneList.length;

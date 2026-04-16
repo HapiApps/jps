@@ -127,7 +127,7 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
                                       },
                                           icon: Icon(Icons.add,color: Colors.red,))
                                        ],
-                                  ),10.height,
+                                  ),
                                   GridView.builder(
                                     itemCount: taskProvider.typeList.length,
                                     gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -150,7 +150,7 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
                                       );
                                     },
                                   ),
-                                  10.height,
+                                  3.height,
                                 ],
                               ),
                               // cusPvr.refresh == false?
@@ -176,13 +176,7 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
                                     }, size: kIsWeb?webWidth:phoneWidth,),
                                 ],
                               ),
-                              MaxLineTextField(
-                                width: kIsWeb?webWidth:phoneWidth,
-                                text: " Task Title / Description",isRequired: true,
-                                controller: taskProvider.taskTitleCont,
-                                // si: kIsWeb?webWidth:phoneWidth,
-                                textCapitalization: TextCapitalization.sentences, maxLine: 2,
-                              ),
+
                               SearchCustomDropdown(
                                   text: "Assign To",
                                   hintText: taskProvider.assignedNames.isEmpty
@@ -192,29 +186,38 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
                                   onChanged: (value) {},
                                   width: kIsWeb?webWidth:phoneWidth
                               ),
-                            MapDropDown(
-                              hintText: "Status",
-                              saveValue: taskProvider.status,
-                              list: taskProvider.statusList,
-                              dropText: 'value',
-                              onChanged: (value) {
-                                taskProvider.changeStatus(value);
-                              },
-                              width: kIsWeb ? webWidth : phoneWidth,
+                            Row(
+                              children: [
+                                MapDropDown(
+                                  hintText: "Status",
+                                  saveValue: taskProvider.status,
+                                  list: taskProvider.statusList,
+                                  dropText: 'value',
+                                  onChanged: (value) {
+                                    taskProvider.changeStatus(value);
+                                  },
+                                  width: kIsWeb ? webWidth : MediaQuery.of(context).size.width * 0.5,
+                                ),
+                                  5.width,
+                                  CustomTextField(
+                                    width: kIsWeb?webWidth:MediaQuery.of(context).size.width * 0.4,
+                                    text: "Task Date",
+                                    controller: taskProvider.taskDt,
+                                    hintText: "DD-MM-YYYY",
+                                    readOnly: true,
+                                    onTap: () {
+                                      _myFocusScopeNode.unfocus();
+                                      taskProvider.datePick(context: context,date: taskProvider.taskDt);
+                                    },
+                                  ),
+                              ],
                             ),
-                              // Row(
-                              //   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                              //   children: [
-                              CustomTextField(
+                              MaxLineTextField(
                                 width: kIsWeb?webWidth:phoneWidth,
-                                text: "Task Date",
-                                controller: taskProvider.taskDt,
-                                hintText: "DD-MM-YYYY",
-                                readOnly: true,
-                                onTap: () {
-                                  _myFocusScopeNode.unfocus();
-                                  taskProvider.datePick(context: context,date: taskProvider.taskDt);
-                                },
+                                text: " Task Title / Description",isRequired: true,
+                                controller: taskProvider.taskTitleCont,
+                                // si: kIsWeb?webWidth:phoneWidth,
+                                textCapitalization: TextCapitalization.sentences, maxLine: 2,
                               ),
                               Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,

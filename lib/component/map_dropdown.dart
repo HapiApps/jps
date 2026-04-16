@@ -92,7 +92,132 @@ import 'custom_text.dart';
 //     );
 //   }
 // }
+class MapDropDown3 extends StatelessWidget {
+  final double? width;
+  final dynamic saveValue;
+  final String hintText;
+  final String dropText;
+  final List list;
+  final ValueChanged<Object?> onChanged;
+  final Color? color;
+  final bool? isHint;
+  final bool? isRequired;
+  final bool? isRefresh;
+  final VoidCallback? callback;
 
+  const MapDropDown3({
+    super.key,
+    this.width,
+    required this.saveValue,
+    required this.hintText,
+    required this.onChanged,
+    required this.dropText,
+    this.color = Colors.white,
+    this.isHint = true,
+    required this.list,
+    this.isRequired = false,
+    this.isRefresh,
+    this.callback,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final fieldWidth = width ?? screenWidth * 0.83;
+
+    /// ✅ safe value check
+    String? selectedValue;
+    if (saveValue != null && saveValue.toString().isNotEmpty) {
+      selectedValue = saveValue.toString();
+    }
+
+    return SizedBox(
+      child: GestureDetector(
+        onTap: callback,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (isHint == true)
+              SizedBox(
+                width: fieldWidth,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        CustomText(text: hintText),
+                        if (isRequired == true)
+                          CustomText(
+                            text: "*",
+                            colors: colorsConst.appRed,
+                            size: 20,
+                            isBold: false,
+                          ),
+                      ],
+                    ),
+                    if (isRefresh == true)
+                      GestureDetector(
+                        onTap: callback,
+                        child: const Icon(
+                          Icons.refresh,
+                          size: 15,
+                          color: Colors.red,
+                        ),
+                      )
+                  ],
+                ),
+              ),
+
+            Padding(
+              padding: const EdgeInsets.fromLTRB(0, 4, 0, 0),
+              child: Container(
+                width: fieldWidth,
+                height: 43,
+                decoration: customDecoration.baseBackgroundDecoration(
+                  color: color,
+                  radius: 10,
+                  borderColor: Colors.grey.shade300,
+                ),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<String>(
+                    hint: Padding(
+                      padding: const EdgeInsets.only(left: 8.0),
+                      child: CustomText(
+                        text: hintText,
+                        colors: Colors.grey,
+                      ),
+                    ),
+                    isExpanded: true,
+                    value: selectedValue,
+                    icon: const Icon(Icons.keyboard_arrow_down_rounded),
+
+                    /// ✅ Dropdown items always String id
+                    items: list.map<DropdownMenuItem<String>>((item) {
+                      return DropdownMenuItem<String>(
+                        value: item['id'].toString(),
+                        child: Padding(
+                          padding: const EdgeInsets.only(left: 8.0),
+                          child: CustomText(
+                            text: item[dropText]?.toString() ?? '',
+                          ),
+                        ),
+                      );
+                    }).toList(),
+
+                    onChanged: (val) {
+                      onChanged(val);
+                    },
+                  ),
+                ),
+              ),
+            ),
+            10.height
+          ],
+        ),
+      ),
+    );
+  }
+}
 class MapDropDown extends StatelessWidget {
   final double? width;
   final dynamic saveValue;
@@ -161,7 +286,7 @@ class MapDropDown extends StatelessWidget {
               ),
 
             Padding(
-              padding: const EdgeInsets.fromLTRB(0, 4, 0, 4),
+              padding: const EdgeInsets.fromLTRB(0, 4, 0, 0),
               child: Container(
                 width: fieldWidth,
                 height: 43,

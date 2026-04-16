@@ -62,7 +62,7 @@ class CustomTextField extends StatelessWidget {
                   CustomText(text:"*",colors: colorsConst.appRed,size:20,isBold: false,
                   ),
               ],
-            ),2.height,
+            ),
             Container(
               width: fieldWidth,
               height: 45,

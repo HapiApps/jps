@@ -88,13 +88,20 @@ class _ViewEmployeesState extends State<ViewEmployees>
 
     return Consumer2<EmployeeProvider, HomeProvider>(
         builder: (context, empProvider, homeProvider, _) {
+
           final activeList = empProvider.filterUserData
               .where((e) => e.active.toString() == "1")
-              .toList();
+              .toList()
+            ..sort((a, b) => (a.firstname ?? "")
+                .toLowerCase()
+                .compareTo((b.firstname ?? "").toLowerCase()));
 
           final inactiveList = empProvider.filterUserData
               .where((e) => e.active.toString() == "2")
-              .toList();
+              .toList()
+            ..sort((a, b) => (a.firstname ?? "")
+                .toLowerCase()
+                .compareTo((b.firstname ?? "").toLowerCase()));
 
           return FocusScope(
             node: _myFocusScopeNode,
@@ -731,7 +738,7 @@ class _ViewEmployeesState extends State<ViewEmployees>
                             child: TabBarView(
                               controller: _tabController,
                               children: [
-                                /// ACTIVE TAB
+                                /// ---------------- ACTIVE TAB ----------------
                                 activeList.isEmpty
                                     ? Center(
                                   child: CustomText(
@@ -742,115 +749,44 @@ class _ViewEmployeesState extends State<ViewEmployees>
                                     : ListView.builder(
                                   itemCount: activeList.length,
                                   itemBuilder: (context, index) {
-                                    final sortedData = activeList;
-                                    final employeeData =
-                                    sortedData[index];
-
-                                    String timestamp = employeeData
-                                        .createdTs
-                                        .toString();
-                                    DateTime dateTime =
-                                    DateTime.parse(timestamp);
-
-                                    String dayOfWeek =
-                                    DateFormat('EEEE')
-                                        .format(dateTime);
-
-                                    DateTime today = DateTime.now();
-                                    if (dateTime.day == today.day &&
-                                        dateTime.month == today.month &&
-                                        dateTime.year == today.year) {
-                                      dayOfWeek = 'Today';
-                                    } else if (dateTime.isAfter(today.subtract(
-                                        const Duration(days: 1))) &&
-                                        dateTime.isBefore(today)) {
-                                      dayOfWeek = 'Yesterday';
-                                    } else {
-                                      dayOfWeek =
-                                      "${dateTime.day}/${dateTime.month}/${dateTime.year}";
-                                    }
-
-                                    String createdBy =
-                                        "${dateTime.day}/${dateTime.month}/${dateTime.year}";
-                                    final showDateHeader = index == 0 ||
-                                        createdBy !=
-                                            utils.getCreatedDate(
-                                                sortedData[index - 1]);
+                                    final employeeData = activeList[index];
 
                                     return Column(
                                       children: [
                                         EmpData(
-                                          showDateHeader: showDateHeader,
+                                          showDateHeader: false, // ✅ no date header
                                           employeeData: employeeData,
-                                          dayOfWeek: dayOfWeek,
+                                          dayOfWeek: "", // ✅ not needed
                                           focusScope: _myFocusScopeNode,
                                         ),
-                                        if (index ==
-                                            activeList.length - 1)
-                                          70.height
+                                        if (index == activeList.length - 1) 70.height,
                                       ],
                                     );
                                   },
                                 ),
 
-                                /// INACTIVE TAB
+                                /// ---------------- INACTIVE TAB ----------------
                                 inactiveList.isEmpty
                                     ? Center(
                                   child: CustomText(
-                                    text:
-                                    "No Inactive Employees Found",
+                                    text: "No Inactive Employees Found",
                                     colors: colorsConst.greyClr,
                                   ),
                                 )
                                     : ListView.builder(
                                   itemCount: inactiveList.length,
                                   itemBuilder: (context, index) {
-                                    final sortedData = inactiveList;
-                                    final employeeData =
-                                    sortedData[index];
-
-                                    String timestamp = employeeData
-                                        .createdTs
-                                        .toString();
-                                    DateTime dateTime =
-                                    DateTime.parse(timestamp);
-
-                                    String dayOfWeek =
-                                    DateFormat('EEEE')
-                                        .format(dateTime);
-
-                                    DateTime today = DateTime.now();
-                                    if (dateTime.day == today.day &&
-                                        dateTime.month == today.month &&
-                                        dateTime.year == today.year) {
-                                      dayOfWeek = 'Today';
-                                    } else if (dateTime.isAfter(today.subtract(
-                                        const Duration(days: 1))) &&
-                                        dateTime.isBefore(today)) {
-                                      dayOfWeek = 'Yesterday';
-                                    } else {
-                                      dayOfWeek =
-                                      "${dateTime.day}/${dateTime.month}/${dateTime.year}";
-                                    }
-
-                                    String createdBy =
-                                        "${dateTime.day}/${dateTime.month}/${dateTime.year}";
-                                    final showDateHeader = index == 0 ||
-                                        createdBy !=
-                                            utils.getCreatedDate(
-                                                sortedData[index - 1]);
+                                    final employeeData = inactiveList[index];
 
                                     return Column(
                                       children: [
                                         EmpData(
-                                          showDateHeader: showDateHeader,
+                                          showDateHeader: false, // ✅ no date header
                                           employeeData: employeeData,
-                                          dayOfWeek: dayOfWeek,
+                                          dayOfWeek: "", // ✅ not needed
                                           focusScope: _myFocusScopeNode,
                                         ),
-                                        if (index ==
-                                            inactiveList.length - 1)
-                                          70.height
+                                        if (index == inactiveList.length - 1) 70.height,
                                       ],
                                     );
                                   },

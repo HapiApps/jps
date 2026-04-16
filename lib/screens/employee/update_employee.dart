@@ -494,47 +494,47 @@ class _UpdatedEmployeeState extends State<UpdatedEmployee> with TickerProviderSt
                                     )
                                   ],
                                 ),
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    MapDropDown(
-                                      isRefresh: empProvider.roleValues.isEmpty?true:false,
-                                      callback: (){
-                                        empProvider.refreshRoles();
-                                      },
-                                      isHint: true,
-                                      width: kIsWeb?webWidth/2.1:phoneWidth/2.1,
-                                      isRequired: true,
-                                      hintText: "Role",
-                                      list: empProvider.roleValues,
-                                      saveValue: empProvider.role,
-                                      onChanged: (Object? value) {
-                                        empProvider.changeRole(value);
-                                      },
-                                      dropText: 'role',),
-                                    MapDropDown(
-                                      isRefresh: empProvider.gradeValues.isEmpty?true:false,
-                                      callback: (){
-                                        if (empProvider.gradeValues.isEmpty) {
-                                          utils.showWarningToast(
-                                            context,
-                                            text: "Please go to Settings to add a grade and its amount before proceeding",
-                                          );
-                                        } else {
-                                          empProvider.getGrades(false);
-                                        }
-                                      },
-                                      isHint: true,
-                                      width: kIsWeb?webWidth/2.1:phoneWidth/2.1,
-                                      hintText: "Grade",
-                                      list: empProvider.gradeValues,
-                                      saveValue: empProvider.grade,
-                                      onChanged: (Object? value) {
-                                        empProvider.changeGrade(value,false);
-                                      },
-                                      dropText: 'grade',),
-                                  ],
-                                ),
+                                // Row(
+                                //   mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                //   children: [
+                                //     MapDropDown3(
+                                //       isRefresh: empProvider.roleValues.isEmpty?true:false,
+                                //       callback: (){
+                                //         empProvider.refreshRoles();
+                                //       },
+                                //       isHint: true,
+                                //       width: kIsWeb?webWidth/2.1:phoneWidth/2.1,
+                                //       isRequired: true,
+                                //       hintText: "Role",
+                                //       list: empProvider.roleValues,
+                                //       saveValue: empProvider.role??"",
+                                //       onChanged: (Object? value) {
+                                //         empProvider.changeRole(value);
+                                //       },
+                                //       dropText: 'role',),
+                                //     MapDropDown3(
+                                //       isRefresh: empProvider.gradeValues.isEmpty?true:false,
+                                //       callback: (){
+                                //         if (empProvider.gradeValues.isEmpty) {
+                                //           utils.showWarningToast(
+                                //             context,
+                                //             text: "Please go to Settings to add a grade and its amount before proceeding",
+                                //           );
+                                //         } else {
+                                //           empProvider.getGrades(false);
+                                //         }
+                                //       },
+                                //       isHint: true,
+                                //       width: kIsWeb?webWidth/2.1:phoneWidth/2.1,
+                                //       hintText: "Grade",
+                                //       list: empProvider.gradeValues,
+                                //       saveValue: empProvider.grade??"",
+                                //       onChanged: (Object? value) {
+                                //         empProvider.changeGrade(value,false);
+                                //       },
+                                //       dropText: 'grade',),
+                                //   ],
+                                // ),
                                 Row(
                                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [

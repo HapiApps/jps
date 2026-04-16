@@ -9,6 +9,7 @@ class ConstantValues{
   final String comName = "by HapiApps Software Lab";
   final String appHeading = "Daily Activity Report ";
   final String success = "Added Successfully";
+  final String successTask = "Task Added Successfully";
   final String updated = "Updated Successfully";
   final String deleted = "Deleted Successfully";
   final String failed = "Failed";

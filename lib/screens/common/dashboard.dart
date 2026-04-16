@@ -476,12 +476,12 @@ class _DashBoardState extends State<DashBoard> {
                             );
                           },
                         ),
-                        CustomText(
-                          text: "Reports",
-                          colors: colorsConst.primary,
-                          isBold: true,
-                          size: 10,
-                        ),
+                        // CustomText(
+                        //   text: "Reports",
+                        //   colors: colorsConst.primary,
+                        //   isBold: true,
+                        //   size: 10,
+                        // ),
                       ],
                     ),
 

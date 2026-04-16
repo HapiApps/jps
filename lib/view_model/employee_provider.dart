@@ -239,8 +239,8 @@ String get commentCount=>_commentCount;
 
 String _selectRole="0";
 String get selectRole=>_selectRole;
-void selectedRole(value){
-  _selectRole=value;
+void selectedRole(String? value) {
+  _selectRole = value ?? "";
   notifyListeners();
 }
 String _empStatus="0";
@@ -674,7 +674,7 @@ dynamic _role;
 dynamic get role =>_role;
 void changeRole(dynamic value){
   _update=true;
-  _role = value!;
+  _role = value.toString();   // id only
   var list = [];
   list.add(value);
   localData.storage.write("roleId", list[0]["id"]);
@@ -688,7 +688,7 @@ void changeGrade(dynamic value,bool isUpdate){
   if(isUpdate==true){
     _update = true;
   }
-  _grade = value!;
+  _grade = value.toString();
   var list = [];
   list.add(value);
   localData.storage.write("g_id", list[0]["id"]);

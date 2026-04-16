@@ -464,7 +464,7 @@ class _HomePageState extends State<HomePage> {
         final role = localData.storage.read("role").toString();
 
         final notSubmittedCount = attPvr.getDailyAttendance
-            .where((e) => e.isWorkDone != "1" && role != "1")
+            .where((e) => e.isWorkDone == "0" && e.role != 1)
             .length;
         return StreamBuilder(
             stream:FirebaseFirestore.instance.collection('attendance').snapshots(),
@@ -803,6 +803,8 @@ class _HomePageState extends State<HomePage> {
                                                 color: Colors.grey,
                                                 borderRadius: BorderRadius.circular(10),
                                                                                           ),
+
+
                                                                                           child: Row(
                                                 children: const [
 
@@ -1035,6 +1037,7 @@ class _HomePageState extends State<HomePage> {
                                     children: [
                                       /// Top Row
                                       Row(
+                                        crossAxisAlignment: CrossAxisAlignment.center,
                                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                         children: [
                                           Row(
@@ -1215,7 +1218,7 @@ class _HomePageState extends State<HomePage> {
                                                 Container(
                                                   width: screenWidth/2,
                                                   decoration: BoxDecoration(
-                                                    color: Color(0xffE34853),
+                                                      color: Colors.red,
                                                     borderRadius: BorderRadius.circular(20),
                                                   ),
                                                   child: Padding(
@@ -1254,7 +1257,7 @@ class _HomePageState extends State<HomePage> {
                                                       sections: [
                                                         PieChartSectionData(
                                                           value: visitPendingCount.toDouble(),
-                                                          color: Color(0xffE34853),
+                                                          color:  Colors.red,
                                                           radius: 50,
                                                           showTitle: false,
                                                         ),
@@ -1555,93 +1558,72 @@ class _HomePageState extends State<HomePage> {
                                     children: [     ///ADDED NEW
                                       /// TOP ROW
                                       Row(
-                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                         children: [
-                                          /// LEFT SIDE (Icon + Title)
-                                          Row(
-                                            children: [
-                                              // Image.asset(
-                                              //   DashboardAssets.task,
-                                              //   width: 40,
-                                              //   height: 40,
-                                              // ),
-                                              // const SizedBox(width: 10),
-                                              Row(
-                                                crossAxisAlignment: CrossAxisAlignment.start,
-                                                children: [
-                                                  const CustomText(
-                                                    "Tasks",
-                                                    size: 20,
-                                                    weight: FontWeight.bold,
-                                                  ),
-
-                                                  CustomText(
-                                                    "  ${homeProvider.mainReportList.isEmpty ? "0" : homeProvider.mainReportList[0]["total_tasks"]} ",
-                                                    size: 25,
-                                                 weight: FontWeight.bold,
-                                                 //   color: const Color(0xffA2A2A2),
-                                                    color: Colors.black,
-                                                  ),
-                                                ],
-                                              ),
-                                            ],
+                                          /// LEFT SIDE
+                                          Expanded(
+                                            child: Row(
+                                              crossAxisAlignment: CrossAxisAlignment.center,
+                                              children: [
+                                                const CustomText(
+                                                  "Tasks",
+                                                  size: 20,
+                                                  weight: FontWeight.bold,
+                                                ),
+                                                CustomText(
+                                                  "  ${homeProvider.mainReportList.isEmpty ? "0" : homeProvider.mainReportList[0]["total_tasks"]} ",
+                                                  size: 25,
+                                                  weight: FontWeight.bold,
+                                                  color: Colors.black,
+                                                ),
+                                              ],
+                                            ),
                                           ),
-                                          /// RIGHT SIDE (Add Task Button)
-                                          localData.storage.read("role")=="1"?
-                                          InkWell(
-                                            onTap:(){
-                                              utils.navigatePage(context, ()=>const DashBoard(child: AddTask()));
-                                            },
-                                            child: Container(
-                                              padding: const EdgeInsets.symmetric(
-                                                horizontal: 45,
-                                                vertical: 8,
-                                              ),
-                                              decoration: BoxDecoration(
-                                                color: const Color(0xffDAF2DC),
-                                                borderRadius: BorderRadius.circular(10),
-                                                boxShadow: const [
-                                                  BoxShadow(
-                                                    color: Colors.black38,
-                                                    blurRadius: 4,
-                                                    offset: Offset(0, 0),
-                                                  ),
-                                                ],
-                                              ),
-                                              child: Row(
-                                                children:  [
-                                                  Image.asset(
-                                                    assets.addButton,
-                                                  ),
-                                                  SizedBox(width: 6),
-                                                  CustomText(
-                                                    "Add Task",
-                                                    size: 16,
-                                                    weight: FontWeight.bold,
-                                                    color: Color(0xff0F8D4B),
-                                                  ),
-                                                ],
+
+                                          /// RIGHT SIDE
+                                          if (localData.storage.read("role") == "1")
+                                            InkWell(
+                                              onTap: () {
+                                                utils.navigatePage(context, () => const DashBoard(child: AddTask()));
+                                              },
+                                              child: Container(
+                                                padding: const EdgeInsets.symmetric(
+                                                  horizontal: 25, // 🔥 reduce panniten (45 too big)
+                                                  vertical: 8,
+                                                ),
+                                                decoration: BoxDecoration(
+                                                  color: const Color(0xffDAF2DC),
+                                                  borderRadius: BorderRadius.circular(10),
+                                                  boxShadow: const [
+                                                    BoxShadow(
+                                                      color: Colors.black38,
+                                                      blurRadius: 4,
+                                                      offset: Offset(0, 0),
+                                                    ),
+                                                  ],
+                                                ),
+                                                child: Row(
+                                                  children: [
+                                                    Image.asset(
+                                                      assets.addButton,
+                                                    ),
+                                                    const SizedBox(width: 6),
+                                                    const CustomText(
+                                                      "Add Task",
+                                                      size: 16,
+                                                      weight: FontWeight.bold,
+                                                      color: Color(0xff0F8D4B),
+                                                    ),
+                                                  ],
+                                                ),
                                               ),
                                             ),
-                                          ):SizedBox(),
                                         ],
                                       ),
+                                      5.height,
                                       /// SECOND ROW (Pending / Completed)
                                       Row(
                                         children: [
-                                          const CustomText(
-                                            "Pending: ",
-                                            size: 13,
-                                            weight: FontWeight.bold,
-                                            color: Color(0xffF02433),
-                                          ),
-                                          CustomText(
-                                            "${homeProvider.mainReportList.isEmpty ? "0" : homeProvider.mainReportList[0]["incomplete_count"]}",
-                                            size: 13,
-                                            weight: FontWeight.bold,
-                                            color: const Color(0xffF02433),
-                                          ),
-                                          const SizedBox(width: 20),
+
                                           const CustomText(
                                             "Completed: ",
                                             size: 13,
@@ -1654,6 +1636,20 @@ class _HomePageState extends State<HomePage> {
                                             weight: FontWeight.bold,
                                             color: const Color(0xff008443),
                                           ),
+                                          const SizedBox(width: 20),
+                                          const CustomText(
+                                            "Pending: ",
+                                            size: 13,
+                                            weight: FontWeight.bold,
+                                            color: Color(0xffF02433),
+                                          ),
+                                          CustomText(
+                                            "${homeProvider.mainReportList.isEmpty ? "0" : homeProvider.mainReportList[0]["incomplete_count"]}",
+                                            size: 13,
+                                            weight: FontWeight.bold,
+                                            color: const Color(0xffF02433),
+                                          ),
+
                                         ],
                                       ),
                                       5.height,
@@ -1662,25 +1658,9 @@ class _HomePageState extends State<HomePage> {
                                         borderRadius: BorderRadius.circular(2),
                                         child: Row(
                                           children: [
-                                            /// Pending (Orange → Red)
+                                            /// ✅ Completed First
                                             Expanded(
-                                              flex: taskTotal == 0 ? 0 : taskPendingCount,
-                                              child: Container(
-                                                height: 30,
-                                                decoration: const BoxDecoration(
-                                                  gradient: LinearGradient(
-                                                    colors: [
-                                                      Color(0xFFFFA953),
-                                                      Color(0xFFE81C2B),
-                                                    ],
-                                                  ),
-                                                ),
-                                              ),
-                                            ),
-
-                                            /// Completed (Green)
-                                            Expanded(
-                                              flex: taskTotal == 0 ? 0 : taskCompletedCount,
+                                              flex: taskCompletedCount == 0 ? 1 : taskCompletedCount,
                                               child: Container(
                                                 height: 30,
                                                 decoration: const BoxDecoration(
@@ -1688,6 +1668,22 @@ class _HomePageState extends State<HomePage> {
                                                     colors: [
                                                       Color(0xFF24FF92),
                                                       Color(0xFF00733A),
+                                                    ],
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+
+                                            /// ✅ Pending Second
+                                            Expanded(
+                                              flex: taskPendingCount == 0 ? 1 : taskPendingCount,
+                                              child: Container(
+                                                height: 30,
+                                                decoration: const BoxDecoration(
+                                                  gradient: LinearGradient(
+                                                    colors: [
+                                                      Color(0xFFFFA953),
+                                                      Color(0xFFE81C2B),
                                                     ],
                                                   ),
                                                 ),

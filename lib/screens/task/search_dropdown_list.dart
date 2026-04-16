@@ -2,9 +2,9 @@ import 'package:master_code/source/extentions/extensions.dart';
 import 'package:animated_custom_dropdown/custom_dropdown.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter/material.dart';
+
 import '../../component/custom_text.dart';
 import '../../source/constant/colors_constant.dart';
-import '../../source/styles/decoration.dart';
 import '../../view_model/task_provider.dart';
 
 class SearchCustomDropdownList<T> extends StatefulWidget {
@@ -16,7 +16,7 @@ class SearchCustomDropdownList<T> extends StatefulWidget {
     required this.width,
     required this.valueList,
     this.isOptional = true,
-    this.displayKey = "name", // ✅ NEW PARAMETER
+    this.displayKey = "name",
   });
 
   final String text;
@@ -30,7 +30,8 @@ class SearchCustomDropdownList<T> extends StatefulWidget {
   final String displayKey;
 
   @override
-  State<SearchCustomDropdownList> createState() => _SearchCustomDropdownListState();
+  State<SearchCustomDropdownList> createState() =>
+      _SearchCustomDropdownListState();
 }
 
 class _SearchCustomDropdownListState extends State<SearchCustomDropdownList> {
@@ -56,6 +57,7 @@ class _SearchCustomDropdownListState extends State<SearchCustomDropdownList> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          /// ✅ TITLE + REQUIRED STAR
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -67,50 +69,73 @@ class _SearchCustomDropdownListState extends State<SearchCustomDropdownList> {
                   ? CustomText(
                 text: "*",
                 colors: colorsConst.appRed,
-                size: 20,
+                size: 18,
                 isBold: false,
               )
                   : 0.height,
             ],
           ),
           widget.isOptional == false ? 0.height : 5.height,
-          Container(
+
+          /// ✅ DROPDOWN FIELD
+          SizedBox(
             width: widget.width,
-            height: 44,
-            alignment: Alignment.center,
-            decoration: customDecoration.baseBackgroundDecoration(
-              radius: 10,
-              color: Colors.white,
-              borderColor: Colors.grey.shade300,
-            ),
+            height: 44, // ✅ fixed height 45
             child: CustomDropdown.multiSelect(
               hintText: widget.hintText,
               items: widget.valueList,
+
+              /// ✅ Dropdown decoration
+              decoration: CustomDropdownDecoration(
+                closedBorderRadius: BorderRadius.circular(10),
+                expandedBorderRadius: BorderRadius.circular(10),
+                closedBorder: Border.all(color: Colors.grey.shade300),
+                expandedBorder: Border.all(color: Colors.grey.shade300),
+                closedFillColor: Colors.white,
+                expandedFillColor: Colors.white,
+                hintStyle: const TextStyle(fontSize: 13),
+                headerStyle: const TextStyle(fontSize: 13),
+              ),
+
+              /// ✅ Header padding correct for height 45
+              closedHeaderPadding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 12,
+              ),
+
+              expandedHeaderPadding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 12,
+              ),
 
               /// ✅ LIST ITEM UI
               listItemBuilder: (context, item, isSelected, onItemSelect) {
                 return InkWell(
                   onTap: () => onItemSelect(),
-                  child: Row(
-                    children: [
-                      SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: Checkbox(
-                          value: isSelected,
-                          onChanged: (val) => onItemSelect(),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
+                    child: Row(
+                      children: [
+                        SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: Checkbox(
+                            value: isSelected,
+                            onChanged: (val) => onItemSelect(),
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 10),
-
-                      /// ✅ SHOW ONLY NAME FIELD
-                      Expanded(
-                        child: CustomText(
-                          text: getDisplayText(item),
-                          size: 15,
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: CustomText(
+                            text: getDisplayText(item),
+                            size: 13,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 );
               },
@@ -119,12 +144,11 @@ class _SearchCustomDropdownListState extends State<SearchCustomDropdownList> {
               onListChanged: (item) {
                 FocusScope.of(context).unfocus();
                 taskProvider.changeAssignedIs(context, item);
-
-                /// 🔥 PASS TO SCREEN CALLBACK ALSO
                 widget.onChanged(item);
               },
             ),
           ),
+
           10.height,
         ],
       ),

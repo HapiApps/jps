@@ -723,13 +723,13 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             if(taskProvider.isFilter==true)
-                            const Text(
-                              "Filters Selected",
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
+                            // const Text(
+                            //   "Filters Selected",
+                            //   style: TextStyle(
+                            //     fontSize: 13,
+                            //     fontWeight: FontWeight.bold,
+                            //   ),
+                            // ),
                             Text(
                               "Total Tasks : ${taskProvider.filterUserData.length}",
                               style: const TextStyle(
@@ -747,36 +747,36 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             /// Left chips
-                            Expanded(
-                              child: Wrap(
-                                spacing: 8,
-                                runSpacing: 8,
-                                children: [
-                                  if (taskProvider.startDate != taskProvider.endDate)
-                                    if ((taskProvider.startDate ?? "").isNotEmpty &&
-                                        (taskProvider.endDate ?? "").isNotEmpty)
-                                    _filterChip(
-                                      "${taskProvider.startDate}  to  ${taskProvider.endDate}",
-                                    ),
-
-                                  if ((taskProvider.filterType ?? "").isNotEmpty && taskProvider.filterType != "null")
-                                    _filterChip(taskProvider.filterType), // Last 7 days
-
-                                  if ((taskProvider.assignedNames ?? "").isNotEmpty)
-                                    _filterChip(taskProvider.assignedNames),
-
-                                  if ((taskProvider.fType ?? "").isNotEmpty && taskProvider.fType != "null")
-                                    _filterChip(taskProvider.fType),
-
-                                  if ((taskProvider.companyName ?? "").isNotEmpty)
-                                    _filterChip(taskProvider.companyName),
-
-                                  // if (taskProvider.audioPath!.isNotEmpty)
-                                  //   _filterChip(taskProvider.audioPath.toString()),
-
-                                ],
-                              ),
-                            ),
+                            // Expanded(
+                            //   child: Wrap(
+                            //     spacing: 8,
+                            //     runSpacing: 8,
+                            //     children: [
+                            //       if (taskProvider.startDate != taskProvider.endDate)
+                            //         if ((taskProvider.startDate ?? "").isNotEmpty &&
+                            //             (taskProvider.endDate ?? "").isNotEmpty)
+                            //         _filterChip(
+                            //           "${taskProvider.startDate}  to  ${taskProvider.endDate}",
+                            //         ),
+                            //
+                            //       if ((taskProvider.filterType ?? "").isNotEmpty && taskProvider.filterType != "null")
+                            //         _filterChip(taskProvider.filterType), // Last 7 days
+                            //
+                            //       if ((taskProvider.assignedNames ?? "").isNotEmpty)
+                            //         _filterChip(taskProvider.assignedNames),
+                            //
+                            //       if ((taskProvider.fType ?? "").isNotEmpty && taskProvider.fType != "null")
+                            //         _filterChip(taskProvider.fType),
+                            //
+                            //       if ((taskProvider.companyName ?? "").isNotEmpty)
+                            //         _filterChip(taskProvider.companyName),
+                            //
+                            //       // if (taskProvider.audioPath!.isNotEmpty)
+                            //       //   _filterChip(taskProvider.audioPath.toString()),
+                            //
+                            //     ],
+                            //   ),
+                            // ),
                           ],
                         ),
                       ],
