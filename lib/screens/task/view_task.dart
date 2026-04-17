@@ -1226,7 +1226,7 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
                                   size: 13,isBold: true,
                                 ),
                                 CustomText(
-                                  text: data.creator,
+                                  text: data.updatedBy==null?"-":data.updatedBy,
                                   colors:Colors.black,
                                   size: 13,isBold: true,
                                 ),
@@ -1240,7 +1240,7 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
                                   size: 13,isBold: true,
                                 ),
                                 CustomText(
-                                  text: formatDateTime(data.createdTs.toString()),
+                                  text: formatDateTime(data.updatedTs.toString()),
                                   colors:Colors.black,isBold: true,
                                   size: 13,
                                 ),
