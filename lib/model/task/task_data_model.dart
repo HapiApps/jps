@@ -15,6 +15,7 @@ class TaskData {
   final String? updatedTs;
   final String? active;
   final String? creator;
+  final String? updatedByName;
   final String? profile;
   final String? documents;
   final String? isChecked;
@@ -62,7 +63,7 @@ class TaskData {
     this.lastComment,
     this.lastCommentBy,
     this.allComments,
-      this.hasVoice,
+      this.hasVoice, this.updatedByName,
     });
 
   factory TaskData.fromJson(Map<String?, dynamic> json) {
@@ -97,6 +98,7 @@ class TaskData {
       lastCommentBy: json['last_comment_by'],
       allComments: json['all_comments'],
       hasVoice: json['has_voice']?.toString(),
+      updatedByName: json['updated_by_name'],
     );
   }
 
@@ -131,6 +133,7 @@ class TaskData {
       'last_comment_by': lastCommentBy,
       'all_comments': allComments,
       'has_voice': hasVoice,
+      'updated_by_name': updatedByName,
     };
   }
 }

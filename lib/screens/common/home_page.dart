@@ -756,7 +756,11 @@ class _HomePageState extends State<HomePage> {
                                             child: Row(
                                               children:  [
                                                 CustomText(
-                                                  "Submitted (${submittedCount})",
+                                                  //"Submitted (${submittedCount})",
+                                                  " Submitted (${ homeProvider.mainReportList.isEmpty ?"0":homeProvider.
+                                                  mainReportList[0]["workNoEmployeesCount"].toString()=="null"?"0":
+                                                  homeProvider.mainReportList[0]["workNoEmployeesCount"].toString()})",
+
                                                   size: 13,
                                                   weight: FontWeight.w600,
                                                   color: Colors.white,

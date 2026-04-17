@@ -2039,10 +2039,6 @@ class TaskProvider with ChangeNotifier {
   void changeType(dynamic value) {
     _selectType = value;
     _type = value;
-    localData.storage.write("type_id", value["id"].toString());
-    // print(value);
-    // var list = [];
-    // list.add(value);
     localData.storage.write("type_id", value);
     notifyListeners();
   }
@@ -2050,9 +2046,6 @@ class TaskProvider with ChangeNotifier {
     _selectType = value;
     _type = value;
     localData.storage.write("cus_type", value["id"].toString());
-    // print(value);
-    // var list = [];
-    // list.add(value);
     localData.storage.write("cus_type", value);
     notifyListeners();
   }

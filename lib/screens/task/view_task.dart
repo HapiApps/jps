@@ -1023,34 +1023,7 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
                                   data: data,isDirect: false,numberList: [])));
                             }, child: SvgPicture.asset(assets.tEdit,width: 20,height: 20,)),
                             const SizedBox(height: 12),
-                            GestureDetector(
 
-                              onTap: () async {
-                                final result = await Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => DashBoard(
-                                      child: TaskChat(
-                                        isVisit: false,
-                                        taskId: data.id.toString(),
-                                        assignedId: data.assigned.toString(),
-                                        name: data.creator.toString(),
-                                        assignedName: data.assignedNames.toString(),
-                                        date1: widget.date1,
-                                        date2: widget.date2,
-                                        type: widget.type,
-                                      ),
-                                    ),
-                                  ),
-                                );
-
-                                if (result == true) {
-                                  Provider.of<TaskProvider>(context, listen: false).getAllTask(false);
-                                  // 🔥 un refresh method name change panniko
-                                }
-                              },
-                              child: SvgPicture.asset(assets.tMessage, width: 20, height: 20),
-                            ),
                           ],
                         )
                       ],
@@ -1208,8 +1181,8 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
                                 ),
                                 CustomText(
                                   text: formatDateTime(data.createdTs.toString()),
-                                  colors:Colors.black,isBold: true,
-                                  size: 13,
+                                  colors:Colors.black,
+                                  size: 12,
                                 ),
                               ],
                             ),
@@ -1226,7 +1199,7 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
                                   size: 13,isBold: true,
                                 ),
                                 CustomText(
-                                  text: data.updatedBy==null?"-":data.updatedBy,
+                                  text: data.updatedByName==null?"-":data.updatedByName,
                                   colors:Colors.black,
                                   size: 13,isBold: true,
                                 ),
@@ -1241,8 +1214,8 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
                                 ),
                                 CustomText(
                                   text: formatDateTime(data.updatedTs.toString()),
-                                  colors:Colors.black,isBold: true,
-                                  size: 13,
+                                  colors:Colors.black,
+                                  size: 12,
                                 ),
                               ],
                             ),
@@ -1302,7 +1275,6 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
                               children: [
                                 Icon(Icons.message,color: Colors.red,),
                                 (data.commentCount ?? "").toString().isNotEmpty?Text("(${data.commentCount})  - "):Text("No comments"),
-
                                 Text(
                                   data.lastComment ?? "",
                                   maxLines: 1,
@@ -1321,11 +1293,39 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
                                   overflow: TextOverflow.ellipsis,
 
                                 ),
+
                               ],
                             ),
                           ],
                         ),
+                        GestureDetector(
 
+                          onTap: () async {
+                            final result = await Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => DashBoard(
+                                  child: TaskChat(
+                                    isVisit: false,
+                                    taskId: data.id.toString(),
+                                    assignedId: data.assigned.toString(),
+                                    name: data.creator.toString(),
+                                    assignedName: data.assignedNames.toString(),
+                                    date1: widget.date1,
+                                    date2: widget.date2,
+                                    type: widget.type,
+                                  ),
+                                ),
+                              ),
+                            );
+
+                            if (result == true) {
+                              Provider.of<TaskProvider>(context, listen: false).getAllTask(false);
+                              // 🔥 un refresh method name change panniko
+                            }
+                          },
+                          child: SvgPicture.asset(assets.tMessage, width: 20, height: 20),
+                        ),
                       ],
                     ) ,
                   ],
