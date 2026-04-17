@@ -3756,7 +3756,7 @@ class TaskProvider with ChangeNotifier {
     try {
       Map data = {
         "action": getAllData,
-        "search_type": "h",
+        "search_type": "cmt_type",
         "cat_id": "8",
         "cos_id": localData.storage.read("cos_id")
       };

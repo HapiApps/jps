@@ -6,7 +6,7 @@ import '../source/constant/colors_constant.dart';
 import '../source/styles/decoration.dart';
 import 'custom_text.dart';
 
-class CustomerDropdown extends StatelessWidget {
+class CustomerDropdown extends StatefulWidget {
   final List<CustomerModel> employeeList;
   final ValueChanged<CustomerModel?> onChanged;
   final String? text;
@@ -25,24 +25,32 @@ class CustomerDropdown extends StatelessWidget {
   });
 
   @override
+  State<CustomerDropdown> createState() => _CustomerDropdownState();
+}
+
+class _CustomerDropdownState extends State<CustomerDropdown> {
+  bool isOpen = false;
+
+  @override
   Widget build(BuildContext context) {
-    employeeList.sort((a, b) =>
-        a.companyName!.toLowerCase().compareTo(b.companyName!.toLowerCase()));
+    List<CustomerModel> sortedList = List.from(widget.employeeList)
+      ..sort((a, b) =>
+          a.companyName!.toLowerCase().compareTo(b.companyName!.toLowerCase()));
 
     return SizedBox(
-      width: size,
+      width: widget.size,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (hintText == true)
+          if (widget.hintText == true)
             Row(
               children: [
                 CustomText(
-                  text: text.toString(),
+                  text: widget.text.toString(),
                   size: 13,
                   isBold: false,
                 ),
-                if (isRequired == true)
+                if (widget.isRequired == true)
                   CustomText(
                     text: "*",
                     colors: colorsConst.appRed,
@@ -53,48 +61,63 @@ class CustomerDropdown extends StatelessWidget {
             ),
           4.height,
 
-          /// ✅ DROPDOWN HEIGHT REDUCED
           Container(
-            width: size,
-            height: 44, // ✅ reduced height
+            width: widget.size,
+            height: 44,
             decoration: customDecoration.baseBackgroundDecoration(
               color: Colors.white,
               borderColor: Colors.grey.shade200,
               radius: 10,
             ),
             child: DropdownSearch<CustomerModel>(
-              items: employeeList,
+              items: sortedList,
               itemAsString: (CustomerModel? product) =>
               product?.companyName ?? '',
-              onChanged: onChanged,
+              onChanged: widget.onChanged,
 
               dropdownDecoratorProps: DropDownDecoratorProps(
                 dropdownSearchDecoration: InputDecoration(
-                  hintText: "$text",
+                  hintText: "${widget.text}",
                   hintStyle: const TextStyle(
                     color: Colors.grey,
                     fontSize: 13,
                     fontFamily: 'Poppins',
                   ),
-
-                  /// ✅ reduce padding for fit in 42 height
-                  contentPadding:
-                  const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
                   border: InputBorder.none,
+
+                  /// ✅ OPEN CLOSE ICON CHANGE
+                  suffixIcon: Icon(
+                    isOpen
+                        ? Icons.keyboard_arrow_up_rounded
+                        : Icons.keyboard_arrow_down_rounded,
+                    size: 22,
+                    color: Colors.black,
+                  ),
                 ),
               ),
 
               popupProps: PopupProps.menu(
                 showSearchBox: true,
 
-                /// ✅ search box also reduce
+                /// ✅ when popup close
+                onDismissed: () {
+                  setState(() {
+                    isOpen = false;
+                  });
+                },
+
                 searchFieldProps: TextFieldProps(
                   style: const TextStyle(fontSize: 13),
                   decoration: InputDecoration(
                     hintText: "Search...",
                     contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 10),
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10),
                     ),
@@ -106,15 +129,14 @@ class CustomerDropdown extends StatelessWidget {
                   maxWidth: MediaQuery.of(context).size.width * 0.9,
                 ),
 
-                itemBuilder:
-                    (context, CustomerModel? product, bool isSelected) {
+                itemBuilder: (context, CustomerModel? product, bool isSelected) {
                   return Padding(
                     padding: const EdgeInsets.fromLTRB(8, 6, 8, 0),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         CustomText(
-                          text: product!.companyName ?? '',
+                          text: product?.companyName ?? '',
                           colors: colorsConst.primary,
                           isBold: true,
                           size: 13,
@@ -128,7 +150,7 @@ class CustomerDropdown extends StatelessWidget {
                               size: 12,
                             ),
                             CustomText(
-                              text: product.creator ?? '',
+                              text: product?.creator ?? '',
                               colors: Colors.blueGrey,
                               size: 12,
                             ),
@@ -140,8 +162,17 @@ class CustomerDropdown extends StatelessWidget {
                   );
                 },
               ),
+
+              /// ✅ when popup open
+              onBeforePopupOpening: (selectedItem) async {
+                setState(() {
+                  isOpen = true;
+                });
+                return true;
+              },
             ),
           ),
+
           7.height
         ],
       ),

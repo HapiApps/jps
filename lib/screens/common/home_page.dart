@@ -464,7 +464,7 @@ class _HomePageState extends State<HomePage> {
         final role = localData.storage.read("role").toString();
 
         final notSubmittedCount = attPvr.getDailyAttendance
-            .where((e) => e.isWorkDone == "0" && e.role != 1)
+            .where((e) => e.isWorkDone == "0")
             .length;
         return StreamBuilder(
             stream:FirebaseFirestore.instance.collection('attendance').snapshots(),
@@ -716,7 +716,11 @@ class _HomePageState extends State<HomePage> {
                                           color: Color(0xff1A85DB),
                                         ),
                                          CustomText(
-                                          " Based on Present Employee: ${attPvr.getDailyAttendance.toString().isNotEmpty ?attPvr.getDailyAttendance.length.toString(): "0"} ",
+
+                                          " Based on Present Employee: "
+                                              "${ homeProvider.mainReportList.isEmpty ?"0":homeProvider.
+                                          mainReportList[0]["presentEmployeesCount"].toString()=="null"?"0":
+                                          homeProvider.mainReportList[0]["presentEmployeesCount"].toString()}",
                                           size: 14,
                                           weight: FontWeight.bold,
                                           color: Colors.grey,
@@ -774,8 +778,12 @@ class _HomePageState extends State<HomePage> {
                                             ),
                                             child: Row(
                                               children:  [
+                                                // workEmployeesCount
                                                 CustomText(
-                                                  "Not Submitted (${notSubmittedCount})",
+                                               //   "Not Submitted (${ notSubmittedCount})",
+                                                  "Not Submitted (${ homeProvider.mainReportList.isEmpty ?"0":homeProvider.
+                                                  mainReportList[0]["workEmployeesCount"].toString()=="null"?"0":
+                                                  homeProvider.mainReportList[0]["workEmployeesCount"].toString()})",
                                                   size: 13,
                                                   weight: FontWeight.w600,
                                                   color: Colors.white,
@@ -1044,10 +1052,10 @@ class _HomePageState extends State<HomePage> {
                                             children: [
                                               const CustomText(
                                                 "Visits  ",
-                                                size: 18,
+                                                size: 20,
                                                 weight: FontWeight.bold,
                                               ),
-                                              CustomText("${homeProvider.visitCount.length}", size: 28, weight: FontWeight.bold),
+                                              CustomText("${homeProvider.visitCount.length}", size: 25, weight: FontWeight.bold),
                                             ],
                                           ),
                                           InkWell(
@@ -1082,7 +1090,6 @@ class _HomePageState extends State<HomePage> {
                                                     CustomText(
                                                       "Add Visit",
                                                       size: 14,
-
                                                       weight: FontWeight.bold,
                                                       color: Color(0xff0F8D4B),
                                                     ),
@@ -1586,12 +1593,10 @@ class _HomePageState extends State<HomePage> {
                                                 utils.navigatePage(context, () => const DashBoard(child: AddTask()));
                                               },
                                               child: Container(
-                                                padding: const EdgeInsets.symmetric(
-                                                  horizontal: 25, // 🔥 reduce panniten (45 too big)
-                                                  vertical: 8,
-                                                ),
+                                                width: screenWidth/2.2,
+                                                height: screenHeight/22,
                                                 decoration: BoxDecoration(
-                                                  color: const Color(0xffDAF2DC),
+                                                  color: Color(0xffDAF2DC),
                                                   borderRadius: BorderRadius.circular(10),
                                                   boxShadow: const [
                                                     BoxShadow(
@@ -1601,25 +1606,29 @@ class _HomePageState extends State<HomePage> {
                                                     ),
                                                   ],
                                                 ),
-                                                child: Row(
-                                                  children: [
-                                                    Image.asset(
-                                                      assets.addButton,
-                                                    ),
-                                                    const SizedBox(width: 6),
-                                                    const CustomText(
-                                                      "Add Task",
-                                                      size: 16,
-                                                      weight: FontWeight.bold,
-                                                      color: Color(0xff0F8D4B),
-                                                    ),
-                                                  ],
+                                                child: Padding(
+                                                  padding: const EdgeInsets.all(5.0),
+                                                  child: Row(
+                                                    mainAxisAlignment: MainAxisAlignment.center,
+                                                    children: [
+                                                      Image.asset(
+                                                        assets.addButton,
+                                                      ),
+                                                      SizedBox(width: 6),
+                                                      CustomText(
+                                                        "Add Task",
+                                                        size: 14,
+                                                        weight: FontWeight.bold,
+                                                        color: Color(0xff0F8D4B),
+                                                      ),
+                                                    ],
+                                                  ),
                                                 ),
                                               ),
                                             ),
                                         ],
                                       ),
-                                      5.height,
+                                      7.height,
                                       /// SECOND ROW (Pending / Completed)
                                       Row(
                                         children: [

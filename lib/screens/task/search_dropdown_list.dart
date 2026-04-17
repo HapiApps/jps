@@ -95,6 +95,20 @@ class _SearchCustomDropdownListState extends State<SearchCustomDropdownList> {
                 expandedFillColor: Colors.white,
                 hintStyle: const TextStyle(fontSize: 13),
                 headerStyle: const TextStyle(fontSize: 13),
+                closedSuffixIcon: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: const [
+                    SizedBox(width: 10),
+                    Icon(Icons.arrow_drop_down),
+                  ],
+                ),
+                expandedSuffixIcon: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: const [
+                    SizedBox(width: 10),
+                    Icon(Icons.arrow_drop_up),
+                  ],
+                ),
               ),
 
               /// ✅ Header padding correct for height 45

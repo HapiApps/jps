@@ -13,6 +13,7 @@ import '../../../component/custom_text.dart';
 import '../../../component/custom_textfield.dart';
 import '../../../component/map_dropdown.dart';
 import '../../../component/maxline_textfield.dart';
+import '../../../component/multi_dropdown.dart' hide MapDropDown, MultiSelectDropdown;
 import '../../../component/search_drop_down.dart';
 import '../../../model/customer/customer_model.dart';
 import '../../../source/constant/colors_constant.dart';
@@ -22,7 +23,7 @@ import '../../../source/styles/decoration.dart';
 import '../../../source/utilities/utils.dart';
 import '../../../view_model/task_provider.dart';
 import '../../common/dashboard.dart';
-import '../../task/search_custom_dropdown.dart';
+import '../../task/search_custom_dropdown.dart' hide MapDropDown, MultiSelectDropdown;
 import '../../task/search_dropdown_list.dart';
 import '../viamap.dart';
 import '../visit_report/visits_report.dart';
@@ -131,57 +132,57 @@ class _CusAddVisitState extends State<CusAddVisit> with TickerProviderStateMixin
                           children: [
                             20.height,
                             if(widget.isDirect==true)
-                            custProvider.refresh == false?
-                            const Loading()
-                                :CustomerDropdown(
-                              text: constValue.companyName,
-                              employeeList: custProvider.customer,
-                              onChanged: (CustomerModel? value) {
-                                if (value == null) return;
+                              custProvider.refresh == false?
+                              const Loading()
+                                  :CustomerDropdown(
+                                text: constValue.companyName,
+                                employeeList: custProvider.customer,
+                                onChanged: (CustomerModel? value) {
+                                  if (value == null) return;
 
-                                setState(() {
-                                  companyId = value.userId.toString();
-                                  companyName = value.companyName.toString();
+                                  setState(() {
+                                    companyId = value.userId.toString();
+                                    companyName = value.companyName.toString();
 
-                                  sendList = [];
+                                    sendList = [];
 
-                                  var idList = value.customerId.toString().split('||');
-                                  var usersList = value.firstName.toString().split('||');
-                                  var phoneList = value.phoneNumber.toString().split('||');
+                                    var idList = value.customerId.toString().split('||');
+                                    var usersList = value.firstName.toString().split('||');
+                                    var phoneList = value.phoneNumber.toString().split('||');
 
-                                  for (var i = 0; i < usersList.length; i++) {
-                                    sendList.add({
-                                      "id": idList[i],
-                                      "name": usersList[i],
-                                      "no": phoneList[i],
-                                    });
-                                  }
+                                    for (var i = 0; i < usersList.length; i++) {
+                                      sendList.add({
+                                        "id": idList[i],
+                                        "name": usersList[i],
+                                        "no": phoneList[i],
+                                      });
+                                    }
 
-                                  /// ✅ if only one customer -> auto select
-                                  if (sendList.length == 1) {
-                                    custProvider.selectCustomer = sendList[0];
+                                    /// ✅ if only one customer -> auto select
+                                    if (sendList.length == 1) {
+                                      custProvider.selectCustomer = sendList[0];
 
-                                    custProvider.updateCustomers([sendList[0]], sendList[0]["name"]);
+                                      custProvider.updateCustomers([sendList[0]], sendList[0]["name"]);
 
-                                    localData.storage.write("c_id", sendList[0]["id"]);
-                                    localData.storage.write("c_no", sendList[0]["no"]);
-                                    localData.storage.write("c_name", sendList[0]["name"]);
-                                  } else {
-                                    /// multiple customers இருந்தா clear
-                                    custProvider.clearCustomers();
-                                  }
-                                });
-                              },
-                              size: kIsWeb ? webWidth : phoneWidth,
-                            ),
+                                      localData.storage.write("c_id", sendList[0]["id"]);
+                                      localData.storage.write("c_no", sendList[0]["no"]);
+                                      localData.storage.write("c_name", sendList[0]["name"]);
+                                    } else {
+                                      /// multiple customers இருந்தா clear
+                                      custProvider.clearCustomers();
+                                    }
+                                  });
+                                },
+                                size: kIsWeb ? webWidth : phoneWidth,
+                              ),
                             if(widget.isDirect==false)
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                CustomText(text: widget.companyName=="null"?"":widget.companyName,colors: colorsConst.primary,isBold: true,),10.width,
-                                // CustomText(text: widget.type,colors: colorsConst.greyClr,isItalic: true,),
-                              ],
-                            ),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  CustomText(text: widget.companyName=="null"?"":widget.companyName,colors: colorsConst.primary,isBold: true,),10.width,
+                                  // CustomText(text: widget.type,colors: colorsConst.greyClr,isItalic: true,),
+                                ],
+                              ),
                             MapDropDown(
                               isRequired: true,
                               isRefresh: taskProvider.cusTypeList.isEmpty,
@@ -213,38 +214,17 @@ class _CusAddVisitState extends State<CusAddVisit> with TickerProviderStateMixin
 
                             Consumer<CustomerProvider>(
                               builder: (context, custProvider, child) {
-                                return SearchCustomDropdownList(
-                                  text: "Customer",
-                                  hintText: custProvider.selectCustomerName.isEmpty
-                                      ? "Select Customer"
-                                      : custProvider.selectCustomerName,
-                                  valueList: widget.numberList.isNotEmpty
-                                      ? widget.numberList
-                                      : sendList.map((e) => e["name"].toString()).toList(),
-                                  displayKey: "name",
-                                  onChanged: (value) {
-                                    if (value != null && value is List) {
-                                      List<Map<String, dynamic>> selectedCustomers =
-                                      value.map((e) => e as Map<String, dynamic>).toList();
-
-                                      final uniqueCustomers = <Map<String, dynamic>>[];
-                                      final ids = <String>{};
-
-                                      for (var c in selectedCustomers) {
-                                        if (!ids.contains(c["id"].toString())) {
-                                          uniqueCustomers.add(c);
-                                          ids.add(c["id"].toString());
-                                        }
-                                      }
-                                      String displayNames = uniqueCustomers.map((e) => e["name"].toString()).join(", ");
-                                      print("Display ${displayNames}");
-                                      custProvider.updateCustomers(uniqueCustomers, displayNames);
-
-                                    } else {
-                                      custProvider.clearCustomers();
-                                    }
-                                  },
+                                return MultiSelectDropdown(
+                                  hintText: "Select Customer",
+                                  dropText: "name",
+                                  list: sendList,
                                   width: kIsWeb ? webWidth : phoneWidth,
+
+                                  selectedItems: custProvider.multiSelectedCustomerList,
+
+                                  onChanged: (list) {
+                                    custProvider.setMultiSelectedCustomers(list);
+                                  },
                                 );
                               },
                             ),
@@ -316,29 +296,29 @@ class _CusAddVisitState extends State<CusAddVisit> with TickerProviderStateMixin
                             //   textInputAction: TextInputAction.done,
                             // ),
                             //lead
-                           MapDropDown(
-            callback: () {
-              if (!kIsWeb) {
-                custProvider.refreshLead();
-              } else {
-                custProvider.getLeadCategory();
-              }
-            },
-            isRefresh: custProvider.leadCategoryList.isEmpty,
-            width: kIsWeb ? webWidth : phoneWidth,
-            hintText: constValue.leadStatus,
-                             list: (custProvider.leadCategoryList..sort((a, b) {
-                               return int.parse(a["id"].toString())
-                                   .compareTo(int.parse(b["id"].toString()));
-                             })),
-            saveValue: custProvider.leadType == null
-                ? null
-                : custProvider.leadType["id"].toString(),
-            onChanged: (Object? value) {
-              custProvider.changeLeadType1(value);
-            },
-            dropText: 'value',
-          ),
+                            MapDropDown(
+                              callback: () {
+                                if (!kIsWeb) {
+                                  custProvider.refreshLead();
+                                } else {
+                                  custProvider.getLeadCategory();
+                                }
+                              },
+                              isRefresh: custProvider.leadCategoryList.isEmpty,
+                              width: kIsWeb ? webWidth : phoneWidth,
+                              hintText: constValue.leadStatus,
+                              list: (custProvider.leadCategoryList..sort((a, b) {
+                                return int.parse(a["id"].toString())
+                                    .compareTo(int.parse(b["id"].toString()));
+                              })),
+                              saveValue: custProvider.leadType == null
+                                  ? null
+                                  : custProvider.leadType["id"].toString(),
+                              onChanged: (Object? value) {
+                                custProvider.changeLeadType1(value);
+                              },
+                              dropText: 'value',
+                            ),
                             MapDropDown(
                               callback: (){
                                 if(!kIsWeb){
@@ -501,7 +481,7 @@ class _CusAddVisitState extends State<CusAddVisit> with TickerProviderStateMixin
                                   _myFocusScopeNode.unfocus();
                                   custProvider.addVisit(
                                     context: context,companyId: widget.isDirect==true?
-                                    companyId:widget.companyId.toString(),
+                                  companyId:widget.companyId.toString(),
                                     companyName: widget.isDirect==true?companyName:widget.companyName,
                                     sendList: widget.numberList,
                                     cusName:sendList.map((e) => e["name"].toString()).toList() ,
@@ -539,6 +519,3 @@ class _CusAddVisitState extends State<CusAddVisit> with TickerProviderStateMixin
     });
   }
 }
-
-
-

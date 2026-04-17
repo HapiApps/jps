@@ -1372,7 +1372,7 @@ int get listItem=>_listItem;
           await LocalDatabase.insertVisitType(visitList);
         }else{
           callList.clear();
-          callList=visitList;
+          callList=visitList.toSet().toList();
           notifyListeners();
         }
       }

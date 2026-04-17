@@ -164,7 +164,7 @@ class VisitReportDetails extends StatelessWidget {
                         ),5.height,
                         Row(
                           children: [
-                            const CustomText(text: "Customer Type :                ",colors: Colors.grey),
+                            const CustomText(text: "Customer Category :                ",colors: Colors.grey),
                             SizedBox(
                               // color: Colors.yellow,
                                 width: kIsWeb?phoneWidth/1.8:phoneWidth/1.8,

@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
@@ -7,7 +8,7 @@ import 'package:master_code/component/dotted_border.dart';
 import 'package:master_code/component/map_dropdown.dart';
 import 'package:master_code/screens/task/add_task.dart';
 import 'package:master_code/screens/task/edit_task.dart';
-import 'package:master_code/screens/task/search_custom_dropdown.dart';
+import 'package:master_code/screens/task/search_custom_dropdown.dart' hide MapDropDown;
 import 'package:master_code/screens/task/task_calendar.dart';
 import 'package:master_code/screens/task/task_chat.dart';
 import 'package:master_code/screens/task/task_details.dart';
@@ -26,6 +27,7 @@ import '../../component/animated_button.dart';
 import '../../component/custom_appbar.dart';
 import '../../component/custom_loading_button.dart';
 import '../../component/custom_text.dart';
+import '../../component/expand_text.dart';
 import '../../component/search_drop_down.dart';
 import '../../model/customer/customer_model.dart';
 import '../../model/task/task_data_model.dart';
@@ -964,7 +966,10 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
     data.role.toString() == "1"
         ? const Color(0xffA80007)
         : const Color(0xffFF8E1C);
-
+    String fullName =
+    formatAssignedNames(data.assignedNames).split('+').first.trim();
+    String displayName =
+    fullName.length > 15 ? "${fullName.substring(0, 15)}..." : fullName;
     var webWidth=MediaQuery.of(context).size.width * 0.5;
     var phoneWidth=MediaQuery.of(context).size.width * 0.9;
     return Padding(
@@ -1002,144 +1007,118 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         SizedBox(
-                          width: kIsWeb?webWidth/1.2:phoneWidth/1.2,
-                          child: CustomText(
+                          width: kIsWeb ? webWidth / 1.2 : phoneWidth / 1.2,
+                          child: ExpandableText(
                             text: data.taskTitle ?? "",
-                            size: 14,
+                            trimLines: 2,
+                            fontSize: 14,
                             isBold: true,
-                            colors: Colors.black,
                           ),
                         ),
                         if(localData.storage.read("role") =="1")
-                        InkWell(onTap: (){
-                          utils.navigatePage(context, ()=> DashBoard(child: EditTask(
-                              data: data,isDirect: false,numberList: [])));
-                        }, child: SvgPicture.asset(assets.tEdit,width: 20,height: 20,))
+                        Column(
+                          children: [
+                            InkWell(onTap: (){
+                              utils.navigatePage(context, ()=> DashBoard(child: EditTask(
+                                  data: data,isDirect: false,numberList: [])));
+                            }, child: SvgPicture.asset(assets.tEdit,width: 20,height: 20,)),
+                            const SizedBox(height: 12),
+                            GestureDetector(
+
+                              onTap: () async {
+                                final result = await Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => DashBoard(
+                                      child: TaskChat(
+                                        isVisit: false,
+                                        taskId: data.id.toString(),
+                                        assignedId: data.assigned.toString(),
+                                        name: data.creator.toString(),
+                                        assignedName: data.assignedNames.toString(),
+                                        date1: widget.date1,
+                                        date2: widget.date2,
+                                        type: widget.type,
+                                      ),
+                                    ),
+                                  ),
+                                );
+
+                                if (result == true) {
+                                  Provider.of<TaskProvider>(context, listen: false).getAllTask(false);
+                                  // 🔥 un refresh method name change panniko
+                                }
+                              },
+                              child: SvgPicture.asset(assets.tMessage, width: 20, height: 20),
+                            ),
+                          ],
+                        )
                       ],
                     ),
 
                     const SizedBox(height: 6),
 
                     /// ASSIGNED USERS
-                    RichText(
-                      text: TextSpan(
-                        children: [
-                          TextSpan(
-                            text: formatAssignedNames(data.assignedNames).split('+').first.trim(),
-                            style: const TextStyle(
-                              color: Color(0xff007AAE),
-                              fontSize: 15,
-                            ),
-                          ),
-                          if (formatAssignedNames(data.assignedNames).contains('+'))
-                            TextSpan(
-                              text: " +${formatAssignedNames(data.assignedNames)
-                                      .split('+')
-                                      .last
-                                      .trim()}",
-                              style: const TextStyle(
-                                color: Color(0xff007AAE),
-                                fontSize: 11,
-                              ),
-                            ),
-                          if (formatAssignedNames(data.assignedNames).contains('+'))
-                            const TextSpan(
-                              text: " others",
-                              style: TextStyle(
-                                color: Color(0xff007AAE),
-                                fontSize: 11,
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    _infoBlock("Company", data.projectName ?? ""),
-                    const SizedBox(height: 10),
-                    /// COMPANY + TASK TYPE
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-
-
-                        _infoBlock("Task Type", data.type ?? ""),
-                        const SizedBox(width: 30),
-                        _infoBlock("Created by", data.creator ?? ""),
-                        const SizedBox(width: 30),
-                        GestureDetector(
-                          onTap: () async {
-                            final result = await Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => DashBoard(
-                                  child: TaskChat(
-                                    isVisit: false,
-                                    taskId: data.id.toString(),
-                                    assignedId: data.assigned.toString(),
-                                    name: data.creator.toString(),
-                                    assignedName: data.assignedNames.toString(),
-                                    date1: widget.date1,
-                                    date2: widget.date2,
-                                    type: widget.type,
-                                  ),
-                                ),
-                              ),
-                            );
-
-                            if (result == true) {
-                              Provider.of<TaskProvider>(context, listen: false).getAllTask(false);
-                              // 🔥 un refresh method name change panniko
-                            }
-                          },
-                          child: SvgPicture.asset(assets.tMessage, width: 20, height: 20),
-                        )
-                      ],
-                    ),
-                    10.height,
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.start,
-                      children: [
-                        CustomText(text: "Created Time  :  ",colors: colorsConst.greyClr,isBold: true),
-                        CustomText(
-                          text: formatDateTime(data.createdTs),
-                          size: 15,
-                          isBold: true,
-                        ),
-
-
-                      ],
-
-                    ),
-                    const SizedBox(height: 5),
-                    const Divider(),
-
-                    /// DATE + CREATED BY
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Column(
-                          children: [
-                            CustomText(
-                              //text: DateFormat("dd MMM yyyy, hh:mm a").format(DateTime.parse(data.taskDate)),
-                              text: "Task date ",
-                              size: 13,
-                                colors: const Color(0xff7E7E7E),
-                               isBold: true,
-                            ),
-                            const SizedBox(height: 3),
-                            CustomText(
-                              //text: DateFormat("dd MMM yyyy, hh:mm a").format(DateTime.parse(data.taskDate)),
-                              text: data.taskDate,
-                              size: 13,
-                              isBold: true,
-                            ),
-                          ],
-                        ),
-                        5.width,
+
+
+
+      RichText(
+      text: TextSpan(
+        children: [
+        TextSpan(
+        text: displayName,
+        style: const TextStyle(
+          color: Color(0xff007AAE),
+          fontSize: 15,
+        ),
+        recognizer: TapGestureRecognizer()
+          ..onTap = () {
+            showDialog(
+              context: context,
+              builder: (context) {
+                return AlertDialog(
+                  title: const Text("Assigned User"),
+                  content: Text(fullName),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text("Close"),
+                    ),
+                  ],
+                );
+              },
+            );
+          },
+      ),
+
+        if (formatAssignedNames(data.assignedNames).contains('+'))
+    TextSpan(
+    text:
+    " +${formatAssignedNames(data.assignedNames).split('+').last.trim()}",
+    style: const TextStyle(
+    color: Color(0xff007AAE),
+    fontSize: 11,
+    ),
+    ),
+
+    if (formatAssignedNames(data.assignedNames).contains('+'))
+    const TextSpan(
+    text: " others",
+    style: TextStyle(
+    color: Color(0xff007AAE),
+    fontSize: 11,
+    ),
+    ),
+    ],
+    ),
+    ),
+
                         Padding(
-                          padding: const EdgeInsets.fromLTRB(20, 0, 0, 0),
-                          child: Container(height: 16, width: 1, color: Colors.grey),
+                          padding: const EdgeInsets.fromLTRB(0, 0, 2,0 ),
+                          child: Container(height: 16, width: 2, color: Colors.grey),
                         ),
                         Column(
                           children: [
@@ -1153,7 +1132,7 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
                                       : Color(0xff007AAE),
                                   Colors.white,
                                 ),
-                                20.width,
+                                2.width,
                                 Container(
                                   padding: const EdgeInsets.symmetric(
                                       horizontal: 14, vertical: 6),
@@ -1177,6 +1156,96 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
                               ],
                             ),
 
+                          ],
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+
+                    const SizedBox(height: 10),
+                    /// COMPANY + TASK TYPE
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+
+                        _infoBlock("Company", data.projectName ?? ""),
+                        _infoBlock("Task Type", data.type ?? ""),
+                        _infoBlock("Task Date", data.taskDate ?? ""),
+                      ],
+                    ),
+                    10.height,
+                    const SizedBox(height: 3),
+                    const Divider(),
+
+                    /// DATE + CREATED BY
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start ,
+                          children: [
+                            Row(
+                              children: [
+                                CustomText(
+                                  text: "Created:  ",
+                                  colors:const Color(0xff7E7E7E),
+                                  size: 13,isBold: true,
+                                ),
+                                CustomText(
+                                  text: data.creator,
+                                  colors:Colors.black,
+                                  size: 13,isBold: true,
+                                ),
+                              ],
+                            ),
+                            Row(
+                              children: [
+                                CustomText(
+                                  text: "",
+                                  colors:Colors.black,
+                                  size: 13,isBold: true,
+                                ),
+                                CustomText(
+                                  text: formatDateTime(data.createdTs.toString()),
+                                  colors:Colors.black,isBold: true,
+                                  size: 13,
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start ,
+                          children: [
+                            Row(
+                              children: [
+                                CustomText(
+                                  text: "Updated :  ",
+                                  colors:const Color(0xff7E7E7E),
+                                  size: 13,isBold: true,
+                                ),
+                                CustomText(
+                                  text: data.creator,
+                                  colors:Colors.black,
+                                  size: 13,isBold: true,
+                                ),
+                              ],
+                            ),
+                            Row(
+                              children: [
+                                CustomText(
+                                  text: "",
+                                  colors:Colors.black,
+                                  size: 13,isBold: true,
+                                ),
+                                CustomText(
+                                  text: formatDateTime(data.createdTs.toString()),
+                                  colors:Colors.black,isBold: true,
+                                  size: 13,
+                                ),
+                              ],
+                            ),
                           ],
                         ),
 
@@ -1373,7 +1442,30 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
     );
   }
 
-
+  Widget _infoBlockNew(String title, String value) {
+    return RichText(
+      text: TextSpan(
+        children: [
+          TextSpan(
+            text: "$title\n",
+            style: GoogleFonts.lato(
+                fontSize: 12,
+                color: const Color(0xff7E7E7E),
+                fontWeight: FontWeight.bold
+            ),
+          ),
+          TextSpan(
+            text: value,
+            style: GoogleFonts.lato(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: Colors.black,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
   String formatCreatedDate(DateTime dateTime) {
     DateTime now = DateTime.now();
     DateTime today = DateTime(now.year, now.month, now.day);

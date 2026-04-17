@@ -2,7 +2,7 @@ import 'dart:io';
 import 'package:master_code/component/custom_radio_button.dart';
 import 'package:master_code/component/map_dropdown.dart';
 import 'package:master_code/component/maxline_textfield.dart';
-import 'package:master_code/screens/task/search_custom_dropdown.dart';
+import 'package:master_code/screens/task/search_custom_dropdown.dart' hide MapDropDown;
 import 'package:master_code/screens/task/task_types.dart';
 import 'package:master_code/source/extentions/extensions.dart';
 import 'package:master_code/view_model/customer_provider.dart';
@@ -117,7 +117,6 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
 
                                         ],
                                       ),
-
                                       IconButton(onPressed: (){
                                         showDialog(
                                           context: context,
@@ -128,34 +127,36 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
                                           icon: Icon(Icons.add,color: Colors.red,))
                                        ],
                                   ),
-                                  GridView.builder(
-                                    itemCount: taskProvider.typeList.length,
-                                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                                      crossAxisCount: 1,
-                                      crossAxisSpacing: kIsWeb?5:10,
-                                      mainAxisSpacing: kIsWeb?5:10,
-                                      mainAxisExtent: 20,
-                                    ),
-                                    shrinkWrap: true,
-                                    physics: const NeverScrollableScrollPhysics(),
-                                    itemBuilder: (context,index){
-                                      return CustomRadioButton(
-                                        width: MediaQuery.of(context).size.width*0.50,
-                                        text: taskProvider.typeList[index]["value"].toString().trim(),
-                                        onChanged: (Object? value) {
-                                          taskProvider.changeType(taskProvider.typeList[index]["id"]);
-                                        },
-                                        saveValue: taskProvider.type.toString(),
-                                        confirmValue: taskProvider.typeList[index]["id"].toString(),
-                                      );
-                                    },
-                                  ),
+                          GridView.builder(
+                            itemCount: taskProvider.typeList.length,
+                            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 1,
+                              crossAxisSpacing: kIsWeb ? 5 : 10,
+                              mainAxisSpacing: kIsWeb ? 5 : 10,
+                              mainAxisExtent: 20,
+                            ),
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemBuilder: (context, index) {
+                              final item = taskProvider.typeList[index];
+
+                              return CustomRadioButton(
+                                width: MediaQuery.of(context).size.width * 0.50,
+                                text: item["value"].toString().trim(),
+                                onChanged: (Object? value) {
+                                  taskProvider.changeType(item["id"].toString()); // ✅ FIX
+                                },
+                                saveValue: taskProvider.type.toString(),          // ✅ FIX
+                                confirmValue: item["id"].toString(),              // ✅ FIX
+                              );
+                            },
+                          ),
                                   3.height,
                                 ],
                               ),
                               // cusPvr.refresh == false?
                               // const Loading()
-                              //     :
+
                               Column(
                                 children: [
                                   Row(
@@ -186,38 +187,36 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
                                   onChanged: (value) {},
                                   width: kIsWeb?webWidth:phoneWidth
                               ),
-                            Row(
-                              children: [
-                                MapDropDown(
-                                  hintText: "Status",
-                                  saveValue: taskProvider.status,
-                                  list: taskProvider.statusList,
-                                  dropText: 'value',
-                                  onChanged: (value) {
-                                    taskProvider.changeStatus(value);
-                                  },
-                                  width: kIsWeb ? webWidth : MediaQuery.of(context).size.width * 0.5,
-                                ),
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  MapDropDown(
+                                    hintText: "Status",
+                                    saveValue: taskProvider.status,
+                                    list: taskProvider.statusList,
+                                    dropText: 'value',
+                                    onChanged: (value) {
+                                      taskProvider.changeStatus(value);
+                                    },
+                                    width: kIsWeb
+                                        ? webWidth
+                                        : MediaQuery.of(context).size.width * 0.5,
+                                  ),
                                   5.width,
                                   CustomTextField(
-                                    width: kIsWeb?webWidth:MediaQuery.of(context).size.width * 0.4,
+                                    width: kIsWeb
+                                        ? webWidth
+                                        : MediaQuery.of(context).size.width * 0.4,
                                     text: "Task Date",
                                     controller: taskProvider.taskDt,
                                     hintText: "DD-MM-YYYY",
                                     readOnly: true,
                                     onTap: () {
                                       _myFocusScopeNode.unfocus();
-                                      taskProvider.datePick(context: context,date: taskProvider.taskDt);
+                                      taskProvider.datePick(context: context, date: taskProvider.taskDt);
                                     },
                                   ),
-                              ],
-                            ),
-                              MaxLineTextField(
-                                width: kIsWeb?webWidth:phoneWidth,
-                                text: " Task Title / Description",isRequired: true,
-                                controller: taskProvider.taskTitleCont,
-                                // si: kIsWeb?webWidth:phoneWidth,
-                                textCapitalization: TextCapitalization.sentences, maxLine: 2,
+                                ],
                               ),
                               Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -253,18 +252,24 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
                                     ],
                                   ),
                                 ],
+                              ),4.height,
+                              MaxLineTextField(
+                                width: kIsWeb?webWidth:phoneWidth,
+                                text: " Task Title / Description",isRequired: true,
+                                controller: taskProvider.taskTitleCont,
+                                // si: kIsWeb?webWidth:phoneWidth,
+                                textCapitalization: TextCapitalization.sentences, maxLine: 2,
                               ),
-                              20.height,
                               if(!kIsWeb)
                               SizedBox(
                                 width: kIsWeb?webWidth:phoneWidth,
                                 child: const Row(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    CustomText(text: "Notes/Attachments:",isBold: true,)
+                                    CustomText(text: "Notes/Attachments")
                                   ],
                                 ),
-                              ),5.height,
+                              ),
                               SizedBox(
                                 width: kIsWeb?webWidth:phoneWidth,
                                 child: ListView.builder(
@@ -608,7 +613,7 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
                                       );
                                     }),
                               ),
-                              50.height,
+                              10.height,
                              
                               //40.height
                             ],

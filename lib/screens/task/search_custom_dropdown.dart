@@ -41,7 +41,7 @@ class _SearchCustomDropdownState extends State<SearchCustomDropdown> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          /// TITLE
+          /// TITLE + REQUIRED STAR
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -53,108 +53,136 @@ class _SearchCustomDropdownState extends State<SearchCustomDropdown> {
                   ? CustomText(
                 text: "*",
                 colors: colorsConst.appRed,
-                size: 20,
+                size: 18,
                 isBold: false,
               )
                   : 0.height,
             ],
           ),
-          widget.isOptional == false ? 0.height : 4.height,
+          widget.isOptional == false ? 0.height : 5.height,
 
-          /// DROPDOWN FIXED HEIGHT
-          ClipRRect(
-            borderRadius: BorderRadius.circular(10),
-            child: Container(
-              width: widget.width,
-              height: 43, // ✅ increased height
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: Colors.grey.shade300),
-              ),
-              child: CustomDropdown.multiSelect(
-                hintText: widget.hintText,
-                items: widget.valueList,
+          /// ✅ SAME DESIGN LIKE MapDropDown
+          SizedBox(
+            width: widget.width,
+            height: 43,
+            child: CustomDropdown.multiSelect(
+              hintText: widget.hintText,
+              items: widget.valueList,
 
-                /// ✅ padding little increase
-                closedHeaderPadding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 4,
-                ),
-                expandedHeaderPadding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 4,
-                ),
-
-                decoration: CustomDropdownDecoration(
-                  closedBorder: Border.all(color: Colors.transparent),
-                  expandedBorder: Border.all(color: Colors.transparent),
-                  closedFillColor: Colors.white,
-                  expandedFillColor: Colors.white,
-
-                  hintStyle: TextStyle(
-                    color: colorsConst.greyClr,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                  ),
-
-                  headerStyle: const TextStyle(
-                    color: Colors.black,
-                    fontSize: 13,
-                    fontFamily: "Lato",
-                  ),
-
-                  searchFieldDecoration: SearchFieldDecoration(
-                    hintStyle: TextStyle(
-                      color: colorsConst.greyClr,
-                      fontSize: 13,
-                    ),
-                    textStyle: const TextStyle(
-                      color: Colors.black,
-                      fontSize: 13,
-                      fontFamily: "Lato",
-                    ),
-                  ),
-                ),
-
-                /// checkbox list item
-                listItemBuilder: (context, item, isSelected, onItemSelect) {
-                  return InkWell(
-                    onTap: () => onItemSelect(),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 6,
-                      ),
-                      child: Row(
-                        children: [
-                          SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: Checkbox(
-                              value: isSelected,
-                              onChanged: (val) => onItemSelect(),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: CustomText(
-                              text: item.toString(),
-                              size: 13,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+              /// ✅ Header selected value show
+              headerListBuilder: (context, selectedItems, enabled) {
+                if (selectedItems.isEmpty) {
+                  return CustomText(
+                    text: widget.hintText,
+                    colors: Colors.grey,
+                    size: 13,
                   );
-                },
+                }
 
-                onListChanged: (item) {
-                  FocusScope.of(context).unfocus();
-                  taskProvider.changeAssignedIs(context, item);
-                  widget.onChanged(item);
-                },
+                return CustomText(
+                  text: selectedItems.map((e) => e.toString()).join(", "),
+                  size: 13,
+                );
+              },
+
+              /// ✅ Same border & icon style
+              decoration: CustomDropdownDecoration(
+                closedBorderRadius: BorderRadius.circular(10),
+                expandedBorderRadius: BorderRadius.circular(10),
+                closedBorder: Border.all(color: Colors.grey.shade300),
+                expandedBorder: Border.all(color: Colors.grey.shade300),
+                closedFillColor: Colors.white,
+                expandedFillColor: Colors.white,
+
+                hintStyle: const TextStyle(fontSize: 13),
+                headerStyle: const TextStyle(fontSize: 13),
+
+                /// ✅ Up/Down Arrow like MapDropDown
+                closedSuffixIcon: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: const [
+                    SizedBox(width: 10),
+                    Icon(Icons.keyboard_arrow_down_rounded),
+                  ],
+                ),
+                expandedSuffixIcon: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: const [
+                    SizedBox(width: 10),
+                    Icon(Icons.keyboard_arrow_up_rounded),
+                  ],
+                ),
+
+                /// Search Field Design
+                searchFieldDecoration: SearchFieldDecoration(
+                  hintStyle: const TextStyle(
+                    fontSize: 13,
+                    color: Colors.grey,
+                  ),
+                  textStyle: const TextStyle(
+                    fontSize: 13,
+                    color: Colors.black,
+                  ),
+                ),
               ),
+
+              /// ✅ same padding like MapDropDown
+              closedHeaderPadding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 10,
+              ),
+              expandedHeaderPadding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 10,
+              ),
+
+              /// ✅ List Item UI (compact checkbox)
+              listItemBuilder: (context, item, isSelected, onItemSelect) {
+                return InkWell(
+                  onTap: () => onItemSelect(),
+                  child: Column(
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 6,
+                        ),
+                        child: Row(
+                          children: [
+                            SizedBox(
+                              height: 18,
+                              width: 18,
+                              child: Checkbox(
+                                value: isSelected,
+                                onChanged: (val) => onItemSelect(),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: CustomText(
+                                text: item.toString(),
+                                size: 13,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Divider(
+                        height: 1,
+                        thickness: 0.6,
+                        color: Colors.grey.shade300,
+                      ),
+                    ],
+                  ),
+                );
+              },
+
+              /// OUTPUT LIST CHANGED
+              onListChanged: (item) {
+                FocusScope.of(context).unfocus();
+                taskProvider.changeAssignedIs(context, item);
+                widget.onChanged(item);
+              },
             ),
           ),
 

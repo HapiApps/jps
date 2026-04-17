@@ -298,7 +298,7 @@ class EmpData extends StatelessWidget {
                               child: CustomText(
                                 text: employeeData.active.toString() == "1"
                                     ? "Inactive"
-                                    : "Active",
+                                    : "Activate",
                                 colors: employeeData.active.toString() == "1"
                                     ? Colors.red
                                     : colorsConst.appDarkGreen,
