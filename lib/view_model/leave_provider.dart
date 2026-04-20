@@ -1679,7 +1679,8 @@ void setList(){
       String leaveId,
       String userId,
       String status,
-      ) async {
+      )
+  async {
 
     try {
 
@@ -1724,7 +1725,7 @@ void setList(){
         } catch(e){
           log("Notification failed: $e");
         }
-        getLeaveReport(_filter);
+        await getLeaveReport(_filter);
 
       }
       else if (response["Failed"] != null) {
@@ -2719,7 +2720,7 @@ void changeStatus(bool value){
   String get showDate6=>_showDate6;
   String get showDate7=>_showDate7;
   String get showDate8=>_showDate8;
-  void getLeaveReport(bool refresh)async{
+  Future<void> getLeaveReport(filter) async {
     _isLoading=false;
     myLev.clear();
     myLevSearch.clear();

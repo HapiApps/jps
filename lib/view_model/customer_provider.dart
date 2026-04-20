@@ -64,7 +64,18 @@ class CustomerProvider with ChangeNotifier{
   String selectCustomerId = "";
   String selectCustomerName = "";
   String selectCustomerNo = "";
+  void resetVisitForm() {
+    setMultiSelectedCustomers([]);
 
+    commentDate.clear();
+    disPoint.clear();
+    points.clear();
+
+    leadType = null;
+    callType = null;
+
+    notifyListeners();
+  }
   Future<void> getTaskComments(String id, {bool isPolling = false}) async {
 
     if (!isPolling) {

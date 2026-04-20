@@ -1145,9 +1145,14 @@ class _ViewMyLeavesState extends State<ViewMyLeaves> {
         : null;
     final DateTime createdDateTime =
     DateTime.parse(data.createdTs.toString()).toLocal();
+    final DateTime updatedDateTime =
+    DateTime.parse(data.updatedTs.toString()).toLocal();
     final String createdBy =
     DateFormat('dd-MM-yyyy • hh:mm a')
         .format(createdDateTime);
+    final String updatedBy =
+    DateFormat('dd-MM-yyyy • hh:mm a')
+        .format(updatedDateTime);
     String displayDate;
 
 
@@ -1263,7 +1268,7 @@ class _ViewMyLeavesState extends State<ViewMyLeaves> {
                 Row(
                   children: [
                     const CustomText(
-                      text: "Reason : ",
+                      text: " Reason : ",
                       size: 13,
                       isBold: true,
                     ),
@@ -1304,7 +1309,51 @@ class _ViewMyLeavesState extends State<ViewMyLeaves> {
                     ),
                   ],
                 ),
+                10.height,
+                if (data.status == "1" || data.status == "2") ...[
+                  Column(
 
+                    children: [
+                      Row(
+                        children: [
+                          CustomText(
+                            text: data.status == "1"
+                                ? " Approved by : "
+                                : " Rejected by : ",
+                            size: 13,
+                            isBold: true,
+                          ),
+                          Expanded(
+                            child: CustomText(
+                              text: data.updater.toString(),
+                              size: 13,
+                              colors: const Color(0xff393636),
+                            ),
+                          ),
+                        ],
+                      ),
+                      10.height,
+                      Row(
+                        children: [
+                          CustomText(
+                            text: data.status == "1"
+                                ? " Approved on: "
+                                : " Rejected on: ",
+                            size: 13,
+                            isBold: true,
+                          ),
+                          Expanded(
+                            child: CustomText(
+                              text: updatedBy,
+                              size: 13,
+                              colors: const Color(0xff393636),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ]
               ],
             ),
 

@@ -1,3 +1,8 @@
+import 'dart:developer';
+import 'dart:io';
+
+import 'package:flutter_foreground_task/flutter_foreground_task.dart';
+import 'package:get_storage/get_storage.dart';
 import 'package:master_code/component/custom_checkbox.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -10,17 +15,22 @@ import 'package:master_code/source/styles/decoration.dart';
 import 'package:master_code/view_model/attendance_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
+import '../../component/animated_button.dart';
 import '../../source/constant/assets_constant.dart';
 import '../../source/constant/colors_constant.dart';
+import '../../source/constant/default_constant.dart';
 import '../../source/constant/local_data.dart';
 import '../../source/utilities/utils.dart';
 import '../../component/custom_text.dart';
+import '../../view_model/customer_provider.dart';
 import '../../view_model/leave_provider.dart';
 import '../../view_model/location_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:master_code/view_model/home_provider.dart';
 
 import '../common/dashboard.dart';
+import '../common/home_page.dart';
+import '../controller/track_controller.dart';
 import '../leave_management/leave_dashboard.dart';
 import 'attendance_report.dart';
 
@@ -40,6 +50,181 @@ class _CheckAttendanceState extends State<CheckAttendance> {
       Provider.of<LocationProvider>(context, listen: false).manageLocation(context,false);
     });
     super.initState();
+  }
+  void startTracking(BuildContext context,String lat,String lng){
+    showDialog(context: context,
+        barrierDismissible: false,
+        builder: ( context){
+          return AlertDialog(
+            title: Center(
+              child: Column(
+                children: [
+                  CustomText(text: 'Do you want',colors: Colors.black,size:16,isBold:true),
+                  10.height,
+                  const CustomText(text: 'track your travel?',colors: Colors.black,size:16,isBold:true)
+                ],
+              ),
+            ),
+            actions: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  CustomBtn(width: 70,text: 'NO',
+                    callback: (){
+                      setState(() {
+                        localData.storage.write("Track",false);
+                        Navigator.of(context, rootNavigator: true).pop();
+                      });
+                    },
+                    bgColor: colorsConst.litGrey,textColor: Colors.black, ),
+                  CustomBtn(width: 70,text: 'YES',
+                    callback: ()  {
+                      showDialog(context: context,
+                          barrierDismissible: false,
+                          builder: ( context){
+                            return AlertDialog(
+                              title: Center(
+                                child: Column(
+                                  children: [
+                                    const CustomText(text: 'Do not close the app or',colors: Colors.black,size:16,isBold:true),
+                                    10.height,
+                                    const CustomText(text: 'turn off the location.',colors: Colors.black,size:16,isBold:true)
+                                  ],
+                                ),
+                              ),
+                              actions: [
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                  children: [
+                                    CustomBtn(width: 70,text: 'OK',
+                                      callback: (){
+                                        setState(() {
+                                          _startTracking();
+                                          Provider.of<CustomerProvider>(context, listen: false).actionTracking(context,"1");
+                                        });
+                                        Provider.of<CustomerProvider>(context, listen: false).trackingInsert(localData.storage.read("TrackId").toString(),true,lat,lng);
+                                        Navigator.of(context, rootNavigator: true).pop();
+                                        Navigator.of(context, rootNavigator: true).pop();
+                                      },
+                                      bgColor: colorsConst.primary,textColor: Colors.white, )
+                                  ],
+                                )
+                              ],
+                            );
+                          }
+                      );
+                    },
+                    bgColor: colorsConst.primary,textColor: Colors.white, ),
+                ],
+              )
+            ],
+          );});
+  }
+  void stopTracking(BuildContext context){
+    showDialog(context: context,
+        barrierDismissible: false,
+        builder: ( context){
+          return AlertDialog(
+            title: Center(
+              child: Column(
+                children: [
+                  const CustomText(text: 'Do you want',colors: Colors.black,size:16,isBold:true),
+                  10.height,
+                  const CustomText(text: 'track off?',colors: Colors.black,size:16,isBold:true)
+                ],
+              ),
+            ),
+            actions: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  CustomBtn(width: 70,text: 'NO',
+                    callback: (){
+                      Navigator.of(context, rootNavigator: true).pop();
+                    },
+                    bgColor: colorsConst.litGrey,textColor: Colors.black, ),
+                  CustomBtn(width: 70,text: 'YES',
+                    callback: _stopTracking,
+                    bgColor: colorsConst.primary,textColor: Colors.white, ),
+                ],
+              )
+            ],
+          );});
+  }
+  Future<void> _startTracking() async {
+    await _checkBatteryOptimization();
+
+    final storage = GetStorage();
+
+    /// ✅ Update values
+    await storage.write("Track", true);
+    await storage.write("TrackId", localData.storage.read("TrackId") ?? "0");
+    await storage.write("TrackUnitName", localData.storage.read("TrackUnitName") ?? "null");
+    await storage.write("TrackStatus", "1");
+
+    /// ✅ Delay to allow value flush
+    await Future.delayed(const Duration(milliseconds: 500));
+
+    /// ✅ Start the foreground task
+    await FlutterForegroundTask.startService(
+      notificationTitle: constValue.appName,
+      notificationText: 'Tracking is on',
+      callback: startCallbackDispatcher,
+    );
+
+    setState(() {
+      log("✅ Tracking started. Track=${storage.read("Track")}, Unit=${storage.read("TrackUnitName")}");
+    });
+  }
+  Future<void> _stopTracking() async {
+    await FlutterForegroundTask.stopService();
+    setState(() {
+      localData.storage.write("Track",false);
+      if (trackCtr.locationList.isNotEmpty) {
+        Provider.of<CustomerProvider>(context, listen: false).insertTrackList(trackCtr.locationList);
+        trackCtr.locationList.clear();
+        // print("Balance list added list cleared.");
+      }
+      Provider.of<CustomerProvider>(context, listen: false).actionTracking(context,"2");
+      // if(trackCtr.todayTrackReport.isEmpty){
+      //   /// New Changes
+      //   localData.storage.write("TrackId","0");
+      //   localData.storage.write("TrackStatus","2");
+      //   localData.storage.write("T_Shift","");
+      //   localData.storage.write("TrackUnitName","null");
+      // }
+      Navigator.of(context, rootNavigator: true).pop();
+      utils.showSuccessToast(context: context,text: "Tracking stopped");
+    });
+  }
+  Future<void> _checkBatteryOptimization() async {
+    if (Platform.isAndroid) {
+      bool isIgnored = await FlutterForegroundTask.isIgnoringBatteryOptimizations;
+      if (!isIgnored) {
+        await showDialog(
+          context: context,
+          builder: (_) => AlertDialog(
+            title: CustomText(text: "Battery Optimization",colors: colorsConst.primary,isBold: true,),
+            content: CustomText(text: "Please disable battery optimization for background tracking.",colors: colorsConst.greyClr),
+            actions: [
+              TextButton(
+                onPressed: (){
+                  Navigator.pop(context);
+                },
+                child: CustomText(text: "Don't Allow",colors: colorsConst.appRed,isBold: true,),
+              ),
+              TextButton(
+                onPressed: () async {
+                  Navigator.pop(context);
+                  await FlutterForegroundTask.requestIgnoreBatteryOptimization();
+                },
+                child: CustomText(isBold: true,text: "Allow",colors: colorsConst.blueClr,),
+              ),
+            ],
+          ),
+        );
+      }
+    }
   }
   @override
   Widget build(BuildContext context) {
@@ -595,7 +780,7 @@ class _CheckAttendanceState extends State<CheckAttendance> {
                   ],
                 ),
               ),
-              if(localData.storage.read("role")=="1")
+              localData.storage.read("role")=="1"?
               InkWell(
                 onTap:(){
                   // homeProvider.updateIndex(4);
@@ -708,7 +893,65 @@ class _CheckAttendanceState extends State<CheckAttendance> {
                     ),
                   )
                 ),
-              )
+              ): Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+
+                  if(localData.storage.read("role")!="1")
+                    GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          if (localData.storage.read("Track") == true) {
+                            stopTracking(context);
+                          } else {
+                            if(locPvr.latitude==""&&locPvr.longitude==""){
+                              locPvr.manageLocation(context,true);
+                            }else{
+                              startTracking(context,locPvr.latitude,locPvr.longitude);
+                            }
+                          }
+                        });
+                      },
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        height: 30,
+                        width: 100,
+                        decoration: BoxDecoration(
+                          color: localData.storage.read("Track") == true
+                              ? Colors.green
+                              : Colors.grey,
+                          borderRadius: BorderRadius.circular(30),
+                        ),
+                        child: Stack(
+                          children: [
+                            Center(
+                              child: CustomText(
+                                text: localData.storage.read("Track") == true
+                                    ? 'ON     '
+                                    : '     Tracker Off',
+                                size: 11, colors: Colors.white,
+                              ),
+                            ),
+                            Align(
+                              alignment: localData.storage.read("Track") ==
+                                  true ? Alignment.centerRight : Alignment
+                                  .centerLeft,
+                              child: Container(
+                                margin: const EdgeInsets.all(3),
+                                width: 25,
+                                height: 25,
+                                decoration: const BoxDecoration(
+                                  color: Colors.white,
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),),
+
+                ],
+              ),
             ],
           ),
         ),

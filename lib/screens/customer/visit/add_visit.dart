@@ -47,55 +47,69 @@ class _CusAddVisitState extends State<CusAddVisit> with TickerProviderStateMixin
   var companyId="";
   var companyName="";
   @override
+  @override
   void initState() {
-    localData.storage.write("c_id","");
-    localData.storage.write("c_no","");
-    localData.storage.write("c_name","");
-    setCustomer();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final customerProvider = Provider.of<CustomerProvider>(context, listen: false);
+    super.initState();
+
+    // localData.storage.write("c_id", "");
+    // localData.storage.write("c_no", "");
+    // localData.storage.write("c_name", "");
+    //
+    // setCustomer();
+
+
+
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final taskProvider = Provider.of<TaskProvider>(context, listen: false);
       final employeeProvider = Provider.of<EmployeeProvider>(context, listen: false);
-      if(!kIsWeb){
-        Provider.of<TaskProvider>(context, listen: false).getAllTypes();
-        Provider.of<EmployeeProvider>(context, listen: false).getAllUsers();
-        Provider.of<TaskProvider>(context, listen: false).getCustomerType(false);
-        Provider.of<CustomerProvider>(context, listen: false).getAllCustomers(true);
-      }else{
-        Provider.of<TaskProvider>(context, listen: false).getTaskType(false);
-        Provider.of<TaskProvider>(context, listen: false).getCustomerType(false);
-        Provider.of<TaskProvider>(context, listen: false).getTaskStatuses();
-        Provider.of<EmployeeProvider>(context, listen: false).getAllUsers();
-        Provider.of<CustomerProvider>(context, listen: false).getAllCustomers(true);
+      final customerProvider = Provider.of<CustomerProvider>(context, listen: false);
+      final locationProvider = Provider.of<LocationProvider>(context, listen: false);
+      customerProvider.resetVisitForm();
+      setState(() {
+        companyId = "";
+        companyName = "";
+        sendList.clear();
+      });
+      /// ✅ COMMON CALLS (only one time)
+      employeeProvider.getAllUsers();
+      taskProvider.getCustomerType(false);
+      customerProvider.getAllCustomers(true);
+
+      /// ✅ WEB / MOBILE SPECIFIC
+      if (!kIsWeb) {
+        taskProvider.getAllTypes();
+      } else {
+        taskProvider.getTaskType(false);
+        taskProvider.getTaskStatuses();
       }
-      if(widget.isDirect==true){
-        if(kIsWeb){
+
+      /// ✅ DIRECT MODE CALLS
+      if (widget.isDirect == true) {
+        if (kIsWeb) {
           customerProvider.getLeadCategory();
           customerProvider.getVisitType();
           customerProvider.getCmtType();
-          Provider.of<TaskProvider>(context, listen: false).getCustomerType(false);
-          Provider.of<EmployeeProvider>(context, listen: false).getAllUsers();
-          Provider.of<CustomerProvider>(context, listen: false).getAllCustomers(true);
-        }else{
+        } else {
           customerProvider.getLead();
           customerProvider.getVisit();
           customerProvider.getCommentType();
-          Provider.of<TaskProvider>(context, listen: false).getCustomerType(false);
-          Provider.of<EmployeeProvider>(context, listen: false).getAllUsers();
-          Provider.of<CustomerProvider>(context, listen: false).getAllCustomers(true);
         }
       }
-      // customerProvider.setValue(widget.companyId.toString());
-      customerProvider.initComment(widget.numberList,widget.type);
-      companyName="";
-      Provider.of<EmployeeProvider>(context, listen: false).getAllUsers();
-      Provider.of<CustomerProvider>(context, listen: false).getAllCustomers(true);
-      if(Provider.of<LocationProvider>(context, listen: false).latitude!=""&&Provider.of<LocationProvider>(context, listen: false).longitude!=""){
+
+      /// ✅ INIT COMMENT
+      customerProvider.initComment(widget.numberList, widget.type);
+
+      /// reset companyName
+      companyName = "";
+
+      /// ✅ LOCATION ADDRESS CALL (only if lat lng exists)
+      if (locationProvider.latitude != "" && locationProvider.longitude != "") {
         customerProvider.getAdd(
-            double.parse(Provider.of<LocationProvider>(context, listen: false).latitude),
-            double.parse(Provider.of<LocationProvider>(context, listen: false).longitude));
+          double.parse(locationProvider.latitude),
+          double.parse(locationProvider.longitude),
+        );
       }
     });
-    super.initState();
   }
   void setCustomer(){
     companyId=widget.companyId.toString();
@@ -140,36 +154,35 @@ class _CusAddVisitState extends State<CusAddVisit> with TickerProviderStateMixin
                                 onChanged: (CustomerModel? value) {
                                   if (value == null) return;
 
-                                  setState(() {
-                                    companyId = value.userId.toString();
-                                    companyName = value.companyName.toString();
+                                  companyId = value.userId.toString();
+                                  companyName = value.companyName.toString();
 
-                                    sendList = [];
+                                  sendList = [];
+                                  sendList.clear();
+                                  var idList = value.customerId.toString().split('||');
+                                  var usersList = value.firstName.toString().split('||');
+                                  var phoneList = value.phoneNumber.toString().split('||');
 
-                                    var idList = value.customerId.toString().split('||');
-                                    var usersList = value.firstName.toString().split('||');
-                                    var phoneList = value.phoneNumber.toString().split('||');
+                                  for (var i = 0; i < usersList.length; i++) {
+                                    sendList.add({
+                                      "id": idList[i],
+                                      "name": usersList[i],
+                                      "no": phoneList[i],
+                                    });
+                                  }
 
-                                    for (var i = 0; i < usersList.length; i++) {
-                                      sendList.add({
-                                        "id": idList[i],
-                                        "name": usersList[i],
-                                        "no": phoneList[i],
-                                      });
-                                    }
+                                  setState(() {});  // UI update
 
-                                    /// ✅ if only one customer -> auto select
+                                  /// ✅ AFTER UI UPDATE AUTO SELECT SINGLE CUSTOMER
+                                  WidgetsBinding.instance.addPostFrameCallback((_) {
                                     if (sendList.length == 1) {
-                                      custProvider.selectCustomer = sendList[0];
-
-                                      custProvider.updateCustomers([sendList[0]], sendList[0]["name"]);
+                                      custProvider.setMultiSelectedCustomers([sendList[0]]);
 
                                       localData.storage.write("c_id", sendList[0]["id"]);
                                       localData.storage.write("c_no", sendList[0]["no"]);
                                       localData.storage.write("c_name", sendList[0]["name"]);
                                     } else {
-                                      /// multiple customers இருந்தா clear
-                                      custProvider.clearCustomers();
+                                      custProvider.setMultiSelectedCustomers([]);
                                     }
                                   });
                                 },
@@ -223,6 +236,7 @@ class _CusAddVisitState extends State<CusAddVisit> with TickerProviderStateMixin
                                   selectedItems: custProvider.multiSelectedCustomerList,
 
                                   onChanged: (list) {
+
                                     custProvider.setMultiSelectedCustomers(list);
                                   },
                                 );

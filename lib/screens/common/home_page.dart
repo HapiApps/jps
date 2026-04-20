@@ -44,6 +44,7 @@ import '../customer/visit/add_visit.dart';
 import '../customer/visit_report/visit_emp_details.dart';
 import '../customer/visit_report/visits_report.dart';
 import '../task/add_task.dart';
+import 'day_work_plan.dart';
 import 'view_notification.dart';
 import '../expense/view_expense.dart';
 import '../project_report/view_project_report.dart';
@@ -540,68 +541,68 @@ class _HomePageState extends State<HomePage> {
                                   ),
                     ]
                               ),
-                              5.height,
-
-                              /// Date + Reports Row
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-
-                                  if(localData.storage.read("role")!="1")
-                                  GestureDetector(
-                                    onTap: () {
-                                      setState(() {
-                                        if (localData.storage.read("Track") == true) {
-                                          stopTracking(context);
-                                        } else {
-                                          if(locPvr.latitude==""&&locPvr.longitude==""){
-                                            locPvr.manageLocation(context,true);
-                                          }else{
-                                            startTracking(context,locPvr.latitude,locPvr.longitude);
-                                          }
-                                        }
-                                      });
-                                    },
-                                    child: AnimatedContainer(
-                                      duration: const Duration(milliseconds: 200),
-                                      height: 30,
-                                      width: 100,
-                                      decoration: BoxDecoration(
-                                        color: localData.storage.read("Track") == true
-                                            ? Colors.green
-                                            : Colors.grey,
-                                        borderRadius: BorderRadius.circular(30),
-                                      ),
-                                      child: Stack(
-                                        children: [
-                                          Center(
-                                            child: CustomText(
-                                             localData.storage.read("Track") == true
-                                                  ? 'ON     '
-                                                  : '     Tracker Off',
-                                              size: 11, color: Colors.white,
-                                            ),
-                                          ),
-                                          Align(
-                                            alignment: localData.storage.read("Track") ==
-                                                true ? Alignment.centerRight : Alignment
-                                                .centerLeft,
-                                            child: Container(
-                                              margin: const EdgeInsets.all(3),
-                                              width: 25,
-                                              height: 25,
-                                              decoration: const BoxDecoration(
-                                                color: Colors.white,
-                                                shape: BoxShape.circle,
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),),
-
-                                ],
-                              ),
+                              // 5.height,
+                              //
+                              // /// Date + Reports Row
+                              // Row(
+                              //   mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              //   children: [
+                              //
+                              //     if(localData.storage.read("role")!="1")
+                              //     GestureDetector(
+                              //       onTap: () {
+                              //         setState(() {
+                              //           if (localData.storage.read("Track") == true) {
+                              //             stopTracking(context);
+                              //           } else {
+                              //             if(locPvr.latitude==""&&locPvr.longitude==""){
+                              //               locPvr.manageLocation(context,true);
+                              //             }else{
+                              //               startTracking(context,locPvr.latitude,locPvr.longitude);
+                              //             }
+                              //           }
+                              //         });
+                              //       },
+                              //       child: AnimatedContainer(
+                              //         duration: const Duration(milliseconds: 200),
+                              //         height: 30,
+                              //         width: 100,
+                              //         decoration: BoxDecoration(
+                              //           color: localData.storage.read("Track") == true
+                              //               ? Colors.green
+                              //               : Colors.grey,
+                              //           borderRadius: BorderRadius.circular(30),
+                              //         ),
+                              //         child: Stack(
+                              //           children: [
+                              //             Center(
+                              //               child: CustomText(
+                              //                localData.storage.read("Track") == true
+                              //                     ? 'ON     '
+                              //                     : '     Tracker Off',
+                              //                 size: 11, color: Colors.white,
+                              //               ),
+                              //             ),
+                              //             Align(
+                              //               alignment: localData.storage.read("Track") ==
+                              //                   true ? Alignment.centerRight : Alignment
+                              //                   .centerLeft,
+                              //               child: Container(
+                              //                 margin: const EdgeInsets.all(3),
+                              //                 width: 25,
+                              //                 height: 25,
+                              //                 decoration: const BoxDecoration(
+                              //                   color: Colors.white,
+                              //                   shape: BoxShape.circle,
+                              //                 ),
+                              //               ),
+                              //             ),
+                              //           ],
+                              //         ),
+                              //       ),),
+                              //
+                              //   ],
+                              // ),
                               5.height,
                               SizedBox(
                                 width: screenWidth,
@@ -715,7 +716,7 @@ class _HomePageState extends State<HomePage> {
                                           weight: FontWeight.bold,
                                           color: Color(0xff1A85DB),
                                         ),
-                                         CustomText(
+                                        localData.storage.read("role")=="1"?  CustomText(
 
                                           " Based on Present Employee: "
                                               "${ homeProvider.mainReportList.isEmpty ?"0":homeProvider.
@@ -724,7 +725,7 @@ class _HomePageState extends State<HomePage> {
                                           size: 14,
                                           weight: FontWeight.bold,
                                           color: Colors.grey,
-                                        ),
+                                        ):SizedBox(),
                                       ],
                                     ),
                                     5.height,
@@ -808,7 +809,40 @@ class _HomePageState extends State<HomePage> {
                                             ? Row(
 
                                               children: [
-                                                160.width,
+                                                InkWell(
+                                                  onTap: () {
+                                                    Navigator.push(
+                                                      context,
+                                                      MaterialPageRoute(
+                                                        builder: (context) => const DayWorkPlanPage(), // 👈 your page
+                                                      ),
+                                                    );
+                                                  },
+                                                  child: Container(
+                                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                                    decoration: BoxDecoration(
+                                                      color: /// 🔒 Disabled look
+                                                      colorsConst.green2,
+                                                      borderRadius: BorderRadius.circular(8),
+                                                    ),
+                                                    child: Row(
+                                                      mainAxisSize: MainAxisSize.min,
+                                                      children: const [
+                                                        Text(
+                                                          "Add Day Work Plan",
+                                                          style: TextStyle(
+                                                            fontSize: 13,
+                                                            fontWeight: FontWeight.w600,
+                                                            color: Colors.white,
+                                                          ),
+                                                        ),
+                                                        SizedBox(width: 6),
+                                                        Icon(Icons.check_circle, color: Colors.white, size: 15),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                ),
+                                                30.width,
                                                 Container(
                                                 padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                                                 decoration: BoxDecoration(
@@ -816,8 +850,7 @@ class _HomePageState extends State<HomePage> {
                                                 borderRadius: BorderRadius.circular(10),
                                                                                           ),
 
-
-                                                                                          child: Row(
+                                                  child: Row(
                                                 children: const [
 
                                                   CustomText(
@@ -836,7 +869,9 @@ class _HomePageState extends State<HomePage> {
                                             )
                                             :
                                         Row(
+                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                           children: [
+
                                             GestureDetector(
                                               onTap: () {},
                                               child: GestureDetector(
@@ -880,7 +915,7 @@ class _HomePageState extends State<HomePage> {
                                                                       ),
                                                                     ),
                                             ),
-
+                                            10.width,
                                           ],
                                         ),
 

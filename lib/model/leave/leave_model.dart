@@ -11,14 +11,18 @@ class LeaveModel {
   String? level;
   String? createdTs;
   String? createdBy;
+  String? updatedBy;
+  String? updatedTs;
   String? fName;
   String? role;
   String? type;
   String? creater;
+  String? updater;
   String? session;
 
   LeaveModel({
     this.creater,
+    this.updater,
     this.id,
     this.userId,
     this.dayType,
@@ -29,8 +33,10 @@ class LeaveModel {
     this.endDate,
     this.status,
     this.level,
-    this.createdTs,
+    this.updatedTs,
     this.createdBy,
+    this.createdTs,
+    this.updatedBy,
     this.fName,
     this.role,
     this.type,
@@ -40,6 +46,7 @@ class LeaveModel {
   factory LeaveModel.fromJson(Map<String, dynamic> json) => LeaveModel(
     session: json["session"]?.toString() ?? "",
     creater: json["creater"]?.toString() ?? "",
+    updater: json["updater"]?.toString() ?? "",
     id: json["id"]?.toString() ?? "",
     userId: json["user_id"]?.toString() ?? "",
     dayType: json["day_type"]?.toString() ?? "",
@@ -52,6 +59,8 @@ class LeaveModel {
     level: json["level"]?.toString() ?? "",
     createdTs: json["created_ts"]?.toString() ?? "",
     createdBy: json["created_by"]?.toString() ?? "",
+    updatedTs: json["updated_ts"]?.toString() ?? "",
+    updatedBy: json["updated_by"]?.toString() ?? "",
     fName: json["f_name"]?.toString() ?? "",
     role: json["role"]?.toString() ?? "",
     type: json["type"]?.toString() ?? "",
