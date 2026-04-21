@@ -45,6 +45,7 @@ import '../customer/visit_report/visit_emp_details.dart';
 import '../customer/visit_report/visits_report.dart';
 import '../task/add_task.dart';
 import 'day_work_plan.dart';
+import 'detail_work_plan.dart';
 import 'view_notification.dart';
 import '../expense/view_expense.dart';
 import '../project_report/view_project_report.dart';
@@ -736,7 +737,9 @@ class _HomePageState extends State<HomePage> {
                                         Navigator.push(
                                           context,
                                           MaterialPageRoute(
-                                            builder: (_) => WorkDoneEmployeesPage(),
+                                            builder: (_) => DailyReportStatusPage(
+                                              initialTab: 0, // Submitted
+                                            ),
                                           ),
                                         );
                                       },
@@ -770,31 +773,43 @@ class _HomePageState extends State<HomePage> {
                                               ],
                                             ),
                                           ),
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 12),
-                                            decoration: BoxDecoration(
-                                              gradient: const LinearGradient(
-                                                colors: [
-                                                Colors.red,
-                                                  Colors.red
+                                          GestureDetector(
+                                              onTap: () {
+                                                Navigator.push(
+                                                  context,
+                                                  MaterialPageRoute(
+                                                    builder: (_) => DailyReportStatusPage(
+                                                      initialTab: 1, // Submitted
+                                                    ),
+                                                  ),
+                                                );
+                                              },
+                                            child: Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 12),
+                                              decoration: BoxDecoration(
+                                                gradient: const LinearGradient(
+                                                  colors: [
+                                                  Colors.red,
+                                                    Colors.red
+                                                  ],
+                                                ),
+                                                borderRadius: BorderRadius.circular(10),
+                                              ),
+                                              child: Row(
+                                                children:  [
+                                                  // workEmployeesCount
+                                                  CustomText(
+                                                 //   "Not Submitted (${ notSubmittedCount})",
+                                                    "Not Submitted (${ homeProvider.mainReportList.isEmpty ?"0":homeProvider.
+                                                    mainReportList[0]["workEmployeesCount"].toString()=="null"?"0":
+                                                    homeProvider.mainReportList[0]["workEmployeesCount"].toString()})",
+                                                    size: 13,
+                                                    weight: FontWeight.w600,
+                                                    color: Colors.white,
+                                                  ),
+
                                                 ],
                                               ),
-                                              borderRadius: BorderRadius.circular(10),
-                                            ),
-                                            child: Row(
-                                              children:  [
-                                                // workEmployeesCount
-                                                CustomText(
-                                               //   "Not Submitted (${ notSubmittedCount})",
-                                                  "Not Submitted (${ homeProvider.mainReportList.isEmpty ?"0":homeProvider.
-                                                  mainReportList[0]["workEmployeesCount"].toString()=="null"?"0":
-                                                  homeProvider.mainReportList[0]["workEmployeesCount"].toString()})",
-                                                  size: 13,
-                                                  weight: FontWeight.w600,
-                                                  color: Colors.white,
-                                                ),
-
-                                              ],
                                             ),
                                           ),
                                         ],
@@ -805,10 +820,73 @@ class _HomePageState extends State<HomePage> {
                                       children: [
 
                                         /// 🔥 If Work Already Done → Show Submitted
-                                        attPvr.isWorkDone == 1
-                                            ? Row(
+                                        // attPvr.isWorkDone == 1
+                                        //     ?
+                                        Row(
 
                                               children: [
+
+
+                                                /// 🔥 BAR CHART / PROGRESS DIAGRAM
+                                                Container(
+                                                  width: screenWidth / 2.7,
+                                                  padding: const EdgeInsets.all(8),
+                                                  decoration: BoxDecoration(
+                                                    color: Colors.white,
+                                                    borderRadius: BorderRadius.circular(10),
+                                                    boxShadow: const [
+                                                      BoxShadow(
+                                                        color: Colors.black12,
+                                                        blurRadius: 3,
+                                                      ),
+                                                    ],
+                                                  ),
+                                                  child: Column(
+                                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                                    children: [
+                                                      // const Text(
+                                                      //   "Today Progress",
+                                                      //   style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+                                                      // ),
+                                                      const SizedBox(height: 3),
+
+                                                      /// Progress bar
+                                                      ClipRRect(
+                                                        borderRadius: BorderRadius.circular(8),
+                                                        child: LinearProgressIndicator(
+                                                          value: 0.6, // 👈 60% progress
+                                                          minHeight: 8,
+                                                          backgroundColor: Colors.red,
+                                                          valueColor: const AlwaysStoppedAnimation(Color(0xff0F8D4B)),
+                                                        ),
+                                                      ),
+
+                                                      const SizedBox(height: 3),
+
+                                                      Row(
+                                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                        children: const [
+                                                          Row(
+                                                            mainAxisAlignment: MainAxisAlignment.start,
+                                                            children: [
+                                                              Text("Done: ", style: TextStyle(fontSize: 11)),
+                                                              Text("6", style: TextStyle(fontSize: 11,fontWeight: FontWeight.bold)),
+                                                            ],
+                                                          ),
+                                                          Row(
+                                                            mainAxisAlignment: MainAxisAlignment.start,
+                                                            children: [
+                                                              Text("Pending: ", style: TextStyle(fontSize: 11)),
+                                                              Text("4", style: TextStyle(fontSize: 11,fontWeight: FontWeight.bold)),
+                                                            ],
+                                                          ),
+
+                                                        ],
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                                5.width,
                                                 InkWell(
                                                   onTap: () {
                                                     Navigator.push(
@@ -819,105 +897,104 @@ class _HomePageState extends State<HomePage> {
                                                     );
                                                   },
                                                   child: Container(
-                                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                                    width: screenWidth/2.2,
+                                                    height: screenHeight/22,
                                                     decoration: BoxDecoration(
-                                                      color: /// 🔒 Disabled look
-                                                      colorsConst.green2,
-                                                      borderRadius: BorderRadius.circular(8),
-                                                    ),
-                                                    child: Row(
-                                                      mainAxisSize: MainAxisSize.min,
-                                                      children: const [
-                                                        Text(
-                                                          "Add Day Work Plan",
-                                                          style: TextStyle(
-                                                            fontSize: 13,
-                                                            fontWeight: FontWeight.w600,
-                                                            color: Colors.white,
-                                                          ),
+                                                      color: Color(0xffDAF2DC),
+                                                      borderRadius: BorderRadius.circular(10),
+                                                      boxShadow: const [
+                                                        BoxShadow(
+                                                          color: Colors.black38,
+                                                          blurRadius: 4,
+                                                          offset: Offset(0, 0),
                                                         ),
-                                                        SizedBox(width: 6),
-                                                        Icon(Icons.check_circle, color: Colors.white, size: 15),
                                                       ],
+                                                    ),
+                                                    child: Padding(
+                                                      padding: const EdgeInsets.all(5.0),
+                                                      child: Row(
+                                                        mainAxisAlignment: MainAxisAlignment.center,
+                                                        children: [
+                                                          Image.asset(
+                                                            assets.addButton,
+                                                          ),
+                                                          SizedBox(width: 6),
+                                                          CustomText(
+                                                            "Add Work Plan",
+                                                            size: 14,
+                                                            weight: FontWeight.bold,
+                                                            color: Color(0xff0F8D4B),
+                                                          ),
+                                                        ],
+                                                      ),
                                                     ),
                                                   ),
                                                 ),
-                                                30.width,
-                                                Container(
-                                                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                                                decoration: BoxDecoration(
-                                                color: Colors.grey,
-                                                borderRadius: BorderRadius.circular(10),
-                                                                                          ),
 
-                                                  child: Row(
-                                                children: const [
-
-                                                  CustomText(
-                                                    "Submitted",
-                                                    size: 13,
-                                                    weight: FontWeight.w600,
-                                                    color: Colors.white,
-                                                  ),
-                                                  SizedBox(width: 6),
-                                                  Icon(Icons.check_circle,
-                                                      color: Colors.white, size: 15),
-                                                ],
-                                                                                          ),
-                                                                                        ),
                                               ],
                                             )
-                                            :
-                                        Row(
-                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                          children: [
-
-                                            GestureDetector(
-                                              onTap: () {},
-                                              child: GestureDetector(
-                                                  onTap: () {
-                                                                    if (attPvr.mainAttendance == 0) {
-                                                                    ScaffoldMessenger.of(context).showSnackBar(
-                                                                    SnackBar(
-                                                                    content: const Text("Please, mark attendance to submit Day work plan"),
-                                                                    backgroundColor: Colors.red.shade900,
-                                                                    ),
-                                                                    );
-                                                                    return;
-                                                                    }
-
-                                                                    /// ✅ Your Submit Logic Here
-                                                                    attPvr.putWorkDone(context);
-                                                                    },
-                                                                      child: Container(
-                                                                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                                                        decoration: BoxDecoration(
-                                                                          color: attPvr.mainAttendance == 0
-                                                                              ? Colors.grey   /// 🔒 Disabled look
-                                                                              : colorsConst.primary,
-                                                                          borderRadius: BorderRadius.circular(8),
-                                                                        ),
-                                                                        child: Row(
-                                                                          mainAxisSize: MainAxisSize.min,
-                                                                          children: const [
-                                                                            Text(
-                                                                              "Submit",
-                                                                              style: TextStyle(
-                                                                                fontSize: 13,
-                                                                                fontWeight: FontWeight.w600,
-                                                                                color: Colors.white,
-                                                                              ),
-                                                                            ),
-                                                                            SizedBox(width: 6),
-                                                                            Icon(Icons.check_circle, color: Colors.white, size: 15),
-                                                                          ],
-                                                                        ),
-                                                                      ),
-                                                                    ),
-                                            ),
-                                            10.width,
-                                          ],
-                                        ),
+                                        //     :
+                                        // Row(
+                                        //
+                                        //   children: [
+                                        //     InkWell(
+                                        //       onTap: () {
+                                        //         Navigator.push(
+                                        //           context,
+                                        //           MaterialPageRoute(
+                                        //             builder: (context) => const DayWorkPlanPage(), // 👈 your page
+                                        //           ),
+                                        //         );
+                                        //       },
+                                        //       child: Container(
+                                        //         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                        //         decoration: BoxDecoration(
+                                        //           color: /// 🔒 Disabled look
+                                        //           colorsConst.green2,
+                                        //           borderRadius: BorderRadius.circular(8),
+                                        //         ),
+                                        //         child: Row(
+                                        //           mainAxisSize: MainAxisSize.min,
+                                        //           children: const [
+                                        //             Icon(Icons.check_circle, color: Colors.white, size: 15),
+                                        //             SizedBox(width: 6),
+                                        //             Text(
+                                        //               "Add Work Plan",
+                                        //               style: TextStyle(
+                                        //                 fontSize: 13,
+                                        //                 fontWeight: FontWeight.w600,
+                                        //                 color: Colors.white,
+                                        //               ),
+                                        //             ),
+                                        //           ],
+                                        //         ),
+                                        //       ),
+                                        //     ),
+                                        //     30.width,
+                                        //     Container(
+                                        //       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                                        //       decoration: BoxDecoration(
+                                        //         color: Colors.grey,
+                                        //         borderRadius: BorderRadius.circular(10),
+                                        //       ),
+                                        //
+                                        //       child: Row(
+                                        //         children: const [
+                                        //
+                                        //           // CustomText(
+                                        //           //   "Submitted",
+                                        //           //   size: 13,
+                                        //           //   weight: FontWeight.w600,
+                                        //           //   color: Colors.white,
+                                        //           // ),
+                                        //           SizedBox(width: 6),
+                                        //           Icon(Icons.check_circle,
+                                        //               color: Colors.white, size: 15),
+                                        //         ],
+                                        //       ),
+                                        //     ),
+                                        //   ],
+                                        // )
 
                                       ],
                                     ),

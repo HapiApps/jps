@@ -898,58 +898,65 @@ class _CheckAttendanceState extends State<CheckAttendance> {
                 children: [
 
                   if(localData.storage.read("role")!="1")
-                    GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          if (localData.storage.read("Track") == true) {
-                            stopTracking(context);
-                          } else {
-                            if(locPvr.latitude==""&&locPvr.longitude==""){
-                              locPvr.manageLocation(context,true);
-                            }else{
-                              startTracking(context,locPvr.latitude,locPvr.longitude);
-                            }
-                          }
-                        });
-                      },
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 200),
-                        height: 30,
-                        width: 100,
-                        decoration: BoxDecoration(
-                          color: localData.storage.read("Track") == true
-                              ? Colors.green
-                              : Colors.grey,
-                          borderRadius: BorderRadius.circular(30),
-                        ),
-                        child: Stack(
-                          children: [
-                            Center(
-                              child: CustomText(
-                                text: localData.storage.read("Track") == true
-                                    ? 'ON     '
-                                    : '     Tracker Off',
-                                size: 11, colors: Colors.white,
-                              ),
-                            ),
-                            Align(
-                              alignment: localData.storage.read("Track") ==
-                                  true ? Alignment.centerRight : Alignment
-                                  .centerLeft,
-                              child: Container(
-                                margin: const EdgeInsets.all(3),
-                                width: 25,
-                                height: 25,
-                                decoration: const BoxDecoration(
-                                  color: Colors.white,
-                                  shape: BoxShape.circle,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),),
+                    Column(
+                      children: [
 
+                        CustomText(text: "Tap Here to",colors: ColorsConst.textGrey,),
+                        CustomText(text: "Start Tracking",colors: ColorsConst.textGrey,),
+                        15.height,
+                        GestureDetector(
+                          onTap: () {
+                            setState(() {
+                              if (localData.storage.read("Track") == true) {
+                                stopTracking(context);
+                              } else {
+                                if(locPvr.latitude==""&&locPvr.longitude==""){
+                                  locPvr.manageLocation(context,true);
+                                }else{
+                                  startTracking(context,locPvr.latitude,locPvr.longitude);
+                                }
+                              }
+                            });
+                          },
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            height: 30,
+                            width: 100,
+                            decoration: BoxDecoration(
+                              color: localData.storage.read("Track") == true
+                                  ? Colors.green
+                                  : Colors.grey,
+                              borderRadius: BorderRadius.circular(30),
+                            ),
+                            child: Stack(
+                              children: [
+                                Center(
+                                  child: CustomText(
+                                    text: localData.storage.read("Track") == true
+                                        ? 'ON     '
+                                        : '     Tracker Off',
+                                    size: 11, colors: Colors.white,
+                                  ),
+                                ),
+                                Align(
+                                  alignment: localData.storage.read("Track") ==
+                                      true ? Alignment.centerRight : Alignment
+                                      .centerLeft,
+                                  child: Container(
+                                    margin: const EdgeInsets.all(3),
+                                    width: 25,
+                                    height: 25,
+                                    decoration: const BoxDecoration(
+                                      color: Colors.white,
+                                      shape: BoxShape.circle,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),),
+                      ],
+                    ),
                 ],
               ),
             ],

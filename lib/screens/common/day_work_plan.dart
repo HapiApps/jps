@@ -2,8 +2,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../../component/custom_appbar.dart';
-import '../../component/custom_text.dart';
 import '../../component/maxline_textfield.dart';
 import '../../component/multi_dropdown.dart';
 import '../../component/search_drop_down.dart';
@@ -20,9 +18,6 @@ class DayWorkPlanPage extends StatefulWidget {
 }
 
 class _DayWorkPlanPageState extends State<DayWorkPlanPage> {
-  List<Map<String, dynamic>> sendList = [];
-
-  /// 🔥 Each Plan Model
   List<WorkPlanModel> workPlans = [];
 
   @override
@@ -31,11 +26,8 @@ class _DayWorkPlanPageState extends State<DayWorkPlanPage> {
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final custProvider = Provider.of<CustomerProvider>(context, listen: false);
-
-      /// load company list
       await custProvider.getAllCustomers(true);
 
-      /// first plan auto add
       setState(() {
         workPlans.add(WorkPlanModel());
       });
@@ -47,179 +39,224 @@ class _DayWorkPlanPageState extends State<DayWorkPlanPage> {
     var webWidth = MediaQuery.of(context).size.width * 0.5;
     var phoneWidth = MediaQuery.of(context).size.width * 0.9;
 
+    double mainWidth = kIsWeb ? webWidth : phoneWidth;
+
     return Consumer<CustomerProvider>(
       builder: (context, custProvider, child) {
         return Scaffold(
           backgroundColor: colorsConst.bacColor,
-          appBar: const PreferredSize(
-            preferredSize: Size(300, 50),
-            child: CustomAppbar(text: "Day Work Plan"),
+          appBar: AppBar(
+            backgroundColor: colorsConst.bacColor,
+            title: Text(
+              "Day Work Plan",
+              style: TextStyle(
+                color: colorsConst.primary,
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            centerTitle: true,
+            iconTheme: IconThemeData(color: colorsConst.primary),
+            actions: [
+              IconButton(
+                icon: Icon(Icons.add, color: colorsConst.primary, size: 20),
+                onPressed: () {
+                  setState(() {
+                    workPlans.add(WorkPlanModel());
+                  });
+                },
+              ),
+            ],
           ),
           body: Center(
             child: SizedBox(
-              width: kIsWeb ? webWidth : phoneWidth,
+              width: mainWidth,
               child: Column(
                 children: [
                   Expanded(
                     child: ListView.builder(
                       itemCount: workPlans.length,
+                      padding: EdgeInsets.zero,
                       itemBuilder: (context, index) {
                         final item = workPlans[index];
 
                         return Container(
-                          margin: const EdgeInsets.symmetric(vertical: 10),
-                          padding: const EdgeInsets.all(12),
+                          margin: const EdgeInsets.only(bottom: 5,top: 5),
+                          padding: const EdgeInsets.all(6),
                           decoration: BoxDecoration(
                             color: Colors.white,
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(8),
                             boxShadow: const [
                               BoxShadow(
                                 color: Colors.black12,
-                                blurRadius: 6,
+                                blurRadius: 2,
                               )
                             ],
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              /// 🔥 Title Row
+
+                              /// 🔥 PLAN + DELETE + STATUS
                               Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                mainAxisAlignment:
+                                MainAxisAlignment.spaceBetween,
                                 children: [
-                                  CustomText(
-                                    text: "Plan ${index + 1}",
-                                    isBold: true,
-                                    size: 15,
+                                  Row(
+                                    children: [
+                                      Text(
+                                        "Plan ${index + 1}",
+                                        style: const TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 6),
+
+                                      /// DELETE BUTTON
+                                      if (workPlans.length > 1)
+                                        InkWell(
+                                          onTap: () {
+                                            setState(() {
+                                              workPlans.removeAt(index);
+                                            });
+                                          },
+                                          child: const Icon(
+                                            Icons.delete,
+                                            size: 18,
+                                            color: Colors.red,
+                                          ),
+                                        ),
+                                    ],
                                   ),
-                                  if (workPlans.length > 1)
-                                    IconButton(
-                                      icon: const Icon(Icons.delete, color: Colors.red),
-                                      onPressed: () {
+
+                                  /// STATUS
+                                  Row(
+                                    children: [
+                                      Text("Achieved:  ",style: TextStyle(color: Colors.blue,fontWeight: FontWeight.bold),),
+                                      ChoiceChip(
+                                        label: const Text("Yes"),
+                                        selected: item.status == "1",
+                                        selectedColor: Colors.green,
+                                        backgroundColor: Colors.grey.shade200,
+                                        labelStyle: TextStyle(
+                                          fontSize: 10,
+                                          color: item.status == "1"
+                                              ? Colors.white
+                                              : Colors.black,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                        padding: EdgeInsets.zero,
+                                        visualDensity: const VisualDensity(
+                                            horizontal: -4, vertical: -4),
+                                        onSelected: (val) {
+                                          setState(() {
+                                            item.status = "1";
+                                          });
+                                        },
+                                      ),
+                                      const SizedBox(width: 4),
+                                      ChoiceChip(
+                                        label: const Text("No"),
+                                        selected: item.status == "0",
+                                        selectedColor: Colors.red,
+                                        backgroundColor: Colors.grey.shade200,
+                                        labelStyle: TextStyle(
+                                          fontSize: 10,
+                                          color: item.status == "0"
+                                              ? Colors.white
+                                              : Colors.black,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                        padding: EdgeInsets.zero,
+                                        visualDensity: const VisualDensity(
+                                            horizontal: -4, vertical: -4),
+                                        onSelected: (val) {
+                                          setState(() {
+                                            item.status = "0";
+                                          });
+                                        },
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+
+
+
+                              /// 🔥 COMPANY + CUSTOMER SAME LINE
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.start, // ✅ FIX
+                                children: [
+                                  Expanded(
+                                    child: CustomerDropdown(
+                                      text: item.companyName.isEmpty
+                                          ? constValue.companyName
+                                          : item.companyName,
+                                      employeeList: custProvider.customer,
+                                      onChanged: (CustomerModel? value) {
+                                        if (value == null) return;
+
+                                        item.companyId = value.userId.toString();
+                                        item.companyName = value.companyName.toString();
+
+                                        item.selectedCustomers = [];
+                                        item.sendList = [];
+
+                                        var idList = value.customerId.toString().split('||');
+                                        var usersList = value.firstName.toString().split('||');
+                                        var phoneList = value.phoneNumber.toString().split('||');
+
+                                        for (var i = 0; i < usersList.length; i++) {
+                                          item.sendList.add({
+                                            "id": idList[i],
+                                            "name": usersList[i],
+                                            "no": phoneList[i],
+                                          });
+                                        }
+
+                                        if (item.sendList.length == 1) {
+                                          item.selectedCustomers = [item.sendList[0]];
+                                        }
+
+                                        setState(() {});
+                                      },
+                                      size: (mainWidth / 2) - 5,
+                                    ),
+                                  ),
+
+                                  const SizedBox(width: 6),
+
+                                  Expanded(
+                                    child: MultiSelectDropdown(
+                                      hintText: "Customer",
+                                      dropText: "name",
+                                      list: item.sendList,
+                                      width: (mainWidth / 2) - 5,
+                                      selectedItems: item.selectedCustomers,
+                                      onChanged: (list) {
                                         setState(() {
-                                          workPlans.removeAt(index);
+                                          item.selectedCustomers = list;
                                         });
                                       },
                                     ),
+                                  ),
                                 ],
                               ),
 
-                              const SizedBox(height: 10),
 
-                              /// 🔥 Company Dropdown
-                              CustomerDropdown(
-                                text: item.companyName == ""
-                                    ? constValue.companyName
-                                    : item.companyName,
-                                employeeList: custProvider.customer,
-                                onChanged: (CustomerModel? value) {
-                                  if (value == null) return;
 
-                                  /// update company
-                                  item.companyId = value.userId.toString();
-                                  item.companyName = value.companyName.toString();
-
-                                  /// clear old customer selection
-                                  item.selectedCustomers = [];
-
-                                  /// prepare customers list
-                                  sendList = [];
-                                  var idList = value.customerId.toString().split('||');
-                                  var usersList = value.firstName.toString().split('||');
-                                  var phoneList = value.phoneNumber.toString().split('||');
-
-                                  for (var i = 0; i < usersList.length; i++) {
-                                    sendList.add({
-                                      "id": idList[i],
-                                      "name": usersList[i],
-                                      "no": phoneList[i],
-                                    });
-                                  }
-
-                                  /// auto select if single customer
-                                  if (sendList.length == 1) {
-                                    item.selectedCustomers = [sendList[0]];
-                                  }
-
-                                  setState(() {});
-                                },
-                                size: kIsWeb ? webWidth : phoneWidth,
-                              ),
-
-                              const SizedBox(height: 10),
-
-                              /// 🔥 Customer MultiSelect Dropdown
-                              MultiSelectDropdown(
-                                hintText: "Select Customer",
-                                dropText: "name",
-                                list: sendList,
-                                width: kIsWeb ? webWidth : phoneWidth,
-
-                                /// ✅ each plan separate selected list
-                                selectedItems: item.selectedCustomers,
-
-                                onChanged: (list) {
-                                  setState(() {
-                                    item.selectedCustomers = list;
-                                  });
-                                },
-                              ),
-
-                              const SizedBox(height: 10),
-
-                              /// 🔥 Description
+                              /// 🔥 DESCRIPTION (NO FIXED HEIGHT)
                               MaxLineTextField(
-                                width: kIsWeb ? webWidth : phoneWidth,
+                                width: mainWidth,
+
                                 text: "Description",
                                 controller: item.descriptionController,
-                                maxLine: 4,
+                                maxLine: 2,
                                 isRequired: true,
-                                textCapitalization: TextCapitalization.sentences,
+                                textCapitalization:
+                                TextCapitalization.sentences,
                               ),
-
-                              const SizedBox(height: 10),
-
-                              /// 🔥 Yes / No Status
-                              Row(
-                                children: [
-                                  const CustomText(
-                                    text: "Status : ",
-                                    isBold: true,
-                                  ),
-                                  const SizedBox(width: 10),
-
-                                  ChoiceChip(
-                                    label: const Text("Yes"),
-                                    selected: item.status == "1",
-                                    selectedColor: Colors.green,
-                                    backgroundColor: Colors.grey.shade200,
-                                    labelStyle: TextStyle(
-                                      color: item.status == "1" ? Colors.white : Colors.black,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                    onSelected: (val) {
-                                      setState(() {
-                                        item.status = "1";
-                                      });
-                                    },
-                                  ),
-
-                                  ChoiceChip(
-                                    label: const Text("No"),
-                                    selected: item.status == "0",
-                                    selectedColor: Colors.red,
-                                    backgroundColor: Colors.grey.shade200,
-                                    labelStyle: TextStyle(
-                                      color: item.status == "0" ? Colors.white : Colors.black,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                    onSelected: (val) {
-                                      setState(() {
-                                        item.status = "0";
-                                      });
-                                    },
-                                  ),
-                                ],
-                              )
                             ],
                           ),
                         );
@@ -227,82 +264,71 @@ class _DayWorkPlanPageState extends State<DayWorkPlanPage> {
                     ),
                   ),
 
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 6),
 
-                  /// 🔥 Add Button
+                  /// 🔥 BUTTONS
                   SizedBox(
-                    width: kIsWeb ? webWidth : phoneWidth,
-                    child: ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: colorsConst.primary,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                      ),
-                      icon: const Icon(Icons.add),
-                      label: const Text("Add New Plan"),
-                      onPressed: () {
-                        setState(() {
-                          workPlans.add(WorkPlanModel());
-                        });
-                      },
-                    ),
-                  ),
-
-
-                  const SizedBox(height: 10),
-
-                  SizedBox(
-                    width: kIsWeb ? webWidth : phoneWidth,
+                    width: mainWidth,
                     child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-
-                        /// ❌ CANCEL BUTTON
                         Expanded(
                           child: ElevatedButton(
                             style: ElevatedButton.styleFrom(
+                              elevation: 0,
                               backgroundColor: Colors.white,
                               side: BorderSide(color: colorsConst.primary),
-                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              padding:
+                              const EdgeInsets.symmetric(vertical: 9),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
                             ),
                             onPressed: () {
                               Navigator.pop(context);
                             },
                             child: Text(
                               "Cancel",
-                              style: TextStyle(color: colorsConst.primary),
+                              style: TextStyle(
+                                color: colorsConst.primary,
+                                fontSize: 12,
+                              ),
                             ),
                           ),
                         ),
-
-                        const SizedBox(width: 10),
-
-                        /// ✅ SAVE BUTTON
+                        const SizedBox(width: 6),
                         Expanded(
                           child: ElevatedButton(
                             style: ElevatedButton.styleFrom(
+                              elevation: 0,
                               backgroundColor: colorsConst.primary,
-                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              padding:
+                              const EdgeInsets.symmetric(vertical: 9),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
                             ),
                             onPressed: () {
                               for (var plan in workPlans) {
                                 debugPrint("Company: ${plan.companyName}");
                                 debugPrint("Customers: ${plan.selectedCustomers}");
-                                debugPrint("Desc: ${plan.descriptionController.text}");
+                                debugPrint(
+                                    "Desc: ${plan.descriptionController.text}");
                                 debugPrint("Status: ${plan.status}");
                               }
 
-                              // API call here
+                              // API Call Here
                             },
-                            child: const Text("Save"),
+                            child: const Text(
+                              "Save",
+                              style: TextStyle(fontSize: 12),
+                            ),
                           ),
                         ),
                       ],
                     ),
                   ),
 
-                  const SizedBox(height: 20),
-
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 10),
                 ],
               ),
             ),
@@ -313,11 +339,12 @@ class _DayWorkPlanPageState extends State<DayWorkPlanPage> {
   }
 }
 
-/// 🔥 MODEL CLASS
+/// MODEL
 class WorkPlanModel {
   String companyId = "";
   String companyName = "";
 
+  List<Map<String, dynamic>> sendList = [];
   List<Map<String, dynamic>> selectedCustomers = [];
 
   TextEditingController descriptionController = TextEditingController();
