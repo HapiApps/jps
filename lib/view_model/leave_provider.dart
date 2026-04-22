@@ -21,8 +21,10 @@ import '../model/leave/holiday.dart';
 import '../model/leave/holidays_model.dart';
 import '../model/leave/leave_model.dart';
 import '../model/leave/rules_model.dart';
+import '../model/task/work_plan.dart';
 import '../model/user_model.dart';
 import '../screens/common/dashboard.dart';
+import '../screens/common/day_work_plan.dart';
 import '../screens/leave_management/add_leave_rules.dart';
 import '../screens/leave_management/apply_leave.dart';
 import '../screens/leave_management/leave_report.dart';
@@ -1674,6 +1676,7 @@ void setList(){
     leaveCtr.reset();
     notifyListeners();
   }
+
   Future<void> approveApply(
       context,
       String leaveId,
@@ -2781,4 +2784,69 @@ void changeStatus(bool value){
   TextEditingController noOfWorkingDay =TextEditingController();
   List<LeaveAttModel> userAttendanceReport = <LeaveAttModel>[];
 
+
+  Future<void> workPlanSubmit(
+      BuildContext context,
+      List<WorkPlanModel> workPlans,
+      )
+  async {
+    try {
+      WorkPlanRequest request = WorkPlanRequest(
+
+        cosId: localData.storage.read("cos_id").toString(),
+        uId: localData.storage.read("id").toString(),
+        date: DateTime.now().toString().split(" ")[0],
+        plans: workPlans.map((item) {
+          return WorkPlanItem(
+            comId: item.companyId,
+            cusId: item.selectedCustomers.isNotEmpty
+                ? item.selectedCustomers.first["id"].toString()
+                : "0",
+            value: item.descriptionController.text.trim(),
+            status: item.status,
+          );
+        }).toList(),
+      );
+
+      /// ✅ PRINT JSON BEFORE API CALL
+      debugPrint("========== WORK PLAN REQUEST JSON ==========");
+      debugPrint(jsonEncode(request.toJson()));
+      debugPrint("===========================================");
+
+      final response = await leaveRepo.insertWorkPlan(request.toJson());
+
+      /// ✅ PRINT RESPONSE
+      debugPrint("========== WORK PLAN RESPONSE ==========");
+      debugPrint(response.toString());
+      debugPrint("=======================================");
+
+      if (response["success"] == true) {
+        utils.showSuccessToast(context: context, text: "Work Plan Submitted");
+        final empProvider =
+        Provider.of<EmployeeProvider>(context, listen: false);
+        String title = "New Leave Request";
+        String body =
+            "${localData.storage.read("f_name")} Requested for leave";
+        try {
+          await empProvider.sendAdminNotification(
+              title,
+              body,
+              "",
+              "",
+              "1"
+          );
+        } catch(e){
+          log("Notification failed: $e");
+        }
+        Navigator.pop(context);
+      } else {
+        utils.showWarningToast(context, text: response["message"].toString());
+      }
+    } catch (e) {
+      debugPrint("ERROR: $e");
+      utils.showErrorToast(context: context);
+    }
+
+    notifyListeners();
+  }
 }

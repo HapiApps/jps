@@ -25,6 +25,7 @@ import '../component/month_calendar.dart';
 import '../local_database/sqlite.dart';
 import '../model/attendance_model.dart';
 import '../model/customer/customer_model.dart';
+import '../model/task/work_details_plan.dart';
 import '../model/user_model.dart';
 import '../repo/home_repo.dart';
 import '../screens/attendance/attendance_report.dart';
@@ -767,6 +768,8 @@ Future<void> loginOuts(context) async {
     }
     notifyListeners();
   }
+
+
   String _totalV="0";
   int activeVisit=0;
   int inActiveVisit=0;
@@ -775,6 +778,8 @@ Future<void> loginOuts(context) async {
   String get totalV => _totalV;
   bool _vRefresh = true;
   bool get vRefresh =>_vRefresh;
+
+
 
   Future<void> getDashboardReport(bool isRefresh) async {
     inActiveVisit=0;
@@ -824,6 +829,46 @@ Future<void> loginOuts(context) async {
       notifyListeners();
     }
     notifyListeners();
+  }
+  List<WorkPlanModelDetails> workPlanList = [];
+  bool workPlanRefresh = false;
+
+  Future<void> getWorkPlanList(bool isRefresh, String date) async {
+    if (isRefresh == true) {
+      workPlanList.clear();
+      workPlanRefresh = false;
+    }
+
+    notifyListeners();
+
+    try {
+      Map data = {
+        "action": getAllData,
+        "search_type": "work_plan_list",
+        "user_id": localData.storage.read("id"),
+        "role": localData.storage.read("role"),
+        "cos_id": localData.storage.read("cos_id"),
+        "date": date
+      };
+
+      final response = await homeRepo.getDashboardReport(data);
+
+      if (response.isNotEmpty) {
+        workPlanList =
+            response.map<WorkPlanModelDetails>((e) => WorkPlanModelDetails.fromJson(e)).toList();
+        workPlanRefresh = true;
+      } else {
+        workPlanList = [];
+        workPlanRefresh = true;
+      }
+
+      notifyListeners();
+    } catch (e) {
+      print("WorkPlan Error: $e");
+      workPlanList = [];
+      workPlanRefresh = true;
+      notifyListeners();
+    }
   }
   // Future<void> loadFullDashboard(BuildContext context) async {
   //

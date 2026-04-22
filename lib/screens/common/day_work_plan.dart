@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -8,7 +9,9 @@ import '../../component/search_drop_down.dart';
 import '../../model/customer/customer_model.dart';
 import '../../source/constant/colors_constant.dart';
 import '../../source/constant/default_constant.dart';
+import '../../source/utilities/utils.dart';
 import '../../view_model/customer_provider.dart';
+import '../../view_model/leave_provider.dart';
 
 class DayWorkPlanPage extends StatefulWidget {
   const DayWorkPlanPage({super.key});
@@ -19,19 +22,82 @@ class DayWorkPlanPage extends StatefulWidget {
 
 class _DayWorkPlanPageState extends State<DayWorkPlanPage> {
   List<WorkPlanModel> workPlans = [];
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      final custProvider = Provider.of<CustomerProvider>(context, listen: false);
+      final custProvider =
+      Provider.of<CustomerProvider>(context, listen: false);
       await custProvider.getAllCustomers(true);
 
       setState(() {
         workPlans.add(WorkPlanModel());
       });
     });
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    for (var item in workPlans) {
+      item.descriptionController.dispose();
+    }
+    super.dispose();
+  }
+
+  void scrollToBottom() {
+    Future.delayed(const Duration(milliseconds: 200), () {
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 400),
+          curve: Curves.easeInOut,
+        );
+      }
+    });
+  }
+
+  void addNewPlan() {
+    if (workPlans.isNotEmpty) {
+      if (workPlans.last.descriptionController.text.trim().isEmpty) {
+        utils.showWarningToast(context, text: "Please enter description");
+        return;
+      }
+    }
+
+    setState(() {
+      workPlans.add(WorkPlanModel());
+    });
+
+    scrollToBottom();
+  }
+
+  bool validateAllPlans() {
+    for (int i = 0; i < workPlans.length; i++) {
+      final item = workPlans[i];
+
+      if (item.companyId.isEmpty) {
+        utils.showWarningToast(context,
+            text: "Please select company in Plan ${i + 1}");
+        return false;
+      }
+
+      if (item.selectedCustomers.isEmpty) {
+        utils.showWarningToast(context,
+            text: "Please select customer in Plan ${i + 1}");
+        return false;
+      }
+
+      if (item.descriptionController.text.trim().isEmpty) {
+        utils.showWarningToast(context,
+            text: "Please enter description in Plan ${i + 1}");
+        return false;
+      }
+    }
+    return true;
   }
 
   @override
@@ -60,11 +126,7 @@ class _DayWorkPlanPageState extends State<DayWorkPlanPage> {
             actions: [
               IconButton(
                 icon: Icon(Icons.add, color: colorsConst.primary, size: 20),
-                onPressed: () {
-                  setState(() {
-                    workPlans.add(WorkPlanModel());
-                  });
-                },
+                onPressed: addNewPlan,
               ),
             ],
           ),
@@ -75,13 +137,14 @@ class _DayWorkPlanPageState extends State<DayWorkPlanPage> {
                 children: [
                   Expanded(
                     child: ListView.builder(
+                      controller: _scrollController,
                       itemCount: workPlans.length,
                       padding: EdgeInsets.zero,
                       itemBuilder: (context, index) {
                         final item = workPlans[index];
 
                         return Container(
-                          margin: const EdgeInsets.only(bottom: 5,top: 5),
+                          margin: const EdgeInsets.only(bottom: 5, top: 5),
                           padding: const EdgeInsets.all(6),
                           decoration: BoxDecoration(
                             color: Colors.white,
@@ -96,8 +159,7 @@ class _DayWorkPlanPageState extends State<DayWorkPlanPage> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-
-                              /// 🔥 PLAN + DELETE + STATUS
+                              /// PLAN + DELETE + STATUS
                               Row(
                                 mainAxisAlignment:
                                 MainAxisAlignment.spaceBetween,
@@ -133,7 +195,13 @@ class _DayWorkPlanPageState extends State<DayWorkPlanPage> {
                                   /// STATUS
                                   Row(
                                     children: [
-                                      Text("Achieved:  ",style: TextStyle(color: Colors.blue,fontWeight: FontWeight.bold),),
+                                      const Text(
+                                        "Achieved:  ",
+                                        style: TextStyle(
+                                          color: Colors.blue,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
                                       ChoiceChip(
                                         label: const Text("Yes"),
                                         selected: item.status == "1",
@@ -182,74 +250,73 @@ class _DayWorkPlanPageState extends State<DayWorkPlanPage> {
                                 ],
                               ),
 
+                              const SizedBox(height: 8),
 
+                              /// COMPANY DROPDOWN
+                              CustomerDropdown(
+                                text: item.companyName.isEmpty
+                                    ? constValue.companyName
+                                    : item.companyName,
+                                employeeList: custProvider.customer,
+                                onChanged: (CustomerModel? value) {
+                                  if (value == null) return;
 
-                              /// 🔥 COMPANY + CUSTOMER SAME LINE
-                              Row(
-                                crossAxisAlignment: CrossAxisAlignment.start, // ✅ FIX
-                                children: [
-                                  Expanded(
-                                    child: CustomerDropdown(
-                                      text: item.companyName.isEmpty
-                                          ? constValue.companyName
-                                          : item.companyName,
-                                      employeeList: custProvider.customer,
-                                      onChanged: (CustomerModel? value) {
-                                        if (value == null) return;
+                                  item.companyId = value.userId.toString();
+                                  item.companyName =
+                                      value.companyName.toString();
 
-                                        item.companyId = value.userId.toString();
-                                        item.companyName = value.companyName.toString();
+                                  item.selectedCustomers = [];
+                                  item.sendList = [];
 
-                                        item.selectedCustomers = [];
-                                        item.sendList = [];
+                                  var idList =
+                                  value.customerId.toString().split('||');
+                                  var usersList =
+                                  value.firstName.toString().split('||');
+                                  var phoneList = value.phoneNumber
+                                      .toString()
+                                      .split('||');
 
-                                        var idList = value.customerId.toString().split('||');
-                                        var usersList = value.firstName.toString().split('||');
-                                        var phoneList = value.phoneNumber.toString().split('||');
+                                  for (var i = 0; i < usersList.length; i++) {
+                                    item.sendList.add({
+                                      "id": idList[i],
+                                      "name": usersList[i],
+                                      "no": phoneList[i],
+                                    });
+                                  }
 
-                                        for (var i = 0; i < usersList.length; i++) {
-                                          item.sendList.add({
-                                            "id": idList[i],
-                                            "name": usersList[i],
-                                            "no": phoneList[i],
-                                          });
-                                        }
+                                  if (item.sendList.length == 1) {
+                                    item.selectedCustomers = [
+                                      item.sendList[0]
+                                    ];
+                                  }
 
-                                        if (item.sendList.length == 1) {
-                                          item.selectedCustomers = [item.sendList[0]];
-                                        }
-
-                                        setState(() {});
-                                      },
-                                      size: (mainWidth / 2) - 5,
-                                    ),
-                                  ),
-
-                                  const SizedBox(width: 6),
-
-                                  Expanded(
-                                    child: MultiSelectDropdown(
-                                      hintText: "Customer",
-                                      dropText: "name",
-                                      list: item.sendList,
-                                      width: (mainWidth / 2) - 5,
-                                      selectedItems: item.selectedCustomers,
-                                      onChanged: (list) {
-                                        setState(() {
-                                          item.selectedCustomers = list;
-                                        });
-                                      },
-                                    ),
-                                  ),
-                                ],
+                                  setState(() {});
+                                },
+                                size: mainWidth,
                               ),
 
+                              const SizedBox(height: 8),
 
+                              /// CUSTOMER DROPDOWN ONLY IF COMPANY SELECTED
+                              if (item.companyId.isNotEmpty)
+                                MultiSelectDropdown(
+                                  hintText: "Customer",
+                                  dropText: "name",
+                                  list: item.sendList,
+                                  width: mainWidth,
+                                  selectedItems: item.selectedCustomers,
+                                  onChanged: (list) {
+                                    setState(() {
+                                      item.selectedCustomers = list;
+                                    });
+                                  },
+                                ),
 
-                              /// 🔥 DESCRIPTION (NO FIXED HEIGHT)
+                              const SizedBox(height: 8),
+
+                              /// DESCRIPTION
                               MaxLineTextField(
                                 width: mainWidth,
-
                                 text: "Description",
                                 controller: item.descriptionController,
                                 maxLine: 2,
@@ -266,11 +333,12 @@ class _DayWorkPlanPageState extends State<DayWorkPlanPage> {
 
                   const SizedBox(height: 6),
 
-                  /// 🔥 BUTTONS
+                  /// SAVE + CANCEL BUTTONS
                   SizedBox(
                     width: mainWidth,
                     child: Row(
                       children: [
+                        /// CANCEL
                         Expanded(
                           child: ElevatedButton(
                             style: ElevatedButton.styleFrom(
@@ -278,7 +346,7 @@ class _DayWorkPlanPageState extends State<DayWorkPlanPage> {
                               backgroundColor: Colors.white,
                               side: BorderSide(color: colorsConst.primary),
                               padding:
-                              const EdgeInsets.symmetric(vertical: 9),
+                              const EdgeInsets.symmetric(vertical: 10),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(8),
                               ),
@@ -295,28 +363,29 @@ class _DayWorkPlanPageState extends State<DayWorkPlanPage> {
                             ),
                           ),
                         ),
+
                         const SizedBox(width: 6),
+
+                        /// SAVE
                         Expanded(
                           child: ElevatedButton(
                             style: ElevatedButton.styleFrom(
                               elevation: 0,
                               backgroundColor: colorsConst.primary,
                               padding:
-                              const EdgeInsets.symmetric(vertical: 9),
+                              const EdgeInsets.symmetric(vertical: 10),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(8),
                               ),
                             ),
                             onPressed: () {
-                              for (var plan in workPlans) {
-                                debugPrint("Company: ${plan.companyName}");
-                                debugPrint("Customers: ${plan.selectedCustomers}");
-                                debugPrint(
-                                    "Desc: ${plan.descriptionController.text}");
-                                debugPrint("Status: ${plan.status}");
-                              }
+                              if (!validateAllPlans()) return;
 
-                              // API Call Here
+                              final provider = Provider.of<LeaveProvider>(
+                                  context,
+                                  listen: false);
+
+                              provider.workPlanSubmit(context, workPlans);
                             },
                             child: const Text(
                               "Save",
@@ -328,7 +397,7 @@ class _DayWorkPlanPageState extends State<DayWorkPlanPage> {
                     ),
                   ),
 
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 70),
                 ],
               ),
             ),

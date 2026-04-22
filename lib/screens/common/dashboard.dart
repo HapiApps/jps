@@ -179,24 +179,6 @@ class _DashBoardState extends State<DashBoard> {
                                   isColor: homeProvider.selectedIndex == 2,
                                   text: constValue.customer1,
                                 ),
-
-                                /// Settings
-                                PanelButton(
-                                  image: assets.setting,
-                                  callback: () {
-                                    Navigator.pop(context);
-                                    homeProvider.updateIndex(7);
-                                    utils.navigatePage(
-                                      context,
-                                          () => const DashBoard(
-                                        child: Setting(),
-                                      ),
-                                    );
-                                  },
-                                  isColor: homeProvider.selectedIndex == 7,
-                                  text: '  Settings',
-                                ),
-
                                 /// Employee Only
                                 if (localData.storage.read("role") != "1")
                                   PanelButton(
@@ -218,6 +200,51 @@ class _DashBoardState extends State<DashBoard> {
                                     isColor: homeProvider.selectedIndex == 11,
                                     text: 'Apply\nLeave',
                                   ),
+                                /// Settings
+                                PanelButton(
+                                  image: assets.setting,
+                                  callback: () {
+                                    Navigator.pop(context);
+                                    homeProvider.updateIndex(7);
+                                    utils.navigatePage(
+                                      context,
+                                          () => const DashBoard(
+                                        child: Setting(),
+                                      ),
+                                    );
+                                  },
+                                  isColor: homeProvider.selectedIndex == 7,
+                                  text: '  Settings',
+                                ),
+                                20.height,
+                                ElevatedButton.icon(
+                                  onPressed: () {
+                                    utils.customDialog(
+                                      context: context,
+                                      title: "Are you sure you want",
+                                      title2: "to end the session?",
+                                      callback: () {
+                                        homeProvider.loginOuts(context);
+                                      },
+                                      isLoading: true,
+                                      roundedLoadingButtonController: homeProvider.loginCtr,
+                                    );
+                                  },
+                                  icon: const Icon(Icons.logout, color: Colors.white),
+                                  label: const Text(
+                                    "Logout",
+                                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                                  ),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.red,
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                  ),
+                                )
+
+
                               ],
                             ),
                           ),

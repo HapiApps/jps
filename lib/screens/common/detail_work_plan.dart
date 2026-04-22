@@ -2,6 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:master_code/source/constant/colors_constant.dart';
 import 'package:master_code/source/extentions/extensions.dart';
+import 'package:provider/provider.dart';
+import '../../model/task/work_details_plan.dart';
+import '../../view_model/home_provider.dart';
+
+
 class DailyReportStatusPage extends StatefulWidget {
   final int initialTab;
 
@@ -19,131 +24,41 @@ class _DailyReportStatusPageState extends State<DailyReportStatusPage>
   DateTime selectedDate = DateTime.now();
 
   late TabController tabController;
-  Color indicatorColor = Colors.green; // default submitted green
+  Color indicatorColor = Colors.green;
 
-  /// Dummy Data
-  final List<Map<String, dynamic>> employeeList = [
-    {
-      "name": "Raj Kumar",
-
-      "plans": [
-        {
-          "company": "HapiApps",
-          "customer": "Ravi",
-          "desc": "Visited client and demo done",
-          "workStatus": "1"
-        },
-        {
-          "company": "ABC Pvt Ltd",
-          "customer": "Karthik",
-          "desc": "Follow-up call completed",
-          "workStatus": "0"
-        },
-        {
-          "company": "TechZone",
-          "customer": "Anitha",
-          "desc": "Collected payment and updated report",
-          "workStatus": "1"
-        },
-      ]
-    },
-    {"name": "Suresh",
-
-      "plans": []
-    },
-    {
-      "name": "Priya",
-      "plans": [
-        {
-          "company": "TechZone",
-          "customer": "Anitha",
-          "desc": "Collected payment and updated report",
-          "workStatus": "0"
-        },
-        {
-          "company": "HapiApps",
-          "customer": "Ravi",
-          "desc": "Visited client and demo done",
-          "workStatus": "1"
-        },
-        {
-          "company": "ABC Pvt Ltd",
-          "customer": "Karthik",
-          "desc": "Follow-up call completed",
-          "workStatus": "0"
-        },
-        {
-          "company": "PSS Pvt Ltd",
-          "customer": "Kumar",
-          "desc": "Follow-up call completed and meeting",
-          "workStatus": "0"
-        },
-      ]
-    },
-    {"name": "Anitha",
-      "plans": []
-    },
-  ];
-
-
-  @override
-  // void initState() {
-  //   super.initState();
-  //
-  //   tabController = TabController(length: 2, vsync: this);
-  //
-  //   tabController.index = widget.initialTab;
-  //
-  //   tabController.addListener(() {
-  //     if (tabController.index == 0) {
-  //       setState(() {
-  //         indicatorColor = Colors.green;
-  //       });
-  //     } else {
-  //       setState(() {
-  //         indicatorColor = Colors.red;
-  //       });
-  //     }
-  //   });
-  // }
   @override
   void initState() {
     super.initState();
 
     tabController = TabController(length: 2, vsync: this);
-
-    /// set initial tab
     tabController.index = widget.initialTab;
 
-    /// 🔥 IMPORTANT: listen after frame
+    indicatorColor = widget.initialTab == 0 ? Colors.green : Colors.red;
+
     tabController.addListener(() {
       if (!tabController.indexIsChanging) {
         setState(() {
-          indicatorColor =
-          tabController.index == 0 ? Colors.green : Colors.red;
+          indicatorColor = tabController.index == 0 ? Colors.green : Colors.red;
         });
       }
     });
 
-    /// 🔥 set initial color properly
-    indicatorColor =
-    widget.initialTab == 0 ? Colors.green : Colors.red;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      String todayDate = DateTime.now().toIso8601String().split("T")[0];
+      Provider.of<HomeProvider>(context, listen: false)
+          .getWorkPlanList(true, todayDate);
+    });
   }
+
   @override
   void dispose() {
-    tabController?.dispose();
+    tabController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     String dateText = DateFormat("dd-MM-yyyy").format(selectedDate);
-
-    final submittedList =
-    employeeList.where((e) => e["status"] == true).toList();
-
-    final notSubmittedList =
-    employeeList.where((e) => e["status"] == false).toList();
 
     return Scaffold(
       backgroundColor: colorsConst.bacColor,
@@ -163,286 +78,361 @@ class _DailyReportStatusPageState extends State<DailyReportStatusPage>
           icon: const Icon(Icons.arrow_back_ios),
           color: colorsConst.primary,
         ),
-
-        /// ✅ TAB BAR (Grey BG + Green/Red Indicator)
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(55),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            child: Container(
-              height: 42,
-              decoration: BoxDecoration(
-                color: Colors.grey.shade300, // ✅ Grey Background
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: TabBar(
-                controller: tabController,
-                indicator: BoxDecoration(
-                  color: indicatorColor, // ✅ Green / Red indicator
-                  borderRadius: BorderRadius.circular(12),
+          child: Consumer<HomeProvider>(
+            builder: (context, provider, child) {
+              final submittedList = provider.workPlanList
+                  .where((e) => e.plans.isNotEmpty)
+                  .toList();
+
+              final notSubmittedList = provider.workPlanList
+                  .where((e) => e.plans.isEmpty)
+                  .toList();
+
+              return Padding(
+                padding:
+                const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                child: Container(
+                  height: 42,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: TabBar(
+                    controller: tabController,
+                    indicator: BoxDecoration(
+                      color: indicatorColor,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    labelColor: Colors.white,
+                    unselectedLabelColor: Colors.black54,
+                    indicatorSize: TabBarIndicatorSize.tab,
+                    tabs: [
+                      Tab(text: "Submitted (${submittedList.length})"),
+                      Tab(text: "Not Submitted (${notSubmittedList.length})"),
+                    ],
+                  ),
                 ),
-                labelColor: Colors.white,
-                unselectedLabelColor: Colors.black54,
-                indicatorSize: TabBarIndicatorSize.tab,
-                tabs: [
-                  Tab(text: "Submitted (${submittedList.length})"),
-                  Tab(text: "Not Submitted (${notSubmittedList.length})"),
-                ],
-              ),
-            ),
+              );
+            },
           ),
         ),
       ),
-      body: Column(
-        children: [
-          5.height,
+      body: Consumer<HomeProvider>(
+        builder: (context, provider, child) {
+          if (!provider.workPlanRefresh) {
+            return const Center(child: CircularProgressIndicator());
+          }
 
-          /// Date Picker Row
-          Row(
+          final submittedList =
+          provider.workPlanList.where((e) => e.plans.isNotEmpty).toList();
+
+          final notSubmittedList =
+          provider.workPlanList.where((e) => e.plans.isEmpty).toList();
+
+          return Column(
             children: [
-              20.width,
-              Text(
-                "Date : $dateText",
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 15,
-                ),
+              5.height,
+
+              /// Date Picker
+              Row(
+                children: [
+                  20.width,
+                  Text(
+                    "Date : $dateText",
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
+                    ),
+                  ),
+                  IconButton(
+                    icon: Icon(Icons.calendar_month, color: colorsConst.primary),
+                    onPressed: () async {
+                      DateTime? picked = await showDatePicker(
+                        context: context,
+                        initialDate: selectedDate,
+                        firstDate: DateTime(2020),
+                        lastDate: DateTime(2100),
+                      );
+
+                      if (picked != null) {
+                        setState(() {
+                          selectedDate = picked;
+                        });
+
+                        String apiDate =
+                        picked.toIso8601String().split("T")[0];
+
+                        provider.getWorkPlanList(true, apiDate);
+                      }
+                    },
+                  )
+                ],
               ),
-              IconButton(
-                icon: Icon(Icons.calendar_month, color: colorsConst.primary),
-                onPressed: () async {
-                  DateTime? picked = await showDatePicker(
-                    context: context,
-                    initialDate: selectedDate,
-                    firstDate: DateTime(2020),
-                    lastDate: DateTime(2100),
-                  );
 
-                  if (picked != null) {
-                    setState(() {
-                      selectedDate = picked;
-                    });
-                  }
-                },
-              )
-            ],
-          ),
+              Expanded(
+                child: TabBarView(
+                  controller: tabController,
+                  children: [
+                    /// ✅ SUBMITTED TAB
+                    submittedList.isEmpty
+                        ? const Center(child: Text("No Submitted Plans"))
+                        : ListView.builder(
+                      itemCount: submittedList.length,
+                      padding: const EdgeInsets.only(bottom: 20),
+                      itemBuilder: (context, index) {
+                        WorkPlanModelDetails emp = submittedList[index];
 
-          /// TAB VIEW
-          Expanded(
-            child: TabBarView(
-              controller: tabController,
-              children: [
-                /// ✅ SUBMITTED TAB
-                ListView.builder(
-                  itemCount: submittedList.length,
-                  padding: const EdgeInsets.only(bottom: 20),
-                  itemBuilder: (context, index) {
-                    final emp = submittedList[index];
+                        int totalTask = emp.plans.length;
+                        int completedTask = emp.plans
+                            .where((p) => p.workStatus == "1")
+                            .length;
 
-                    return Card(
-                      margin: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 6),
-                      child: ExpansionTile(
-                        title: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Row(
+                        double percent = totalTask == 0
+                            ? 0
+                            : completedTask / totalTask;
+
+                        return Card(
+                          margin: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 6),
+                          child: ExpansionTile(
+                            title: Row(
+                              mainAxisAlignment:
+                              MainAxisAlignment.spaceBetween,
                               children: [
-                                Text(
-                                  emp["name"],
-                                  style: const TextStyle(fontWeight: FontWeight.bold),
-                                ),
-                                const SizedBox(width: 6),
-                                const Text(
-                                  "(Employee)",
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,fontSize: 12,
-                                    color: Colors.grey,
-                                  ),
-                                ),
-                              ],
-                            ),
-
-                            /// ✅ Completed / Total
-                            Builder(builder: (context) {
-                              int totalTask = emp["plans"].length;
-                              int completedTask = emp["plans"]
-                                  .where((p) => p["workStatus"] == "Achieved")
-                                  .length;
-
-                              double percent = totalTask == 0 ? 0 : completedTask / totalTask;
-
-                              return Row(
-                                children: [
-                                  Text(
-                                    "$completedTask/$totalTask",
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.black,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-
-                                  /// ✅ Mini Progress Bar
-                                  Container(
-                                    width: 60,
-                                    height: 8,
-                                    decoration: BoxDecoration(
-                                      color: Colors.red,
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                    child: FractionallySizedBox(
-                                      alignment: Alignment.centerLeft,
-                                      widthFactor: percent,
-                                      child: Container(
-                                        decoration: BoxDecoration(
-                                          color: Colors.green,
-                                          borderRadius: BorderRadius.circular(10),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              );
-                            }),
-                          ],
-                        ),
-                        children: [
-                          ListView.builder(
-                            itemCount: emp["plans"].length,
-                            shrinkWrap: true,
-                            physics: const NeverScrollableScrollPhysics(),
-                            itemBuilder: (context, planIndex) {
-                              final plan = emp["plans"][planIndex];
-
-                              return Column(
-                                children: [
-                                  ListTile(
-                                    title: Row(
-
+                                /// Name + Role + Date
+                                Column(
+                                  crossAxisAlignment:
+                                  CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
                                       children: [
-                                        CircleAvatar(
-                                          radius: 12,
-                                          backgroundColor: Colors.blue.shade100,
-                                          child: Text(
-                                            "${planIndex + 1}",
-                                            style: const TextStyle(
-                                              fontSize: 12,
-                                              fontWeight: FontWeight.bold,
-                                              color: Colors.blue,
-                                            ),
-                                          ),
+                                        Text(
+                                          emp.name,
+                                          style: const TextStyle(
+                                              fontWeight:
+                                              FontWeight.bold),
                                         ),
-                                       10.width,
-                                        Column(
-
-                                          children: [
-                                            RichText(
-                                              text: TextSpan(
-                                                style: const TextStyle(
-                                                    fontSize: 14, color: Colors.black),
-                                                children: [
-                                                  const TextSpan(
-                                                    text: "Company : ",
-                                                    style:
-                                                    TextStyle(color: Colors.black),
-                                                  ),
-                                                  TextSpan(
-                                                    text: "${plan["company"]}\n",
-                                                    style: const TextStyle(
-                                                      fontWeight: FontWeight.bold,
-                                                      color: Colors.grey,
-                                                    ),
-                                                  ),
-                                                  const TextSpan(
-                                                    text: "Customer : ",
-                                                    style:
-                                                    TextStyle(color: Colors.black),
-                                                  ),
-                                                  TextSpan(
-                                                    text: "${plan["customer"]}",
-                                                    style: const TextStyle(
-                                                      fontWeight: FontWeight.bold,
-                                                      color: Colors.grey,
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-
-                                          ],
+                                        const SizedBox(width: 6),
+                                        Text(
+                                          "(${emp.role})",
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 12,
+                                            color: Colors.grey,
+                                          ),
                                         ),
                                       ],
                                     ),
-                                    subtitle: Padding(
-                                      padding: const EdgeInsets.only(left:30,top: 4.0),
-                                      child: Text(plan["desc"]),
+                                    const SizedBox(height: 2),
+                                    // Text(
+                                    //   "Date: ${emp.date}",
+                                    //   style: const TextStyle(
+                                    //       fontSize: 12,
+                                    //       color: Colors.grey),
+                                    // ),
+                                  ],
+                                ),
+
+                                /// Completed/Total + Progress
+                                Row(
+                                  children: [
+                                    Text(
+                                      "$completedTask/$totalTask",
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.black,
+                                      ),
                                     ),
-                                    trailing: Container(
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: 10, vertical: 5),
+                                    const SizedBox(width: 8),
+                                    Container(
+                                      width: 60,
+                                      height: 8,
                                       decoration: BoxDecoration(
-                                        color: plan["workStatus"] == "Achieved"
-                                            ? Colors.green
-                                            : Colors.red,
-                                        borderRadius: BorderRadius.circular(8),
+                                        color: Colors.red,
+                                        borderRadius:
+                                        BorderRadius.circular(10),
                                       ),
-                                      child: Text(
-                                        plan["workStatus"],
-                                        style: const TextStyle(
-                                            color: Colors.white),
+                                      child: FractionallySizedBox(
+                                        alignment: Alignment.centerLeft,
+                                        widthFactor: percent,
+                                        child: Container(
+                                          decoration: BoxDecoration(
+                                            color: Colors.green,
+                                            borderRadius:
+                                            BorderRadius.circular(10),
+                                          ),
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                  if (planIndex != emp["plans"].length - 1)
-                                    const Divider(thickness: 1, height: 1),
-                                ],
-                              );
-                            },
+                                  ],
+                                ),
+                              ],
+                            ),
+                            children: [
+                              ListView.builder(
+                                itemCount: emp.plans.length,
+                                shrinkWrap: true,
+                                physics:
+                                const NeverScrollableScrollPhysics(),
+                                itemBuilder: (context, planIndex) {
+                                  DailyWorkPlanDetails plan =
+                                  emp.plans[planIndex];
+
+                                  return Column(
+                                    children: [
+                                      ListTile(
+                                        title: Row(
+                                          children: [
+                                            CircleAvatar(
+                                              radius: 12,
+                                              backgroundColor:
+                                              Colors.blue.shade100,
+                                              child: Text(
+                                                "${planIndex + 1}",
+                                                style: const TextStyle(
+                                                  fontSize: 12,
+                                                  fontWeight:
+                                                  FontWeight.bold,
+                                                  color: Colors.blue,
+                                                ),
+                                              ),
+                                            ),
+                                            10.width,
+                                            Expanded(
+                                              child: Padding(
+                                                padding: const EdgeInsets.only(
+                                                    top: 4.0),
+                                                child: Text(plan.desc,style: TextStyle(color: Colors.grey.shade600),),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        subtitle: Padding(
+                                          padding: const EdgeInsets.only(
+                                              left: 30, top: 4.0),
+                                          child: RichText(
+                                            text: TextSpan(
+                                              style: const TextStyle(
+                                                  fontSize: 14,
+                                                  color:
+                                                  Colors.black),
+                                              children: [
+                                                const TextSpan(
+                                                  text: "Company : ",
+                                                ),
+                                                TextSpan(
+                                                  text:
+                                                  "${plan.company}\n",
+                                                  style:
+                                                  const TextStyle(
+                                                    fontWeight:
+                                                    FontWeight
+                                                        .bold,
+                                                    color:
+                                                    Colors.grey,
+                                                  ),
+                                                ),
+                                                const TextSpan(
+                                                  text: "Customer : ",
+                                                ),
+                                                TextSpan(
+                                                  text: plan.customer,
+                                                  style:
+                                                  const TextStyle(
+                                                    fontWeight:
+                                                    FontWeight
+                                                        .bold,
+                                                    color:
+                                                    Colors.grey,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                        trailing: Container(
+                                          padding:
+                                          const EdgeInsets.symmetric(
+                                              horizontal: 10,
+                                              vertical: 5),
+                                          decoration: BoxDecoration(
+                                            color: plan.workStatus == "1"
+                                                ? Colors.green
+                                                : Colors.red,
+                                            borderRadius:
+                                            BorderRadius.circular(8),
+                                          ),
+                                          child: Text(
+                                            plan.workStatus == "1"
+                                                ? "Achieved"
+                                                : "Not Achieved",
+                                            style: const TextStyle(
+                                                color: Colors.white),
+                                          ),
+                                        ),
+                                      ),
+                                      if (planIndex !=
+                                          emp.plans.length - 1)
+                                        const Divider(
+                                            thickness: 1, height: 1),
+                                    ],
+                                  );
+                                },
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
-                    );
-                  },
-                ),
+                        );
+                      },
+                    ),
 
-                /// ❌ NOT SUBMITTED TAB
-                ListView.builder(
-                  itemCount: notSubmittedList.length,
-                  padding: const EdgeInsets.only(bottom: 20),
-                  itemBuilder: (context, index) {
-                    final emp = notSubmittedList[index];
+                    /// ❌ NOT SUBMITTED TAB
+                    notSubmittedList.isEmpty
+                        ? const Center(child: Text("No Not Submitted Users"))
+                        : ListView.builder(
+                      itemCount: notSubmittedList.length,
+                      padding: const EdgeInsets.only(bottom: 20),
+                      itemBuilder: (context, index) {
+                        WorkPlanModelDetails emp =
+                        notSubmittedList[index];
 
-                    return Card(
-                      margin: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 6),
-                      child: ListTile(
-                        title: Row(
-                          children: [
-                            Text(
-                              emp["name"],
-                              style:
-                                TextStyle(fontWeight: FontWeight.bold),
+                        return Card(
+                          margin: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 6),
+                          child: ListTile(
+                            title: Row(
+                              children: [
+                                Text(
+                                  emp.name,
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.bold),
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  "(${emp.role})",
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 12,
+                                      color: Colors.grey),
+                                ),
+                              ],
                             ),
-                              SizedBox(width: 6),
-                              Text(
-                              "(Employee)",
-                              style: TextStyle(
-                                  fontWeight: FontWeight.bold,fontSize: 12,
-                                  color: Colors.grey),
-                            ),
-                          ],
-                        ),
-
-                      ),
-                    );
-                  },
+                            // subtitle: Text(
+                            //   "Date: ${emp.date}",
+                            //   style: const TextStyle(
+                            //       fontSize: 12, color: Colors.grey),
+                            // ),
+                          ),
+                        );
+                      },
+                    ),
+                  ],
                 ),
-              ],
-            ),
-          ),
-        ],
+              ),
+            ],
+          );
+        },
       ),
     );
   }

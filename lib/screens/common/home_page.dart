@@ -727,6 +727,14 @@ class _HomePageState extends State<HomePage> {
                                           weight: FontWeight.bold,
                                           color: Colors.grey,
                                         ):SizedBox(),
+                                        localData.storage.read("role")!="1"?  Row(
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: const [
+                                            Text("Total: ", style: TextStyle(fontSize: 14)),
+                                            Text("10",
+                                                style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                                          ],
+                                        ):SizedBox(),
                                       ],
                                     ),
                                     5.height,
@@ -825,68 +833,6 @@ class _HomePageState extends State<HomePage> {
                                         Row(
 
                                               children: [
-
-
-                                                /// 🔥 BAR CHART / PROGRESS DIAGRAM
-                                                Container(
-                                                  width: screenWidth / 2.7,
-                                                  padding: const EdgeInsets.all(8),
-                                                  decoration: BoxDecoration(
-                                                    color: Colors.white,
-                                                    borderRadius: BorderRadius.circular(10),
-                                                    boxShadow: const [
-                                                      BoxShadow(
-                                                        color: Colors.black12,
-                                                        blurRadius: 3,
-                                                      ),
-                                                    ],
-                                                  ),
-                                                  child: Column(
-                                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                                    children: [
-                                                      // const Text(
-                                                      //   "Today Progress",
-                                                      //   style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
-                                                      // ),
-                                                      const SizedBox(height: 3),
-
-                                                      /// Progress bar
-                                                      ClipRRect(
-                                                        borderRadius: BorderRadius.circular(8),
-                                                        child: LinearProgressIndicator(
-                                                          value: 0.6, // 👈 60% progress
-                                                          minHeight: 8,
-                                                          backgroundColor: Colors.red,
-                                                          valueColor: const AlwaysStoppedAnimation(Color(0xff0F8D4B)),
-                                                        ),
-                                                      ),
-
-                                                      const SizedBox(height: 3),
-
-                                                      Row(
-                                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                                        children: const [
-                                                          Row(
-                                                            mainAxisAlignment: MainAxisAlignment.start,
-                                                            children: [
-                                                              Text("Done: ", style: TextStyle(fontSize: 11)),
-                                                              Text("6", style: TextStyle(fontSize: 11,fontWeight: FontWeight.bold)),
-                                                            ],
-                                                          ),
-                                                          Row(
-                                                            mainAxisAlignment: MainAxisAlignment.start,
-                                                            children: [
-                                                              Text("Pending: ", style: TextStyle(fontSize: 11)),
-                                                              Text("4", style: TextStyle(fontSize: 11,fontWeight: FontWeight.bold)),
-                                                            ],
-                                                          ),
-
-                                                        ],
-                                                      ),
-                                                    ],
-                                                  ),
-                                                ),
-                                                5.width,
                                                 InkWell(
                                                   onTap: () {
                                                     Navigator.push(
@@ -930,6 +876,70 @@ class _HomePageState extends State<HomePage> {
                                                     ),
                                                   ),
                                                 ),
+                                                5.width,
+                                                /// 🔥 BAR CHART / PROGRESS DIAGRAM
+                                                Container(
+                                                  width: screenWidth / 2.7,
+                                                  padding: const EdgeInsets.all(8),
+                                                  decoration: BoxDecoration(
+                                                    color: Colors.white,
+                                                    borderRadius: BorderRadius.circular(10),
+                                                    boxShadow: const [
+                                                      BoxShadow(
+                                                        color: Colors.black12,
+                                                        blurRadius: 3,
+                                                      ),
+                                                    ],
+                                                  ),
+                                                  child: Column(
+                                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                                    children: [
+                                                      const SizedBox(height: 3),
+
+                                                      /// Progress bar
+                                                      ClipRRect(
+                                                        borderRadius: BorderRadius.circular(8),
+                                                        child: LinearProgressIndicator(
+                                                          value: 0.6,
+                                                          minHeight: 8,
+                                                          backgroundColor: Colors.red,
+                                                          valueColor: const AlwaysStoppedAnimation(Color(0xff0F8D4B)),
+                                                        ),
+                                                      ),
+
+                                                      const SizedBox(height: 5),
+
+                                                      Row(
+                                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                        children: const [
+                                                          Row(
+                                                            children: [
+                                                              Text("Done: ", style: TextStyle(fontSize: 11)),
+                                                              Text("6",
+                                                                  style: TextStyle(
+                                                                      fontSize: 11, fontWeight: FontWeight.bold)),
+                                                            ],
+                                                          ),
+                                                          Row(
+                                                            children: [
+                                                              Text("Pending: ", style: TextStyle(fontSize: 11)),
+                                                              Text("4",
+                                                                  style: TextStyle(
+                                                                      fontSize: 11, fontWeight: FontWeight.bold)),
+                                                            ],
+                                                          ),
+                                                        ],
+                                                      ),
+
+                                                      const SizedBox(height: 5),
+
+                                                      /// ✅ Total Row Added
+
+                                                    ],
+                                                  ),
+                                                ),
+
+
 
                                               ],
                                             )

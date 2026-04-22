@@ -138,5 +138,28 @@ class LeaveRepository{
       throw Exception('Failed to work flow');
     }
   }
+  Future<Map<String, dynamic>> insertWorkPlan(Map data) async {
+    try {
+      final request = await http.post(
+        Uri.parse(phpFile),
+        headers: {
+          "Accept": "application/json",
+          "Content-Type": "application/json",
+        },
+        body: jsonEncode(data),
+      );
 
+      print("STATUS CODE: ${request.statusCode}");
+      print("RESPONSE: ${request.body}");
+
+      if (request.body.isNotEmpty) {
+        return jsonDecode(request.body);
+      } else {
+        return {"success": false, "message": "Empty response"};
+      }
+    } catch (e) {
+      print("API ERROR: $e");
+      throw Exception('Failed to insert work plan');
+    }
+  }
 }
