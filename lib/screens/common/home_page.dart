@@ -729,9 +729,11 @@ class _HomePageState extends State<HomePage> {
                                         ):SizedBox(),
                                         localData.storage.read("role")!="1"?  Row(
                                           mainAxisAlignment: MainAxisAlignment.center,
-                                          children: const [
+                                          children:  [
                                             Text("Total: ", style: TextStyle(fontSize: 14)),
-                                            Text("10",
+                                            Text("${ homeProvider.mainReportList.isEmpty ?"0":homeProvider.
+                                            mainReportList[0]["workPlanTotal"].toString()=="null"?"0":
+                                            homeProvider.mainReportList[0]["workPlanTotal"].toString()}",
                                                 style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
                                           ],
                                         ):SizedBox(),
@@ -770,8 +772,8 @@ class _HomePageState extends State<HomePage> {
                                                 CustomText(
                                                   //"Submitted (${submittedCount})",
                                                   " Submitted (${ homeProvider.mainReportList.isEmpty ?"0":homeProvider.
-                                                  mainReportList[0]["workNoEmployeesCount"].toString()=="null"?"0":
-                                                  homeProvider.mainReportList[0]["workNoEmployeesCount"].toString()})",
+                                                  mainReportList[0]["workPlanSubmittedCount"].toString()=="null"?"0":
+                                                  homeProvider.mainReportList[0]["workPlanSubmittedCount"].toString()})",
 
                                                   size: 13,
                                                   weight: FontWeight.w600,
@@ -809,8 +811,8 @@ class _HomePageState extends State<HomePage> {
                                                   CustomText(
                                                  //   "Not Submitted (${ notSubmittedCount})",
                                                     "Not Submitted (${ homeProvider.mainReportList.isEmpty ?"0":homeProvider.
-                                                    mainReportList[0]["workEmployeesCount"].toString()=="null"?"0":
-                                                    homeProvider.mainReportList[0]["workEmployeesCount"].toString()})",
+                                                    mainReportList[0]["workPlanSubmittedCount"].toString()=="null"?"0":
+                                                    homeProvider.mainReportList[0]["workPlanSubmittedCount"].toString()})",
                                                     size: 13,
                                                     weight: FontWeight.w600,
                                                     color: Colors.white,
@@ -911,21 +913,24 @@ class _HomePageState extends State<HomePage> {
 
                                                       Row(
                                                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                                        children: const [
+                                                        children:  [
                                                           Row(
                                                             children: [
                                                               Text("Done: ", style: TextStyle(fontSize: 11)),
-                                                              Text("6",
-                                                                  style: TextStyle(
-                                                                      fontSize: 11, fontWeight: FontWeight.bold)),
-                                                            ],
+                                                              Text("${ homeProvider.mainReportList.isEmpty ?"0":homeProvider.
+                                                              mainReportList[0]["workPlanCompleted"].toString()=="null"?"0":
+                                                              homeProvider.mainReportList[0]["workPlanCompleted"].toString()}",
+                                                                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)), ],
                                                           ),
                                                           Row(
                                                             children: [
                                                               Text("Pending: ", style: TextStyle(fontSize: 11)),
-                                                              Text("4",
-                                                                  style: TextStyle(
-                                                                      fontSize: 11, fontWeight: FontWeight.bold)),
+                                                              Text("${ homeProvider.mainReportList.isEmpty ?"0":homeProvider.
+                                                              mainReportList[0]["workPlanPending"].toString()=="null"?"0":
+                                                              homeProvider.mainReportList[0]["workPlanPending"].toString()}",
+                                                                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)
+                                                              ),
+
                                                             ],
                                                           ),
                                                         ],
