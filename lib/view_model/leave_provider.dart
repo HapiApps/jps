@@ -24,7 +24,7 @@ import '../model/leave/rules_model.dart';
 import '../model/task/work_plan.dart';
 import '../model/user_model.dart';
 import '../screens/common/dashboard.dart';
-import '../screens/common/day_work_plan.dart';
+import '../screens/common/add_day_work_plan.dart';
 import '../screens/leave_management/add_leave_rules.dart';
 import '../screens/leave_management/apply_leave.dart';
 import '../screens/leave_management/leave_report.dart';
@@ -34,6 +34,7 @@ import '../source/constant/api.dart';
 import '../source/constant/colors_constant.dart';
 import '../source/utilities/utils.dart';
 import 'employee_provider.dart';
+import 'home_provider.dart';
 
 class LeaveProvider with ChangeNotifier {
   final LeaveRepository leaveRepo = LeaveRepository();
@@ -2788,20 +2789,39 @@ void changeStatus(bool value){
   Future<void> workPlanSubmit(
       BuildContext context,
       List<WorkPlanModel> workPlans,
-      )
-  async {
+      ) async {
     try {
-      WorkPlanRequest request = WorkPlanRequest(
 
+      /// ✅ PRINT SELECTED CUSTOMERS BEFORE REQUEST
+      debugPrint("========== SELECTED CUSTOMERS LIST ==========");
+      for (var item in workPlans) {
+        debugPrint("CompanyId: ${item.companyId}");
+        debugPrint("CompanyName: ${item.companyName}");
+        debugPrint("Selected Customers: ${item.selectedCustomers}");
+
+        String cusIds = item.selectedCustomers.isNotEmpty
+            ? item.selectedCustomers.map((e) => e["id"].toString()).join(",")
+            : "0";
+
+        debugPrint("CusId String: $cusIds");
+        debugPrint("-----------------------------------------");
+      }
+      debugPrint("===========================================");
+
+      /// ✅ CREATE REQUEST
+      WorkPlanRequest request = WorkPlanRequest(
         cosId: localData.storage.read("cos_id").toString(),
         uId: localData.storage.read("id").toString(),
         date: DateTime.now().toString().split(" ")[0],
         plans: workPlans.map((item) {
           return WorkPlanItem(
             comId: item.companyId,
+
+            /// ✅ MULTIPLE CUSTOMER IDS
             cusId: item.selectedCustomers.isNotEmpty
-                ? item.selectedCustomers.first["id"].toString()
+                ? item.selectedCustomers.map((e) => e["id"].toString()).join(",")
                 : "0",
+
             value: item.descriptionController.text.trim(),
             status: item.status,
           );
@@ -2813,6 +2833,7 @@ void changeStatus(bool value){
       debugPrint(jsonEncode(request.toJson()));
       debugPrint("===========================================");
 
+      /// ✅ API CALL
       final response = await leaveRepo.insertWorkPlan(request.toJson());
 
       /// ✅ PRINT RESPONSE
@@ -2820,28 +2841,36 @@ void changeStatus(bool value){
       debugPrint(response.toString());
       debugPrint("=======================================");
 
+      /// ✅ SUCCESS
       if (response["success"] == true) {
         utils.showSuccessToast(context: context, text: "Work Plan Submitted");
-        final empProvider =
-        Provider.of<EmployeeProvider>(context, listen: false);
-        String title = "New Leave Request";
-        String body =
-            "${localData.storage.read("f_name")} Requested for leave";
+
+        final empProvider = Provider.of<EmployeeProvider>(context, listen: false);
+
+        String title = "Added by ${localData.storage.read("f_name")}";
+        String body = "Daily Work Plan";
+
         try {
           await empProvider.sendAdminNotification(
-              title,
-              body,
-              "",
-              "",
-              "1"
+            title,
+            body,
+            "",
+            "",
+            "1",
           );
-        } catch(e){
+        } catch (e) {
           log("Notification failed: $e");
         }
-        Navigator.pop(context);
+
+        final homeProvider = Provider.of<HomeProvider>(context, listen: false);
+        await homeProvider.loadFullDashboard(context);
+
+        Navigator.pop(context, true);
+
       } else {
         utils.showWarningToast(context, text: response["message"].toString());
       }
+
     } catch (e) {
       debugPrint("ERROR: $e");
       utils.showErrorToast(context: context);

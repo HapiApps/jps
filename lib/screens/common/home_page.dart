@@ -44,7 +44,7 @@ import '../customer/visit/add_visit.dart';
 import '../customer/visit_report/visit_emp_details.dart';
 import '../customer/visit_report/visits_report.dart';
 import '../task/add_task.dart';
-import 'day_work_plan.dart';
+import 'add_day_work_plan.dart';
 import 'detail_work_plan.dart';
 import 'view_notification.dart';
 import '../expense/view_expense.dart';
@@ -811,8 +811,8 @@ class _HomePageState extends State<HomePage> {
                                                   CustomText(
                                                  //   "Not Submitted (${ notSubmittedCount})",
                                                     "Not Submitted (${ homeProvider.mainReportList.isEmpty ?"0":homeProvider.
-                                                    mainReportList[0]["workPlanSubmittedCount"].toString()=="null"?"0":
-                                                    homeProvider.mainReportList[0]["workPlanSubmittedCount"].toString()})",
+                                                    mainReportList[0]["workPlanNotSubmittedCount"].toString()=="null"?"0":
+                                                    homeProvider.mainReportList[0]["workPlanNotSubmittedCount"].toString()})",
                                                     size: 13,
                                                     weight: FontWeight.w600,
                                                     color: Colors.white,
@@ -835,114 +835,166 @@ class _HomePageState extends State<HomePage> {
                                         Row(
 
                                               children: [
-                                                InkWell(
-                                                  onTap: () {
-                                                    Navigator.push(
-                                                      context,
-                                                      MaterialPageRoute(
-                                                        builder: (context) => const DayWorkPlanPage(), // 👈 your page
-                                                      ),
-                                                    );
-                                                  },
-                                                  child: Container(
-                                                    width: screenWidth/2.2,
-                                                    height: screenHeight/22,
-                                                    decoration: BoxDecoration(
-                                                      color: Color(0xffDAF2DC),
-                                                      borderRadius: BorderRadius.circular(10),
-                                                      boxShadow: const [
-                                                        BoxShadow(
-                                                          color: Colors.black38,
-                                                          blurRadius: 4,
-                                                          offset: Offset(0, 0),
-                                                        ),
-                                                      ],
-                                                    ),
-                                                    child: Padding(
-                                                      padding: const EdgeInsets.all(5.0),
-                                                      child: Row(
-                                                        mainAxisAlignment: MainAxisAlignment.center,
-                                                        children: [
-                                                          Image.asset(
-                                                            assets.addButton,
-                                                          ),
-                                                          SizedBox(width: 6),
-                                                          CustomText(
-                                                            "Add Work Plan",
-                                                            size: 14,
-                                                            weight: FontWeight.bold,
-                                                            color: Color(0xff0F8D4B),
-                                                          ),
-                                                        ],
-                                                      ),
-                                                    ),
-                                                  ),
-                                                ),
+                                    InkWell(
+                                    onTap: () async {
+                              if (attPvr.mainAttendance == 0) {
+                              utils.showWarningToast(context, text: "Please mark attendance first");
+                              return;
+                              }
+
+                              final result = await Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                              builder: (context) => const DayWorkPlanPage(),
+                              ),
+                              );
+
+                              if (result == true) {
+                              await homeProvider.getDashboardReport(true);
+                              }
+                              },
+                                child: Container(
+                                  width: screenWidth / 2.2,
+                                  height: screenHeight / 22,
+                                  decoration: BoxDecoration(
+                                    color: attPvr.mainAttendance == 0
+                                        ? Colors.grey.shade300
+                                        : const Color(0xffDAF2DC),
+                                    borderRadius: BorderRadius.circular(10),
+                                    boxShadow: const [
+                                      BoxShadow(
+                                        color: Colors.black38,
+                                        blurRadius: 4,
+                                        offset: Offset(0, 0),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(5.0),
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Image.asset(
+                                          assets.addButton,
+                                          color: attPvr.mainAttendance == 0 ? Colors.grey : null,
+                                        ),
+                                        const SizedBox(width: 6),
+                                        CustomText(
+                                          "Add Work Plan",
+                                          size: 14,
+                                          weight: FontWeight.bold,
+                                          color: attPvr.mainAttendance == 0
+                                              ? Colors.grey
+                                              : const Color(0xff0F8D4B),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
                                                 5.width,
                                                 /// 🔥 BAR CHART / PROGRESS DIAGRAM
-                                                Container(
-                                                  width: screenWidth / 2.7,
-                                                  padding: const EdgeInsets.all(8),
-                                                  decoration: BoxDecoration(
-                                                    color: Colors.white,
-                                                    borderRadius: BorderRadius.circular(10),
-                                                    boxShadow: const [
-                                                      BoxShadow(
-                                                        color: Colors.black12,
-                                                        blurRadius: 3,
-                                                      ),
-                                                    ],
-                                                  ),
-                                                  child: Column(
-                                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                                    children: [
-                                                      const SizedBox(height: 3),
+                  InkWell(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => DailyReportStatusPage(
+                            initialTab: 0, // Submitted
+                          ),
+                        ),
+                      );
+                    },
+                                    child: Container(
+                                                        width: screenWidth / 2.7,
+                                                        padding: const EdgeInsets.all(8),
+                                                        decoration: BoxDecoration(
+                                                          color: Colors.white,
+                                                          borderRadius: BorderRadius.circular(10),
+                                                          boxShadow: const [
+                                                            BoxShadow(
+                                                              color: Colors.black12,
+                                                              blurRadius: 3,
+                                                            ),
+                                                          ],
+                                                        ),
+                                                        child: Column(
+                                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                                          children: [
+                                                            const SizedBox(height: 3),
 
-                                                      /// Progress bar
-                                                      ClipRRect(
-                                                        borderRadius: BorderRadius.circular(8),
-                                                        child: LinearProgressIndicator(
-                                                          value: 0.6,
-                                                          minHeight: 8,
-                                                          backgroundColor: Colors.red,
-                                                          valueColor: const AlwaysStoppedAnimation(Color(0xff0F8D4B)),
+                                                            /// ✅ Done & Pending Values
+                                                            Builder(builder: (context) {
+                                                              int done = 0;
+                                                              int pending = 0;
+
+                                                              if (homeProvider.mainReportList.isNotEmpty) {
+                                                                done = int.tryParse(
+                                                                    homeProvider.mainReportList[0]["workPlanCompleted"]
+                                      ?.toString() ??
+                                      "0") ??
+                                                                    0;
+
+                                                                pending = int.tryParse(
+                                                                    homeProvider.mainReportList[0]["workPlanPending"]
+                                      ?.toString() ??
+                                      "0") ??
+                                                                    0;
+                                                              }
+
+                                                              int total = done + pending;
+
+                                                              double progressValue = total == 0 ? 0 : done / total;
+
+                                                              return Column(
+                                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                                children: [
+                                                                  /// ✅ Progress Bar
+                                                                  ClipRRect(
+                                                                    borderRadius: BorderRadius.circular(8),
+                                                                    child: LinearProgressIndicator(
+                                    value: progressValue, // ✅ Dynamic
+                                    minHeight: 8,
+                                    backgroundColor: Colors.red, // Pending background
+                                    valueColor: const AlwaysStoppedAnimation(Color(0xff0F8D4B)), // Done green
+                                                                    ),
+                                                                  ),
+
+                                                                  const SizedBox(height: 5),
+
+                                                                  /// Done & Pending Row
+                                                                  Row(
+                                                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                                    children: [
+                                    Row(
+                                      children: [
+                                        const Text("Done: ", style: TextStyle(fontSize: 11)),
+                                        Text(
+                                          done.toString(),
+                                          style: const TextStyle(
+                                              fontSize: 14, fontWeight: FontWeight.bold),
+                                        ),
+                                      ],
+                                    ),
+                                    Row(
+                                      children: [
+                                        const Text("Pending: ", style: TextStyle(fontSize: 11)),
+                                        Text(
+                                          pending.toString(),
+                                          style: const TextStyle(
+                                              fontSize: 14, fontWeight: FontWeight.bold),
+                                        ),
+                                      ],
+                                    ),
+                                                                    ],
+                                                                  ),
+                                                                ],
+                                                              );
+                                                            }),
+                                                          ],
                                                         ),
                                                       ),
-
-                                                      const SizedBox(height: 5),
-
-                                                      Row(
-                                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                                        children:  [
-                                                          Row(
-                                                            children: [
-                                                              Text("Done: ", style: TextStyle(fontSize: 11)),
-                                                              Text("${ homeProvider.mainReportList.isEmpty ?"0":homeProvider.
-                                                              mainReportList[0]["workPlanCompleted"].toString()=="null"?"0":
-                                                              homeProvider.mainReportList[0]["workPlanCompleted"].toString()}",
-                                                                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)), ],
-                                                          ),
-                                                          Row(
-                                                            children: [
-                                                              Text("Pending: ", style: TextStyle(fontSize: 11)),
-                                                              Text("${ homeProvider.mainReportList.isEmpty ?"0":homeProvider.
-                                                              mainReportList[0]["workPlanPending"].toString()=="null"?"0":
-                                                              homeProvider.mainReportList[0]["workPlanPending"].toString()}",
-                                                                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)
-                                                              ),
-
-                                                            ],
-                                                          ),
-                                                        ],
-                                                      ),
-
-                                                      const SizedBox(height: 5),
-
-                                                      /// ✅ Total Row Added
-
-                                                    ],
-                                                  ),
-                                                ),
+                                  ),
                                               ],
                                             )
                                         //     :

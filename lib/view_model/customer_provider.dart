@@ -591,6 +591,7 @@ void closeVisible(){
   List<Map<String, dynamic>> multiSelectedCustomerList = [];
   void setMultiSelectedCustomers(List<Map<String, dynamic>> list) {
     multiSelectedCustomerList = list;
+    print("multiSelectedCustomerList $multiSelectedCustomerList");
     notifyListeners();
   }
   void openMultiSelectCustomerDialog(BuildContext context, List listData) {
@@ -2594,67 +2595,79 @@ TextEditingController date= TextEditingController(text: "${DateTime.now().day.to
     }
     notifyListeners();
   }
-  Future<void> addVisit({required  context,required String companyId, required String taskId, required String companyName, required List<String> cusName,required String tType, required String desc,
-    required List sendList,required String lat,required String lng,required VoidCallback callBack}) async
-  {
+  Future<void> addVisit({
+    required context,
+    required String companyId,
+    required String taskId,
+    required String companyName,
+    required List<String> cusName,
+    required String tType,
+    required String desc,
+    required List sendList, // List<String> better
+    required String lat,
+    required String lng,
+    required VoidCallback callBack
+  }) async {
     try {
-      List customerIds = localData.storage.read("c_ids") ?? [];
 
-// if already string, keep it
-      String customerIdString = "";
-
-      if (customerIds is List) {
-        customerIdString = customerIds.map((e) => e.toString()).toList().join(",");
-      } else {
-        customerIdString = customerIds.toString();
-      }
+      /// 🔥 VALIDATION (VERY IMPORTANT)
       Map data = {
-        "action":addVst,
-        "task_id":taskId,
-        "log_file":localData.storage.read("mobile_number"),
-        "cos_id":localData.storage.read("cos_id"),
-        "company_id":companyId,
-        "customer_id": customerIdString,
-        "mobile_number":localData.storage.read("c_no"),
-        "customer_name":cusName.join(","),
-        "type":localData.storage.read("type_id"),
-        "created_by":localData.storage.read("id")??"0",
-        "discussion_points":disPoint.text.trim(),
-        "action_taken":points.text.trim(),
-        "lead":localData.storage.read("lead_id"),
-        "call_visit_type":localData.storage.read("visit_id"),
+        "action": addVst,
+        "task_id": taskId,
+        "log_file": localData.storage.read("mobile_number"),
+        "cos_id": localData.storage.read("cos_id"),
+        "company_id": companyId,
+
+        /// ✅ CORRECT MULTIPLE SEND
+        "customer_id": sendList.join(","), // 🔥 IMPORTANT CHANGE
+
+        "mobile_number": localData.storage.read("c_no"),
+
+        /// ✅ MULTIPLE NAMES
+        "customer_name": cusName.join(","),
+
+        "type": localData.storage.read("type_id"),
+        "created_by": localData.storage.read("id") ?? "0",
+
+        "discussion_points": disPoint.text.trim(),
+        "action_taken": points.text.trim(),
+
+        "lead": localData.storage.read("lead_id"),
+        "call_visit_type": localData.storage.read("visit_id"),
         "cus_type": localData.storage.read("cus_type")["id"].toString(),
-        "date":commentDate.text.trim(),
-        "review":selectReview,
+
+        "date": commentDate.text.trim(),
+        "review": selectReview,
+
         "door_no": address.text.trim(),
         "area": comArea.text.trim(),
         "city": city.text.trim(),
         "country": country.text.trim(),
         "state": state.toString(),
         "pincode": pinCode.text.trim(),
+
         "lat": lat,
         "lng": lng,
       };
-      final response =await custRepo.addVisit(data);
-      final typeId = localData.storage.read("type_id");
-      final leadId = localData.storage.read("lead_id");
 
-      print("FINAL TYPE ID => $typeId");
-      print("FINAL LEAD ID => $leadId");
-      log(response.toString());
+      print("📤 FINAL API DATA => $data");
+
+      final response = await custRepo.addVisit(data);
+
+      print("📥 RESPONSE => $response");
+
       if (response.toString().contains('ok')) {
 
         utils.showSuccessToast(
-            context: context,
-            text: constValue.success);
+          context: context,
+          text: constValue.success,
+        );
 
         final empProvider =
         Provider.of<EmployeeProvider>(context, listen: false);
 
-        String myId =
-        localData.storage.read("id").toString();
+        String myId = localData.storage.read("id").toString();
 
-        /// 🔔 SAFE NOTIFICATION
         try {
           await empProvider.sendAdminNotification(
             "Visit report added - ${localData.storage.read("typeName") ?? ""}",
@@ -2667,58 +2680,34 @@ TextEditingController date= TextEditingController(text: "${DateTime.now().day.to
           print("Notification error ignored: $e");
         }
 
-        /// Firebase attendance
-        await FirebaseFirestore.instance
-            .collection('attendance')
-            .add({
+        await FirebaseFirestore.instance.collection('attendance').add({
           'emp_id': myId,
           'time': DateTime.now(),
           'status': "",
         });
 
         getAllCustomers(false);
-        final homeProvider = Provider.of<HomeProvider>(context, listen: false);
-        homeProvider.getDashboardReport(true);
-        /// ✅ NAVIGATION ALWAYS EXECUTES
+
+        Provider.of<HomeProvider>(context, listen: false)
+            .getDashboardReport(true);
+
         callBack();
 
         addCtr.reset();
         notifyListeners();
+      } else {
+        utils.showErrorToast(context: context);
       }
-      // if (response.toString().contains('ok')){
-      //   utils.showSuccessToast(context: context,text: constValue.success);
-      //   Provider.of<EmployeeProvider>(context, listen: false).sendAdminNotification(
-      //     "Visit report added - ${localData.storage.read("typeName")??""}",
-      //     "Added By ${localData.storage.read("f_name")}",
-      //     "1",taskId,""
-      //   );
-      //   await FirebaseFirestore.instance.collection('attendance').add({
-      //     'emp_id': localData.storage.read("id"),
-      //     'time': DateTime.now(),
-      //     'status': "",
-      //   });
-      //   getAllCustomers(false);
-      //   await Provider.of<EmployeeProvider>(context, listen: false)
-      //       .sendAdminNotification(
-      //     "${localData.storage.read("f_name")} replied to visit report",
-      //     disPoint.text.trim(),
-      //     localData.storage.read("id"),
-      //     "1",
-      //     "",
-      //   );
-      //       callBack();
-      //   notifyListeners();
-      //   addCtr.reset();
-      // }else {
-      //   utils.showErrorToast(context: context);
-      //   addCtr.reset();
-      // }
+
     } catch (e) {
+      print("❌ ERROR => $e");
       utils.showErrorToast(context: context);
       addCtr.reset();
     }
+
     notifyListeners();
   }
+
 
   // PickerDateRange? selectedDate;
   List<DateTime> datesBetween = [];

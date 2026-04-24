@@ -1,6 +1,7 @@
 class CustomerReportModel {
   String? comments;
   String? companyName;
+  String? customerName;
   String? type;
   String? date;
   DateTime? createdTs;
@@ -24,6 +25,7 @@ class CustomerReportModel {
   CustomerReportModel({
     this.comments,
     this.companyName,
+    this.customerName,
     this.type,
     this.date,
     this.createdTs,
@@ -50,6 +52,7 @@ class CustomerReportModel {
         documents: json["documents"],
         type: json["type"],
         companyName: json["company_name"],
+        customerName: json["customer_name"],
         comments: json["comments"],
         date: json["date"],
         createdTs: json["created_ts"] != null

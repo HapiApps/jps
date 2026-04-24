@@ -64,18 +64,22 @@ class _CusAddVisitState extends State<CusAddVisit> with TickerProviderStateMixin
       final employeeProvider = Provider.of<EmployeeProvider>(context, listen: false);
       final customerProvider = Provider.of<CustomerProvider>(context, listen: false);
       final locationProvider = Provider.of<LocationProvider>(context, listen: false);
+
+      /// 🔥 FULL RESET
       customerProvider.resetVisitForm();
+      customerProvider.setMultiSelectedCustomers([]); // 🔥 IMPORTANT
+
       setState(() {
         companyId = "";
         companyName = "";
-        sendList.clear();
+        sendList = []; // 🔥 NEW LIST (NOT clear)
       });
-      /// ✅ COMMON CALLS (only one time)
+
+      /// API CALLS
       employeeProvider.getAllUsers();
       taskProvider.getCustomerType(false);
       customerProvider.getAllCustomers(true);
 
-      /// ✅ WEB / MOBILE SPECIFIC
       if (!kIsWeb) {
         taskProvider.getAllTypes();
       } else {
@@ -83,7 +87,6 @@ class _CusAddVisitState extends State<CusAddVisit> with TickerProviderStateMixin
         taskProvider.getTaskStatuses();
       }
 
-      /// ✅ DIRECT MODE CALLS
       if (widget.isDirect == true) {
         if (kIsWeb) {
           customerProvider.getLeadCategory();
@@ -96,13 +99,8 @@ class _CusAddVisitState extends State<CusAddVisit> with TickerProviderStateMixin
         }
       }
 
-      /// ✅ INIT COMMENT
       customerProvider.initComment(widget.numberList, widget.type);
 
-      /// reset companyName
-      companyName = "";
-
-      /// ✅ LOCATION ADDRESS CALL (only if lat lng exists)
       if (locationProvider.latitude != "" && locationProvider.longitude != "") {
         customerProvider.getAdd(
           double.parse(locationProvider.latitude),
@@ -110,6 +108,8 @@ class _CusAddVisitState extends State<CusAddVisit> with TickerProviderStateMixin
         );
       }
     });
+
+
   }
   void setCustomer(){
     companyId=widget.companyId.toString();
@@ -151,43 +151,51 @@ class _CusAddVisitState extends State<CusAddVisit> with TickerProviderStateMixin
                                   :CustomerDropdown(
                                 text: constValue.companyName,
                                 employeeList: custProvider.customer,
+
                                 onChanged: (CustomerModel? value) {
+                                  print("🔥 DROPDOWN TRIGGERED");
+
                                   if (value == null) return;
 
                                   companyId = value.userId.toString();
                                   companyName = value.companyName.toString();
 
-                                  sendList = [];
-                                  sendList.clear();
+                                  /// 🔥 CLEAR PROVIDER FIRST
+                                  custProvider.setMultiSelectedCustomers([]);
+
+                                  List<Map<String, dynamic>> tempList = [];
+
                                   var idList = value.customerId.toString().split('||');
                                   var usersList = value.firstName.toString().split('||');
                                   var phoneList = value.phoneNumber.toString().split('||');
 
                                   for (var i = 0; i < usersList.length; i++) {
-                                    sendList.add({
+                                    tempList.add({
                                       "id": idList[i],
                                       "name": usersList[i],
                                       "no": phoneList[i],
                                     });
                                   }
 
-                                  setState(() {});  // UI update
+                                  print("📦 NEW LIST: $tempList");
 
-                                  /// ✅ AFTER UI UPDATE AUTO SELECT SINGLE CUSTOMER
-                                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                                    if (sendList.length == 1) {
-                                      custProvider.setMultiSelectedCustomers([sendList[0]]);
-
-                                      localData.storage.write("c_id", sendList[0]["id"]);
-                                      localData.storage.write("c_no", sendList[0]["no"]);
-                                      localData.storage.write("c_name", sendList[0]["name"]);
+                                  /// 🔥 ONLY ONE setState
+                                  setState(() {
+                                    sendList = tempList;
+                                    if (tempList.length == 1) {
+                                      print("✅ AUTO SELECT");
+                                      custProvider.setMultiSelectedCustomers([tempList[0]]);
                                     } else {
-                                      custProvider.setMultiSelectedCustomers([]);
+                                      print("⚠️ MULTIPLE");
                                     }
                                   });
-                                },
+                                  },
+
+
+
                                 size: kIsWeb ? webWidth : phoneWidth,
                               ),
+
                             if(widget.isDirect==false)
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
@@ -227,21 +235,28 @@ class _CusAddVisitState extends State<CusAddVisit> with TickerProviderStateMixin
 
                             Consumer<CustomerProvider>(
                               builder: (context, custProvider, child) {
+
                                 return MultiSelectDropdown(
+                                  key: ValueKey(sendList), // 🔥 MUST (force rebuild)
                                   hintText: "Select Customer",
                                   dropText: "name",
-                                  list: sendList,
+
+                                  list: sendList, // 🔥 updated list
+
                                   width: kIsWeb ? webWidth : phoneWidth,
 
                                   selectedItems: custProvider.multiSelectedCustomerList,
 
                                   onChanged: (list) {
+                                    print("👆 MultiSelect onChanged CALLED");
+                                    print("📝 Selected List: $list");
 
                                     custProvider.setMultiSelectedCustomers(list);
                                   },
                                 );
                               },
                             ),
+
                             //type
                             MapDropDown(isRequired:true,
                               isRefresh: taskProvider.typeList.isEmpty?true:false,
@@ -481,7 +496,7 @@ class _CusAddVisitState extends State<CusAddVisit> with TickerProviderStateMixin
                                 // }
                                 // else{
                                 if(custProvider.leadType==null){
-                                  utils.showWarningToast(context, text: "Select a visit type");
+                                  utils.showWarningToast(context, text: "Select a Lead type");
                                   custProvider.addCtr.reset();
                                 }
                                 // else if(custProvider.selectCustomer==null){
@@ -497,8 +512,13 @@ class _CusAddVisitState extends State<CusAddVisit> with TickerProviderStateMixin
                                     context: context,companyId: widget.isDirect==true?
                                   companyId:widget.companyId.toString(),
                                     companyName: widget.isDirect==true?companyName:widget.companyName,
-                                    sendList: widget.numberList,
-                                    cusName:sendList.map((e) => e["name"].toString()).toList() ,
+                                    sendList: custProvider.multiSelectedCustomerList
+                                        .map((e) => e["id"].toString())
+                                        .toList(),
+
+                                    cusName: custProvider.multiSelectedCustomerList
+                                        .map((e) => e["name"].toString())
+                                        .toList(),
                                     lat: locPvr.latitude,
                                     lng: locPvr.longitude,
                                     taskId: widget.taskId,
@@ -512,7 +532,11 @@ class _CusAddVisitState extends State<CusAddVisit> with TickerProviderStateMixin
                                       //   Navigator.pop(context);
                                       // }
                                       utils.navigatePage(context, ()=>
-                                          DashBoard(child: VisitReport(date1: home.startDate, date2: home.endDate,month: home.month,type: home.type,)));
+                                          DashBoard(child: VisitReport(
+                                            date1: home.startDate,
+                                            date2: home.endDate,
+                                            month: home.month,
+                                            type: home.type,)));
 
                                     },
                                   );

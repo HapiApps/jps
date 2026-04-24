@@ -79,18 +79,6 @@ class _DayWorkPlanPageState extends State<DayWorkPlanPage> {
     for (int i = 0; i < workPlans.length; i++) {
       final item = workPlans[i];
 
-      if (item.companyId.isEmpty) {
-        utils.showWarningToast(context,
-            text: "Please select company in Plan ${i + 1}");
-        return false;
-      }
-
-      if (item.selectedCustomers.isEmpty) {
-        utils.showWarningToast(context,
-            text: "Please select customer in Plan ${i + 1}");
-        return false;
-      }
-
       if (item.descriptionController.text.trim().isEmpty) {
         utils.showWarningToast(context,
             text: "Please enter description in Plan ${i + 1}");

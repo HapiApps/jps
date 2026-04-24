@@ -122,9 +122,9 @@ class VisitReportDetails extends StatelessWidget {
                               ? phoneWidth / 1
                               : phoneWidth / 2.8,
                           child: CustomText(
-                            text: (data.name == null || data.name.toString() == "null" || data.name!.isEmpty)
+                            text: (data.customerName == null || data.customerName.toString() == "null" || data.customerName!.isEmpty)
                                 ? "-"
-                                : data.name.toString().replaceAll(" || ", ", "),
+                                : data.customerName.toString().replaceAll(" || ", ", "),
                           ),
                         ),
                       ],
