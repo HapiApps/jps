@@ -51,7 +51,16 @@ class _DailyReportStatusPageState extends State<DailyReportStatusPage>
           .getWorkPlanList(true, todayDate);
     });
   }
+  String formatDateTime(String? dateTime) {
+    if (dateTime == null || dateTime.isEmpty) return "-";
 
+    try {
+      DateTime dt = DateTime.parse(dateTime);
+      return DateFormat("dd-MM-yyyy hh:mm a").format(dt);
+    } catch (e) {
+      return dateTime;
+    }
+  }
   @override
   void dispose() {
     tabController.dispose();
@@ -90,35 +99,200 @@ class _DailyReportStatusPageState extends State<DailyReportStatusPage>
               ),
             ],
           ),
-          subtitle: (plan.company ?? "").toString().trim().isEmpty
-              ? null
-              : Padding(
+          subtitle: Padding(
             padding: const EdgeInsets.only(left: 30, top: 4.0),
-            child: RichText(
-              text: TextSpan(
-                style: const TextStyle(fontSize: 14, color: Colors.black),
-                children: [
-                  const TextSpan(text: "Company : "),
-                  TextSpan(
-                    text: "${plan.company}\n",
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: Colors.grey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+
+                /// Company & Customer
+                if ((plan.company ?? "").toString().trim().isNotEmpty)
+                  RichText(
+                    text: TextSpan(
+                      style: const TextStyle(fontSize: 14, color: Colors.black),
+                      children: [
+                        const TextSpan(text: "Company : "),
+                        TextSpan(
+                          text: "${plan.company}\n",
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.grey,
+                          ),
+                        ),
+                        const TextSpan(text: "Customer : "),
+                        TextSpan(
+                          text: plan.customer ?? "",
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.grey,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  const TextSpan(text: "Customer : "),
-                  TextSpan(
-                    text: plan.customer ?? "",
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: Colors.grey,
+
+                const SizedBox(height: 6),
+
+                /// Created & Updated Time
+                Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            "Created Time",
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.black,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 5),
+                          Text(
+                            formatDateTime(plan.createdTime),
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey.shade600,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                ],
-              ),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            "Updated Time",
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.black,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 5),
+                          Text(
+                            formatDateTime(plan.updatedTime),
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey.shade600,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
-          trailing: Container(
+          trailing:localData.storage.read("role") != "1"?
+          InkWell(
+            onTap: () async {
+              String newStatus = plan.workStatus == "1" ? "0" : "1";
+
+              bool? confirm = await
+              showDialog(
+                context: context,
+                builder: (context) {
+                  return AlertDialog(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    title: Row(
+                      children: [
+                        // Icon(
+                        //   newStatus == "1" ? Icons.check_circle : Icons.cancel,
+                        //   color: newStatus == "1" ? Colors.green : Colors.red,
+                        //   size: 28,
+                        // ),
+
+                        const Text("Confirm",style: TextStyle(color: Colors.black,fontWeight: FontWeight.bold),),
+                      ],
+                    ),
+                    content: RichText(
+                      text: TextSpan(
+                        style: const TextStyle(
+                          color: Colors.grey,
+                          fontSize: 17,
+                          fontWeight: FontWeight.normal,
+                        ),
+                        children: [
+                          const TextSpan(text: "Mark this work plan as ",
+                            style:  TextStyle(
+                              fontSize: 17,
+                              fontWeight: FontWeight.bold,
+                              color:  Colors.grey,
+                            ),
+                          ),
+                          TextSpan(
+                            text: newStatus == "1" ? "Achieved " : "Not Achieved ",
+                            style:  TextStyle(
+                              fontSize: 17,
+                              fontWeight: FontWeight.bold,
+                              color:  newStatus == "1"?Colors.green:Colors.red,
+                            ),
+                          ),
+                          const TextSpan(text: "?",
+                            style:  TextStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.bold,
+                            color:  Colors.grey,
+                          ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context, false),
+                        child:const Text("Cancel",style: TextStyle(color: Colors.black,fontWeight: FontWeight.bold),),
+                      ),
+                      ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          backgroundColor: newStatus == "1" ? Colors.green : Colors.red,
+                        ),
+                        onPressed: () => Navigator.pop(context, true),
+
+                        label: const Text(
+                          "Yes",
+                          style: TextStyle(color: Colors.white),
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              );
+
+              if (confirm != true) return;
+
+              await Provider.of<HomeProvider>(context, listen: false).updateWorkStatus(
+                true,
+                plan.detailId,
+                newStatus,context
+
+              );
+
+              // provider inside fetch pannidum so UI auto refresh
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              decoration: BoxDecoration(
+                color: plan.workStatus == "1" ? Colors.green : Colors.red,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                plan.workStatus == "1" ? "Achieved" : "Not Achieved",
+                style: const TextStyle(color: Colors.white),
+              ),
+            ),
+          ):Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
             decoration: BoxDecoration(
               color: plan.workStatus == "1" ? Colors.green : Colors.red,
@@ -154,7 +328,9 @@ class _DailyReportStatusPageState extends State<DailyReportStatusPage>
         ),
         centerTitle: true,
         leading: IconButton(
-          onPressed: () => Navigator.pop(context),
+          onPressed: () {
+            Navigator.pop(context, true); // <-- refresh flag
+          },
           icon: const Icon(Icons.arrow_back_ios),
           color: colorsConst.primary,
         ),
@@ -496,6 +672,8 @@ class _DailyReportStatusPageState extends State<DailyReportStatusPage>
           );
         },
       ),
+
     );
+
   }
 }

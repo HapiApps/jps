@@ -12,6 +12,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import 'package:intl/intl.dart';
+import 'package:path/path.dart';
 import 'package:provider/provider.dart';
 import 'package:master_code/component/custom_text.dart';
 import 'package:master_code/screens/employee/view_all_employees.dart';
@@ -866,6 +867,57 @@ Future<void> loginOuts(context) async {
     } catch (e) {
       print("WorkPlan Error: $e");
       workPlanList = [];
+      workPlanRefresh = true;
+      notifyListeners();
+    }
+  }
+
+  Future<void> updateWorkStatus(
+      bool isRefresh,
+      String detailId,
+      String workStatus,
+      BuildContext context
+      ) async {
+    if (isRefresh == true) {
+      workPlanRefresh = false;
+    }
+
+    notifyListeners();
+
+    try {
+      Map data = {
+        "action": getAllData,
+        "search_type": "update_work_status",
+        "cos_id": localData.storage.read("cos_id"),
+        "detail_id": detailId,
+        "work_status": workStatus,
+      };
+
+      print("📌 Update WorkStatus Request: $data");
+
+      final response = await homeRepo.getDashboardReport(data);
+
+      print("✅ Update WorkStatus Response: $response");
+
+      if (response.isNotEmpty && response[0]["status"] == true) {
+        workPlanRefresh = true;
+
+        String today = DateFormat("yyyy-MM-dd").format(DateTime.now());
+
+        print("🎯 Status Updated Successfully. Fetching WorkPlan List for $today");
+
+        await getWorkPlanList(true, today);
+        final homeProvider = Provider.of<HomeProvider>(context, listen: false);
+        homeProvider.checkThisMonth();
+        homeProvider.loadFullDashboard(context);
+      } else {
+        workPlanRefresh = true;
+        print("❌ Update Failed Response: $response");
+      }
+
+      notifyListeners();
+    } catch (e) {
+      print("🚨 Update WorkStatus Error: $e");
       workPlanRefresh = true;
       notifyListeners();
     }

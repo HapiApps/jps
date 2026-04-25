@@ -606,26 +606,31 @@ class _UpdateCustomerState extends State<UpdateCustomer> with TickerProviderStat
                                 },
                                 dropText: 'value',),
                               MapDropDown(
-                                callback: (){
-                                  if(!kIsWeb){
+                                callback: () {
+                                  if (!kIsWeb) {
                                     custProvider.refreshVisit();
-                                  }else{
+                                  } else {
                                     custProvider.getVisitType();
                                   }
                                 },
                                 isRequired: true,
-                                isRefresh: custProvider.callList.isEmpty?true:false,
-                                width:kIsWeb?webWidth:phoneWidth,
+                                isRefresh: custProvider.callList.isEmpty ? true : false,
+                                width: kIsWeb ? webWidth : phoneWidth,
                                 hintText: constValue.visitType,
                                 list: custProvider.callList,
-                                saveValue: custProvider.callType?['id'],
+
+                                saveValue: custProvider.callType['id'].toString(),
+
                                 onChanged: (Object? value) {
-                                  final selected = custProvider.callList
-                                      .firstWhere((e) => e['id'].toString() == value.toString());
+                                  final selected = custProvider.callList.firstWhere(
+                                        (e) => e['id'].toString() == value.toString(),
+                                  );
+
                                   custProvider.changeCallType(selected);
                                   custProvider.makeChanges();
                                 },
-                                dropText: 'value',),
+                                dropText: 'value',
+                              ),
                               MaxLineTextField(
                                 width: kIsWeb?webWidth:phoneWidth,
                                 text: constValue.disPoints,

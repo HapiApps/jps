@@ -866,8 +866,8 @@ void changeState(dynamic value){
     notifyListeners();
   }
 void changeCallType(dynamic value){
-  callType = value!;
-  callType = value.toString();
+  callType = value; // Map ah store pannunga
+  // callType = value.toString();
   var list = [];
   list.add(value);
   localData.storage.write("visit_id", list[0]["id"]);
