@@ -108,7 +108,7 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
                                 children: [
 
                                   Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    mainAxisAlignment: MainAxisAlignment.start,
                                     children: [
                                       Row(
                                         children: [
@@ -117,14 +117,27 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
 
                                         ],
                                       ),
-                                      IconButton(onPressed: (){
-                                        showDialog(
-                                          context: context,
-                                          barrierDismissible: false,
-                                          builder: (context) => const AddTypePopup(),
-                                        );
-                                      },
-                                          icon: Icon(Icons.add,color: Colors.red,))
+                                      40.width,
+                                      ElevatedButton.icon(
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: Colors.blue ,
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(8),
+                                          ),
+                                        ),
+                                        onPressed: () {
+                                          showDialog(
+                                            context: context,
+                                            barrierDismissible: false,
+                                            builder: (context) => const AddTypePopup(),
+                                          );
+                                        },
+                                        icon: const Icon(Icons.add, color: Colors.white, size: 18),
+                                        label: const Text(
+                                          "Add Visit Type",
+                                          style: TextStyle(fontSize: 12, color: Colors.white),
+                                        ),
+                                      ),
                                        ],
                                   ),
                           GridView.builder(
@@ -266,7 +279,7 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
                                 child: const Row(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    CustomText(text: "Notes/Attachments")
+                                    CustomText(text: "Notes Attachments")
                                   ],
                                 ),
                               ),

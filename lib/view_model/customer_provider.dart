@@ -2607,7 +2607,8 @@ TextEditingController date= TextEditingController(text: "${DateTime.now().day.to
     required String lat,
     required String lng,
     required VoidCallback callBack
-  }) async {
+  })
+  async {
     try {
 
       /// 🔥 VALIDATION (VERY IMPORTANT)
@@ -2649,7 +2650,8 @@ TextEditingController date= TextEditingController(text: "${DateTime.now().day.to
         "lat": lat,
         "lng": lng,
       };
-
+      print("📤 FINAL API DATA => $data");
+      print("📤 FINAL API DATA JSON => ${jsonEncode(data)}");
       print("📤 FINAL API DATA => $data");
 
       final response = await custRepo.addVisit(data);
@@ -2695,7 +2697,8 @@ TextEditingController date= TextEditingController(text: "${DateTime.now().day.to
 
         addCtr.reset();
         notifyListeners();
-      } else {
+      }
+      else {
         utils.showErrorToast(context: context);
       }
 

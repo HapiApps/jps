@@ -49,7 +49,7 @@ class _ViewMyLeavesState extends State<ViewMyLeaves> {
       if(localData.storage.read("role")!="1"){
         Provider.of<LeaveProvider >(context, listen: false).getLeaveTypes();
       }
-      // Provider.of<LeaveProvider >(context, listen: false).daily(localData.storage.read("id"),localData.storage.read("role"),false);
+     Provider.of<LeaveProvider >(context, listen: false).daily(localData.storage.read("id"),localData.storage.read("role"),false);
 
     });
     super.initState();

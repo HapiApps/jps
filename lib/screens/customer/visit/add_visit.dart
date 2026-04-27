@@ -543,7 +543,10 @@ class _CusAddVisitState extends State<CusAddVisit> with TickerProviderStateMixin
                                 }
                                 // }
                               },text: 'Save',
-                              controller: custProvider.addCtr, isLoading: true, backgroundColor: colorsConst.primary, radius: 10, width: kIsWeb?webWidth/2.1:phoneWidth/2.1),
+                              controller: custProvider.addCtr, isLoading: true,
+                              backgroundColor: colorsConst.primary,
+                              radius: 10,
+                              width: kIsWeb?webWidth/2.1:phoneWidth/2.1),
                         ],
                       ),
                     ),

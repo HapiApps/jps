@@ -1134,8 +1134,8 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
                       ],
                     ),
                     const SizedBox(height: 10),
+                    const Divider(thickness: 2,),
 
-                    const SizedBox(height: 10),
                     /// COMPANY + TASK TYPE
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1149,7 +1149,7 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
                     ),
                     10.height,
                     const SizedBox(height: 3),
-                    const Divider(),
+                    const Divider(thickness: 2,),
 
                     /// DATE + CREATED BY
                     Row(
@@ -1227,7 +1227,7 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
                     10.height,
 
 
-                    const Divider(),
+                    const Divider(thickness: 2,),
                     /// STATUS + PRIORITY
                     // Row(
                     //   mainAxisAlignment: MainAxisAlignment.spaceBetween,

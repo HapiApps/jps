@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../component/custom_loading_button.dart';
 import '../../component/maxline_textfield.dart';
 import '../../component/multi_dropdown.dart';
 import '../../component/search_drop_down.dart';
@@ -80,8 +81,14 @@ class _DayWorkPlanPageState extends State<DayWorkPlanPage> {
       final item = workPlans[i];
 
       if (item.descriptionController.text.trim().isEmpty) {
-        utils.showWarningToast(context,
-            text: "Please enter description in Plan ${i + 1}");
+        utils.showWarningToast(
+          context,
+          text: "Please enter description in Plan ${i + 1}",
+        );
+
+        /// 🔥 Reset Loading Button
+        Provider.of<LeaveProvider>(context, listen: false).addWorkCtr.reset();
+
         return false;
       }
     }
@@ -327,59 +334,31 @@ class _DayWorkPlanPageState extends State<DayWorkPlanPage> {
                     child: Row(
                       children: [
                         /// CANCEL
-                        Expanded(
-                          child: ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              elevation: 0,
-                              backgroundColor: Colors.white,
-                              side: BorderSide(color: colorsConst.primary),
-                              padding:
-                              const EdgeInsets.symmetric(vertical: 10),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                            ),
-                            onPressed: () {
-                              Navigator.pop(context);
-                            },
-                            child: Text(
-                              "Cancel",
-                              style: TextStyle(
-                                color: colorsConst.primary,
-                                fontSize: 12,
-                              ),
-                            ),
-                          ),
-                        ),
+                        CustomLoadingButton(
+                            callback: (){
+                              Future.microtask(() => Navigator.pop(context));
+                            }, isLoading: false,text: "Cancel",
+                            backgroundColor: Colors.white, textColor: colorsConst.primary,radius: 10,
+                            width: kIsWeb?webWidth/2.1:phoneWidth/2.1),
 
                         const SizedBox(width: 6),
 
                         /// SAVE
-                        Expanded(
-                          child: ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              elevation: 0,
+                        Consumer<LeaveProvider>(
+                          builder: (context, provider, child) {
+                            return CustomLoadingButton(
+                              callback: () {
+                                if (!validateAllPlans()) return;
+                                provider.workPlanSubmit(context, workPlans);
+                              },
+                              text: "Save",
+                              controller: provider.addWorkCtr, // if exists
+                              isLoading: true,
                               backgroundColor: colorsConst.primary,
-                              padding:
-                              const EdgeInsets.symmetric(vertical: 10),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                            ),
-                            onPressed: () {
-                              if (!validateAllPlans()) return;
-
-                              final provider = Provider.of<LeaveProvider>(
-                                  context,
-                                  listen: false);
-
-                              provider.workPlanSubmit(context, workPlans);
-                            },
-                            child: const Text(
-                              "Save",
-                              style: TextStyle(fontSize: 12),
-                            ),
-                          ),
+                              radius: 10,
+                              width: kIsWeb ? webWidth / 2.1 : phoneWidth / 2.1,
+                            );
+                          },
                         ),
                       ],
                     ),

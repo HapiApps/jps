@@ -52,6 +52,7 @@ class LeaveProvider with ChangeNotifier {
   bool _getLeave=false;
   bool get getLeave=> _getLeave;
   bool _allSelect =false;
+  bool isSaving = false;
   void changeValue(dynamic value) {
     _allSelect = value;
     holyDaysList.clear();
@@ -1213,6 +1214,7 @@ void setList(){
   List types=[];
   RoundedLoadingButtonController submitCtr=RoundedLoadingButtonController();
   RoundedLoadingButtonController addCtr=RoundedLoadingButtonController();
+  RoundedLoadingButtonController addWorkCtr=RoundedLoadingButtonController();
   RoundedLoadingButtonController leaveCtr=RoundedLoadingButtonController();
   String _levCount1 = "Full  Day 0\nHalf Day 0";
   String _levCount2 = "Full  Day 0\nHalf Day 0";
@@ -2790,25 +2792,10 @@ void changeStatus(bool value){
       BuildContext context,
       List<WorkPlanModel> workPlans,
       ) async {
+    isSaving = true;
+    notifyListeners();
+
     try {
-
-      /// ✅ PRINT SELECTED CUSTOMERS BEFORE REQUEST
-      debugPrint("========== SELECTED CUSTOMERS LIST ==========");
-      for (var item in workPlans) {
-        debugPrint("CompanyId: ${item.companyId}");
-        debugPrint("CompanyName: ${item.companyName}");
-        debugPrint("Selected Customers: ${item.selectedCustomers}");
-
-        String cusIds = item.selectedCustomers.isNotEmpty
-            ? item.selectedCustomers.map((e) => e["id"].toString()).join(",")
-            : "0";
-
-        debugPrint("CusId String: $cusIds");
-        debugPrint("-----------------------------------------");
-      }
-      debugPrint("===========================================");
-
-      /// ✅ CREATE REQUEST
       WorkPlanRequest request = WorkPlanRequest(
         cosId: localData.storage.read("cos_id").toString(),
         uId: localData.storage.read("id").toString(),
@@ -2816,36 +2803,32 @@ void changeStatus(bool value){
         plans: workPlans.map((item) {
           return WorkPlanItem(
             comId: item.companyId,
-
-            /// ✅ MULTIPLE CUSTOMER IDS
             cusId: item.selectedCustomers.isNotEmpty
-                ? item.selectedCustomers.map((e) => e["id"].toString()).join(",")
+                ? item.selectedCustomers
+                .map((e) => e["id"].toString())
+                .join(",")
                 : "0",
-
             value: item.descriptionController.text.trim(),
             status: item.status,
           );
         }).toList(),
       );
 
-      /// ✅ PRINT JSON BEFORE API CALL
       debugPrint("========== WORK PLAN REQUEST JSON ==========");
       debugPrint(jsonEncode(request.toJson()));
       debugPrint("===========================================");
 
-      /// ✅ API CALL
       final response = await leaveRepo.insertWorkPlan(request.toJson());
 
-      /// ✅ PRINT RESPONSE
       debugPrint("========== WORK PLAN RESPONSE ==========");
       debugPrint(response.toString());
       debugPrint("=======================================");
 
-      /// ✅ SUCCESS
-      if (response["success"] == true) {
+      if (response != null && response["success"] == true) {
         utils.showSuccessToast(context: context, text: "Work Plan Submitted");
-
-        final empProvider = Provider.of<EmployeeProvider>(context, listen: false);
+addWorkCtr.reset();
+        final empProvider =
+        Provider.of<EmployeeProvider>(context, listen: false);
 
         String title = "Added by ${localData.storage.read("f_name")}";
         String body = "Daily Work Plan";
@@ -2859,23 +2842,28 @@ void changeStatus(bool value){
             "1",
           );
         } catch (e) {
-          log("Notification failed: $e");
+          debugPrint("Notification failed: $e");
         }
 
         final homeProvider = Provider.of<HomeProvider>(context, listen: false);
         await homeProvider.loadFullDashboard(context);
 
         Navigator.pop(context, true);
-
       } else {
-        utils.showWarningToast(context, text: response["message"].toString());
+        utils.showWarningToast(
+          context,
+          text: response["message"]?.toString() ?? "Something went wrong",
+        );
+        addWorkCtr.reset();
       }
-
     } catch (e) {
       debugPrint("ERROR: $e");
       utils.showErrorToast(context: context);
+      addWorkCtr.reset();
     }
 
+    isSaving = false;
+    addWorkCtr.reset();
     notifyListeners();
   }
 }
