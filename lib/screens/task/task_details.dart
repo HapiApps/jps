@@ -11,11 +11,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:group_button/group_button.dart';
 import 'package:intl/intl.dart';
+import 'package:master_code/view_model/customer_provider.dart';
 import 'package:provider/provider.dart';
 import '../../component/audio_player.dart';
 import '../../component/custom_appbar.dart';
 import '../../component/custom_loading_button.dart';
 import '../../component/custom_text.dart';
+import '../../model/customer/customer_report_model.dart';
 import '../../source/constant/api.dart';
 import '../../source/constant/assets_constant.dart';
 import '../../source/constant/colors_constant.dart';
@@ -49,38 +51,62 @@ class _TaskDetailsState extends State<TaskDetails> with SingleTickerProviderStat
   var voiceList=[];
   @override
   void initState() {
-    Future.delayed(Duration.zero, () {
-      level=widget.data.level.toString();
-      Provider.of<TaskProvider >(context, listen: false).lStatus=widget.data.statval.toString();
-      Provider.of<TaskProvider >(context, listen: false).setStatus(Provider.of<TaskProvider >(context, listen: false).lStatus);
-      Provider.of<TaskProvider >(context, listen: false).setStatusByName(widget.data.statval.toString());
-      if(kIsWeb){
-        Provider.of<ExpenseProvider>(context, listen: false).getExpenseType();
-      }else{
-        Provider.of<ExpenseProvider>(context, listen: false).getTypesOfExpense();
-      }
-      Provider.of<ExpenseProvider>(context, listen: false).getAllExpense();
-      Provider.of<TaskProvider>(context, listen: false).getStatusHistory(widget.data.id.toString());
-    });
-    docsList=(widget.data.documents.toString()=="null"||widget.data.documents.toString()=="")?[]:widget.data.documents.toString().split('||');
-    print(docsList);
-    for(var i=0;i<docsList.length;i++){
-      if(docsList[i].endsWith(".m4a")){
-        voiceList.add(docsList[i]);
-        voiceC++;
-      }else{
-        imgList.add(docsList[i]);
-        imgC++;
-      }
-    }
     super.initState();
+
+    Future.microtask(() async {
+      level = widget.data.level.toString();
+
+      final taskProvider = Provider.of<TaskProvider>(context, listen: false);
+      final expenseProvider = Provider.of<ExpenseProvider>(context, listen: false);
+      final customerProvider = Provider.of<CustomerProvider>(context, listen: false);
+
+      taskProvider.lStatus = widget.data.statval.toString();
+      taskProvider.setStatus(taskProvider.lStatus);
+      taskProvider.setStatusByName(widget.data.statval.toString());
+
+      if (kIsWeb) {
+        await expenseProvider.getExpenseType();
+      } else {
+        await expenseProvider.getTypesOfExpense();
+      }
+
+      await expenseProvider.getAllExpense();
+      await taskProvider.getStatusHistory(widget.data.id.toString());
+
+      /// chat load
+      await customerProvider.getComments(widget.data.id.toString());
+      await customerProvider.getTaskComments(widget.data.id.toString());
+
+      /// documents split
+      docsList = (widget.data.documents.toString() == "null" ||
+          widget.data.documents.toString().isEmpty)
+          ? []
+          : widget.data.documents.toString().split('||');
+
+      voiceList.clear();
+      imgList.clear();
+      voiceC = 0;
+      imgC = 0;
+
+      for (var i = 0; i < docsList.length; i++) {
+        if (docsList[i].endsWith(".m4a")) {
+          voiceList.add(docsList[i]);
+          voiceC++;
+        } else {
+          imgList.add(docsList[i]);
+          imgC++;
+        }
+      }
+
+      setState(() {});
+    });
   }
   String formatDateTime(String? date) {
     if (date == null || date.isEmpty) return "";
 
     final parsedDate = DateTime.parse(date);
 
-    return DateFormat('dd-MM-yyyy h:mm a').format(parsedDate);
+    return DateFormat('dd-MM-yy h:mm a').format(parsedDate);
   }
   void changeLevel() {
     setState(() {
@@ -98,6 +124,14 @@ class _TaskDetailsState extends State<TaskDetails> with SingleTickerProviderStat
   Widget build(BuildContext context) {
     var webWidth=MediaQuery.of(context).size.width * 0.5;
     var phoneWidth=MediaQuery.of(context).size.width * 0.9;
+    String currentStatus = "Assigned";
+    final taskProvider = Provider.of<TaskProvider>(context);
+
+    currentStatus = taskProvider.selectedStatusValue.toString();
+    if (taskProvider.historyDetails.isNotEmpty) {
+      currentStatus = taskProvider.historyDetails.last["value"].toString();
+    }// INGATHAAN PODANUM
+
     return Consumer<TaskProvider>(builder: (context, taskProvider, _) {
       return Scaffold(
         backgroundColor: colorsConst.bacColor,
@@ -123,33 +157,96 @@ class _TaskDetailsState extends State<TaskDetails> with SingleTickerProviderStat
           ],
         ),
         // floatingActionButtonLocation: FloatingActionButtonLocation.startFloat,
-        floatingActionButton: widget.data.statval!="Completed"?SizedBox(
-          width: kIsWeb?webWidth:phoneWidth,
+        floatingActionButton: SizedBox(
+          width: kIsWeb ? webWidth : phoneWidth,
           child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            mainAxisAlignment: MainAxisAlignment.end,
             children: [
-              CustomLoadingButton(
-                  callback: (){
+
+              /// Cancel Button
+              if (widget.data.statval != "Completed")
+                CustomLoadingButton(
+                  callback: () {
                     Future.microtask(() => Navigator.pop(context));
-                  }, isLoading: false,text: "Cancel",
-                  backgroundColor: Colors.white, textColor: colorsConst.primary,radius: 10,
-                  width: kIsWeb?webWidth/2.5:phoneWidth/2.5),
-              CustomLoadingButton(
-                  callback: (){
-                    if (taskProvider.isUpdate==false) {
-                      utils.showWarningToast(context,text: "Please make changes");
+                  },
+                  isLoading: false,
+                  text: "Cancel",
+                  backgroundColor: Colors.white,
+                  textColor: colorsConst.primary,
+                  radius: 10,
+                  width: kIsWeb ? webWidth / 3.5 : phoneWidth / 3.5,
+                ),
+
+              if (widget.data.statval != "Completed") 10.width,
+
+              /// Update Button
+              if (widget.data.statval != "Completed")
+                CustomLoadingButton(
+                  callback: () {
+                    if (taskProvider.isUpdate == false) {
+                      utils.showWarningToast(context, text: "Please make changes");
                       taskProvider.taskCtr.reset();
-                    }else {
+                    } else {
                       taskProvider.editTask(
-                          context: context,data:widget.data,taskId: widget.data.id.toString(),
-                          isDirect: widget.isDirect,coId: widget.coId.toString());
+                        context: context,
+                        data: widget.data,
+                        taskId: widget.data.id.toString(),
+                        isDirect: widget.isDirect,
+                        coId: widget.coId.toString(),
+                      );
                     }
-                  }, isLoading: true,text: "Update",controller: taskProvider.taskCtr,
-                  backgroundColor: colorsConst.primary,radius: 10,
-                  width: kIsWeb?webWidth/2.5:phoneWidth/2.5),
+                  },
+                  isLoading: true,
+                  text: "Update",
+                  controller: taskProvider.taskCtr,
+                  backgroundColor: colorsConst.primary,
+                  radius: 10,
+                  width: kIsWeb ? webWidth / 3.5 : phoneWidth / 3.5,
+                ),
+
+              if (widget.data.statval != "Completed") 10.width,
+
+              /// Chat Button (Always Show)
+              InkWell(
+                onTap: () {
+                  utils.navigatePage(
+                    context,
+                        () => DashBoard(
+                      child: TaskChat(
+                        isVisit: false,
+                        taskId: widget.data.id.toString(),
+                        assignedId: widget.data.assigned.toString(),
+                        name: widget.data.creator.toString(),
+                        assignedName: widget.data.assignedNames.toString(),
+                        date1: '',
+                        date2: '',
+                        type: '',
+                      ),
+                    ),
+                  );
+                },
+                child: Container(
+                  height: 45,
+                  width: 45,
+                  decoration: BoxDecoration(
+                    color:Colors.green,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Center(
+                    child: SvgPicture.asset(
+                      assets.tMessage,
+                      width: 22,
+                      height: 22,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
             ],
           ),
-        ):null,
+        ),
+
+        floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
         body: SingleChildScrollView(
           child: Column(
             children: [
@@ -167,75 +264,222 @@ class _TaskDetailsState extends State<TaskDetails> with SingleTickerProviderStat
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              CustomText(text: "Task Details",isBold: true,size: 16,),
-                              GestureDetector(
-                                onTap: localData.storage.read("role")=="1"?changeLevel:null,
-                                child: Container(
-                                    decoration: customDecoration.baseBackgroundDecoration(
-                                        color: level=='High'?Colors.red.shade50:level=='Immediate'?Colors.purple.shade50:Colors.blue.shade50,
-                                        radius: 10
+
+                              /// TASK TITLE WITH VIEW MORE
+                              Expanded(
+                                child: GestureDetector(
+                                  onTap: () {
+                                    if (widget.data.taskTitle.toString().length > 15) {
+                                      showDialog(
+                                        context: context,
+                                        builder: (context) => AlertDialog(
+                                          title: const Text("Task Title"),
+                                          content: Text(widget.data.taskTitle.toString()),
+                                          actions: [
+                                            TextButton(
+                                              onPressed: () => Navigator.pop(context),
+                                              child: const Text("Close"),
+                                            )
+                                          ],
+                                        ),
+                                      );
+                                    }
+                                  },
+                                  child: RichText(
+                                    overflow: TextOverflow.ellipsis,
+                                    text: TextSpan(
+                                      children: [
+                                        TextSpan(
+                                          text: widget.data.taskTitle.toString().length > 15
+                                              ? "${widget.data.taskTitle.toString().substring(0, 15)}..."
+                                              : widget.data.taskTitle.toString(),
+                                          style: const TextStyle(
+                                            fontSize: 16,
+                                            fontFamily: "Lato",
+                                            color: Colors.black,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+
+                                        if (widget.data.taskTitle.toString().length > 15)
+                                          const TextSpan(
+                                            text: " View More",
+                                            style: TextStyle(
+                                              fontSize: 14,
+                                              color: Colors.blue,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                      ],
                                     ),
-                                    child: Padding(
-                                      padding: const EdgeInsets.all(5.0),
-                                      child: Row(
-                                        children: [
-                                          Icon(Icons.circle,color: level=='High'?Colors.red:level=='Immediate'?Colors.purple:Colors.blue,size: 10,),5.width,
-                                          CustomText(text: level,colors: level=='High'?Colors.red:level=='Immediate'?Colors.purple:Colors.blue),
-                                        ],
-                                      ),
-                                    )),
+                                  ),
+                                ),
+                              ),
+
+                              10.width,
+
+                              /// LEVEL TAG
+                              GestureDetector(
+                                onTap: localData.storage.read("role") == "1" ? changeLevel : null,
+                                child: Container(
+                                  decoration: customDecoration.baseBackgroundDecoration(
+                                    color: level == 'High'
+                                        ? Colors.red.shade50
+                                        : level == 'Immediate'
+                                        ? Colors.purple.shade50
+                                        : Colors.blue.shade50,
+                                    radius: 10,
+                                  ),
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(5.0),
+                                    child: Row(
+                                      children: [
+                                        Icon(
+                                          Icons.circle,
+                                          color: level == 'High'
+                                              ? Colors.red
+                                              : level == 'Immediate'
+                                              ? Colors.purple
+                                              : Colors.blue,
+                                          size: 10,
+                                        ),
+                                        5.width,
+                                        CustomText(
+                                          text: level,
+                                          colors: level == 'High'
+                                              ? Colors.red
+                                              : level == 'Immediate'
+                                              ? Colors.purple
+                                              : Colors.blue,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
                               ),
                             ],
                           ),
-                          CustomText(text: widget.data.taskTitle.toString(),size: 16,),
+
                           Divider(color: Colors.grey.shade200,),
-                          Row(
-                            // mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              SizedBox(
-                                  width: kIsWeb?webWidth/4:phoneWidth/4,
-                                  // color: Colors.pinkAccent,
-                                  child: CustomText(text:"Assigned To",colors: colorsConst.greyClr,)),
-                              SizedBox(
-                                  width: kIsWeb?webWidth/1.5:phoneWidth/1.5,
-                                  // color: Colors.pinkAccent,
-                                  child: CustomText(text:widget.data.assignedNames.toString(),colors: colorsConst.blueClr,)),
-                            ],
-                          ),10.height,
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Row(
+
+                              /// ================= Assigned To =================
+                              Expanded(
+                                flex: 2,
+                                child: Row(
+                                  children: [
+                                    CustomText(
+                                      text: "Assigned To: ",
+                                      colors: colorsConst.greyClr,
+                                    ),
+
+                                    Expanded(
+                                      child: GestureDetector(
+                                        onTap: () {
+                                          if (widget.data.assignedNames.toString().length > 15) {
+                                            showDialog(
+                                              context: context,
+                                              builder: (context) => AlertDialog(
+                                                title: const Text("Assigned To"),
+                                                content: Text(widget.data.assignedNames.toString()),
+                                                actions: [
+                                                  TextButton(
+                                                    onPressed: () => Navigator.pop(context),
+                                                    child: const Text("Close"),
+                                                  )
+                                                ],
+                                              ),
+                                            );
+                                          }
+                                        },
+                                        child: RichText(
+                                          overflow: TextOverflow.ellipsis,
+                                          text: TextSpan(
+                                            children: [
+                                              TextSpan(
+                                                text: widget.data.assignedNames.toString().length > 12
+                                                    ? "${widget.data.assignedNames.toString().substring(0, 12)}.."
+                                                    : widget.data.assignedNames.toString(),
+                                                style: TextStyle(
+                                                  fontSize: 14,
+                                                  fontFamily: "Lato",
+                                                  color: colorsConst.blueClr,
+                                                  fontWeight: FontWeight.w500,
+                                                ),
+                                              ),
+                                              if (widget.data.assignedNames.toString().length > 15)
+                                                const TextSpan(
+                                                  text: "",
+                                                  style: TextStyle(
+                                                    fontSize: 13,
+                                                    color: Colors.blue,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+
+
+
+                              /// ================= Task Date =================
+                              Expanded(
+                                flex: 1,
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.start,
+                                  children: [
+                                    CustomText(text: "Date: ", colors: colorsConst.greyClr,size: 12,),
+                                    CustomText(text: widget.data.taskDate.toString()),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                          Divider(color: Colors.grey.shade200,thickness: 1.2,),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  SizedBox(
+                                      width: kIsWeb?webWidth/4:phoneWidth/2,
+                                      child: Row(
+                                        mainAxisAlignment: MainAxisAlignment.start,
+                                        children: [
+                                          CustomText(text:"Created: ",colors: colorsConst.greyClr,),
+                                          CustomText(text:widget.data.creator.toString(),colors: Colors.black,isBold: true,),
+                                        ],
+                                      )),
+                                  CustomText(text:formatDateTime(widget.data.createdTs.toString()),),
+                                ],
+                              ),
+                              10.height,
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   SizedBox(
                                       width: kIsWeb?webWidth/4:phoneWidth/4,
-                                      child: CustomText(text:"Service Date",colors: colorsConst.greyClr,)),
-                                  CustomText(text:widget.data.taskDate.toString(),),
+                                      child: Row(
+                                        children: [
+                                          CustomText(text:"Updated: ",colors: colorsConst.greyClr,),
+                                          CustomText(
+                                            text: widget.data.updatedByName.toString()==null?"-":widget.data.updatedByName.toString(),
+                                            colors:Colors.black,
+                                            size: 13,isBold: true,
+                                          ),
+                                        ],
+                                      )),
+                                  CustomText(text:formatDateTime(widget.data.updatedTs.toString()),),
                                 ],
                               ),
-                              InkWell(onTap: (){
-                                utils.navigatePage(context, ()=> DashBoard(child: TaskChat(isVisit:false,
-                                    taskId: widget.data.id.toString(), assignedId: widget.data.assigned.toString(),
-                                  name: widget.data.creator.toString(), assignedName: widget.data.assignedNames.toString(), date1: '', date2: '', type: '',)));
-                              }, child: SvgPicture.asset(assets.tMessage,width: 25,height: 25,))
-                            ],
-                          ),
-                          10.height,
-                          Row(
-                            children: [
-                              SizedBox(
-                                  width: kIsWeb?webWidth/4:phoneWidth/4,
-                                  child: CustomText(text:"Created by",colors: colorsConst.greyClr,)),
-                              CustomText(text:widget.data.creator.toString(),),
-                            ],
-                          ),
-                          10.height,
-                          Row(
-                            children: [
-                              SizedBox(
-                                  width: kIsWeb?webWidth/4:phoneWidth/4,
-                                  child: CustomText(text:"Created time",colors: colorsConst.greyClr,)),
-                              CustomText(text:formatDateTime(widget.data.createdTs.toString()),),
                             ],
                           ),
                           Divider(color: Colors.grey.shade200,),
@@ -251,7 +495,7 @@ class _TaskDetailsState extends State<TaskDetails> with SingleTickerProviderStat
                                   });
                                 },
                                 child: Container(
-                                  width: kIsWeb?webWidth/2.5:phoneWidth/2.5,
+                                  width: kIsWeb?webWidth/2.5:phoneWidth/2.7,
                                   decoration: customDecoration.baseBackgroundDecoration(
                                     color: type=="1"?Colors.white:Color(0xffE5E5E5),radius: 30,
                                     borderColor: type=="1"?colorsConst.primary:Color(0xffE5E5E5)
@@ -278,7 +522,7 @@ class _TaskDetailsState extends State<TaskDetails> with SingleTickerProviderStat
                                   });
                                 },
                                 child: Container(
-                                  width: kIsWeb?webWidth/2:phoneWidth/2,
+                                  width: kIsWeb?webWidth/2:phoneWidth/2.3,
                                   decoration: customDecoration.baseBackgroundDecoration(
                                       color: type=="2"?Colors.white:Color(0xffE5E5E5),radius: 30,
                                       borderColor: type=="2"?colorsConst.primary:Color(0xffE5E5E5)
@@ -298,9 +542,20 @@ class _TaskDetailsState extends State<TaskDetails> with SingleTickerProviderStat
                                   ),
                                 ),
                               ),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+
+                                  InkWell(onTap: (){
+                                    utils.navigatePage(context, ()=> DashBoard(child: TaskChat(isVisit:false,
+                                      taskId: widget.data.id.toString(), assignedId: widget.data.assigned.toString(),
+                                      name: widget.data.creator.toString(), assignedName: widget.data.assignedNames.toString(), date1: '', date2: '', type: '',)));
+                                  }, child: SvgPicture.asset(assets.tMessage,width: 25,height: 25,))
+                                ],
+                              ),
                             ],
                           ),
-                          10.height,
+
                           if(type=="1"&&imgList.isNotEmpty)
                           GridView.builder(
                                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -333,7 +588,7 @@ class _TaskDetailsState extends State<TaskDetails> with SingleTickerProviderStat
                                 }
                             ),
                           Divider(color: Colors.grey.shade200,),
-                          5.height,
+
                           // Row(
                           //   mainAxisAlignment: MainAxisAlignment.center,
                           //   children: [
@@ -396,134 +651,382 @@ class _TaskDetailsState extends State<TaskDetails> with SingleTickerProviderStat
               ),10.height,
               Center(
                 child: Container(
-                  width: kIsWeb?webWidth:phoneWidth,
-                  decoration: customDecoration.baseBackgroundDecoration(
-                      color: Colors.white,radius: 20
+                  width: kIsWeb ? webWidth : phoneWidth,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(25),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.grey.withOpacity(0.2),
+                        blurRadius: 10,
+                        spreadRadius: 2,
+                        offset: const Offset(0, 5),
+                      )
+                    ],
                   ),
                   child: Padding(
-                    padding: const EdgeInsets.all(8.0),
+                    padding: const EdgeInsets.all(18.0),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const CustomText(text: "\nProgress Tracker\n",isBold: true,size: 16,),
+                        /// ================= TITLE =================
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text(
+                              "Progress Tracker",
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            SizedBox(
+                              width: 90,
+                              height: 25,
+                              child: ElevatedButton.icon(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: colorsConst.primary,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(5),
+                                  ),
+                                ),
+                                onPressed: () {
+                                  // taskProvider.saveTaskStatus(context);
+                                },
+                                icon: const Icon(Icons.save, color: Colors.white, size: 18),
+                                label: const Text(
+                                  "Save",
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+
+                        10.height,
+
+                        /// ================= BUTTONS =================
                         Center(
                           child: GroupButton(
+                            controller: taskProvider.statusController,
+                            buttons: ["Assigned", "Started", "Completed"],
                             options: GroupButtonOptions(
-                                spacing: 5,
-                                borderRadius:BorderRadius.circular(5),
-                                buttonHeight: 30,
-                                buttonWidth: 74,
-                                selectedBorderColor:colorsConst.primary,
-                                unselectedBorderColor:colorsConst.primary,
-                                selectedTextStyle:const TextStyle(
+                              spacing: 6,
+                              buttonHeight: 30,
+                              buttonWidth: 80,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+
+                            buttonBuilder: (selected, value, context) {
+                              bool disabled = taskProvider.isButtonDisabled(value);
+
+                              return Container(
+                                width: 80,
+                                height: 30,
+                                decoration: BoxDecoration(
+                                  color: disabled
+                                      ? Colors.grey.shade300
+                                      : selected
+                                      ? taskProvider.getStatusColor(value)
+                                      : Colors.white,
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(
+                                    color: disabled ? Colors.grey : taskProvider.getStatusColor(value),
+                                    width: 1.2,
+                                  ),
+                                ),
+                                alignment: Alignment.center,
+                                child: Text(
+                                  value,
+                                  style: TextStyle(
                                     fontSize: 13,
-                                    fontFamily:'Lato'
-                                ),unselectedTextStyle:TextStyle(
-                                color: colorsConst.primary,
-                                fontSize: 13,
-                                fontFamily:'Lato'
-                            )),
-                            buttons: taskProvider.statusList.map((e) => e['value'].toString()).toList(),
-                            controller:taskProvider.statusController,
+                                    fontWeight: FontWeight.bold,
+                                    color: disabled
+                                        ? Colors.grey.shade600
+                                        : selected
+                                        ? Colors.white
+                                        : taskProvider.getStatusColor(value),
+                                  ),
+                                ),
+                              );
+                            },
+
                             onSelected: (name, index, isSelect) {
+                              if (taskProvider.isButtonDisabled(name)) return;
+
                               final selectedStatus = taskProvider.statusList.firstWhere(
                                     (e) => e['value'] == name,
                                 orElse: () => {"id": "0", "value": "Unknown"},
                               );
+
                               taskProvider.changeStatusT(selectedStatus['value']);
                               taskProvider.changeStatus(selectedStatus);
                               taskProvider.updateChanges();
-                            }
+
+                              setState(() {});
+                            },
                           ),
                         ),
-                        20.height
+
+                        Divider(color: Colors.grey.shade300,thickness: 1.2,),
+
+
+                        /// ================= HISTORY LIST =================
+                        taskProvider.refresh == false
+                            ? Loading()
+                            : taskProvider.historyDetails.isEmpty
+                            ? Center(
+                          child: CustomText(
+                            text: "No History Found",
+                            size: 14,
+                            colors: Colors.grey,
+                          ),
+                        )
+                            : ListView.builder(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: taskProvider.historyDetails.length,
+                          itemBuilder: (context, index) {
+                            final data = taskProvider.historyDetails[index];
+
+                            return Column(
+                              children: [
+                                Row(
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: [
+                                    /// LEFT STATUS
+                                    SizedBox(
+                                      width: kIsWeb ? webWidth / 4.5 : phoneWidth / 4.5,
+                                      child: Text(
+                                        data["value"].toString(),
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.bold,
+                                          color: colorsConst.primary,
+                                        ),
+                                      ),
+                                    ),
+
+                                    /// DOT
+                                    Container(
+                                      width: 18,
+                                      height: 18,
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        color: Colors.blue,
+                                        border: Border.all(color: Colors.white, width: 2),
+                                      ),
+                                    ),
+
+                                    const SizedBox(width: 5),
+
+                                    /// NAME
+                                    Expanded(
+                                      child: Text(
+                                        data["firstname"].toString(),
+                                        style: const TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ),
+
+                                    /// DATE
+                                    Text(
+                                      DateFormat("dd-MM-yyyy, hh:mm a")
+                                          .format(DateTime.parse(data["created_ts"])),
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        color: Colors.grey.shade600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+
+                                Divider(
+                                  color: Colors.grey.shade300,
+                                  thickness: 1,
+                                ),
+                              ],
+                            );
+                          },
+                        ),
+
+
                       ],
                     ),
                   ),
                 ),
               ),
               20.height,
-              if(taskProvider.historyDetails.isNotEmpty)
               Center(
-                child: taskProvider.refresh==false?Loading():Container(
-                    width: kIsWeb?webWidth:phoneWidth,
-                    decoration: customDecoration.baseBackgroundDecoration(
-                        color: Colors.white,radius: 5
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          CustomText(text: "Task status",isBold: true,size: 16,),5.height,
-                          ListView.builder(
-                            shrinkWrap: true,
-                            physics: NeverScrollableScrollPhysics(),
-                            itemCount: taskProvider.historyDetails.length,
-                            itemBuilder: (context, index) {
-                              final data = taskProvider.historyDetails[index];
-                              final isLast = index == taskProvider.historyDetails.length - 1;
+                child: Container(
+                  width: kIsWeb ? webWidth : phoneWidth,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(25),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.grey.withOpacity(0.2),
+                        blurRadius: 10,
+                        spreadRadius: 2,
+                        offset: const Offset(0, 5),
+                      )
+                    ],
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(18.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          "Recent Comments",
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        20.height,
+                        Consumer<CustomerProvider>(
+                          builder: (context, chatProvider, _) {
+                            if (chatProvider.refresh == false) {
+                              return const Loading();
+                            }
 
-                              return Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  SizedBox(
-                                    // color: Colors.pinkAccent,
-                                      width: kIsWeb?webWidth/4:phoneWidth/4,
-                                      child: CustomText(text: data["value"].toString().trim(),size: 15,colors: colorsConst.primary,)),5.width,
-                                  Column(
-                                    children: [
-                                      Container(
-                                        width: 16,
-                                        height: 16,
-                                        decoration: BoxDecoration(
-                                            shape: BoxShape.circle,
-                                            color: Colors.blue,
-                                            border: Border.all(
-                                                color: Colors.white,width: 2
-                                            )
-                                        ),
-                                      ),
-
-                                      if (!isLast)
-                                        Container(
-                                          width: 2,
-                                          height: 40,
-                                          color: Colors.blue,
-                                        ),
-                                    ],
+                            if (chatProvider.customerReport.isEmpty) {
+                              return const Center(
+                                child: Padding(
+                                  padding: EdgeInsets.all(10.0),
+                                  child: Text(
+                                    "No Recent Chat Found",
+                                    style: TextStyle(color: Colors.grey),
                                   ),
-
-                                  5.width,
-
-                                  /// RIGHT SIDE TEXT
-                                  Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      if(localData.storage.read("role")=="1")
-                                      CustomText(
-                                        text:"${data["firstname"]} ",size: 15,
-                                      ),
-                                      CustomText(
-                                        text: "(${DateFormat("dd-MM-yyyy,hh:mm a")
-                                            .format(DateTime.parse(data["created_ts"]))})",size: 15,
-                                      ),
-                                    ],
-                                  ),
-                                ],
+                                ),
                               );
-                            },
-                          )
-                        ],
-                      ),
-                    )),
+                            }
+
+                            /// last 5 messages
+                            int count = chatProvider.customerReport.length;
+                            int startIndex = count > 5 ? count - 5 : 0;
+
+                            List<CustomerReportModel> lastFive =
+                            chatProvider.customerReport.sublist(startIndex, count);
+
+                            return ListView.builder(
+                              itemCount: lastFive.length,
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              itemBuilder: (context, index) {
+                                final msg = lastFive[index];
+
+                                DateTime? createdDate;
+                                try {
+                                  createdDate = DateTime.parse(msg.createdTs.toString());
+                                } catch (e) {
+                                  createdDate = null;
+                                }
+
+                                return InkWell(
+                                  onTap: () {
+                                    utils.navigatePage(
+                                      context,
+                                          () => DashBoard(
+                                        child: TaskChat(
+                                          isVisit: false,
+                                          taskId: widget.data.id.toString(),
+                                          assignedId: widget.data.assigned.toString(),
+                                          name: widget.data.creator.toString(),
+                                          assignedName: widget.data.assignedNames.toString(),
+                                          date1: '',
+                                          date2: '',
+                                          type: '',
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                  child: Column(
+                                    children: [
+                                      Row(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          CircleAvatar(
+                                            radius: 18,
+                                            backgroundColor: colorsConst.primary.withOpacity(0.2),
+                                            child: Icon(
+                                              Icons.message,
+                                              color: colorsConst.primary,
+                                              size: 18,
+                                            ),
+                                          ),
+
+                                          10.width,
+
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+
+                                                Text(
+                                                  msg.comments.toString(),
+                                                  maxLines: 1,
+                                                  overflow: TextOverflow.ellipsis,
+                                                  style: TextStyle(
+                                                    fontSize: 13,
+                                                    color: Colors.grey.shade600,
+                                                  ),
+                                                ),
+                                                const SizedBox(height: 3),
+                                                Text(
+                                                  msg.firstname.toString(),
+                                                  style: const TextStyle(
+                                                    fontSize: 12,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                ),
+
+                                              ],
+                                            ),
+                                          ),
+
+                                          5.width,
+
+                                          Text(
+                                            createdDate != null
+                                                ? DateFormat("dd-MM-yy / hh:mm a").format(createdDate)
+                                                : "-",
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: Colors.grey.shade500,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      Divider(color: Colors.grey.shade300),
+                                    ],
+                                  ),
+                                );
+                              },
+                            );
+                          },
+                        ),
+
+                      ],
+                    ),
+                  ),
+                ),
               ),
               // const DotLine(),
               140.height,
             ],
           ),
         ),
+
       );
     });
+
   }
 }

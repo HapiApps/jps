@@ -679,5 +679,6 @@ class _TaskChatState extends State<TaskChat> with SingleTickerProviderStateMixin
         );
       },
     );
+
   }
 }

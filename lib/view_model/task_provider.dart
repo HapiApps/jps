@@ -4041,4 +4041,77 @@ class TaskProvider with ChangeNotifier {
     notifyListeners();
   }
 
-}
+
+  bool isAssignedDisabled = false;
+  bool isStartedDisabled = false;
+  bool isCompletedDisabled = false;
+
+  void updateDisableStatus(String currentStatus) {
+  isAssignedDisabled = false;
+  isStartedDisabled = false;
+  isCompletedDisabled = false;
+
+  if (currentStatus == "Assigned") {
+  isAssignedDisabled = true;
+  } else if (currentStatus == "Started") {
+  isAssignedDisabled = true;
+  isStartedDisabled = true;
+  } else if (currentStatus == "Completed") {
+  isAssignedDisabled = true;
+  isStartedDisabled = true;
+  isCompletedDisabled = true;
+  }
+  }
+
+  String selectedStatusValue = "Assigned";
+
+  Color getButtonColor(String status, bool isSelected) {
+  if (isSelected) {
+  if (status == "Assigned") return Colors.orange;
+  if (status == "Started") return Colors.blue;
+  if (status == "Completed") return Colors.green;
+  }
+  return Colors.white;
+  }
+
+  Color getBorderColor(String status) {
+  if (status == "Assigned") return Colors.orange;
+  if (status == "Started") return Colors.blue;
+  if (status == "Completed") return Colors.green;
+  return Colors.grey;
+  }
+
+  Color getTextColor(String status, bool isSelected) {
+  if (isSelected) return Colors.white;
+
+  if (status == "Assigned") return Colors.orange;
+  if (status == "Started") return Colors.blue;
+  if (status == "Completed") return Colors.green;
+
+  return Colors.black;
+  }
+  String currentStatus = "Assigned"; // default
+
+  bool isButtonDisabled(String status) {
+    if (currentStatus == "Assigned") {
+      return status == "Assigned"; // Assigned மட்டும் disable
+    }
+
+    if (currentStatus == "Started") {
+      return status == "Assigned" || status == "Started"; // Assigned+Started disable
+    }
+
+    if (currentStatus == "Completed") {
+      return true; // எல்லாமே disable
+    }
+
+    return false;
+  }
+
+  Color getStatusColor(String status) {
+    if (status == "Assigned") return Colors.orange;
+    if (status == "Started") return Colors.blue;
+    if (status == "Completed") return Colors.green;
+    return colorsConst.primary;
+  }
+  }

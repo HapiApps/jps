@@ -56,7 +56,7 @@ class _DailyReportStatusPageState extends State<DailyReportStatusPage>
 
     try {
       DateTime dt = DateTime.parse(dateTime);
-      return DateFormat("dd-MM-yyyy hh:mm a").format(dt);
+      return DateFormat("hh:mm a").format(dt);
     } catch (e) {
       return dateTime;
     }
@@ -72,244 +72,330 @@ class _DailyReportStatusPageState extends State<DailyReportStatusPage>
       DailyWorkPlanDetails plan, int planIndex, int totalPlans) {
     return Column(
       children: [
-        ListTile(
-          title: Row(
-            children: [
-              CircleAvatar(
-                radius: 12,
-                backgroundColor: Colors.blue.shade100,
-                child: Text(
-                  "${planIndex + 1}",
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.blue,
-                  ),
-                ),
-              ),
-              10.width,
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.only(top: 4.0),
-                  child: Text(
-                    plan.desc,
-                    style: TextStyle(color: Colors.grey.shade600),
-                  ),
-                ),
-              ),
+        Container(
+          margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: Colors.grey.shade300),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.grey.shade200,
+                blurRadius: 4,
+                offset: const Offset(0, 2),
+              )
             ],
           ),
-          subtitle: Padding(
-            padding: const EdgeInsets.only(left: 30, top: 4.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
 
-                /// Company & Customer
-                if ((plan.company ?? "").toString().trim().isNotEmpty)
-                  RichText(
-                    text: TextSpan(
-                      style: const TextStyle(fontSize: 14, color: Colors.black),
-                      children: [
-                        const TextSpan(text: "Company : "),
-                        TextSpan(
-                          text: "${plan.company}\n",
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: Colors.grey,
-                          ),
-                        ),
-                        const TextSpan(text: "Customer : "),
-                        TextSpan(
-                          text: plan.customer ?? "",
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: Colors.grey,
-                          ),
-                        ),
-                      ],
+              /// Plan Number + Description Row
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  CircleAvatar(
+                    radius: 12,
+                    backgroundColor: Colors.blue.shade100,
+                    child: Text(
+                      "${planIndex + 1}",
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.blue,
+                      ),
                     ),
                   ),
+                  10.width,
+                  Expanded(
+                    child: Text(
+                      plan.desc,
+                      style: TextStyle(
+                        color: Colors.grey.shade700,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: localData.storage.read("role") != "1"
+                            ? InkWell(
+                          onTap: () async {
+                            String newStatus =
+                            plan.workStatus == "1" ? "0" : "1";
 
-                const SizedBox(height: 6),
+                            bool? confirm = await showDialog(
+                              context: context,
+                              builder: (context) {
+                                return AlertDialog(
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  title: const Text(
+                                    "Confirm",
+                                    style: TextStyle(
+                                      color: Colors.black,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  content: RichText(
+                                    text: TextSpan(
+                                      style: const TextStyle(
+                                        color: Colors.grey,
+                                        fontSize: 16,
+                                      ),
+                                      children: [
+                                        const TextSpan(
+                                          text: "Mark this work plan as ",
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                        TextSpan(
+                                          text: newStatus == "1"
+                                              ? "Achieved "
+                                              : "Not Achieved ",
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            color: newStatus == "1"
+                                                ? Colors.green
+                                                : Colors.red,
+                                          ),
+                                        ),
+                                        const TextSpan(
+                                          text: "?",
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () =>
+                                          Navigator.pop(context, false),
+                                      child: const Text(
+                                        "Cancel",
+                                        style: TextStyle(
+                                          color: Colors.black,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                    ElevatedButton(
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: newStatus == "1"
+                                            ? Colors.green
+                                            : Colors.red,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(12),
+                                        ),
+                                      ),
+                                      onPressed: () =>
+                                          Navigator.pop(context, true),
+                                      child: const Text(
+                                        "Yes",
+                                        style: TextStyle(color: Colors.white),
+                                      ),
+                                    ),
+                                  ],
+                                );
+                              },
+                            );
 
-                /// Created & Updated Time
+                            if (confirm != true) return;
+
+                            await Provider.of<HomeProvider>(context,
+                                listen: false)
+                                .updateWorkStatus(
+                              true,
+                              plan.detailId,
+                              newStatus,
+                              context,
+                            );
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: plan.workStatus == "1"
+                                  ? Colors.green
+                                  : Colors.red,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Text(
+                              plan.workStatus == "1"
+                                  ? "Achieved"
+                                  : "Not Achieved",
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
+                        )
+                            : Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color:
+                            plan.workStatus == "1" ? Colors.green : Colors.red,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Text(
+                            plan.workStatus == "1"
+                                ? "Achieved"
+                                : "Not Achieved",
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+
+
+            5.height,
+              /// Company + Customer Row
+              if ((plan.company ?? "").toString().trim().isNotEmpty)
                 Row(
                   children: [
                     Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            "Created Time",
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.black,
-                              fontWeight: FontWeight.bold,
+                      child: Text.rich(
+                        TextSpan(
+                          children: [
+                             TextSpan(
+                              text: "Company : ",
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.grey.shade600,
+                                fontSize: 13,
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 5),
-                          Text(
-                            formatDateTime(plan.createdTime),
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey.shade600,
-                              fontWeight: FontWeight.bold,
+                            TextSpan(
+                              text: (plan.company ?? ""),
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black,
+                                fontSize: 13,
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
+                    const SizedBox(width: 10),
                     Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            "Updated Time",
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.black,
-                              fontWeight: FontWeight.bold,
+                      child: Text.rich(
+                        TextSpan(
+                          children: [
+                             TextSpan(
+                              text: "Customer : ",
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.grey.shade600,
+
+                                fontSize: 13,
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 5),
-                          Text(
-                            formatDateTime(plan.updatedTime),
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey.shade600,
-                              fontWeight: FontWeight.bold,
+                            TextSpan(
+                              text: (plan.customer ?? ""),
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black,
+                                fontSize: 13,
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                   ],
                 ),
-              ],
-            ),
-          ),
-          trailing:localData.storage.read("role") != "1"?
-          InkWell(
-            onTap: () async {
-              String newStatus = plan.workStatus == "1" ? "0" : "1";
 
-              bool? confirm = await
-              showDialog(
-                context: context,
-                builder: (context) {
-                  return AlertDialog(
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    title: Row(
+
+
+              /// Created + Updated Time Row
+              Row(
+                children: [
+                  Expanded(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Icon(
-                        //   newStatus == "1" ? Icons.check_circle : Icons.cancel,
-                        //   color: newStatus == "1" ? Colors.green : Colors.red,
-                        //   size: 28,
-                        // ),
+                         Text(
+                          "Created: ",
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.grey.shade600,
 
-                        const Text("Confirm",style: TextStyle(color: Colors.black,fontWeight: FontWeight.bold),),
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          formatDateTime(plan.createdTime),
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black,
+                          ),
+                        ),
                       ],
                     ),
-                    content: RichText(
-                      text: TextSpan(
-                        style: const TextStyle(
-                          color: Colors.grey,
-                          fontSize: 17,
-                          fontWeight: FontWeight.normal,
-                        ),
-                        children: [
-                          const TextSpan(text: "Mark this work plan as ",
-                            style:  TextStyle(
-                              fontSize: 17,
-                              fontWeight: FontWeight.bold,
-                              color:  Colors.grey,
-                            ),
-                          ),
-                          TextSpan(
-                            text: newStatus == "1" ? "Achieved " : "Not Achieved ",
-                            style:  TextStyle(
-                              fontSize: 17,
-                              fontWeight: FontWeight.bold,
-                              color:  newStatus == "1"?Colors.green:Colors.red,
-                            ),
-                          ),
-                          const TextSpan(text: "?",
-                            style:  TextStyle(
-                            fontSize: 17,
+                  ),
+                  Expanded(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                         Text(
+                          "  Updated: ",
+                          style: TextStyle(
+                            fontSize: 12,
                             fontWeight: FontWeight.bold,
-                            color:  Colors.grey,
+                            color: Colors.grey.shade600,
                           ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          formatDateTime(plan.updatedTime),
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black,
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(context, false),
-                        child:const Text("Cancel",style: TextStyle(color: Colors.black,fontWeight: FontWeight.bold),),
-                      ),
-                      ElevatedButton.icon(
-                        style: ElevatedButton.styleFrom(
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          backgroundColor: newStatus == "1" ? Colors.green : Colors.red,
-                        ),
-                        onPressed: () => Navigator.pop(context, true),
-
-                        label: const Text(
-                          "Yes",
-                          style: TextStyle(color: Colors.white),
-                        ),
-                      ),
-                    ],
-                  );
-                },
-              );
-
-              if (confirm != true) return;
-
-              await Provider.of<HomeProvider>(context, listen: false).updateWorkStatus(
-                true,
-                plan.detailId,
-                newStatus,context
-
-              );
-
-              // provider inside fetch pannidum so UI auto refresh
-            },
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-              decoration: BoxDecoration(
-                color: plan.workStatus == "1" ? Colors.green : Colors.red,
-                borderRadius: BorderRadius.circular(8),
+                  ),
+                ],
               ),
-              child: Text(
-                plan.workStatus == "1" ? "Achieved" : "Not Achieved",
-                style: const TextStyle(color: Colors.white),
-              ),
-            ),
-          ):Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-            decoration: BoxDecoration(
-              color: plan.workStatus == "1" ? Colors.green : Colors.red,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Text(
-              plan.workStatus == "1" ? "Achieved" : "Not Achieved",
-              style: const TextStyle(color: Colors.white),
-            ),
+              /// Status Button (Last Row)
+
+            ],
           ),
         ),
+
         if (planIndex != totalPlans - 1)
-          const Divider(thickness: 1, height: 1),
+          const SizedBox(height: 2),
       ],
     );
   }
-
   @override
   Widget build(BuildContext context) {
     String dateText = DateFormat("dd-MM-yyyy").format(selectedDate);
