@@ -42,17 +42,26 @@ class _ViewMyLeavesState extends State<ViewMyLeaves> {
   final FocusScopeNode _myFocusScopeNode = FocusScopeNode();
 
   @override
+  @override
   void initState() {
-    WidgetsBinding.instance.addPostFrameCallback((timeStamp){
-      Provider.of<LeaveProvider >(context, listen: false).initDate(widget.date1!,widget.date2!);
-      // Provider.of<LeaveProvider >(context, listen: false).iniValues3();
-      if(localData.storage.read("role")!="1"){
-        Provider.of<LeaveProvider >(context, listen: false).getLeaveTypes();
-      }
-     Provider.of<LeaveProvider >(context, listen: false).daily(localData.storage.read("id"),localData.storage.read("role"),false);
+    super.initState(); // ✅ FIRST
 
+    WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
+      final leaveProvider =
+      Provider.of<LeaveProvider>(context, listen: false);
+
+      leaveProvider.initDate(widget.date1!, widget.date2!);
+
+      if (localData.storage.read("role") != "1") {
+        leaveProvider.getLeaveTypes();
+      }
+
+      leaveProvider.daily(
+        localData.storage.read("id"),
+        localData.storage.read("role"),
+        false,
+      );
     });
-    super.initState();
   }
   @override
   void dispose() {

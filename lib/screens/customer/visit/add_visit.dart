@@ -27,6 +27,7 @@ import '../../task/search_custom_dropdown.dart' hide MapDropDown, MultiSelectDro
 import '../../task/search_dropdown_list.dart';
 import '../viamap.dart';
 import '../visit_report/visits_report.dart';
+import 'add_customer.dart';
 
 class CusAddVisit extends StatefulWidget {
   final String companyId;
@@ -233,29 +234,78 @@ class _CusAddVisitState extends State<CusAddVisit> with TickerProviderStateMixin
                               dropText: 'value',
                             ),
 
-                            Consumer<CustomerProvider>(
-                              builder: (context, custProvider, child) {
+                            // Consumer<CustomerProvider>(
+                            //   builder: (context, custProvider, child) {
+                            //
+                            //     return MultiSelectDropdown(
+                            //       key: ValueKey(sendList), // 🔥 MUST (force rebuild)
+                            //       hintText: "Select Customer",
+                            //       dropText: "name",
+                            //
+                            //       list: sendList, // 🔥 updated list
+                            //
+                            //       width: kIsWeb ? webWidth : phoneWidth,
+                            //
+                            //       selectedItems: custProvider.multiSelectedCustomerList,
+                            //
+                            //       onChanged: (list) {
+                            //         print("👆 MultiSelect onChanged CALLED");
+                            //         print("📝 Selected List: $list");
+                            //
+                            //         custProvider.setMultiSelectedCustomers(list);
+                            //       },
+                            //     );
+                            //   },
+                            // ),
+        Consumer<CustomerProvider>(
+          builder: (context, custProvider, child) {
 
-                                return MultiSelectDropdown(
-                                  key: ValueKey(sendList), // 🔥 MUST (force rebuild)
-                                  hintText: "Select Customer",
-                                  dropText: "name",
+            List<dynamic> updatedList = [];
 
-                                  list: sendList, // 🔥 updated list
+            // ✅ sendList empty illa na mattum Add Customer add pannunga
+            if (sendList.isNotEmpty) {
+              updatedList = [
+                {"id": "add_customer", "name": "+ Add Customer"},
+                ...sendList,
+              ];
+            } else {
+              updatedList = sendList; // empty list
+            }
 
-                                  width: kIsWeb ? webWidth : phoneWidth,
+            return MultiSelectDropdown(
+              key: ValueKey(updatedList),
+              hintText: "Select Customer",
+              dropText: "name",
+              list: updatedList,
+              width: kIsWeb ? webWidth : phoneWidth,
+              selectedItems: custProvider.multiSelectedCustomerList,
 
-                                  selectedItems: custProvider.multiSelectedCustomerList,
+              onChanged: (list) {
 
-                                  onChanged: (list) {
-                                    print("👆 MultiSelect onChanged CALLED");
-                                    print("📝 Selected List: $list");
+                bool isAddCustomerSelected =
+                list.any((item) => item["id"] == "add_customer");
 
-                                    custProvider.setMultiSelectedCustomers(list);
-                                  },
-                                );
-                              },
-                            ),
+                if (isAddCustomerSelected) {
+                  list.removeWhere((item) => item["id"] == "add_customer");
+
+                  showDialog(
+                    context: context,
+                    barrierDismissible: false,
+                    builder: (context) => AddCustomerPopup(
+                      companyId: widget.isDirect == true
+                          ? companyId.toString()
+                          : widget.companyId.toString(),
+                    ),
+                  );
+
+                  return;
+                }
+
+                custProvider.setMultiSelectedCustomers(list);
+              },
+            );
+          },
+        ),
 
                             //type
                             MapDropDown(isRequired:true,
@@ -506,7 +556,8 @@ class _CusAddVisitState extends State<CusAddVisit> with TickerProviderStateMixin
                                 else if(custProvider.disPoint.text.trim().isEmpty){
                                   utils.showWarningToast(context, text: "Type a comment");
                                   custProvider.addCtr.reset();
-                                }else{
+                                }
+                                else{
                                   _myFocusScopeNode.unfocus();
                                   custProvider.addVisit(
                                     context: context,companyId: widget.isDirect==true?

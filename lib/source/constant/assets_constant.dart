@@ -129,6 +129,10 @@ class Assets{
   final String rep1= "assets/images/task/rep1.svg";
   final String rep2= "assets/images/task/rep2.svg";
 
+  final String loc= "assets/images/task/loc.svg";
+  final String not= "assets/images/task/not.svg";
+  final String sett= "assets/images/task/sett.svg";
+
 
 
 }

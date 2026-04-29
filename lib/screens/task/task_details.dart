@@ -157,94 +157,94 @@ class _TaskDetailsState extends State<TaskDetails> with SingleTickerProviderStat
           ],
         ),
         // floatingActionButtonLocation: FloatingActionButtonLocation.startFloat,
-        floatingActionButton: SizedBox(
-          width: kIsWeb ? webWidth : phoneWidth,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-
-              /// Cancel Button
-              if (widget.data.statval != "Completed")
-                CustomLoadingButton(
-                  callback: () {
-                    Future.microtask(() => Navigator.pop(context));
-                  },
-                  isLoading: false,
-                  text: "Cancel",
-                  backgroundColor: Colors.white,
-                  textColor: colorsConst.primary,
-                  radius: 10,
-                  width: kIsWeb ? webWidth / 3.5 : phoneWidth / 3.5,
-                ),
-
-              if (widget.data.statval != "Completed") 10.width,
-
-              /// Update Button
-              if (widget.data.statval != "Completed")
-                CustomLoadingButton(
-                  callback: () {
-                    if (taskProvider.isUpdate == false) {
-                      utils.showWarningToast(context, text: "Please make changes");
-                      taskProvider.taskCtr.reset();
-                    } else {
-                      taskProvider.editTask(
-                        context: context,
-                        data: widget.data,
-                        taskId: widget.data.id.toString(),
-                        isDirect: widget.isDirect,
-                        coId: widget.coId.toString(),
-                      );
-                    }
-                  },
-                  isLoading: true,
-                  text: "Update",
-                  controller: taskProvider.taskCtr,
-                  backgroundColor: colorsConst.primary,
-                  radius: 10,
-                  width: kIsWeb ? webWidth / 3.5 : phoneWidth / 3.5,
-                ),
-
-              if (widget.data.statval != "Completed") 10.width,
-
-              /// Chat Button (Always Show)
-              InkWell(
-                onTap: () {
-                  utils.navigatePage(
-                    context,
-                        () => DashBoard(
-                      child: TaskChat(
-                        isVisit: false,
-                        taskId: widget.data.id.toString(),
-                        assignedId: widget.data.assigned.toString(),
-                        name: widget.data.creator.toString(),
-                        assignedName: widget.data.assignedNames.toString(),
-                        date1: '',
-                        date2: '',
-                        type: '',
-                      ),
-                    ),
-                  );
-                },
-                child: Container(
-                  height: 45,
-                  width: 45,
-                  decoration: BoxDecoration(
-                    color:Colors.green,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Center(
-                    child: SvgPicture.asset(
-                      assets.tMessage,
-                      width: 22,
-                      height: 22,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
+        // floatingActionButton: SizedBox(
+        //   width: kIsWeb ? webWidth : phoneWidth,
+        //   child: Row(
+        //     mainAxisAlignment: MainAxisAlignment.end,
+        //     children: [
+        //
+        //       /// Cancel Button
+        //       if (widget.data.statval != "Completed")
+        //         CustomLoadingButton(
+        //           callback: () {
+        //             Future.microtask(() => Navigator.pop(context));
+        //           },
+        //           isLoading: false,
+        //           text: "Cancel",
+        //           backgroundColor: Colors.white,
+        //           textColor: colorsConst.primary,
+        //           radius: 10,
+        //           width: kIsWeb ? webWidth / 3.5 : phoneWidth / 3.5,
+        //         ),
+        //
+        //       if (widget.data.statval != "Completed") 10.width,
+        //
+        //       /// Update Button
+        //       if (widget.data.statval != "Completed")
+        //         CustomLoadingButton(
+        //           callback: () {
+        //             if (taskProvider.isUpdate == false) {
+        //               utils.showWarningToast(context, text: "Please make changes");
+        //               taskProvider.taskCtr.reset();
+        //             } else {
+        //               taskProvider.editTask(
+        //                 context: context,
+        //                 data: widget.data,
+        //                 taskId: widget.data.id.toString(),
+        //                 isDirect: widget.isDirect,
+        //                 coId: widget.coId.toString(),
+        //               );
+        //             }
+        //           },
+        //           isLoading: true,
+        //           text: "Update",
+        //           controller: taskProvider.taskCtr,
+        //           backgroundColor: colorsConst.primary,
+        //           radius: 10,
+        //           width: kIsWeb ? webWidth / 3.5 : phoneWidth / 3.5,
+        //         ),
+        //
+        //       if (widget.data.statval != "Completed") 10.width,
+        //
+        //       /// Chat Button (Always Show)
+        //       InkWell(
+        //         onTap: () {
+        //           utils.navigatePage(
+        //             context,
+        //                 () => DashBoard(
+        //               child: TaskChat(
+        //                 isVisit: false,
+        //                 taskId: widget.data.id.toString(),
+        //                 assignedId: widget.data.assigned.toString(),
+        //                 name: widget.data.creator.toString(),
+        //                 assignedName: widget.data.assignedNames.toString(),
+        //                 date1: '',
+        //                 date2: '',
+        //                 type: '',
+        //               ),
+        //             ),
+        //           );
+        //         },
+        //         child: Container(
+        //           height: 45,
+        //           width: 45,
+        //           decoration: BoxDecoration(
+        //             color:Colors.green,
+        //             borderRadius: BorderRadius.circular(12),
+        //           ),
+        //           child: Center(
+        //             child: SvgPicture.asset(
+        //               assets.tMessage,
+        //               width: 22,
+        //               height: 22,
+        //               color: Colors.white,
+        //             ),
+        //           ),
+        //         ),
+        //       ),
+        //     ],
+        //   ),
+        // ),
 
         floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
         body: SingleChildScrollView(
@@ -458,7 +458,7 @@ class _TaskDetailsState extends State<TaskDetails> with SingleTickerProviderStat
                                           CustomText(text:widget.data.creator.toString(),colors: Colors.black,isBold: true,),
                                         ],
                                       )),
-                                  CustomText(text:formatDateTime(widget.data.createdTs.toString()),),
+                                  CustomText(text:formatDateTime(widget.data.createdTs.toString()),size: 11,),
                                 ],
                               ),
                               10.height,
@@ -477,7 +477,7 @@ class _TaskDetailsState extends State<TaskDetails> with SingleTickerProviderStat
                                           ),
                                         ],
                                       )),
-                                  CustomText(text:formatDateTime(widget.data.updatedTs.toString()),),
+                                  CustomText(text:formatDateTime(widget.data.updatedTs.toString()),size: 11,),
                                 ],
                               ),
                             ],
@@ -542,17 +542,7 @@ class _TaskDetailsState extends State<TaskDetails> with SingleTickerProviderStat
                                   ),
                                 ),
                               ),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
 
-                                  InkWell(onTap: (){
-                                    utils.navigatePage(context, ()=> DashBoard(child: TaskChat(isVisit:false,
-                                      taskId: widget.data.id.toString(), assignedId: widget.data.assigned.toString(),
-                                      name: widget.data.creator.toString(), assignedName: widget.data.assignedNames.toString(), date1: '', date2: '', type: '',)));
-                                  }, child: SvgPicture.asset(assets.tMessage,width: 25,height: 25,))
-                                ],
-                              ),
                             ],
                           ),
 
@@ -680,30 +670,30 @@ class _TaskDetailsState extends State<TaskDetails> with SingleTickerProviderStat
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
-                            SizedBox(
-                              width: 90,
-                              height: 25,
-                              child: ElevatedButton.icon(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: colorsConst.primary,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(5),
-                                  ),
-                                ),
-                                onPressed: () {
-                                  // taskProvider.saveTaskStatus(context);
+                            if (widget.data.statval != "Completed")
+                              CustomLoadingButton(
+                                callback: () {
+                                  if (taskProvider.isUpdate == false) {
+                                    utils.showWarningToast(context, text: "Please make changes");
+                                    taskProvider.taskCtr.reset();
+                                  } else {
+                                    taskProvider.editTask(
+                                      context: context,
+                                      data: widget.data,
+                                      taskId: widget.data.id.toString(),
+                                      isDirect: widget.isDirect,
+                                      coId: widget.coId.toString(),
+                                    );
+                                  }
                                 },
-                                icon: const Icon(Icons.save, color: Colors.white, size: 18),
-                                label: const Text(
-                                  "Save",
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white,
-                                  ),
-                                ),
+                                isLoading: true,
+                                text: "save",
+                                controller: taskProvider.taskCtr,
+                                backgroundColor: colorsConst.primary,
+                                radius: 10,
+                                height: 28,
+                                width: kIsWeb ? webWidth / 3.5 : phoneWidth / 4,
                               ),
-                            ),
                           ],
                         ),
 
@@ -715,7 +705,7 @@ class _TaskDetailsState extends State<TaskDetails> with SingleTickerProviderStat
                             controller: taskProvider.statusController,
                             buttons: ["Assigned", "Started", "Completed"],
                             options: GroupButtonOptions(
-                              spacing: 6,
+                              spacing: 5,
                               buttonHeight: 30,
                               buttonWidth: 80,
                               borderRadius: BorderRadius.circular(10),
@@ -804,7 +794,7 @@ class _TaskDetailsState extends State<TaskDetails> with SingleTickerProviderStat
                                       child: Text(
                                         data["value"].toString(),
                                         style: TextStyle(
-                                          fontSize: 14,
+                                          fontSize: 12,
                                           fontWeight: FontWeight.bold,
                                           color: colorsConst.primary,
                                         ),
@@ -813,8 +803,8 @@ class _TaskDetailsState extends State<TaskDetails> with SingleTickerProviderStat
 
                                     /// DOT
                                     Container(
-                                      width: 18,
-                                      height: 18,
+                                      width: 10,
+                                      height: 10,
                                       decoration: BoxDecoration(
                                         shape: BoxShape.circle,
                                         color: Colors.blue,
@@ -840,7 +830,7 @@ class _TaskDetailsState extends State<TaskDetails> with SingleTickerProviderStat
                                       DateFormat("dd-MM-yyyy, hh:mm a")
                                           .format(DateTime.parse(data["created_ts"])),
                                       style: TextStyle(
-                                        fontSize: 13,
+                                        fontSize: 11,
                                         color: Colors.grey.shade600,
                                       ),
                                     ),
@@ -883,12 +873,28 @@ class _TaskDetailsState extends State<TaskDetails> with SingleTickerProviderStat
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          "Recent Comments",
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                          ),
+                        Row(
+                          children: [
+                            const Text(
+                              "Recent Comments",
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            130.width,
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              children: [
+
+                                InkWell(onTap: (){
+                                  utils.navigatePage(context, ()=> DashBoard(child: TaskChat(isVisit:false,
+                                    taskId: widget.data.id.toString(), assignedId: widget.data.assigned.toString(),
+                                    name: widget.data.creator.toString(), assignedName: widget.data.assignedNames.toString(), date1: '', date2: '', type: '',)));
+                                }, child: SvgPicture.asset(assets.tMessage,width: 25,height: 25,))
+                              ],
+                            ),
+                          ],
                         ),
                         20.height,
                         Consumer<CustomerProvider>(
@@ -914,7 +920,7 @@ class _TaskDetailsState extends State<TaskDetails> with SingleTickerProviderStat
                             int startIndex = count > 5 ? count - 5 : 0;
 
                             List<CustomerReportModel> lastFive =
-                            chatProvider.customerReport.sublist(startIndex, count);
+                            chatProvider.customerReport.sublist(startIndex, count).reversed.toList();
 
                             return ListView.builder(
                               itemCount: lastFive.length,
@@ -953,53 +959,39 @@ class _TaskDetailsState extends State<TaskDetails> with SingleTickerProviderStat
                                       Row(
                                         crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
-                                          CircleAvatar(
-                                            radius: 18,
-                                            backgroundColor: colorsConst.primary.withOpacity(0.2),
-                                            child: Icon(
-                                              Icons.message,
-                                              color: colorsConst.primary,
-                                              size: 18,
-                                            ),
-                                          ),
-
-                                          10.width,
-
                                           Expanded(
                                             child: Column(
                                               crossAxisAlignment: CrossAxisAlignment.start,
                                               children: [
-
                                                 Text(
                                                   msg.comments.toString(),
                                                   maxLines: 1,
                                                   overflow: TextOverflow.ellipsis,
-                                                  style: TextStyle(
+                                                  style: const TextStyle(
                                                     fontSize: 13,
-                                                    color: Colors.grey.shade600,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: Colors.black,
                                                   ),
                                                 ),
                                                 const SizedBox(height: 3),
                                                 Text(
                                                   msg.firstname.toString(),
-                                                  style: const TextStyle(
-                                                    fontSize: 12,
+                                                  style: TextStyle(
+                                                    fontSize: 11,
+                                                    color: Colors.grey.shade500,
                                                     fontWeight: FontWeight.bold,
                                                   ),
                                                 ),
-
                                               ],
                                             ),
                                           ),
-
                                           5.width,
-
                                           Text(
                                             createdDate != null
                                                 ? DateFormat("dd-MM-yy / hh:mm a").format(createdDate)
                                                 : "-",
                                             style: TextStyle(
-                                              fontSize: 12,
+                                              fontSize: 10,
                                               color: Colors.grey.shade500,
                                             ),
                                           ),

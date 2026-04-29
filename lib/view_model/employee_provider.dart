@@ -672,28 +672,41 @@ void changeState2(dynamic value){
 
 dynamic _role;
 dynamic get role =>_role;
-void changeRole(dynamic value){
-  _update=true;
-  _role = value.toString();   // id only
-  var list = [];
-  list.add(value);
-  localData.storage.write("roleId", list[0]["id"]);
-  localData.storage.write("roleName", list[0]["role"]);
-  notifyListeners();
-}
+  void changeRole(dynamic value) {
+    _update = true;
 
+    if (value is Map) {
+      _role = value["role"].toString();
+
+      localData.storage.write("roleId", value["id"].toString());
+      localData.storage.write("roleName", value["role"].toString());
+    } else {
+      // 🔥 value is String (your case)
+      _role = value.toString();
+
+      localData.storage.write("roleId", value.toString());
+    }
+
+    notifyListeners();
+  }
 dynamic _grade;
 dynamic get grade =>_grade;
-void changeGrade(dynamic value,bool isUpdate){
-  if(isUpdate==true){
-    _update = true;
+  void changeGrade(dynamic value, bool isUpdate) {
+    if (isUpdate == true) {
+      _update = true;
+    }
+
+    _grade = value.toString();
+
+    // ✅ SAFE: check type
+    if (value is Map) {
+      localData.storage.write("g_id", value["id"].toString());
+    } else {
+      localData.storage.write("g_id", value.toString());
+    }
+
+    notifyListeners();
   }
-  _grade = value.toString();
-  var list = [];
-  list.add(value);
-  localData.storage.write("g_id", list[0]["id"]);
-  notifyListeners();
-}
 TabController? tabController;
 
 void initValues(){

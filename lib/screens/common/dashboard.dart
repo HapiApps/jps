@@ -198,7 +198,7 @@ class _DashBoardState extends State<DashBoard> {
                                       );
                                     },
                                     isColor: homeProvider.selectedIndex == 11,
-                                    text: 'Apply\nLeave',
+                                    text: 'Apply Leave',
                                   ),
                                 /// Settings
                                 PanelButton(
@@ -298,11 +298,11 @@ class _DashBoardState extends State<DashBoard> {
                                 () => const DashBoard(child: TrackingLive()),
                           );
                         },
-                        child: Image.asset(
-                          assets.tracks,
-                          height: 35,
-                          width: 35,
-                          color: colorsConst.primary,
+                        child: SvgPicture.asset(
+                          assets.loc,
+                          height: 20,
+                          width: 20,
+                          color: Colors.green,
                         ),
                       ),
 
@@ -320,11 +320,11 @@ class _DashBoardState extends State<DashBoard> {
                                       () => const DashBoard(child: ViewNotification()),
                                 );
                               },
-                              child: Image.asset(
-                                DashboardAssets.reminder,
-                                width: 40,
-                                height: 50,
-                                color: colorsConst.primary,
+                              child: SvgPicture.asset(
+                                assets.not,
+                                height: 20,
+                                width: 16,
+                                color: Colors.blue.shade300,
                               ),
                             ),
 
@@ -335,13 +335,13 @@ class _DashBoardState extends State<DashBoard> {
                                 child: Container(
                                   padding: const EdgeInsets.all(5),
                                   decoration: const BoxDecoration(
-                                    color: Colors.green,
+                                    color: Colors.white,
                                     shape: BoxShape.circle,
                                   ),
                                   child: Text(
                                     emp.unreadCount.toString(),
                                     style:  TextStyle(
-                                      color: colorsConst.primary,
+                                      color: Colors.blue.shade300,
                                       fontSize: 10,
                                       fontWeight: FontWeight.bold,
                                     ),
@@ -356,161 +356,156 @@ class _DashBoardState extends State<DashBoard> {
                     10.width,
 
                     /// Reports Button
-                    Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        IconButton(
-                          icon:  Icon(
-                            Icons.description_sharp,
-                            color: colorsConst.primary,
-                          ),
-                          onPressed: () {
-                            showDialog(
-                              context: context,
-                              builder: (context) {
-                                return Consumer2<HomeProvider, EmployeeProvider>(
-                                  builder: (context, homeProvider, empro, _) {
-                                    return AlertDialog(
-                                      content: SizedBox(
-                                        width: kIsWeb
-                                            ? MediaQuery.of(context).size.width * 0.3
-                                            : MediaQuery.of(context).size.width * 0.9,
-                                        child: Column(
-                                          mainAxisSize: MainAxisSize.min,
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            Row(
-                                              mainAxisAlignment: MainAxisAlignment.end,
-                                              children: [
-                                                IconButton(
-                                                  icon: SvgPicture.asset(
-                                                    assets.cancel,
-                                                    width: 20,
-                                                    height: 20,
-                                                  ),
-                                                  onPressed: () {
-                                                    Navigator.pop(context);
-                                                  },
-                                                ),
-                                              ],
-                                            ),
+        Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+        IconButton(
+        icon: Icon(
+        Icons.description_sharp,
+        color: Colors.pink.shade300,
+        size: 26,
+        ),
+        onPressed: () {
+        showDialog(
+        context: context,
+        builder: (context) {
+        return Consumer2<HomeProvider, EmployeeProvider>(
+        builder: (context, homeProvider, empro, _) {
+        return AlertDialog(
+        content: SizedBox(
+        width: kIsWeb
+        ? MediaQuery.of(context).size.width * 0.3
+            : MediaQuery.of(context).size.width * 0.9,
+        child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+        Row(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+        IconButton(
+        icon: const Icon(Icons.close),
+        onPressed: () {
+        Navigator.pop(context);
+        },
+        ),
+        ],
+        ),
 
-                                            Center(
-                                              child: CustomText(
-                                                text: "Choose a report",
-                                                isBold: true,
-                                              ),
-                                            ),
-                                            20.height,
+        const Center(
+        child: Text(
+        "Choose a report",
+        style: TextStyle(
+        fontWeight: FontWeight.bold,
+        ),
+        ),
+        ),
 
-                                            Row(
-                                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                                              children: [
-                                                /// Attendance Report
-                                                InkWell(
-                                                  onTap: () {
-                                                    homeProvider.updateIndex(4);
-                                                    Navigator.pop(context);
+        20.height,
 
-                                                    utils.navigatePage(
-                                                      context,
-                                                          () => DashBoard(
-                                                        child: AttendanceReport(
-                                                          type: homeProvider.type,
-                                                          showType: "0",
-                                                          date1: homeProvider.startDate,
-                                                          date2: homeProvider.endDate,
-                                                          empList: empro.userData,
-                                                        ),
-                                                      ),
-                                                    );
-                                                  },
-                                                  child: Column(
-                                                    mainAxisSize: MainAxisSize.min,
-                                                    children: [
-                                                      Image.asset(
-                                                        assets.aTt,
-                                                        width: 50,
-                                                        height: 50,
-                                                      ),
-                                                      5.height,
-                                                      CustomText(
-                                                        text: "Attendance",
-                                                        isBold: true,
-                                                        size: 12,
-                                                      ),
-                                                    ],
-                                                  ),
-                                                ),
+        Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+        /// Attendance Report
+        InkWell(
+        onTap: () {
+        homeProvider.updateIndex(4);
+        Navigator.pop(context);
 
-                                                /// Daily Work Plan
-                                                InkWell(
-                                                  onTap: () {
-                                                    Navigator.pop(context);
+        utils.navigatePage(
+        context,
+        () => DashBoard(
+        child: AttendanceReport(
+        type: homeProvider.type,
+        showType: "0",
+        date1: homeProvider.startDate,
+        date2: homeProvider.endDate,
+        empList: empro.userData,
+        ),
+        ),
+        );
+        },
+        child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+        const Icon(Icons.assignment_turned_in,
+        size: 35, color: Colors.blue),
+        5.height,
+        const Text(
+        "Attendance",
+        style: TextStyle(
+        fontWeight: FontWeight.bold,
+        fontSize: 12,
+        ),
+        ),
+        ],
+        ),
+        ),
 
-                                                    utils.navigatePage(
-                                                      context,
-                                                          () => DashBoard(
-                                                        child: VisitReport(
-                                                          date1: homeProvider.startDate,
-                                                          date2: homeProvider.endDate,
-                                                          month: homeProvider.month,
-                                                          type: homeProvider.type,
-                                                        ),
-                                                      ),
-                                                    );
-                                                  },
-                                                  child: Column(
-                                                    mainAxisSize: MainAxisSize.min,
-                                                    children: [
-                                                      Image.asset(
-                                                        assets.aLoc,
-                                                        width: 50,
-                                                        height: 50,
-                                                      ),
-                                                      5.height,
-                                                      CustomText(
-                                                        text: "Daily Plan",
-                                                        isBold: true,
-                                                        size: 12,
-                                                      ),
-                                                    ],
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
+        /// Daily Work Plan
+        InkWell(
+        onTap: () {
+        Navigator.pop(context);
 
-                                            20.height,
+        utils.navigatePage(
+        context,
+        () => DashBoard(
+        child: VisitReport(
+        date1: homeProvider.startDate,
+        date2: homeProvider.endDate,
+        month: homeProvider.month,
+        type: homeProvider.type,
+        ),
+        ),
+        );
+        },
+        child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+        const Icon(Icons.rate_review,
+        size: 35, color: Colors.green),
+        5.height,
+        const Text(
+        "Daily Plan",
+        style: TextStyle(
+        fontWeight: FontWeight.bold,
+        fontSize: 12,
+        ),
+        ),
+        ],
+        ),
+        ),
+        ],
+        ),
 
-                                            Center(
-                                              child: TextButton(
-                                                child: CustomText(
-                                                  text: "Cancel",
-                                                  colors: colorsConst.appRed,
-                                                ),
-                                                onPressed: () {
-                                                  Navigator.pop(context);
-                                                },
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    );
-                                  },
-                                );
-                              },
-                            );
-                          },
-                        ),
-                        // CustomText(
-                        //   text: "Reports",
-                        //   colors: colorsConst.primary,
-                        //   isBold: true,
-                        //   size: 10,
-                        // ),
-                      ],
-                    ),
+        20.height,
+
+        Center(
+        child: TextButton(
+        child: Text(
+        "Cancel",
+        style: TextStyle(
+        color: colorsConst.appRed,
+        fontWeight: FontWeight.bold,
+        ),
+        ),
+        onPressed: () {
+        Navigator.pop(context);
+        },
+        ),
+        ),
+        ],
+        ),
+        ),
+        );
+        },
+        );
+        },
+        );
+        },
+        ),
+        ],
+        ),
 
                     5.width,
                   ],

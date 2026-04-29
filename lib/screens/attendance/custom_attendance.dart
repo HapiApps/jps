@@ -714,7 +714,7 @@ class _CheckAttendanceState extends State<CheckAttendance> {
                       ),
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(30),
-                        child: isPermissionActive
+                        child: attProvider.permissionStatus == "1"
                             ? SwipeButton(
                           width: MediaQuery.of(context).size.width * 0.9,
                           height: 35,

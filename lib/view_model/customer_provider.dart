@@ -2595,6 +2595,125 @@ TextEditingController date= TextEditingController(text: "${DateTime.now().day.to
     }
     notifyListeners();
   }
+  // Future<void> addVisit({
+  //   required context,
+  //   required String companyId,
+  //   required String taskId,
+  //   required String companyName,
+  //   required List<String> cusName,
+  //   required String tType,
+  //   required String desc,
+  //   required List sendList, // List<String> better
+  //   required String lat,
+  //   required String lng,
+  //   required VoidCallback callBack
+  // })
+  // async {
+  //   try {
+  //     final cusTypeData = localData.storage.read("cus_type");
+  //     /// 🔥 VALIDATION (VERY IMPORTANT)
+  //     Map data = {
+  //       "action": addVst,
+  //       "task_id": taskId,
+  //       "log_file": localData.storage.read("mobile_number"),
+  //       "cos_id": localData.storage.read("cos_id"),
+  //       "company_id": companyId,
+  //
+  //       /// ✅ CORRECT MULTIPLE SEND
+  //       "customer_id": sendList.join(","), // 🔥 IMPORTANT CHANGE
+  //
+  //       "mobile_number": localData.storage.read("c_no") ?? "",
+  //
+  //       /// ✅ MULTIPLE NAMES
+  //       "customer_name": cusName.join(","),
+  //
+  //       "type": localData.storage.read("type_id"),
+  //       "created_by": localData.storage.read("id") ?? "0",
+  //
+  //       "discussion_points": disPoint.text.trim(),
+  //       "action_taken": points.text.trim(),
+  //
+  //       "lead": localData.storage.read("lead_id"),
+  //       "call_visit_type": localData.storage.read("visit_id"),
+  //       "cus_type": cusTypeData != null ? cusTypeData["id"].toString() : "",
+  //
+  //       "date": commentDate.text.trim(),
+  //       "review": selectReview,
+  //
+  //       "door_no": address.text.trim(),
+  //       "area": comArea.text.trim(),
+  //       "city": city.text.trim(),
+  //       "country": country.text.trim(),
+  //       "state": state.toString(),
+  //       "pincode": pinCode.text.trim(),
+  //
+  //       "lat": lat,
+  //       "lng": lng,
+  //     };
+  //     print("📤 FINAL API DATA => $data");
+  //     print("📤 FINAL API DATA JSON => ${jsonEncode(data)}");
+  //     print("📤 FINAL API DATA => $data");
+  //
+  //     final response = await custRepo.addVisit(data);
+  //
+  //     print("📥 RESPONSE => $response");
+  //
+  //     if (response.toString().contains('ok')) {
+  //
+  //       utils.showSuccessToast(
+  //         context: context,
+  //         text: constValue.success,
+  //       );
+  //
+  //       final empProvider =
+  //       Provider.of<EmployeeProvider>(context, listen: false);
+  //
+  //       String myId = localData.storage.read("id").toString();
+  //
+  //       try {
+  //         await empProvider.sendAdminNotification(
+  //           "Visit report added - ${localData.storage.read("typeName") ?? ""}",
+  //           "Added by ${localData.storage.read("f_name")}",
+  //           "",
+  //           taskId,
+  //           "",
+  //         );
+  //       } catch (e) {
+  //         print("Notification error ignored: $e");
+  //       }
+  //
+  //       await FirebaseFirestore.instance.collection('attendance').add({
+  //         'emp_id': myId,
+  //         'time': DateTime.now(),
+  //         'status': "",
+  //       });
+  //
+  //       getAllCustomers(false);
+  //
+  //       Provider.of<HomeProvider>(context, listen: false)
+  //           .getDashboardReport(true);
+  //
+  //       callBack();
+  //
+  //       addCtr.reset();
+  //       notifyListeners();
+  //     }
+  //     else {
+  //       utils.showErrorToast(context: context);
+  //     }
+  //
+  //   } catch (e) {
+  //     print("❌ ERROR => $e");
+  //     utils.showErrorToast(context: context);
+  //     addCtr.reset();
+  //   }
+  //
+  //   notifyListeners();
+  // }
+
+
+  // PickerDateRange? selectedDate;
+
   Future<void> addVisit({
     required context,
     required String companyId,
@@ -2603,42 +2722,55 @@ TextEditingController date= TextEditingController(text: "${DateTime.now().day.to
     required List<String> cusName,
     required String tType,
     required String desc,
-    required List sendList, // List<String> better
+    required List sendList,
     required String lat,
     required String lng,
-    required VoidCallback callBack
+    required VoidCallback callBack,
   })
   async {
     try {
 
-      /// 🔥 VALIDATION (VERY IMPORTANT)
+      /// 🔥 SAFE STORAGE VALUES
+      final mobileNumber = localData.storage.read("mobile_number") ?? "";
+      final cosId = localData.storage.read("cos_id") ?? "";
+      final typeId = localData.storage.read("type_id") ?? "";
+      final userId = localData.storage.read("id") ?? "0";
+      final leadId = localData.storage.read("lead_id") ?? "";
+      final visitId = localData.storage.read("visit_id") ?? "";
+      final typeName = localData.storage.read("typeName") ?? "";
+      final fName = localData.storage.read("f_name") ?? "";
+      final cNo = localData.storage.read("c_no") ?? "";
+
+      final cusTypeData = localData.storage.read("cus_type");
+
+      /// 🔥 FINAL REQUEST MAP
       Map data = {
         "action": addVst,
         "task_id": taskId,
-        "log_file": localData.storage.read("mobile_number"),
-        "cos_id": localData.storage.read("cos_id"),
+        "log_file": mobileNumber,
+        "cos_id": cosId,
         "company_id": companyId,
 
-        /// ✅ CORRECT MULTIPLE SEND
-        "customer_id": sendList.join(","), // 🔥 IMPORTANT CHANGE
+        "customer_id": sendList.isNotEmpty ? sendList.join(",") : "",
+        "mobile_number": cNo,
 
-        "mobile_number": localData.storage.read("c_no"),
+        "customer_name": cusName.isNotEmpty ? cusName.join(",") : "",
 
-        /// ✅ MULTIPLE NAMES
-        "customer_name": cusName.join(","),
+        "type": typeId,
+        "created_by": userId,
 
-        "type": localData.storage.read("type_id"),
-        "created_by": localData.storage.read("id") ?? "0",
+        "discussion_points": disPoint.text.trim().isEmpty ? "NA" : disPoint.text.trim(),
+        "action_taken": points.text.trim().isEmpty ? "NA" : points.text.trim(),
 
-        "discussion_points": disPoint.text.trim(),
-        "action_taken": points.text.trim(),
+        "lead": leadId,
+        "call_visit_type": visitId,
 
-        "lead": localData.storage.read("lead_id"),
-        "call_visit_type": localData.storage.read("visit_id"),
-        "cus_type": localData.storage.read("cus_type")["id"].toString(),
+        "cus_type": (cusTypeData is Map && cusTypeData["id"] != null)
+            ? cusTypeData["id"].toString()
+            : "",
 
         "date": commentDate.text.trim(),
-        "review": selectReview,
+        "review": selectReview ?? "",
 
         "door_no": address.text.trim(),
         "area": comArea.text.trim(),
@@ -2650,44 +2782,56 @@ TextEditingController date= TextEditingController(text: "${DateTime.now().day.to
         "lat": lat,
         "lng": lng,
       };
-      print("📤 FINAL API DATA => $data");
-      print("📤 FINAL API DATA JSON => ${jsonEncode(data)}");
-      print("📤 FINAL API DATA => $data");
 
+      print("📤 FINAL API DATA => $data");
+      print("📤 JSON => ${jsonEncode(data)}");
+
+      /// 🔥 API CALL
       final response = await custRepo.addVisit(data);
 
-      print("📥 RESPONSE => $response");
+      print("📥 RAW RESPONSE => $response");
 
-      if (response.toString().contains('ok')) {
+      /// 🔥 SAFE RESPONSE CHECK
+      bool isSuccess = false;
+
+      if (response is Map) {
+        isSuccess = response["status_code"] == 200;
+      } else {
+        isSuccess = response.toString().toLowerCase().contains("ok") ||
+            response.toString().contains('"status_code":200');
+      }
+
+      if (isSuccess) {
 
         utils.showSuccessToast(
           context: context,
           text: constValue.success,
         );
 
+        /// 🔥 NOTIFICATION
         final empProvider =
         Provider.of<EmployeeProvider>(context, listen: false);
 
-        String myId = localData.storage.read("id").toString();
-
         try {
           await empProvider.sendAdminNotification(
-            "Visit report added - ${localData.storage.read("typeName") ?? ""}",
-            "Added by ${localData.storage.read("f_name")}",
+            "Visit report added - $typeName",
+            "Added by $fName",
             "",
             taskId,
             "",
           );
         } catch (e) {
-          print("Notification error ignored: $e");
+          print("⚠ Notification error ignored: $e");
         }
 
+        /// 🔥 FIRESTORE LOG
         await FirebaseFirestore.instance.collection('attendance').add({
-          'emp_id': myId,
+          'emp_id': userId,
           'time': DateTime.now(),
           'status': "",
         });
 
+        /// 🔥 REFRESH DATA
         getAllCustomers(false);
 
         Provider.of<HomeProvider>(context, listen: false)
@@ -2696,14 +2840,18 @@ TextEditingController date= TextEditingController(text: "${DateTime.now().day.to
         callBack();
 
         addCtr.reset();
+
         notifyListeners();
-      }
-      else {
+
+      } else {
+        print("❌ API FAILED RESPONSE => $response");
+
         utils.showErrorToast(context: context);
       }
 
     } catch (e) {
       print("❌ ERROR => $e");
+
       utils.showErrorToast(context: context);
       addCtr.reset();
     }
@@ -2711,8 +2859,6 @@ TextEditingController date= TextEditingController(text: "${DateTime.now().day.to
     notifyListeners();
   }
 
-
-  // PickerDateRange? selectedDate;
   List<DateTime> datesBetween = [];
   String betweenDates="";
   // void showDatePickerDialog(BuildContext context,String type,String id) {
@@ -5917,5 +6063,25 @@ print("customer all is${localData.storage.read("c_ids")}");
     localData.storage.remove("c_nos");
 
     notifyListeners();
+  }
+  Future<void> addCustomerApi({
+    required String companyId,
+    required String customerName,
+    required String mobileNo,
+  }) async {
+
+    Map<String, dynamic> data = {
+      "action": "get_all_data",
+      "search_type": "add_customer",
+      "company_id": companyId,
+      "customer_name": customerName,
+      "mobile_no": mobileNo,
+    };
+
+    print("📌 ADD CUSTOMER DATA: $data");
+
+    // API call here
+    // final response = await http.post(Uri.parse(url), body: data);
+
   }
 }

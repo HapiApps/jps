@@ -117,27 +117,29 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
 
                                         ],
                                       ),
-                                      40.width,
-                                      ElevatedButton.icon(
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: Colors.blue ,
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(8),
-                                          ),
-                                        ),
-                                        onPressed: () {
+                                      20.width,
+                                      InkWell(
+                                        onTap: () {
                                           showDialog(
                                             context: context,
                                             barrierDismissible: false,
                                             builder: (context) => const AddTypePopup(),
                                           );
                                         },
-                                        icon: const Icon(Icons.add, color: Colors.white, size: 18),
-                                        label: const Text(
-                                          "Add Visit Type",
-                                          style: TextStyle(fontSize: 12, color: Colors.white),
+                                        child: Container(
+                                          height: 25,
+                                          width: 25,
+                                          decoration: BoxDecoration(
+                                            color: Colors.blue.shade400,
+                                            shape: BoxShape.circle,
+                                          ),
+                                          child: const Icon(
+                                            Icons.add,
+                                            color: Colors.white,
+                                            size: 20,
+                                          ),
                                         ),
-                                      ),
+                                      )
                                        ],
                                   ),
                           GridView.builder(
@@ -216,18 +218,21 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
                                         : MediaQuery.of(context).size.width * 0.5,
                                   ),
                                   5.width,
-                                  CustomTextField(
-                                    width: kIsWeb
-                                        ? webWidth
-                                        : MediaQuery.of(context).size.width * 0.4,
-                                    text: "Task Date",
-                                    controller: taskProvider.taskDt,
-                                    hintText: "DD-MM-YYYY",
-                                    readOnly: true,
-                                    onTap: () {
-                                      _myFocusScopeNode.unfocus();
-                                      taskProvider.datePick(context: context, date: taskProvider.taskDt);
-                                    },
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 4.0),
+                                    child: CustomTextField(
+                                      width: kIsWeb
+                                          ? webWidth
+                                          : MediaQuery.of(context).size.width * 0.4,
+                                      text: "Task Date",
+                                      controller: taskProvider.taskDt,
+                                      hintText: "DD-MM-YYYY",
+                                      readOnly: true,
+                                      onTap: () {
+                                        _myFocusScopeNode.unfocus();
+                                        taskProvider.datePick(context: context, date: taskProvider.taskDt);
+                                      },
+                                    ),
                                   ),
                                 ],
                               ),
