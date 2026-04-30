@@ -1022,7 +1022,7 @@ Future<void> loginOuts(context) async {
       };
 
       print("===== REQUEST DATA =====");
-      print(data);
+      print("===== REQUEST DATA =====$data");
 
       final response = await homeRepo.getFullDashboard(data);
 

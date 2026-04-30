@@ -527,13 +527,13 @@ class _ViewMyLeavesState extends State<ViewMyLeaves> {
                                       children: [
 
                                         /// APPLIED (status 0)
-                                        leaveStatusList(createdToday, "0"),
+                                        leaveStatusList(createdToday, "0",levProvider.isLoading),
 
                                         /// APPROVED (status 1)
-                                        leaveStatusList(createdToday, "1"),
+                                        leaveStatusList(createdToday, "1",levProvider.isLoading),
 
                                         /// CANCELLED (status 2)
-                                        leaveStatusList(createdToday, "2"),
+                                        leaveStatusList(createdToday, "2",levProvider.isLoading),
                                       ],
                                     ),
                                   ),
@@ -549,12 +549,15 @@ class _ViewMyLeavesState extends State<ViewMyLeaves> {
                         Builder(
                           builder: (context) {
 
+                            // ✅ Loading first
+                            if (levProvider.isLoading) {
+                              return const Center(child: CircularProgressIndicator());
+                            }
+
                             List<LeaveModel> onLeaveToday;
 
                             if (levProvider.isFilterApplied) {
-
                               onLeaveToday = levProvider.myLevSearch;
-
                             } else {
 
                               DateTime today = DateTime.now();
@@ -573,6 +576,7 @@ class _ViewMyLeavesState extends State<ViewMyLeaves> {
                               }).toList();
                             }
 
+                            // ✅ after loading, check empty
                             if (onLeaveToday.isEmpty) {
                               return const Center(child: Text("No Employees On Leave Today"));
                             }
@@ -1484,10 +1488,13 @@ class _ViewMyLeavesState extends State<ViewMyLeaves> {
       ),
     );
   }
-  Widget leaveStatusList(List<LeaveModel> list, String status) {
+  Widget leaveStatusList(List<LeaveModel> list, String status, bool isLoading) {
 
-    final filtered =
-    list.where((element) => element.status == status).toList();
+    if (isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    final filtered = list.where((e) => e.status == status).toList();
 
     if (filtered.isEmpty) {
       return const Center(child: Text("No Data Found"));

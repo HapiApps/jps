@@ -64,6 +64,7 @@ class CustomerProvider with ChangeNotifier{
   String selectCustomerId = "";
   String selectCustomerName = "";
   String selectCustomerNo = "";
+
   void resetVisitForm() {
     setMultiSelectedCustomers([]);
 
@@ -6064,24 +6065,66 @@ print("customer all is${localData.storage.read("c_ids")}");
 
     notifyListeners();
   }
-  Future<void> addCustomerApi({
+  Future<bool> addCustomerApi({
     required String companyId,
+    required String customerName,
+    required String mobileNo,
+  })
+  async {
+    Map<String, dynamic> data = {
+      "action": editPopCustomer,
+      "company_id": companyId,
+      "user_id": localData.storage.read("id").toString(),
+      "created_by": localData.storage.read("id").toString(),
+      "cos_id": localData.storage.read("cos_id").toString(),
+      "platform": "android",
+      "name": customerName,
+      "phone_no": mobileNo,
+      "email": "",
+      "whatsapp_no": mobileNo,
+      "department": "",
+      "main_person": "",
+      "designation": "",
+      "role_name": "",
+      "log_file": "customer_log.txt"
+    };
+
+    final response = await custRepo.addCustomerPopDetails(data: data);
+    var res = jsonDecode(response);
+
+    if (res["status"] == true) {
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  Future<bool> addCompanyAndCustomerApi({
+    required String companyName,
     required String customerName,
     required String mobileNo,
   }) async {
 
     Map<String, dynamic> data = {
-      "action": "get_all_data",
-      "search_type": "add_customer",
-      "company_id": companyId,
+      "action": editPopCompany,
+      "cos_id": localData.storage.read("cos_id").toString(),
+      "user_id": localData.storage.read("id").toString(),
+      "created_by": localData.storage.read("id").toString(),
+      "platform": "1",
+
+      "company_name": companyName,
       "customer_name": customerName,
-      "mobile_no": mobileNo,
+      "phone_no": mobileNo,
     };
 
-    print("📌 ADD CUSTOMER DATA: $data");
+    final response = await custRepo.addCompanyPopDetails(data: data);
 
-    // API call here
-    // final response = await http.post(Uri.parse(url), body: data);
+    print("ADD COMPANY RESPONSE => $response");
 
+    if (response.contains('"status":true')) {
+      return true;
+    } else {
+      return false;
+    }
   }
 }

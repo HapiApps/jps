@@ -300,9 +300,9 @@ class _DashBoardState extends State<DashBoard> {
                         },
                         child: SvgPicture.asset(
                           assets.loc,
-                          height: 20,
-                          width: 20,
-                          color: Colors.green,
+                          height: 24,
+                          width: 24,
+                          color: Colors.green.shade800,
                         ),
                       ),
 
@@ -322,9 +322,9 @@ class _DashBoardState extends State<DashBoard> {
                               },
                               child: SvgPicture.asset(
                                 assets.not,
-                                height: 20,
-                                width: 16,
-                                color: Colors.blue.shade300,
+                                height: 28,
+                                width: 20,
+                                color: Colors.blue.shade900,
                               ),
                             ),
 
@@ -332,6 +332,7 @@ class _DashBoardState extends State<DashBoard> {
                               Positioned(
                                 right: 0,
                                 top: 0,
+
                                 child: Container(
                                   padding: const EdgeInsets.all(5),
                                   decoration: const BoxDecoration(
@@ -341,7 +342,7 @@ class _DashBoardState extends State<DashBoard> {
                                   child: Text(
                                     emp.unreadCount.toString(),
                                     style:  TextStyle(
-                                      color: Colors.blue.shade300,
+                                      color: Colors.blue.shade900,
                                       fontSize: 10,
                                       fontWeight: FontWeight.bold,
                                     ),
@@ -362,7 +363,7 @@ class _DashBoardState extends State<DashBoard> {
         IconButton(
         icon: Icon(
         Icons.description_sharp,
-        color: Colors.pink.shade300,
+        color: Colors.pink.shade800,
         size: 26,
         ),
         onPressed: () {

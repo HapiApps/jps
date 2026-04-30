@@ -27,6 +27,7 @@ import '../../task/search_custom_dropdown.dart' hide MapDropDown, MultiSelectDro
 import '../../task/search_dropdown_list.dart';
 import '../viamap.dart';
 import '../visit_report/visits_report.dart';
+import 'add_company.dart';
 import 'add_customer.dart';
 
 class CusAddVisit extends StatefulWidget {
@@ -49,18 +50,12 @@ class _CusAddVisitState extends State<CusAddVisit> with TickerProviderStateMixin
   var companyName="";
   @override
   @override
+  @override
   void initState() {
     super.initState();
 
-    // localData.storage.write("c_id", "");
-    // localData.storage.write("c_no", "");
-    // localData.storage.write("c_name", "");
-    //
-    // setCustomer();
-
-
-
     WidgetsBinding.instance.addPostFrameCallback((_) async {
+
       final taskProvider = Provider.of<TaskProvider>(context, listen: false);
       final employeeProvider = Provider.of<EmployeeProvider>(context, listen: false);
       final customerProvider = Provider.of<CustomerProvider>(context, listen: false);
@@ -68,18 +63,19 @@ class _CusAddVisitState extends State<CusAddVisit> with TickerProviderStateMixin
 
       /// 🔥 FULL RESET
       customerProvider.resetVisitForm();
-      customerProvider.setMultiSelectedCustomers([]); // 🔥 IMPORTANT
+      customerProvider.setMultiSelectedCustomers([]);
 
+      /// ✅ companyId companyName instant load
       setState(() {
-        companyId = "";
-        companyName = "";
-        sendList = []; // 🔥 NEW LIST (NOT clear)
+        companyId = widget.companyId.toString();
+        companyName = widget.companyName.toString();
+        sendList = [];
       });
 
       /// API CALLS
       employeeProvider.getAllUsers();
       taskProvider.getCustomerType(false);
-      customerProvider.getAllCustomers(true);
+      await customerProvider.getAllCustomers(true);
 
       if (!kIsWeb) {
         taskProvider.getAllTypes();
@@ -109,8 +105,6 @@ class _CusAddVisitState extends State<CusAddVisit> with TickerProviderStateMixin
         );
       }
     });
-
-
   }
   void setCustomer(){
     companyId=widget.companyId.toString();
@@ -127,7 +121,19 @@ class _CusAddVisitState extends State<CusAddVisit> with TickerProviderStateMixin
   Widget build(BuildContext context) {
     var webWidth=MediaQuery.of(context).size.width * 0.5;
     var phoneWidth=MediaQuery.of(context).size.width * 0.9;
-    return Consumer4<CustomerProvider,LocationProvider,TaskProvider,HomeProvider>(builder: (context,custProvider,locPvr,taskProvider,home,_){
+
+    return Consumer4<CustomerProvider,LocationProvider,TaskProvider,HomeProvider>(
+        builder: (context,custProvider,locPvr,taskProvider,home,_){
+          List<CustomerModel> updatedCustomerList = [
+            CustomerModel(
+              userId: "add_company",
+              companyName: "+ Add Company",
+              customerId: "",
+              firstName: "",
+              phoneNumber: "",
+            ),
+            ...custProvider.customer,
+          ];
       return FocusScope(
         node: _myFocusScopeNode,
         child: SafeArea (
@@ -151,17 +157,30 @@ class _CusAddVisitState extends State<CusAddVisit> with TickerProviderStateMixin
                               const Loading()
                                   :CustomerDropdown(
                                 text: constValue.companyName,
-                                employeeList: custProvider.customer,
-
-                                onChanged: (CustomerModel? value) {
-                                  print("🔥 DROPDOWN TRIGGERED");
+                                employeeList: updatedCustomerList,
+                                onChanged: (CustomerModel? value) async {
 
                                   if (value == null) return;
 
+                                  // ✅ Add company selected
+                                  if (value.userId.toString() == "add_company") {
+
+                                    final result = await showDialog(
+                                      context: context,
+                                      barrierDismissible: false,
+                                      builder: (context) => const AddCompanyPopup(), // create popup
+                                    );
+
+                                    if(result == true){
+                                      //await custProvider.getCustomer(); // refresh company list api
+                                    }
+                                    return;
+                                  }
+
+                                  // normal flow
                                   companyId = value.userId.toString();
                                   companyName = value.companyName.toString();
 
-                                  /// 🔥 CLEAR PROVIDER FIRST
                                   custProvider.setMultiSelectedCustomers([]);
 
                                   List<Map<String, dynamic>> tempList = [];
@@ -178,22 +197,13 @@ class _CusAddVisitState extends State<CusAddVisit> with TickerProviderStateMixin
                                     });
                                   }
 
-                                  print("📦 NEW LIST: $tempList");
-
-                                  /// 🔥 ONLY ONE setState
                                   setState(() {
                                     sendList = tempList;
                                     if (tempList.length == 1) {
-                                      print("✅ AUTO SELECT");
                                       custProvider.setMultiSelectedCustomers([tempList[0]]);
-                                    } else {
-                                      print("⚠️ MULTIPLE");
                                     }
                                   });
-                                  },
-
-
-
+                                },
                                 size: kIsWeb ? webWidth : phoneWidth,
                               ),
 
@@ -280,7 +290,7 @@ class _CusAddVisitState extends State<CusAddVisit> with TickerProviderStateMixin
               width: kIsWeb ? webWidth : phoneWidth,
               selectedItems: custProvider.multiSelectedCustomerList,
 
-              onChanged: (list) {
+              onChanged: (list) async {
 
                 bool isAddCustomerSelected =
                 list.any((item) => item["id"] == "add_customer");
@@ -288,7 +298,7 @@ class _CusAddVisitState extends State<CusAddVisit> with TickerProviderStateMixin
                 if (isAddCustomerSelected) {
                   list.removeWhere((item) => item["id"] == "add_customer");
 
-                  showDialog(
+                  final result = await showDialog(
                     context: context,
                     barrierDismissible: false,
                     builder: (context) => AddCustomerPopup(
@@ -297,6 +307,12 @@ class _CusAddVisitState extends State<CusAddVisit> with TickerProviderStateMixin
                           : widget.companyId.toString(),
                     ),
                   );
+
+                  // ✅ popup success return true na refresh
+                  if (result == true) {
+                    await  custProvider.getAllCustomers(true);
+
+                  }
 
                   return;
                 }

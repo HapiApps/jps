@@ -41,6 +41,8 @@ const String addGradeAmount ="add_grade_amount";
 
 /// CUSTOMER
 const String createCustomer ="create_customer";
+const String editPopCustomer ="edit_pop_customer";
+const String editPopCompany ="edit_pop_company";
 const String updateCustomer ="update_customer";
 const String custAttendance = "run_attendance";
 const String addCmt ="insert_call_comments";

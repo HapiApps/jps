@@ -444,4 +444,58 @@ class CustomerRepository{
       throw Exception('Failed to work flow');
     }
   }
+  Future<String> addCustomerPopDetails({
+    required Map<String, dynamic> data,
+  })
+  async {
+    try {
+      final uri = Uri.parse(phpFile); // your api url
+      var request = http.MultipartRequest("POST", uri);
+
+      data.forEach((key, value) {
+        request.fields[key] = value.toString();
+      });
+
+      var response = await request.send();
+      var result = await http.Response.fromStream(response);
+
+      print("Customer Details Response: ${result.body}");
+
+      if (result.statusCode == 200) {
+        return result.body;
+      } else {
+        return result.body;
+      }
+    } catch (e) {
+      print("Error: $e");
+      throw Exception("Failed to add customer details");
+    }
+  }
+  Future<String> addCompanyPopDetails({
+    required Map<String, dynamic> data,
+  })
+  async {
+    try {
+      final uri = Uri.parse(phpFile); // your api url
+      var request = http.MultipartRequest("POST", uri);
+
+      data.forEach((key, value) {
+        request.fields[key] = value.toString();
+      });
+
+      var response = await request.send();
+      var result = await http.Response.fromStream(response);
+
+      print("Company and Customer Details Response: ${result.body}");
+
+      if (result.statusCode == 200) {
+        return result.body;
+      } else {
+        return result.body;
+      }
+    } catch (e) {
+      print("Error: $e");
+      throw Exception("Failed to add customer details");
+    }
+  }
 }
