@@ -51,54 +51,62 @@ class _CusAddVisitState extends State<CusAddVisit> with TickerProviderStateMixin
   @override
   @override
   @override
+  @override
   void initState() {
     super.initState();
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-
       final taskProvider = Provider.of<TaskProvider>(context, listen: false);
       final employeeProvider = Provider.of<EmployeeProvider>(context, listen: false);
       final customerProvider = Provider.of<CustomerProvider>(context, listen: false);
       final locationProvider = Provider.of<LocationProvider>(context, listen: false);
 
-      /// 🔥 FULL RESET
+      /// 🔥 RESET
       customerProvider.resetVisitForm();
       customerProvider.setMultiSelectedCustomers([]);
 
-      /// ✅ companyId companyName instant load
       setState(() {
         companyId = widget.companyId.toString();
         companyName = widget.companyName.toString();
         sendList = [];
       });
 
-      /// API CALLS
-      employeeProvider.getAllUsers();
-      taskProvider.getCustomerType(false);
-      await customerProvider.getAllCustomers(true);
+      /// ✅ Run API parallel (fast + no lag)
+      await Future.wait([
+        employeeProvider.getAllUsers(),
+        taskProvider.getCustomerType(false),
+        customerProvider.getAllCustomers(true),
+      ]);
 
       if (!kIsWeb) {
-        taskProvider.getAllTypes();
+        await taskProvider.getAllTypes();
       } else {
-        taskProvider.getTaskType(false);
-        taskProvider.getTaskStatuses();
+        await Future.wait([
+          taskProvider.getTaskType(false),
+          taskProvider.getTaskStatuses(),
+        ]);
       }
 
       if (widget.isDirect == true) {
         if (kIsWeb) {
-          customerProvider.getLeadCategory();
-          customerProvider.getVisitType();
-          customerProvider.getCmtType();
+          await Future.wait([
+            customerProvider.getLeadCategory(),
+            customerProvider.getVisitType(),
+            customerProvider.getCmtType(),
+          ]);
         } else {
-          customerProvider.getLead();
-          customerProvider.getVisit();
-          customerProvider.getCommentType();
+          await Future.wait([
+            customerProvider.getLead(),
+            customerProvider.getVisit(),
+            customerProvider.getCommentType(),
+          ]);
         }
       }
 
       customerProvider.initComment(widget.numberList, widget.type);
 
-      if (locationProvider.latitude != "" && locationProvider.longitude != "") {
+      if (locationProvider.latitude.isNotEmpty &&
+          locationProvider.longitude.isNotEmpty) {
         customerProvider.getAdd(
           double.parse(locationProvider.latitude),
           double.parse(locationProvider.longitude),
@@ -124,16 +132,6 @@ class _CusAddVisitState extends State<CusAddVisit> with TickerProviderStateMixin
 
     return Consumer4<CustomerProvider,LocationProvider,TaskProvider,HomeProvider>(
         builder: (context,custProvider,locPvr,taskProvider,home,_){
-          List<CustomerModel> updatedCustomerList = [
-            CustomerModel(
-              userId: "add_company",
-              companyName: "+ Add Company",
-              customerId: "",
-              firstName: "",
-              phoneNumber: "",
-            ),
-            ...custProvider.customer,
-          ];
       return FocusScope(
         node: _myFocusScopeNode,
         child: SafeArea (
@@ -152,59 +150,118 @@ class _CusAddVisitState extends State<CusAddVisit> with TickerProviderStateMixin
                         child: Column(
                           children: [
                             20.height,
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.start,
+                              children: [
+                                22.width,
+                                CustomText(text: constValue.companyName,colors:Colors.black,size: 14,),10.width,
+
+                              ],
+                            ),
                             if(widget.isDirect==true)
-                              custProvider.refresh == false?
-                              const Loading()
-                                  :CustomerDropdown(
-                                text: constValue.companyName,
-                                employeeList: updatedCustomerList,
-                                onChanged: (CustomerModel? value) async {
+                              Consumer<CustomerProvider>(
+                                builder: (context, custProvider, child) {
 
-                                  if (value == null) return;
+                                  List<CustomerModel> updatedCompanyList = [
+                                    CustomerModel(
+                                      userId: "add_company",
+                                      companyName: "+ Add Company",
+                                      customerId: "",
+                                      firstName: "",
+                                      phoneNumber: "",
+                                    ),
+                                    ...custProvider.customer,
+                                  ];
 
-                                  // ✅ Add company selected
-                                  if (value.userId.toString() == "add_company") {
+                                  return CustomerDropdown(
+                                    key: ValueKey(custProvider.customer.length),
+                                    hintText: false,// 🔥 force rebuild
+                                    text: companyId == "" ? constValue.companyName : companyName,
+                                    employeeList: updatedCompanyList,
+                                    onChanged: (CustomerModel? value) async {
 
-                                    final result = await showDialog(
-                                      context: context,
-                                      barrierDismissible: false,
-                                      builder: (context) => const AddCompanyPopup(), // create popup
-                                    );
+                                      if (value == null) return;
 
-                                    if(result == true){
-                                      //await custProvider.getCustomer(); // refresh company list api
-                                    }
-                                    return;
-                                  }
+                                      // ✅ Add Company Click
+                                      if (value.userId.toString() == "add_company") {
 
-                                  // normal flow
-                                  companyId = value.userId.toString();
-                                  companyName = value.companyName.toString();
+                                        final result = await showDialog(
+                                          context: context,
+                                          barrierDismissible: false,
+                                          builder: (_) => const AddCompanyPopup(),
+                                        );
 
-                                  custProvider.setMultiSelectedCustomers([]);
+                                        if (result != null && result is CustomerModel) {
 
-                                  List<Map<String, dynamic>> tempList = [];
+                                          // ✅ company set instantly
+                                          setState(() {
+                                            companyId = result.userId.toString();
+                                            companyName = result.companyName.toString();
+                                          });
 
-                                  var idList = value.customerId.toString().split('||');
-                                  var usersList = value.firstName.toString().split('||');
-                                  var phoneList = value.phoneNumber.toString().split('||');
+                                          custProvider.setMultiSelectedCustomers([]);
 
-                                  for (var i = 0; i < usersList.length; i++) {
-                                    tempList.add({
-                                      "id": idList[i],
-                                      "name": usersList[i],
-                                      "no": phoneList[i],
-                                    });
-                                  }
+                                          // ✅ build customer list for that company
+                                          List<Map<String, dynamic>> tempList = [];
 
-                                  setState(() {
-                                    sendList = tempList;
-                                    if (tempList.length == 1) {
-                                      custProvider.setMultiSelectedCustomers([tempList[0]]);
-                                    }
-                                  });
+                                          var idList = result.customerId.toString().split("||");
+                                          var usersList = result.firstName.toString().split("||");
+                                          var phoneList = result.phoneNumber.toString().split("||");
+
+                                          for (int i = 0; i < usersList.length; i++) {
+                                            tempList.add({
+                                              "id": idList[i],
+                                              "name": usersList[i],
+                                              "no": phoneList[i],
+                                            });
+                                          }
+
+                                          setState(() {
+                                            sendList = tempList;
+                                          });
+
+                                          // ✅ auto select first customer
+                                          if (tempList.isNotEmpty) {
+                                            custProvider.setMultiSelectedCustomers([tempList[0]]);
+                                          }
+                                        }
+
+                                        return; // 🔥 stop here
+                                      }
+
+                                      // ✅ Normal Company Select
+                                      setState(() {
+                                        companyId = value.userId.toString();
+                                        companyName = value.companyName.toString();
+                                      });
+
+                                      custProvider.setMultiSelectedCustomers([]);
+
+                                      List<Map<String, dynamic>> tempList = [];
+
+                                      var idList = value.customerId.toString().split("||");
+                                      var usersList = value.firstName.toString().split("||");
+                                      var phoneList = value.phoneNumber.toString().split("||");
+
+                                      for (int i = 0; i < usersList.length; i++) {
+                                        tempList.add({
+                                          "id": idList[i],
+                                          "name": usersList[i],
+                                          "no": phoneList[i],
+                                        });
+                                      }
+
+                                      setState(() {
+                                        sendList = tempList;
+                                      });
+
+                                      if (tempList.length == 1) {
+                                        custProvider.setMultiSelectedCustomers([tempList[0]]);
+                                      }
+                                    },
+                                    size: kIsWeb ? webWidth : phoneWidth,
+                                  );
                                 },
-                                size: kIsWeb ? webWidth : phoneWidth,
                               ),
 
                             if(widget.isDirect==false)
@@ -216,7 +273,6 @@ class _CusAddVisitState extends State<CusAddVisit> with TickerProviderStateMixin
                                 ],
                               ),
                             MapDropDown(
-                              isRequired: true,
                               isRefresh: taskProvider.cusTypeList.isEmpty,
                               callback: () {
                                 if (!kIsWeb) {
@@ -289,32 +345,31 @@ class _CusAddVisitState extends State<CusAddVisit> with TickerProviderStateMixin
               list: updatedList,
               width: kIsWeb ? webWidth : phoneWidth,
               selectedItems: custProvider.multiSelectedCustomerList,
-
               onChanged: (list) async {
 
                 bool isAddCustomerSelected =
                 list.any((item) => item["id"] == "add_customer");
 
                 if (isAddCustomerSelected) {
-                  list.removeWhere((item) => item["id"] == "add_customer");
+
+                  list.removeWhere((e) => e["id"] == "add_customer");
 
                   final result = await showDialog(
                     context: context,
                     barrierDismissible: false,
-                    builder: (context) => AddCustomerPopup(
-                      companyId: widget.isDirect == true
-                          ? companyId.toString()
-                          : widget.companyId.toString(),
+                    builder: (_) => AddCustomerPopup(
+                      companyId: companyId.toString(), // ✅ selected companyId
                     ),
                   );
 
-                  // ✅ popup success return true na refresh
-                  if (result == true) {
-                    await  custProvider.getAllCustomers(true);
+                  if (result != null) {
+                    setState(() {
+                      sendList.insert(0, result); // ✅ dropdown list update
+                    });
 
+                    list.add(result);
+                    custProvider.setMultiSelectedCustomers(list);
                   }
-
-                  return;
                 }
 
                 custProvider.setMultiSelectedCustomers(list);
@@ -401,7 +456,7 @@ class _CusAddVisitState extends State<CusAddVisit> with TickerProviderStateMixin
                               },
                               isRefresh: custProvider.leadCategoryList.isEmpty,
                               width: kIsWeb ? webWidth : phoneWidth,
-                              hintText: constValue.leadStatus,
+                              hintText: constValue.leadStatus,isRequired: true,
                               list: (custProvider.leadCategoryList..sort((a, b) {
                                 return int.parse(a["id"].toString())
                                     .compareTo(int.parse(b["id"].toString()));

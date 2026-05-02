@@ -89,6 +89,12 @@ class TaskProvider with ChangeNotifier {
     filterList();
     notifyListeners();
   }
+  void setDefaultType() {
+    if (typeList.isNotEmpty && (type == null || type.toString().isEmpty)) {
+      _type = typeList.first["id"].toString();
+      notifyListeners();
+    }
+  }
   // void dateFilterList(String date1,String date2) {
   //   final dateFormat = DateFormat('dd-MM-yyyy');
   //   final parsedStartDate = dateFormat.parse(date1);
@@ -2039,6 +2045,7 @@ class TaskProvider with ChangeNotifier {
   void changeType(dynamic value) {
     _selectType = value;
     _type = value;
+    print("VVV $value");
     localData.storage.write("type_id", value);
     notifyListeners();
   }
@@ -3655,6 +3662,9 @@ class TaskProvider with ChangeNotifier {
         } else {
           typeList.clear();
           typeList = list;
+          if (typeList.isNotEmpty) {
+            changeType(typeList.first["id"].toString());
+          }
           _addRefresh = true;
           notifyListeners();
         }

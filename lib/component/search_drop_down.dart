@@ -48,6 +48,7 @@ class _CustomerDropdownState extends State<CustomerDropdown> {
                 CustomText(
                   text: widget.text.toString(),
                   size: 13,
+                  colors: Colors.black,
                   isBold: false,
                 ),
                 if (widget.isRequired == true)
@@ -79,8 +80,8 @@ class _CustomerDropdownState extends State<CustomerDropdown> {
                 dropdownSearchDecoration: InputDecoration(
                   hintText: "${widget.text}",
                   hintStyle: const TextStyle(
-                    color: Colors.grey,
-                    fontSize: 13,
+                    color: Colors.black,
+                    fontSize: 14,
                     fontFamily: 'Poppins',
                   ),
                   contentPadding: const EdgeInsets.symmetric(

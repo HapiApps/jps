@@ -26,6 +26,7 @@ import '../../source/styles/decoration.dart';
 import '../../source/utilities/utils.dart';
 import '../../view_model/task_provider.dart';
 import '../common/fullscreen_photo.dart';
+import '../customer/visit/add_company.dart';
 
 class AddTask extends StatefulWidget {
   const AddTask({super.key});
@@ -38,38 +39,44 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
   late AnimationController animationController;
   late Animation<double> animation;
   final FocusScopeNode _myFocusScopeNode = FocusScopeNode();
-
+  List sendList=[];
+  @override
   @override
   void initState() {
     super.initState();
-    Future.delayed(Duration.zero, () async {
 
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       final taskProvider = Provider.of<TaskProvider>(context, listen: false);
-      if (taskProvider.statusList.isNotEmpty) {
-        taskProvider.setStatusByName(
-          taskProvider.statusList.first["value"],
-        );
+
+      taskProvider.setTodayDate();
+
+      await Future.wait([
+        taskProvider.getTaskType(false),
+       taskProvider.getTaskStatuses(),
+      ]);
+      // ✅ default type set
+      taskProvider.setDefaultType();
+      taskProvider.initValue();
+      /// 🔥 AFTER THAT default set pannunga
+      if (taskProvider.typeList.isNotEmpty) {
+        taskProvider.changeType(taskProvider.typeList.first["id"].toString());
       }
 
-      /// ✅ set today date
-      taskProvider.setTodayDate();
-      await taskProvider.getTaskType(false);
-      await taskProvider.getTaskStatuses();
-
-    taskProvider.initValue();
-
-      if(taskProvider.assignEmployees.isEmpty){
+      if (taskProvider.assignEmployees.isEmpty) {
         taskProvider.getTaskUsers();
       }
 
+      if (taskProvider.statusList.isNotEmpty) {
+        taskProvider.setStatusByName(taskProvider.statusList.first["value"]);
+      }
     });
+
     animationController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 1),
-    )..repeat(reverse: true); // Shrinks and expands
+    )..repeat(reverse: true);
 
-    animation =
-        Tween<double>(begin: 0.5, end: 1.5).animate(animationController);
+    animation = Tween<double>(begin: 0.5, end: 1.5).animate(animationController);
   }
 
   @override
@@ -103,96 +110,157 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
                         child: SingleChildScrollView(
                           child: Column(
                             children: [
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.start,
-                                    children: [
-                                      Row(
-                                        children: [
-                                          CustomText(text: "Visit Type"),
-                                          CustomText(text: "*",colors: colorsConst.appRed,isBold: true,size: 15,),
-
-                                        ],
-                                      ),
-                                      20.width,
-                                      InkWell(
-                                        onTap: () {
-                                          showDialog(
-                                            context: context,
-                                            barrierDismissible: false,
-                                            builder: (context) => const AddTypePopup(),
-                                          );
-                                        },
-                                        child: Container(
-                                          height: 25,
-                                          width: 25,
-                                          decoration: BoxDecoration(
-                                            color: Colors.blue.shade400,
-                                            shape: BoxShape.circle,
-                                          ),
-                                          child: const Icon(
-                                            Icons.add,
-                                            color: Colors.white,
-                                            size: 20,
-                                          ),
-                                        ),
-                                      )
-                                       ],
-                                  ),
-                          GridView.builder(
-                            itemCount: taskProvider.typeList.length,
-                            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 1,
-                              crossAxisSpacing: kIsWeb ? 5 : 10,
-                              mainAxisSpacing: kIsWeb ? 5 : 10,
-                              mainAxisExtent: 20,
-                            ),
-                            shrinkWrap: true,
-                            physics: const NeverScrollableScrollPhysics(),
-                            itemBuilder: (context, index) {
-                              final item = taskProvider.typeList[index];
-
-                              return CustomRadioButton(
-                                width: MediaQuery.of(context).size.width * 0.50,
-                                text: item["value"].toString().trim(),
-                                onChanged: (Object? value) {
-                                  taskProvider.changeType(item["id"].toString()); // ✅ FIX
+                              //type
+                              MapDropDown(
+                                isRequired: true,
+                                isRefresh: taskProvider.typeList.isEmpty,
+                                callback: () {
+                                  taskProvider.getTaskType(true);
                                 },
-                                saveValue: taskProvider.type.toString(),          // ✅ FIX
-                                confirmValue: item["id"].toString(),              // ✅ FIX
-                              );
-                            },
-                          ),
-                                  3.height,
-                                ],
+                                width: kIsWeb ? webWidth : phoneWidth,
+                                hintText: constValue.type,
+                                list: taskProvider.typeList,   // ✅ FIX
+                                saveValue: taskProvider.type,
+                                onChanged: (value) {
+                                  print("Value $value");
+                                  taskProvider.changeType(value.toString()); // ✅ FIX
+                                },
+                                dropText: 'value',
                               ),
                               // cusPvr.refresh == false?
                               // const Loading()
 
+                              // Column(
+                              //   children: [
+                              //     Row(
+                              //       children: [
+                              //         CustomText(text:constValue.companyName,size:13,isBold: false,),
+                              //         // CustomText(text:"*",colors:colorsConst.appRed,size:18,isBold: false,),
+                              //       ],
+                              //     ),
+                              //     CustomerDropdown(
+                              //       text: companyId==""?constValue.companyName:companyName,
+                              //       isRequired: true,hintText: false,
+                              //       employeeList: cusPvr.customer,
+                              //       onChanged: (CustomerModel? value) {
+                              //         setState(() {
+                              //           companyId=value!.userId.toString();
+                              //           companyName=value.companyName.toString();
+                              //         });
+                              //       }, size: kIsWeb?webWidth:phoneWidth,),
+                              //   ],
+                              // ),
                               Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Row(
-                                    children: [
-                                      CustomText(text:constValue.companyName,size:13,isBold: false,),
-                                      // CustomText(text:"*",colors:colorsConst.appRed,size:18,isBold: false,),
-                                    ],
+                                  CustomText(text:constValue.companyName,size:13,isBold: false,),
+                                  3.height,
+                                  Consumer<CustomerProvider>(
+                                    builder: (context, custProvider, child) {
+
+                                      List<CustomerModel> updatedCompanyList = [
+                                        CustomerModel(
+                                          userId: "add_company",
+                                          companyName: "+ Add Company",
+                                          customerId: "",
+                                          firstName: "",
+                                          phoneNumber: "",
+                                        ),
+                                        ...custProvider.customer,
+                                      ];
+
+                                      return CustomerDropdown(
+                                        key: ValueKey(custProvider.customer.length),
+                                        hintText: false,// 🔥 force rebuild
+                                        text: companyId == "" ? constValue.companyName : companyName,
+                                        employeeList: updatedCompanyList,
+                                        onChanged: (CustomerModel? value) async {
+
+                                          if (value == null) return;
+
+                                          // ✅ Add Company Click
+                                          if (value.userId.toString() == "add_company") {
+
+                                            final result = await showDialog(
+                                              context: context,
+                                              barrierDismissible: false,
+                                              builder: (_) => const AddCompanyPopup(),
+                                            );
+
+                                            if (result != null && result is CustomerModel) {
+
+                                              // ✅ company set instantly
+                                              setState(() {
+                                                companyId = result.userId.toString();
+                                                companyName = result.companyName.toString();
+                                              });
+
+                                              custProvider.setMultiSelectedCustomers([]);
+
+                                              // ✅ build customer list for that company
+                                              List<Map<String, dynamic>> tempList = [];
+
+                                              var idList = result.customerId.toString().split("||");
+                                              var usersList = result.firstName.toString().split("||");
+                                              var phoneList = result.phoneNumber.toString().split("||");
+
+                                              for (int i = 0; i < usersList.length; i++) {
+                                                tempList.add({
+                                                  "id": idList[i],
+                                                  "name": usersList[i],
+                                                  "no": phoneList[i],
+                                                });
+                                              }
+
+                                              setState(() {
+                                                sendList = tempList;
+                                              });
+
+                                              // ✅ auto select first customer
+                                              if (tempList.isNotEmpty) {
+                                                custProvider.setMultiSelectedCustomers([tempList[0]]);
+                                              }
+                                            }
+
+                                            return; // 🔥 stop here
+                                          }
+
+                                          // ✅ Normal Company Select
+                                          setState(() {
+                                            companyId = value.userId.toString();
+                                            companyName = value.companyName.toString();
+                                          });
+
+                                          custProvider.setMultiSelectedCustomers([]);
+
+                                          List<Map<String, dynamic>> tempList = [];
+
+                                          var idList = value.customerId.toString().split("||");
+                                          var usersList = value.firstName.toString().split("||");
+                                          var phoneList = value.phoneNumber.toString().split("||");
+
+                                          for (int i = 0; i < usersList.length; i++) {
+                                            tempList.add({
+                                              "id": idList[i],
+                                              "name": usersList[i],
+                                              "no": phoneList[i],
+                                            });
+                                          }
+
+                                          setState(() {
+                                            sendList = tempList;
+                                          });
+
+                                          if (tempList.length == 1) {
+                                            custProvider.setMultiSelectedCustomers([tempList[0]]);
+                                          }
+                                        },
+                                        size: kIsWeb ? webWidth : phoneWidth,
+                                      );
+                                    },
                                   ),
-                                  CustomerDropdown(
-                                    text: companyId==""?constValue.companyName:companyName,
-                                    isRequired: true,hintText: false,
-                                    employeeList: cusPvr.customer,
-                                    onChanged: (CustomerModel? value) {
-                                      setState(() {
-                                        companyId=value!.userId.toString();
-                                        companyName=value.companyName.toString();
-                                      });
-                                    }, size: kIsWeb?webWidth:phoneWidth,),
                                 ],
                               ),
-
                               SearchCustomDropdown(
                                   text: "Assign To",
                                   hintText: taskProvider.assignedNames.isEmpty
@@ -215,15 +283,15 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
                                     },
                                     width: kIsWeb
                                         ? webWidth
-                                        : MediaQuery.of(context).size.width * 0.5,
+                                        : MediaQuery.of(context).size.width * 0.4,
                                   ),
-                                  5.width,
+                                  20.width,
                                   Padding(
-                                    padding: const EdgeInsets.only(top: 4.0),
+                                    padding: const EdgeInsets.only(top: 4.0,left: 4),
                                     child: CustomTextField(
                                       width: kIsWeb
                                           ? webWidth
-                                          : MediaQuery.of(context).size.width * 0.4,
+                                          : 170,// MediaQuery.of(context).size.width * 0.4,
                                       text: "Task Date",
                                       controller: taskProvider.taskDt,
                                       hintText: "DD-MM-YYYY",
@@ -276,7 +344,7 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
                                 text: " Task Title / Description",isRequired: true,
                                 controller: taskProvider.taskTitleCont,
                                 // si: kIsWeb?webWidth:phoneWidth,
-                                textCapitalization: TextCapitalization.sentences, maxLine: 2,
+                                textCapitalization: TextCapitalization.sentences, maxLine: 4,
                               ),
                               if(!kIsWeb)
                               SizedBox(
@@ -680,6 +748,7 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
                           ],
                         ),
                       ),
+                      40.height,
                     ],
                   ),
                 ),

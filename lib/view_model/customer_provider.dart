@@ -60,6 +60,8 @@ class CustomerProvider with ChangeNotifier{
   final CustomerRepository custRepo = CustomerRepository();
   TextEditingController search = TextEditingController();
   TextEditingController search2 = TextEditingController();
+  RoundedLoadingButtonController addcustomerCtr=RoundedLoadingButtonController();
+  RoundedLoadingButtonController addCompanyCtr=RoundedLoadingButtonController();
   String? callTypeId;
   String selectCustomerId = "";
   String selectCustomerName = "";
@@ -590,6 +592,20 @@ void closeVisible(){
   List<CustomerModel> get customerDetailData => _customerDetailData;
   List<Map<String, dynamic>> selectedCustomers = [];
   List<Map<String, dynamic>> multiSelectedCustomerList = [];
+  List<dynamic> customerLists = [];
+  String selectedCompanyId = "";
+  String selectedCompanyName = "";
+  List<Map<String, dynamic>> sendLists = [];
+
+  void setSendList(List<Map<String, dynamic>> list) {
+    sendLists = list;
+    notifyListeners();
+  }
+
+  void addCustomerInstant(dynamic customer) {
+    customerLists.insert(0, customer); // instant top add
+    notifyListeners();
+  }
   void setMultiSelectedCustomers(List<Map<String, dynamic>> list) {
     multiSelectedCustomerList = list;
     print("multiSelectedCustomerList $multiSelectedCustomerList");
@@ -6069,8 +6085,8 @@ print("customer all is${localData.storage.read("c_ids")}");
     required String companyId,
     required String customerName,
     required String mobileNo,
-  })
-  async {
+  }) async {
+
     Map<String, dynamic> data = {
       "action": editPopCustomer,
       "company_id": companyId,
@@ -6089,14 +6105,17 @@ print("customer all is${localData.storage.read("c_ids")}");
       "log_file": "customer_log.txt"
     };
 
+    print("📌 Add Customer Request: $data");
+
     final response = await custRepo.addCustomerPopDetails(data: data);
+
+    print("✅ Add Customer Raw Response: $response");
+
     var res = jsonDecode(response);
 
-    if (res["status"] == true) {
-      return true;
-    } else {
-      return false;
-    }
+    print("✅ Add Customer Decoded Response: $res");
+   addcustomerCtr.reset();
+    return res["status"] == true;
   }
 
   Future<bool> addCompanyAndCustomerApi({
@@ -6122,8 +6141,11 @@ print("customer all is${localData.storage.read("c_ids")}");
     print("ADD COMPANY RESPONSE => $response");
 
     if (response.contains('"status":true')) {
+      addCompanyCtr.reset();
       return true;
+
     } else {
+      addCompanyCtr.reset();
       return false;
     }
   }

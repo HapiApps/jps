@@ -168,22 +168,6 @@ class _CustomerDataState extends State<CustomerData> {
                                         ),
                                       )),
 
-                                  // if(localData.storage.read("role") =="1")
-                                  // IconButton(
-                                  //   onPressed:widget.visitsCallBack,
-                                  //   icon: SvgPicture.asset(assets.visitIcon,width: 20,height: 20,)),
-                                  // if(localData.storage.read("role") !="1")
-                                  //   IconButton(
-                                  //     onPressed: (){
-                                  //       utils.makingEmail(mail: mainList[index].toString(), context: context);
-                                  //     },
-                                  //     icon: SvgPicture.asset(assets.mail,width: 20,height: 20,)),
-                                  // if(localData.storage.read("role") !="1")
-                                  //   IconButton(
-                                  //     onPressed: (){
-                                  //       utils.makingPhoneCall(ph: phoneList[index].toString());
-                                  //     },
-                                  //     icon: SvgPicture.asset(assets.phone,width: 20,height: 20,))
                                 ],
                               ),
                               const Padding(

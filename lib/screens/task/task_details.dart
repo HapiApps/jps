@@ -789,17 +789,10 @@ class _TaskDetailsState extends State<TaskDetails> with SingleTickerProviderStat
                                   crossAxisAlignment: CrossAxisAlignment.center,
                                   children: [
                                     /// LEFT STATUS
-                                    SizedBox(
-                                      width: kIsWeb ? webWidth / 4.5 : phoneWidth / 4.5,
-                                      child: Text(
-                                        data["value"].toString(),
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.bold,
-                                          color: colorsConst.primary,
-                                        ),
-                                      ),
-                                    ),
+                                    SizedBox( width: kIsWeb ? webWidth / 4.5 : phoneWidth / 4.5, child: Text( data["value"].toString(),
+                                      style: TextStyle( fontSize: 12, fontWeight:
+                                      FontWeight.bold, color:
+                                      colorsConst.primary, ), ), ),
 
                                     /// DOT
                                     Container(
@@ -964,13 +957,15 @@ class _TaskDetailsState extends State<TaskDetails> with SingleTickerProviderStat
                                               crossAxisAlignment: CrossAxisAlignment.start,
                                               children: [
                                                 Text(
-                                                  msg.comments.toString(),
+                                                  (msg.comments == null || msg.comments.toString().trim().isEmpty)
+                                                      ? "Audio Message"
+                                                      : msg.comments.toString(),
                                                   maxLines: 1,
                                                   overflow: TextOverflow.ellipsis,
-                                                  style: const TextStyle(
+                                                  style:  TextStyle(
                                                     fontSize: 13,
                                                     fontWeight: FontWeight.bold,
-                                                    color: Colors.black,
+                                                  color:msg.comments.toString().trim().isEmpty?Colors.red: Colors.black,
                                                   ),
                                                 ),
                                                 const SizedBox(height: 3),
