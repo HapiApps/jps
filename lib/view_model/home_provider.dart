@@ -546,8 +546,8 @@ String get notificationToken =>_notificationToken;
                     betweenDates = formattedDates.join(' || ');
                     getMainReport(false);
                     getDashboardReport(false);
-                    Provider.of<AttendanceProvider>(context, listen: false).getLateCount(_startDate,_endDate);
-                    Provider.of<AttendanceProvider>(context, listen: false).getTotalHours(_startDate,_endDate);
+                    // Provider.of<AttendanceProvider>(context, listen: false).getLateCount(_startDate,_endDate);
+                    //Provider.of<AttendanceProvider>(context, listen: false).getTotalHours(_startDate,_endDate);
                     notifyListeners();
                     Navigator.of(context).pop();
                   },
@@ -801,6 +801,7 @@ Future<void> loginOuts(context) async {
         "date1": _startDate,
         "date2": _endDate
       };
+      print("Input....$data}");
       final response =await homeRepo.getDashboardReport(data);
       if (response.isNotEmpty) {
         print("response....${response}");
@@ -1264,9 +1265,9 @@ Future<void> deleteUseAccount(context) async {
     checkThisMonth();
      getMainReport(false);
     getDashboardReport(false);Provider.of<AttendanceProvider>(context, listen: false).getLateCount(_startDate,_endDate);
-    Provider.of<AttendanceProvider>(context, listen: false).getTotalHours(_startDate,_endDate);
+   // Provider.of<AttendanceProvider>(context, listen: false).getTotalHours(_startDate,_endDate);
     Provider.of<AttendanceProvider>(context, listen: false).initDate(id:localData.storage.read("id"),role:localData.storage.read("role"),isRefresh:true,date1:_startDate,date2:_endDate,type:"");
-    Provider.of<AttendanceProvider>(context, listen: false).getAttendanceReport(localData.storage.read("id"));
+    //Provider.of<AttendanceProvider>(context, listen: false).getAttendanceReport(localData.storage.read("id"));
     Provider.of<AttendanceProvider>(context, listen: false).getAbsentAttendanceReport(localData.storage.read("id"));
     Provider.of<LeaveProvider>(context, listen: false).allLeaves(_startDate,_endDate,true,localData.storage.read("role"),localData.storage.read("id"));
     notifyListeners();

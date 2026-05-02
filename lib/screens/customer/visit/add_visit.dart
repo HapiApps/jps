@@ -18,7 +18,6 @@ import '../../../component/search_drop_down.dart';
 import '../../../model/customer/customer_model.dart';
 import '../../../source/constant/colors_constant.dart';
 import '../../../source/constant/default_constant.dart';
-import '../../../source/constant/local_data.dart';
 import '../../../source/styles/decoration.dart';
 import '../../../source/utilities/utils.dart';
 import '../../../view_model/task_provider.dart';

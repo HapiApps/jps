@@ -1027,69 +1027,68 @@ class AttendanceProvider with ChangeNotifier{
   String _totalHrs2 = "";
   String get totalHrs=>_totalHrs;
   String get totalHrs2=>_totalHrs2;
-  Future<void> getTotalHours(String date1,String date2) async {
-    _totalHrs2 = "";
-    notifyListeners();
-    try {
-      Map data = {
-        "action": getAllData,
-        "search_type": "get_attendance",
-        "salesman_id": localData.storage.read("id"),
-        "role": "0",
-        "cos_id":localData.storage.read("cos_id"),
-        "st_dt": date1,
-        "en_dt": date2
-      };
-      print("Total hours.....");
-      print(data.toString());
-      final response = await attRepo.getReport(data);
-
-      print(response.toString());
-      if (response.isNotEmpty){
-        if(response.length==1){
-          if(response[0].time.toString().contains(",")){
-            var split=response[0].time.toString().split(",");
-            _totalHrs2=getTimeDifferenceBetween(split.first,split.last);
-          }
-          log("_totalHrs2 : $_totalHrs2");
-        }else{
-          Duration totalDuration = const Duration();
-          Set<String> daysWorked = {};
-
-          for (var entry in response) {
-            final dates = entry.date.toString().split(',');
-            final times = entry.time.toString().split(',');
-            final timestamps = entry.createdTs.toString().split(',');
-            final statuses = entry.status.toString().split(',');
-
-            for (int i = 0; i < statuses.length; i++) {
-              daysWorked.add(dates[i]); // Always count day once
-
-              if (statuses[i] == '1' && (i + 1 < statuses.length && statuses[i + 1] == '2')) {
-                final inTime = DateTime.parse(timestamps[i]);
-                final outTime = DateTime.parse(timestamps[i + 1]);
-                totalDuration += outTime.difference(inTime);
-                i++; // skip next as it's already paired
-              }
-            }
-          }
-
-          final totalMinutes = totalDuration.inMinutes;
-          final days = daysWorked.length;
-          final hours = totalMinutes ~/ 60;
-          final minutes = totalMinutes % 60;
-          _totalHrs2 ="${days==0?"":days==1?"$days day":"$days days"} : $hours h : $minutes m";
-          log("Total Working: $days days, $hours hrs, $minutes mins");
-        }
-      }else {
-        _totalHrs2 = "";
-      }
-    } catch (e) {
-      _totalHrs2 = "";
-    }
-    print("_totalHrs2...........${_totalHrs2}");
-    notifyListeners();
-  }
+  // Future<void> getTotalHours(String date1,String date2) async {
+  //   _totalHrs2 = "";
+  //   notifyListeners();
+  //   try {
+  //     Map data = {
+  //       "action": getAllData,
+  //       "search_type": "get_attendance",
+  //       "salesman_id": localData.storage.read("id"),
+  //       "role": "0",
+  //       "cos_id":localData.storage.read("cos_id"),
+  //       "st_dt": date1,
+  //       "en_dt": date2
+  //     };
+  //     print(data.toString());
+  //     final response = await attRepo.getReport(data);
+  //
+  //     print(response.toString());
+  //     if (response.isNotEmpty){
+  //       if(response.length==1){
+  //         if(response[0].time.toString().contains(",")){
+  //           var split=response[0].time.toString().split(",");
+  //           _totalHrs2=getTimeDifferenceBetween(split.first,split.last);
+  //         }
+  //         log("_totalHrs2 : $_totalHrs2");
+  //       }else{
+  //         Duration totalDuration = const Duration();
+  //         Set<String> daysWorked = {};
+  //
+  //         for (var entry in response) {
+  //           final dates = entry.date.toString().split(',');
+  //           final times = entry.time.toString().split(',');
+  //           final timestamps = entry.createdTs.toString().split(',');
+  //           final statuses = entry.status.toString().split(',');
+  //
+  //           for (int i = 0; i < statuses.length; i++) {
+  //             daysWorked.add(dates[i]); // Always count day once
+  //
+  //             if (statuses[i] == '1' && (i + 1 < statuses.length && statuses[i + 1] == '2')) {
+  //               final inTime = DateTime.parse(timestamps[i]);
+  //               final outTime = DateTime.parse(timestamps[i + 1]);
+  //               totalDuration += outTime.difference(inTime);
+  //               i++; // skip next as it's already paired
+  //             }
+  //           }
+  //         }
+  //
+  //         final totalMinutes = totalDuration.inMinutes;
+  //         final days = daysWorked.length;
+  //         final hours = totalMinutes ~/ 60;
+  //         final minutes = totalMinutes % 60;
+  //         _totalHrs2 ="${days==0?"":days==1?"$days day":"$days days"} : $hours h : $minutes m";
+  //         log("Total Working: $days days, $hours hrs, $minutes mins");
+  //       }
+  //     }else {
+  //       _totalHrs2 = "";
+  //     }
+  //   } catch (e) {
+  //     _totalHrs2 = "";
+  //   }
+  //   print("_totalHrs2...........${_totalHrs2}");
+  //   notifyListeners();
+  // }
   String getTimeDifferenceBetween(String time1, String time2) {
     DateTime now = DateTime.now();
 
@@ -1631,7 +1630,7 @@ void showDatePickerDialog(BuildContext context,List<UserModel>? list) {
         );
       }
       getMainAttendance();
-      getTotalHours(date1, date2);
+      //getTotalHours(date1, date2);
       Provider.of<AttendanceProvider>(context, listen: false).initDate(id:localData.storage.read("id"),role:localData.storage.read("role"),isRefresh: true,date1: "${DateTime.now().day.toString().padLeft(2,"0")}-${DateTime.now().month.toString().padLeft(2,"0")}-${DateTime.now().year.toString()}",date2: "${DateTime.now().day.toString().padLeft(2,"0")}-${DateTime.now().month.toString().padLeft(2,"0")}-${DateTime.now().year.toString()}");
       Provider.of<AttendanceProvider>(context, listen: false).getAttendanceReport(localData.storage.read("id"));
     }else{
@@ -1694,7 +1693,7 @@ void showDatePickerDialog(BuildContext context,List<UserModel>? list) {
       //   });
       // }
       getMainAttendance();
-      getTotalHours(date1, date2);
+      //getTotalHours(date1, date2);
       Provider.of<AttendanceProvider>(context, listen: false).initDate(id:localData.storage.read("id"),role:localData.storage.read("role"),isRefresh: true,date1: "${DateTime.now().day.toString().padLeft(2,"0")}-${DateTime.now().month.toString().padLeft(2,"0")}-${DateTime.now().year.toString()}",date2: "${DateTime.now().day.toString().padLeft(2,"0")}-${DateTime.now().month.toString().padLeft(2,"0")}-${DateTime.now().year.toString()}");
       Provider.of<AttendanceProvider>(context, listen: false).getAttendanceReport(localData.storage.read("id"));
     }else{

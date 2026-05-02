@@ -840,9 +840,7 @@ class _CheckAttendanceState extends State<CheckAttendance> {
                                   //   colors: Colors.red.shade900,
                                   // ),
                                   CustomText(
-
-                                      text: homeProvider.mainReportList[0]["today_apply_leave"].toString(),
-
+                                      text: homeProvider.mainReportList.isEmpty?"":homeProvider.mainReportList[0]["today_apply_leave"].toString(),
                                     size: 16,
                                     isBold: true,
                                     colors: Colors.red.shade900,
@@ -877,7 +875,7 @@ class _CheckAttendanceState extends State<CheckAttendance> {
                                   //   colors: Colors.green.shade900,
                                   // ),
                                   CustomText(
-                                    text: homeProvider.mainReportList[0]["fulldayleave_user"].toString(),
+                                    text: homeProvider.mainReportList.isEmpty?"":homeProvider.mainReportList[0]["fulldayleave_user"].toString(),
                                     size: 16,
                                     isBold: true,
                                     colors: Colors.black,

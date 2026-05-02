@@ -1135,14 +1135,16 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
                     ),
                     const SizedBox(height: 10),
                     const Divider(thickness: 2,),
-
+                    if ((data.projectName ?? "").trim().isNotEmpty)
+                      _infoBlock("Company", data.projectName ?? ""),
+                    const SizedBox(height: 5),
                     /// COMPANY + TASK TYPE
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
 
-                        _infoBlock("Company", data.projectName ?? ""),
+
                         _infoBlock("Task Type", data.type ?? ""),
                         _infoBlock("Task Date", data.taskDate ?? ""),
                       ],

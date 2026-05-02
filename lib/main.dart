@@ -476,12 +476,12 @@
 import 'dart:convert';
 import 'package:intl/intl.dart';
 import 'package:master_code/screens/common/home_page.dart';
-import 'package:master_code/screens/common/home_page_copy.dart';
 import 'package:master_code/screens/customer/visit_report/visits_report.dart';
 import 'package:master_code/screens/expense/view_expense.dart';
 import 'package:master_code/screens/leave_management/leave_dashboard.dart';
 import 'package:master_code/screens/leave_management/leave_report.dart';
 import 'package:master_code/screens/task/view_task.dart';
+import 'package:master_code/screens/track/background_task.dart';
 import 'package:master_code/source/utilities/utils.dart';
 import 'package:master_code/view_model/expense_provider.dart';
 import 'package:master_code/view_model/leave_provider.dart';
@@ -957,9 +957,6 @@ class _SplashScreenState extends State<SplashScreen> {
       // homeProvider.roleEmployees();
       attendanceProvider.getMainAttendance();
       homeProvider.checkThisMonth();
-      homeProvider.getMainReport(true);
-      homeProvider.getDashboardReport(true);
-
     });
   }
 

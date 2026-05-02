@@ -12,7 +12,6 @@ class HomeRepository{
           },
           body: jsonEncode(data),
           encoding: Encoding.getByName("utf-8"));
-      print(data.toString());
       print(request.body);
       if (request.statusCode == 200){
         List response = json.decode(request.body);

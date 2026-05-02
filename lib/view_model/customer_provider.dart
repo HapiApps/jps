@@ -50,12 +50,11 @@ import '../source/constant/local_data.dart';
 import '../source/utilities/utils.dart';
 import 'dart:ui' as ui;
 import 'package:http/http.dart'as http;
-
 import 'employee_provider.dart';
-
 import 'package:syncfusion_flutter_xlsio/xlsio.dart' hide Column, Row, CellStyle;
 import 'package:universal_html/html.dart' show AnchorElement;
 import 'package:flutter/foundation.dart' show kIsWeb;
+
 class CustomerProvider with ChangeNotifier{
   final CustomerRepository custRepo = CustomerRepository();
   TextEditingController search = TextEditingController();
@@ -97,7 +96,6 @@ class CustomerProvider with ChangeNotifier{
         "role": localData.storage.read("role"),
         "cus_id": id
       };
-      // print(data.toString());
       final response =await custRepo.getComments(data);
       if (response.isNotEmpty) {
         _customerReport=response;
@@ -131,136 +129,6 @@ class CustomerProvider with ChangeNotifier{
       print("getTaskMainComments error => $e");
     }
   }
-  // Future<void> tComment({
-  //   context,
-  //   required String taskId,
-  //   required String assignedId,
-  //   required String path
-  // })
-  // async {
-  //
-  //   final tempMessage = CustomerReportModel(
-  //     comments: disPoint.text.trim(),
-  //     createdBy: localData.storage.read("id"),
-  //     firstname: localData.storage.read("f_name"),
-  //     role: localData.storage.read("role"),
-  //     createdTs: DateTime.now(),
-  //     documents: path.isNotEmpty ? path : null,
-  //     isLocal: true,
-  //   );
-  //
-  //   _customerReport.add(tempMessage);
-  //   notifyListeners();
-  //
-  //   try {
-  //
-  //     List<Map<String, String>> customersList = [];
-  //
-  //     /// FILES
-  //     for (int i = 0; i < _selectedFiles.length; i++) {
-  //       customersList.add({
-  //         "image_$i": _selectedFiles[i]['path'],
-  //       });
-  //     }
-  //
-  //     /// AUDIO
-  //     for (int i = 0; i < _recordedAudioPaths.length; i++) {
-  //       customersList.add({
-  //         "image_${i + _selectedFiles.length}":
-  //         _recordedAudioPaths[i].audioPath,
-  //       });
-  //     }
-  //
-  //     /// PHOTOS
-  //     for (int i = 0; i < selectedPhotos.length; i++) {
-  //       customersList.add({
-  //         "image_${i + _selectedFiles.length + _recordedAudioPaths.length}":
-  //         selectedPhotos[i],
-  //       });
-  //     }
-  //
-  //     /// EXTRA PATH
-  //     if (path.isNotEmpty) {
-  //       customersList.add({
-  //         "image_0": path,
-  //       });
-  //     }
-  //
-  //     String jsonString = json.encode(customersList);
-  //
-  //     Map<String,String> data = {
-  //       "action": taskComments,
-  //       "cos_id": localData.storage.read("cos_id"),
-  //       "task_id": taskId,
-  //       "log_file": localData.storage.read("mobile_number"),
-  //       "created_by": localData.storage.read("id") ?? "0",
-  //       "comment": disPoint.text.trim(),
-  //       "data": jsonString,
-  //     };
-  //
-  //     final response = await custRepo.taskComments(data, customersList);
-  //     log(response.toString());
-  //
-  //     if (response.toString().contains("200")) {
-  //
-  //       _recordedAudioPaths.clear();
-  //
-  //       String role = localData.storage.read("role");
-  //
-  //       try {
-  //
-  //         /// ================= ADMIN COMMENTED =================
-  //         if(role == "1") {
-  //
-  //           await Provider.of<EmployeeProvider>(context, listen: false)
-  //               .sendSomeUserNotification(
-  //               "${disPoint.text.trim()} Added by ${localData.storage.read("f_name")}",
-  //               disPoint.text.trim(),
-  //               assignedId,
-  //               taskId
-  //           );
-  //
-  //         }
-  //
-  //         /// ================= EMPLOYEE COMMENTED =================
-  //         else {
-  //
-  //           await Provider.of<EmployeeProvider>(context, listen: false)
-  //               .sendAdminNotification(
-  //               "${localData.storage.read("f_name")} replied to task feedback",
-  //               disPoint.text.trim(),
-  //               assignedId,
-  //               "1",
-  //               taskId
-  //           );
-  //
-  //         }
-  //
-  //       } catch (e) {
-  //         print("Notification error: $e");
-  //       }
-  //
-  //       _customerReport.last.isLocal = false;
-  //       disPoint.clear();
-  //       addCtr.reset();
-  //
-  //     } else {
-  //
-  //       utils.showErrorToast(context: context);
-  //       addCtr.reset();
-  //
-  //     }
-  //
-  //   } catch (e) {
-  //
-  //     _customerReport.remove(tempMessage);
-  //     notifyListeners();
-  //     addCtr.reset();
-  //
-  //   }
-  //
-  //   notifyListeners();
-  // }
   Future<void> tComment({
     context,
     required String taskId,
@@ -295,7 +163,6 @@ class CustomerProvider with ChangeNotifier{
       }
 
       String jsonString = json.encode(customersList);
-
       Map<String, String> data = {
         "action": taskComments,
         "cos_id": localData.storage.read("cos_id"),
@@ -310,13 +177,10 @@ class CustomerProvider with ChangeNotifier{
       custRepo.taskComments(data, customersList).then((response) async {
         if (response.toString().contains("200")) {
           _recordedAudioPaths.clear();
-
           /// mark as synced
           _customerReport.last.isLocal = false;
-
           /// clear input
           disPoint.clear();
-
           notifyListeners();
 
           /// scroll bottom
@@ -345,13 +209,6 @@ class CustomerProvider with ChangeNotifier{
                   taskId,
                 );
               }
-              final taskProvider = Provider.of<TaskProvider>(context, listen: false);
-              // taskProvider.getAllTask(
-              //   true,
-              //   date1: date1,
-              //   date2: date2,
-              //   type: "Today",
-              // );
             } catch (e) {
               print("Notification error: $e");
             }
@@ -400,8 +257,6 @@ void closeVisible(){
   var sendList=[];
 
   void setValue(String id){
-    // print("id");
-    // print(id);
     sendList.clear();
     for(var i=0;i<customer.length;i++){
       if(customer[i].userId==id){
@@ -415,8 +270,6 @@ void closeVisible(){
         localData.storage.write("c_id",sendList[0]["id"]);
         localData.storage.write("c_no",sendList[0]["no"]);
         localData.storage.write("c_name",sendList[0]["name"]);
-        // print("selectCustomer");
-        // print(selectCustomer);
       }
     }
     notifyListeners();
@@ -454,124 +307,6 @@ void closeVisible(){
     _sortBy=type;
     notifyListeners();
   }
-
-  // String _latitude = "0.0";
-  // String _longitude = "0.0";
-  // String get latitude=>_latitude;
-  // String get longitude=>_longitude;
-  /// Gets the current position once, with a timeout and error handling
-  // void getCurrentLocation() async {
-  //   const platform = MethodChannel('location');
-  //     final String location = await platform.invokeMethod('getCurrentLocation');
-  //     _latitude=location.toString().split(",")[0];
-  //     _longitude=location.toString().split(",")[1];
-  //     log('Current location: $location');
-  // }
-  // void getLocation() async {
-  //   const platform = MethodChannel('location');
-  //   try {
-  //   Map<Permission, PermissionStatus> status = await [
-  //     Permission.location,
-  //   ].request();
-  //   if (status[Permission.location] == PermissionStatus.granted) {
-  //     final String location = await platform.invokeMethod('getCurrentLocation');
-  //     _latitude=location.toString().split(",")[0];
-  //     _longitude=location.toString().split(",")[1];
-  //     log('Current location: $location');
-  //   }else{
-  //     var permission = await Geolocator.requestPermission();
-  //     if (permission == LocationPermission.deniedForever) {
-  //       log("Location permissions are permanently denied.");
-  //     }
-  //   }
-  //   } on PlatformException catch (e) {
-  //     log('Failed to get location: ${e.message}');
-  //   }
-  // }
-  ///
-
-
-  // void getTrackPermission(context) async {
-  //   try {
-  //   Map<Permission, PermissionStatus> status = await [
-  //     Permission.location,
-  //     Permission.notification,
-  //   ].request();
-  //   if (status[Permission.location] == PermissionStatus.granted&&status[Permission.notification] == PermissionStatus.granted) {
-  //     bool isLocationServiceEnabled = await Geolocator.isLocationServiceEnabled();
-  //     if (!isLocationServiceEnabled) {
-  //       utils.showWarningToast(context, text: "Location services are disabled. Please enable them.");
-  //     }else {
-  //       Position position = await Geolocator.getCurrentPosition();
-  //       _latitude = "${position.latitude}";
-  //       _longitude = "${position.longitude}";
-  //       log('Current location: $_latitude $_longitude');
-  //       if (_latitude == "0.0" && _longitude == "0.0") {
-  //         utils.showWarningToast(context, text: "Check Your Location");
-  //       }
-  //     }
-  //   }else{
-  //     await openAppSettings();
-  //   }
-  //   } on PlatformException catch (e) {
-  //     log('Failed to get location: ${e.message}');
-  //   }
-  // }
-  // void getTrackPermission(context) async {
-  //   try {
-  //     // Request location permission
-  //     PermissionStatus status = await Permission.location.request();
-  //
-  //     if (status == PermissionStatus.granted) {
-  //       // Check if Location Service is enabled
-  //       bool isLocationServiceEnabled = await Geolocator.isLocationServiceEnabled();
-  //       if (!isLocationServiceEnabled) {
-  //         utils.showWarningToast(context, text: "Location services are disabled. Please enable them from settings.");
-  //         return;
-  //       }
-  //
-  //       // Get current location
-  //       Position position = await Geolocator.getCurrentPosition();
-  //       _latitude = "${position.latitude}";
-  //       _longitude = "${position.longitude}";
-  //       log('Current location: $_latitude $_longitude');
-  //
-  //       if (_latitude == "0.0" && _longitude == "0.0") {
-  //         utils.showWarningToast(context, text: "Check your location accuracy.");
-  //       }
-  //
-  //     } else if (status == PermissionStatus.denied) {
-  //       utils.showWarningToast(context, text: "Location permission is required to continue.");
-  //
-  //     } else if (status == PermissionStatus.permanentlyDenied) {
-  //       // iOS compliance: Show info dialog, don't auto-redirect to settings
-  //       showDialog(
-  //         context: context,
-  //         builder: (context) => AlertDialog(
-  //           title: Text("Permission Required"),
-  //           content: Text("This feature requires location permission. Please enable it from Settings."),
-  //           actions: [
-  //             TextButton(
-  //               onPressed: () => Navigator.pop(context),
-  //               child: Text("Not Now"),
-  //             ),
-  //             TextButton(
-  //               onPressed: () {
-  //                 Navigator.pop(context);
-  //                   openAppSettings(); // Only if user agrees
-  //               },
-  //               child: Text("Go to Settings"),
-  //             ),
-  //           ],
-  //         ),
-  //       );
-  //     }
-  //
-  //   } on PlatformException catch (e) {
-  //     log('Failed to get location: ${e.message}');
-  //   }
-  // }
-
 
   bool _refresh = true;
   bool _cusRefresh = true;
@@ -699,13 +434,10 @@ void closeVisible(){
         "en_dt": date2,
       };
       final response =await custRepo.getCustomers(data);
-      // log(data.toString());
-      // log(response.toString());
       if (response.isNotEmpty) {
         _customerData=response;
         _filterCustomerData=response;
         _searchCustomerDate=response;
-        // getCustomerAtt();
         _cusRefresh=true;
       } else {
         _cusRefresh=true;
@@ -725,47 +457,8 @@ List lineAtt=[];
         "${now.month.toString().padLeft(2, '0')}-"
         "${now.year}";
   }
-// Future<void> getCustomerAtt() async {
-//   _refresh=false;
-//   notifyListeners();
-//   try {
-//     Map data = {
-//       "search_type": "daily_attendance",
-//       "id": localData.storage.read("id"),
-//       "st_dt": date1,
-//       "en_dt": date2,
-//       "cos_id": localData.storage.read("cos_id")
-//     };
-//     final response =await custRepo.getCustomerAttendance(data);
-//     // log(response.toString());
-//     if (response.isNotEmpty) {
-//      lineAtt=response;
-//       if(lineAtt.isNotEmpty){
-//         for(var i=0;i<_customerData.length;i++){
-//           CustomerModel data = _customerData[i];
-//           String check="0";
-//           var foundItem = lineAtt.firstWhere(
-//                 (item) => item['line_customer_id'] == data.userId ,
-//             orElse: () => null,
-//           );
-//           if (foundItem != null) {
-//             var isCheckedOut = foundItem['is_checked_out'];
-//             check=isCheckedOut;
-//           } else {
-//           }
-//           _customerData[i].check=check;
-//         }
-//       }
-//       _refresh=true;
-//     } else {
-//       _refresh=true;
-//     }
-//   } catch (e) {
-//     _refresh=true;
-//   }
-//   notifyListeners();
-// }
-late GoogleMapController googleMapController;
+
+  late GoogleMapController googleMapController;
 final List<Marker> _marker =[];
 List<Marker> get marker =>_marker;
 Future<void> mapAddress() async {
@@ -791,7 +484,6 @@ Future<void> mapAddress() async {
       pinCode.text=place.postalCode.toString();
       state=place.administrativeArea.toString();
     }catch(e){
-      // utils.showWarningToast(context, text: "Search valid name", color: colorsConst.primary);
     }
   }
   notifyListeners();
@@ -816,36 +508,11 @@ void changeState(dynamic value){
   _update = true;
   notifyListeners();
 }
-// void changeCusType(dynamic value){
-//     _type = value;
-//   _update = true;
-//   notifyListeners();
-// }
   void changeCusType(dynamic value){
     _type = value;
     _update = true;
     notifyListeners();
   }
-// void changeLeadType(dynamic value){
-//   leadType = value!;
-//   var list = [];
-//   list.add(value);
-//   // print(value);
-//   // print(leadCategoryList);
-//   // print(localData.storage.read("lead_id"));
-//   localData.storage.write("lead_id", list[0]["id"]);
-//   // print(localData.storage.read("lead_id"));
-//
-//   notifyListeners();
-// }
-//   void changeLeadType(dynamic value) {
-//     leadType = value; // 🔥 direct assign
-//
-//     localData.storage.write("lead_id", leadType["id"]);
-//
-//     notifyListeners();
-//   }
-  //lead
   void changeLeadType(dynamic value) {
     leadType = value;
 
@@ -861,7 +528,6 @@ void changeState(dynamic value){
       final selected = leadCategoryList.firstWhere(
             (e) => e['id'].toString() == value.toString(),
       );
-
       leadType = selected;
 
       // ✅ Local storage save
@@ -884,7 +550,6 @@ void changeState(dynamic value){
   }
 void changeCallType(dynamic value){
   callType = value; // Map ah store pannunga
-  // callType = value.toString();
   var list = [];
   list.add(value);
   localData.storage.write("visit_id", list[0]["id"]);
@@ -900,7 +565,6 @@ Future<void> getCustomerDetail(String id,bool isUpdate,bool isRefresh) async {
   _listItem=0;
   _customerDetailData.clear();
   notifyListeners();
-  // try {
     Map data = {
       "action": getAllData,
       "search_type":"customers_full_details",
@@ -908,7 +572,6 @@ Future<void> getCustomerDetail(String id,bool isUpdate,bool isRefresh) async {
       "cos_id": localData.storage.read("cos_id")
     };
     final response =await custRepo.getCustomers(data);
-    // log(data.toString());
     log(response.toString());
     if (response.isNotEmpty) {
     _customerDetailData=response;
@@ -916,15 +579,12 @@ Future<void> getCustomerDetail(String id,bool isUpdate,bool isRefresh) async {
       CustomerModel data = _customerDetailData[0];
       localData.storage.write("lead_id",data.leadId.toString());
       localData.storage.write("visit_id",data.visitId.toString());
-      print("leadId : ${data.leadId.toString()}");
-      print("visitId : ${data.visitId.toString()}");
       if(data.visitId.toString()!="0"){
         callType= callList.firstWhere(
               (item) =>
           item["categories"] == "Call Visit Type" &&
               item["id"] == data.visitId.toString() &&
               item["value"] == data.visitType.toString(),
-          // orElse: () => null,  // returns empty map
         );
       }
       if(data.leadId.toString()!="0"){
@@ -933,7 +593,6 @@ Future<void> getCustomerDetail(String id,bool isUpdate,bool isRefresh) async {
           item["categories"] == "Lead Categories" &&
               item["id"].toString() == data.leadId.toString() &&
               item["value"] == data.leadStatus.toString(),
-          // orElse: () => null, // returns empty map
         );
       }
       _type=data.type.toString()=="2"?"Shop":data.type.toString()=="3"?"Office":data.type.toString()=="4"?"Factory":data.type.toString()=="5"?"Hotel":data.type.toString()=="6"?"Others":"1";
@@ -951,7 +610,6 @@ Future<void> getCustomerDetail(String id,bool isUpdate,bool isRefresh) async {
       landmark.text=data.landmark.toString();
       _type=data.type.toString()=="2"?"Shop":data.type.toString()=="3"?"Office":data.type.toString()=="4"?"Factory":data.type.toString()=="5"?"Hotel":data.type.toString()=="6"?"Others":"Home";
       state=data.state.toString()=="null"||data.state.toString()==""?null:data.state.toString();
-      // print(data.customerId.toString());
       var idList=data.customerId.toString().split('||');
       var usersList=data.firstName.toString().split('||');
       var phoneList=data.phoneNumber.toString().split('||');
@@ -983,9 +641,6 @@ Future<void> getCustomerDetail(String id,bool isUpdate,bool isRefresh) async {
       _listItem=0;
       _refresh=true;
     }
-  // } catch (e) {
-  //   _refresh=true;
-  // }
   notifyListeners();
 }
   void searchCustomer(String value){
@@ -1013,7 +668,6 @@ Future<void> getCustomerDetail(String id,bool isUpdate,bool isRefresh) async {
         filterList();
       }
     }
-    // _customerData=suggestions;
     notifyListeners();
   }
 void searchCustomerReport(String value){
@@ -1029,34 +683,6 @@ void searchCustomerReport(String value){
     _customerReport=suggestions;
     notifyListeners();
   }
-  // bool _isCheckOut=false;
-  // bool _isCheckIn=false;
-  // void checked(BuildContext context,String cusId,String cusName) async {
-  //   _isCheckOut = false;
-  //   for (var i = 0; i < lineAtt.length; i++) {
-  //     if (
-  //     lineAtt[i]["line_customer_id"].toString() ==cusId &&
-  //         lineAtt[i]["is_checked_out"].toString()=="2"
-  //     ) {
-  //       _isCheckOut = true;
-  //       break;
-  //     }else if (
-  //    lineAtt[i]["line_customer_id"].toString() ==cusId &&lineAtt[i]["is_checked_out"].toString()=="1") {
-  //       _isCheckIn = true;
-  //       break;
-  //     }else{
-  //       _isCheckIn = false;
-  //       _isCheckOut = false;
-  //     }
-  //   }
-  //   if(_isCheckOut == true){
-  //     utils.showWarningToast(context, text: "Already attendance marked", color: colorsConst.appRed);
-  //   }else if(_isCheckIn==true){
-  //     customerDailyAtt(context,"2",cusName);
-  //   }else{
-  //     customerDailyAtt(context,"1",cusName);
-  //   }
-  // }
   Future<void> customerDailyAtt(context,String status,String cusName,String companyName,String lat,String lng) async {
     try {
       showDialog(
@@ -1137,11 +763,8 @@ void searchCustomerReport(String value){
     }
     notifyListeners();
   }
-
-
   List<AddCustomerModel> _addCustomer = <AddCustomerModel>[];
   List<AddCustomerModel> get addCustomer =>_addCustomer;
-
   List<AddCmtImg> _addImg = <AddCmtImg>[];
   List<AddCmtImg> get addImg =>_addImg;
 
@@ -1267,8 +890,6 @@ int get listItem=>_listItem;
         "platform": localData.storage.read("platform").toString(),
       };
       final response =await custRepo.deleteCustomer(data);
-      // print(data.toString());
-      // print(response.toString());
       if (response.toString().contains("ok")) {
         Navigator.pop(context);
         utils.showSuccessToast(context: context, text: "Deleted Successfully",);
@@ -1291,7 +912,6 @@ int get listItem=>_listItem;
         "cos_id": localData.storage.read("cos_id")
       };
       final response =await custRepo.getCustomerAttendance(data);
-      // log(response.toString());
       leadCategoryList.clear();
       if (response.isNotEmpty) {
         List<Map<String, String>> leadList = response.map((e) => {
@@ -1308,12 +928,10 @@ int get listItem=>_listItem;
         }
       }
     } catch (e) {
-      // _refresh=true;
     }
     notifyListeners();
   }
   Future<void> getLead() async {
-   // print("getLead");
     leadCategoryList.clear();
     List storedLeads = await LocalDatabase.getLeadCategories();
     leadCategoryList=storedLeads;
@@ -1330,7 +948,6 @@ int get listItem=>_listItem;
     notifyListeners();
   }
   Future<void> getVisit() async {
-    // print("getVisit");
     callList.clear();
     List storedLeads = await LocalDatabase.getVisitTypes();
     callList=storedLeads;
@@ -1389,8 +1006,6 @@ int get listItem=>_listItem;
         "cos_id": localData.storage.read("cos_id")
       };
       final response =await custRepo.getCustomerAttendance(data);
-      // print(data.toString());
-      // print(response.toString());
       if (response.isNotEmpty) {
         List<Map<String, String>> visitList = response.map((e) => {
           "id": e['id'].toString(),
@@ -1406,7 +1021,6 @@ int get listItem=>_listItem;
         }
       }
     } catch (e) {
-      // _refresh=true;
     }
     notifyListeners();
   }
@@ -1419,8 +1033,6 @@ int get listItem=>_listItem;
         "cos_id": localData.storage.read("cos_id")
       };
       final response =await custRepo.getCustomerAttendance(data);
-      // log(data.toString());
-      // log(response.toString());
       if (response.isNotEmpty) {
         List<Map<String, String>> typeList = response.map((e) => {
           "id": e['id'].toString(),
@@ -1436,7 +1048,6 @@ int get listItem=>_listItem;
         }
       }
     } catch (e) {
-      // _refresh=true;
     }
     notifyListeners();
   }
@@ -1519,7 +1130,6 @@ int get listItem=>_listItem;
       addCtr.reset();
     }else if(_addCustomer.last.email.text.trim().isNotEmpty){
       final email = _addCustomer.last.email.text.trim();
-      // final isValid = RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$').hasMatch(email);
       final bool isValid =
       RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$')
           .hasMatch(email);
@@ -1630,7 +1240,6 @@ void removeCheck(int index){
               content: SizedBox(
                 height: 120,
                 width: 300,
-                // color: Colors.red,
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
@@ -1663,12 +1272,6 @@ void removeCheck(int index){
                         GestureDetector(
                           onTap: () async {
                             Navigator.pop(context);
-                            // final ImagePicker picker = ImagePicker();
-                            // XFile? pickedFile = await picker.pickImage(source: ImageSource.gallery,imageQuality: 100,maxHeight: 1000,maxWidth: 1000);
-                            // var imgData = pickedFile!.path;
-                            // if (imgData.isNotEmpty){
-                            //   onTap(imgData);
-                            // }
                             FilePickerResult? result = await FilePicker.platform.pickFiles(
                               type: FileType.custom,
                               allowedExtensions: ['png','jpeg','jpg'],
@@ -1782,7 +1385,6 @@ Future<void> insertCustomer(context,String lat,String lng) async {
       log(response.toString());
       log(data.toString());
       if(response.toString().contains("200")){
-        log("Success");
         utils.showSuccessToast(context: context,text: "Customer ${constValue.success}",);
         if(_addCustomer.length!=1){
           Navigator.of(context).pop();
@@ -1865,11 +1467,9 @@ Future<void> updatedCustomer(context,String id,String addressId,String lat,Strin
         "visit_type": localData.storage.read("visit_id"),
       };
       final response =await custRepo.editCustomer(data);
-      // print(customersList.toString());
       print(data.toString());
       print(response.toString());
       if(response.toString().contains("200")){
-        log("Success");
         utils.showSuccessToast(context: context,text: "Customer ${constValue.updated}",);
         getAllCustomers(true);
         if(_listItem!=1){
@@ -1904,21 +1504,9 @@ List<CustomerAttendanceModel> _customerAttendanceReport = <CustomerAttendanceMod
 List<CustomerReportModel> _searchCustomerReport = <CustomerReportModel>[];
 List<CustomerReportModel> get customerReport=>_customerReport;
 List<CustomerAttendanceModel> get customerAttendanceReport=>_customerAttendanceReport;
-// void changeType(dynamic value){
-//   _selectType=null;
-//   _selectType=value;
-//   var list=[];
-//   list.add(value);
-//   localData.storage.write("type_id",list[0]["id"]);
-//
-//   notifyListeners();
-// }
-
   void changeType(dynamic value) {
     _selectType = value;
-
     localData.storage.write("type_id", value["id"].toString());
-
     notifyListeners();
   }
 void changeReview(dynamic value){
@@ -1933,12 +1521,6 @@ void initComment(List coList,String type){
   if(cmtTypeList.isEmpty){
     _selectType=null;
   }else{
-    // _selectType=null;
-    // _selectType=cmtTypeList[0];
-    // localData.storage.write("type_id",cmtTypeList[0]["id"]);
-    // 👉 type match aagura item find pannum
-    print("valueee $type");
-    print("valueee ${cmtTypeList}");
     var matchedType = cmtTypeList.firstWhere(
           (item) =>
       item["value"]
@@ -1950,7 +1532,6 @@ void initComment(List coList,String type){
     );
 
     _selectType = matchedType;
-
     localData.storage.write("type_id", matchedType["id"]);
   }
 
@@ -1981,7 +1562,6 @@ void initComment(List coList,String type){
 
   commentDate.text="${DateTime.now().day.toString().padLeft(2,"0")}-${DateTime.now().month.toString().padLeft(2,"0")}-${DateTime.now().year}";
   notifyListeners();
-  // _addImg.add(AddCmtImg(img: ''));
 }
 void initCmtValues(){
   disPoint.clear();
@@ -1991,195 +1571,6 @@ void initCmtValues(){
   _isRecording = false;
   notifyListeners();
 }
-  // Future<void> addComment({
-  //   context,
-  //   required String createdBy,
-  //   required String assignedId,
-  //   required String taskId,
-  //   required String visitId,
-  //   required String companyName,
-  //   required String companyId,
-  //   required List numberList,
-  //   required String path
-  // }) async
-  // {
-  //
-  //   final tempMessage = CustomerReportModel(
-  //     comments: disPoint.text.trim(),
-  //     createdBy: localData.storage.read("id"),
-  //     firstname: localData.storage.read("f_name"),
-  //     role: localData.storage.read("role"),
-  //     createdTs: DateTime.now(),
-  //     documents: path.isNotEmpty ? path : null,
-  //     isLocal: true,
-  //   );
-  //
-  //   _customerReport.add(tempMessage);
-  //   notifyListeners();
-  //
-  //   try {
-  //
-  //     List<Map<String, String>> customersList = [];
-  //
-  //     // files
-  //     for (int i = 0; i < _selectedFiles.length; i++) {
-  //       customersList.add({
-  //         "image_$i": _selectedFiles[i]['path'],
-  //       });
-  //     }
-  //
-  //     // audio
-  //     for (int i = _selectedFiles.length;
-  //     i < _selectedFiles.length + _recordedAudioPaths.length;
-  //     i++) {
-  //       customersList.add({
-  //         "image_$i": _recordedAudioPaths[i - _selectedFiles.length].audioPath,
-  //       });
-  //     }
-  //
-  //     // photos
-  //     for (int i = _selectedFiles.length + _recordedAudioPaths.length;
-  //     i <
-  //         _selectedFiles.length +
-  //             _recordedAudioPaths.length +
-  //             selectedPhotos.length;
-  //     i++) {
-  //       customersList.add({
-  //         "image_$i":
-  //         selectedPhotos[i - (_selectedFiles.length + _recordedAudioPaths.length)],
-  //       });
-  //     }
-  //
-  //     if (path != "") {
-  //       customersList.add({
-  //         "image_0": path,
-  //       });
-  //     }
-  //
-  //     String jsonString = json.encode(customersList);
-  //
-  //     Map<String, String> data = {
-  //       "action": addCmt,
-  //       "cos_id": localData.storage.read("cos_id"),
-  //       "visit_id": visitId,
-  //       "log_file": localData.storage.read("mobile_number"),
-  //       "created_by": localData.storage.read("id") ?? "0",
-  //       "comments": disPoint.text.trim(),
-  //       "date": commentDate.text.trim(),
-  //       "data": jsonString,
-  //     };
-  //
-  //     final response = await custRepo.addComments(data, customersList);
-  //
-  //     log(response.toString());
-  //
-  //     if (response.toString().contains("200")) {
-  //
-  //       _recordedAudioPaths.clear();
-  //
-  //       String myRole = localData.storage.read("role");
-  //       String myId   = localData.storage.read("id");
-  //       String createdUserId = createdBy.toString();
-  //
-  //       print("MyID: $myId");
-  //       print("CreatedBy: $createdUserId");
-  //       print("Role: $myRole");
-  //
-  //       /// ===============================
-  //       /// ADMIN COMMENT
-  //       /// ===============================
-  //       if (myRole == "1") {
-  //
-  //         try {
-  //
-  //           /// ADMIN == CREATOR
-  //           if (myId == createdUserId) {
-  //
-  //             /// Notify other admins only
-  //             Provider.of<EmployeeProvider>(context, listen: false)
-  //                 .sendAdminNotification(
-  //               "${localData.storage.read("f_name")} replied to your visit report",
-  //               disPoint.text.trim(),
-  //               createdUserId,
-  //               "1",
-  //               taskId,
-  //             );
-  //
-  //           }
-  //
-  //           /// ADMIN != CREATOR
-  //           else {
-  //
-  //             await Future.wait([
-  //
-  //               /// Notify other admins
-  //               Provider.of<EmployeeProvider>(context, listen: false)
-  //                   .sendUserNotification(
-  //                 "${localData.storage.read("f_name")} replied to visit report",
-  //                 disPoint.text.trim(),
-  //                 createdBy.toString(), // exclude self
-  //               ),
-  //
-  //               /// Notify visit creator (employee/admin)
-  //               Provider.of<EmployeeProvider>(context, listen: false)
-  //                   .sendAdminNotification(
-  //                 "${localData.storage.read("f_name")} replied to your visit report",
-  //                 disPoint.text.trim(),
-  //                 createdUserId,
-  //                 "1",
-  //                 taskId,
-  //               ),
-  //
-  //             ]);
-  //
-  //           }
-  //           getComments(taskId,isPolling: true);
-  //         } catch (e) {
-  //           print("Admin notification error: $e");
-  //         }
-  //       }
-  //
-  //       /// ===============================
-  //       /// EMPLOYEE COMMENT
-  //       /// ===============================
-  //       else {
-  //
-  //         try {
-  //
-  //           /// Notify all admins
-  //           Provider.of<EmployeeProvider>(context, listen: false)
-  //               .sendAdminNotification(
-  //             "${localData.storage.read("f_name")} replied to your visit report",
-  //             disPoint.text.trim(),
-  //             createdUserId,
-  //             "1",
-  //             taskId,
-  //           );
-  //
-  //         } catch (e) {
-  //           print("Employee notification error: $e");
-  //         }
-  //
-  //       }
-  //
-  //       _customerReport.last.isLocal = false;
-  //       disPoint.clear();
-  //       addCtr.reset();
-  //
-  //     } else {
-  //       utils.showErrorToast(context: context);
-  //       addCtr.reset();
-  //     }
-  //
-  //   } catch (e) {
-  //     _customerReport.remove(tempMessage);
-  //     utils.showWarningToast(context, text: "Failed");
-  //     addCtr.reset();
-  //   }
-  //
-  //   notifyListeners();
-  // }
-
   Future<void> addComment({
     context,
     required String createdBy,
@@ -2207,10 +1598,8 @@ void initCmtValues(){
     notifyListeners();
 
     try {
-
       /// ✅ 2. MINIMAL PAYLOAD (NO LOOPS)
       List<Map<String, String>> customersList = [];
-
       if (path.isNotEmpty) {
         customersList.add({
           "image_0": path,
@@ -2218,7 +1607,6 @@ void initCmtValues(){
       }
 
       String jsonString = json.encode(customersList);
-
       Map<String, String> data = {
         "action": addCmt,
         "cos_id": localData.storage.read("cos_id"),
@@ -2232,33 +1620,23 @@ void initCmtValues(){
 
       /// ✅ 3. NON-BLOCKING API (NO AWAIT)
       custRepo.addComments(data, customersList).then((response) async {
-
         if (response.toString().contains("200")) {
-
           /// mark as synced
           _customerReport.last.isLocal = false;
-
           /// clear input
           disPoint.clear();
-
           notifyListeners();
-
           /// 🔥 force refresh (important)
           await getComments(taskId, isPolling: true);
-
           /// ✅ notifications (delayed → no lag)
           Future.delayed(const Duration(milliseconds: 300), () {
-
             String myRole = localData.storage.read("role");
             String myId   = localData.storage.read("id");
             String createdUserId = createdBy.toString();
 
             try {
-
               if (myRole == "1") {
-
                 if (myId == createdUserId) {
-
                   Provider.of<EmployeeProvider>(context, listen: false)
                       .sendAdminNotification(
                     "${localData.storage.read("f_name")} replied",
@@ -2267,16 +1645,13 @@ void initCmtValues(){
                     "1",
                     taskId,
                   );
-
                 } else {
-
                   Provider.of<EmployeeProvider>(context, listen: false)
                       .sendUserNotification(
                     "${localData.storage.read("f_name")} replied",
                     disPoint.text.trim(),
                     createdUserId,
                   );
-
                   Provider.of<EmployeeProvider>(context, listen: false)
                       .sendAdminNotification(
                     "${localData.storage.read("f_name")} replied",
@@ -2286,9 +1661,7 @@ void initCmtValues(){
                     taskId,
                   );
                 }
-
               } else {
-
                 Provider.of<EmployeeProvider>(context, listen: false)
                     .sendAdminNotification(
                   "${localData.storage.read("f_name")} replied",
@@ -2298,36 +1671,26 @@ void initCmtValues(){
                   taskId,
                 );
               }
-
             } catch (e) {
               print("Notification error: $e");
             }
-
           });
-
         } else {
-
           /// ❌ failed → remove temp message
           _customerReport.remove(tempMessage);
           notifyListeners();
-
           utils.showErrorToast(context: context);
         }
 
       }).catchError((e) {
-
         /// ❌ error → rollback
         _customerReport.remove(tempMessage);
         notifyListeners();
-
         utils.showWarningToast(context, text: "Failed");
       });
-
     } catch (e) {
-
       _customerReport.remove(tempMessage);
       notifyListeners();
-
       utils.showWarningToast(context, text: "Error");
     }
   }
@@ -2396,7 +1759,6 @@ Future<void> getEmpComments() async {
         "cos_id": localData.storage.read("cos_id")
       };
       final response =await custRepo.getComments(data);
-      // log(response.toString());
       if (response.isNotEmpty) {
         _customerReport=response;
         _refresh=true;
@@ -2468,18 +1830,7 @@ Future<void> getAttendance(String id) async {
     }
     notifyListeners();
   }
-// String _incompleteCount="0";
-// String _completeCount="0";
-// String _totalCount="0";
-// String _totalAtt="0";
-
-// String get incompleteCount => _incompleteCount;
-// String get completeCount => _completeCount;
-// String get totalCount => _totalCount;
-// String get totalAtt => _totalAtt;
 TextEditingController date= TextEditingController(text: "${DateTime.now().day.toString().padLeft(2,"0")}-${DateTime.now().month.toString().padLeft(2,"0")}-${DateTime.now().year.toString()}");
-
-
   List _countReport = [];
   List get countReport => _countReport;
   String _startDate = "";
@@ -2501,8 +1852,6 @@ TextEditingController date= TextEditingController(text: "${DateTime.now().day.to
     _refresh=false;
     _countReport.clear();
     notifyListeners();
-    // DateTime nextDay = stDt.add(const Duration(days: 1));
-    // String formattedNextDay = DateFormat('dd-MM-yyyy').format(nextDay);
     try {
       Map data = {
         "action": getAllData,
@@ -2514,7 +1863,6 @@ TextEditingController date= TextEditingController(text: "${DateTime.now().day.to
         "date2": _endDate
       };
       final response =await custRepo.getDashboardReport(data);
-      // log(response.toString());
       if (response.isNotEmpty) {
         _countReport=response;
         _refresh=true;
@@ -2531,8 +1879,6 @@ TextEditingController date= TextEditingController(text: "${DateTime.now().day.to
     _customerReport.clear();
     _searchCustomerReport.clear();
     notifyListeners();
-    // DateTime nextDay = stDt.add(const Duration(days: 1));
-    // String formattedNextDay = DateFormat('dd-MM-yyyy').format(nextDay);
     try {
       Map data = {
         "action": getAllData,
@@ -2571,9 +1917,7 @@ TextEditingController date= TextEditingController(text: "${DateTime.now().day.to
         "user_id":localData.storage.read("id"),
         "cos_id": localData.storage.read("cos_id")
       };
-      // print(data);
       final response =await custRepo.getComments(data);
-      // log(response.toString());
       if (response.isNotEmpty) {
         _customerVisitReport=response;
         _visitRefresh=true;
@@ -2598,9 +1942,7 @@ TextEditingController date= TextEditingController(text: "${DateTime.now().day.to
         "user_id":localData.storage.read("id"),
         "cos_id": localData.storage.read("cos_id")
       };
-      // print(data);
       final response =await custRepo.getComments(data);
-      // log(response.toString());
       if (response.isNotEmpty) {
         _customerVisitReport=response;
         _visitRefresh=true;
@@ -2612,124 +1954,6 @@ TextEditingController date= TextEditingController(text: "${DateTime.now().day.to
     }
     notifyListeners();
   }
-  // Future<void> addVisit({
-  //   required context,
-  //   required String companyId,
-  //   required String taskId,
-  //   required String companyName,
-  //   required List<String> cusName,
-  //   required String tType,
-  //   required String desc,
-  //   required List sendList, // List<String> better
-  //   required String lat,
-  //   required String lng,
-  //   required VoidCallback callBack
-  // })
-  // async {
-  //   try {
-  //     final cusTypeData = localData.storage.read("cus_type");
-  //     /// 🔥 VALIDATION (VERY IMPORTANT)
-  //     Map data = {
-  //       "action": addVst,
-  //       "task_id": taskId,
-  //       "log_file": localData.storage.read("mobile_number"),
-  //       "cos_id": localData.storage.read("cos_id"),
-  //       "company_id": companyId,
-  //
-  //       /// ✅ CORRECT MULTIPLE SEND
-  //       "customer_id": sendList.join(","), // 🔥 IMPORTANT CHANGE
-  //
-  //       "mobile_number": localData.storage.read("c_no") ?? "",
-  //
-  //       /// ✅ MULTIPLE NAMES
-  //       "customer_name": cusName.join(","),
-  //
-  //       "type": localData.storage.read("type_id"),
-  //       "created_by": localData.storage.read("id") ?? "0",
-  //
-  //       "discussion_points": disPoint.text.trim(),
-  //       "action_taken": points.text.trim(),
-  //
-  //       "lead": localData.storage.read("lead_id"),
-  //       "call_visit_type": localData.storage.read("visit_id"),
-  //       "cus_type": cusTypeData != null ? cusTypeData["id"].toString() : "",
-  //
-  //       "date": commentDate.text.trim(),
-  //       "review": selectReview,
-  //
-  //       "door_no": address.text.trim(),
-  //       "area": comArea.text.trim(),
-  //       "city": city.text.trim(),
-  //       "country": country.text.trim(),
-  //       "state": state.toString(),
-  //       "pincode": pinCode.text.trim(),
-  //
-  //       "lat": lat,
-  //       "lng": lng,
-  //     };
-  //     print("📤 FINAL API DATA => $data");
-  //     print("📤 FINAL API DATA JSON => ${jsonEncode(data)}");
-  //     print("📤 FINAL API DATA => $data");
-  //
-  //     final response = await custRepo.addVisit(data);
-  //
-  //     print("📥 RESPONSE => $response");
-  //
-  //     if (response.toString().contains('ok')) {
-  //
-  //       utils.showSuccessToast(
-  //         context: context,
-  //         text: constValue.success,
-  //       );
-  //
-  //       final empProvider =
-  //       Provider.of<EmployeeProvider>(context, listen: false);
-  //
-  //       String myId = localData.storage.read("id").toString();
-  //
-  //       try {
-  //         await empProvider.sendAdminNotification(
-  //           "Visit report added - ${localData.storage.read("typeName") ?? ""}",
-  //           "Added by ${localData.storage.read("f_name")}",
-  //           "",
-  //           taskId,
-  //           "",
-  //         );
-  //       } catch (e) {
-  //         print("Notification error ignored: $e");
-  //       }
-  //
-  //       await FirebaseFirestore.instance.collection('attendance').add({
-  //         'emp_id': myId,
-  //         'time': DateTime.now(),
-  //         'status': "",
-  //       });
-  //
-  //       getAllCustomers(false);
-  //
-  //       Provider.of<HomeProvider>(context, listen: false)
-  //           .getDashboardReport(true);
-  //
-  //       callBack();
-  //
-  //       addCtr.reset();
-  //       notifyListeners();
-  //     }
-  //     else {
-  //       utils.showErrorToast(context: context);
-  //     }
-  //
-  //   } catch (e) {
-  //     print("❌ ERROR => $e");
-  //     utils.showErrorToast(context: context);
-  //     addCtr.reset();
-  //   }
-  //
-  //   notifyListeners();
-  // }
-
-
-  // PickerDateRange? selectedDate;
 
   Future<void> addVisit({
     required context,
@@ -2878,84 +2102,6 @@ TextEditingController date= TextEditingController(text: "${DateTime.now().day.to
 
   List<DateTime> datesBetween = [];
   String betweenDates="";
-  // void showDatePickerDialog(BuildContext context,String type,String id) {
-  //   showDialog(
-  //     context: context,
-  //     builder: (BuildContext context) {
-  //       return AlertDialog(
-  //         title: CustomText(text: '   Select Date',colors: colorsConst.secondary,isBold: true,),
-  //         content: SizedBox(
-  //           height: 300, // Adjust height as needed
-  //           width: 300, // Adjust width as needed
-  //           child: SfDateRangePicker(
-  //             minDate: DateTime.now().subtract(const Duration(days: 365)),
-  //             maxDate: DateTime.now(),
-  //             onSelectionChanged: (DateRangePickerSelectionChangedArgs args) {
-  //               selectedDate = args.value;
-  //               _startDate="";
-  //               _endDate="";
-  //               if(selectedDate?.endDate!=null){
-  //                 _startDate="${selectedDate?.startDate?.day.toString().padLeft(2,"0")}"
-  //                     "-${selectedDate?.startDate?.month.toString().padLeft(2,"0")}"
-  //                     "-${selectedDate?.startDate?.year.toString()}";
-  //
-  //                 _endDate="${selectedDate?.endDate?.day.toString().padLeft(2,"0")}"
-  //                     "-${selectedDate?.endDate?.month.toString().padLeft(2,"0")}"
-  //                     "-${selectedDate?.endDate?.year.toString()}";
-  //               }else{
-  //                 _startDate="${selectedDate?.startDate?.day.toString().padLeft(2,"0")}"
-  //                     "-${selectedDate?.startDate?.month.toString().padLeft(2,"0")}"
-  //                     "-${selectedDate?.startDate?.year.toString()}";
-  //               }
-  //             },
-  //             selectionMode: DateRangePickerSelectionMode.range,
-  //           ),
-  //         ),
-  //         actions: [
-  //           Row(
-  //             mainAxisAlignment: MainAxisAlignment.center,
-  //             children: [
-  //               CustomText(text: 'Click and drag to select multiple dates',colors: colorsConst.primary,),
-  //             ],
-  //           ),
-  //           Row(
-  //             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-  //             children: [
-  //               TextButton(
-  //                 child: const CustomText(text:'Cancel',colors: Colors.grey,isBold: true,),
-  //                 onPressed: () {
-  //                   Navigator.of(context).pop();
-  //                 },
-  //               ),
-  //               TextButton(
-  //                 child: CustomText(text: 'OK',colors: colorsConst.primary,isBold: true,),
-  //                 onPressed: () {
-  //                   if (selectedDate != null) {
-  //                     datesBetween = getDatesInRange(
-  //                       selectedDate!.startDate!,
-  //                       selectedDate!.endDate ?? selectedDate!.startDate!,
-  //                     );
-  //                   }
-  //                   DateFormat dateFormat = DateFormat('dd-MM-yyyy');
-  //
-  //                   List<String> formattedDates = datesBetween.map((date) => dateFormat.format(date)).toList();
-  //                   betweenDates = formattedDates.join(' || ');
-  //                   if(type=="1"){
-  //                     getCountWiseReport(id);
-  //                   }else{
-  //                     getReport(id);
-  //                   }
-  //                   Navigator.of(context).pop();
-  //                 },
-  //               ),
-  //             ],
-  //           ),
-  //         ],
-  //       );
-  //     },
-  //   );
-  //   notifyListeners();
-  // }
   void showDatePickerDialog(BuildContext context,String type,String id) {
     DateTime dateTime=DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
     showDatePicker(
@@ -2971,10 +2117,6 @@ TextEditingController date= TextEditingController(text: "${DateTime.now().day.to
       _endDate= ("${(dateTime.day.toString().padLeft(2,"0"))}-"
           "${(dateTime.month.toString().padLeft(2,"0"))}-"
           "${(dateTime.year.toString())}");
-      // DateTime endDateTime = dateTime.add(const Duration(days: 1));
-      // _endDate = "${endDateTime.day.toString().padLeft(2, "0")}-"
-      //     "${endDateTime.month.toString().padLeft(2, "0")}-"
-      //     "${endDateTime.year.toString()}";
       if(_startDate=="${DateTime.now().day.toString().padLeft(2,"0")}-${DateTime.now().month.toString().padLeft(2,"0")}-${DateTime.now().year}"){
         _decrease=true;
         _increase=false;
@@ -3043,29 +2185,6 @@ void manageFilter(value){
     }
     notifyListeners();
   }
-  // void filterList(){
-  //   _filter=true;
-  //   _filterCustomerData = _searchCustomerDate.where((contact){
-  //     final empProviderDate1 = _startDate; // Start Date
-  //     final empProviderDate2 = _endDate; // End Date
-  //     final dateFormat = DateFormat('dd-MM-yyyy');
-  //
-  //     DateTime  createdTsDate = DateTime.parse(contact.createdTs.toString());
-  //     final parsedDate1 = dateFormat.tryParse(empProviderDate1);
-  //     final parsedDate2 = dateFormat.tryParse(empProviderDate2);
-  //     print("Dates...... ${_startDate}-${_endDate}");
-  //     print("Created ts......${contact.createdTs.toString()}");
-  //     bool isWithinDateRange =
-  //         createdTsDate.isAfter(parsedDate1!.subtract(const Duration(days: 1))) &&
-  //             createdTsDate.isBefore(parsedDate2!.add(const Duration(days: 1)));
-  //     return isWithinDateRange;
-  //   }).toList();
-  //   // print("//// ${_startDate}");
-  //   // print("//// ${_endDate}");
-  //   // print("//// ${_filterCustomerData.length}");
-  //   notifyListeners();
-  // }
-
   void filterList() {
     _filter = true;
     final dateFormat = DateFormat('dd-MM-yyyy');
@@ -3075,18 +2194,11 @@ void manageFilter(value){
     _filterCustomerData = _searchCustomerDate.where((contact) {
       final createdTsDate = DateTime.parse(contact.createdTs.toString());
       final createdDateOnly = DateTime(createdTsDate.year, createdTsDate.month, createdTsDate.day);
-      // print("Dates...... ${_startDate}-${_endDate}");
-      // print("Created ts......${contact.createdTs.toString()}");
       return !createdDateOnly.isBefore(parsedDate1) && !createdDateOnly.isAfter(parsedDate2);
     }).toList();
-
     notifyListeners();
   }
-
-
-
   void datePick({required BuildContext context, required String date, required bool isStartDate}) {
-    DateTime dateTime = DateTime.now();
     final parsedDate = DateFormat('dd-MM-yyyy').parse(date);
     final now = DateTime.now();
     DateTime initDate = DateTime(
@@ -3166,14 +2278,6 @@ void manageFilter(value){
     _endDate = DateFormat('dd-MM-yyyy').format(enDt);
     notifyListeners();
   }
-  // void last3Month() {
-  //   DateTime now = DateTime.now();
-  //   DateTime stDt = DateTime(now.year, now.month - 3, 1);
-  //   DateTime enDt = DateTime(now.year, now.month, 0);
-  //   _startDate = DateFormat('dd-MM-yyyy').format(stDt);
-  //   _endDate = DateFormat('dd-MM-yyyy').format(enDt);
-  //   notifyListeners();
-  // }
   void last3Month() {
     DateTime now = DateTime.now();
 
@@ -3295,36 +2399,17 @@ void manageFilter(value){
     notifyListeners();
   }
   Future<void> insertTrackList(RxList dataList) async {
-
-    // try {
-    // print("dataList.length");
-    // print(dataList.length);
     final Map<String, dynamic> sendData = {
       'action': trackListInsert,
       'empList': dataList
     };
-    final response = await http.post(
+    await http.post(
       Uri.parse(phpFile),
       headers: <String, String>{
         'Content-Type': 'application/json; charset=UTF-8',
       },
       body: jsonEncode(sendData),
     );
-    // print("response.body");
-    // print(response.body);
-    // print(dataList);
-    if (response.statusCode == 200) {
-      // utils.toast(context: context,text:"Attendance Marked Successful",color: Colors.green);
-      // groupRefresh();
-      // fieldRefresh();
-      // Get.back();
-    } else {
-      // utils.toast(context: context,text:"Failed",color: Colors.red);
-    }
-    // } catch (e) {
-    //   // utils.toast(context: context,text:"Failed",color: Colors.red);
-    //   // controller.ispresent.reset();
-    // }
   }
   List _allData = [];
   List get allData => _allData;
@@ -3343,8 +2428,6 @@ void manageFilter(value){
         "cos_id":localData.storage.read("cos_id")
       };
       final response =await custRepo.getDashboardReport(data);
-      // print(data.toString());
-      // print(response);
       if (response.isNotEmpty) {
         _allData=response;
         _refresh=true;
@@ -3391,7 +2474,6 @@ final List<Marker> _liveMarker =[];
 List<Marker> get liveMarker =>_liveMarker;
   Future<BitmapDescriptor> createCustomMarkerFromNetwork(String? imageUrl) async {
     if (imageUrl == null || imageUrl.isEmpty) {
-      // Load default asset image if URL is null or empty
       ByteData data = await rootBundle.load('assets/images/map_track.png'); // Ensure asset exists
       Uint8List defaultImage = data.buffer.asUint8List();
       return BitmapDescriptor.fromBytes(defaultImage);
@@ -3425,11 +2507,8 @@ List<Marker> get liveMarker =>_liveMarker;
       final ui.Picture picture = recorder.endRecording();
       final ui.Image finalImage = await picture.toImage(100, 120);
       final ByteData? byteData = await finalImage.toByteData(format: ui.ImageByteFormat.png);
-
       return BitmapDescriptor.fromBytes(byteData!.buffer.asUint8List());
     } catch (e) {
-      // print("Error loading network image: $e");
-      // Load the default asset image if network fails
       ByteData data = await rootBundle.load("assets/images/map_track.png");
       Uint8List defaultImage = data.buffer.asUint8List();
       return BitmapDescriptor.fromBytes(defaultImage);
@@ -3460,7 +2539,6 @@ List<Marker> get liveMarker =>_liveMarker;
           Placemark area = placeMark[0];
 
           BitmapDescriptor markerIcon = await createCustomMarkerFromNetwork(dataList[i]["image"] ?? "");
-          // print(dataList);
           _liveMarker.add(
             Marker(
               markerId: MarkerId(dataList[i]["id"].toString()),
@@ -3489,8 +2567,6 @@ List<Marker> get liveMarker =>_liveMarker;
     }
     notifyListeners();
 }
-
-
   String crtDate(String dateTimeString, String type) {
     var parts = dateTimeString.split(' ');
     var dateParts = parts[0].split('-'); // Split the date into year, month, and day
@@ -3598,32 +2674,6 @@ List<Marker> get liveMarker =>_liveMarker;
   Timer? timer;
   late DateTime _startTime;
   final AudioRecorder _record = AudioRecorder();
-
-  // Future<void> startRecording() async {
-  //   HapticFeedback.heavyImpact();
-  //   // if (await Vibration.hasVibrator()) {
-  //   //   Vibration.vibrate(duration: 500);  // Vibrates for 500ms
-  //   // }
-  //   try {
-  //     if (await record.hasPermission()) {
-  //       final dir = await getApplicationDocumentsDirectory();
-  //       String path = "${dir.path}/recorded_audio_${DateTime.now().millisecondsSinceEpoch}.m4a";
-  //       await record.start(const RecordConfig(), path: path);
-  //
-  //       _isRecording = true;
-  //       _startTime = DateTime.now(); // Capture start time
-  //       _recordingDuration = 0.0;
-  //
-  //       timer = Timer.periodic(const Duration(milliseconds: 100), (timer) {
-  //         final elapsed = DateTime.now().difference(_startTime).inMilliseconds;
-  //         _recordingDuration = elapsed / 1000; // Convert to seconds
-  //       });
-  //       loadAudioDuration(path);
-  //     }
-  //   } catch (e) {
-  //     log("Error in startRecording: $e");
-  //   }
-  // }
   String _recordingTime = "";
   String formatDurationTime(int milliseconds) {
     final seconds = milliseconds ~/ 1000;
@@ -3639,64 +2689,25 @@ List<Marker> get liveMarker =>_liveMarker;
     required int seconds,
   }) {
     if (hours > 0) {
-      // hours irundha → h.m.s
       return "$hours.$minutes.$seconds";
     } else if (minutes > 0) {
-      // minutes irundha → m.s
       return "$minutes.$seconds";
     } else {
-      // only seconds → 0.s
       return "0.$seconds";
     }
   }
-  // Future<void> startRecording() async {
-  //   if (_isRecording) return; // Prevent duplicate starts
-  //
-  //   HapticFeedback.heavyImpact();
-  //
-  //   try {
-  //     if (await _record.hasPermission()) {
-  //       final dir = await getApplicationDocumentsDirectory();
-  //       String path =
-  //           "${dir.path}/recorded_audio_${DateTime.now().millisecondsSinceEpoch}.m4a";
-  //
-  //       await _record.start(const RecordConfig(), path: path);
-  //
-  //       _isRecording = true;
-  //       _startTime = DateTime.now();
-  //       _recordingDuration = 0.0;
-  //       _recordingTime ="";
-  //
-  //       timer = Timer.periodic(const Duration(milliseconds: 100), (timer) {
-  //         final elapsed = DateTime.now().difference(_startTime).inMilliseconds;
-  //         _recordingTime = formatDurationTime(elapsed);
-  //         _recordingDuration = elapsed / 1000;
-  //         notifyListeners();
-  //       });
-  //
-  //       notifyListeners();
-  //     }
-  //   } catch (e) {
-  //     log("Error in startRecording: $e");
-  //   }
-  // }
   Future<void> startRecording() async {
     if (_isRecording) return;
-
     HapticFeedback.heavyImpact();
-
     try {
       if (await _record.hasPermission()) {
-
         _isRecording = true;   // ✅ move here (before start)
         notifyListeners();
-
         final dir = await getApplicationDocumentsDirectory();
         String path =
             "${dir.path}/recorded_audio_${DateTime.now().millisecondsSinceEpoch}.m4a";
 
         await _record.start(const RecordConfig(), path: path);
-
         _startTime = DateTime.now();
         _recordingDuration = 0.0;
         _recordingTime = "";
@@ -3746,50 +2757,6 @@ List<Marker> get liveMarker =>_liveMarker;
     }
     notifyListeners();
   }
-  /// Stop Recording
-  // Future<void> stopRecording() async {
-  //   try {
-  //     final path = await record.stop();
-  //     if (path != null) {
-  //       _recordedAudioPaths.add(
-  //           AddAudioModel(audioPath: path, second: _recordingDuration));
-  //     }
-  //     _isRecording = false;
-  //     timer?.cancel();
-  //     // print("_recordedAudioPaths: ${_recordedAudioPaths.last.second}");
-  //   } catch (e) {
-  //     // print("Error in stopRecording: $e");
-  //   }
-  // }
-//   Future<void> stopRecording() async {
-//     if (!_isRecording) return; // Prevent stop if not recording
-//
-//     try {
-//       final path = await _record.stop();
-//
-//       if (path != null) {
-//         _isRecording = false;
-//         timer?.cancel();
-//         if(_recordedAudioPaths.isEmpty){
-//           _recordedAudioPaths.add(
-//             AddAudioModel(audioPath: path, second: _recordingDuration, time: _recordingTime),
-//           );
-//         }else{
-//           _recordedAudioPaths[0]=
-//               AddAudioModel(audioPath: path, second: _recordingDuration, time: _recordingTime);
-//         }
-//
-// print("_recordedAudioPaths");
-// print(_recordedAudioPaths);
-//         await Future.delayed(Duration(seconds: 1)); // Optional delay
-//         loadAudioDuration(path);
-//       }
-//     } catch (e) {
-//       log("Error in stopRecording: $e");
-//     }
-//
-//     notifyListeners();
-//   }
 
   Future<void> loadAudioDuration(String url) async {
     try {
@@ -3797,26 +2764,20 @@ List<Marker> get liveMarker =>_liveMarker;
       Duration? fetchedDuration = await audioPlayer.getDuration();
       if (fetchedDuration != null) {
         _duration = fetchedDuration;
-        // print("Duration $duration");
       }
-    } catch (e) {
-      // print("Error fetching duration: $e");
-    }
+    } catch (e) {    }
   }
 
   Future<void> playPauseAudio(String path,int index) async {
     try {
       if (_isPlaying) {
-        // print("Pausing audio");
         stopAudio();
       } else {
         playAudio(path,index);
       }
 
       _isPlaying = !_isPlaying;
-    } catch (e) {
-      // print("Error in playPauseAudio: $e");
-    }
+    } catch (e) {    }
   }
 
   Future<void> playAudio(String audioPath, int index) async {
@@ -3884,10 +2845,8 @@ List<Marker> get liveMarker =>_liveMarker;
     String sanitize(String? value) {
       return (value == null || value.trim().toLowerCase() == "null") ? "" : value.trim();
     }
-
     // Build company details dynamically
     String companyDetails = "Company Details\n\nCompany Name: ${sanitize(datas.companyName)}";
-
     // Build address only if there are non-empty values
     List<String> addressParts = [
       sanitize(datas.doorNo),
@@ -4078,56 +3037,7 @@ List<Marker> get liveMarker =>_liveMarker;
     getEmpWiseReport(context);
     notifyListeners();
   }
-
-  // Future<void> getVisitReport() async {
-  //   _refresh=false;
-  //   _dailyVisitReport.clear();
-  //   _searchDailyVisitReport.clear();
-  //   notifyListeners();
-  //   // try {
-  //     Map data = {
-  //       "action": getAllData,
-  //       "search_type":"Today_visits",
-  //       "id":localData.storage.read("id"),
-  //       "role":localData.storage.read("role"),
-  //       "cos_id": localData.storage.read("cos_id"),
-  //       "date1": _startDate,
-  //       "date2": _endDate
-  //     };
-  //     final response =await custRepo.getComments(data);
-  //     log(data.toString());
-  //     log(response.toString());
-  //     if (response.isNotEmpty) {
-  //       List<CustomerReportModel> filteredList = response;
-  //
-  //       // ✅ Type Filter
-  //       if (_dailyType != null && _dailyType.toString().isNotEmpty) {
-  //         filteredList = filteredList.where((item) {
-  //           return item.typeNo.toString() == typeValue.toString();
-  //         }).toList();
-  //       }
-  //
-  //       // ✅ User Filter
-  //       if (_userName != "" && _userName.toString().isNotEmpty) {
-  //         filteredList = filteredList.where((item) {
-  //           return item.createdBy.toString() == _user.toString();
-  //         }).toList();
-  //       }
-  //
-  //       // ✅ Final assign
-  //       _dailyVisitReport = filteredList;
-  //       _searchDailyVisitReport = filteredList;
-  //       _refresh=true;
-  //     } else {
-  //       _refresh=true;
-  //     }
-  //   // } catch (e) {
-  //   //   _refresh=true;
-  //   // }
-  //   notifyListeners();
-  // }
-  Future<void> getVisitReport(BuildContext context) async
-  {
+  Future<void> getVisitReport(BuildContext context) async {
     try {
       _refresh = false;
       _dailyVisitReport.clear();
@@ -4163,10 +3073,8 @@ List<Marker> get liveMarker =>_liveMarker;
         if (_dailyType != null) {
           filteredList = filteredList.where((item) {
             log("CHECK TYPE => API:${item.typeNo}  DROPDOWN:$typeValue");
-
             return item.typeNo.toString() == typeValue.toString();
           }).toList();
-
           log("AFTER TYPE FILTER COUNT => ${filteredList.length}");
         }
 
@@ -4174,10 +3082,8 @@ List<Marker> get liveMarker =>_liveMarker;
         if (_userName != "") {
           filteredList = filteredList.where((item) {
             log("CHECK USER => API:${item.createdBy}  DROPDOWN:$_user");
-
             return item.firstname.toString() == _userName.toString();
           }).toList();
-
           log("AFTER USER FILTER COUNT => ${filteredList.length}");
         }
 
@@ -4204,61 +3110,26 @@ List<Marker> get liveMarker =>_liveMarker;
    List<Map<String, dynamic>> finalList = []; // UIக்கு use ஆகும் list
   void prepareFinalEmpList(BuildContext context) {
     final empProvider = Provider.of<EmployeeProvider>(context, listen: false);
-
     List employeeList = empProvider.filterUserData;
-
     Map<String, dynamic> visitMap = {
       for (var item in groupedList) item["role"]: item
     };
 
     finalList = employeeList.map((emp) {
       var visitData = visitMap[emp["id"]];
-
       return {
         "firstname": emp["firstname"],
         "role": emp["id"],
-
         /// 🔥 ZERO HANDLE
         "total": visitData != null ? visitData["total"] ?? 0 : 0,
-
         /// 🔥 TYPES HANDLE
         "types": visitData != null ? visitData["types"] ?? {} : {},
       };
     }).toList();
-
     notifyListeners();
   }
-  // void groupEmployeeData() {
-  //   Map<String, Map<String, dynamic>> temp = {};
-  //
-  //   for (var item in _empWiseCount) {
-  //     String role = item["role"];   // 🔥 use role (ID)
-  //     String name = item["firstname"];
-  //     String type = item["value"];
-  //     int count = int.tryParse(item["total_count"].toString()) ?? 0;
-  //
-  //     if (!temp.containsKey(role)) {
-  //       temp[role] = {
-  //         "firstname": name,
-  //         "role": role,
-  //         "types": {},
-  //         "total": 0,
-  //       };
-  //     }
-  //
-  //     temp[role]!["types"][type] =
-  //         (temp[role]!["types"][type] ?? 0) + count;
-  //
-  //     temp[role]!["total"] += count;
-  //   }
-  //
-  //   groupedList = temp.values.toList();
-  //
-  //   print("🔥 GROUPED DATA: $groupedList");
-  // }
   void groupEmployeeData() {
     Map<String, Map<String, dynamic>> temp = {};
-
     for (var item in _empWiseCount) {
       String name = item["firstname"];
       String type = item["value"]; // 🔥 backend value direct
@@ -4276,12 +3147,10 @@ List<Marker> get liveMarker =>_liveMarker;
       /// 🔥 dynamic add
       temp[name]!["types"][type] =
           (temp[name]!["types"][type] ?? 0) + count;
-
       temp[name]!["total"] += count;
     }
 
     groupedList = temp.values.toList();
-
     print("🔥 GROUPED DATA: $groupedList");
   }
   List _empWiseCount=[];
@@ -4340,7 +3209,6 @@ List<Marker> get liveMarker =>_liveMarker;
     Map<String, Map<String, dynamic>> temp = {};
 
     for (var item in response) {
-
       String date = item["date"];
       String type = item["value"]; // 🔥 dynamic
       int count = int.parse(item["total_count"].toString());
@@ -4356,7 +3224,6 @@ List<Marker> get liveMarker =>_liveMarker;
       // dynamic type add
       temp[date]!["types"][type] =
           (temp[date]!["types"][type] ?? 0) + count;
-
       temp[date]!["total"] += count;
     }
 
@@ -4425,188 +3292,12 @@ List<Marker> get liveMarker =>_liveMarker;
     }
     notifyListeners();
   }
-  // Future<void> reportExport(BuildContext context,List list)async{
-  //   try{
-  //     addCtr.reset();
-  //     final Workbook workbook =Workbook();
-  //     final Worksheet worksheet=workbook.worksheets[0];
-  //     worksheet.getRangeByName('A1:D1').merge();
-  //     worksheet.getRangeByName('A1:D1').cellStyle.hAlign= HAlignType.center;
-  //     worksheet.getRangeByName('A2:D2').cellStyle.hAlign= HAlignType.center;
-  //     worksheet.getRangeByName('A1').cellStyle.bold = true;worksheet.getRangeByName('A1').cellStyle.fontSize = 10;
-  //     worksheet.getRangeByName('A2:D2').cellStyle.bold = true;worksheet.getRangeByName('A2:D2').cellStyle.fontSize = 10;
-  //     worksheet.getRangeByName('A2:D2').columnWidth =10;
-  //     worksheet.getRangeByName('A2:D2').cellStyle.backColor='#CA1617';
-  //     worksheet.getRangeByName('A2:D2').cellStyle.fontColor='#ffffff';
-  //     worksheet.getRangeByName("A1").setText("Visit Report - $_startDate ${_startDate==_endDate?"":" To $_endDate"}");
-  //     worksheet.getRangeByName("A2").setText("Name");
-  //     worksheet.getRangeByName("B2").setText("Working Hours");
-  //     worksheet.getRangeByName("C2").setText("Leaving Hours");
-  //     worksheet.getRangeByName("D2").setText("Visit Count");
-  //     for(var i=0;i<list.length;i++){
-  //       worksheet.getRangeByIndex(i+3,1).setText(list[i]["firstname"]);
-  //       // worksheet.getRangeByIndex(i+3,2).setText(list[i]["total_working_hours"]);
-  //       worksheet.getRangeByIndex(i+3, 2)
-  //           .setText("${double.parse(list[i]["total_working_hours"]).round()} Hours");
-  //       // worksheet.getRangeByIndex(i+3,2).setText("${int.parse(list[i]["total_working_hours"].toString()}"));
-  //       worksheet.getRangeByIndex(i+3,3).setText(list[i]["leave_hours"]);
-  //       worksheet.getRangeByIndex(i+3,4).setText(list[i]["visit_count"]);
-  //     }
-  //     final List<int> bytes =workbook.saveAsStream();
-  //     if(kIsWeb){
-  //       AnchorElement(href: 'data:application/octet-stream;charset-utf-161e;base64,${base64.encode(bytes)}')
-  //         ..setAttribute('download', '${constValue.appName} report.xlsx')
-  //         ..click();
-  //     }else{
-  //       final String path=(await getApplicationSupportDirectory()).path;
-  //       final String filename='$path/Visit Report - $_startDate ${_startDate==_endDate?"":" To $_endDate"}.xlsx';
-  //       final File file=File(filename);
-  //       await file.writeAsBytes(bytes,flush: true);
-  //       OpenFile.open(filename);
-  //     }
-  //   }catch(e){
-  //     utils.showWarningToast(context,text: "No data found");
-  //     addCtr.reset();
-  //   }
-  // }
-
-  // Future<void> reportExport(BuildContext context, List list) async {
-  //   try {
-  //     /// 🔥 STEP 0: ALL TYPES (IMPORTANT)
-  //     List<String> allTypes = [
-  //       "Installation",
-  //       "Service - Warranty",
-  //       "Service - AMC",
-  //       "Service - Paid",
-  //       "Services"
-  //     ];
-  //
-  //     /// 🔥 STEP 1: GROUP DATA (DATE WISE + DEFAULT 0)
-  //     Map<String, Map<String, dynamic>> groupedData = {};
-  //
-  //     for (var item in list) {
-  //       if (item["report_date"] == null) continue;
-  //
-  //       String date = item["report_date"];
-  //       String value = item["value"];
-  //       int total = int.tryParse(item["total"].toString()) ?? 0;
-  //
-  //       if (!groupedData.containsKey(date)) {
-  //         groupedData[date] = {"date": date};
-  //
-  //         /// 🔥 default 0 for all types
-  //         for (var type in allTypes) {
-  //           groupedData[date]![type] = 0;
-  //         }
-  //       }
-  //
-  //       /// 🔥 update actual value
-  //       groupedData[date]![value] = total;
-  //     }
-  //
-  //     List finalList = groupedData.values.toList();
-  //
-  //     /// 🔥 STEP 2: CREATE WORKBOOK
-  //     final Workbook workbook = Workbook();
-  //     final Worksheet sheet = workbook.worksheets[0];
-  //
-  //     /// 🔥 STEP 3: HEADER LIST
-  //     List<String> headerList = ["Date", ...allTypes];
-  //
-  //     /// 🔥 TITLE
-  //     sheet
-  //         .getRangeByName(
-  //         'A1:${String.fromCharCode(65 + headerList.length - 1)}1')
-  //         .merge();
-  //
-  //     sheet.getRangeByIndex(1, 1).setText('JPS APP - Date Wise Report');
-  //     sheet.getRangeByIndex(1, 1).cellStyle.bold = true;
-  //     sheet.getRangeByIndex(1, 1).cellStyle.hAlign = HAlignType.center;
-  //
-  //     /// 🔥 HEADER WRITE
-  //     for (int i = 0; i < headerList.length; i++) {
-  //       sheet.getRangeByIndex(2, i + 1).setText(headerList[i]);
-  //     }
-  //
-  //     /// 🎨 HEADER STYLE
-  //     final headerRange = sheet.getRangeByName(
-  //         'A2:${String.fromCharCode(65 + headerList.length - 1)}2');
-  //
-  //     headerRange.cellStyle.bold = true;
-  //     headerRange.cellStyle.hAlign = HAlignType.center;
-  //     headerRange.cellStyle.backColor = '#CA1617';
-  //     headerRange.cellStyle.fontColor = '#FFFFFF';
-  //
-  //     /// 🔥 STEP 4: DATA WRITE
-  //     for (int i = 0; i < finalList.length; i++) {
-  //       final row = i + 3;
-  //
-  //       /// Date
-  //       sheet
-  //           .getRangeByIndex(row, 1)
-  //           .setText(finalList[i]["date"] ?? "");
-  //
-  //       /// Values
-  //       for (int j = 1; j < headerList.length; j++) {
-  //         String key = headerList[j];
-  //
-  //         sheet.getRangeByIndex(row, j + 1).setNumber(
-  //           double.tryParse(finalList[i][key]?.toString() ?? "0") ?? 0,
-  //         );
-  //       }
-  //     }
-  //
-  //     /// 📏 COLUMN WIDTH
-  //     sheet
-  //         .getRangeByName(
-  //         'A1:${String.fromCharCode(65 + headerList.length - 1)}${finalList.length + 2}')
-  //         .columnWidth = 25;
-  //
-  //     /// 🔲 BORDER
-  //     sheet
-  //         .getRangeByName(
-  //         'A2:${String.fromCharCode(65 + headerList.length - 1)}${finalList.length + 2}')
-  //         .cellStyle
-  //         .borders
-  //         .all
-  //         .lineStyle = LineStyle.thin;
-  //
-  //     /// 🔥 CENTER ALIGN
-  //     sheet
-  //         .getRangeByName(
-  //         'A3:${String.fromCharCode(65 + headerList.length - 1)}${finalList.length + 2}')
-  //         .cellStyle
-  //         .hAlign = HAlignType.center;
-  //
-  //     /// 💾 SAVE
-  //     final bytes = workbook.saveAsStream();
-  //     workbook.dispose();
-  //
-  //     if (kIsWeb) {
-  //       AnchorElement(
-  //         href: 'data:application/octet-stream;base64,${base64.encode(bytes)}',
-  //       )
-  //         ..setAttribute('download', 'JPS_Report.xlsx')
-  //         ..click();
-  //     } else {
-  //       final path = (await getApplicationSupportDirectory()).path;
-  //       final file = File('$path/JPS_Report.xlsx');
-  //       await file.writeAsBytes(bytes, flush: true);
-  //       OpenFile.open(file.path);
-  //     }
-  //   } catch (e) {
-  //     print("ERROR: $e");
-  //   }
-  // } //dev
-
   Future<void> reportExportEmployeeSectionWise(
       BuildContext context, List list, String startDate, String endDate)
   async {
     try {
-
       List<String> generateDateRange(String start, String end) {
         List<String> dates = [];
-
         DateTime startDt = DateFormat("dd-MM-yyyy").parse(start);
         DateTime endDt = DateFormat("dd-MM-yyyy").parse(end);
 
@@ -4615,7 +3306,6 @@ List<Marker> get liveMarker =>_liveMarker;
         d = d.add(const Duration(days: 1))) {
           dates.add(DateFormat("dd-MM-yyyy").format(d));
         }
-
         return dates;
       }
 
@@ -4684,7 +3374,6 @@ List<Marker> get liveMarker =>_liveMarker;
 
       for (var emp in allEmployees) {
         int totalColumns = 1 + allTypes.length + 1; // Date + types + Total
-
         sheet
             .getRangeByName(
             'A$currentRow:${String.fromCharCode(65 + totalColumns - 1)}$currentRow')
@@ -4881,11 +3570,9 @@ List<Marker> get liveMarker =>_liveMarker;
       /// 🔥 Create Excel
       final Workbook workbook = Workbook();
       final Worksheet sheet = workbook.worksheets[0];
-
       int currentRow = 1;
 
       for (var emp in allEmployees) {
-
         int totalColumns = 1 + allTypes.length + 1; // Date + Types + Total
 
         sheet
@@ -4998,244 +3685,17 @@ List<Marker> get liveMarker =>_liveMarker;
       print("ERROR: $e");
     }
   }
-
-  // Future<void> reportExport(BuildContext context, List list) async {
-  //   try {
-  //     print("Sheet Data $list");
-  //     /// 🔥 STEP 1: GET ALL TYPES FROM API (DYNAMIC)
-  //     Set<String> allTypesSet = {};
-  //
-  //     for (var item in list) {
-  //       if (item["value"] != null) {
-  //         allTypesSet.add(item["value"]);
-  //       }
-  //     }
-  //
-  //     List<String> allTypes = allTypesSet.toList();
-  //
-  //     /// 🔥 STEP 2: GROUP DATA (DATE WISE + DEFAULT 0)
-  //     Map<String, Map<String, dynamic>> groupedData = {};
-  //
-  //     for (var item in list) {
-  //       if (item["report_date"] == null) continue;
-  //
-  //       String date = item["report_date"];
-  //       String value = item["value"];
-  //       int total = int.tryParse(item["total"].toString()) ?? 0;
-  //
-  //       if (!groupedData.containsKey(date)) {
-  //         groupedData[date] = {"date": date};
-  //
-  //         /// 🔥 default 0 for all dynamic types
-  //         for (var type in allTypes) {
-  //           groupedData[date]![type] = 0;
-  //         }
-  //       }
-  //
-  //       /// 🔥 update actual value
-  //       groupedData[date]![value] = total;
-  //     }
-  //
-  //     List finalList = groupedData.values.toList();
-  //
-  //     /// 🔥 STEP 3: CREATE EXCEL
-  //     final Workbook workbook = Workbook();
-  //     final Worksheet sheet = workbook.worksheets[0];
-  //
-  //     /// 🔥 HEADER LIST
-  //     List<String> headerList = ["Date", ...allTypes];
-  //
-  //     /// 🔥 TITLE
-  //     sheet
-  //         .getRangeByName(
-  //         'A1:${String.fromCharCode(65 + headerList.length - 1)}1')
-  //         .merge();
-  //
-  //     sheet.getRangeByIndex(1, 1).setText('JPS APP - Date Wise Report');
-  //     sheet.getRangeByIndex(1, 1).cellStyle.bold = true;
-  //     sheet.getRangeByIndex(1, 1).cellStyle.hAlign = HAlignType.center;
-  //
-  //     /// 🔥 HEADER WRITE
-  //     for (int i = 0; i < headerList.length; i++) {
-  //       sheet.getRangeByIndex(2, i + 1).setText(headerList[i]);
-  //     }
-  //
-  //     /// 🎨 HEADER STYLE
-  //     final headerRange = sheet.getRangeByName(
-  //         'A2:${String.fromCharCode(65 + headerList.length - 1)}2');
-  //
-  //     headerRange.cellStyle.bold = true;
-  //     headerRange.cellStyle.hAlign = HAlignType.center;
-  //     headerRange.cellStyle.backColor = '#CA1617';
-  //     headerRange.cellStyle.fontColor = '#FFFFFF';
-  //
-  //     /// 🔥 STEP 4: DATA WRITE
-  //     for (int i = 0; i < finalList.length; i++) {
-  //       final row = i + 3;
-  //
-  //       /// Date
-  //       sheet.getRangeByIndex(row, 1)
-  //           .setText(finalList[i]["date"] ?? "");
-  //
-  //       /// Values
-  //       for (int j = 1; j < headerList.length; j++) {
-  //         String key = headerList[j];
-  //
-  //         sheet.getRangeByIndex(row, j + 1).setNumber(
-  //           double.tryParse(finalList[i][key]?.toString() ?? "0") ?? 0,
-  //         );
-  //       }
-  //     }
-  //
-  //     /// 📏 COLUMN WIDTH
-  //     sheet
-  //         .getRangeByName(
-  //         'A1:${String.fromCharCode(65 + headerList.length - 1)}${finalList.length + 2}')
-  //         .columnWidth = 25;
-  //
-  //     /// 🔲 BORDER
-  //     sheet
-  //         .getRangeByName(
-  //         'A2:${String.fromCharCode(65 + headerList.length - 1)}${finalList.length + 2}')
-  //         .cellStyle
-  //         .borders
-  //         .all
-  //         .lineStyle = LineStyle.thin;
-  //
-  //     /// 🔥 CENTER ALIGN
-  //     sheet
-  //         .getRangeByName(
-  //         'A3:${String.fromCharCode(65 + headerList.length - 1)}${finalList.length + 2}')
-  //         .cellStyle
-  //         .hAlign = HAlignType.center;
-  //
-  //     /// 💾 SAVE
-  //     final bytes = workbook.saveAsStream();
-  //     workbook.dispose();
-  //
-  //     if (kIsWeb) {
-  //       AnchorElement(
-  //         href: 'data:application/octet-stream;base64,${base64.encode(bytes)}',
-  //       )
-  //         ..setAttribute('download', 'JPS_Report.xlsx')
-  //         ..click();
-  //     } else {
-  //       final path = (await getApplicationSupportDirectory()).path;
-  //       final file = File('$path/JPS_Report.xlsx');
-  //       await file.writeAsBytes(bytes, flush: true);
-  //       OpenFile.open(file.path);
-  //     }
-  //   } catch (e) {
-  //     print("ERROR: $e");
-  //   }
-  // } //production
-
-  // Future<void> downloadExcelReport(List dataList) async {
-  //
-  //   var excel = Excel.createExcel();
-  //   Sheet sheet = excel['Report'];
-  //
-  //   /// --------- COLLECT HEADERS ----------
-  //
-  //   Set<String> typeSet = {};
-  //   Set<String> empSet = {};
-  //
-  //   for (var item in dataList) {
-  //     typeSet.add(item['value']);
-  //     empSet.add(item['firstname']);
-  //   }
-  //
-  //   List<String> types = typeSet.toList();
-  //   List<String> employees = empSet.toList();
-  //
-  //   /// --------- HEADER ROW ----------
-  //
-  //   sheet
-  //       .cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: 0))
-  //       .value = 'Employee Name';
-  //
-  //   for (int i = 0; i < types.length; i++) {
-  //     sheet
-  //         .cell(CellIndex.indexByColumnRow(columnIndex: i + 1, rowIndex: 0))
-  //         .value = types[i];
-  //   }
-  //
-  //   /// -------- DATA ----------
-  //
-  //   for (int i = 0; i < employees.length; i++) {
-  //
-  //     sheet
-  //         .cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: i + 1))
-  //         .value = employees[i];
-  //
-  //     for (int j = 0; j < types.length; j++) {
-  //
-  //       String count = "0";
-  //
-  //       for (var item in dataList) {
-  //         if (item['firstname'] == employees[i] &&
-  //             item['value'] == types[j]) {
-  //           count = item['total_count'];
-  //         }
-  //       }
-  //
-  //       sheet
-  //           .cell(CellIndex.indexByColumnRow(columnIndex: j + 1, rowIndex: i + 1))
-  //           .value = count;
-  //     }
-  //   }
-  //
-  //   final fileBytes = excel.encode()!;
-  //
-  //   /// ---------- PLATFORM CHECK ----------
-  //
-  //   if (kIsWeb) {
-  //
-  //     // /// 🌐 WEB DOWNLOAD
-  //     //
-  //     // final blob = html.Blob([fileBytes]);
-  //     // final url = html.Url.createObjectUrlFromBlob(blob);
-  //     //
-  //     // html.AnchorElement(href: url)
-  //     //   ..setAttribute("download", "activity_report.xlsx")
-  //     //   ..click();
-  //     //
-  //     // html.Url.revokeObjectUrl(url);
-  //
-  //   } else {
-  //
-  //     /// 📱 MOBILE DOWNLOAD
-  //
-  //     final directory = await getExternalStorageDirectory();
-  //
-  //     String filePath = "${directory!.path}/activity_report.xlsx";
-  //
-  //     File(filePath)
-  //       ..createSync(recursive: true)
-  //       ..writeAsBytesSync(fileBytes);
-  //
-  //     /// Open Automatically
-  //     OpenFile.open(filePath);
-  //
-  //     print("Saved Path => $filePath");
-  //   }
-  // }
   Future<void> downloadExcelReport(List dataList) async {
-
     if (dataList.isEmpty) {
       print("No Data Found");
       return;
     }
-
     var excel = Excel.createExcel();
-
     /// REMOVE DEFAULT SHEET
     excel.delete('Sheet1');
-
     /// CREATE REPORT SHEET
     String sheetName = "Report";
     Sheet sheet = excel[sheetName];
-
     /// SET FIRST TAB
     excel.setDefaultSheet(sheetName);
 
@@ -5339,28 +3799,13 @@ List<Marker> get liveMarker =>_liveMarker;
     /// ---------------- SAVE ----------------
 
     final fileBytes = excel.encode()!;
-
     if (kIsWeb) {
-
-      // final blob = html.Blob([fileBytes]);
-      // final url = html.Url.createObjectUrlFromBlob(blob);
-      //
-      // html.AnchorElement(href: url)
-      //   ..setAttribute("download", "activity_report.xlsx")
-      //   ..click();
-      //
-      // html.Url.revokeObjectUrl(url);
-
     } else {
-
       final directory = await getExternalStorageDirectory();
-
       String filePath = "${directory!.path}/Visit Report.xlsx";
-
       File(filePath)
         ..createSync(recursive: true)
         ..writeAsBytesSync(fileBytes);
-
       OpenFile.open(filePath);
     }
   }
@@ -5868,7 +4313,6 @@ List<Marker> get liveMarker =>_liveMarker;
           "attachment",
           empMediaData,
           filename: empFileName,
-          //contentType: http.MediaType('image', 'jpeg'),
         );
         request.files.add(picture1);
       }
@@ -5926,17 +4370,6 @@ List<Marker> get liveMarker =>_liveMarker;
                     onChanged: onChanged,
                   ),
                 ),
-                // InkWell(
-                //   onTap: (){
-                //     Navigator.of(context).pop();
-                //     addNameController.text = templateName.toString();
-                //     addSubjectController.text = subject.toString();
-                //     addMessageController.text = msg.toString();
-                //     showAddTemplateDialog(context, isEdit: true,id: id.toString());
-                //   },
-                //   child: SvgPicture.asset(assets.edit,
-                //   ),
-                // ),
                 5.width,
                 Container(
                   alignment: Alignment.center,
@@ -6137,9 +4570,6 @@ print("customer all is${localData.storage.read("c_ids")}");
     };
 
     final response = await custRepo.addCompanyPopDetails(data: data);
-
-    print("ADD COMPANY RESPONSE => $response");
-
     if (response.contains('"status":true')) {
       addCompanyCtr.reset();
       return true;
