@@ -419,45 +419,33 @@ class _HomePageState extends State<HomePage> {
     return Consumer6<HomeProvider,CustomerProvider,AttendanceProvider,LocationProvider,EmployeeProvider,LeaveProvider>(
       builder: (context,homeProvider,custProvider,attPvr,locPvr,empPvr,leaPro,_){
        // print(" attPvr.isWorkDone == 1 ${attPvr.isWorkDone} ${ attPvr.isWorkDone == 1}");
-        int visitPendingCount = homeProvider.mainReportList.isEmpty
-            ? 0
-            : homeProvider.inActiveVisit;
-
         int visitActiveCount = homeProvider.activeVisit;
-        int totalVisits = visitPendingCount + visitActiveCount;
+        int totalVisits = int.tryParse(homeProvider.totalV.toString()) ?? 0;
+
+        int visitPendingCount = totalVisits - visitActiveCount;
+        if (visitPendingCount < 0) visitPendingCount = 0;
 
         int taskPendingCount = homeProvider.mainReportList.isEmpty
             ? 0
-            : int.tryParse(
-          homeProvider.mainReportList[0]["incomplete_count"].toString(),
-        ) ?? 0;
+            : int.tryParse(homeProvider.mainReportList[0]["incomplete_count"].toString()) ?? 0;
 
         int taskCompletedCount = homeProvider.mainReportList.isEmpty
             ? 0
-            : int.tryParse(
-          homeProvider.mainReportList[0]["complete_count"].toString(),
-        ) ?? 0;
+            : int.tryParse(homeProvider.mainReportList[0]["complete_count"].toString()) ?? 0;
 
         int taskTotal = taskPendingCount + taskCompletedCount;
 
         int approvedCount = homeProvider.mainReportList.isEmpty
             ? 0
-            : int.tryParse(
-          homeProvider.mainReportList[0]["approved_expense_count"].toString(),
-        ) ?? 0;
+            : int.tryParse(homeProvider.mainReportList[0]["approved_expense_count"].toString()) ?? 0;
 
         int pendingCount = homeProvider.mainReportList.isEmpty
             ? 0
-            : int.tryParse(
-          homeProvider.mainReportList[0]["pending_expense_count"].toString(),
-        ) ?? 0;
+            : int.tryParse(homeProvider.mainReportList[0]["pending_expense_count"].toString()) ?? 0;
 
         int rejectedCount = homeProvider.mainReportList.isEmpty
             ? 0
-            : int.tryParse(
-          homeProvider.mainReportList[0]["rejected_expense_count"].toString(),
-        ) ?? 0;
-
+            : int.tryParse(homeProvider.mainReportList[0]["rejected_expense_count"].toString()) ?? 0;
         int total = approvedCount + pendingCount + rejectedCount;
         final submittedCount = attPvr.getDailyAttendance
             .where((e) => e.isWorkDone == "1")
@@ -850,7 +838,8 @@ class _HomePageState extends State<HomePage> {
                               );
 
                               if (result == true) {
-                              await homeProvider.getDashboardReport(true);
+                              //await homeProvider.getDashboardReport(true);
+                              await homeProvider.loadFullDashboard(context);
                               }
                               },
                                 child: Container(

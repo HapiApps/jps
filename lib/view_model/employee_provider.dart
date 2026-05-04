@@ -1143,8 +1143,10 @@ Future<void> insertEmployeeDetails(context,String lat,String lng) async {
       utils.showSuccessToast(context: context,text: "User ${constValue.success}",);
       getAllUsers();
       // Provider.of<HomeProvider>(context, listen: false).roleEmployees();
-      Provider.of<HomeProvider>(context, listen: false).getMainReport(false);
-      Provider.of<HomeProvider>(context, listen: false).getDashboardReport(false);
+      
+       Provider.of<HomeProvider>(context, listen: false).loadFullDashboard(context);
+      // Provider.of<HomeProvider>(context, listen: false).getMainReport(false);
+      // Provider.of<HomeProvider>(context, listen: false).getDashboardReport(false);
       // Provider.of<HomeProvider>(context, listen: false).showType(0);
       // Provider.of<HomeProvider>(context, listen: false).changeList();
       Future.microtask(() => Navigator.pop(context));
@@ -1392,9 +1394,9 @@ Future<void> empActive(context,{required String userId,required String active}) 
     if (response["status_code"]==200){
       utils.showSuccessToast(context: context,text: active=="1"?"Activated successfully":"Inactivated successfully.",);
       getAllUsers(isRefresh: false);
-      // Provider.of<HomeProvider>(context, listen: false).roleEmployees();
-      Provider.of<HomeProvider>(context, listen: false).getMainReport(false);
-      Provider.of<HomeProvider>(context, listen: false).getDashboardReport(false);
+      Provider.of<HomeProvider>(context, listen: false).loadFullDashboard(context);
+      // Provider.of<HomeProvider>(context, listen: false).getMainReport(false);
+      // Provider.of<HomeProvider>(context, listen: false).getDashboardReport(false);
       Navigator.pop(context);
       signCtr.reset();
     }else {

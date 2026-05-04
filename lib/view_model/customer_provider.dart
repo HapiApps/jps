@@ -2076,7 +2076,10 @@ TextEditingController date= TextEditingController(text: "${DateTime.now().day.to
         getAllCustomers(false);
 
         Provider.of<HomeProvider>(context, listen: false)
-            .getDashboardReport(true);
+            .loadFullDashboard(context);
+
+        // Provider.of<HomeProvider>(context, listen: false)
+        //     .getDashboardReport(true);
 
         callBack();
 

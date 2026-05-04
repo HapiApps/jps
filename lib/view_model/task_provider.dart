@@ -2902,7 +2902,8 @@ class TaskProvider with ChangeNotifier {
         utils.navigatePage(context, ()=> DashBoard(child: ViewTask(date1: Provider.of<HomeProvider>(context, listen: false).startDate, date2: Provider.of<HomeProvider>(context, listen: false).endDate, type: Provider.of<HomeProvider>(context, listen: false).type)));
         final homeProvider = Provider.of<HomeProvider>(context, listen: false);
         homeProvider.checkThisMonth();
-        homeProvider.getMainReport(false);
+        homeProvider.loadFullDashboard(context);
+        // homeProvider.getMainReport(false);
         // Future.microtask(() => Navigator.pop(context));
       }else {
         utils.showErrorToast(context: context);
@@ -2963,7 +2964,8 @@ class TaskProvider with ChangeNotifier {
           'time': DateTime.now(),
           'status': "",
         });
-        Provider.of<HomeProvider>(context, listen: false).getMainReport(false);
+        Provider.of<HomeProvider>(context, listen: false).loadFullDashboard(context);
+        // Provider.of<HomeProvider>(context, listen: false).getMainReport(false);
         if(isDirect==true){
           utils.navigatePage(context, ()=> DashBoard(child: ViewTask(date1: Provider.of<HomeProvider>(context, listen: false).startDate, date2: Provider.of<HomeProvider>(context, listen: false).endDate, type: Provider.of<HomeProvider>(context, listen: false).type)));
         }else{
@@ -3126,7 +3128,8 @@ class TaskProvider with ChangeNotifier {
       if (response.toString().contains("200")){
         utils.showSuccessToast(context: context,text: constValue.updated,);
         taskCtr.reset();
-        Provider.of<HomeProvider>(context, listen: false).getMainReport(false);
+        // Provider.of<HomeProvider>(context, listen: false).getMainReport(false);
+        Provider.of<HomeProvider>(context, listen: false).loadFullDashboard(context);
         getAllTask(false);
         TaskData? sentData;
         for(var i=0;i<_allTasks.length;i++){
@@ -3499,7 +3502,8 @@ class TaskProvider with ChangeNotifier {
         localData.storage.write("tk_id", response[0]["id"]);
         utils.showSuccessToast(text: status=="1"?"Check In Successful":"Check Out Successful",context: context);
         getAllTask(false);
-        Provider.of<HomeProvider>(context, listen: false).getMainReport(false);
+        // Provider.of<HomeProvider>(context, listen: false).getMainReport(false);
+        Provider.of<HomeProvider>(context, listen: false).loadFullDashboard(context);
         Navigator.of(context, rootNavigator: true).pop();
       }else {
         Navigator.of(context, rootNavigator: true).pop();

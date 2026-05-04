@@ -544,8 +544,9 @@ String get notificationToken =>_notificationToken;
 
                     List<String> formattedDates = datesBetween.map((date) => dateFormat.format(date)).toList();
                     betweenDates = formattedDates.join(' || ');
-                    getMainReport(false);
-                    getDashboardReport(false);
+                    loadFullDashboard(context);
+                    // getMainReport(false);
+                    // getDashboardReport(false);
                     // Provider.of<AttendanceProvider>(context, listen: false).getLateCount(_startDate,_endDate);
                     //Provider.of<AttendanceProvider>(context, listen: false).getTotalHours(_startDate,_endDate);
                     notifyListeners();
@@ -645,9 +646,10 @@ Future<void> login(context) async {
           Provider.of<HomeProvider>(context, listen: false).updateIndex(0);
           Provider.of<HomeProvider>(context, listen: false).initValue();
           // Provider.of<HomeProvider>(context, listen: false).roleEmployees();
-          Provider.of<AttendanceProvider>(context, listen: false).getMainAttendance();
-          getMainReport(false);
-          getDashboardReport(false);
+          Provider.of<HomeProvider>(context, listen: false).loadFullDashboard(context);
+          // Provider.of<AttendanceProvider>(context, listen: false).getMainAttendance();
+          // getMainReport(false);
+          // getDashboardReport(false);
           Future.microtask(() {
             utils.navigatePage(context,()=>const DashBoard(child: HomePage()));
           });
@@ -1004,12 +1006,10 @@ Future<void> loginOuts(context) async {
   // }
 
   Future<void> loadFullDashboard(BuildContext context) async {
-
     _refresh = false;
     notifyListeners();
 
     try {
-
       Map data = {
         "action": home,
         "id": localData.storage.read("id"),
@@ -1023,7 +1023,7 @@ Future<void> loginOuts(context) async {
       };
 
       print("===== REQUEST DATA =====");
-      print("===== REQUEST DATA =====$data");
+      print(data);
 
       final response = await homeRepo.getFullDashboard(data);
 
@@ -1035,12 +1035,15 @@ Future<void> loginOuts(context) async {
       print("===== MAIN REPORT =====");
       print(response["main_report"]);
 
-      _mainReportList = [response["main_report"]];
+      // ✅ main_report is Map, so wrap inside list safely
+      _mainReportList =
+      response["main_report"] == null ? [] : [response["main_report"]];
 
-      var mainReport = response["main_report"];
-      _noAttendanceCount = int.tryParse(
-          mainReport["no_attendance_count"].toString()) ??
-          0;
+      var mainReport = response["main_report"] ?? {};
+
+      _noAttendanceCount =
+          int.tryParse(mainReport["no_attendance_count"].toString()) ?? 0;
+
       // 🔥 no attendance count store
       localData.storage.write(
         "no_attendance_count",
@@ -1049,29 +1052,33 @@ Future<void> loginOuts(context) async {
             ? "0"
             : mainReport["no_attendance_count"].toString(),
       );
-      print("✅ no_attendance_count variablr : $_noAttendanceCount");
+
+      print("✅ no_attendance_count variable : $_noAttendanceCount");
       print("No Attendance Count local : ${mainReport["no_attendance_count"]}");
 
       localData.storage.write(
-          "conveyance_amount",
-          mainReport["conveyance_amount"] == null ||
-              mainReport["conveyance_amount"].toString().isEmpty
-              ? "0"
-              : mainReport["conveyance_amount"].toString());
+        "conveyance_amount",
+        mainReport["conveyance_amount"] == null ||
+            mainReport["conveyance_amount"].toString().isEmpty
+            ? "0"
+            : mainReport["conveyance_amount"].toString(),
+      );
 
       localData.storage.write(
-          "travel_amount",
-          mainReport["travel_amount"] == null ||
-              mainReport["travel_amount"].toString().isEmpty
-              ? "0"
-              : mainReport["travel_amount"].toString());
+        "travel_amount",
+        mainReport["travel_amount"] == null ||
+            mainReport["travel_amount"].toString().isEmpty
+            ? "0"
+            : mainReport["travel_amount"].toString(),
+      );
 
       localData.storage.write(
-          "da_amount",
-          mainReport["da_amount"] == null ||
-              mainReport["da_amount"].toString().isEmpty
-              ? "0"
-              : mainReport["da_amount"].toString());
+        "da_amount",
+        mainReport["da_amount"] == null ||
+            mainReport["da_amount"].toString().isEmpty
+            ? "0"
+            : mainReport["da_amount"].toString(),
+      );
 
       print("Conveyance Amount : ${mainReport["conveyance_amount"]}");
       print("Travel Amount : ${mainReport["travel_amount"]}");
@@ -1082,7 +1089,29 @@ Future<void> loginOuts(context) async {
       print("===== VISIT REPORT =====");
       print(response["dashboard_report"]);
 
-      _visitCount = response["dashboard_report"];
+      _visitCount = response["dashboard_report"] ?? [];
+
+      var store = 0;
+      inActiveVisit = 0;
+      activeVisit = 0;
+
+      for (var i = 0; i < _visitCount.length; i++) {
+        int count = int.tryParse(_visitCount[i]["total_count"].toString()) ?? 0;
+
+        store += count;
+
+        if (count == 0) {
+          inActiveVisit++;
+        } else {
+          activeVisit += count; // ✅ FIXED (previously activeVisit++)
+        }
+      }
+
+      _totalV = store.toString();
+
+      print("✅ Total Visits Count : $_totalV");
+      print("✅ InActive Visit Types : $inActiveVisit");
+      print("✅ Active Visit Total Count : $activeVisit");
 
       /* ================= PROVIDERS ================= */
 
@@ -1100,20 +1129,24 @@ Future<void> loginOuts(context) async {
       print("===== ATTENDANCE =====");
       print(response["attendance"]);
 
+      final attendanceList = (response["attendance"] ?? []) as List;
+
       attendanceProvider.setAttendanceData(
-        (response["attendance"] as List)
-            .map((e) => AttendanceModel.fromJson(e))
+        attendanceList
+            .map<AttendanceModel>((e) => AttendanceModel.fromJson(e))
             .toList(),
       );
 
+// ✅ now no error
+      attendanceProvider.setMainAttendanceFromDashboard(attendanceList);
       /* ================= USERS ================= */
 
       print("===== USERS =====");
       print(response["allusers"]);
 
       employeeProvider.setUserData(
-        (response["allusers"] as List)
-            .map((e) => UserModel.fromJson(e))
+        (response["allusers"] ?? [])
+            .map<UserModel>((e) => UserModel.fromJson(e))
             .toList(),
       );
 
@@ -1123,8 +1156,8 @@ Future<void> loginOuts(context) async {
       print(response["allcustomers"]);
 
       customerProvider.setCustomerData(
-        (response["allcustomers"] as List)
-            .map((e) => CustomerModel.fromJson(e))
+        (response["allcustomers"] ?? [])
+            .map<CustomerModel>((e) => CustomerModel.fromJson(e))
             .toList(),
       );
 
@@ -1133,11 +1166,10 @@ Future<void> loginOuts(context) async {
       print("===== NOTIFICATIONS =====");
       print(response["notifications"]);
 
-      employeeProvider.setNotifications(response["notifications"]);
+      employeeProvider.setNotifications(response["notifications"] ?? []);
 
       _refresh = true;
-
-    } catch (e,stack) {
+    } catch (e, stack) {
       print("===== DASHBOARD ERROR =====");
       print(e);
       print(stack);
@@ -1263,9 +1295,11 @@ Future<void> deleteUseAccount(context) async {
       last3Month();
     }
     checkThisMonth();
-     getMainReport(false);
-    getDashboardReport(false);Provider.of<AttendanceProvider>(context, listen: false).getLateCount(_startDate,_endDate);
-   // Provider.of<AttendanceProvider>(context, listen: false).getTotalHours(_startDate,_endDate);
+    loadFullDashboard(context);
+    // getMainReport(false);
+ //   getDashboardReport(false);
+    Provider.of<AttendanceProvider>(context, listen: false).getLateCount(_startDate,_endDate);
+   Provider.of<HomeProvider>(context, listen: false).loadFullDashboard(context);
     Provider.of<AttendanceProvider>(context, listen: false).initDate(id:localData.storage.read("id"),role:localData.storage.read("role"),isRefresh:true,date1:_startDate,date2:_endDate,type:"");
     //Provider.of<AttendanceProvider>(context, listen: false).getAttendanceReport(localData.storage.read("id"));
     Provider.of<AttendanceProvider>(context, listen: false).getAbsentAttendanceReport(localData.storage.read("id"));

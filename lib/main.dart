@@ -954,9 +954,8 @@ class _SplashScreenState extends State<SplashScreen> {
       homeProvider.checkVersion();
       locationProvider.requestPermissions();
       homeProvider.initValue();
-      // homeProvider.roleEmployees();
-      attendanceProvider.getMainAttendance();
       homeProvider.checkThisMonth();
+      homeProvider.loadFullDashboard(context);
     });
   }
 

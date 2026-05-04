@@ -427,6 +427,125 @@ class AttendanceProvider with ChangeNotifier{
   //   }
   //   notifyListeners();
   // }
+  void setMainAttendanceFromDashboard(List responseAttendance,
+      {bool fromReport = false}) {
+
+    try {
+      if (!fromReport) {
+        _attCheck = false;
+        _mainCheckOut = false;
+        _isPermission = false;
+        _mainAttendance = 0;
+        _totalHrs = "";
+        _permissionStatus = "";
+      }
+
+      String reasonSave = "";
+
+      if (responseAttendance.isNotEmpty) {
+        DateTime now = DateTime.now();
+        String formattedDate = DateFormat('dd-MMM-yyyy').format(now);
+
+        /// CURRENT USER மட்டும்
+        var userData = responseAttendance.firstWhere(
+              (e) =>
+          e["salesman_id"].toString() ==
+              localData.storage.read("id").toString(),
+          orElse: () => null,
+        );
+
+        if (userData != null) {
+          if (formattedDate == userData["date"]) {
+            /// CHECKOUT
+            _mainCheckOut = userData["status"].toString().contains("2");
+
+            /// ATTENDANCE STATUS
+            if (userData["status"].toString() == "1" ||
+                userData["status"].toString() == "1,2") {
+              _mainAttendance = 1;
+            }
+
+            /// IN + OUT
+            if (userData["status"].toString().contains("1,2")) {
+              _inTime = userData["time"].split(",")[0];
+              _outTime = userData["time"].split(",")[1];
+
+              _totalHrs = getTimeDifferenceBetween(_inTime, _outTime);
+            }
+
+            /// OUT + IN
+            else if (userData["status"].toString().contains("2,1")) {
+              _outTime = userData["time"].split(",")[0];
+              _inTime = userData["time"].split(",")[1];
+
+              _totalHrs = getTimeDifferenceBetween(_outTime, _inTime);
+            }
+
+            /// ONLY IN
+            else {
+              if (userData["time"] != null &&
+                  userData["time"].toString().isNotEmpty) {
+                _inTime = userData["time"].split(",")[0];
+              }
+            }
+
+            /// -------------------------
+            /// PERMISSION STATUS
+            /// -------------------------
+
+            String perStatus = userData["per_status"].toString();
+            reasonSave = userData["per_reason"].toString();
+
+            if (!fromReport) {
+              if (perStatus != "null" && perStatus.isNotEmpty) {
+                List splitStatus = perStatus.split(",");
+
+                /// LAST STATUS மட்டும்
+                _permissionStatus = splitStatus.last;
+
+                _isPermission = _permissionStatus == "1";
+              } else {
+                _permissionStatus = "";
+                _isPermission = false;
+              }
+            }
+
+            /// PERMISSION REASON
+            if (!fromReport) {
+              if (reasonSave != "null" && reasonSave.isNotEmpty) {
+                List splitReason = reasonSave.split(",");
+                permissionReason.text = splitReason.last;
+              }
+            }
+
+            /// DEBUG
+            print("permissionStatus = $_permissionStatus");
+            print("isPermission = $_isPermission");
+
+            /// LATE COUNT
+            getLateCount(
+              "${DateTime.now().day.toString().padLeft(2, "0")}-${DateTime.now().month.toString().padLeft(2, "0")}-${DateTime.now().year}",
+              "${DateTime.now().day.toString().padLeft(2, "0")}-${DateTime.now().month.toString().padLeft(2, "0")}-${DateTime.now().year}",
+            );
+          }
+        }
+
+        _attCheck = true;
+      } else {
+        _totalHrs = "";
+        _permissionStatus = "";
+        _attCheck = true;
+      }
+    } catch (e) {
+      print("Attendance Error: $e");
+
+      _totalHrs = "";
+      _permissionStatus = "";
+      _attCheck = true;
+    }
+
+    notifyListeners();
+  }
   Future<void> getMainAttendance({bool fromReport = false}) async {
     try {
 
@@ -1629,7 +1748,8 @@ void showDatePickerDialog(BuildContext context,List<UserModel>? list) {
           context: context,
         );
       }
-      getMainAttendance();
+    //  getMainAttendance();
+      Provider.of<HomeProvider>(context, listen: false).loadFullDashboard(context);
       //getTotalHours(date1, date2);
       Provider.of<AttendanceProvider>(context, listen: false).initDate(id:localData.storage.read("id"),role:localData.storage.read("role"),isRefresh: true,date1: "${DateTime.now().day.toString().padLeft(2,"0")}-${DateTime.now().month.toString().padLeft(2,"0")}-${DateTime.now().year.toString()}",date2: "${DateTime.now().day.toString().padLeft(2,"0")}-${DateTime.now().month.toString().padLeft(2,"0")}-${DateTime.now().year.toString()}");
       Provider.of<AttendanceProvider>(context, listen: false).getAttendanceReport(localData.storage.read("id"));
@@ -1640,68 +1760,68 @@ void showDatePickerDialog(BuildContext context,List<UserModel>? list) {
     }
   }
 
-  Future putWorkDone(context) async {
-    showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (BuildContext context) {
-          return AlertDialog(
-            title: Center(
-              child: Column(
-                children: [
-                  const CustomText(text: "Work Done Marking",
-                    colors: Colors.grey,
-                    size: 15,
-                    isBold: true,),
-                  10.height,
-                  const CustomText(text: "Please Wait",
-                    colors: Colors.grey,
-                    size: 15,
-                    isBold: true,),
-                  20.height,
-                  LoadingAnimationWidget.staggeredDotsWave(
-                    color: colorsConst.secondary,
-                    size: 25,
-                  ),
-                ],
-              ),
-            ),
-          );
-        }
-    );
-
-    Map<String, String> requestData = {
-      "action": empWork,
-      "log_file": localData.storage.read("mobile_number"),
-      "salesman_id": localData.storage.read("id"),
-      "status": "1",
-      "cos_id":localData.storage.read("cos_id"),
-    };
-    final response =await attRepo.addWorkDone(requestData);
-    log(response.toString());
-    if(response.isNotEmpty){
-      log("Success");
-      _isWorkDone = 1;
-      workDoneDate = DateTime.now().toString();
-
-      Navigator.pop(context);
-      // if(status=="1"){
-      //   await FirebaseFirestore.instance.collection('attendance').add({
-      //     'emp_id': localData.storage.read("id"),
-      //     'time': DateTime.now(),
-      //     'status': status,
-      //   });
-      // }
-      getMainAttendance();
-      //getTotalHours(date1, date2);
-      Provider.of<AttendanceProvider>(context, listen: false).initDate(id:localData.storage.read("id"),role:localData.storage.read("role"),isRefresh: true,date1: "${DateTime.now().day.toString().padLeft(2,"0")}-${DateTime.now().month.toString().padLeft(2,"0")}-${DateTime.now().year.toString()}",date2: "${DateTime.now().day.toString().padLeft(2,"0")}-${DateTime.now().month.toString().padLeft(2,"0")}-${DateTime.now().year.toString()}");
-      Provider.of<AttendanceProvider>(context, listen: false).getAttendanceReport(localData.storage.read("id"));
-    }else{
-      log("Failed");
-      utils.showErrorToast(context: context);
-      Navigator.pop(context);
-    }
-  }
+  // Future putWorkDone(context) async {
+  //   showDialog(
+  //       context: context,
+  //       barrierDismissible: false,
+  //       builder: (BuildContext context) {
+  //         return AlertDialog(
+  //           title: Center(
+  //             child: Column(
+  //               children: [
+  //                 const CustomText(text: "Work Done Marking",
+  //                   colors: Colors.grey,
+  //                   size: 15,
+  //                   isBold: true,),
+  //                 10.height,
+  //                 const CustomText(text: "Please Wait",
+  //                   colors: Colors.grey,
+  //                   size: 15,
+  //                   isBold: true,),
+  //                 20.height,
+  //                 LoadingAnimationWidget.staggeredDotsWave(
+  //                   color: colorsConst.secondary,
+  //                   size: 25,
+  //                 ),
+  //               ],
+  //             ),
+  //           ),
+  //         );
+  //       }
+  //   );
+  //
+  //   Map<String, String> requestData = {
+  //     "action": empWork,
+  //     "log_file": localData.storage.read("mobile_number"),
+  //     "salesman_id": localData.storage.read("id"),
+  //     "status": "1",
+  //     "cos_id":localData.storage.read("cos_id"),
+  //   };
+  //   final response =await attRepo.addWorkDone(requestData);
+  //   log(response.toString());
+  //   if(response.isNotEmpty){
+  //     log("Success");
+  //     _isWorkDone = 1;
+  //     workDoneDate = DateTime.now().toString();
+  //
+  //     Navigator.pop(context);
+  //     // if(status=="1"){
+  //     //   await FirebaseFirestore.instance.collection('attendance').add({
+  //     //     'emp_id': localData.storage.read("id"),
+  //     //     'time': DateTime.now(),
+  //     //     'status': status,
+  //     //   });
+  //     // }
+  //     //getMainAttendance();
+  //     //getTotalHours(date1, date2);
+  //     Provider.of<AttendanceProvider>(context, listen: false).initDate(id:localData.storage.read("id"),role:localData.storage.read("role"),isRefresh: true,date1: "${DateTime.now().day.toString().padLeft(2,"0")}-${DateTime.now().month.toString().padLeft(2,"0")}-${DateTime.now().year.toString()}",date2: "${DateTime.now().day.toString().padLeft(2,"0")}-${DateTime.now().month.toString().padLeft(2,"0")}-${DateTime.now().year.toString()}");
+  //     Provider.of<AttendanceProvider>(context, listen: false).getAttendanceReport(localData.storage.read("id"));
+  //   }else{
+  //     log("Failed");
+  //     utils.showErrorToast(context: context);
+  //     Navigator.pop(context);
+  //   }
+  // }
   final TextEditingController permissionReason=TextEditingController();
   Future putDailyPermission(context, String status, String lat, String lng) async {
 
@@ -1781,9 +1901,11 @@ void showDatePickerDialog(BuildContext context,List<UserModel>? list) {
       notifyListeners();
 
       /// REFRESH DATA
-      Provider.of<HomeProvider>(context, listen: false).getMainReport(false);
+     // Provider.of<HomeProvider>(context, listen: false).getMainReport(false);
+      Provider.of<HomeProvider>(context, listen: false).loadFullDashboard(context);
       getAttendanceReport(localData.storage.read("id"));
-      getMainAttendance();
+
+    //  getMainAttendance();
       permissionReason.clear();
       if (localData.storage.read("role") == "1") {
         getLateCount(

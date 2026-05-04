@@ -2186,7 +2186,8 @@ Future<void> expenseActive(context,{required String createdBy,required String co
     log(response.toString());
     if (response["status_code"]==200){
       utils.showSuccessToast(context: context,text: status=="0"?"Rejected successfully":"Approved successfully.",);
-      Provider.of<HomeProvider>(context, listen: false).getMainReport(false);
+     // Provider.of<HomeProvider>(context, listen: false).getMainReport(false);
+     Provider.of<HomeProvider>(context, listen: false).loadFullDashboard(context);
       if(status=="0"){
         Provider.of<EmployeeProvider>(context, listen: false).sendUserNotification(
             "Your Expenses Rejected",
