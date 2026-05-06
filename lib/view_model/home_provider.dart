@@ -1004,7 +1004,20 @@ Future<void> loginOuts(context) async {
   //
   //   notifyListeners();
   // }
+  int permisCount = 0;
+  int lateCountShow = 0;
+  bool isLate(String inTime) {
+    try {
+      final format = DateFormat("hh:mm a");
 
+      DateTime officeTime = format.parse("09:00 AM");
+      DateTime userTime = format.parse(inTime);
+
+      return userTime.isAfter(officeTime);
+    } catch (e) {
+      return false;
+    }
+  }
   Future<void> loadFullDashboard(BuildContext context) async {
     _refresh = false;
     notifyListeners();
@@ -1085,35 +1098,29 @@ Future<void> loginOuts(context) async {
       print("DA Amount : ${mainReport["da_amount"]}");
 
       /* ================= DASHBOARD VISIT ================= */
-
-      print("===== VISIT REPORT =====");
-      print(response["dashboard_report"]);
-
       _visitCount = response["dashboard_report"] ?? [];
 
-      var store = 0;
+      int store = 0;
       inActiveVisit = 0;
       activeVisit = 0;
 
       for (var i = 0; i < _visitCount.length; i++) {
         int count = int.tryParse(_visitCount[i]["total_count"].toString()) ?? 0;
 
-        store += count;
+        store += count; // total visits sum
 
         if (count == 0) {
-          inActiveVisit++;
+          inActiveVisit++;   // pending visit type count
         } else {
-          activeVisit += count; // ✅ FIXED (previously activeVisit++)
+          activeVisit++;     // ✅ active visit type count (NOT sum)
         }
       }
 
       _totalV = store.toString();
 
       print("✅ Total Visits Count : $_totalV");
-      print("✅ InActive Visit Types : $inActiveVisit");
-      print("✅ Active Visit Total Count : $activeVisit");
-
-      /* ================= PROVIDERS ================= */
+      print("✅ Pending Visit Types : $inActiveVisit");
+      print("✅ Active Visit Types : $activeVisit");
 
       final attendanceProvider =
       Provider.of<AttendanceProvider>(context, listen: false);
@@ -1139,6 +1146,42 @@ Future<void> loginOuts(context) async {
 
 // ✅ now no error
       attendanceProvider.setMainAttendanceFromDashboard(attendanceList);
+      /* ================= LATE + PERMISSION COUNT (FROM SAME RESPONSE) ================= */
+
+      permisCount = 0;
+      lateCountShow = 0;
+
+      for (var i = 0; i < attendanceList.length; i++) {
+        var row = attendanceList[i];
+
+        // Permission Count
+        if (row["per_status"] != null && row["per_status"].toString() != "null") {
+          permisCount++;
+        }
+
+        // Late Count
+        String status = row["status"].toString();
+        String time = row["time"]?.toString() ?? "";
+
+        if (time.isEmpty) continue;
+
+        String inTime = "";
+
+        if (status.contains("1,2")) {
+          inTime = time.split(",")[0];
+        } else if (status.contains("2,1")) {
+          inTime = time.split(",")[1];
+        } else {
+          inTime = time.split(",")[0];
+        }
+
+        if (inTime.isNotEmpty && isLate(inTime)) {
+          lateCountShow++;
+        }
+      }
+
+      print("✅ permisCount : $permisCount");
+      print("✅ lateCountShow : $lateCountShow");
       /* ================= USERS ================= */
 
       print("===== USERS =====");
@@ -1299,9 +1342,9 @@ Future<void> deleteUseAccount(context) async {
     // getMainReport(false);
  //   getDashboardReport(false);
     Provider.of<AttendanceProvider>(context, listen: false).getLateCount(_startDate,_endDate);
-   Provider.of<HomeProvider>(context, listen: false).loadFullDashboard(context);
+
     Provider.of<AttendanceProvider>(context, listen: false).initDate(id:localData.storage.read("id"),role:localData.storage.read("role"),isRefresh:true,date1:_startDate,date2:_endDate,type:"");
-    //Provider.of<AttendanceProvider>(context, listen: false).getAttendanceReport(localData.storage.read("id"));
+    Provider.of<AttendanceProvider>(context, listen: false).getAttendanceReport(localData.storage.read("id"));
     Provider.of<AttendanceProvider>(context, listen: false).getAbsentAttendanceReport(localData.storage.read("id"));
     Provider.of<LeaveProvider>(context, listen: false).allLeaves(_startDate,_endDate,true,localData.storage.read("role"),localData.storage.read("id"));
     notifyListeners();

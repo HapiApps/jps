@@ -984,7 +984,7 @@ class AttendanceProvider with ChangeNotifier{
     } catch (e) {
       print("permisCount......${localData.storage.read("role")}");
       print("lateCountShow......${localData.storage.read("cos_id")}");
-     print("Errrrrrr$e");
+      print("Errrrrrr$e");
       notifyListeners();
     }
     notifyListeners();

@@ -420,6 +420,7 @@ class _HomePageState extends State<HomePage> {
       builder: (context,homeProvider,custProvider,attPvr,locPvr,empPvr,leaPro,_){
        // print(" attPvr.isWorkDone == 1 ${attPvr.isWorkDone} ${ attPvr.isWorkDone == 1}");
         int visitActiveCount = homeProvider.activeVisit;
+        int visitPendingsCount = homeProvider.inActiveVisit;
         int totalVisits = int.tryParse(homeProvider.totalV.toString()) ?? 0;
 
         int visitPendingCount = totalVisits - visitActiveCount;
@@ -1104,8 +1105,8 @@ class _HomePageState extends State<HomePage> {
                                                }
                                            },
                                           title: "Present",type: "1",
-                                         // count: homeProvider.mainReportList.isEmpty ?"0":homeProvider.mainReportList[0]["unique_attendance_count"].toString()=="null"?"0": homeProvider.mainReportList[0]["unique_attendance_count"].toString(),
-                                           count: attPvr.getDailyAttendance.toString().isNotEmpty ?attPvr.getDailyAttendance.length.toString(): "0",
+                                          count: homeProvider.mainReportList.isEmpty ?"0":homeProvider.mainReportList[0]["unique_attendance_count"].toString()=="null"?"0": homeProvider.mainReportList[0]["unique_attendance_count"].toString(),
+                                           //   count: attPvr.getDailyAttendance.toString().isNotEmpty ?attPvr.getDailyAttendance.length.toString(): "0",
                                            bgColor: Color(0xFFE8F5E9),
                                           borderColor: ColorsConst.present,
                                           imagePath: DashboardAssets.present,
@@ -1129,7 +1130,7 @@ class _HomePageState extends State<HomePage> {
 
                                          AttendanceItem(
                                           onClick: (){
-                                            if(attPvr.lateCount!=0){
+                                            if(homeProvider.lateCountShow!=0){
                                               homeProvider.updateIndex(4);
                                               utils.navigatePage(context, ()=> DashBoard(child: AttendanceReport(type: homeProvider.type,showType: "Late",date1: homeProvider.startDate,date2:homeProvider.endDate,empList: empPvr.userData)));
                                             }else{
@@ -1137,7 +1138,7 @@ class _HomePageState extends State<HomePage> {
                                             }
                                           },
                                           title: "Late",
-                                          count: "${attPvr.lateCount}",
+                                          count: "${homeProvider.lateCountShow}",
                                           bgColor: const Color(0xFFFFF3E0),
                                           borderColor: colorsConst.late,
                                           imagePath: DashboardAssets.late,
@@ -1145,7 +1146,7 @@ class _HomePageState extends State<HomePage> {
                                         AttendanceItem(
                                           title: "On-Leave",
                                           onClick: (){
-                                            if(homeProvider.mainReportList.isNotEmpty&&(homeProvider.mainReportList[0]["fulldayleave_user"].toString()!="0"||homeProvider.mainReportList[0]["sessionleave_user"].toString()!="0")){
+                                            if(homeProvider.mainReportList.isNotEmpty&&(homeProvider.mainReportList[0]["leave_user"].toString()!="0"||homeProvider.mainReportList[0]["leave_user"].toString()!="0")){
                                               // homeProvider.updateIndex(11);
                                               // utils.navigatePage(context, ()=> DashBoard(child: ViewMyLeaves(date1:homeProvider.startDate,date2:homeProvider.endDate,isDirect: true)));
                                               homeProvider.updateIndex(4);
@@ -1154,8 +1155,8 @@ class _HomePageState extends State<HomePage> {
                                               utils.showWarningToast(context, text: "No on leave employee found");
                                             }
                                           },
-                                        //  count: homeProvider.mainReportList.isEmpty?"0":"${int.parse(homeProvider.mainReportList[0]["fulldayleave_user"].toString()=="null"?"0":homeProvider.mainReportList[0]["fulldayleave_user"].toString())+int.parse(homeProvider.mainReportList[0]["sessionleave_user"].toString() =="null"?"0":homeProvider.mainReportList[0]["sessionleave_user"].toString())}",
-                                          count: leaPro.myLevSearch.toString().isEmpty?"0":leaPro.myLevSearch.length.toString(),
+                                          count: homeProvider.mainReportList.isEmpty?"0":"${int.parse(homeProvider.mainReportList[0]["leave_user"].toString()=="null"?"0":homeProvider.mainReportList[0]["leave_user"].toString())+int.parse(homeProvider.mainReportList[0]["sessionleave_user"].toString() =="null"?"0":homeProvider.mainReportList[0]["sessionleave_user"].toString())}",
+                                         // count: leaPro.myLevSearch.toString().isEmpty?"0":leaPro.myLevSearch.length.toString(),
                                           bgColor: Color(0xFFE3F2FD),
                                           borderColor: ColorsConst.onLeave,
                                           imagePath: DashboardAssets.onLeave,
@@ -1170,8 +1171,8 @@ class _HomePageState extends State<HomePage> {
                                             }
                                           },
                                           title: "Permission",type: "2",
-                                         // count: homeProvider.mainReportList.isEmpty ?"0":homeProvider.mainReportList[0]["perm_count"].toString()=="null"?"0": homeProvider.mainReportList[0]["perm_count"].toString(),
-                                           count: attPvr.permisCount.toString(),
+                                          count: homeProvider.mainReportList.isEmpty ?"0":homeProvider.mainReportList[0]["perm_count"].toString()=="null"?"0": homeProvider.mainReportList[0]["perm_count"].toString(),
+                                          // count: attPvr.permisCount.toString(),
                                            bgColor: Colors.purple.shade200,
                                           borderColor:Colors.purple,
                                           imagePath: DashboardAssets.late,
@@ -1432,7 +1433,7 @@ class _HomePageState extends State<HomePage> {
                                                       centerSpaceRadius: 0,
                                                       sections: [
                                                         PieChartSectionData(
-                                                          value: visitPendingCount.toDouble(),
+                                                          value: visitPendingsCount.toDouble(),
                                                           color:  Colors.red,
                                                           radius: 50,
                                                           showTitle: false,
@@ -1449,267 +1450,19 @@ class _HomePageState extends State<HomePage> {
                                                 ),
 
 
-                                                // 20.height,
-                                                // Container(
-                                                //   padding: const EdgeInsets.symmetric(
-                                                //     horizontal: 12,
-                                                //     vertical: 6,
-                                                //   ),
-                                                //   decoration: BoxDecoration(
-                                                //     color: Colors.white,
-                                                //     borderRadius: BorderRadius.circular(8),
-                                                //     boxShadow: const [
-                                                //       BoxShadow(
-                                                //         color: Colors.black38,
-                                                //         blurRadius: 10,
-                                                //         offset: Offset(0, 2),
-                                                //       ),
-                                                //     ],
-                                                //   ),
-                                                //   child: const CustomText(
-                                                //     "View All 20 Types",
-                                                //     size: 12,
-                                                //     weight: FontWeight.w600,
-                                                //   ),
-                                                // ),
+
                                               ],
                                             ),
                                           ),
                                         ],
                                       ),
                                       10.height,
-                                      ///  Inactive Visits CENTERED AT BOTTOM (LIKE IMAGE)
-                                      // Center(
-                                      //   child: CustomText(
-                                      //     "Inactive Visits (18)",
-                                      //     color: colorsConst.primary,
-                                      //     weight: FontWeight.w600,
-                                      //   ),
-                                      // ),
+
                                     ],
                                   ),
                                 ),
                               ),
-                              if (homeProvider.mainReportList.isNotEmpty && homeProvider.mainReportList[0]["total_expense_count"].toString() != "0")
-                              Container(
-                                padding: const EdgeInsets.all(16),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(15),
-                                  boxShadow: const [
-                                    BoxShadow(
-                                      color: Colors.black12,
-                                      blurRadius: 8,
-                                      offset: Offset(0, 4),
-                                    ),
-                                  ],
-                                ),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    /// TOP ROW
-                                    Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        /// Left: Icon + Title
-                                        InkWell(
-                                          onTap: (){
-                                            homeProvider.updateIndex(9);
-                                            utils.navigatePage(context, ()=> DashBoard(child: ViewExpense(tab:false,date1: homeProvider.startDate, date2: homeProvider.endDate,type: homeProvider.type)));
-                                          },
-                                          child: Row(
-                                            children: [
-                                              /// Green Circle Icon
-                                              Image.asset(DashboardAssets.expense),
-                                              const SizedBox(width: 10),
-                                              Column(
-                                                crossAxisAlignment: CrossAxisAlignment.start,
-                                                children: [
-                                                  CustomText(
-                                                    "Expenses",
-                                                    size: 14,
-                                                    color: Colors.black,
-                                                    weight: FontWeight.bold,
-                                                  ),
-                                                  SizedBox(height: 2),
-                                                  CustomText(
-                                                    "${homeProvider.mainReportList.isEmpty?"0":homeProvider.mainReportList[0]["total_expense_count"]} total reports",
-                                                    size: 12,
-                                                    color: Color(0xffA2A2A2),
-                                                    weight: FontWeight.bold,
-                                                  ),
-                                                ],
-                                              ),
-                                            ],
-                                          ),
-                                        ),
 
-                                        /// Right: Approval Due Pill
-                                        // Container(
-                                        //   padding: const EdgeInsets.symmetric(
-                                        //       horizontal: 14, vertical: 8),
-                                        //   decoration: BoxDecoration(
-                                        //     color: colorsConst.primary,
-                                        //     borderRadius: BorderRadius.circular(20),
-                                        //   ),
-                                        //   child: Row(
-                                        //     children: [
-                                        //       Icon(
-                                        //         Icons.refresh,
-                                        //         size: 16,
-                                        //         color: Colors.white,
-                                        //       ),
-                                        //       SizedBox(width: 6),
-                                        //       CustomText(
-                                        //         "Approval Due: ${homeProvider.mainReportList.isEmpty?"0":homeProvider.mainReportList[0]["approved_expense_count"]}",
-                                        //         size: 12,
-                                        //         weight: FontWeight.w600,
-                                        //         color: Colors.white,
-                                        //       ),
-                                        //     ],
-                                        //   ),
-                                        // ),
-                                      ],
-                                    ),
-
-                                    const SizedBox(height: 16),
-
-                                    /// PROGRESS BAR
-                                    ClipRRect(
-                                      borderRadius: BorderRadius.circular(6),
-                                      child: Row(
-                                        children: [
-                                          /// Approved (Green)
-                                          Expanded(
-                                            flex: total == 0 ? 0 : approvedCount,
-                                            child: Container(
-                                              height: 10,
-                                              color: const Color(0xff0F8D4B),
-                                            ),
-                                          ),
-
-                                          /// In Progress / Pending (Blue)
-                                          Expanded(
-                                            flex: total == 0 ? 0 : pendingCount,
-                                            child: Container(
-                                              height: 10,
-                                              color: const Color(0xffD7EDFB),
-                                            ),
-                                          ),
-
-                                          /// Rejected (Light Red)
-                                          Expanded(
-                                            flex: total == 0 ? 0 : rejectedCount,
-                                            child: Container(
-                                              height: 10,
-                                              color: const Color(0xffFEDADE),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-
-                                    const SizedBox(height: 16),
-                                    /// STATUS CHIPS ROW
-                                    Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        /// Approved
-                                        InkWell(
-                                          onTap: (){
-                                            Provider.of<ExpenseProvider>(context, listen: false).checkFilterType("Approved");
-                                            if(homeProvider.mainReportList.isNotEmpty&&homeProvider.mainReportList[0]["approved_expense_count"].toString()!="0"){
-                                              homeProvider.updateIndex(9);
-                                              utils.navigatePage(context, ()=> DashBoard(
-                                                  child:
-                                              ViewExpense(tab:true,date1: homeProvider.startDate,
-                                                  date2: homeProvider.endDate,type: homeProvider.type)));
-                                            }else{
-                                              utils.showWarningToast(context, text: "No approved expenses found");
-                                            }
-                                          },
-                                          child: Container(
-                                            padding: const EdgeInsets.symmetric(
-                                                horizontal: 14, vertical: 8),
-                                            decoration: BoxDecoration(
-                                              color: Colors.green.shade100,
-                                              borderRadius: BorderRadius.circular(20),
-                                              border: Border.all(color: Color(0xff0F8D4B)),
-                                            ),
-                                            child: CustomText(
-                                                "Approved(${"${homeProvider.mainReportList.isEmpty?"0":homeProvider.mainReportList[0]["approved_expense_count"]}"})",
-                                                size: 12,
-                                                weight: FontWeight.w600,
-                                                color: Color(0xff0F8D4B)
-                                            ),
-                                          ),
-                                        ),
-
-                                        /// In-Progress
-                                        InkWell(
-                                          onTap: (){
-                                            Provider.of<ExpenseProvider>(context, listen: false).checkFilterType("In Process");
-                                            if(homeProvider.mainReportList.isNotEmpty&&homeProvider.mainReportList[0]["approved_expense_count"].toString()!="0"){
-                                              homeProvider.updateIndex(9);
-                                              utils.navigatePage(context, ()=> DashBoard(
-                                                  child:
-                                                  ViewExpense(tab:true,date1: homeProvider.startDate,
-                                                      date2: homeProvider.endDate,type: homeProvider.type)));
-                                            }else{
-                                              utils.showWarningToast(context, text: "No In-Progress expenses found");
-                                            }
-                                          },
-                                          child: Container(
-                                            padding: const EdgeInsets.symmetric(
-                                                horizontal: 14, vertical: 8),
-                                            decoration: BoxDecoration(
-                                              color: Color(0xffD7EDFB),
-                                              borderRadius: BorderRadius.circular(20),
-                                              border: Border.all(color: Color(0xff0985D9)),
-                                            ),
-                                            child:  CustomText(
-                                                "In-Progress($pendingCount)",
-                                                size: 12,
-                                                weight: FontWeight.w600,
-                                                color: Color(0xff0985D9)
-                                            ),
-                                          ),
-                                        ),
-
-                                        /// Rejected
-                                        InkWell(
-                                          onTap: (){
-                                            Provider.of<ExpenseProvider>(context, listen: false).checkFilterType("In Process");
-                                            if(homeProvider.mainReportList.isNotEmpty&&homeProvider.mainReportList[0]["approved_expense_count"].toString()!="0"){
-                                              homeProvider.updateIndex(9);
-                                              utils.navigatePage(context, ()=> DashBoard(
-                                                  child: ViewExpense(tab:true,date1: homeProvider.startDate,
-                                                      date2: homeProvider.endDate,type: homeProvider.type)));
-                                            }else{
-                                              utils.showWarningToast(context, text: "No Rejected expenses found");
-                                            }
-                                          },
-                                          child: Container(
-                                            padding: const EdgeInsets.symmetric(
-                                                horizontal: 14, vertical: 8),
-                                            decoration: BoxDecoration(
-                                              color: Color(0xffFEDADE),
-                                              borderRadius: BorderRadius.circular(20),
-                                              border: Border.all(color:Color(0xffEF414D)),
-                                            ),
-                                            child: CustomText(
-                                                "Rejected($rejectedCount)",
-                                                size: 12,
-                                                weight: FontWeight.w600,
-                                                color: Color(0xffEF414D)
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                              ),
                               const SizedBox(height: 20),
                               InkWell(
                                 onTap: (){
