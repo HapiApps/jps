@@ -47,9 +47,8 @@ class _CusAddVisitState extends State<CusAddVisit> with TickerProviderStateMixin
   final FocusScopeNode _myFocusScopeNode = FocusScopeNode();
   var companyId="";
   var companyName="";
-  @override
-  @override
-  @override
+
+
   @override
   void initState() {
     super.initState();

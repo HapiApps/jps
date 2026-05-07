@@ -1,3 +1,4 @@
+import 'package:audioplayers/audioplayers.dart';
 import 'package:master_code/component/custom_loading.dart';
 import 'package:master_code/component/dotted_border.dart';
 import 'package:master_code/model/task/task_data_model.dart';
@@ -49,6 +50,13 @@ class _TaskDetailsState extends State<TaskDetails> with SingleTickerProviderStat
   var docsList=[];
   var imgList=[];
   var voiceList=[];
+  final AudioPlayer _audioPlayer = AudioPlayer();
+
+  String playingUrl = "";
+  bool networkPlaying = false;
+
+  Duration networkCurrent = Duration.zero;
+  Duration networkTotal = Duration.zero;
   @override
   void initState() {
     super.initState();
@@ -69,7 +77,25 @@ class _TaskDetailsState extends State<TaskDetails> with SingleTickerProviderStat
       } else {
         await expenseProvider.getTypesOfExpense();
       }
+      _audioPlayer.onDurationChanged.listen((d) {
+        setState(() {
+          networkTotal = d;
+        });
+      });
 
+      _audioPlayer.onPositionChanged.listen((p) {
+        setState(() {
+          networkCurrent = p;
+        });
+      });
+
+      _audioPlayer.onPlayerComplete.listen((event) {
+        setState(() {
+          networkPlaying = false;
+          networkCurrent = Duration.zero;
+          playingUrl = "";
+        });
+      });
       await expenseProvider.getAllExpense();
       await taskProvider.getStatusHistory(widget.data.id.toString());
 
@@ -97,7 +123,6 @@ class _TaskDetailsState extends State<TaskDetails> with SingleTickerProviderStat
           imgC++;
         }
       }
-
       setState(() {});
     });
   }
@@ -107,6 +132,41 @@ class _TaskDetailsState extends State<TaskDetails> with SingleTickerProviderStat
     final parsedDate = DateTime.parse(date);
 
     return DateFormat('dd-MM-yy h:mm a').format(parsedDate);
+  }
+  String formatTime(Duration d) {
+    String twoDigits(int n) => n.toString().padLeft(2, "0");
+    final minutes = twoDigits(d.inMinutes.remainder(60));
+    final seconds = twoDigits(d.inSeconds.remainder(60));
+    return "$minutes:$seconds";
+  }
+  Future<void> playNetworkAudio(String url) async {
+    try {
+      if (playingUrl == url && networkPlaying) {
+        await _audioPlayer.pause();
+        setState(() {
+          networkPlaying = false;
+        });
+        return;
+      }
+
+      if (playingUrl != url) {
+        await _audioPlayer.stop();
+        await _audioPlayer.play(UrlSource(url));
+
+        setState(() {
+          playingUrl = url;
+          networkPlaying = true;
+        });
+      } else {
+        await _audioPlayer.resume();
+        setState(() {
+          networkPlaying = true;
+        });
+      }
+    } catch (e) {
+      print("Audio play error => $e");
+      utils.showWarningToast(context, text: "Audio cannot be played");
+    }
   }
   void changeLevel() {
     setState(() {
@@ -471,7 +531,7 @@ class _TaskDetailsState extends State<TaskDetails> with SingleTickerProviderStat
                                         children: [
                                           CustomText(text:"Updated: ",colors: colorsConst.greyClr,),
                                           CustomText(
-                                            text: widget.data.updatedByName.toString()==null?"-":widget.data.updatedByName.toString(),
+                                            text: widget.data.updatedByName.toString()=="null"?"-":widget.data.updatedByName.toString(),
                                             colors:Colors.black,
                                             size: 13,isBold: true,
                                           ),
@@ -890,6 +950,7 @@ class _TaskDetailsState extends State<TaskDetails> with SingleTickerProviderStat
                           ],
                         ),
                         20.height,
+
                         Consumer<CustomerProvider>(
                           builder: (context, chatProvider, _) {
                             if (chatProvider.refresh == false) {
@@ -908,99 +969,177 @@ class _TaskDetailsState extends State<TaskDetails> with SingleTickerProviderStat
                               );
                             }
 
-                            /// last 5 messages
-                            int count = chatProvider.customerReport.length;
-                            int startIndex = count > 5 ? count - 5 : 0;
+                            /// total messages
+                            int totalCount = chatProvider.customerReport.length;
+
+                            /// show only last 5
+                            int startIndex = totalCount > 5 ? totalCount - 5 : 0;
 
                             List<CustomerReportModel> lastFive =
-                            chatProvider.customerReport.sublist(startIndex, count).reversed.toList();
+                            chatProvider.customerReport
+                                .sublist(startIndex, totalCount)
+                                .reversed
+                                .toList();
 
-                            return ListView.builder(
-                              itemCount: lastFive.length,
-                              shrinkWrap: true,
-                              physics: const NeverScrollableScrollPhysics(),
-                              itemBuilder: (context, index) {
-                                final msg = lastFive[index];
+                            return Column(
+                              children: [
 
-                                DateTime? createdDate;
-                                try {
-                                  createdDate = DateTime.parse(msg.createdTs.toString());
-                                } catch (e) {
-                                  createdDate = null;
-                                }
+                                /// 🔥 CHAT LIST
+                                ListView.builder(
+                                  itemCount: lastFive.length,
+                                  shrinkWrap: true,
+                                  physics: const NeverScrollableScrollPhysics(),
+                                  itemBuilder: (context, index) {
+                                    final msg = lastFive[index];
 
-                                return InkWell(
-                                  onTap: () {
-                                    utils.navigatePage(
-                                      context,
-                                          () => DashBoard(
-                                        child: TaskChat(
-                                          isVisit: false,
-                                          taskId: widget.data.id.toString(),
-                                          assignedId: widget.data.assigned.toString(),
-                                          name: widget.data.creator.toString(),
-                                          assignedName: widget.data.assignedNames.toString(),
-                                          date1: '',
-                                          date2: '',
-                                          type: '',
-                                        ),
+                                    DateTime? createdDate;
+
+                                    try {
+                                      createdDate =
+                                          DateTime.parse(msg.createdTs.toString());
+                                    } catch (e) {
+                                      createdDate = null;
+                                    }
+
+                                    return InkWell(
+                                      onTap: () {
+                                        utils.navigatePage(
+                                          context,
+                                              () => DashBoard(
+                                            child: TaskChat(
+                                              isVisit: false,
+                                              taskId: widget.data.id.toString(),
+                                              assignedId:
+                                              widget.data.assigned.toString(),
+                                              name: widget.data.creator.toString(),
+                                              assignedName: widget.data.assignedNames
+                                                  .toString(),
+                                              date1: '',
+                                              date2: '',
+                                              type: '',
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                      child: Column(
+                                        children: [
+                                          Row(
+                                            crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                            children: [
+                                              Expanded(
+                                                child: Column(
+                                                  crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                                  children: [
+                                                    Text(
+                                                      (msg.comments == null ||
+                                                          msg.comments
+                                                              .toString()
+                                                              .trim()
+                                                              .isEmpty)
+                                                          ? "Audio Message"
+                                                          : msg.comments.toString(),
+                                                      maxLines: 1,
+                                                      overflow:
+                                                      TextOverflow.ellipsis,
+                                                      style: TextStyle(
+                                                        fontSize: 13,
+                                                        fontWeight:
+                                                        FontWeight.bold,
+                                                        color: msg.comments
+                                                            .toString()
+                                                            .trim()
+                                                            .isEmpty
+                                                            ? Colors.red
+                                                            : Colors.black,
+                                                      ),
+                                                    ),
+
+                                                    const SizedBox(height: 3),
+
+                                                    Text(
+                                                      msg.firstname.toString(),
+                                                      style: TextStyle(
+                                                        fontSize: 11,
+                                                        color:
+                                                        Colors.grey.shade500,
+                                                        fontWeight:
+                                                        FontWeight.bold,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+
+                                              5.width,
+
+                                              Text(
+                                                createdDate != null
+                                                    ? DateFormat(
+                                                    "dd-MM-yy / hh:mm a")
+                                                    .format(createdDate)
+                                                    : "-",
+                                                style: TextStyle(
+                                                  fontSize: 10,
+                                                  color: Colors.grey.shade500,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+
+                                          Divider(color: Colors.grey.shade300),
+                                        ],
                                       ),
                                     );
                                   },
-                                  child: Column(
-                                    children: [
-                                      Row(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Expanded(
-                                            child: Column(
-                                              crossAxisAlignment: CrossAxisAlignment.start,
-                                              children: [
-                                                Text(
-                                                  (msg.comments == null || msg.comments.toString().trim().isEmpty)
-                                                      ? "Audio Message"
-                                                      : msg.comments.toString(),
-                                                  maxLines: 1,
-                                                  overflow: TextOverflow.ellipsis,
-                                                  style:  TextStyle(
-                                                    fontSize: 13,
-                                                    fontWeight: FontWeight.bold,
-                                                  color:msg.comments.toString().trim().isEmpty?Colors.red: Colors.black,
-                                                  ),
-                                                ),
-                                                const SizedBox(height: 3),
-                                                Text(
-                                                  msg.firstname.toString(),
-                                                  style: TextStyle(
-                                                    fontSize: 11,
-                                                    color: Colors.grey.shade500,
-                                                    fontWeight: FontWeight.bold,
-                                                  ),
-                                                ),
-                                              ],
+                                ),
+
+                                /// 🔥 VIEW MORE
+                                if (totalCount > 5)
+                                  Align(
+                                    alignment: Alignment.centerRight,
+                                    child: InkWell(
+                                      onTap: () {
+                                        utils.navigatePage(
+                                          context,
+                                              () => DashBoard(
+                                            child: TaskChat(
+                                              isVisit: false,
+                                              taskId: widget.data.id.toString(),
+                                              assignedId:
+                                              widget.data.assigned.toString(),
+                                              name: widget.data.creator.toString(),
+                                              assignedName:
+                                              widget.data.assignedNames
+                                                  .toString(),
+                                              date1: '',
+                                              date2: '',
+                                              type: '',
                                             ),
                                           ),
-                                          5.width,
-                                          Text(
-                                            createdDate != null
-                                                ? DateFormat("dd-MM-yy / hh:mm a").format(createdDate)
-                                                : "-",
-                                            style: TextStyle(
-                                              fontSize: 10,
-                                              color: Colors.grey.shade500,
-                                            ),
+                                        );
+                                      },
+                                      child: Padding(
+                                        padding: const EdgeInsets.only(
+                                          top: 5,
+                                          right: 5,
+                                        ),
+                                        child: Text(
+                                          "View More",
+                                          style: TextStyle(
+                                            color: colorsConst.primary,
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 12,
                                           ),
-                                        ],
+                                        ),
                                       ),
-                                      Divider(color: Colors.grey.shade300),
-                                    ],
+                                    ),
                                   ),
-                                );
-                              },
+                              ],
                             );
                           },
                         ),
-
                       ],
                     ),
                   ),

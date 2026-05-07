@@ -90,6 +90,7 @@ class _HomePageState extends State<HomePage> {
           .listen((snapshot) {
         // When any new attendance record is added/updated
         final homeProvider = Provider.of<HomeProvider>(context, listen: false);
+
         homeProvider.checkThisMonth();
         homeProvider.loadFullDashboard(context);
         homeProvider.changeType(context, homeProvider.type);
@@ -283,14 +284,7 @@ class _HomePageState extends State<HomePage> {
       utils.showSuccessToast(context: context,text: "Tracking stopped");
     });
   }
-  bool isLate(String inTime) {
-    final format = DateFormat("hh:mm a");
 
-    DateTime officeTime = format.parse("09:00 AM");
-    DateTime userTime = format.parse(inTime);
-
-    return userTime.isAfter(officeTime);
-  }
   Widget iconBox({required VoidCallback callBack,required String img,required String text}){
     return InkWell(
       onTap:callBack,

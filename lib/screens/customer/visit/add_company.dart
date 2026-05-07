@@ -118,22 +118,29 @@ class _AddCompanyPopupState extends State<AddCompanyPopup> {
         String companyName = companyController.text.trim();
         String custName = nameController.text.trim();
         String mobile = mobileController.text.trim();
-
-        if (companyName.isEmpty || custName.isEmpty || mobile.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please enter all details")),
-        );
-        return;
-        }
-
-        if (!isValidMobile(mobile)) {
-        ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Enter valid mobile number")),
-        );
-        return;
-        }
-
         final custProvider = Provider.of<CustomerProvider>(context, listen: false);
+        if (companyName.isEmpty) {
+          utils.showWarningToast(context,text:  "Enter Company Name",);
+        custProvider.addCompanyCtr.reset();
+        return;
+        }
+        if (custName.isEmpty) {
+          utils.showWarningToast(context,text:  "Enter Customer Name",);
+          custProvider.addCompanyCtr.reset();
+          return;
+        }
+        if (mobile.isEmpty) {
+          utils.showWarningToast(context,text:  "Enter Mobile Number",);
+          custProvider.addCompanyCtr.reset();
+          return;
+        }
+        if (!isValidMobile(mobile)) {
+        utils.showWarningToast(context,text:  "Enter valid mobile number",);
+        custProvider.addCompanyCtr.reset();
+        return;
+        }
+
+
 
         bool success = await custProvider.addCompanyAndCustomerApi(
         companyName: companyName,

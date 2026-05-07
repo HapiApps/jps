@@ -13,7 +13,9 @@ class CustomerDropdown extends StatefulWidget {
   final double size;
   final bool? isRequired;
   final bool? hintText;
-
+  /// 🔥 ADD THIS
+  final double height;
+  final double itemHeight;
   const CustomerDropdown({
     super.key,
     required this.employeeList,
@@ -22,6 +24,9 @@ class CustomerDropdown extends StatefulWidget {
     required this.size,
     this.isRequired,
     this.hintText = true,
+    /// 🔥 DEFAULT VALUES
+    this.height = 40,
+    this.itemHeight = 45,
   });
 
   @override
@@ -64,7 +69,8 @@ class _CustomerDropdownState extends State<CustomerDropdown> {
 
           Container(
             width: widget.size,
-            height: 44,
+            height: widget.height,
+
             decoration: customDecoration.baseBackgroundDecoration(
               color: Colors.white,
               borderColor: Colors.grey.shade200,
@@ -88,6 +94,7 @@ class _CustomerDropdownState extends State<CustomerDropdown> {
                     horizontal: 12,
                     vertical: 8,
                   ),
+
                   border: InputBorder.none,
 
                   /// ✅ OPEN CLOSE ICON CHANGE
@@ -128,6 +135,7 @@ class _CustomerDropdownState extends State<CustomerDropdown> {
                 fit: FlexFit.loose,
                 constraints: BoxConstraints(
                   maxWidth: MediaQuery.of(context).size.width * 0.9,
+                  maxHeight: 330, // 👈 popup overall height
                 ),
 
                 itemBuilder: (context, CustomerModel? product, bool isSelected) {

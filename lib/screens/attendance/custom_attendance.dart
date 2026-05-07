@@ -16,6 +16,7 @@ import 'package:master_code/view_model/attendance_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 import '../../component/animated_button.dart';
+import '../../model/leave/leave_model.dart';
 import '../../source/constant/assets_constant.dart';
 import '../../source/constant/colors_constant.dart';
 import '../../source/constant/default_constant.dart';
@@ -229,8 +230,8 @@ class _CheckAttendanceState extends State<CheckAttendance> {
   @override
   Widget build(BuildContext context) {
     double screenWidth = MediaQuery.of(context).size.width;
-    return Consumer3<AttendanceProvider,LocationProvider,HomeProvider>(
-        builder: (context,attProvider,locPvr,homeProvider,_){
+    return Consumer4<AttendanceProvider,LocationProvider,HomeProvider,LeaveProvider>(
+        builder: (context,attProvider,locPvr,homeProvider,leaveProvider,_){
       var split =attProvider.permissionStatus.toString().split(",");
       String lastPermissionStatus = "";
       bool isPermissionActive = lastPermissionStatus == "1";
@@ -754,6 +755,24 @@ class _CheckAttendanceState extends State<CheckAttendance> {
                           onSwipe: attProvider.mainCheckOut == true
                               ? null
                               : () async {
+
+                            /// 🔥 Leave check first
+                            final leaveProvider = Provider.of<LeaveProvider>(context, listen: false);
+
+                            bool isOnLeave = leaveProvider.todayLeaveList.any((leave) {
+                              return leave.userId.toString() ==
+                                  localData.storage.read("id").toString();
+                            });
+
+                            if (isOnLeave) {
+                              utils.showWarningToast(
+                                context,
+                                text: "You are on leave today. Attendance cannot be marked.",
+                              );
+                              return; // ❌ stop swipe action
+                            }
+
+                            /// ✅ continue attendance swipe
                             attProvider.putDailyAttendance(
                               context,
                               attProvider.mainAttendance == 0 ? "1" : "2",

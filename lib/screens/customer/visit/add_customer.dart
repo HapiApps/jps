@@ -91,17 +91,19 @@ class _AddCustomerPopupState extends State<AddCustomerPopup> {
                   String name = nameController.text.trim();
                   String mobile = mobileController.text.trim();
 
-                  if (name.isEmpty || mobile.isEmpty) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text("Please enter all details")),
-                    );
+                  if (name.isEmpty) {
+                    utils.showWarningToast(context,text:  "Enter Customer Name",);
+                    provider.addcustomerCtr.reset();
                     return;
                   }
-
+                  if (mobile.isEmpty) {
+                    utils.showWarningToast(context,text:  "Enter Mobile Number",);
+                    provider.addcustomerCtr.reset();
+                    return;
+                  }
                   if (!isValidMobile(mobile)) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text("Enter valid mobile number")),
-                    );
+                    utils.showWarningToast(context,text:  "Enter Valid Mobile Number",);
+                    provider.addcustomerCtr.reset();
                     return;
                   }
 

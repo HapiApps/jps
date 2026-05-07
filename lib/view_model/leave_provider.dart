@@ -53,6 +53,7 @@ class LeaveProvider with ChangeNotifier {
   bool get getLeave=> _getLeave;
   bool _allSelect =false;
   bool isSaving = false;
+  List todayLeaveList = [];
   void changeValue(dynamic value) {
     _allSelect = value;
     holyDaysList.clear();
@@ -2164,7 +2165,9 @@ void changeStatus(bool value){
 
       myLev = response;
       myLevSearch = response;
-
+      todayLeaveList = response;
+      print("TODAY LEAVE LIST => ${todayLeaveList}");
+      print("MY ID => ${localData.storage.read("id")}");// ✅ store here
       _isLoading = false;
       notifyListeners();
 

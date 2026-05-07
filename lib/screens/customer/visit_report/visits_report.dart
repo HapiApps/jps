@@ -58,6 +58,9 @@ class _VisitReportState extends State<VisitReport> with SingleTickerProviderStat
       Provider.of<CustomerProvider>(context, listen: false).getVisitReport(context);
       Provider.of<CustomerProvider>(context, listen: false).getEmpWiseReport(context);
     });
+    final cusProvider = Provider.of<CustomerProvider>(context, listen: false);
+    cusProvider.hideEmptyEmployees = false;
+    cusProvider.toggleHideEmptyEmployees(false);
     super.initState();
   }
   Widget filterChip(String text){
@@ -92,7 +95,8 @@ class _VisitReportState extends State<VisitReport> with SingleTickerProviderStat
           backgroundColor: colorsConst.bacColor,
           appBar: PreferredSize(
             preferredSize: const Size(300, 70),
-            child: CustomAppbar(text: constValue.visitRepo,isMain: true,),
+            child: CustomAppbar(text: constValue.visitRepo,isMain: false,
+            ),
           ),
           body:Center(
             child: SizedBox(
@@ -131,126 +135,251 @@ class _VisitReportState extends State<VisitReport> with SingleTickerProviderStat
                           Column(
                             children: [
                               10.height,
+
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.end,
                                 children: [
-                                  CustomLoadingButton(callback: (){
-                                    custProvider.getVisitHoursReport(context);
-                                  }, isLoading: true, backgroundColor: colorsConst.primary,
-                                    controller: custProvider.addCtr,
-                                    radius: 5, width: 100,text: "Download",),
 
-                                  // ElevatedButton(
-                                  //   style: ElevatedButton.styleFrom(
-                                  //     backgroundColor: colorsConst.primary
-                                  //   ),
-                                  //     onPressed: (){
-                                  //   custProvider.downloadExcelReport(custProvider.empWiseCount);
-                                  // }, child: CustomText(text: "Download",colors: Colors.white,)),
+                                  /// 🔥 Hide Empty Employees
+                                  Row(
+                                    children: [
+
+
+
                                   10.width,
+
+                                  /// 🔥 Download Button
+                                  CustomLoadingButton(
+                                    callback: () {
+                                      custProvider.getVisitHoursReport(context);
+                                    },
+                                    isLoading: true,
+                                    backgroundColor: colorsConst.primary,
+                                    controller: custProvider.addCtr,
+                                    radius: 5,
+                                    width: 100,
+                                    text: "Download",
+                                  ),
+
+                                  10.width,
+
+                                  /// 🔥 Filter Button
                                   InkWell(
-                                    onTap: (){
+                                    onTap: () {
+
                                       showDialog(
                                         context: context,
                                         builder: (context) {
-                                          return Consumer2<CustomerProvider,EmployeeProvider>(
-                                            builder: (context, empProvider, ePvr,_) {
+
+                                          return Consumer2<
+                                              CustomerProvider,
+                                              EmployeeProvider>(
+                                            builder:
+                                                (context, empProvider, ePvr, _) {
+
                                               return AlertDialog(
                                                 actions: [
+
                                                   SizedBox(
-                                                    width:kIsWeb?webWidth/1.2:phoneWidth/1.2,
+                                                    width: kIsWeb
+                                                        ? webWidth / 1.2
+                                                        : phoneWidth / 1.2,
+
                                                     child: Column(
                                                       children: [
+
                                                         20.height,
+
                                                         Row(
-                                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                          mainAxisAlignment:
+                                                          MainAxisAlignment
+                                                              .spaceBetween,
+
                                                           children: [
+
                                                             70.width,
+
                                                             const CustomText(
                                                               text: 'Filters',
                                                               colors: Colors.black,
                                                               size: 16,
                                                               isBold: true,
                                                             ),
+
                                                             30.width,
+
                                                             InkWell(
                                                               onTap: () {
-                                                                Navigator.of(context, rootNavigator: true).pop();
+
+                                                                Navigator.of(
+                                                                  context,
+                                                                  rootNavigator:
+                                                                  true,
+                                                                ).pop();
                                                               },
-                                                              child: SvgPicture.asset(assets.cancel),
+
+                                                              child: SvgPicture.asset(
+                                                                assets.cancel,
+                                                              ),
                                                             )
                                                           ],
                                                         ),
+
                                                         20.height,
+
+                                                        /// From & To Date
                                                         Row(
-                                                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                                          mainAxisAlignment:
+                                                          MainAxisAlignment
+                                                              .spaceEvenly,
+
                                                           children: [
+
+                                                            /// From Date
                                                             Column(
-                                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                                              crossAxisAlignment:
+                                                              CrossAxisAlignment
+                                                                  .start,
+
                                                               children: [
+
                                                                 CustomText(
                                                                   text: "From Date",
-                                                                  colors: colorsConst.greyClr,
+                                                                  colors: colorsConst
+                                                                      .greyClr,
                                                                   size: 12,
                                                                 ),
+
                                                                 InkWell(
                                                                   onTap: () {
-                                                                    custProvider.datePick(
-                                                                      context: context,
-                                                                      isStartDate: true,
-                                                                      date: custProvider.startDate,
+
+                                                                    custProvider
+                                                                        .datePick(
+                                                                      context:
+                                                                      context,
+                                                                      isStartDate:
+                                                                      true,
+                                                                      date:
+                                                                      custProvider
+                                                                          .startDate,
                                                                     );
                                                                   },
+
                                                                   child: Container(
                                                                     height: 30,
-                                                                    width:kIsWeb?webWidth/2.8:phoneWidth/2.8,
-                                                                    decoration: customDecoration.baseBackgroundDecoration(
-                                                                      color: Colors.white,
+
+                                                                    width: kIsWeb
+                                                                        ? webWidth /
+                                                                        2.8
+                                                                        : phoneWidth /
+                                                                        2.8,
+
+                                                                    decoration:
+                                                                    customDecoration
+                                                                        .baseBackgroundDecoration(
+                                                                      color:
+                                                                      Colors.white,
                                                                       radius: 5,
-                                                                      borderColor: colorsConst.litGrey,
+                                                                      borderColor:
+                                                                      colorsConst
+                                                                          .litGrey,
                                                                     ),
+
                                                                     child: Row(
-                                                                      mainAxisAlignment: MainAxisAlignment.center,
+                                                                      mainAxisAlignment:
+                                                                      MainAxisAlignment
+                                                                          .center,
+
                                                                       children: [
-                                                                        CustomText(text: custProvider.startDate),
+
+                                                                        CustomText(
+                                                                          text:
+                                                                          custProvider
+                                                                              .startDate,
+                                                                        ),
+
                                                                         5.width,
-                                                                        SvgPicture.asset(assets.calendar2),
+
+                                                                        SvgPicture.asset(
+                                                                          assets
+                                                                              .calendar2,
+                                                                        ),
                                                                       ],
                                                                     ),
                                                                   ),
                                                                 )
                                                               ],
                                                             ),
+
+                                                            /// To Date
                                                             Column(
-                                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                                              crossAxisAlignment:
+                                                              CrossAxisAlignment
+                                                                  .start,
+
                                                               children: [
+
                                                                 CustomText(
                                                                   text: "To Date",
-                                                                  colors: colorsConst.greyClr,
+                                                                  colors: colorsConst
+                                                                      .greyClr,
                                                                   size: 12,
                                                                 ),
+
                                                                 InkWell(
                                                                   onTap: () {
-                                                                    custProvider.datePick(
-                                                                      context: context,
-                                                                      isStartDate: false,
-                                                                      date: custProvider.endDate,
+
+                                                                    custProvider
+                                                                        .datePick(
+                                                                      context:
+                                                                      context,
+                                                                      isStartDate:
+                                                                      false,
+                                                                      date:
+                                                                      custProvider
+                                                                          .endDate,
                                                                     );
                                                                   },
+
                                                                   child: Container(
                                                                     height: 30,
-                                                                    width:kIsWeb?webWidth/2.8:phoneWidth/2.8,
-                                                                    decoration: customDecoration.baseBackgroundDecoration(
-                                                                      color: Colors.white,
+
+                                                                    width: kIsWeb
+                                                                        ? webWidth /
+                                                                        2.8
+                                                                        : phoneWidth /
+                                                                        2.8,
+
+                                                                    decoration:
+                                                                    customDecoration
+                                                                        .baseBackgroundDecoration(
+                                                                      color:
+                                                                      Colors.white,
                                                                       radius: 5,
-                                                                      borderColor: colorsConst.litGrey,
+                                                                      borderColor:
+                                                                      colorsConst
+                                                                          .litGrey,
                                                                     ),
+
                                                                     child: Row(
-                                                                      mainAxisAlignment: MainAxisAlignment.center,
+                                                                      mainAxisAlignment:
+                                                                      MainAxisAlignment
+                                                                          .center,
+
                                                                       children: [
-                                                                        CustomText(text: custProvider.endDate),
+
+                                                                        CustomText(
+                                                                          text:
+                                                                          custProvider
+                                                                              .endDate,
+                                                                        ),
+
                                                                         5.width,
-                                                                        SvgPicture.asset(assets.calendar2),
+
+                                                                        SvgPicture.asset(
+                                                                          assets
+                                                                              .calendar2,
+                                                                        ),
                                                                       ],
                                                                     ),
                                                                   ),
@@ -259,39 +388,88 @@ class _VisitReportState extends State<VisitReport> with SingleTickerProviderStat
                                                             ),
                                                           ],
                                                         ),
+
                                                         10.height,
+
+                                                        /// Date Range Dropdown
                                                         Column(
-                                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                                          crossAxisAlignment:
+                                                          CrossAxisAlignment
+                                                              .start,
+
                                                           children: [
+
                                                             CustomText(
-                                                              text: "Select Date Range",
-                                                              colors: colorsConst.greyClr,
+                                                              text:
+                                                              "Select Date Range",
+                                                              colors:
+                                                              colorsConst.greyClr,
                                                               size: 12,
                                                             ),
+
                                                             Container(
                                                               height: 30,
-                                                              width:kIsWeb?webWidth/1.2:phoneWidth/1.2,
-                                                              decoration: customDecoration.baseBackgroundDecoration(
+
+                                                              width: kIsWeb
+                                                                  ? webWidth / 1.2
+                                                                  : phoneWidth / 1.2,
+
+                                                              decoration:
+                                                              customDecoration
+                                                                  .baseBackgroundDecoration(
                                                                 radius: 5,
                                                                 color: Colors.white,
-                                                                borderColor: colorsConst.litGrey,
+                                                                borderColor:
+                                                                colorsConst
+                                                                    .litGrey,
                                                               ),
+
                                                               child: DropdownButton(
-                                                                iconEnabledColor: colorsConst.greyClr,
+                                                                iconEnabledColor:
+                                                                colorsConst
+                                                                    .greyClr,
+
                                                                 isExpanded: true,
-                                                                underline: const SizedBox(),
-                                                                icon: const Icon(Icons.keyboard_arrow_down_outlined),
-                                                                value: custProvider.repType,
-                                                                onChanged: (value) {
-                                                                  custProvider.changeDailyVisitType(value,context);
+
+                                                                underline:
+                                                                const SizedBox(),
+
+                                                                icon: const Icon(
+                                                                  Icons
+                                                                      .keyboard_arrow_down_outlined,
+                                                                ),
+
+                                                                value:
+                                                                custProvider
+                                                                    .repType,
+
+                                                                onChanged:
+                                                                    (value) {
+
+                                                                  custProvider
+                                                                      .changeDailyVisitType(
+                                                                    value,
+                                                                    context,
+                                                                  );
                                                                 },
-                                                                items: custProvider.typeList.map((list) {
+
+                                                                items:
+                                                                custProvider
+                                                                    .typeList
+                                                                    .map((list) {
+
                                                                   return DropdownMenuItem(
                                                                     value: list,
-                                                                    child: CustomText(
-                                                                      text: "  $list",
-                                                                      colors: Colors.black,
-                                                                      isBold: false,
+
+                                                                    child:
+                                                                    CustomText(
+                                                                      text:
+                                                                      "  $list",
+                                                                      colors:
+                                                                      Colors
+                                                                          .black,
+                                                                      isBold:
+                                                                      false,
                                                                     ),
                                                                   );
                                                                 }).toList(),
@@ -299,37 +477,88 @@ class _VisitReportState extends State<VisitReport> with SingleTickerProviderStat
                                                             ),
                                                           ],
                                                         ),
-                                                        10.height,
+
+                                                        20.height,
+
+                                                        /// Buttons
                                                         Row(
-                                                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                                          mainAxisAlignment:
+                                                          MainAxisAlignment
+                                                              .spaceEvenly,
+
                                                           children: [
+
                                                             CustomBtn(
                                                               width: 100,
                                                               text: 'Clear All',
+
                                                               callback: () {
-                                                                custProvider.initVisitReport(custProvider.startDate,custProvider.endDate,custProvider.reportType);
-                                                                custProvider.manageFilter(false);
-                                                                custProvider.getEmpWiseReport(context);
-                                                                Navigator.of(context, rootNavigator: true).pop();
+
+                                                                custProvider
+                                                                    .initVisitReport(
+                                                                  custProvider
+                                                                      .startDate,
+                                                                  custProvider
+                                                                      .endDate,
+                                                                  custProvider
+                                                                      .reportType,
+                                                                );
+
+                                                                custProvider
+                                                                    .manageFilter(
+                                                                    false);
+
+                                                                custProvider
+                                                                    .getEmpWiseReport(
+                                                                    context);
+
+                                                                Navigator.of(
+                                                                  context,
+                                                                  rootNavigator:
+                                                                  true,
+                                                                ).pop();
                                                               },
-                                                              bgColor: Colors.grey.shade200,
-                                                              textColor: Colors.black,
+
+                                                              bgColor:
+                                                              Colors.grey
+                                                                  .shade200,
+
+                                                              textColor:
+                                                              Colors.black,
                                                             ),
+
                                                             CustomBtn(
                                                               width: 100,
-                                                              text: 'Apply Filters',
+                                                              text:
+                                                              'Apply Filters',
+
                                                               callback: () {
-                                                                custProvider.manageFilter(true);
-                                                                custProvider.getEmpWiseReport(context);
-                                                                // custProvider.closeVisible();
-                                                                // custProvider.filterList();
-                                                                Navigator.of(context, rootNavigator: true).pop();
+
+                                                                custProvider
+                                                                    .manageFilter(
+                                                                    true);
+
+                                                                custProvider
+                                                                    .getEmpWiseReport(
+                                                                    context);
+
+                                                                Navigator.of(
+                                                                  context,
+                                                                  rootNavigator:
+                                                                  true,
+                                                                ).pop();
                                                               },
-                                                              bgColor: colorsConst.primary,
-                                                              textColor: Colors.white,
+
+                                                              bgColor:
+                                                              colorsConst
+                                                                  .primary,
+
+                                                              textColor:
+                                                              Colors.white,
                                                             ),
                                                           ],
                                                         ),
+
                                                         20.height,
                                                       ],
                                                     ),
@@ -341,191 +570,415 @@ class _VisitReportState extends State<VisitReport> with SingleTickerProviderStat
                                         },
                                       );
                                     },
+
                                     child: Container(
-                                      width:kIsWeb?webWidth/6:phoneWidth/6,
+                                      width: kIsWeb
+                                          ? webWidth / 6
+                                          : phoneWidth / 6,
+
                                       height: 45,
-                                      decoration: customDecoration.baseBackgroundDecoration(
-                                          color: Colors.grey.shade300,radius: 5
-                                        // color: custProvider.filter==true?colorsConst.primary:Colors.grey.shade300,radius: 5
+
+                                      decoration:
+                                      customDecoration
+                                          .baseBackgroundDecoration(
+                                        color: Colors.grey.shade300,
+                                        radius: 5,
                                       ),
+
                                       child: Padding(
-                                        padding: const EdgeInsets.all(6.0),
-                                        child: SvgPicture.asset(assets.tFilter,width: 15,height: 15,color: colorsConst.primary,),
+                                        padding:
+                                        const EdgeInsets.all(6.0),
+
+                                        child: SvgPicture.asset(
+                                          assets.tFilter,
+                                          width: 15,
+                                          height: 15,
+                                          color: colorsConst.primary,
+                                        ),
                                       ),
                                     ),
                                   ),
+                                      10.width,
+                                      Checkbox(
+                                        value: custProvider.hideEmptyEmployees,
+
+                                        activeColor: colorsConst.primary,
+
+                                        onChanged: (value) {
+
+                                          custProvider.toggleHideEmptyEmployees(
+                                            value ?? false,
+                                          );
+                                        },
+                                      ),
+
+                                      const CustomText(
+                                        text: "Visit Only",
+                                        size: 12,
+                                      ),
+                                    ],
+                                  ),
                                 ],
                               ),
-                              if (custProvider.startDate == custProvider.endDate)
-                                filterChip("Date: ${custProvider.startDate}")
-                              else ...[
-                                filterChip("Date: ${custProvider.startDate}-${custProvider.endDate}"),
 
+                              /// Filter Chip
+                              if (custProvider.startDate ==
+                                  custProvider.endDate)
+
+                                filterChip(
+                                  "Date: ${custProvider.startDate}",
+                                )
+
+                              else ...[
+
+                                filterChip(
+                                  "Date: ${custProvider.startDate}-${custProvider.endDate}",
+                                ),
                               ],
-                              custProvider.refresh==false?
-                              Padding(
-                                padding: const EdgeInsets.fromLTRB(0, 200, 0, 0),
-                                child: Loading(),
-                              ):
+
+                              /// Loading
                               custProvider.refresh == false
+
                                   ? Padding(
-                                padding: const EdgeInsets.fromLTRB(0, 200, 0, 0),
+                                padding:
+                                const EdgeInsets.fromLTRB(
+                                    0, 200, 0, 0),
+
                                 child: Loading(),
                               )
-                                  : custProvider.groupedList.isEmpty
+
+                                  :
+
+                              /// Empty
+                              custProvider.groupedList.isEmpty
+
                                   ? const Padding(
-                                padding: EdgeInsets.fromLTRB(0, 80, 0, 0),
+                                padding:
+                                EdgeInsets.fromLTRB(
+                                    0, 80, 0, 0),
+
                                 child: Center(
                                   child: CustomText(
-                                    text: "No Visit Report Found",
+                                    text:
+                                    "No Visit Report Found",
                                     size: 15,
                                   ),
                                 ),
                               )
-                                  : Expanded(
-                                child: ListView.builder(
-                                  itemCount: custProvider.groupedList.length,
-                                  itemBuilder: (context, index) {
-                                    var data = custProvider.groupedList[index];
 
-                                    /// ✅ convert types map to list for indexing (odd/even)
-                                    final typeList = data["types"].entries.toList();
+                                  :
 
-                                    return Column(
-                                      children: [
-                                        if (index == 0) 10.height,
+                              /// List
+                              Expanded(
+                                child: Builder(
+                                  builder: (context) {
 
-                                        InkWell(
-                                          onTap: () {
-                                            /// 🔥 STEP 1: select user first
-                                            custProvider.selectUser(
-                                              UserModel(
-                                                id: data["role"],
-                                                firstname: data["firstname"],
-                                              ),
-                                            );
+                                    final filteredList =
+                                    custProvider
+                                        .hideEmptyEmployees
 
-                                            /// 🔥 STEP 2: enable filter
-                                            custProvider.manageFilter(true);
+                                        ? custProvider.groupedList
+                                        .where((e) {
 
-                                            /// 🔥 STEP 3: switch tab
-                                            tabController.animateTo(1);
+                                      int total =
+                                          int.tryParse(
+                                              e["total"]
+                                                  .toString()) ??
+                                              0;
 
-                                            /// 🔥 STEP 4: delay + API call
-                                            Future.delayed(const Duration(milliseconds: 300), () {
-                                              custProvider.getVisitReport(context);
-                                            });
-                                          },
-                                          child: Container(
-                                            width: MediaQuery.of(context).size.width * 0.9,
-                                            margin: const EdgeInsets.symmetric(vertical: 5),
-                                            decoration: customDecoration.baseBackgroundDecoration(
-                                              color: Colors.white,
-                                              borderColor: Colors.grey.shade200,
-                                              radius: 5,
-                                            ),
-                                            child: Padding(
-                                              padding: const EdgeInsets.fromLTRB(10, 12, 10, 12),
-                                              child: Column(
-                                                crossAxisAlignment: CrossAxisAlignment.start,
-                                                children: [
-                                                  /// 🔹 NAME + ROLE + TOTAL VISITS
-                                                  Row(
-                                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      return total > 0;
+
+                                    }).toList()
+
+                                        : custProvider.groupedList;
+
+                                    return ListView.builder(
+                                      itemCount:
+                                      filteredList.length,
+
+                                      itemBuilder:
+                                          (context, index) {
+
+                                        var data =
+                                        filteredList[index];
+
+                                        final typeList =
+                                        data["types"]
+                                            .entries
+                                            .toList();
+
+                                        return Column(
+                                          children: [
+
+                                            if (index == 0)
+                                              10.height,
+
+                                            InkWell(
+                                              onTap: () {
+
+                                                custProvider
+                                                    .selectUser(
+                                                  UserModel(
+                                                    id:
+                                                    data["role"],
+                                                    firstname:
+                                                    data["firstname"],
+                                                  ),
+                                                );
+
+                                                custProvider
+                                                    .manageFilter(
+                                                    true);
+
+                                                tabController
+                                                    .animateTo(1);
+
+                                                Future.delayed(
+                                                  const Duration(
+                                                      milliseconds:
+                                                      300),
+                                                      () {
+
+                                                    custProvider
+                                                        .getVisitReport(
+                                                        context);
+                                                  },
+                                                );
+                                              },
+
+                                              child: Container(
+                                                width:
+                                                MediaQuery.of(
+                                                    context)
+                                                    .size
+                                                    .width *
+                                                    0.9,
+
+                                                margin:
+                                                const EdgeInsets
+                                                    .symmetric(
+                                                    vertical: 5),
+
+                                                decoration:
+                                                customDecoration
+                                                    .baseBackgroundDecoration(
+                                                  color:
+                                                  Colors.white,
+                                                  borderColor:
+                                                  Colors.grey
+                                                      .shade200,
+                                                  radius: 5,
+                                                ),
+
+                                                child: Padding(
+                                                  padding:
+                                                  const EdgeInsets
+                                                      .fromLTRB(
+                                                      10,
+                                                      12,
+                                                      10,
+                                                      12),
+
+                                                  child: Column(
+                                                    crossAxisAlignment:
+                                                    CrossAxisAlignment
+                                                        .start,
+
                                                     children: [
-                                                      SizedBox(
-                                                        width: MediaQuery.of(context).size.width * 0.55,
-                                                        child: Row(
-                                                          children: [
-                                                            CustomText(
-                                                              text: "${data["firstname"]} ",
-                                                              isBold: true,
-                                                              colors: colorsConst.orange,
-                                                              size: 15,
-                                                            ),
-                                                            CustomText(
-                                                              text: "( ${data["role"]} )",
-                                                              colors: colorsConst.blue2,
-                                                              size: 15,
-                                                            ),
-                                                          ],
-                                                        ),
-                                                      ),
+
+                                                      /// Header
                                                       Row(
-                                                        mainAxisAlignment: MainAxisAlignment.end,
+                                                        mainAxisAlignment:
+                                                        MainAxisAlignment
+                                                            .spaceBetween,
+
                                                         children: [
-                                                          CustomText(
-                                                            text: "Total Visits: ",
-                                                            colors: Colors.black,
+
+                                                          SizedBox(
+                                                            width:
+                                                            MediaQuery.of(
+                                                                context)
+                                                                .size
+                                                                .width *
+                                                                0.55,
+
+                                                            child: Row(
+                                                              children: [
+
+                                                                CustomText(
+                                                                  text:
+                                                                  "${data["firstname"]} ",
+                                                                  isBold:
+                                                                  true,
+                                                                  colors:
+                                                                  colorsConst
+                                                                      .orange,
+                                                                  size:
+                                                                  15,
+                                                                ),
+
+                                                                CustomText(
+                                                                  text:
+                                                                  "( ${data["role"]} )",
+                                                                  colors:
+                                                                  colorsConst
+                                                                      .blue2,
+                                                                  size:
+                                                                  15,
+                                                                ),
+                                                              ],
+                                                            ),
                                                           ),
-                                                          CustomText(
-                                                            text: "${data["total"]}",
-                                                            colors: colorsConst.primary,
-                                                            isBold: true,
+
+                                                          Row(
+                                                            children: [
+
+                                                              const CustomText(
+                                                                text:
+                                                                "Total Visits: ",
+                                                                colors:
+                                                                Colors
+                                                                    .black,
+                                                              ),
+
+                                                              CustomText(
+                                                                text:
+                                                                "${data["total"]}",
+                                                                colors:
+                                                                colorsConst
+                                                                    .primary,
+                                                                isBold:
+                                                                true,
+                                                              ),
+                                                            ],
                                                           ),
                                                         ],
                                                       ),
+
+                                                      const Padding(
+                                                        padding:
+                                                        EdgeInsets.all(
+                                                            8.0),
+
+                                                        child:
+                                                        DotLine(),
+                                                      ),
+
+                                                      const SizedBox(
+                                                          height: 5),
+
+                                                      /// Types
+                                                      ...typeList
+                                                          .asMap()
+                                                          .entries
+                                                          .map((item) {
+
+                                                        int i =
+                                                            item.key;
+
+                                                        var entry =
+                                                            item.value;
+
+                                                        bool isEven =
+                                                            i % 2 == 0;
+
+                                                        return Container(
+                                                          margin:
+                                                          const EdgeInsets
+                                                              .symmetric(
+                                                              vertical:
+                                                              2),
+
+                                                          padding:
+                                                          const EdgeInsets
+                                                              .symmetric(
+                                                            vertical:
+                                                            8,
+                                                            horizontal:
+                                                            8,
+                                                          ),
+
+                                                          decoration:
+                                                          BoxDecoration(
+                                                            color: isEven
+                                                                ? Colors
+                                                                .grey
+                                                                .shade100
+                                                                : colorsConst
+                                                                .primary
+                                                                .withOpacity(
+                                                                0.1),
+
+                                                            border:
+                                                            Border(
+                                                              bottom:
+                                                              BorderSide(
+                                                                color:
+                                                                isEven
+                                                                    ? colorsConst
+                                                                    .primary
+                                                                    .withOpacity(
+                                                                    0.4)
+                                                                    : Colors
+                                                                    .grey
+                                                                    .shade500,
+                                                                width:
+                                                                1.2,
+                                                              ),
+                                                            ),
+                                                          ),
+
+                                                          child: Row(
+                                                            mainAxisAlignment:
+                                                            MainAxisAlignment
+                                                                .spaceBetween,
+
+                                                            children: [
+
+                                                              Text(
+                                                                entry.key,
+
+                                                                style:
+                                                                TextStyle(
+                                                                  fontSize:
+                                                                  14,
+                                                                  color:
+                                                                  colorsConst
+                                                                      .greyClr,
+                                                                  fontWeight:
+                                                                  FontWeight
+                                                                      .w500,
+                                                                ),
+                                                              ),
+
+                                                              Text(
+                                                                entry.value
+                                                                    .toString(),
+
+                                                                style:
+                                                                TextStyle(
+                                                                  fontSize:
+                                                                  14,
+                                                                  color:
+                                                                  colorsConst
+                                                                      .primary,
+                                                                  fontWeight:
+                                                                  FontWeight
+                                                                      .bold,
+                                                                ),
+                                                              ),
+                                                            ],
+                                                          ),
+                                                        );
+                                                      }).toList(),
                                                     ],
                                                   ),
-
-                                                  const Padding(
-                                                    padding: EdgeInsets.all(8.0),
-                                                    child: DotLine(),
-                                                  ),
-
-                                                  const SizedBox(height: 5),
-
-                                                  /// 🔥 TYPES (Tabbar Style Line + Odd/Even Color)
-                                                  ...typeList.asMap().entries.map((item) {
-                                                    int i = item.key;
-                                                    var entry = item.value;
-
-                                                    bool isEven = i % 2 == 0;
-
-                                                    return Container(
-                                                      margin: const EdgeInsets.symmetric(vertical: 2),
-                                                      padding: const EdgeInsets.symmetric(
-                                                          vertical: 8, horizontal: 8),
-                                                      decoration: BoxDecoration(
-                                                        color: isEven ? Colors.grey.shade100 : colorsConst.primary.withOpacity(0.1),
-
-                                                        /// ✅ Tabbar style underline (full width line)
-                                                        border: Border(
-                                                          bottom: BorderSide(
-                                                            color: isEven ?colorsConst.primary.withOpacity(0.4):Colors.grey.shade500 ,
-                                                            width: 1.2,
-                                                          ),
-                                                        ),
-                                                      ),
-                                                      child: Row(
-                                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                                        children: [
-                                                          Text(
-                                                            entry.key,
-                                                            style: TextStyle(
-                                                              fontSize: 14,
-                                                              color: colorsConst.greyClr,
-                                                              fontWeight: FontWeight.w500,
-                                                            ),
-                                                          ),
-                                                          Text(
-                                                            entry.value.toString(),
-                                                            style: TextStyle(
-                                                              fontSize: 14,
-                                                              color: colorsConst.primary,
-                                                              fontWeight: FontWeight.bold,
-                                                            ),
-                                                          ),
-                                                        ],
-                                                      ),
-                                                    );
-                                                  }).toList(),
-                                                ],
+                                                ),
                                               ),
                                             ),
-                                          ),
-                                        ),
-                                      ],
+                                          ],
+                                        );
+                                      },
                                     );
                                   },
                                 ),
@@ -704,46 +1157,6 @@ class _VisitReportState extends State<VisitReport> with SingleTickerProviderStat
                                                           ),
                                                         ],
                                                       ),
-                                                      10.height,
-                                                      // Column(
-                                                      //   crossAxisAlignment: CrossAxisAlignment.start,
-                                                      //   children: [
-                                                      //     CustomText(
-                                                      //       text: "Employee Name",
-                                                      //       colors: colorsConst.greyClr,
-                                                      //       size: 12,
-                                                      //     ),
-                                                      //     EmployeeDropdown(
-                                                      //       callback: (){
-                                                      //         ePvr.getAllUsers();
-                                                      //       },
-                                                      //       isHint: false,
-                                                      //       text:  custProvider.userName,
-                                                      //       employeeList: ePvr.filterUserData,
-                                                      //       onChanged: (UserModel? value) {
-                                                      //         custProvider.selectUser(value!);
-                                                      //       },
-                                                      //       size:kIsWeb?webWidth/1.2:phoneWidth/1.2,
-                                                      //     ),
-                                                      //   ],
-                                                      // ),
-                                                      // 10.height,
-                                                      // Column(
-                                                      //   crossAxisAlignment: CrossAxisAlignment.start,
-                                                      //   children: [
-                                                      //     CustomText(
-                                                      //       text: "Type",
-                                                      //       colors: colorsConst.greyClr,
-                                                      //       size: 12,
-                                                      //     ),
-                                                      //     MapDropDown(saveValue: custProvider.dailyType, hintText: "",
-                                                      //         width: kIsWeb?webWidth/1.2:phoneWidth/1.2,
-                                                      //         isHint: false,
-                                                      //         onChanged: (value){
-                                                      //           custProvider.changeSelect(value);
-                                                      //         }, dropText: "value", list: custProvider.cmtTypeList),
-                                                      //   ],
-                                                      // ),
                                                       20.height,
                                                       Row(
                                                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,

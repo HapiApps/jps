@@ -462,35 +462,36 @@ class _TaskChatState extends State<TaskChat> with SingleTickerProviderStateMixin
                   physics: const BouncingScrollPhysics(),
                   itemCount: custProvider.customerReport.length,
                   itemBuilder: (context, index) {
-                    CustomerReportModel data =
-                    custProvider.customerReport[index];
+                    CustomerReportModel data = custProvider.customerReport[index];
 
                     bool isSender = data.createdBy.toString() ==
                         localData.storage.read("id").toString();
 
-                    bool isAudio = data.documents != null &&
-                        data.documents.toString().isNotEmpty &&
-                        data.documents.toString().endsWith(".m4a");
+                    /// ✅ FIX: document trim + lowercase check
+                    String doc = data.documents?.toString().trim() ?? "";
 
-                    String audioUrl =
-                        "$imageFile?path=${data.documents}";
+                    bool isAudio = doc.isNotEmpty &&
+                        (doc.toLowerCase().endsWith(".m4a") ||
+                            doc.toLowerCase().endsWith(".mp3") ||
+                            doc.toLowerCase().endsWith(".wav"));
+
+                    /// ✅ FIX: build proper audio url
+                    String audioUrl = "$imageFile?path=$doc";
 
                     return Align(
-                      alignment: isSender
-                          ? Alignment.centerRight
-                          : Alignment.centerLeft,
+                      alignment:
+                      isSender ? Alignment.centerRight : Alignment.centerLeft,
                       child: IntrinsicWidth(
                         child: ConstrainedBox(
                           constraints: BoxConstraints(
-                            maxWidth:
-                            MediaQuery.of(context).size.width *
-                                0.70,
+                            maxWidth: MediaQuery.of(context).size.width * 0.70,
                           ),
                           child: Container(
-                            margin: const EdgeInsets.symmetric(
-                                vertical: 4),
+                            margin: const EdgeInsets.symmetric(vertical: 4),
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 12, vertical: 10),
+                              horizontal: 12,
+                              vertical: 10,
+                            ),
                             decoration: BoxDecoration(
                               color: isSender
                                   ? const Color(0xFFDCF8C6)
@@ -498,39 +499,33 @@ class _TaskChatState extends State<TaskChat> with SingleTickerProviderStateMixin
                               borderRadius: BorderRadius.only(
                                 topLeft: const Radius.circular(12),
                                 topRight: const Radius.circular(12),
-                                bottomLeft: isSender
-                                    ? const Radius.circular(12)
-                                    : Radius.zero,
-                                bottomRight: isSender
-                                    ? Radius.zero
-                                    : const Radius.circular(12),
+                                bottomLeft:
+                                isSender ? const Radius.circular(12) : Radius.zero,
+                                bottomRight:
+                                isSender ? Radius.zero : const Radius.circular(12),
                               ),
                               boxShadow: [
                                 BoxShadow(
-                                  color:
-                                  Colors.black.withOpacity(0.08),
+                                  color: Colors.black.withOpacity(0.08),
                                   blurRadius: 5,
                                   offset: const Offset(0, 2),
                                 )
                               ],
                             ),
                             child: Column(
-                              crossAxisAlignment:
-                              CrossAxisAlignment.start,
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 if (!isSender)
                                   Padding(
-                                    padding: const EdgeInsets.only(
-                                        bottom: 4),
+                                    padding: const EdgeInsets.only(bottom: 4),
                                     child: Row(
                                       children: [
                                         Text(
                                           data.firstname.toString(),
                                           style: const TextStyle(
                                             fontSize: 12,
-                                            fontWeight:
-                                            FontWeight.w600,
+                                            fontWeight: FontWeight.w600,
                                             color: Color(0xFF0D47A1),
                                           ),
                                         ),
@@ -539,89 +534,68 @@ class _TaskChatState extends State<TaskChat> with SingleTickerProviderStateMixin
                                           "( ${data.role} )",
                                           style: TextStyle(
                                             fontSize: 11,
-                                            color:
-                                            Colors.grey.shade600,
+                                            color: Colors.grey.shade600,
                                           ),
                                         ),
                                       ],
                                     ),
                                   ),
 
-                                /// 🔥 AUDIO MESSAGE UI
+                                /// ✅ AUDIO UI
                                 if (isAudio)
                                   Container(
                                     height: 45,
                                     width: 240,
-                                    padding:
-                                    const EdgeInsets.symmetric(
-                                        horizontal: 6),
+                                    padding: const EdgeInsets.symmetric(horizontal: 6),
                                     decoration: BoxDecoration(
                                       color: Colors.grey.shade100,
-                                      borderRadius:
-                                      BorderRadius.circular(10),
+                                      borderRadius: BorderRadius.circular(10),
                                     ),
                                     child: Row(
                                       children: [
                                         IconButton(
                                           icon: Icon(
-                                            (playingUrl == audioUrl &&
-                                                networkPlaying)
+                                            (playingUrl == audioUrl && networkPlaying)
                                                 ? Icons.pause
                                                 : Icons.play_arrow,
                                             color: Colors.green,
                                           ),
-                                          onPressed: () {
-                                            playNetworkAudio(
-                                                audioUrl.toString());
+                                          onPressed: () async {
+                                            await playNetworkAudio(audioUrl);
                                           },
                                         ),
                                         Expanded(
                                           child: Slider(
                                             activeColor: Colors.green,
-                                            inactiveColor: Colors
-                                                .grey.shade300,
-                                            value: (playingUrl ==
-                                                audioUrl &&
-                                                networkTotal
-                                                    .inSeconds >
-                                                    0)
-                                                ? networkCurrent
-                                                .inSeconds
+                                            inactiveColor: Colors.grey.shade300,
+                                            value: (playingUrl == audioUrl &&
+                                                networkTotal.inSeconds > 0)
+                                                ? networkCurrent.inSeconds
                                                 .toDouble()
                                                 .clamp(
-                                                0,
-                                                networkTotal
-                                                    .inSeconds
-                                                    .toDouble())
+                                              0,
+                                              networkTotal.inSeconds.toDouble(),
+                                            )
                                                 : 0,
                                             min: 0,
-                                            max: (playingUrl ==
-                                                audioUrl &&
-                                                networkTotal
-                                                    .inSeconds >
-                                                    0)
-                                                ? networkTotal
-                                                .inSeconds
-                                                .toDouble()
+                                            max: (playingUrl == audioUrl &&
+                                                networkTotal.inSeconds > 0)
+                                                ? networkTotal.inSeconds.toDouble()
                                                 : 1,
                                             onChanged: (value) async {
-                                              if (playingUrl ==
-                                                  audioUrl) {
+                                              if (playingUrl == audioUrl) {
                                                 await _audioPlayer.seek(
-                                                    Duration(
-                                                        seconds: value
-                                                            .toInt()));
+                                                  Duration(seconds: value.toInt()),
+                                                );
                                               }
                                             },
                                           ),
                                         ),
                                         Text(
                                           (playingUrl == audioUrl)
-                                              ? formatTime(
-                                              networkCurrent)
+                                              ? formatTime(networkCurrent)
                                               : "00:00",
-                                          style: const TextStyle(
-                                              fontSize: 11),
+                                          style: const TextStyle(fontSize: 11),
                                         ),
                                         const SizedBox(width: 5),
                                       ],
@@ -639,13 +613,12 @@ class _TaskChatState extends State<TaskChat> with SingleTickerProviderStateMixin
                                 const SizedBox(height: 6),
 
                                 Row(
-                                  mainAxisAlignment:
-                                  MainAxisAlignment.end,
+                                  mainAxisAlignment: MainAxisAlignment.end,
                                   children: [
                                     Text(
                                       DateFormat('hh:mm a').format(
-                                          DateTime.parse(data.createdTs
-                                              .toString())),
+                                        DateTime.parse(data.createdTs.toString()),
+                                      ),
                                       style: TextStyle(
                                         fontSize: 10,
                                         color: Colors.grey.shade700,
@@ -653,14 +626,11 @@ class _TaskChatState extends State<TaskChat> with SingleTickerProviderStateMixin
                                     ),
                                     if (data.isLocal == true)
                                       Padding(
-                                        padding:
-                                        const EdgeInsets.only(
-                                            left: 4),
+                                        padding: const EdgeInsets.only(left: 4),
                                         child: Icon(
                                           Icons.schedule,
                                           size: 12,
-                                          color:
-                                          Colors.grey.shade600,
+                                          color: Colors.grey.shade600,
                                         ),
                                       ),
                                   ],

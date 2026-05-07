@@ -65,7 +65,12 @@ class CustomerProvider with ChangeNotifier{
   String selectCustomerId = "";
   String selectCustomerName = "";
   String selectCustomerNo = "";
+  bool hideEmptyEmployees = false;
 
+  void toggleHideEmptyEmployees(bool value) {
+    hideEmptyEmployees = value;
+    notifyListeners();
+  }
   void resetVisitForm() {
     setMultiSelectedCustomers([]);
 
@@ -2046,7 +2051,7 @@ TextEditingController date= TextEditingController(text: "${DateTime.now().day.to
 
         utils.showSuccessToast(
           context: context,
-          text: constValue.success,
+          text: constValue.visitSuccess,
         );
 
         /// 🔥 NOTIFICATION
@@ -3235,6 +3240,7 @@ List<Marker> get liveMarker =>_liveMarker;
 
   Future<void> getVisitHoursReport(context) async {
     try {
+
       Map data = {
         "action": getAllData,
         "search_type": "visit_hours_report",
@@ -3244,24 +3250,68 @@ List<Marker> get liveMarker =>_liveMarker;
         "date1": _startDate,
         "date2": _endDate
       };
-      final response =await custRepo.getDashboardReport(data);
+
+      final response =
+      await custRepo.getDashboardReport(data);
+
       log("Visit Res $response");
+
       if (response.isNotEmpty) {
-        reportExportEmployeeSectionWise(
-          context,
-          response,
-          _startDate,
-          _endDate,
-        );
+
+        /// 🔥 visit irukura data matum
+        List filteredList = response.where((item) {
+
+          int total =
+              int.tryParse(
+                  item["total"]?.toString() ?? "0") ??
+                  0;
+
+          return total > 0;
+
+        }).toList();
+
+        /// 🔥 data iruntha export
+        if (filteredList.isNotEmpty) {
+
+          await reportExportEmployeeSectionWise(
+            context,
+            filteredList,
+            _startDate,
+            _endDate,
+          );
+
+        } else {
+
+          utils.showWarningToast(
+            context,
+            text: "No data found",
+          );
+        }
+
         addCtr.reset();
-      }else{
-        utils.showWarningToast(context,text: "No data found");
+
+      } else {
+
+        utils.showWarningToast(
+          context,
+          text: "No data found",
+        );
+
         addCtr.reset();
       }
+
     } catch (e) {
-      utils.showWarningToast(context,text: "No data found");
+
+      log("ERROR : $e");
+
+      utils.showWarningToast(
+        context,
+        text: "No data found",
+      );
+
       addCtr.reset();
     }
+
     notifyListeners();
   }
   Future<void> getVisitHoursEmpReport(context) async {
@@ -3295,20 +3345,34 @@ List<Marker> get liveMarker =>_liveMarker;
     }
     notifyListeners();
   }
+
   Future<void> reportExportEmployeeSectionWise(
-      BuildContext context, List list, String startDate, String endDate)
-  async {
+      BuildContext context,
+      List list,
+      String startDate,
+      String endDate,
+      ) async {
     try {
+
       List<String> generateDateRange(String start, String end) {
         List<String> dates = [];
-        DateTime startDt = DateFormat("dd-MM-yyyy").parse(start);
-        DateTime endDt = DateFormat("dd-MM-yyyy").parse(end);
 
-        for (DateTime d = startDt;
+        DateTime startDt =
+        DateFormat("dd-MM-yyyy").parse(start);
+
+        DateTime endDt =
+        DateFormat("dd-MM-yyyy").parse(end);
+
+        for (
+        DateTime d = startDt;
         !d.isAfter(endDt);
-        d = d.add(const Duration(days: 1))) {
-          dates.add(DateFormat("dd-MM-yyyy").format(d));
+        d = d.add(const Duration(days: 1))
+        ) {
+          dates.add(
+            DateFormat("dd-MM-yyyy").format(d),
+          );
         }
+
         return dates;
       }
 
@@ -3321,62 +3385,96 @@ List<Marker> get liveMarker =>_liveMarker;
         }
       }
 
-      Set<String> allTypesSet = {};
+      /// Employee List
       Set<String> allEmployeesSet = {};
 
       for (var item in list) {
-        if (item["value"] != null) {
-          allTypesSet.add(item["value"].toString().trim());
-        }
-        if (item["emp_name"] != null) {
-          allEmployeesSet.add(item["emp_name"].toString());
-        }
-      }
+        String emp =
+            item["emp_name"]?.toString().trim() ?? "";
 
-      List<String> allTypes = allTypesSet.toList();
-      List<String> allEmployees = allEmployeesSet.toList()..sort();
-
-      List<String> allDates = generateDateRange(startDate, endDate);
-
-      Map<String, Map<String, Map<String, int>>> grouped = {};
-
-      for (var emp in allEmployees) {
-        grouped[emp] = {};
-        for (var date in allDates) {
-          grouped[emp]![date] = {};
-          for (var type in allTypes) {
-            grouped[emp]![date]![type] = 0; // default 0
-          }
+        if (emp.isNotEmpty) {
+          allEmployeesSet.add(emp);
         }
       }
 
+      List<String> allEmployees =
+      allEmployeesSet.toList()..sort();
+
+      /// All Dates
+      List<String> allDates =
+      generateDateRange(startDate, endDate);
+
+      /// grouped[emp][date][type] = total
+      Map<String,
+          Map<String, Map<String, int>>> grouped = {};
+
+      /// Fill actual values only
       for (var item in list) {
-        String? emp = item["emp_name"]?.toString();
-        String? apiDate = item["report_date"]?.toString();
-        String? type = item["value"]?.toString();
 
-        if (emp == null || emp.isEmpty) continue;
-        if (apiDate == null || apiDate.isEmpty) continue;
-        if (type == null || type.isEmpty) continue;
+        String emp =
+            item["emp_name"]?.toString().trim() ?? "";
+
+        String apiDate =
+            item["report_date"]?.toString() ?? "";
+
+        String type =
+            item["value"]?.toString().trim() ?? "";
+
+        if (emp.isEmpty ||
+            apiDate.isEmpty ||
+            type.isEmpty) {
+          continue;
+        }
 
         String date = convertApiDate(apiDate);
-        type = type.trim();
 
-        int total = int.tryParse(item["total"]?.toString() ?? "0") ?? 0;
+        int total =
+            int.tryParse(
+                item["total"]?.toString() ?? "0") ??
+                0;
 
-        if (!grouped.containsKey(emp)) continue;
-        if (!grouped[emp]!.containsKey(date)) continue;
+        /// 🔥 total 0-na skip
+        if (total <= 0) continue;
+
+        grouped.putIfAbsent(emp, () => {});
+        grouped[emp]!.putIfAbsent(date, () => {});
 
         grouped[emp]![date]![type] = total;
       }
 
       final Workbook workbook = Workbook();
-      final Worksheet sheet = workbook.worksheets[0];
+
+      final Worksheet sheet =
+      workbook.worksheets[0];
 
       int currentRow = 1;
 
       for (var emp in allEmployees) {
-        int totalColumns = 1 + allTypes.length + 1; // Date + types + Total
+
+        /// Employee-ku data illana skip
+        if (!grouped.containsKey(emp) ||
+            grouped[emp]!.isEmpty) {
+          continue;
+        }
+
+        /// Employee-ku irukura types mattum
+        Set<String> employeeTypesSet = {};
+
+        for (var dateMap
+        in grouped[emp]!.values) {
+          employeeTypesSet.addAll(dateMap.keys);
+        }
+
+        List<String> employeeTypes =
+        employeeTypesSet.toList()..sort();
+
+        /// type illa-na skip
+        if (employeeTypes.isEmpty) continue;
+
+        int totalColumns =
+            1 + employeeTypes.length + 1;
+
+        /// Title Merge
         sheet
             .getRangeByName(
             'A$currentRow:${String.fromCharCode(65 + totalColumns - 1)}$currentRow')
@@ -3384,108 +3482,234 @@ List<Marker> get liveMarker =>_liveMarker;
 
         sheet
             .getRangeByIndex(currentRow, 1)
-            .setText('$emp ( $startDate to $endDate ) Visit Report');
+            .setText(
+            '$emp ( $startDate to $endDate ) Visit Report');
 
-        sheet.getRangeByIndex(currentRow, 1).cellStyle.bold = true;
-        sheet.getRangeByIndex(currentRow, 1).cellStyle.hAlign = HAlignType.left;
+        sheet
+            .getRangeByIndex(currentRow, 1)
+            .cellStyle
+            .bold = true;
+
+        sheet
+            .getRangeByIndex(currentRow, 1)
+            .cellStyle
+            .hAlign = HAlignType.left;
 
         currentRow++;
 
-        /// Header Row
-        sheet.getRangeByIndex(currentRow, 1).setText("Date");
+        /// Header
+        sheet
+            .getRangeByIndex(currentRow, 1)
+            .setText("Date");
 
-        for (int i = 0; i < allTypes.length; i++) {
-          sheet.getRangeByIndex(currentRow, i + 2).setText(allTypes[i]);
+        for (int i = 0;
+        i < employeeTypes.length;
+        i++) {
+
+          sheet
+              .getRangeByIndex(currentRow, i + 2)
+              .setText(employeeTypes[i]);
         }
 
-        sheet.getRangeByIndex(currentRow, allTypes.length + 2).setText("Total");
+        sheet
+            .getRangeByIndex(
+            currentRow,
+            employeeTypes.length + 2)
+            .setText("Total");
 
-        final headerRange = sheet.getRangeByName(
+        final headerRange =
+        sheet.getRangeByName(
             'A$currentRow:${String.fromCharCode(65 + totalColumns - 1)}$currentRow');
 
         headerRange.cellStyle.bold = true;
-        headerRange.cellStyle.hAlign = HAlignType.center;
-        headerRange.cellStyle.backColor = '#EDEDED';
+        headerRange.cellStyle.hAlign =
+            HAlignType.center;
+
+        headerRange.cellStyle.backColor =
+        '#EDEDED';
 
         currentRow++;
 
+        /// Totals
         Map<String, int> typeGrandTotal = {};
-        for (var t in allTypes) {
+
+        for (var t in employeeTypes) {
           typeGrandTotal[t] = 0;
         }
 
         int grandTotal = 0;
 
+        /// Date Rows
         for (var date in allDates) {
-          sheet.getRangeByIndex(currentRow, 1).setText(date);
+
+          /// Date-ku data illa-na skip
+          if (!grouped[emp]!
+              .containsKey(date)) {
+            continue;
+          }
 
           int rowTotal = 0;
 
-          for (int j = 0; j < allTypes.length; j++) {
-            String type = allTypes[j];
-            int value = grouped[emp]![date]![type] ?? 0;
+          /// temporary values store
+          Map<String, int> rowValues = {};
 
-            sheet.getRangeByIndex(currentRow, j + 2).setNumber(value.toDouble());
+          for (int j = 0;
+          j < employeeTypes.length;
+          j++) {
 
-            rowTotal += value;
-            typeGrandTotal[type] = (typeGrandTotal[type] ?? 0) + value;
+            String type = employeeTypes[j];
+
+            int value =
+                grouped[emp]?[date]?[type] ?? 0;
+
+            /// value iruntha matum add
+            if (value > 0) {
+              rowValues[type] = value;
+
+              rowTotal += value;
+
+              typeGrandTotal[type] =
+                  (typeGrandTotal[type] ?? 0) +
+                      value;
+            }
+          }
+
+          /// 🔥 full row empty-na skip
+          if (rowTotal == 0) {
+            continue;
           }
 
           sheet
-              .getRangeByIndex(currentRow, allTypes.length + 2)
-              .setNumber(rowTotal.toDouble());
+              .getRangeByIndex(currentRow, 1)
+              .setText(date);
+
+          for (int j = 0;
+          j < employeeTypes.length;
+          j++) {
+
+            String type = employeeTypes[j];
+
+            int value = rowValues[type] ?? 0;
+
+            /// 🔥 value iruntha matum write
+            if (value > 0) {
+              sheet
+                  .getRangeByIndex(
+                  currentRow,
+                  j + 2)
+                  .setNumber(
+                  value.toDouble());
+            }
+          }
+
+          sheet
+              .getRangeByIndex(
+              currentRow,
+              employeeTypes.length + 2)
+              .setNumber(
+              rowTotal.toDouble());
 
           grandTotal += rowTotal;
 
           currentRow++;
         }
 
-        /// Total Row
-        sheet.getRangeByIndex(currentRow, 1).setText("Total");
-        sheet.getRangeByIndex(currentRow, 1).cellStyle.bold = true;
+        /// grand total 0-na skip total row
+        if (grandTotal == 0) {
+          continue;
+        }
 
-        for (int j = 0; j < allTypes.length; j++) {
-          String type = allTypes[j];
-          sheet
-              .getRangeByIndex(currentRow, j + 2)
-              .setNumber((typeGrandTotal[type] ?? 0).toDouble());
+        /// Total Row
+        sheet
+            .getRangeByIndex(currentRow, 1)
+            .setText("Total");
+
+        sheet
+            .getRangeByIndex(currentRow, 1)
+            .cellStyle
+            .bold = true;
+
+        for (int j = 0;
+        j < employeeTypes.length;
+        j++) {
+
+          String type = employeeTypes[j];
+
+          int total =
+              typeGrandTotal[type] ?? 0;
+
+          /// total iruntha matum write
+          if (total > 0) {
+            sheet
+                .getRangeByIndex(
+                currentRow,
+                j + 2)
+                .setNumber(
+                total.toDouble());
+          }
         }
 
         sheet
-            .getRangeByIndex(currentRow, allTypes.length + 2)
-            .setNumber(grandTotal.toDouble());
+            .getRangeByIndex(
+            currentRow,
+            employeeTypes.length + 2)
+            .setNumber(
+            grandTotal.toDouble());
 
-        final totalRange = sheet.getRangeByName(
+        final totalRange =
+        sheet.getRangeByName(
             'A$currentRow:${String.fromCharCode(65 + totalColumns - 1)}$currentRow');
 
         totalRange.cellStyle.bold = true;
-        totalRange.cellStyle.backColor = '#FFF2CC';
+
+        totalRange.cellStyle.backColor =
+        '#FFF2CC';
 
         currentRow += 2;
       }
 
-      sheet.getRangeByName('A1:Z500').columnWidth = 20;
+      /// Width
+      sheet
+          .getRangeByName('A1:Z500')
+          .columnWidth = 20;
 
-      final bytes = workbook.saveAsStream();
+      final bytes =
+      workbook.saveAsStream();
+
       workbook.dispose();
 
       if (kIsWeb) {
+
         AnchorElement(
-          href: 'data:application/octet-stream;base64,${base64.encode(bytes)}',
+          href:
+          'data:application/octet-stream;base64,${base64.encode(bytes)}',
         )
-          ..setAttribute('download', 'JPS_Visit_Report.xlsx')
+          ..setAttribute(
+              'download',
+              'JPS_Visit_Report.xlsx')
           ..click();
+
       } else {
-        final path = (await getApplicationSupportDirectory()).path;
-        final file = File('$path/JPS_Visit_Report.xlsx');
-        await file.writeAsBytes(bytes, flush: true);
+
+        final path =
+            (await getApplicationSupportDirectory())
+                .path;
+
+        final file =
+        File('$path/JPS_Visit_Report.xlsx');
+
+        await file.writeAsBytes(
+          bytes,
+          flush: true,
+        );
+
         OpenFile.open(file.path);
       }
+
     } catch (e) {
       print("ERROR: $e");
     }
   }
-
   Future<void> reportExportEmployeeReportSectionWise(
       BuildContext context,
       List list,
@@ -3497,13 +3721,20 @@ List<Marker> get liveMarker =>_liveMarker;
       List<String> generateDateRange(String start, String end) {
         List<String> dates = [];
 
-        DateTime startDt = DateFormat("dd-MM-yyyy").parse(start);
-        DateTime endDt = DateFormat("dd-MM-yyyy").parse(end);
+        DateTime startDt =
+        DateFormat("dd-MM-yyyy").parse(start);
 
-        for (DateTime d = startDt;
+        DateTime endDt =
+        DateFormat("dd-MM-yyyy").parse(end);
+
+        for (
+        DateTime d = startDt;
         !d.isAfter(endDt);
-        d = d.add(const Duration(days: 1))) {
-          dates.add(DateFormat("dd-MM-yyyy").format(d));
+        d = d.add(const Duration(days: 1))
+        ) {
+          dates.add(
+            DateFormat("dd-MM-yyyy").format(d),
+          );
         }
 
         return dates;
@@ -3511,73 +3742,98 @@ List<Marker> get liveMarker =>_liveMarker;
 
       String convertApiDate(String input) {
         try {
-          return DateFormat("dd-MM-yyyy").format(DateTime.parse(input));
+          return DateFormat("dd-MM-yyyy")
+              .format(DateTime.parse(input));
         } catch (e) {
           return input;
         }
       }
 
-      /// 🔥 Collect Types + Employees
-      Set<String> allTypesSet = {};
+      /// Employee List
       Set<String> allEmployeesSet = {};
 
       for (var item in list) {
-        if (item["visit_type"] != null && item["visit_type"].toString().trim().isNotEmpty) {
-          allTypesSet.add(item["visit_type"].toString().trim());
-        }
-
-        if (item["emp_name"] != null && item["emp_name"].toString().trim().isNotEmpty) {
-          allEmployeesSet.add(item["emp_name"].toString().trim());
-        }
-      }
-
-      List<String> allTypes = allTypesSet.toList()..sort();
-      List<String> allEmployees = allEmployeesSet.toList()..sort();
-
-      List<String> allDates = generateDateRange(startDate, endDate);
-
-      /// 🔥 Grouped Map (emp -> date -> type -> count)
-      Map<String, Map<String, Map<String, int>>> grouped = {};
-
-      for (var emp in allEmployees) {
-        grouped[emp] = {};
-        for (var date in allDates) {
-          grouped[emp]![date] = {};
-          for (var type in allTypes) {
-            grouped[emp]![date]![type] = 0;
-          }
+        if (item["emp_name"] != null &&
+            item["emp_name"]
+                .toString()
+                .trim()
+                .isNotEmpty) {
+          allEmployeesSet.add(
+            item["emp_name"].toString().trim(),
+          );
         }
       }
 
-      /// 🔥 Fill actual values
+      List<String> allEmployees =
+      allEmployeesSet.toList()..sort();
+
+      /// Dates
+      List<String> allDates =
+      generateDateRange(startDate, endDate);
+
+      /// grouped[emp][date][type] = total
+      Map<String,
+          Map<String, Map<String, int>>> grouped = {};
+
+      /// Fill Values
       for (var item in list) {
-        String? emp = item["emp_name"]?.toString();
-        String? apiDate = item["report_date"]?.toString();
-        String? type = item["visit_type"]?.toString();
+        String emp =
+            item["emp_name"]?.toString().trim() ?? "";
 
-        if (emp == null || emp.trim().isEmpty) continue;
-        if (apiDate == null || apiDate.trim().isEmpty) continue;
-        if (type == null || type.trim().isEmpty) continue;
+        String apiDate =
+            item["report_date"]?.toString() ?? "";
+
+        String type =
+            item["visit_type"]
+                ?.toString()
+                .trim() ??
+                "";
+
+        if (emp.isEmpty ||
+            apiDate.isEmpty ||
+            type.isEmpty) {
+          continue;
+        }
 
         String date = convertApiDate(apiDate);
-        type = type.trim();
 
-        int total = int.tryParse(item["total_visits"]?.toString() ?? "0") ?? 0;
+        int total = int.tryParse(
+            item["total_visits"]?.toString() ?? "0") ??
+            0;
 
-        if (!grouped.containsKey(emp)) continue;
-        if (!grouped[emp]!.containsKey(date)) continue;
-
+        grouped.putIfAbsent(emp, () => {});
+        grouped[emp]!.putIfAbsent(date, () => {});
         grouped[emp]![date]![type] = total;
       }
 
-      /// 🔥 Create Excel
+      /// Excel
       final Workbook workbook = Workbook();
-      final Worksheet sheet = workbook.worksheets[0];
+      final Worksheet sheet =
+      workbook.worksheets[0];
+
       int currentRow = 1;
 
       for (var emp in allEmployees) {
-        int totalColumns = 1 + allTypes.length + 1; // Date + Types + Total
 
+        /// Employee-ku irukura types mattum
+        Set<String> employeeTypesSet = {};
+
+        if (grouped.containsKey(emp)) {
+          for (var dateMap
+          in grouped[emp]!.values) {
+            employeeTypesSet.addAll(
+              dateMap.keys,
+            );
+          }
+        }
+
+        List<String> employeeTypes =
+        employeeTypesSet.toList()..sort();
+
+        int totalColumns =
+            1 + employeeTypes.length + 1;
+
+        /// Title
         sheet
             .getRangeByName(
             'A$currentRow:${String.fromCharCode(65 + totalColumns - 1)}$currentRow')
@@ -3585,102 +3841,175 @@ List<Marker> get liveMarker =>_liveMarker;
 
         sheet
             .getRangeByIndex(currentRow, 1)
-            .setText('$emp ( $startDate to $endDate ) Visit Report');
+            .setText(
+            '$emp ( $startDate to $endDate ) Visit Report');
 
-        sheet.getRangeByIndex(currentRow, 1).cellStyle.bold = true;
-        sheet.getRangeByIndex(currentRow, 1).cellStyle.hAlign = HAlignType.left;
+        sheet
+            .getRangeByIndex(currentRow, 1)
+            .cellStyle
+            .bold = true;
+
+        sheet
+            .getRangeByIndex(currentRow, 1)
+            .cellStyle
+            .hAlign = HAlignType.left;
 
         currentRow++;
 
         /// Header
-        sheet.getRangeByIndex(currentRow, 1).setText("Date");
+        sheet
+            .getRangeByIndex(currentRow, 1)
+            .setText("Date");
 
-        for (int i = 0; i < allTypes.length; i++) {
-          sheet.getRangeByIndex(currentRow, i + 2).setText(allTypes[i]);
+        for (int i = 0;
+        i < employeeTypes.length;
+        i++) {
+          sheet
+              .getRangeByIndex(currentRow, i + 2)
+              .setText(employeeTypes[i]);
         }
 
-        sheet.getRangeByIndex(currentRow, allTypes.length + 2).setText("Total");
+        sheet
+            .getRangeByIndex(
+            currentRow,
+            employeeTypes.length + 2)
+            .setText("Total");
 
-        final headerRange = sheet.getRangeByName(
+        final headerRange =
+        sheet.getRangeByName(
             'A$currentRow:${String.fromCharCode(65 + totalColumns - 1)}$currentRow');
 
         headerRange.cellStyle.bold = true;
-        headerRange.cellStyle.hAlign = HAlignType.center;
-        headerRange.cellStyle.backColor = '#EDEDED';
+        headerRange.cellStyle.hAlign =
+            HAlignType.center;
+        headerRange.cellStyle.backColor =
+        '#EDEDED';
 
         currentRow++;
 
-        /// Totals
+        /// Grand Totals
         Map<String, int> typeGrandTotal = {};
-        for (var t in allTypes) {
+
+        for (var t in employeeTypes) {
           typeGrandTotal[t] = 0;
         }
 
         int grandTotal = 0;
 
-        /// Data Rows
+        /// Date Rows
         for (var date in allDates) {
-          sheet.getRangeByIndex(currentRow, 1).setText(date);
+
+          sheet
+              .getRangeByIndex(currentRow, 1)
+              .setText(date);
 
           int rowTotal = 0;
 
-          for (int j = 0; j < allTypes.length; j++) {
-            String type = allTypes[j];
-            int value = grouped[emp]![date]![type] ?? 0;
+          for (int j = 0;
+          j < employeeTypes.length;
+          j++) {
 
-            sheet.getRangeByIndex(currentRow, j + 2).setNumber(value.toDouble());
+            String type = employeeTypes[j];
+
+            int value =
+                grouped[emp]?[date]?[type] ?? 0;
+
+            sheet
+                .getRangeByIndex(currentRow, j + 2)
+                .setNumber(value.toDouble());
 
             rowTotal += value;
-            typeGrandTotal[type] = (typeGrandTotal[type] ?? 0) + value;
+
+            typeGrandTotal[type] =
+                (typeGrandTotal[type] ?? 0) +
+                    value;
           }
 
           sheet
-              .getRangeByIndex(currentRow, allTypes.length + 2)
+              .getRangeByIndex(
+              currentRow,
+              employeeTypes.length + 2)
               .setNumber(rowTotal.toDouble());
 
           grandTotal += rowTotal;
+
           currentRow++;
         }
 
         /// Final Total Row
-        sheet.getRangeByIndex(currentRow, 1).setText("Total");
-        sheet.getRangeByIndex(currentRow, 1).cellStyle.bold = true;
+        sheet
+            .getRangeByIndex(currentRow, 1)
+            .setText("Total");
 
-        for (int j = 0; j < allTypes.length; j++) {
-          String type = allTypes[j];
+        sheet
+            .getRangeByIndex(currentRow, 1)
+            .cellStyle
+            .bold = true;
+
+        for (int j = 0;
+        j < employeeTypes.length;
+        j++) {
+
+          String type = employeeTypes[j];
+
           sheet
               .getRangeByIndex(currentRow, j + 2)
-              .setNumber((typeGrandTotal[type] ?? 0).toDouble());
+              .setNumber(
+              (typeGrandTotal[type] ?? 0)
+                  .toDouble());
         }
 
         sheet
-            .getRangeByIndex(currentRow, allTypes.length + 2)
+            .getRangeByIndex(
+            currentRow,
+            employeeTypes.length + 2)
             .setNumber(grandTotal.toDouble());
 
-        final totalRange = sheet.getRangeByName(
+        final totalRange =
+        sheet.getRangeByName(
             'A$currentRow:${String.fromCharCode(65 + totalColumns - 1)}$currentRow');
 
         totalRange.cellStyle.bold = true;
-        totalRange.cellStyle.backColor = '#FFF2CC';
+        totalRange.cellStyle.backColor =
+        '#FFF2CC';
 
         currentRow += 2;
       }
 
-      sheet.getRangeByName('A1:Z500').columnWidth = 20;
+      /// Width
+      sheet
+          .getRangeByName('A1:Z500')
+          .columnWidth = 20;
 
       final bytes = workbook.saveAsStream();
+
       workbook.dispose();
 
       if (kIsWeb) {
+
         AnchorElement(
-          href: 'data:application/octet-stream;base64,${base64.encode(bytes)}',
+          href:
+          'data:application/octet-stream;base64,${base64.encode(bytes)}',
         )
-          ..setAttribute('download', 'Visit_Report.xlsx')
+          ..setAttribute(
+              'download',
+              'Visit_Report.xlsx')
           ..click();
+
       } else {
-        final path = (await getApplicationSupportDirectory()).path;
-        final file = File('$path/Visit_Report.xlsx');
-        await file.writeAsBytes(bytes, flush: true);
+
+        final path =
+            (await getApplicationSupportDirectory())
+                .path;
+
+        final file =
+        File('$path/Visit_Report.xlsx');
+
+        await file.writeAsBytes(
+          bytes,
+          flush: true,
+        );
+
         OpenFile.open(file.path);
       }
 
@@ -3688,6 +4017,7 @@ List<Marker> get liveMarker =>_liveMarker;
       print("ERROR: $e");
     }
   }
+
   Future<void> downloadExcelReport(List dataList) async {
     if (dataList.isEmpty) {
       print("No Data Found");
