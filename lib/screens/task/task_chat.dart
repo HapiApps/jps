@@ -65,7 +65,8 @@ class _TaskChatState extends State<TaskChat> with SingleTickerProviderStateMixin
 
   Duration duration = Duration.zero;
   Timer? timer;
-
+  bool isBuffering = false;
+  String bufferingUrl = "";
   // 🔥 Player state for recorded audio preview
   Duration totalDuration = Duration.zero;
   Duration currentPosition = Duration.zero;
@@ -206,24 +207,83 @@ class _TaskChatState extends State<TaskChat> with SingleTickerProviderStateMixin
     }
   }
 
+  // Future<void> playNetworkAudio(String url) async {
+  //   try {
+  //     // Pause if same audio already playing
+  //     if (playingUrl == url && networkPlaying) {
+  //       await _audioPlayer.pause();
+  //       setState(() {
+  //         networkPlaying = false;
+  //       });
+  //       return;
+  //     }
+  //
+  //     setState(() {
+  //       isBuffering = true;
+  //       bufferingUrl = url;
+  //       playingUrl = url;
+  //       networkCurrent = Duration.zero;
+  //       networkTotal = Duration.zero;
+  //     });
+  //
+  //     await _audioPlayer.stop();
+  //     await _audioPlayer.play(UrlSource(url));
+  //
+  //     setState(() {
+  //       isBuffering = false;
+  //       networkPlaying = true;
+  //     });
+  //   } catch (e) {
+  //     print("Audio play error => $e");
+  //     setState(() {
+  //       isBuffering = false;
+  //       networkPlaying = false;
+  //       bufferingUrl = "";
+  //     });
+  //
+  //     utils.showWarningToast(context, text: "Audio cannot be played");
+  //   }
+  // }
   Future<void> playNetworkAudio(String url) async {
     try {
+      // If same audio already playing -> pause
       if (playingUrl == url && networkPlaying) {
         await _audioPlayer.pause();
+        setState(() {
+          networkPlaying = false;
+        });
         return;
       }
 
-      playingUrl = url;
-      networkCurrent = Duration.zero;
-      networkTotal = Duration.zero;
+      // show loading only for clicked audio
+      setState(() {
+        isBuffering = true;
+        bufferingUrl = url;
+        playingUrl = url;
+        networkCurrent = Duration.zero;
+        networkTotal = Duration.zero;
+      });
 
       await _audioPlayer.stop();
       await _audioPlayer.play(UrlSource(url));
+
+      // when play starts -> loading off
+      setState(() {
+        isBuffering = false;
+        networkPlaying = true;
+      });
     } catch (e) {
       print("Audio play error => $e");
+      setState(() {
+        isBuffering = false;
+        bufferingUrl = "";
+        networkPlaying = false;
+        playingUrl = null;
+      });
+
+      utils.showWarningToast(context, text: "Audio cannot be played");
     }
   }
-
   String formatTime(Duration d) {
     String twoDigits(int n) => n.toString().padLeft(2, '0');
     final minutes = twoDigits(d.inMinutes);
@@ -553,7 +613,13 @@ class _TaskChatState extends State<TaskChat> with SingleTickerProviderStateMixin
                                     ),
                                     child: Row(
                                       children: [
-                                        IconButton(
+                                        (isBuffering && bufferingUrl == audioUrl)
+                                            ? const SizedBox(
+                                          height: 20,
+                                          width: 20,
+                                          child: CircularProgressIndicator(strokeWidth: 2,color: Colors.green,),
+                                        )
+                                            : IconButton(
                                           icon: Icon(
                                             (playingUrl == audioUrl && networkPlaying)
                                                 ? Icons.pause
@@ -593,8 +659,8 @@ class _TaskChatState extends State<TaskChat> with SingleTickerProviderStateMixin
                                         ),
                                         Text(
                                           (playingUrl == audioUrl)
-                                              ? formatTime(networkCurrent)
-                                              : "00:00",
+                                              ? "${formatTime(networkCurrent)} / ${formatTime(networkTotal)}"
+                                              : "00:00 / 00:00",
                                           style: const TextStyle(fontSize: 11),
                                         ),
                                         const SizedBox(width: 5),

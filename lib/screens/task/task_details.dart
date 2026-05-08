@@ -1,12 +1,8 @@
 import 'package:audioplayers/audioplayers.dart';
 import 'package:master_code/component/custom_loading.dart';
-import 'package:master_code/component/dotted_border.dart';
 import 'package:master_code/model/task/task_data_model.dart';
 import 'package:master_code/screens/task/task_chat.dart';
-import 'package:master_code/screens/task/view_task.dart';
-import 'package:master_code/screens/task/visit/add_visit.dart';
 import 'package:master_code/source/extentions/extensions.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -15,7 +11,6 @@ import 'package:intl/intl.dart';
 import 'package:master_code/view_model/customer_provider.dart';
 import 'package:provider/provider.dart';
 import '../../component/audio_player.dart';
-import '../../component/custom_appbar.dart';
 import '../../component/custom_loading_button.dart';
 import '../../component/custom_text.dart';
 import '../../model/customer/customer_report_model.dart';
@@ -28,7 +23,6 @@ import '../../source/utilities/utils.dart';
 import '../../view_model/expense_provider.dart';
 import '../../view_model/task_provider.dart';
 import '../common/dashboard.dart';
-import '../common/fullscreen_photo.dart';
 import 'edit_task.dart';
 
 class TaskDetails extends StatefulWidget {
@@ -52,21 +46,89 @@ class _TaskDetailsState extends State<TaskDetails> with SingleTickerProviderStat
   var voiceList=[];
   final AudioPlayer _audioPlayer = AudioPlayer();
 
-  String playingUrl = "";
-  bool networkPlaying = false;
 
+  bool networkPlaying = false;
+  final AudioPlayer _listAudioPlayer = AudioPlayer();
+
+  String? playingUrl;
+  bool isPlaying = false;
+  bool isBuffering = false;
+  String? loadingUrl;
+  bool isLoadingAudio = false;
+  Duration totalDuration = Duration.zero;
+  Duration currentPosition = Duration.zero;
   Duration networkCurrent = Duration.zero;
   Duration networkTotal = Duration.zero;
+  @override
   @override
   void initState() {
     super.initState();
 
-    Future.microtask(() async {
-      level = widget.data.level.toString();
+    level = widget.data.level.toString();
 
+    /// ================= NETWORK PLAYER =================
+    _audioPlayer.onDurationChanged.listen((d) {
+      if (!mounted) return;
+      setState(() {
+        networkTotal = d;
+      });
+    });
+
+    _audioPlayer.onPositionChanged.listen((p) {
+      if (!mounted) return;
+      setState(() {
+        networkCurrent = p;
+      });
+    });
+
+    _audioPlayer.onPlayerComplete.listen((event) {
+      if (!mounted) return;
+      setState(() {
+        networkPlaying = false;
+        networkCurrent = Duration.zero;
+        playingUrl = null;
+      });
+    });
+
+    /// ================= LIST PLAYER =================
+    _listAudioPlayer.onPlayerStateChanged.listen((state) {
+      if (!mounted) return;
+      setState(() {
+        isPlaying = state == PlayerState.playing;
+      });
+    });
+
+    _listAudioPlayer.onDurationChanged.listen((d) {
+      if (!mounted) return;
+      setState(() {
+        totalDuration = d;
+      });
+    });
+
+    _listAudioPlayer.onPositionChanged.listen((p) {
+      if (!mounted) return;
+      setState(() {
+        currentPosition = p;
+      });
+    });
+
+    _listAudioPlayer.onPlayerComplete.listen((event) {
+      if (!mounted) return;
+      setState(() {
+        isPlaying = false;
+        currentPosition = Duration.zero;
+        totalDuration = Duration.zero;
+        playingUrl = null;
+      });
+    });
+
+    /// ================= API LOAD =================
+    Future.microtask(() async {
       final taskProvider = Provider.of<TaskProvider>(context, listen: false);
-      final expenseProvider = Provider.of<ExpenseProvider>(context, listen: false);
-      final customerProvider = Provider.of<CustomerProvider>(context, listen: false);
+      final expenseProvider =
+      Provider.of<ExpenseProvider>(context, listen: false);
+      final customerProvider =
+      Provider.of<CustomerProvider>(context, listen: false);
 
       taskProvider.lStatus = widget.data.statval.toString();
       taskProvider.setStatus(taskProvider.lStatus);
@@ -77,33 +139,13 @@ class _TaskDetailsState extends State<TaskDetails> with SingleTickerProviderStat
       } else {
         await expenseProvider.getTypesOfExpense();
       }
-      _audioPlayer.onDurationChanged.listen((d) {
-        setState(() {
-          networkTotal = d;
-        });
-      });
 
-      _audioPlayer.onPositionChanged.listen((p) {
-        setState(() {
-          networkCurrent = p;
-        });
-      });
-
-      _audioPlayer.onPlayerComplete.listen((event) {
-        setState(() {
-          networkPlaying = false;
-          networkCurrent = Duration.zero;
-          playingUrl = "";
-        });
-      });
       await expenseProvider.getAllExpense();
       await taskProvider.getStatusHistory(widget.data.id.toString());
 
-      /// chat load
       await customerProvider.getComments(widget.data.id.toString());
       await customerProvider.getTaskComments(widget.data.id.toString());
 
-      /// documents split
       docsList = (widget.data.documents.toString() == "null" ||
           widget.data.documents.toString().isEmpty)
           ? []
@@ -115,7 +157,7 @@ class _TaskDetailsState extends State<TaskDetails> with SingleTickerProviderStat
       imgC = 0;
 
       for (var i = 0; i < docsList.length; i++) {
-        if (docsList[i].endsWith(".m4a")) {
+        if (docsList[i].toString().toLowerCase().endsWith(".m4a")) {
           voiceList.add(docsList[i]);
           voiceC++;
         } else {
@@ -123,6 +165,8 @@ class _TaskDetailsState extends State<TaskDetails> with SingleTickerProviderStat
           imgC++;
         }
       }
+
+      if (!mounted) return;
       setState(() {});
     });
   }
@@ -133,11 +177,15 @@ class _TaskDetailsState extends State<TaskDetails> with SingleTickerProviderStat
 
     return DateFormat('dd-MM-yy h:mm a').format(parsedDate);
   }
+  // String formatTime(Duration d) {
+  //   String twoDigits(int n) => n.toString().padLeft(2, "0");
+  //   final minutes = twoDigits(d.inMinutes.remainder(60));
+  //   final seconds = twoDigits(d.inSeconds.remainder(60));
+  //   return "$minutes:$seconds";
+  // }
   String formatTime(Duration d) {
     String twoDigits(int n) => n.toString().padLeft(2, "0");
-    final minutes = twoDigits(d.inMinutes.remainder(60));
-    final seconds = twoDigits(d.inSeconds.remainder(60));
-    return "$minutes:$seconds";
+    return "${twoDigits(d.inMinutes)}:${twoDigits(d.inSeconds.remainder(60))}";
   }
   Future<void> playNetworkAudio(String url) async {
     try {
@@ -166,6 +214,46 @@ class _TaskDetailsState extends State<TaskDetails> with SingleTickerProviderStat
     } catch (e) {
       print("Audio play error => $e");
       utils.showWarningToast(context, text: "Audio cannot be played");
+    }
+  }
+  Future<void> playAudio(String url) async {
+    try {
+      if (playingUrl == url && isPlaying) {
+        await _listAudioPlayer.pause();
+        return;
+      }
+
+      setState(() {
+        playingUrl = url;
+        loadingUrl = url;
+        isLoadingAudio = true;
+        currentPosition = Duration.zero;
+        totalDuration = Duration.zero;
+      });
+
+      await _listAudioPlayer.stop();
+
+      /// 🔥 give timeout fallback
+      await _listAudioPlayer.play(UrlSource(url));
+
+      Future.delayed(const Duration(seconds: 3), () {
+        if (!mounted) return;
+
+        if (isLoadingAudio && loadingUrl == url) {
+          setState(() {
+            isLoadingAudio = false;
+            loadingUrl = null;
+          });
+        }
+      });
+    } catch (e) {
+      print("Audio error => $e");
+      if (!mounted) return;
+
+      setState(() {
+        isLoadingAudio = false;
+        loadingUrl = null;
+      });
     }
   }
   void changeLevel() {
@@ -639,62 +727,7 @@ class _TaskDetailsState extends State<TaskDetails> with SingleTickerProviderStat
                             ),
                           Divider(color: Colors.grey.shade200,),
 
-                          // Row(
-                          //   mainAxisAlignment: MainAxisAlignment.center,
-                          //   children: [
-                          //     GestureDetector(
-                          //       onTap: (){
-                          //         utils.navigatePage(context, ()=> DashBoard(child:
-                          //         AddVisit(taskId:widget.data.id.toString(),companyId: widget.data.companyId.toString(),companyName: widget.data.projectName.toString(),
-                          //             numberList: const [],isDirect: true, type: widget.data.type.toString(), desc: widget.data.taskTitle.toString())));
-                          //         (() {
-                          //           type="1";
-                          //         });
-                          //       },
-                          //       child: Container(
-                          //         height: 40,
-                          //         width: kIsWeb?webWidth/1.2:phoneWidth/1.2,
-                          //         decoration: customDecoration.baseBackgroundDecoration(
-                          //             color: Colors.white,radius: 5,
-                          //             borderColor: colorsConst.primary
-                          //         ),
-                          //         child: Row(
-                          //           mainAxisAlignment: MainAxisAlignment.center,
-                          //           children: [
-                          //             SvgPicture.asset(assets.rep2),10.width,
-                          //             CustomText(text: "Add Visit Report",colors: colorsConst.primary,size: 14,),
-                          //           ],
-                          //         ),
-                          //       ),
-                          //     ),
-                          //     // GestureDetector(
-                          //     //   onTap: (){
-                          //     //     setState(() {
-                          //     //       type="2";
-                          //     //     });
-                          //     //   },
-                          //     //   child: Container(
-                          //     //     width: kIsWeb?webWidth/2:phoneWidth/2,
-                          //     //     decoration: customDecoration.baseBackgroundDecoration(
-                          //     //         color: Colors.white,radius: 30,
-                          //     //         borderColor: colorsConst.primary
-                          //     //     ),
-                          //     //     child: Padding(
-                          //     //       padding: const EdgeInsets.all(5.0),
-                          //     //       child: Row(
-                          //     //         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                          //     //         children: [
-                          //     //           SvgPicture.asset(assets.rep1),
-                          //     //           CustomText(text: "Add Expense report",colors: type=="2"?colorsConst.primary:Colors.black,size: 13.5,),
-                          //     //         ],
-                          //     //       ),
-                          //     //     ),
-                          //     //   ),
-                          //     // ),
-                          //   ],
-                          // ),
-                          // const CustomText(text: "Assigned to",isBold: true,),
-                          // CustomText(text: widget.data.assignedNames.toString()!="null"&&widget.data.assignedNames.toString()!=""?widget.data.assignedNames.toString():"-",colors: colorsConst.blueClr,),
+
                         ],
                       ),
                     )),
@@ -991,7 +1024,21 @@ class _TaskDetailsState extends State<TaskDetails> with SingleTickerProviderStat
                                   physics: const NeverScrollableScrollPhysics(),
                                   itemBuilder: (context, index) {
                                     final msg = lastFive[index];
+                                    String doc = (msg.documents ?? "").toString().trim();
 
+                                    bool isAudio = doc.toLowerCase().endsWith(".m4a") ||
+                                        doc.toLowerCase().endsWith(".mp3") ||
+                                        doc.toLowerCase().endsWith(".wav");
+
+                                    String audioUrl = "$imageFile?path=$doc";
+                                    double sliderValue = 0;
+
+                                    if (playingUrl == audioUrl && totalDuration.inSeconds > 0) {
+                                      sliderValue = currentPosition.inSeconds.toDouble();
+                                      if (sliderValue > totalDuration.inSeconds.toDouble()) {
+                                        sliderValue = totalDuration.inSeconds.toDouble();
+                                      }
+                                    }
                                     DateTime? createdDate;
 
                                     try {
@@ -1032,27 +1079,75 @@ class _TaskDetailsState extends State<TaskDetails> with SingleTickerProviderStat
                                                   crossAxisAlignment:
                                                   CrossAxisAlignment.start,
                                                   children: [
-                                                    Text(
-                                                      (msg.comments == null ||
-                                                          msg.comments
-                                                              .toString()
-                                                              .trim()
-                                                              .isEmpty)
-                                                          ? "Audio Message"
-                                                          : msg.comments.toString(),
+                                                    isAudio
+                                                        ? Container(
+                                                      height: 50,
+                                                      width: double.infinity,
+                                                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                                                      decoration: BoxDecoration(
+                                                        color: Colors.grey.shade100,
+                                                        borderRadius: BorderRadius.circular(12),
+                                                        border: Border.all(color: Colors.grey.shade300),
+                                                      ),
+                                                      child: Row(
+                                                        children: [
+                                                          (isLoadingAudio && loadingUrl == audioUrl)
+                                                              ? const SizedBox(
+                                                            height: 20,
+                                                            width: 20,
+                                                            child: CircularProgressIndicator(
+                                                              strokeWidth: 2,
+                                                              color: Colors.green,
+                                                            ),
+                                                          )
+                                                              : IconButton(
+                                                            icon: Icon(
+                                                              (playingUrl == audioUrl && isPlaying)
+                                                                  ? Icons.pause
+                                                                  : Icons.play_arrow,
+                                                              color: Colors.green,
+                                                            ),
+                                                            onPressed: () async {
+                                                              await playAudio(audioUrl);
+                                                            },
+                                                          ),
+
+                                                          Expanded(
+                                                            child: Slider(
+                                                              activeColor: Colors.green,
+                                                              inactiveColor: Colors.grey.shade600,
+                                                              thumbColor: Colors.green,
+                                                              value: sliderValue,
+                                                              min: 0,
+                                                              max: (playingUrl == audioUrl && totalDuration.inSeconds > 0)
+                                                                  ? totalDuration.inSeconds.toDouble()
+                                                                  : 10,
+                                                              onChanged: (value) async {
+                                                                if (playingUrl == audioUrl) {
+                                                                  await _listAudioPlayer.seek(Duration(seconds: value.toInt()));
+                                                                }
+                                                              },
+                                                            ),
+                                                          ),
+
+                                                          Text(
+                                                            (playingUrl == audioUrl && totalDuration.inSeconds > 0)
+                                                                ? "${formatTime(totalDuration)}"
+                                                                : "00:00",
+                                                            style: const TextStyle(fontSize: 11),
+                                                          ),
+                                                          const SizedBox(width: 5),
+                                                        ],
+                                                      ),
+                                                    )
+                                                        : Text(
+                                                      msg.comments.toString(),
                                                       maxLines: 1,
-                                                      overflow:
-                                                      TextOverflow.ellipsis,
-                                                      style: TextStyle(
+                                                      overflow: TextOverflow.ellipsis,
+                                                      style: const TextStyle(
                                                         fontSize: 13,
-                                                        fontWeight:
-                                                        FontWeight.bold,
-                                                        color: msg.comments
-                                                            .toString()
-                                                            .trim()
-                                                            .isEmpty
-                                                            ? Colors.red
-                                                            : Colors.black,
+                                                        fontWeight: FontWeight.bold,
+                                                        color: Colors.black,
                                                       ),
                                                     ),
 

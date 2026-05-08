@@ -589,11 +589,11 @@ class TaskProvider with ChangeNotifier {
         "role": localData.storage.read("role"),
         "id": localData.storage.read("id"),
         "date1": _startDate,
-        "date2": _endDate
+        "date2": _endDate,
       };
 
       final response = await _taskRepo.downloadReport(data);
-
+       print("log response${response}");
       if (!context.mounted) return;
 
       if (response.isNotEmpty) {
@@ -642,11 +642,85 @@ class TaskProvider with ChangeNotifier {
 
     notifyListeners();
   }
+  Future<void> downloadAllOnlyEmpTask(BuildContext context) async {
+    notifyListeners();
+
+    try {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => const Center(child: CircularProgressIndicator()),
+      );
+
+      Map data = {
+        "action": taskDatas,
+        "search_type": "download_reports",
+        "cos_id": localData.storage.read("cos_id"),
+        "role": localData.storage.read("role"),
+        "id": localData.storage.read("id"),
+        "date1": _startDate,
+        "date2": _endDate,
+      };
+
+      final response = await _taskRepo.downloadReport(data);
+      print("log response${response}");
+      if (!context.mounted) return;
+
+      if (response.isNotEmpty) {
+        List<DTaskModel> taskList = List<DTaskModel>.from(response);
+
+        List<DTaskModel> filteredList = taskList.where((task) {
+          final isTypeMatch = _fType.isEmpty || (_fType == task.type);
+
+          final isEmpMatch = _userName.isEmpty ||
+              (task.assignedNames ?? "").contains(_userName);
+
+          final isCusMatch = _companyName.isEmpty ||
+              (_companyName == (task.projectName?? ""));
+
+          return isTypeMatch && isEmpMatch && isCusMatch;
+        }).toList();
+
+        filteredList = List<DTaskModel>.from(filteredList);
+
+        if (filteredList.isNotEmpty) {
+          await
+          exportTaskOnlyEmployeeWiseExcel(
+            taskList: taskList,
+            fromDate: _startDate,
+            toDate: _endDate,
+            role: "2",
+            userName: localData.storage.read("f_name").toString(),
+          );
+
+          if (context.mounted) Navigator.pop(context);
+        } else {
+          if (context.mounted) {
+            Navigator.pop(context);
+            utils.showWarningToast(context, text: "No Task Found");
+          }
+        }
+      } else {
+        if (context.mounted) {
+          Navigator.pop(context);
+          utils.showWarningToast(context, text: "No Task Found");
+        }
+      }
+    } catch (e) {
+      if (context.mounted) {
+        Navigator.pop(context);
+        utils.showWarningToast(context, text: "No Task Found");
+      }
+    }
+    notifyListeners();
+  }
+
   Future<void> exportTaskWithCommentsBlockExcel({
     required List<DTaskModel> taskList,
     required String fromDate,
     required String toDate,
-  }) async {
+  })
+  async {
     try {
       var excel = Excel.createExcel();
       Sheet sheet = excel["Sheet1"];
@@ -1082,6 +1156,193 @@ class TaskProvider with ChangeNotifier {
 
     String filePath =
         "${dir.path}/Employee_Task_Report_($fromDate to $toDate).xlsx";
+
+    File(filePath)
+      ..createSync(recursive: true)
+      ..writeAsBytesSync(excel.encode()!);
+
+    await OpenFile.open(filePath);
+  }
+
+  Future<void> exportTaskOnlyEmployeeWiseExcel({
+    required List<DTaskModel> taskList,
+    required String fromDate,
+    required String toDate,
+    required String role,
+    String? userName, // 👈 employee login name
+  }) async {
+    var excel = Excel.createExcel();
+    Sheet sheet = excel["Sheet1"];
+
+    /// =================== STYLES ===================
+    CellStyle titleStyle = CellStyle(
+      bold: true,
+      fontSize: 16,
+      horizontalAlign: HorizontalAlign.Center,
+      verticalAlign: VerticalAlign.Center,
+    );
+
+    CellStyle headerStyle = CellStyle(
+      bold: true,
+      backgroundColorHex: "#FFFF00",
+      fontColorHex: "#000000",
+      horizontalAlign: HorizontalAlign.Center,
+      verticalAlign: VerticalAlign.Center,
+    );
+
+    CellStyle empStyle = CellStyle(
+      bold: true,
+      backgroundColorHex: "#D9E1F2",
+      fontColorHex: "#000000",
+      horizontalAlign: HorizontalAlign.Left,
+      verticalAlign: VerticalAlign.Center,
+    );
+
+    CellStyle normalStyle = CellStyle(
+      horizontalAlign: HorizontalAlign.Left,
+      verticalAlign: VerticalAlign.Center,
+    );
+
+    /// =================== TOP TITLE ===================
+    sheet.appendRow(["JPS TASK REPORT DETAILS"]);
+    sheet.merge(CellIndex.indexByString("A1"), CellIndex.indexByString("H1"));
+    sheet.cell(CellIndex.indexByString("A1")).cellStyle = titleStyle;
+
+    sheet.appendRow([""]);
+
+    /// =================== FILTER LIST ===================
+    List<DTaskModel> filteredTasks = [];
+
+    if (role == "1") {
+      /// ✅ Admin = all tasks
+      filteredTasks = taskList;
+    } else {
+      /// ✅ Employee = only assigned tasks for that user
+      String filter = (userName ?? "").trim().toLowerCase();
+
+      filteredTasks = taskList.where((task) {
+        String assignedNames = (task.assignedNames ?? "").trim();
+        if (assignedNames.isEmpty) return false;
+
+        List<String> empList = assignedNames.split(",");
+
+        return empList.any((e) => e.trim().toLowerCase() == filter);
+      }).toList();
+    }
+
+    /// =================== GROUP BY EMPLOYEE ===================
+    Map<String, List<DTaskModel>> groupedTasks = {};
+
+    for (var task in filteredTasks) {
+      String names = task.assignedNames ?? "Unknown";
+      List<String> empList = names.split(",");
+
+      for (var emp in empList) {
+        String empName = emp.trim();
+        if (empName.isEmpty) empName = "Unknown";
+
+        /// Employee role na only login user name group la add pannum
+        if (role != "1") {
+          if (empName.toLowerCase() != (userName ?? "").trim().toLowerCase()) {
+            continue;
+          }
+        }
+
+        groupedTasks.putIfAbsent(empName, () => []);
+        groupedTasks[empName]!.add(task);
+      }
+    }
+
+    /// =================== IF EMPTY ===================
+    if (groupedTasks.isEmpty) {
+      sheet.appendRow(["No Tasks Found"]);
+    }
+
+    int rowIndex = 2;
+
+    /// =================== LOOP EMPLOYEE WISE ===================
+    groupedTasks.forEach((empName, tasks) {
+      tasks.sort((a, b) {
+        DateTime da = parseDate(a.taskDate);
+        DateTime db = parseDate(b.taskDate);
+        return da.compareTo(db);
+      });
+
+      sheet.appendRow(["$empName ($fromDate to $toDate)"]);
+
+      sheet.merge(
+        CellIndex.indexByString("A${rowIndex + 1}"),
+        CellIndex.indexByString("H${rowIndex + 1}"),
+      );
+
+      sheet.cell(CellIndex.indexByString("A${rowIndex + 1}")).cellStyle =
+          empStyle;
+
+      rowIndex++;
+
+      sheet.appendRow([
+        "Task Created Date",
+        "Task Title",
+        "Company",
+        "Task Type",
+        "Service Date",
+        "Assigned To",
+        "Created By",
+        "Status",
+      ]);
+
+      for (int col = 0; col < 8; col++) {
+        sheet
+            .cell(CellIndex.indexByColumnRow(columnIndex: col, rowIndex: rowIndex))
+            .cellStyle = headerStyle;
+      }
+
+      rowIndex++;
+
+      for (var task in tasks) {
+        sheet.appendRow([
+          task.taskDate ?? "-",
+          task.taskTitle ?? "-",
+          task.projectName ?? "-",
+          task.type ?? "-",
+          task.taskDate ?? "-",
+          task.assignedNames ?? "-",
+          task.creator ?? "-",
+          task.status ?? "-",
+        ]);
+
+        for (int col = 0; col < 8; col++) {
+          sheet
+              .cell(CellIndex.indexByColumnRow(
+              columnIndex: col, rowIndex: rowIndex))
+              .cellStyle = normalStyle;
+        }
+
+        rowIndex++;
+      }
+
+      sheet.appendRow([""]);
+      rowIndex++;
+    });
+
+    /// =================== COLUMN WIDTH ===================
+    sheet.setColWidth(0, 22);
+    sheet.setColWidth(1, 50);
+    sheet.setColWidth(2, 30);
+    sheet.setColWidth(3, 25);
+    sheet.setColWidth(4, 18);
+    sheet.setColWidth(5, 30);
+    sheet.setColWidth(6, 18);
+    sheet.setColWidth(7, 15);
+
+    /// =================== SAVE FILE ===================
+    final dir = await getApplicationDocumentsDirectory();
+
+    String fileName = role == "1"
+        ? "All_Employee_Task_Report_($fromDate to $toDate).xlsx"
+        : "${userName}_Task_Report_($fromDate to $toDate).xlsx";
+
+    String filePath = "${dir.path}/$fileName";
 
     File(filePath)
       ..createSync(recursive: true)

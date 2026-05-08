@@ -594,32 +594,58 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
                       Row(
                         mainAxisAlignment: MainAxisAlignment.end,
                         children: [
-                          InkWell(
-                            onTap: () async {
-                              taskProvider.downloadAllTask(context);
-                            },
-                            borderRadius: BorderRadius.circular(12),
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                SvgPicture.asset(
-                                  assets.tDownload,
-                                  width: 20,
-                                  height: 20,
-
-                                ),
-                                const SizedBox(width: 8),
-                                const Text(
-                                  "Task",
-                                  style: TextStyle(
-                                    color: Colors.black,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 12,
-                                  ),
-                                )
-                              ],
+                          // downloadAllOnlyEmpTask
+                      localData.storage.read("role").toString() == "1"
+                          ? InkWell(
+                        onTap: () async {
+                          taskProvider.downloadAllTask(context); // Admin full report
+                        },
+                        borderRadius: BorderRadius.circular(12),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            SvgPicture.asset(
+                              assets.tDownload,
+                              width: 20,
+                              height: 20,
                             ),
-                          ),
+                            const SizedBox(height: 5),
+                            const Text(
+                              "Task",
+                              style: TextStyle(
+                                color: Colors.black,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                              ),
+                            )
+                          ],
+                        ),
+                      )
+                          : InkWell(
+                        onTap: () async {
+                          taskProvider.downloadAllOnlyEmpTask(context); // Employee only assigned
+                        },
+                        borderRadius: BorderRadius.circular(12),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            SvgPicture.asset(
+                              assets.tDownload,
+                              width: 20,
+                              height: 20,
+                            ),
+                            const SizedBox(height: 5),
+                            const Text(
+                              "Task",
+                              style: TextStyle(
+                                color: Colors.black,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                              ),
+                            )
+                          ],
+                        ),
+                      ),
                           const SizedBox(width: 8),
                           InkWell(
                             onTap: () async {
