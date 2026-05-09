@@ -526,11 +526,15 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
                                                   //   },
                                                   //   size: kIsWeb?webHeight:phoneHeight,),
                                                   10.height,
-                                                  MapDropDown(saveValue: taskProvider.type, hintText: constValue.type,
-                                                      onChanged: (value){
-                                                        taskProvider.checkFilterType(value);
-                                                      }, dropText: 'value',
-                                                      list: taskProvider.typeList.toSet().toList()),
+                                                  MapDropDown(
+                                                    saveValue: taskProvider.type,
+                                                    hintText: constValue.type,
+                                                    onChanged: (value) {
+                                                      taskProvider.checkFilterType(value);
+                                                    },
+                                                    dropText: 'value',
+                                                    list: taskProvider.typeList.toSet().toList(),
+                                                  ),
                                                   CustomText(
                                                     text: constValue.companyName,
                                                     colors: colorsConst.greyClr,
@@ -563,7 +567,7 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
                                                         text: 'Apply Filters',
                                                         callback: () {
                                                           taskProvider.initFilterValue(false);
-                                                         taskProvider.filterList();
+                                                          taskProvider.filterList();
 
                                                           Navigator.of(context, rootNavigator: true).pop();
                                                         },

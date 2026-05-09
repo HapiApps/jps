@@ -94,8 +94,19 @@ class _VisitReportState extends State<VisitReport> with SingleTickerProviderStat
         child: Scaffold(
           backgroundColor: colorsConst.bacColor,
           appBar: PreferredSize(
-            preferredSize: const Size(300, 70),
-            child: CustomAppbar(text: constValue.visitRepo,isMain: false,
+            preferredSize: const Size.fromHeight(50),
+            child: CustomAppbar(
+              text: constValue.visitRepo,
+              isMain: false,
+              callback: () {
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const DashBoard(child:  HomePage()),
+                  ),
+                      (route) => false,
+                );
+              },
             ),
           ),
           body:Center(

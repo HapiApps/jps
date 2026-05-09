@@ -13,7 +13,8 @@ import '../../../component/custom_text.dart';
 import '../../../component/custom_textfield.dart';
 import '../../../component/map_dropdown.dart';
 import '../../../component/maxline_textfield.dart';
-import '../../../component/multi_dropdown.dart' hide MapDropDown, MultiSelectDropdown;
+import '../../../component/multi_dropdown.dart'
+    hide MapDropDown, MultiSelectDropdown;
 import '../../../component/search_drop_down.dart';
 import '../../../model/customer/customer_model.dart';
 import '../../../source/constant/colors_constant.dart';
@@ -22,7 +23,8 @@ import '../../../source/styles/decoration.dart';
 import '../../../source/utilities/utils.dart';
 import '../../../view_model/task_provider.dart';
 import '../../common/dashboard.dart';
-import '../../task/search_custom_dropdown.dart' hide MapDropDown, MultiSelectDropdown;
+import '../../task/search_custom_dropdown.dart'
+    hide MapDropDown, MultiSelectDropdown;
 import '../../task/search_dropdown_list.dart';
 import '../viamap.dart';
 import '../visit_report/visits_report.dart';
@@ -37,17 +39,33 @@ class CusAddVisit extends StatefulWidget {
   final String taskId;
   final List numberList;
   final bool isDirect;
-  const CusAddVisit({super.key, required this.companyId, required this.companyName, required this.numberList, required this.isDirect, required this.taskId, required this.type, required this.desc});
+
+  const CusAddVisit({
+    super.key,
+    required this.companyId,
+    required this.companyName,
+    required this.numberList,
+    required this.isDirect,
+    required this.taskId,
+    required this.type,
+    required this.desc,
+  });
 
   @override
   State<CusAddVisit> createState() => _CusAddVisitState();
 }
 
-class _CusAddVisitState extends State<CusAddVisit> with TickerProviderStateMixin {
+class _CusAddVisitState extends State<CusAddVisit>
+    with TickerProviderStateMixin {
   final FocusScopeNode _myFocusScopeNode = FocusScopeNode();
-  var companyId="";
-  var companyName="";
 
+  var companyId = "";
+  var companyName = "";
+  List sendList = [];
+
+  void closeAllDropdowns() {
+    FocusManager.instance.primaryFocus?.unfocus();
+  }
 
   @override
   void initState() {
@@ -55,9 +73,12 @@ class _CusAddVisitState extends State<CusAddVisit> with TickerProviderStateMixin
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final taskProvider = Provider.of<TaskProvider>(context, listen: false);
-      final employeeProvider = Provider.of<EmployeeProvider>(context, listen: false);
-      final customerProvider = Provider.of<CustomerProvider>(context, listen: false);
-      final locationProvider = Provider.of<LocationProvider>(context, listen: false);
+      final employeeProvider =
+      Provider.of<EmployeeProvider>(context, listen: false);
+      final customerProvider =
+      Provider.of<CustomerProvider>(context, listen: false);
+      final locationProvider =
+      Provider.of<LocationProvider>(context, listen: false);
 
       /// 🔥 RESET
       customerProvider.resetVisitForm();
@@ -112,531 +133,535 @@ class _CusAddVisitState extends State<CusAddVisit> with TickerProviderStateMixin
       }
     });
   }
-  void setCustomer(){
-    companyId=widget.companyId.toString();
-    companyName=widget.companyName.toString();
-  }
 
   @override
   void dispose() {
     _myFocusScopeNode.dispose();
     super.dispose();
   }
-  List sendList=[];
+
   @override
   Widget build(BuildContext context) {
-    var webWidth=MediaQuery.of(context).size.width * 0.5;
-    var phoneWidth=MediaQuery.of(context).size.width * 0.9;
+    var webWidth = MediaQuery.of(context).size.width * 0.5;
+    var phoneWidth = MediaQuery.of(context).size.width * 0.9;
 
-    return Consumer4<CustomerProvider,LocationProvider,TaskProvider,HomeProvider>(
-        builder: (context,custProvider,locPvr,taskProvider,home,_){
-      return FocusScope(
-        node: _myFocusScopeNode,
-        child: SafeArea (
-          child: Scaffold(
-            backgroundColor: colorsConst.bacColor,
-            appBar: PreferredSize(
-              preferredSize: const Size(300, 50),
-              child: CustomAppbar(text: constValue.addVisit),
-            ),
-            body: Center(
-              child: SizedBox(
-                child: Column(
-                  children: [
-                    Expanded(
-                      child: SingleChildScrollView(
-                        child: Column(
-                          children: [
-                            20.height,
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.start,
-                              children: [
-                                22.width,
-                                CustomText(text: constValue.companyName,colors:Colors.black,size: 14,),10.width,
+    return Consumer4<CustomerProvider, LocationProvider, TaskProvider,
+        HomeProvider>(builder: (context, custProvider, locPvr, taskProvider,
+        home, _) {
+      return GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        onTap: () {
+          closeAllDropdowns(); // ✅ close any open dropdown
+        },
+        child: FocusScope(
+          node: _myFocusScopeNode,
+          child: SafeArea(
+            child: Scaffold(
+              backgroundColor: colorsConst.bacColor,
+              appBar: PreferredSize(
+                preferredSize: const Size(300, 50),
+                child: CustomAppbar(text: constValue.addVisit),
+              ),
+              body: Center(
+                child: SizedBox(
+                  child: Column(
+                    children: [
+                      Expanded(
+                        child: SingleChildScrollView(
+                          child: Column(
+                            children: [
+                              20.height,
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.start,
+                                children: [
+                                  22.width,
+                                  CustomText(
+                                    text: constValue.companyName,
+                                    colors: Colors.black,
+                                    size: 14,
+                                  ),
+                                  10.width,
+                                ],
+                              ),
 
-                              ],
-                            ),
-                            if(widget.isDirect==true)
+                              /// ====================== COMPANY DROPDOWN ======================
+                              if (widget.isDirect == true)
+                                Consumer<CustomerProvider>(
+                                  builder: (context, custProvider, child) {
+                                    List<CustomerModel> updatedCompanyList = [
+                                      CustomerModel(
+                                        userId: "add_company",
+                                        companyName: "+ Add Company",
+                                        customerId: "",
+                                        firstName: "",
+                                        phoneNumber: "",
+                                      ),
+                                      ...custProvider.customer,
+                                    ];
+
+                                    return CustomerDropdown(
+                                      key: ValueKey(custProvider.customer.length),
+                                      hintText: false,
+                                      text: companyId == ""
+                                          ? constValue.companyName
+                                          : companyName,
+                                      employeeList: updatedCompanyList,
+                                      onChanged: (CustomerModel? value) async {
+                                        closeAllDropdowns(); // ✅ close previous
+
+                                        if (value == null) return;
+
+                                        /// ✅ Add Company Click
+                                        if (value.userId.toString() ==
+                                            "add_company") {
+                                          final result = await showDialog(
+                                            context: context,
+                                            barrierDismissible: false,
+                                            builder: (_) =>
+                                            const AddCompanyPopup(),
+                                          );
+
+                                          if (result != null &&
+                                              result is CustomerModel) {
+                                            setState(() {
+                                              companyId =
+                                                  result.userId.toString();
+                                              companyName =
+                                                  result.companyName.toString();
+                                            });
+
+                                            custProvider
+                                                .setMultiSelectedCustomers([]);
+
+                                            List<Map<String, dynamic>>
+                                            tempList = [];
+
+                                            var idList = result.customerId
+                                                .toString()
+                                                .split("||");
+                                            var usersList = result.firstName
+                                                .toString()
+                                                .split("||");
+                                            var phoneList = result.phoneNumber
+                                                .toString()
+                                                .split("||");
+
+                                            for (int i = 0;
+                                            i < usersList.length;
+                                            i++) {
+                                              tempList.add({
+                                                "id": idList[i],
+                                                "name": usersList[i],
+                                                "no": phoneList[i],
+                                              });
+                                            }
+
+                                            setState(() {
+                                              sendList = tempList;
+                                            });
+
+                                            if (tempList.isNotEmpty) {
+                                              custProvider
+                                                  .setMultiSelectedCustomers(
+                                                  [tempList[0]]);
+                                            }
+                                          }
+                                          return;
+                                        }
+
+                                        /// ✅ Normal Company Select
+                                        setState(() {
+                                          companyId = value.userId.toString();
+                                          companyName =
+                                              value.companyName.toString();
+                                        });
+
+                                        custProvider.setMultiSelectedCustomers(
+                                            []);
+
+                                        List<Map<String, dynamic>> tempList =
+                                        [];
+
+                                        var idList =
+                                        value.customerId.toString().split("||");
+                                        var usersList =
+                                        value.firstName.toString().split("||");
+                                        var phoneList =
+                                        value.phoneNumber.toString().split("||");
+
+                                        for (int i = 0;
+                                        i < usersList.length;
+                                        i++) {
+                                          tempList.add({
+                                            "id": idList[i],
+                                            "name": usersList[i],
+                                            "no": phoneList[i],
+                                          });
+                                        }
+
+                                        setState(() {
+                                          sendList = tempList;
+                                        });
+
+                                        if (tempList.length == 1) {
+                                          custProvider.setMultiSelectedCustomers(
+                                              [tempList[0]]);
+                                        }
+                                      },
+                                      size: kIsWeb ? webWidth : phoneWidth,
+                                    );
+                                  },
+                                ),
+
+                              if (widget.isDirect == false)
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    CustomText(
+                                      text: widget.companyName == "null"
+                                          ? ""
+                                          : widget.companyName,
+                                      colors: colorsConst.primary,
+                                      isBold: true,
+                                    ),
+                                    10.width,
+                                  ],
+                                ),
+
+                              /// ====================== CUSTOMER TYPE ======================
+                              MapDropDown(
+                                isRefresh: taskProvider.cusTypeList.isEmpty,
+                                callback: () {
+                                  closeAllDropdowns();
+                                  if (!kIsWeb) {
+                                    taskProvider.refreshCusType();
+                                  } else {
+                                    taskProvider.getAllCusTypes();
+                                  }
+                                },
+                                width: kIsWeb ? webWidth : phoneWidth,
+                                hintText: constValue.cusType,
+                                list: taskProvider.cusTypeList,
+                                saveValue: taskProvider.selectType != null
+                                    ? taskProvider.selectType['id']
+                                    : null,
+                                onChanged: (value) {
+                                  closeAllDropdowns();
+
+                                  final selected =
+                                  taskProvider.cusTypeList.firstWhere(
+                                        (e) => e['id'] == value,
+                                  );
+
+                                  taskProvider.changeCusType(selected);
+                                },
+                                dropText: 'value',
+                              ),
+
+                              /// ====================== CUSTOMER MULTI SELECT ======================
                               Consumer<CustomerProvider>(
                                 builder: (context, custProvider, child) {
+                                  List<dynamic> updatedList = [];
 
-                                  List<CustomerModel> updatedCompanyList = [
-                                    CustomerModel(
-                                      userId: "add_company",
-                                      companyName: "+ Add Company",
-                                      customerId: "",
-                                      firstName: "",
-                                      phoneNumber: "",
-                                    ),
-                                    ...custProvider.customer,
-                                  ];
+                                  if (sendList.isNotEmpty) {
+                                    updatedList = [
+                                      {"id": "add_customer", "name": "+ Add Customer"},
+                                      ...sendList,
+                                    ];
+                                  } else {
+                                    updatedList = sendList;
+                                  }
 
-                                  return CustomerDropdown(
-                                    key: ValueKey(custProvider.customer.length),
-                                    hintText: false,// 🔥 force rebuild
-                                    text: companyId == "" ? constValue.companyName : companyName,
-                                    employeeList: updatedCompanyList,
-                                    onChanged: (CustomerModel? value) async {
+                                  return MultiSelectDropdown(
+                                    key: ValueKey(updatedList),
+                                    hintText: "Select Customer",
+                                    dropText: "name",
+                                    list: updatedList,
+                                    width: kIsWeb ? webWidth : phoneWidth,
+                                    selectedItems:
+                                    custProvider.multiSelectedCustomerList,
+                                    onChanged: (list) async {
+                                      closeAllDropdowns();
 
-                                      if (value == null) return;
+                                      bool isAddCustomerSelected = list.any(
+                                              (item) =>
+                                          item["id"] == "add_customer");
 
-                                      // ✅ Add Company Click
-                                      if (value.userId.toString() == "add_company") {
+                                      if (isAddCustomerSelected) {
+                                        list.removeWhere(
+                                                (e) => e["id"] == "add_customer");
 
                                         final result = await showDialog(
                                           context: context,
                                           barrierDismissible: false,
-                                          builder: (_) => const AddCompanyPopup(),
+                                          builder: (_) => AddCustomerPopup(
+                                            companyId: companyId.toString(),
+                                          ),
                                         );
 
-                                        if (result != null && result is CustomerModel) {
-
-                                          // ✅ company set instantly
+                                        if (result != null) {
                                           setState(() {
-                                            companyId = result.userId.toString();
-                                            companyName = result.companyName.toString();
+                                            sendList.insert(0, result);
                                           });
 
-                                          custProvider.setMultiSelectedCustomers([]);
-
-                                          // ✅ build customer list for that company
-                                          List<Map<String, dynamic>> tempList = [];
-
-                                          var idList = result.customerId.toString().split("||");
-                                          var usersList = result.firstName.toString().split("||");
-                                          var phoneList = result.phoneNumber.toString().split("||");
-
-                                          for (int i = 0; i < usersList.length; i++) {
-                                            tempList.add({
-                                              "id": idList[i],
-                                              "name": usersList[i],
-                                              "no": phoneList[i],
-                                            });
-                                          }
-
-                                          setState(() {
-                                            sendList = tempList;
-                                          });
-
-                                          // ✅ auto select first customer
-                                          if (tempList.isNotEmpty) {
-                                            custProvider.setMultiSelectedCustomers([tempList[0]]);
-                                          }
+                                          list.add(result);
+                                          custProvider
+                                              .setMultiSelectedCustomers(list);
                                         }
-
-                                        return; // 🔥 stop here
                                       }
 
-                                      // ✅ Normal Company Select
-                                      setState(() {
-                                        companyId = value.userId.toString();
-                                        companyName = value.companyName.toString();
-                                      });
-
-                                      custProvider.setMultiSelectedCustomers([]);
-
-                                      List<Map<String, dynamic>> tempList = [];
-
-                                      var idList = value.customerId.toString().split("||");
-                                      var usersList = value.firstName.toString().split("||");
-                                      var phoneList = value.phoneNumber.toString().split("||");
-
-                                      for (int i = 0; i < usersList.length; i++) {
-                                        tempList.add({
-                                          "id": idList[i],
-                                          "name": usersList[i],
-                                          "no": phoneList[i],
-                                        });
-                                      }
-
-                                      setState(() {
-                                        sendList = tempList;
-                                      });
-
-                                      if (tempList.length == 1) {
-                                        custProvider.setMultiSelectedCustomers([tempList[0]]);
-                                      }
+                                      custProvider.setMultiSelectedCustomers(list);
                                     },
-                                    size: kIsWeb ? webWidth : phoneWidth,
                                   );
                                 },
                               ),
 
-                            if(widget.isDirect==false)
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  CustomText(text: widget.companyName=="null"?"":widget.companyName,colors: colorsConst.primary,isBold: true,),10.width,
-                                  // CustomText(text: widget.type,colors: colorsConst.greyClr,isItalic: true,),
-                                ],
+                              /// ====================== TYPE DROPDOWN ======================
+                              MapDropDown(
+                                isRequired: true,
+                                isRefresh:
+                                taskProvider.typeList.isEmpty ? true : false,
+                                callback: () {
+                                  closeAllDropdowns();
+                                  if (!kIsWeb) {
+                                    taskProvider.getTaskType(true);
+                                  } else {
+                                    taskProvider.getAllTypes();
+                                  }
+                                },
+                                width: kIsWeb ? webWidth : phoneWidth,
+                                hintText: constValue.type,
+                                list: custProvider.cmtTypeList,
+                                saveValue: custProvider.selectType?['id'],
+                                onChanged: (Object? value) {
+                                  closeAllDropdowns();
+
+                                  final selected = custProvider.cmtTypeList
+                                      .firstWhere((e) =>
+                                  e['id'].toString() ==
+                                      value.toString());
+
+                                  custProvider.changeType(selected);
+                                },
+                                dropText: 'value',
                               ),
-                            MapDropDown(
-                              isRefresh: taskProvider.cusTypeList.isEmpty,
-                              callback: () {
-                                if (!kIsWeb) {
-                                  taskProvider.refreshCusType();
-                                } else {
-                                  taskProvider.getAllCusTypes();
-                                }
-                              },
-                              width: kIsWeb ? webWidth : phoneWidth,
-                              hintText: constValue.cusType,
-                              list: taskProvider.cusTypeList,
 
-                              saveValue: taskProvider.selectType != null
-                                  ? taskProvider.selectType['id']   // ✅ remove toString
-                                  : null,
-
-                              onChanged: (value) {
-                                final selected = taskProvider.cusTypeList.firstWhere(
-                                      (e) => e['id'] == value, // ✅ direct compare
-                                );
-
-                                taskProvider.changeCusType(selected);
-                              },
-
-                              dropText: 'value',
-                            ),
-
-                            // Consumer<CustomerProvider>(
-                            //   builder: (context, custProvider, child) {
-                            //
-                            //     return MultiSelectDropdown(
-                            //       key: ValueKey(sendList), // 🔥 MUST (force rebuild)
-                            //       hintText: "Select Customer",
-                            //       dropText: "name",
-                            //
-                            //       list: sendList, // 🔥 updated list
-                            //
-                            //       width: kIsWeb ? webWidth : phoneWidth,
-                            //
-                            //       selectedItems: custProvider.multiSelectedCustomerList,
-                            //
-                            //       onChanged: (list) {
-                            //         print("👆 MultiSelect onChanged CALLED");
-                            //         print("📝 Selected List: $list");
-                            //
-                            //         custProvider.setMultiSelectedCustomers(list);
-                            //       },
-                            //     );
-                            //   },
-                            // ),
-        Consumer<CustomerProvider>(
-          builder: (context, custProvider, child) {
-
-            List<dynamic> updatedList = [];
-
-            // ✅ sendList empty illa na mattum Add Customer add pannunga
-            if (sendList.isNotEmpty) {
-              updatedList = [
-                {"id": "add_customer", "name": "+ Add Customer"},
-                ...sendList,
-              ];
-            } else {
-              updatedList = sendList; // empty list
-            }
-
-            return MultiSelectDropdown(
-              key: ValueKey(updatedList),
-              hintText: "Select Customer",
-              dropText: "name",
-              list: updatedList,
-              width: kIsWeb ? webWidth : phoneWidth,
-              selectedItems: custProvider.multiSelectedCustomerList,
-              onChanged: (list) async {
-
-                bool isAddCustomerSelected =
-                list.any((item) => item["id"] == "add_customer");
-
-                if (isAddCustomerSelected) {
-
-                  list.removeWhere((e) => e["id"] == "add_customer");
-
-                  final result = await showDialog(
-                    context: context,
-                    barrierDismissible: false,
-                    builder: (_) => AddCustomerPopup(
-                      companyId: companyId.toString(), // ✅ selected companyId
-                    ),
-                  );
-
-                  if (result != null) {
-                    setState(() {
-                      sendList.insert(0, result); // ✅ dropdown list update
-                    });
-
-                    list.add(result);
-                    custProvider.setMultiSelectedCustomers(list);
-                  }
-                }
-
-                custProvider.setMultiSelectedCustomers(list);
-              },
-            );
-          },
-        ),
-
-                            //type
-                            MapDropDown(isRequired:true,
-                              isRefresh: taskProvider.typeList.isEmpty?true:false,
-                              callback: (){
-                                if(!kIsWeb){
-                                  taskProvider.getTaskType(true);
-                                }else{
-                                  taskProvider.getAllTypes();
-                                }
-                              },
-                              width: kIsWeb?webWidth:phoneWidth,
-                              hintText: constValue.type,
-                              list: custProvider.cmtTypeList,
-                              // saveValue: custProvider.selectType,
-                              saveValue: custProvider.selectType?['id'],
-                              onChanged: (Object? value) {
-                                final selected = custProvider.cmtTypeList
-                                    .firstWhere((e) => e['id'].toString() == value.toString());
-
-                                custProvider.changeType(selected);
-                              },
-                              dropText: 'value',),
-
-
-
-                            // InkWell(
-                            //   onTap: () {
-                            //     final listData =
-                            //     widget.numberList.isNotEmpty ? widget.numberList : sendList;
-                            //
-                            //     custProvider.openMultiSelectCustomerDialog(context, listData);
-                            //   },
-                            //   child: Container(
-                            //     height: 50,
-                            //     width: kIsWeb ? webWidth : phoneWidth,
-                            //     padding: const EdgeInsets.symmetric(horizontal: 12),
-                            //     decoration: BoxDecoration(
-                            //       borderRadius: BorderRadius.circular(10),
-                            //       border: Border.all(color: Colors.grey.shade300),
-                            //       color: Colors.white,
-                            //     ),
-                            //     child: Row(
-                            //       mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            //       children: [
-                            //         Expanded(
-                            //           child: Text(
-                            //             custProvider.selectedCustomers.isEmpty
-                            //                 ? "Select Contact Name"
-                            //                 : custProvider.selectedCustomers.map((e) => e["name"]).join(", "),
-                            //             maxLines: 1,
-                            //             overflow: TextOverflow.ellipsis,
-                            //             style: const TextStyle(fontSize: 13),
-                            //           ),
-                            //         ),
-                            //         const Icon(Icons.keyboard_arrow_down),
-                            //       ],
-                            //     ),
-                            //   ),
-                            // ),
-                            ///
-                            // MaxLineTextField(
-                            // isRequired:true,
-                            //   text: constValue.disPoints,
-                            //   controller: custProvider.disPoint, maxLine: 5,
-                            //   textCapitalization: TextCapitalization.sentences,
-                            //   textInputAction: TextInputAction.done,
-                            // ),
-                            //lead
-                            MapDropDown(
-                              callback: () {
-                                if (!kIsWeb) {
-                                  custProvider.refreshLead();
-                                } else {
-                                  custProvider.getLeadCategory();
-                                }
-                              },
-                              isRefresh: custProvider.leadCategoryList.isEmpty,
-                              width: kIsWeb ? webWidth : phoneWidth,
-                              hintText: constValue.leadStatus,isRequired: true,
-                              list: (custProvider.leadCategoryList..sort((a, b) {
-                                return int.parse(a["id"].toString())
-                                    .compareTo(int.parse(b["id"].toString()));
-                              })),
-                              saveValue: custProvider.leadType == null
-                                  ? null
-                                  : custProvider.leadType["id"].toString(),
-                              onChanged: (Object? value) {
-                                custProvider.changeLeadType1(value);
-                              },
-                              dropText: 'value',
-                            ),
-                            MapDropDown(
-                              callback: (){
-                                if(!kIsWeb){
-                                  custProvider.refreshVisit();
-                                }else{
-                                  custProvider.getVisitType();
-                                }
-                              },
-                              isRefresh: custProvider.callList.isEmpty,
-                              width: kIsWeb ? webWidth : phoneWidth,
-                              hintText: constValue.visitType,
-                              list: custProvider.callList,
-                              saveValue: custProvider.callType,
-                              onChanged: (Object? value) {
-                                custProvider.changeCallType1(value);
-                              },
-                              dropText: 'value',
-                            ),
-
-                            CustomTextField(
-                              width: kIsWeb?webWidth:phoneWidth,
-                              text: "Date", controller: custProvider.commentDate,
-                              isRequired: true,
-                              onTap: (){
-                                utils.datePick(context:context,textEditingController: custProvider.commentDate);
-                              },
-                              onChanged: null,
-                            ),
-                            SizedBox(
-                              width: kIsWeb?webWidth:phoneWidth,
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.start,
-                                children: [
-                                  CustomText(text: "Visit Location",colors: Colors.black,),
-                                ],
+                              /// ====================== LEAD DROPDOWN ======================
+                              MapDropDown(
+                                callback: () {
+                                  closeAllDropdowns();
+                                  if (!kIsWeb) {
+                                    custProvider.refreshLead();
+                                  } else {
+                                    custProvider.getLeadCategory();
+                                  }
+                                },
+                                isRefresh:
+                                custProvider.leadCategoryList.isEmpty,
+                                width: kIsWeb ? webWidth : phoneWidth,
+                                hintText: constValue.leadStatus,
+                                isRequired: true,
+                                list: (custProvider.leadCategoryList
+                                  ..sort((a, b) {
+                                    return int.parse(a["id"].toString())
+                                        .compareTo(
+                                        int.parse(b["id"].toString()));
+                                  })),
+                                saveValue: custProvider.leadType == null
+                                    ? null
+                                    : custProvider.leadType["id"].toString(),
+                                onChanged: (Object? value) {
+                                  closeAllDropdowns();
+                                  custProvider.changeLeadType1(value);
+                                },
+                                dropText: 'value',
                               ),
-                            ),
-                            5.height,
-                            Container(
-                              width: kIsWeb?webWidth:phoneWidth,
-                              decoration: customDecoration.baseBackgroundDecoration(
-                                  color: Colors.white,radius: 10,borderColor: Colors.grey.shade300
+
+                              /// ====================== VISIT TYPE DROPDOWN ======================
+                              MapDropDown(
+                                callback: () {
+                                  closeAllDropdowns();
+                                  if (!kIsWeb) {
+                                    custProvider.refreshVisit();
+                                  } else {
+                                    custProvider.getVisitType();
+                                  }
+                                },
+                                isRefresh: custProvider.callList.isEmpty,
+                                width: kIsWeb ? webWidth : phoneWidth,
+                                hintText: constValue.visitType,
+                                list: custProvider.callList,
+                                saveValue: custProvider.callType,
+                                onChanged: (Object? value) {
+                                  closeAllDropdowns();
+                                  custProvider.changeCallType1(value);
+                                },
+                                dropText: 'value',
                               ),
-                              child:
-                              Padding(
-                                padding: const EdgeInsets.all(8.0),
+
+                              /// ====================== DATE PICK ======================
+                              CustomTextField(
+                                width: kIsWeb ? webWidth : phoneWidth,
+                                text: "Date",
+                                controller: custProvider.commentDate,
+                                isRequired: true,
+                                onTap: () {
+                                  closeAllDropdowns();
+                                  utils.datePick(
+                                    context: context,
+                                    textEditingController:
+                                    custProvider.commentDate,
+                                  );
+                                },
+                                onChanged: null,
+                              ),
+
+                              SizedBox(
+                                width: kIsWeb ? webWidth : phoneWidth,
                                 child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.start,
                                   children: [
-                                    SizedBox(
-                                      width: kIsWeb?MediaQuery.of(context).size.width*0.3:MediaQuery.of(context).size.width*0.68,
-                                      // color: Colors.yellow,
-                                      child: CustomText(
-                                        text: [custProvider.address.text,custProvider.comArea.text,custProvider.city.text,
-                                          custProvider.state ?? '',custProvider.country.text,custProvider.pinCode.text,
-                                        ].where((e) => e.trim().isNotEmpty).join(', '),
-                                      ),
+                                    CustomText(
+                                      text: "Visit Location",
+                                      colors: Colors.black,
                                     ),
-                                    InkWell(
-                                        onTap: () async {
-                                          _myFocusScopeNode.unfocus();
-                                          if(locPvr.latitude==""&&locPvr.longitude==""){
-                                            await locPvr.manageLocation(context,true);
-                                          }else{
-                                            utils.navigatePage(context, ()=> const ViaMap());
-                                          }
-                                        },
-                                        child: Icon(Icons.location_on_outlined,color: colorsConst.appRed,))
                                   ],
                                 ),
                               ),
-                            ),
-                            MaxLineTextField(
-                              width: kIsWeb?webWidth:phoneWidth,
-                              isRequired: true,
-                              text: constValue.disPoints,
-                              textCapitalization: TextCapitalization.sentences,
-                              controller: custProvider.disPoint, maxLine: 5,
-                            ),
-                            MaxLineTextField(
-                              width: kIsWeb?webWidth:phoneWidth,
-                              text: constValue.addPoints,
-                              textCapitalization: TextCapitalization.sentences,
-                              controller: custProvider.points, maxLine: 5,
-                              textInputAction: TextInputAction.done,
-                            ),
-                            // SizedBox(
-                            //   width: kIsWeb?webWidth:phoneWidth,
-                            //   child: Column(
-                            //     crossAxisAlignment: CrossAxisAlignment.start,
-                            //     children: [
-                            //       Row(
-                            //         children: [
-                            //           CustomText(text :"Visit Review",colors: Colors.grey.shade500,),
-                            //           CustomText(text :"*",colors: colorsConst.appRed,size: 18,),
-                            //         ],
-                            //       ),
-                            //       10.height,
-                            //       Row(
-                            //           mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            //           children:[
-                            //             CustomRadioButton(
-                            //               text: 'Complete',
-                            //               onChanged: (Object? value) {
-                            //                 custProvider.changeReview(value);
-                            //               },
-                            //               saveValue: custProvider.selectReview, confirmValue: 'Complete',),
-                            //             CustomRadioButton(
-                            //               text: 'Revisit',
-                            //               onChanged: (Object? value) {
-                            //                 custProvider.changeReview(value);
-                            //               },
-                            //               saveValue: custProvider.selectReview, confirmValue: 'Revisit',),
-                            //             // CustomRadioButton(
-                            //             //   text: 'Cancel',
-                            //             //   onChanged: (Object? value) {
-                            //             //     custProvider.changeReview(value);
-                            //             //   },
-                            //             //   saveValue: custProvider.selectReview, confirmValue: 'Cancel',)
-                            //           ]
-                            //       ),
-                            //     ],
-                            //   ),
-                            // ),
-                            40.height,
+                              5.height,
 
-                          ],
+                              /// ====================== LOCATION ======================
+                              Container(
+                                width: kIsWeb ? webWidth : phoneWidth,
+                                decoration:
+                                customDecoration.baseBackgroundDecoration(
+                                  color: Colors.white,
+                                  radius: 10,
+                                  borderColor: Colors.grey.shade300,
+                                ),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(8.0),
+                                  child: Row(
+                                    children: [
+                                      SizedBox(
+                                        width: kIsWeb
+                                            ? MediaQuery.of(context).size.width *
+                                            0.3
+                                            : MediaQuery.of(context).size.width *
+                                            0.68,
+                                        child: CustomText(
+                                          text: [
+                                            custProvider.address.text,
+                                            custProvider.comArea.text,
+                                            custProvider.city.text,
+                                            custProvider.state ?? '',
+                                            custProvider.country.text,
+                                            custProvider.pinCode.text,
+                                          ]
+                                              .where((e) =>
+                                          e.trim().isNotEmpty)
+                                              .join(', '),
+                                        ),
+                                      ),
+                                      InkWell(
+                                        onTap: () async {
+                                          closeAllDropdowns();
+
+                                          if (locPvr.latitude == "" &&
+                                              locPvr.longitude == "") {
+                                            await locPvr.manageLocation(
+                                                context, true);
+                                          } else {
+                                            utils.navigatePage(context,
+                                                    () => const ViaMap());
+                                          }
+                                        },
+                                        child: Icon(
+                                          Icons.location_on_outlined,
+                                          color: colorsConst.appRed,
+                                        ),
+                                      )
+                                    ],
+                                  ),
+                                ),
+                              ),
+
+                              /// ====================== COMMENTS ======================
+                              MaxLineTextField(
+                                width: kIsWeb ? webWidth : phoneWidth,
+                                isRequired: true,
+                                text: constValue.disPoints,
+                                textCapitalization:
+                                TextCapitalization.sentences,
+                                controller: custProvider.disPoint,
+                                maxLine: 5,
+                              ),
+
+                              MaxLineTextField(
+                                width: kIsWeb ? webWidth : phoneWidth,
+                                text: constValue.addPoints,
+                                textCapitalization:
+                                TextCapitalization.sentences,
+                                controller: custProvider.points,
+                                maxLine: 5,
+                                textInputAction: TextInputAction.done,
+                              ),
+
+                              40.height,
+                            ],
+                          ),
                         ),
                       ),
-                    ),
-                    SizedBox(
-                      width: kIsWeb?webWidth:phoneWidth,
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          CustomLoadingButton(
-                              callback: (){
+
+                      /// ====================== BUTTONS ======================
+                      SizedBox(
+                        width: kIsWeb ? webWidth : phoneWidth,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            CustomLoadingButton(
+                              callback: () {
+                                closeAllDropdowns();
                                 Future.microtask(() => Navigator.pop(context));
-                              }, isLoading: false,text: "Cancel",
-                              backgroundColor: Colors.white, textColor: colorsConst.primary,radius: 10,
-                              width: kIsWeb?webWidth/2.1:phoneWidth/2.1),
-                          CustomLoadingButton(
-                              callback: ()  {
-                                // if(widget.isDirect==true&&custProvider.selectCustomer==null){
-                                //   utils.showWarningToast(context, text: "Select ${constValue.companyName}");
-                                //   custProvider.addCtr.reset();
-                                // }
-                                // else{
-                                if(custProvider.leadType==null){
-                                  utils.showWarningToast(context, text: "Select a Lead type");
+                              },
+                              isLoading: false,
+                              text: "Cancel",
+                              backgroundColor: Colors.white,
+                              textColor: colorsConst.primary,
+                              radius: 10,
+                              width: kIsWeb ? webWidth / 2.1 : phoneWidth / 2.1,
+                            ),
+                            CustomLoadingButton(
+                              callback: () {
+                                closeAllDropdowns();
+
+                                if (custProvider.leadType == null) {
+                                  utils.showWarningToast(context,
+                                      text: "Select a Lead type");
                                   custProvider.addCtr.reset();
-                                }
-                                // else if(custProvider.selectCustomer==null){
-                                //   utils.showWarningToast(context, text: "Select a ${constValue.contactName}");
-                                //   custProvider.addCtr.reset();
-                                // }
-                                else if(custProvider.disPoint.text.trim().isEmpty){
-                                  utils.showWarningToast(context, text: "Type a comment");
+                                } else if (custProvider.disPoint.text
+                                    .trim()
+                                    .isEmpty) {
+                                  utils.showWarningToast(context,
+                                      text: "Type a comment");
                                   custProvider.addCtr.reset();
-                                }
-                                else{
+                                } else {
                                   _myFocusScopeNode.unfocus();
+
                                   custProvider.addVisit(
-                                    context: context,companyId: widget.isDirect==true?
-                                  companyId:widget.companyId.toString(),
-                                    companyName: widget.isDirect==true?companyName:widget.companyName,
-                                    sendList: custProvider.multiSelectedCustomerList
+                                    context: context,
+                                    companyId: widget.isDirect == true
+                                        ? companyId
+                                        : widget.companyId.toString(),
+                                    companyName: widget.isDirect == true
+                                        ? companyName
+                                        : widget.companyName,
+                                    sendList: custProvider
+                                        .multiSelectedCustomerList
                                         .map((e) => e["id"].toString())
                                         .toList(),
-
-                                    cusName: custProvider.multiSelectedCustomerList
+                                    cusName: custProvider
+                                        .multiSelectedCustomerList
                                         .map((e) => e["name"].toString())
                                         .toList(),
                                     lat: locPvr.latitude,
@@ -645,32 +670,33 @@ class _CusAddVisitState extends State<CusAddVisit> with TickerProviderStateMixin
                                     tType: widget.type,
                                     desc: widget.desc,
                                     callBack: () {
-                                      // if(widget.isDirect==true){
-                                      //   Navigator.pop(context);
-                                      // }else{
-                                      //   custProvider.getCusVisits(widget.companyId);
-                                      //   Navigator.pop(context);
-                                      // }
-                                      utils.navigatePage(context, ()=>
-                                          DashBoard(child: VisitReport(
+                                      utils.navigatePage(
+                                        context,
+                                            () => DashBoard(
+                                          child: VisitReport(
                                             date1: home.startDate,
                                             date2: home.endDate,
                                             month: home.month,
-                                            type: home.type,)));
-
+                                            type: home.type,
+                                          ),
+                                        ),
+                                      );
                                     },
                                   );
                                 }
-                                // }
-                              },text: 'Save',
-                              controller: custProvider.addCtr, isLoading: true,
+                              },
+                              text: 'Save',
+                              controller: custProvider.addCtr,
+                              isLoading: true,
                               backgroundColor: colorsConst.primary,
                               radius: 10,
-                              width: kIsWeb?webWidth/2.1:phoneWidth/2.1),
-                        ],
+                              width: kIsWeb ? webWidth / 2.1 : phoneWidth / 2.1,
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),

@@ -247,11 +247,16 @@ class TaskProvider with ChangeNotifier {
   String get fType => _fType;
   void checkFilterType(dynamic value) {
     _type = value;
-    print("value");
-    print(value);
-    var list = [];
-    list.add(value);
-    _fType=list[0]["value"]=="All"?"":list[0]["value"];
+
+    if (value == null) {
+      _fType = "";
+    } else if (value is Map) {
+      _fType = value["value"] == "All" ? "" : value["value"].toString();
+    } else {
+      // value is String
+      _fType = value.toString() == "All" ? "" : value.toString();
+    }
+
     notifyListeners();
   }
 

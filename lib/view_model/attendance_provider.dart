@@ -1685,34 +1685,58 @@ void showDatePickerDialog(BuildContext context,List<UserModel>? list) {
     _profile = imgData;
     notifyListeners();
   }
-  Future putDailyAttendance(context, String status,String lat,String lng) async {
+  Future putDailyAttendance(
+      BuildContext context,
+      String status,
+      String? lat,
+      String? lng,
+      ) async {
+
+    // ✅ Location validation first (API call stop)
+    if (lat == null ||
+        lng == null ||
+        lat.isEmpty ||
+        lng.isEmpty ||
+        lat == "0.0" ||
+        lng == "0.0") {
+      utils.showWarningToast(
+        context,
+        text: "Location not available. Please enable GPS and try again.",
+      );
+      return;
+    }
+
     showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (BuildContext context) {
-          return AlertDialog(
-            title: Center(
-              child: Column(
-                children: [
-                  const CustomText(text: "Attendance Marking",
-                    colors: Colors.grey,
-                    size: 15,
-                    isBold: true,),
-                  10.height,
-                  const CustomText(text: "Please Wait",
-                    colors: Colors.grey,
-                    size: 15,
-                    isBold: true,),
-                  20.height,
-                  LoadingAnimationWidget.staggeredDotsWave(
-                    color: colorsConst.secondary,
-                    size: 25,
-                  ),
-                ],
-              ),
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Center(
+            child: Column(
+              children: [
+                const CustomText(
+                  text: "Attendance Marking",
+                  colors: Colors.grey,
+                  size: 15,
+                  isBold: true,
+                ),
+                10.height,
+                const CustomText(
+                  text: "Please Wait",
+                  colors: Colors.grey,
+                  size: 15,
+                  isBold: true,
+                ),
+                20.height,
+                LoadingAnimationWidget.staggeredDotsWave(
+                  color: colorsConst.secondary,
+                  size: 25,
+                ),
+              ],
             ),
-          );
-        }
+          ),
+        );
+      },
     );
 
     Map<String, String> requestData = {
@@ -1723,23 +1747,27 @@ void showDatePickerDialog(BuildContext context,List<UserModel>? list) {
       "lng": lng,
       "img": "",
       "status": status,
-      "cos_id":localData.storage.read("cos_id"),
+      "cos_id": localData.storage.read("cos_id"),
     };
-    final response =await attRepo.addAttendance(requestData,_profile);
+
+    final response = await attRepo.addAttendance(requestData, _profile);
     log(response.toString());
-    if(response.isNotEmpty){
+
+    if (response.isNotEmpty) {
       log("Success");
+
       if (Navigator.canPop(context)) {
         Navigator.pop(context);
       }
 
-      if(status=="1"){
+      if (status == "1") {
         await FirebaseFirestore.instance.collection('attendance').add({
           'emp_id': localData.storage.read("id"),
           'time': DateTime.now(),
           'status': status,
         });
       }
+
       if (context.mounted) {
         utils.showSuccessToast(
           text: status == "1"
@@ -1748,15 +1776,29 @@ void showDatePickerDialog(BuildContext context,List<UserModel>? list) {
           context: context,
         );
       }
-    //  getMainAttendance();
-      Provider.of<HomeProvider>(context, listen: false).loadFullDashboard(context);
-      //getTotalHours(date1, date2);
-      Provider.of<AttendanceProvider>(context, listen: false).initDate(id:localData.storage.read("id"),role:localData.storage.read("role"),isRefresh: true,date1: "${DateTime.now().day.toString().padLeft(2,"0")}-${DateTime.now().month.toString().padLeft(2,"0")}-${DateTime.now().year.toString()}",date2: "${DateTime.now().day.toString().padLeft(2,"0")}-${DateTime.now().month.toString().padLeft(2,"0")}-${DateTime.now().year.toString()}");
-      Provider.of<AttendanceProvider>(context, listen: false).getAttendanceReport(localData.storage.read("id"));
-    }else{
+
+      Provider.of<HomeProvider>(context, listen: false)
+          .loadFullDashboard(context);
+
+      Provider.of<AttendanceProvider>(context, listen: false).initDate(
+        id: localData.storage.read("id"),
+        role: localData.storage.read("role"),
+        isRefresh: true,
+        date1:
+        "${DateTime.now().day.toString().padLeft(2, "0")}-${DateTime.now().month.toString().padLeft(2, "0")}-${DateTime.now().year}",
+        date2:
+        "${DateTime.now().day.toString().padLeft(2, "0")}-${DateTime.now().month.toString().padLeft(2, "0")}-${DateTime.now().year}",
+      );
+
+      Provider.of<AttendanceProvider>(context, listen: false)
+          .getAttendanceReport(localData.storage.read("id"));
+    } else {
       log("Failed");
       utils.showErrorToast(context: context);
-      Navigator.pop(context);
+
+      if (Navigator.canPop(context)) {
+        Navigator.pop(context);
+      }
     }
   }
 

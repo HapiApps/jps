@@ -525,68 +525,7 @@ class _HomePageState extends State<HomePage> {
                                   ),
                     ]
                               ),
-                              // 5.height,
-                              //
-                              // /// Date + Reports Row
-                              // Row(
-                              //   mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              //   children: [
-                              //
-                              //     if(localData.storage.read("role")!="1")
-                              //     GestureDetector(
-                              //       onTap: () {
-                              //         setState(() {
-                              //           if (localData.storage.read("Track") == true) {
-                              //             stopTracking(context);
-                              //           } else {
-                              //             if(locPvr.latitude==""&&locPvr.longitude==""){
-                              //               locPvr.manageLocation(context,true);
-                              //             }else{
-                              //               startTracking(context,locPvr.latitude,locPvr.longitude);
-                              //             }
-                              //           }
-                              //         });
-                              //       },
-                              //       child: AnimatedContainer(
-                              //         duration: const Duration(milliseconds: 200),
-                              //         height: 30,
-                              //         width: 100,
-                              //         decoration: BoxDecoration(
-                              //           color: localData.storage.read("Track") == true
-                              //               ? Colors.green
-                              //               : Colors.grey,
-                              //           borderRadius: BorderRadius.circular(30),
-                              //         ),
-                              //         child: Stack(
-                              //           children: [
-                              //             Center(
-                              //               child: CustomText(
-                              //                localData.storage.read("Track") == true
-                              //                     ? 'ON     '
-                              //                     : '     Tracker Off',
-                              //                 size: 11, color: Colors.white,
-                              //               ),
-                              //             ),
-                              //             Align(
-                              //               alignment: localData.storage.read("Track") ==
-                              //                   true ? Alignment.centerRight : Alignment
-                              //                   .centerLeft,
-                              //               child: Container(
-                              //                 margin: const EdgeInsets.all(3),
-                              //                 width: 25,
-                              //                 height: 25,
-                              //                 decoration: const BoxDecoration(
-                              //                   color: Colors.white,
-                              //                   shape: BoxShape.circle,
-                              //                 ),
-                              //               ),
-                              //             ),
-                              //           ],
-                              //         ),
-                              //       ),),
-                              //
-                              //   ],
-                              // ),
+
                               5.height,
                               SizedBox(
                                 width: screenWidth,

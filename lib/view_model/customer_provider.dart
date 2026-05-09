@@ -2940,6 +2940,7 @@ List<Marker> get liveMarker =>_liveMarker;
     }else if(_repType=="Last 7 Days"){
       last7DaysVisit(context);
     }else if(_repType=="Last 30 Days"){
+      last30DaysVisit(context);
     }else if(_repType=="This Week"){
       thisWeekVisit(context);
     }else if(_repType=="This Month"){
@@ -2951,6 +2952,7 @@ List<Marker> get liveMarker =>_liveMarker;
     }
     notifyListeners();
   }
+
   dynamic _user;
   dynamic get user=>_user;
   String _userName="";
