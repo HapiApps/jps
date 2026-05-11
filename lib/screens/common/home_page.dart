@@ -43,6 +43,7 @@ import '../customer/view_task.dart';
 import '../customer/visit/add_visit.dart';
 import '../customer/visit_report/visit_emp_details.dart';
 import '../customer/visit_report/visits_report.dart';
+import '../leave_management/leave_summary.dart';
 import '../task/add_task.dart';
 import 'add_day_work_plan.dart';
 import 'detail_work_plan.dart';
@@ -609,9 +610,10 @@ class _HomePageState extends State<HomePage> {
                               InkWell(
                                   child: const CheckAttendance()),
                               10.height,
+
                               /// DAILY WORK PLAN
                               Container(
-                                margin: const EdgeInsets.only(bottom: 15),
+                                margin: const EdgeInsets.only(bottom: 8),
                                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                                 decoration: BoxDecoration(
                                   color: const Color(0xffF3F6FA),

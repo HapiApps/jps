@@ -33,7 +33,6 @@ class _LoginPageState extends State<LoginPage> {
   @override
   void initState() {
     WidgetsBinding.instance.addPostFrameCallback((timeStamp) async {
-      Provider.of<HomeProvider>(context, listen: false).checkVersion();
       Provider.of<HomeProvider>(context, listen: false).getToken();
       Provider.of<LocationProvider>(context, listen: false).requestNotificationPermissions();
       Provider.of<HomeProvider>(context, listen: false).checkLoginValues(widget.number.toString());

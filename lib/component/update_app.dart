@@ -18,7 +18,7 @@ class UpdateApp extends StatelessWidget {
       return Dialog(
         backgroundColor: Colors.white,
         child: SizedBox(
-          height: 170,
+          height: 200,
           child: Column(
             // mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [

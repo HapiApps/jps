@@ -515,6 +515,7 @@ import 'package:provider/provider.dart';
 import 'package:master_code/view_model/report_provider.dart';
 import 'package:master_code/view_model/track_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'component/custom_text.dart';
 import 'firebase_options.dart';
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -944,7 +945,7 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    checkForUpdates(context); // runs immediately
+
     Future.delayed(Duration.zero, () {
       if (!mounted) return;
 
@@ -952,6 +953,7 @@ class _SplashScreenState extends State<SplashScreen> {
       final locationProvider = Provider.of<LocationProvider>(context, listen: false);
       final attendanceProvider = Provider.of<AttendanceProvider>(context, listen: false);
       homeProvider.checkVersion();
+      checkForUpdates(context); // runs immediately
       locationProvider.requestPermissions();
       homeProvider.initValue();
       homeProvider.checkThisMonth();
@@ -964,16 +966,17 @@ class _SplashScreenState extends State<SplashScreen> {
     storedVersion = prefs.getString('appVersion') ?? "0";
     currentVersion = localData.versionNumber;
     if (storedVersion != currentVersion) {
-      print("1 ${storedVersion != currentVersion}");
+      print("1 currentVersion${storedVersion != currentVersion}");
       utils.navigatePage(context, ()=>const LoginPage());
     } else if(widget.homeScreen){
-      print("2 ${storedVersion != currentVersion}");
+      print("2 currentVersion${storedVersion != currentVersion}");
       utils.navigatePage(context, ()=> DashBoard(child: HomePage(),));
     }else {
-      print("3 ${storedVersion != currentVersion}");
+      print("3 currentVersion ${storedVersion != currentVersion}");
       utils.navigatePage(context, ()=>const LoginPage());
     }
   }
+
   @override
   Widget build(BuildContext context) {
     return AnimatedSplashScreen(
