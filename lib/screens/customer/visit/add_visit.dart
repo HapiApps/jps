@@ -632,59 +632,124 @@ class _CusAddVisitState extends State<CusAddVisit>
                               width: kIsWeb ? webWidth / 2.1 : phoneWidth / 2.1,
                             ),
                             CustomLoadingButton(
-                              callback: () {
+                              // callback: () {
+                              //   closeAllDropdowns();
+                              //
+                              //   if (custProvider.leadType == null) {
+                              //     utils.showWarningToast(context,
+                              //         text: "Select a Lead type");
+                              //     custProvider.addCtr.reset();
+                              //   } else if (custProvider.disPoint.text
+                              //       .trim()
+                              //       .isEmpty) {
+                              //     utils.showWarningToast(context,
+                              //         text: "Type a comment");
+                              //     custProvider.addCtr.reset();
+                              //   } else {
+                              //     _myFocusScopeNode.unfocus();
+                              //
+                              //     custProvider.addVisit(
+                              //       context: context,
+                              //       companyId: widget.isDirect == true
+                              //           ? companyId
+                              //           : widget.companyId.toString(),
+                              //       companyName: widget.isDirect == true
+                              //           ? companyName
+                              //           : widget.companyName,
+                              //       sendList: custProvider
+                              //           .multiSelectedCustomerList
+                              //           .map((e) => e["id"].toString())
+                              //           .toList(),
+                              //       cusName: custProvider
+                              //           .multiSelectedCustomerList
+                              //           .map((e) => e["name"].toString())
+                              //           .toList(),
+                              //       lat: locPvr.latitude,
+                              //       lng: locPvr.longitude,
+                              //       taskId: widget.taskId,
+                              //       tType: widget.type,
+                              //       desc: widget.desc,
+                              //       callBack: () {
+                              //         utils.navigatePage(
+                              //           context,
+                              //               () => DashBoard(
+                              //             child: VisitReport(
+                              //               date1: home.startDate,
+                              //               date2: home.endDate,
+                              //               month: home.month,
+                              //               type: home.type,
+                              //             ),
+                              //           ),
+                              //         );
+                              //       },
+                              //     );
+                              //   }
+                              // },
+                              callback: () async {
                                 closeAllDropdowns();
 
                                 if (custProvider.leadType == null) {
-                                  utils.showWarningToast(context,
-                                      text: "Select a Lead type");
+                                  utils.showWarningToast(context, text: "Select a Lead type");
                                   custProvider.addCtr.reset();
-                                } else if (custProvider.disPoint.text
-                                    .trim()
-                                    .isEmpty) {
-                                  utils.showWarningToast(context,
-                                      text: "Type a comment");
-                                  custProvider.addCtr.reset();
-                                } else {
-                                  _myFocusScopeNode.unfocus();
-
-                                  custProvider.addVisit(
-                                    context: context,
-                                    companyId: widget.isDirect == true
-                                        ? companyId
-                                        : widget.companyId.toString(),
-                                    companyName: widget.isDirect == true
-                                        ? companyName
-                                        : widget.companyName,
-                                    sendList: custProvider
-                                        .multiSelectedCustomerList
-                                        .map((e) => e["id"].toString())
-                                        .toList(),
-                                    cusName: custProvider
-                                        .multiSelectedCustomerList
-                                        .map((e) => e["name"].toString())
-                                        .toList(),
-                                    lat: locPvr.latitude,
-                                    lng: locPvr.longitude,
-                                    taskId: widget.taskId,
-                                    tType: widget.type,
-                                    desc: widget.desc,
-                                    callBack: () {
-                                      utils.navigatePage(
-                                        context,
-                                            () => DashBoard(
-                                          child: VisitReport(
-                                            date1: home.startDate,
-                                            date2: home.endDate,
-                                            month: home.month,
-                                            type: home.type,
-                                          ),
-                                        ),
-                                      );
-                                    },
-                                  );
+                                  return;
                                 }
+
+                                if (custProvider.disPoint.text.trim().isEmpty) {
+                                  utils.showWarningToast(context, text: "Type a comment");
+                                  custProvider.addCtr.reset();
+                                  return;
+                                }
+
+                                _myFocusScopeNode.unfocus();
+
+                                await custProvider.addVisit(
+                                  context: context,
+                                  companyId: widget.isDirect == true
+                                      ? companyId
+                                      : widget.companyId.toString(),
+                                  companyName: widget.isDirect == true
+                                      ? companyName
+                                      : widget.companyName,
+                                  sendList: custProvider.multiSelectedCustomerList
+                                      .map((e) => e["id"].toString())
+                                      .toList(),
+                                  cusName: custProvider.multiSelectedCustomerList
+                                      .map((e) => e["name"].toString())
+                                      .toList(),
+                                  lat: locPvr.latitude,
+                                  lng: locPvr.longitude,
+                                  taskId: widget.taskId,
+                                  tType: widget.type,
+                                  desc: widget.desc,
+                                  callBack: () {
+                                    utils.navigatePage(
+                                      context,
+                                          () => DashBoard(
+                                        child: VisitReport(
+                                          date1: home.startDate,
+                                          date2: home.endDate,
+                                          month: home.month,
+                                          type: home.type,
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                );
+
+                                // ✅ navigate AFTER API complete
+                                utils.navigatePage(
+                                  context,
+                                      () => DashBoard(
+                                    child: VisitReport(
+                                      date1: home.startDate,
+                                      date2: home.endDate,
+                                      month: home.month,
+                                      type: home.type,
+                                    ),
+                                  ),
+                                );
                               },
+
                               text: 'Save',
                               controller: custProvider.addCtr,
                               isLoading: true,
