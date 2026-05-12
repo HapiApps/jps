@@ -1102,15 +1102,15 @@ class _CheckAttendanceState extends State<CheckAttendance> {
             ),
           ),
           10.height,
-          localData.storage.read("role")=="1"?
+          localData.storage.read("role")!="1"?
           LeaveSummaryCard(
             allowed:" ${ homeProvider.mainReportList.isEmpty ?"0":homeProvider.
           mainReportList[0]["emp_leave_allowed"].toString()=="null"?"0":
           homeProvider.mainReportList[0]["emp_leave_allowed"].toString()}",
 
             taken: " ${ homeProvider.mainReportList.isEmpty ?"0":homeProvider.
-            mainReportList[0]["fulldayleave_user"].toString()=="null"?"0":
-            homeProvider.mainReportList[0]["fulldayleave_user"].toString()}",
+            mainReportList[0]["emp_leave_taken"].toString()=="null"?"0":
+            homeProvider.mainReportList[0]["emp_leave_taken"].toString()}",
           ):SizedBox(),
         ],
       );

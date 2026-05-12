@@ -20,6 +20,11 @@ class LeaveModel {
   String? updater;
   String? session;
 
+  // ✅ Leave Summary Fields
+  String? leaveAllowed;
+  String? leaveTaken;
+  String? leaveBalance;
+
   LeaveModel({
     this.creater,
     this.updater,
@@ -41,6 +46,9 @@ class LeaveModel {
     this.role,
     this.type,
     this.session,
+    this.leaveAllowed,
+    this.leaveTaken,
+    this.leaveBalance,
   });
 
   factory LeaveModel.fromJson(Map<String, dynamic> json) => LeaveModel(
@@ -64,5 +72,9 @@ class LeaveModel {
     fName: json["f_name"]?.toString() ?? "",
     role: json["role"]?.toString() ?? "",
     type: json["type"]?.toString() ?? "",
+    // ✅ Leave Summary Mapping
+    leaveAllowed: json["leave_allowed"]?.toString() ?? "0",
+    leaveTaken: json["leave_taken"]?.toString() ?? "0",
+    leaveBalance: json["leave_balance"]?.toString() ?? "0",
   );
 }

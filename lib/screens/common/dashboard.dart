@@ -467,7 +467,7 @@ class _DashBoardState extends State<DashBoard> {
         size: 35, color: Colors.green),
         5.height,
         const Text(
-        "Daily Plan",
+        "Daily Work Activity Report",
         style: TextStyle(
         fontWeight: FontWeight.bold,
         fontSize: 12,

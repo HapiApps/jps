@@ -27,6 +27,7 @@ import '../../../source/utilities/utils.dart';
 import '../../../view_model/customer_provider.dart';
 import '../../common/dashboard.dart';
 import '../../common/home_page.dart';
+import '../visit/add_visit.dart';
 
 class VisitReport extends StatefulWidget {
   final String date1;
@@ -95,9 +96,16 @@ class _VisitReportState extends State<VisitReport> with SingleTickerProviderStat
           backgroundColor: colorsConst.bacColor,
           appBar: PreferredSize(
             preferredSize: const Size.fromHeight(50),
+
             child: CustomAppbar(
               text: constValue.visitRepo,
               isMain: false,
+              isButton: true,
+              buttonCallback: (){
+                utils.navigatePage(context, ()=> DashBoard(child:
+                CusAddVisit(taskId:"",companyId: "",companyName: "",
+                    numberList: [],isDirect: true, type: "", desc: "")));
+              },
               callback: () {
                 Navigator.pushAndRemoveUntil(
                   context,

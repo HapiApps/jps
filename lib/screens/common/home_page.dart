@@ -1156,11 +1156,11 @@ class _HomePageState extends State<HomePage> {
                                           Row(
                                             children: [
                                               const CustomText(
-                                                "Visits  ",
-                                                size: 20,
+                                                "Daily Work Report ",
+                                                size: 16,
                                                 weight: FontWeight.bold,
                                               ),
-                                              CustomText("${homeProvider.visitCount.length}", size: 25, weight: FontWeight.bold),
+                                              CustomText("${homeProvider.visitCount.length}", size: 20, weight: FontWeight.bold),
                                             ],
                                           ),
                                           InkWell(
@@ -1170,7 +1170,7 @@ class _HomePageState extends State<HomePage> {
                                                   numberList: [],isDirect: true, type: "", desc: "")));
                                             },
                                             child: Container(
-                                              width: screenWidth/2.2,
+                                              width: screenWidth/2.5,
                                               height: screenHeight/22,
                                               decoration: BoxDecoration(
                                                 color: Color(0xffDAF2DC),
@@ -1193,7 +1193,7 @@ class _HomePageState extends State<HomePage> {
                                                     ),
                                                     SizedBox(width: 6),
                                                     CustomText(
-                                                      "Add Visit",
+                                                      "Add Work",
                                                       size: 14,
                                                       weight: FontWeight.bold,
                                                       color: Color(0xff0F8D4B),
@@ -1241,7 +1241,7 @@ class _HomePageState extends State<HomePage> {
                                                         ),
                                                         5.width,
                                                         CustomText(
-                                                          "Active Visits : ${homeProvider.activeVisit}",
+                                                          "Active Works : ${homeProvider.activeVisit}",
                                                           size: 13,
                                                           weight: FontWeight.bold,
                                                           color: Colors.white,
@@ -1344,7 +1344,7 @@ class _HomePageState extends State<HomePage> {
                                                         ),
                                                         SizedBox(width: 6),
                                                         CustomText(
-                                                          "Pending Visits: ${homeProvider.inActiveVisit}",
+                                                          "Pending Works: ${homeProvider.inActiveVisit}",
                                                           size: 12,
                                                           weight: FontWeight.w600,
                                                           color: Colors.white,

@@ -12,18 +12,22 @@ class LeaveSummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-
-    double safeDouble(value) {
+    double safeDouble(dynamic value) {
       return double.tryParse(value.toString()) ?? 0.0;
+    }
+
+    String formatDouble(double val) {
+      if (val % 1 == 0) {
+        return val.toStringAsFixed(0); // ✅ 1.0 -> 1
+      } else {
+        return val.toString(); // ✅ 1.5 -> 1.5
+      }
     }
 
     double allowedVal = safeDouble(allowed);
     double takenVal = safeDouble(taken);
 
     double remaining = allowedVal - takenVal;
-
-    /// 🟢 PRINT (DEBUG)
-    print("🔥 Leave Taken = $takenVal");
 
     return Container(
       width: double.infinity,
@@ -32,7 +36,7 @@ class LeaveSummaryCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(10),
-        boxShadow: [
+        boxShadow: const [
           BoxShadow(
             color: Colors.black12,
             blurRadius: 10,
@@ -43,38 +47,34 @@ class LeaveSummaryCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-
-          /// TITLE
-          const Text(
-            "📅 Leave Summary",
-            style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
-          ),
-
-          const SizedBox(height: 12),
-
-          /// QUICK INFO
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-
               /// TOTAL
+
               Row(
                 children: [
+                  Text(
+                    " Leave Summary",
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                  ),
+                   SizedBox(width: 16),
                   Text(
                     "Total Leave : ",
                     style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
                   ),
                   Text(
-                    "$allowedVal",
-                    style: const TextStyle(
+                    formatDouble(allowedVal),
+                    style:  TextStyle(
                       fontSize: 14,
+                      color: Colors.green.shade800,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                 ],
               ),
 
-              /// TAKEN (WITH PRINT VALUE)
+              /// TAKEN
               Row(
                 children: [
                   Text(
@@ -82,11 +82,11 @@ class LeaveSummaryCard extends StatelessWidget {
                     style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
                   ),
                   Text(
-                    "$takenVal",
-                    style: const TextStyle(
+                    formatDouble(takenVal),
+                    style:  TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
-                      color: Colors.black,
+                      color: Colors.blue.shade800,
                     ),
                   ),
                 ],
@@ -94,21 +94,19 @@ class LeaveSummaryCard extends StatelessWidget {
             ],
           ),
 
-          const SizedBox(height: 8),
+          const SizedBox(height: 4),
 
           /// STATUS
           Container(
             padding: const EdgeInsets.all(10),
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: remaining > 0
-                  ? Colors.green.shade50
-                  : Colors.red.shade50,
+              color: remaining > 0 ? Colors.green.shade50 : Colors.red.shade50,
               borderRadius: BorderRadius.circular(12),
             ),
             child: Text(
               remaining > 0
-                  ? "✨ $remaining days left. Plan smart!"
+                  ? "✨ ${formatDouble(remaining)} days left. Plan smart!"
                   : "All leaves used. Plan Accordingly",
               style: TextStyle(
                 fontSize: 14,

@@ -9,7 +9,7 @@ class ConstantValues{
   final String comName = "by HapiApps Software Lab";
   final String appHeading = "Daily Activity Report ";
   final String success = "Added Successfully";
-  final String visitSuccess = "Visit Added Successfully";
+  final String visitSuccess = "Daily Work Activity Report Added Successfully";
   final String successTask = "Task Added Successfully";
   final String updated = "Updated Successfully";
   final String deleted = "Deleted Successfully";
@@ -27,9 +27,9 @@ class ConstantValues{
   final String bloodGroup = "Blood Group";
   final String lastWrkDay = "Last Working Day";
   final String applyDate = "Applied Date";
-  final String addVisit = "Add Visit";
+  final String addVisit = "Add Daily Work Activity Report";
   final String visit = "Visits";
-  final String visitRepo = "Daily Work Plan Report";
+  final String visitRepo = "Daily Work Activity Report";
 
   final String planDay = "What is Your Plan For the Day?";
   final String checkPdf = "pdf";

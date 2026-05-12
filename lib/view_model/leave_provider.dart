@@ -1715,6 +1715,8 @@ void setList(){
 
         final empProvider =
         Provider.of<EmployeeProvider>(context, listen: false);
+        final home =
+        Provider.of<HomeProvider>(context, listen: false);
 
         String title = status == "1"
             ? "Leave Approved ✅"
@@ -1729,6 +1731,8 @@ void setList(){
             body,
             userId,   // 👈 employee id
           );
+          getLeaveReport(filter);
+          home.loadFullDashboard(context);
         } catch(e){
           log("Notification failed: $e");
         }
@@ -2162,7 +2166,8 @@ void changeStatus(bool value){
       };
 
       final response = await leaveRepo.getLeave(data);
-
+      print("TODAY LEAVE LIST 33 => ${response}");
+      print("TODAY LEAVE LIST 12 => ${data}");
       myLev = response;
       myLevSearch = response;
       todayLeaveList = response;
@@ -2656,7 +2661,7 @@ void changeStatus(bool value){
 
       if (response != null && response["success"] == true) {
         utils.showSuccessToast(context: context, text: "Work Plan Submitted");
-addWorkCtr.reset();
+         addWorkCtr.reset();
         final empProvider =
         Provider.of<EmployeeProvider>(context, listen: false);
 

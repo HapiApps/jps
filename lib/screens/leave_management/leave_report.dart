@@ -608,195 +608,7 @@ class _ViewMyLeavesState extends State<ViewMyLeaves> {
     final dateTime = DateTime.parse(timestamp);
     return "${dateTime.day}/${dateTime.month}/${dateTime.year}";
   }
-  // Widget itemBuilder(List<LeaveModel> dataList,LeaveProvider levProvider){
-  //   var webWidth=MediaQuery.of(context).size.width*0.7;
-  //   var phoneWidth=MediaQuery.of(context).size.width*0.95;
-  //   return ListView.builder(
-  //       itemCount: dataList.length,
-  //       itemBuilder: (context,index){
-  //         final sortedData = dataList;
-  //         sortedData.sort((a, b) =>
-  //             a.startDate!.compareTo(b.startDate.toString()));
-  //         final data = sortedData[index];
-  //         var createdBy = "";
-  //         String timestamp = data.createdTs.toString();
-  //         DateTime dateTime = DateTime.parse(timestamp);
-  //         String dayOfWeek = DateFormat('EEEE').format(dateTime);
-  //         DateTime today = DateTime.now();
-  //         if (dateTime.day == today.day && dateTime.month == today.month && dateTime.year == today.year) {
-  //           dayOfWeek = 'Today';
-  //         } else if (dateTime.isAfter(today.subtract(const Duration(days: 1))) &&
-  //             dateTime.isBefore(today)) {
-  //           dayOfWeek = 'Yesterday';
-  //         } else {
-  //           dayOfWeek = "${dateTime.day}/${dateTime.month}/${dateTime.year}";
-  //         }
-  //         createdBy = "${dateTime.day}/${dateTime.month}/${dateTime.year}";
-  //         final showDateHeader = index == 0 || createdBy != getCreatedDate(sortedData[index - 1]);
-  //         var st = DateTime.parse(data.startDate.toString());
-  //         var date1 = "${st.day.toString().padLeft(2,"0")}/${st.month.toString().padLeft(2,"0")}/${st.year}";
-  //         var date2="";
-  //         if(data.startDate.toString()!=data.endDate.toString()&&data.endDate.toString()!=""){
-  //           var en = DateTime.parse(data.endDate.toString());
-  //           // print(data.endDate.toString());
-  //           date2 = "${en.day.toString().padLeft(2,"0")}/${en.month.toString().padLeft(2,"0")}/${en.year}";
-  //         }
-  //         return SizedBox(
-  //           width: kIsWeb?webWidth:phoneWidth,
-  //           child: Column(
-  //             children: [
-  //               if(index==0)
-  //                 5.height,
-  //               if (showDateHeader)
-  //                 SizedBox(
-  //                   width: kIsWeb?webWidth:phoneWidth,
-  //                   child: Column(
-  //                     children: [
-  //                       10.height,
-  //                       Row(
-  //                         mainAxisAlignment: MainAxisAlignment.end,
-  //                         children: [
-  //                           CustomText(
-  //                             text: dayOfWeek,
-  //                             colors: colorsConst.greyClr
-  //                           ),
-  //                         ],
-  //                       ),
-  //                     ],
-  //                   ),
-  //                 ),
-  //               GestureDetector(
-  //                 onTap: (){
-  //                   utils.navigatePage(context, ()=>LeaveDetails(empId: data.userId.toString(), name: data.fName.toString(), role: data.role.toString(),date1: widget.date1!,date2: widget.date2!));
-  //                 },
-  //                 child: Container(
-  //                   width: kIsWeb?webWidth:phoneWidth,
-  //                   // height: 75,
-  //                   decoration: customDecoration.baseBackgroundDecoration(
-  //                     radius: 5,
-  //                     color: Colors.white,
-  //                   ),
-  //                   child: Padding(
-  //                     padding: const EdgeInsets.fromLTRB(10, 0, 10, 0),
-  //                     child: Column(
-  //                       crossAxisAlignment: CrossAxisAlignment.start,
-  //                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-  //                       children: [
-  //                         5.height,
-  //                         Row(
-  //                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
-  //                           children: [
-  //                             CustomText(
-  //                               text: data.type.toString(),
-  //                               colors: colorsConst.greyClr,
-  //                             ),
-  //                             if(localData.storage.read("role")!="1")
-  //                               Row(
-  //                                 mainAxisAlignment: MainAxisAlignment.center,
-  //                                 children: [
-  //                                   CustomText(
-  //                                     text: "$date1${date2!=""?" To $date2":""}",
-  //                                     size: 13,
-  //                                     colors: Colors.black,
-  //                                   ),
-  //                                 ],
-  //                               ),
-  //                             if(data.creater.toString()!=data.fName.toString())
-  //                               Row(
-  //                                 children: [
-  //                                   CustomText(
-  //                                     text: "Added By  ",
-  //                                     colors: colorsConst.greyClr,
-  //                                   ),
-  //                                   CustomText(
-  //                                     text: "${data.creater.toString()} ( HR )",
-  //                                     colors: colorsConst.primary,
-  //                                   ),
-  //                                 ],
-  //                               ),
-  //                             // CustomText(
-  //                             //   text: time,
-  //                             //   colors: colorsConst.greyClr,
-  //                             // ),
-  //                           ],
-  //                         ),
-  //                         5.height,
-  //                         if(localData.storage.read("role")=="1")
-  //                           Row(
-  //                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-  //                             children: [
-  //                               Row(
-  //                                 mainAxisAlignment: MainAxisAlignment.center,
-  //                                 children: [
-  //                                   CustomText(
-  //                                     text: data.fName.toString(),
-  //                                     isBold: true,
-  //                                     size: 15,
-  //                                     colors: colorsConst.shareColor,
-  //                                   ),
-  //                                   5.width,
-  //                                   CustomText(
-  //                                     text: data.role.toString(),
-  //                                     size: 13,
-  //                                     colors: Colors.black,
-  //                                   ),
-  //                                 ],
-  //                               ),
-  //                               Row(
-  //                                 mainAxisAlignment: MainAxisAlignment.center,
-  //                                 children: [
-  //                                   CustomText(
-  //                                     text: "$date1${date2!=""?" To $date2":""}",
-  //                                     size: 13,
-  //                                     colors: Colors.black,
-  //                                   ),
-  //                                 ],
-  //                               ),
-  //                             ],
-  //                           ),
-  //                         if(localData.storage.read("role")=="1")
-  //                           5.height,
-  //                         Row(
-  //                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
-  //                           children: [
-  //                             CustomText(
-  //                               text: "Requested for ${data.dayType.toString()=="0.5"?"Half Day":data.dayType.toString()=="1"?"1 Day":"${data.dayCount }days"} leave ${data.dayType.toString()=="0.5"&&data.session.toString()!="null"?"( ${data.session.toString()} )":""}",
-  //                               colors: colorsConst.greyClr,
-  //                             ),
-  //                             if(localData.storage.read("id")==data.createdBy)
-  //                             InkWell(
-  //                                 onTap: (){
-  //                               utils.customDialog(
-  //                                 context: context,
-  //                                 title: "Are you sure you want to delete",
-  //                                 callback: () {
-  //                                   levProvider.deleteLeave(context,data.id.toString());
-  //                                 },
-  //                                 roundedLoadingButtonController: levProvider.submitCtr,
-  //                                 isLoading: true,
-  //                               );
-  //                             }, child: CustomText(text: "Delete",colors: colorsConst.appRed,isBold: true,))
-  //                           ],
-  //                         ),
-  //                         5.height,
-  //                         CustomText(
-  //                           text: data.reason.toString(),
-  //                           colors: colorsConst.stateColor.withOpacity(0.7),
-  //                         ),
-  //                         5.height,
-  //                       ],
-  //                     ),
-  //                   ),
-  //                 ),
-  //               ),
-  //               5.height,
-  //               if(index==dataList.length-1)
-  //               80.height,
-  //             ],
-  //           ),
-  //         );
-  //       });
-  // }
+
   Widget itemBuilder(List<LeaveModel> dataList,LeaveProvider levProvider){
     var webWidth=MediaQuery.of(context).size.width*0.7;
     var phoneWidth=MediaQuery.of(context).size.width*0.95;
@@ -1151,7 +963,8 @@ class _ViewMyLeavesState extends State<ViewMyLeaves> {
   Widget leaveCard(
       LeaveModel data, {
         bool showButtons = false,
-        bool showCancelOnly = false, // ✅ new parameter
+        bool showCancelOnly = false,
+        bool showSummary = false, // ✅ NEW PARAMETER
       }) {
     final start = DateTime.parse(data.startDate.toString());
 
@@ -1170,9 +983,9 @@ class _ViewMyLeavesState extends State<ViewMyLeaves> {
 
     final String updatedBy =
     DateFormat('dd-MM-yyyy • hh:mm a').format(updatedDateTime);
-
+    final double allowed = double.tryParse(data.leaveAllowed ?? "0") ?? 0;
+    final double taken = double.tryParse(data.leaveTaken ?? "0") ?? 0;
     String displayDate;
-
     double leaveDays = 0;
 
     if (data.dayType.toString() == "0.5") {
@@ -1201,7 +1014,7 @@ class _ViewMyLeavesState extends State<ViewMyLeaves> {
     }
 
     return Container(
-      margin: const EdgeInsets.symmetric(vertical: 6),
+      margin: const EdgeInsets.symmetric(vertical: 8),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
@@ -1247,8 +1060,8 @@ class _ViewMyLeavesState extends State<ViewMyLeaves> {
                     ),
                     const SizedBox(height: 5),
                     Container(
-                      padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 5),
                       decoration: BoxDecoration(
                         color: const Color(0xffA80007),
                         borderRadius: BorderRadius.circular(20),
@@ -1318,6 +1131,48 @@ class _ViewMyLeavesState extends State<ViewMyLeaves> {
 
             10.height,
 
+            // ✅ SHOW SUMMARY ONLY IF FILTER NOT APPLIED
+            if (showSummary) ...[
+
+
+    if (allowed > 0 || taken > 0) ...[
+    Row(
+    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    children: [
+    Row(
+    children: [
+    const CustomText(
+    text: " Total Leave: ",
+    size: 13,
+    isBold: true,
+    ),
+    CustomText(
+    text: allowed.toString(),
+    size: 13,
+    colors: const Color(0xff7E7E7E),
+    ),
+    ],
+    ),
+    Row(
+    children: [
+    const CustomText(
+    text: " Leave Taken : ",
+    size: 13,
+    isBold: true,
+    ),
+    CustomText(
+    text: taken.toString(),
+    size: 13,
+    colors: const Color(0xff7E7E7E),
+    ),
+    ],
+    ),
+    ],
+    ),
+    ],
+              10.height,
+            ],
+
             if (data.status == "1" || data.status == "2") ...[
               Row(
                 children: [
@@ -1358,10 +1213,8 @@ class _ViewMyLeavesState extends State<ViewMyLeaves> {
               ),
             ],
 
-
-
-            /// ✅ Cancel Only Button for Employee On Leave
-            if (showCancelOnly && localData.storage.read("role") != "1") ...[
+            /// Cancel Only Button
+            if (showCancelOnly && localData.storage.read("role") != "1" && data.status!="3") ...[
               Align(
                 alignment: Alignment.centerRight,
                 child: ElevatedButton(
@@ -1376,7 +1229,7 @@ class _ViewMyLeavesState extends State<ViewMyLeaves> {
                       context,
                       data.id.toString(),
                       data.userId.toString(),
-                      "3", // ✅ cancel
+                      "3",
                     );
                   },
                   child: const Text("Cancel Leave"),
@@ -1384,7 +1237,7 @@ class _ViewMyLeavesState extends State<ViewMyLeaves> {
               ),
             ],
 
-            /// ✅ Admin Buttons (Approve/Reject)
+            /// Admin Buttons
             if (showButtons && localData.storage.read("role") == "1") ...[
               if (data.status == "0") ...[
                 Row(
@@ -1438,10 +1291,11 @@ class _ViewMyLeavesState extends State<ViewMyLeaves> {
     );
   }
   Widget leaveStatusList(List<LeaveModel> list, String status, bool isLoading) {
-
     if (isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
+
+    final levPvr = Provider.of<LeaveProvider>(context, listen: false); // ✅ ADD
 
     final filtered = list.where((e) => e.status == status).toList();
 
@@ -1453,7 +1307,11 @@ class _ViewMyLeavesState extends State<ViewMyLeaves> {
       padding: const EdgeInsets.all(10),
       itemCount: filtered.length,
       itemBuilder: (context, index) {
-        return leaveCard(filtered[index], showButtons: true);
+        return leaveCard(
+          filtered[index],
+          showButtons: true,
+          showSummary: !levPvr.isFilterApplied, // ✅ filter இல்லனா மட்டும் show
+        );
       },
     );
   }
