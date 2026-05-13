@@ -317,8 +317,10 @@ class _TaskChatState extends State<TaskChat> with SingleTickerProviderStateMixin
               },
               child: Scaffold(
                 backgroundColor: const Color(0xffEAEAEA),
+
                 appBar: PreferredSize(
                   preferredSize: const Size(300, 60),
+
                   child: localData.storage.read("role").toString() == "1"
                       ? CustomAppbar(
                     callback: () {

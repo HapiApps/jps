@@ -1268,7 +1268,7 @@ class _HomePageState extends State<HomePage> {
                                                               ? const SkeletonLoading()
                                                               : homeProvider.visitCount.isEmpty
                                                               ? const Center(
-                                                            child: CustomText("No Visits Found"),
+                                                            child: CustomText("No Daily Work activity Report Found"),
                                                           )
                                                               : Padding(
                                                             padding: const EdgeInsets.fromLTRB(0, 0, 0, 5),

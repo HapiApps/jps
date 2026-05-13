@@ -277,14 +277,26 @@ class _DashBoardState extends State<DashBoard> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 /// ARUU Logo
-                Padding(
-                  padding: const EdgeInsets.only(left: 10),
-                  child: Image.asset(
-                    assets.logo,
-                    height: 40,
-                  ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(left: 5),
+                      child: Image.asset(
+                        assets.logo,
+                        height: 40,
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.only(top: 12.0),
+                      child: CustomText(
+                        text: "V ${localData.versionNumber}",
+                        colors: Colors.grey,
+                        size: 10,
+                      ),
+                    ),
+                  ],
                 ),
-
                 /// Right Side Icons
                 Row(
                   children: [

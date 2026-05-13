@@ -567,7 +567,7 @@ class _ViewNotificationState extends State<ViewNotification> with SingleTickerPr
                                                 ),
                                               ),
                                               TextSpan(
-                                                text: createdBy=="null"?"Admin":createdBy,
+                                                text: localData.storage.read("f_name")=="null"?"Admin":localData.storage.read("f_name"),
                                                 style: const TextStyle(
                                                   fontSize: 14,
                                                   fontWeight: FontWeight.w600,

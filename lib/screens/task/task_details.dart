@@ -288,7 +288,20 @@ class _TaskDetailsState extends State<TaskDetails> with SingleTickerProviderStat
           backgroundColor: colorsConst.bacColor,
           elevation: 0.0,
           centerTitle: true,
-          title: CustomText(text: widget.data.creator.toString(),size: 15,isBold: true,),
+          title: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CustomText(text: widget.data.creator.toString(),size: 15,isBold: true,),
+              Padding(
+                padding: const EdgeInsets.only(top: 12.0,left: 4),
+                child: CustomText(
+                  text: "V ${localData.versionNumber}",
+                  colors: Colors.grey,
+                  size: 10,
+                ),
+              ),
+            ],
+          ),
           leading: IconButton(
               onPressed: () {
                 // utils.navigatePage(context, ()=> DashBoard(child: ViewTask(date1: taskProvider.startDate, date2: taskProvider.endDate, type: "Assigned")));

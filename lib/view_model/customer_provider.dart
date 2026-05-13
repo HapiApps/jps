@@ -3256,7 +3256,7 @@ List<Marker> get liveMarker =>_liveMarker;
       final response =
       await custRepo.getDashboardReport(data);
 
-      log("Visit Res $response");
+      log("Daily Work Plan Report  $response");
 
       if (response.isNotEmpty) {
 
@@ -3328,7 +3328,7 @@ List<Marker> get liveMarker =>_liveMarker;
         "date2": _endDate
       };
       final response =await custRepo.getDashboardReport(data);
-      log("Visit Res $response");
+      log("Daily Work Plan Report Res $response");
       if (response.isNotEmpty) {
         reportExportEmployeeReportSectionWise(
           context,
@@ -3485,7 +3485,7 @@ List<Marker> get liveMarker =>_liveMarker;
         sheet
             .getRangeByIndex(currentRow, 1)
             .setText(
-            '$emp ( $startDate to $endDate ) Visit Report');
+            '$emp ( $startDate to $endDate ) Daily Work Plan Report');
 
         sheet
             .getRangeByIndex(currentRow, 1)
@@ -3688,7 +3688,7 @@ List<Marker> get liveMarker =>_liveMarker;
         )
           ..setAttribute(
               'download',
-              'JPS_Visit_Report.xlsx')
+              'JPS_Daily Work Plan Report.xlsx')
           ..click();
 
       } else {
@@ -3698,7 +3698,7 @@ List<Marker> get liveMarker =>_liveMarker;
                 .path;
 
         final file =
-        File('$path/JPS_Visit_Report.xlsx');
+        File('$path/JPS_Daily Work Plan Report.xlsx');
 
         await file.writeAsBytes(
           bytes,
@@ -3844,7 +3844,7 @@ List<Marker> get liveMarker =>_liveMarker;
         sheet
             .getRangeByIndex(currentRow, 1)
             .setText(
-            '$emp ( $startDate to $endDate ) Visit Report');
+            '$emp ( $startDate to $endDate ) Daily Work Plan Report');
 
         sheet
             .getRangeByIndex(currentRow, 1)
@@ -3995,7 +3995,7 @@ List<Marker> get liveMarker =>_liveMarker;
         )
           ..setAttribute(
               'download',
-              'Visit_Report.xlsx')
+              'Visit_Daily Work Plan Report.xlsx')
           ..click();
 
       } else {
@@ -4005,7 +4005,7 @@ List<Marker> get liveMarker =>_liveMarker;
                 .path;
 
         final file =
-        File('$path/Visit_Report.xlsx');
+        File('$path/Daily Work Plan Report.xlsx');
 
         await file.writeAsBytes(
           bytes,
@@ -4059,7 +4059,7 @@ List<Marker> get liveMarker =>_liveMarker;
     var titleCell =
     sheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: 0));
 
-    titleCell.value = "Visit Report - $_startDate${_startDate==_endDate?"":" To $_endDate"}";
+    titleCell.value = "Daily Work Plan Report - $_startDate${_startDate==_endDate?"":" To $_endDate"}";
 
     titleCell.cellStyle = CellStyle(
       bold: true,
@@ -4137,7 +4137,7 @@ List<Marker> get liveMarker =>_liveMarker;
     if (kIsWeb) {
     } else {
       final directory = await getExternalStorageDirectory();
-      String filePath = "${directory!.path}/Visit Report.xlsx";
+      String filePath = "${directory!.path}/Daily Work Plan Report.xlsx";
       File(filePath)
         ..createSync(recursive: true)
         ..writeAsBytesSync(fileBytes);
