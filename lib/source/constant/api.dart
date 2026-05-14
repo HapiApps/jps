@@ -83,6 +83,7 @@ const String getLeaveData="get_leave_datas";
 const String payrollData="payroll_data";
 const String insertPayrollDetails="insert_payroll_details";
 const String addPayrollSalary="add_payroll_salary";
+
 const String insertCategory="add_category";
 const String insertPayrollSetting="insert_payroll_setting";
 ///
