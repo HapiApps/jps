@@ -88,6 +88,7 @@ class _ViewNotificationState extends State<ViewNotification> with SingleTickerPr
                             onChanged: (value) {
                               setState(() {
                                 empProvider.searchName = value;
+                                empProvider.applyNotificationFilters();
                               });
                               },
                             textInputAction: TextInputAction.done,
@@ -106,6 +107,7 @@ class _ViewNotificationState extends State<ViewNotification> with SingleTickerPr
                                     onTap: (){
                                       setState(() {
                                         empProvider.searchName = "";
+                                        empProvider.applyNotificationFilters();
                                       });
                                     },
                                     child: Container(
@@ -114,15 +116,35 @@ class _ViewNotificationState extends State<ViewNotification> with SingleTickerPr
                                           padding: const EdgeInsets.all(8.0),
                                           child: SvgPicture.asset(assets.cancel2),
                                         ))):null,
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(30),
+                                  borderSide: BorderSide(color: Colors.grey.shade300),
+                                ),
+
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(30),
+                                  borderSide: BorderSide(color: Colors.grey.shade300),
+                                ),
+
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(30),
+                                  borderSide: BorderSide(color: colorsConst.primary, width: 1.5),
+                                ),
+
+                                errorBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(30),
+                                  borderSide: const BorderSide(color: Colors.red),
+                                ),
+
+                                focusedErrorBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(30),
+                                  borderSide: const BorderSide(color: Colors.red, width: 1.5),
+                                ),
                                 errorStyle: const TextStyle(
                                   fontSize: 12.0,
                                   height: 0.20,
                                 ),
-                                enabledBorder: OutlineInputBorder(
-                                  // grey.shade300
-                                    borderSide:  BorderSide(color: Colors.grey.shade300),
-                                    borderRadius: BorderRadius.circular(30)
-                                ),
+
                                 contentPadding:const EdgeInsets.fromLTRB(10, 10, 10, 10)
                             ),
                           ),
@@ -375,7 +397,7 @@ class _ViewNotificationState extends State<ViewNotification> with SingleTickerPr
                         ),
                       ],
                     ),
-                  empProvider.filteredNotifyData.isEmpty
+                  empProvider.filteredNotifyDatas.isEmpty
                       ? Column(
                     children: [
                       100.height,
@@ -389,9 +411,9 @@ class _ViewNotificationState extends State<ViewNotification> with SingleTickerPr
                       // itemCount: empProvider.notifyData.length,
                       // itemBuilder: (context, index) {
                       //   final employeeData = empProvider.notifyData[index];
-                      itemCount: empProvider.filteredNotifyData.length,
+                      itemCount: empProvider.filteredNotifyDatas.length,
                       itemBuilder: (context, index) {
-                        final employeeData = empProvider.filteredNotifyData[index];
+                        final employeeData = empProvider.filteredNotifyDatas[index];
                         DateTime dateTime =
                         DateTime.parse(employeeData["created_ts"]);
 
@@ -567,7 +589,7 @@ class _ViewNotificationState extends State<ViewNotification> with SingleTickerPr
                                                 ),
                                               ),
                                               TextSpan(
-                                                text: localData.storage.read("f_name")=="null"?"Admin":localData.storage.read("f_name"),
+                                                text: createdBy=="null"?"Admin":createdBy,
                                                 style: const TextStyle(
                                                   fontSize: 14,
                                                   fontWeight: FontWeight.w600,

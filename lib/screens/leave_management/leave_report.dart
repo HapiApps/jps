@@ -1285,6 +1285,62 @@ class _ViewMyLeavesState extends State<ViewMyLeaves> {
                 ),
               ],
             ],
+            if (showButtons && localData.storage.read("role") == "1") ...[
+              if (data.status == "1") ...[
+                Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.green,
+                        ),
+                        onPressed: () async {
+                          final provider =
+                          Provider.of<LeaveProvider>(context, listen: false);
+
+                          await provider.approveApply(
+                            context,
+                            data.id.toString(),
+                            data.userId.toString(),
+                            "2",
+                          );
+                        },
+                        child: const Text("Cancel Approved Leave"),
+                      ),
+                    ),
+
+                  ],
+                ),
+              ],
+            ],
+            if (showButtons && localData.storage.read("role") == "1") ...[
+              if (data.status == "2") ...[
+                Row(
+                  children: [
+
+                    Expanded(
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.red,
+                        ),
+                        onPressed: () async {
+                          final provider =
+                          Provider.of<LeaveProvider>(context, listen: false);
+
+                          await provider.approveApply(
+                            context,
+                            data.id.toString(),
+                            data.userId.toString(),
+                            "1",
+                          );
+                        },
+                        child: const Text("Approve Rejected Leave"),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ],
           ],
         ),
       ),

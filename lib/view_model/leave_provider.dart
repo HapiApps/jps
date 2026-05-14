@@ -1651,6 +1651,7 @@ void setList(){
         leaveCtr.reset();
         if({"1"}.contains(localData.storage.read("role"))){
                   _selectedIndex=2;
+                  getLeaveReport(_filter);
                 }else{
                   getLeaveReport(_filter);
                   Navigator.pop(context);
@@ -1732,7 +1733,7 @@ void setList(){
             userId,   // 👈 employee id
           );
           getLeaveReport(filter);
-          home.loadFullDashboard(context);
+          // home.loadFullDashboard(context);
         } catch(e){
           log("Notification failed: $e");
         }

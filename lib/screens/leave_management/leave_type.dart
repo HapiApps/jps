@@ -1,8 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:master_code/source/extentions/extensions.dart';
 import 'package:provider/provider.dart';
+
 import '../../component/custom_appbar.dart';
 import '../../component/custom_loading.dart';
 import '../../component/custom_loading_button.dart';
@@ -14,6 +14,7 @@ import '../../source/constant/key_constant.dart';
 import '../../source/styles/decoration.dart';
 import '../../source/utilities/utils.dart';
 import '../../view_model/leave_provider.dart';
+import 'package:master_code/source/extentions/extensions.dart';
 
 class LeaveTypes extends StatefulWidget {
   const LeaveTypes({super.key});
@@ -25,68 +26,81 @@ class LeaveTypes extends StatefulWidget {
 class _LeaveTypesState extends State<LeaveTypes> {
   @override
   Widget build(BuildContext context) {
-    return Consumer<LeaveProvider>(builder: (context,levProvider,_){
+    return Consumer<LeaveProvider>(builder: (context, levProvider, _) {
       return SafeArea(
         child: Scaffold(
           backgroundColor: colorsConst.bacColor,
           appBar: PreferredSize(
-            preferredSize: Size(300, 50),
-            child: CustomAppbar(text: "Leave Types",
-            isButton: true,
-              callback: (){
+            preferredSize: const Size(300, 50),
+            child: CustomAppbar(
+              text: "Leave Types",
+              isButton: true,
+              callback: () {
                 levProvider.changePage(context);
               },
               buttonCallback: () {
-                levProvider.changeAddType();
-              },),
+                showDialog(
+                  context: context,
+                  barrierDismissible: false,
+                  builder: (context) {
+                    return const Dialog(
+                      insetPadding: EdgeInsets.all(15),
+                      child: AddType(),
+                    );
+                  },
+                );
+              },
+            ),
           ),
           body: PopScope(
             canPop: false,
             onPopInvoked: (bool pop) async {
               levProvider.changePage(context);
             },
-            child: Center(
-              child: Center(
-                child: Column(
-                  children: [
-                    20.height,
-                    levProvider.getTypes == false ?
-                    const Loading() :
-                    levProvider.types.isEmpty ?
-                    const CustomText(text: "No Types Found") :
-                    Expanded(
-                      child: kIsWeb ?
-                      GridView.builder(
-                        primary: false,
-                        itemCount: levProvider.types.length,
-                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 3,
-                            crossAxisSpacing: 50.0,
-                            mainAxisSpacing: 20.0,
-                            mainAxisExtent: 100
-
-                        ),
-                        itemBuilder: (context, index) {
-                          return itemBuilder(context,index,levProvider);
-                        },
-                      ) : ListView.builder(
-                          itemCount: levProvider.types.length,
-                          itemBuilder: (context, index) {
-                            return itemBuilder(context,index,levProvider);
-                          }),
-                    )
-                  ],
+            child: Column(
+              children: [
+                20.height,
+                levProvider.getTypes == false
+                    ? const Loading()
+                    : levProvider.types.isEmpty
+                    ? const CustomText(text: "No Types Found")
+                    : Expanded(
+                  child: kIsWeb
+                      ? GridView.builder(
+                    primary: false,
+                    itemCount: levProvider.types.length,
+                    gridDelegate:
+                    const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 3,
+                      crossAxisSpacing: 50.0,
+                      mainAxisSpacing: 20.0,
+                      mainAxisExtent: 100,
+                    ),
+                    itemBuilder: (context, index) {
+                      return itemBuilder(
+                          context, index, levProvider);
+                    },
+                  )
+                      : ListView.builder(
+                    itemCount: levProvider.types.length,
+                    itemBuilder: (context, index) {
+                      return itemBuilder(
+                          context, index, levProvider);
+                    },
+                  ),
                 ),
-              ),
+              ],
             ),
           ),
         ),
       );
     });
   }
+
   Widget itemBuilder(BuildContext context, int index, var levProvider) {
-    var webWidth=MediaQuery.of(context).size.width*0.7;
-    var phoneWidth=MediaQuery.of(context).size.width*0.95;
+    var webWidth = MediaQuery.of(context).size.width * 0.7;
+    var phoneWidth = MediaQuery.of(context).size.width * 0.95;
+
     return Column(
       children: [
         Container(
@@ -95,10 +109,8 @@ class _LeaveTypesState extends State<LeaveTypes> {
             radius: 5,
             borderColor: Colors.grey.shade200,
           ),
-          width: kIsWeb?webWidth:phoneWidth,
-          height: kIsWeb
-              ? MediaQuery.of(context).size.height * 0.08
-              : MediaQuery.of(context).size.height * 0.08,
+          width: kIsWeb ? webWidth : phoneWidth,
+          height: MediaQuery.of(context).size.height * 0.08,
           child: Padding(
             padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
             child: Row(
@@ -109,9 +121,12 @@ class _LeaveTypesState extends State<LeaveTypes> {
                   onTap: () {
                     utils.customDialog(
                       context: context,
-                      title: "Are you sure you want to delete",
+                      title: "Are you sure you want to delete?",
                       callback: () {
-                        levProvider.deleteLeaveType(context,levProvider.types[index]["id"]);
+                        levProvider.deleteLeaveType(
+                          context,
+                          levProvider.types[index]["id"],
+                        );
                       },
                       roundedLoadingButtonController: levProvider.submitCtr,
                       isLoading: true,
@@ -133,6 +148,7 @@ class _LeaveTypesState extends State<LeaveTypes> {
   }
 }
 
+// ====================== ADD TYPE POPUP ======================
 
 class AddType extends StatefulWidget {
   const AddType({super.key});
@@ -143,87 +159,101 @@ class AddType extends StatefulWidget {
 
 class _AddTypeState extends State<AddType> {
   final FocusScopeNode _myFocusScopeNode = FocusScopeNode();
+
   @override
   void initState() {
-    WidgetsBinding.instance.addPostFrameCallback((timeStamp){
-      Provider.of<LeaveProvider >(context, listen: false).reason.clear();
+    WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
+      Provider.of<LeaveProvider>(context, listen: false).reason.clear();
     });
     super.initState();
   }
+
   @override
   void dispose() {
-    super.dispose();
     _myFocusScopeNode.dispose();
+    super.dispose();
   }
+
   @override
   Widget build(BuildContext context) {
-    return Consumer<LeaveProvider>(builder: (context,levProvider,_){
-      var webWidth=MediaQuery.of(context).size.width*0.7;
-      var phoneWidth=MediaQuery.of(context).size.width*0.95;
+    return Consumer<LeaveProvider>(builder: (context, levProvider, _) {
+      var webWidth = MediaQuery.of(context).size.width * 0.6;
+      var phoneWidth = MediaQuery.of(context).size.width * 0.95;
+
       return FocusScope(
         node: _myFocusScopeNode,
-        child: SafeArea(
-          child: Scaffold(
-            backgroundColor: colorsConst.bacColor,
-            appBar: PreferredSize(
-              preferredSize: Size(300, 50),
-              child: CustomAppbar(text: "Add Leave Type",
-                callback: () {
-                  _myFocusScopeNode.unfocus();
-                  levProvider.changePage2();
-                  },),
-            ),
-            body: PopScope(
-              canPop: false,
-              onPopInvoked: (bool pop) async {
-                _myFocusScopeNode.unfocus();
-                levProvider.changePage2();
-              },
-              child: SingleChildScrollView(
-                child: Center(
-                  child: SizedBox(
-                    width: kIsWeb?webWidth:phoneWidth,
-                    child: Column(
-                      children: [
-                        70.height,
-                        CustomTextField(text: "Type",
-                          isRequired: true,
-                          inputFormatters: constInputFormatters.numTextInput,
-                          controller: levProvider.reason,
-                          textInputAction: TextInputAction.done,
-                          keyboardType: TextInputType.text,
-                          width: kIsWeb?webWidth:phoneWidth,
-                        ),
-                        70.height,
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            CustomLoadingButton(
-                                callback: (){
-                                  levProvider.changePage2();
-                                  _myFocusScopeNode.unfocus();
-                                }, isLoading: false,text: "Cancel",
-                                backgroundColor: Colors.white, textColor: colorsConst.primary,radius: 10, width: kIsWeb?webWidth/2.2:phoneWidth/2.2),
-                            CustomLoadingButton(
-                              width: kIsWeb?webWidth/2.2:phoneWidth/2.2,
-                              isLoading: true,
-                              callback: () {
-                                if (levProvider.reason.text.trim().isNotEmpty) {
-                                  _myFocusScopeNode.unfocus();
-                                  levProvider.addTypes(context);
-                                } else {
-                                  utils.showWarningToast(context,text: "Please fill leave type");
-                                  levProvider.addCtr.reset();
-                                }
-                              },
-                              controller: levProvider.addCtr, text: 'Save', backgroundColor: colorsConst.primary, radius: 10,),
-                          ],
-                        ),
-                        50.height
-                      ],
-                    ),
+        child: SizedBox(
+          width: kIsWeb ? webWidth : phoneWidth,
+          child: Padding(
+            padding: const EdgeInsets.all(15),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  20.height,
+                  const CustomText(
+                    text: "Add Leave Type",
+                    size: 18,
+                    isBold: true,
                   ),
-                ),
+                  30.height,
+
+                  CustomTextField(
+                    text: "Type",
+                    isRequired: true,
+                    inputFormatters: constInputFormatters.numTextInput,
+                    controller: levProvider.reason,
+                    textInputAction: TextInputAction.done,
+                    keyboardType: TextInputType.text,
+                    width: kIsWeb ? webWidth : phoneWidth,
+                  ),
+
+                  40.height,
+
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      CustomLoadingButton(
+                        callback: () {
+                          _myFocusScopeNode.unfocus();
+                          Navigator.pop(context);
+                        },
+                        isLoading: false,
+                        text: "Cancel",
+                        backgroundColor: Colors.white,
+                        textColor: colorsConst.primary,
+                        radius: 10,
+                        width: kIsWeb ? webWidth / 2.2 : phoneWidth / 2.2,
+                      ),
+                      CustomLoadingButton(
+                        width: kIsWeb ? webWidth / 2.2 : phoneWidth / 2.2,
+                        isLoading: true,
+                        callback: () async {
+                          if (levProvider.reason.text.trim().isNotEmpty) {
+                            _myFocusScopeNode.unfocus();
+
+                            await levProvider.addTypes(context);
+
+                            // After success close popup
+                            if (context.mounted) {
+                              Navigator.pop(context);
+                            }
+                          } else {
+                            utils.showWarningToast(context,
+                                text: "Please fill leave type");
+                            levProvider.addCtr.reset();
+                          }
+                        },
+                        controller: levProvider.addCtr,
+                        text: 'Save',
+                        backgroundColor: colorsConst.primary,
+                        radius: 10,
+                      ),
+                    ],
+                  ),
+
+                  20.height,
+                ],
               ),
             ),
           ),
@@ -232,4 +262,3 @@ class _AddTypeState extends State<AddType> {
     });
   }
 }
-

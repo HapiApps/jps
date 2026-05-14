@@ -1626,6 +1626,50 @@ Future<void> getUserLogs(String id) async {
   }
   String searchName = "";
   DateTime? selectedDate;
+
+  List<dynamic> filteredNotifyData = [];
+
+
+
+  void applyNotificationFilters() {
+    filteredNotifyData = notifyData.where((item) {
+
+      // ---------------- SEARCH FILTER ----------------
+      final searchMatch = searchName.isEmpty ||
+          (item["firstname"] ?? "")
+              .toString()
+              .toLowerCase()
+              .contains(searchName.toLowerCase());
+
+      // ---------------- DATE FILTER ----------------
+      bool dateMatch = true;
+      if (startDate.isNotEmpty && endDate.isNotEmpty) {
+        final df = DateFormat("dd-MM-yyyy");
+
+        DateTime from = df.parse(startDate);
+        DateTime to = df.parse(endDate);
+
+        DateTime createdTs = DateTime.parse(item["created_ts"].toString());
+        DateTime createdOnly =
+        DateTime(createdTs.year, createdTs.month, createdTs.day);
+
+        dateMatch =
+            !createdOnly.isBefore(from) && !createdOnly.isAfter(to);
+      }
+
+      // ---------------- EMPLOYEE FILTER ----------------
+      final employeeMatch = userName.isEmpty ||
+          (item["firstname"] ?? "").toString().toLowerCase() ==
+              userName.toLowerCase();
+
+      return searchMatch && dateMatch && employeeMatch;
+    }).toList();
+
+    // chip show condition
+    _filter = searchName.isNotEmpty || userName.isNotEmpty || (startDate.isNotEmpty && endDate.isNotEmpty);
+
+    notifyListeners();
+  }
   // List<dynamic> get filteredNotifyData {
   //   return _notifyData.where((item) {
   //     final createdBy = item["firstname"]?.toString().toLowerCase() ?? "";
@@ -1644,7 +1688,7 @@ Future<void> getUserLogs(String id) async {
   //     return matchName && matchDate;
   //   }).toList();
   // }
-  List<dynamic> get filteredNotifyData {
+  List<dynamic> get filteredNotifyDatas {
     return notifyData.where((item) {
       final createdTs = DateTime.parse(item["created_ts"]);
       final createdBy = item["firstname"]?.toString().toLowerCase() ?? "";
@@ -1686,7 +1730,7 @@ Future<void> getUserLogs(String id) async {
   }
 Future<void> getNotifications({bool markSeen = false}) async {
   _refresh=false;
-  filteredNotifyData.clear();
+  filteredNotifyDatas.clear();
   _notifyData.clear();
   notifyListeners();
   try {
