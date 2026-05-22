@@ -80,77 +80,236 @@ class _UserAttendanceReportState extends State<UserAttendanceReport> {
                           text: constValue.noData, size: 15),
                     )
                         :Flexible(
-                      child: ListView.builder(
-                          itemCount: attProvider.getDailyAttendance.length,
-                          itemBuilder: (context, index) {
-                            final sortedData = attProvider.getDailyAttendance;
-                            AttendanceModel data = attProvider.getDailyAttendance[index];
-                            var inTime = "",outTime = "-",timeD = "-";
-                            var lat = data.lats.toString().split(",");
-                            var lng = data.lngs.toString().split(",");
-                            if (data.status.toString().contains("1,2")) {
-                              inTime = data.time!.split(",")[0];
-                              outTime = data.time!.split(",")[1];
-                              timeD=attProvider.timeDifference("${data.createdTs!.split(",")[0]},${data.createdTs!.split(",")[1]}");
-                            }else if (data.status.toString().contains("2,1")) {
-                              inTime = data.time!.split(",")[1];
-                              outTime = data.time!.split(",")[0];
-                              timeD=attProvider.timeDifference("${data.createdTs!.split(",")[0]},${data.createdTs!.split(",")[1]}");
-                            }else {
-                              inTime = data.time!.split(",")[0];
-                              timeD="-";
-                            }
-                            String timestamp =data.createdTs.toString();
-                            List<String> times = timestamp.split(',');
-                            DateTime startTime = DateTime.parse(times[0]);
+                      child: Builder(
+                        builder: (context) {
 
-                            String createdBy = formatCreatedDate(startTime);
-                            String? prevCreatedBy;
-                            if (index != 0) {
-                              String timestamp =sortedData[index - 1].createdTs.toString();
-                              List<String> times = timestamp.split(',');
-                              DateTime startTime = DateTime.parse(times[0]);
-                              prevCreatedBy = formatCreatedDate(startTime);
-                            }
+                          // ✅ SELECTED MONTH & YEAR
+                          DateTime selectedDate =
+                          DateTime.parse(homeProvider.startDate);
 
-                            final showDateHeader = index == 0 ||
-                                createdBy != prevCreatedBy;
+                          int selectedMonth = selectedDate.month;
+                          int selectedYear = selectedDate.year;
+
+                          // ✅ FILTER ONLY SELECTED MONTH DATA
+                          List<AttendanceModel> filteredAttendance =
+                          attProvider.getDailyAttendance.where((data) {
+
+                            DateTime itemDate =
+                            DateTime.parse(
+                              data.createdTs
+                                  .toString()
+                                  .split(",")[0],
+                            );
+
+                            return itemDate.month == selectedMonth &&
+                                itemDate.year == selectedYear;
+
+                          }).toList();
+
+                          // ✅ NO DATA
+                          if (filteredAttendance.isEmpty) {
+
                             return Padding(
-                              padding: EdgeInsets.fromLTRB(10, 10, 10, index==attProvider.getDailyAttendance.length-1?30:0),
-                              child: Column(
-                                children: [
-                                  if(showDateHeader)
-                                    CustomText(text: createdBy,colors:colorsConst.greyClr,size: 12,),
-                                  AttendanceDetails(
-                                    showDate: index==0?true:false,
-                                    date: data.date.toString(),
-                                    img: data.image.toString(),
-                                    inTime: inTime,
-                                    outTime: outTime,
-                                    timeD: timeD,
-                                    name: data.firstname.toString(),
-                                    role: data.role.toString(),
-                                    callback: () {
-                                      utils.navigatePage(context, ()=>CheckLocation(
-                                          lat1: lat[0].toString(),
-                                          long1: lng[0].toString(),
-                                          lat2: data.status.toString().contains("2")
-                                              ? lat[1].toString()
-                                              : "",
-                                          long2: data.status.toString().contains("2")
-                                              ? lng[1].toString()
-                                              : ""
-                                      ));
-                                    },
-                                    perStatus: data.perStatus.toString(),
-                                    perReason: data.perReason.toString(),
-                                    perTime: data.perTime.toString(),
-                                    perCreatedTs: data.perCreatedTs.toString(),
-                                  ),
-                                ],
+                              padding: const EdgeInsets.only(top: 120),
+
+                              child: CustomText(
+                                text: constValue.noData,
+                                size: 15,
                               ),
                             );
-                          }),
+                          }
+
+                          return ListView.builder(
+
+                            itemCount: filteredAttendance.length,
+
+                            itemBuilder: (context, index) {
+
+                              final sortedData = filteredAttendance;
+
+                              AttendanceModel data =
+                              filteredAttendance[index];
+
+                              var inTime = "",
+                                  outTime = "-",
+                                  timeD = "-";
+
+                              var lat =
+                              data.lats.toString().split(",");
+
+                              var lng =
+                              data.lngs.toString().split(",");
+
+                              // ✅ TIME
+                              if (data.status
+                                  .toString()
+                                  .contains("1,2")) {
+
+                                inTime =
+                                data.time!.split(",")[0];
+
+                                outTime =
+                                data.time!.split(",")[1];
+
+                                timeD =
+                                    attProvider.timeDifference(
+                                      "${data.createdTs!.split(",")[0]},"
+                                          "${data.createdTs!.split(",")[1]}",
+                                    );
+
+                              } else if (data.status
+                                  .toString()
+                                  .contains("2,1")) {
+
+                                inTime =
+                                data.time!.split(",")[1];
+
+                                outTime =
+                                data.time!.split(",")[0];
+
+                                timeD =
+                                    attProvider.timeDifference(
+                                      "${data.createdTs!.split(",")[0]},"
+                                          "${data.createdTs!.split(",")[1]}",
+                                    );
+
+                              } else {
+
+                                inTime =
+                                data.time!.split(",")[0];
+
+                                timeD = "-";
+                              }
+
+                              // ✅ DATE FORMAT
+                              String timestamp =
+                              data.createdTs.toString();
+
+                              List<String> times =
+                              timestamp.split(',');
+
+                              DateTime startTime =
+                              DateTime.parse(times[0]);
+
+                              String createdBy =
+                              formatCreatedDate(startTime);
+
+                              String? prevCreatedBy;
+
+                              if (index != 0) {
+
+                                String timestamp =
+                                sortedData[index - 1]
+                                    .createdTs
+                                    .toString();
+
+                                List<String> times =
+                                timestamp.split(',');
+
+                                DateTime startTime =
+                                DateTime.parse(times[0]);
+
+                                prevCreatedBy =
+                                    formatCreatedDate(startTime);
+                              }
+
+                              final showDateHeader =
+                                  index == 0 ||
+                                      createdBy != prevCreatedBy;
+
+                              return Padding(
+
+                                padding: EdgeInsets.fromLTRB(
+                                  10,
+                                  10,
+                                  10,
+                                  index ==
+                                      filteredAttendance.length - 1
+                                      ? 30
+                                      : 0,
+                                ),
+
+                                child: Column(
+                                  children: [
+
+                                    if (showDateHeader)
+                                      CustomText(
+                                        text: createdBy,
+                                        colors: colorsConst.greyClr,
+                                        size: 12,
+                                      ),
+
+                                    AttendanceDetails(
+
+                                      showDate:
+                                      index == 0,
+
+                                      date:
+                                      data.date.toString(),
+
+                                      img:
+                                      data.image.toString(),
+
+                                      inTime: inTime,
+
+                                      outTime: outTime,
+
+                                      timeD: timeD,
+
+                                      name:
+                                      data.firstname.toString(),
+
+                                      role:
+                                      data.role.toString(),
+
+                                      callback: () {
+
+                                        utils.navigatePage(
+
+                                          context,
+
+                                              () => CheckLocation(
+
+                                            lat1:
+                                            lat[0].toString(),
+
+                                            long1:
+                                            lng[0].toString(),
+
+                                            lat2: data.status
+                                                .toString()
+                                                .contains("2")
+                                                ? lat[1].toString()
+                                                : "",
+
+                                            long2: data.status
+                                                .toString()
+                                                .contains("2")
+                                                ? lng[1].toString()
+                                                : "",
+                                          ),
+                                        );
+                                      },
+
+                                      perStatus:
+                                      data.perStatus.toString(),
+
+                                      perReason:
+                                      data.perReason.toString(),
+
+                                      perTime:
+                                      data.perTime.toString(),
+
+                                      perCreatedTs:
+                                      data.perCreatedTs.toString(),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            },
+                          );
+                        },
+                      ),
                     ),
                   ]
               ),

@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:master_code/component/custom_checkbox.dart';
 import 'package:master_code/component/map_dropdown.dart';
 import 'package:master_code/model/user_model.dart';
@@ -31,12 +32,14 @@ class ApplyLeave extends StatefulWidget {
 
 class _ApplyLeaveState extends State<ApplyLeave> {
   final FocusScopeNode _myFocusScopeNode = FocusScopeNode();
-
+  String stDate = "";
+  String enDate = "";
   @override
   void initState() {
     WidgetsBinding.instance.addPostFrameCallback((timeStamp){
       Provider.of<LeaveProvider >(context, listen: false).iniValues();
     });
+    stDate = DateFormat("dd-MM-yyyy").format(DateTime.now());
     super.initState();
   }
   @override
@@ -180,10 +183,9 @@ class _ApplyLeaveState extends State<ApplyLeave> {
                                     children: [
                                       5.width,
                                       CustomText(
-                                          text: "${levProvider.stDate}${levProvider
-                                              .enDate != ""
-                                              ? " To ${levProvider.enDate}"
-                                              : ""}"),
+                                        text: "${levProvider.stDate}"
+                                            "${levProvider.enDate != "" ? " To ${levProvider.enDate}" : ""}",
+                                      ),
                                     ],
                                   ),
                                 )),
@@ -240,7 +242,13 @@ class _ApplyLeaveState extends State<ApplyLeave> {
                                   utils.showWarningToast(context,
                                       text: "Select Leave Type");
                                   levProvider.leaveCtr.reset();
-                                } else if (levProvider.reason.text.trim().isEmpty) {
+                                }
+                                else if (levProvider.stDate == null && levProvider.stDate.isEmpty) {
+                                  utils.showWarningToast(context,
+                                      text: "Select Leave Date");
+                                  levProvider.leaveCtr.reset();
+                                }
+                                else if (levProvider.reason.text.trim().isEmpty) {
                                   utils.showWarningToast(context,
                                       text: "Please Fill Reason");
                                   levProvider.leaveCtr.reset();

@@ -986,31 +986,78 @@ class _ViewMyLeavesState extends State<ViewMyLeaves> {
     final double allowed = double.tryParse(data.leaveAllowed ?? "0") ?? 0;
     final double taken = double.tryParse(data.leaveTaken ?? "0") ?? 0;
     String displayDate;
-    double leaveDays = 0;
+
+
+
+    num leaveDays = 0;
 
     if (data.dayType.toString() == "0.5") {
+
       leaveDays = 0.5;
+
     } else {
+
       if (end != null) {
+
         DateTime current = start;
+
         while (!current.isAfter(end)) {
+
           if (current.weekday != DateTime.sunday) {
             leaveDays += 1;
           }
-          current = current.add(const Duration(days: 1));
+
+          current = current.add(
+            const Duration(days: 1),
+          );
         }
+
       } else {
+
         if (start.weekday != DateTime.sunday) {
           leaveDays = 1;
         }
       }
     }
 
+// ✅ FINAL VALUE
+    final leaveDaysValue =
+    leaveDays % 1 == 0
+        ? leaveDays.toInt()
+        : leaveDays;
+
+    print(leaveDaysValue);
+
+// ✅ REMOVE .0
+    String leaveDaysText =
+    leaveDays % 1 == 0
+        ? leaveDays.toInt().toString()
+        : leaveDays.toString();
+
+    print(leaveDaysText);
+
     if (end != null) {
-      displayDate =
-      "${DateFormat('dd MMM').format(start)} - ${DateFormat('dd MMM').format(end)}";
+
+      // ✅ Same Date
+      if (start.year == end.year &&
+          start.month == end.month &&
+          start.day == end.day) {
+
+        displayDate =
+            DateFormat('dd-MM-yyyy').format(start);
+
+      } else {
+
+        // ✅ Different Dates
+        displayDate =
+        "${DateFormat('dd-MM-yyyy').format(start)} - "
+            "${DateFormat('dd-MM-yyyy').format(end)}";
+      }
+
     } else {
-      displayDate = DateFormat('EEE, dd MMM').format(start);
+
+      displayDate =
+          DateFormat('dd-MM-yyyy').format(start);
     }
 
     return Container(
