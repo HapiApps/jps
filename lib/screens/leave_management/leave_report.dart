@@ -1193,10 +1193,12 @@ class _ViewMyLeavesState extends State<ViewMyLeaves> {
     size: 13,
     isBold: true,
     ),
-    CustomText(
-    text: allowed.toString(),
-    size: 13,
-    colors: const Color(0xff7E7E7E),
+      CustomText(
+        text: taken % 1 == 0
+            ? taken.toInt().toString()
+            : taken.toString(),
+        size: 13,
+        colors: const Color(0xff7E7E7E),
     ),
     ],
     ),
@@ -1208,10 +1210,11 @@ class _ViewMyLeavesState extends State<ViewMyLeaves> {
     isBold: true,
     ),
     CustomText(
-    text: taken.toString(),
+    text: taken % 1 == 0
+    ? taken.toInt().toString()
+        : taken.toString(),
     size: 13,
-    colors: const Color(0xff7E7E7E),
-    ),
+    colors: const Color(0xff7E7E7E),),
     ],
     ),
     ],
