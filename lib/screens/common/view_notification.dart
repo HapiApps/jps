@@ -582,20 +582,20 @@ class _ViewNotificationState extends State<ViewNotification> with SingleTickerPr
                                           text: TextSpan(
                                             children: [
                                               TextSpan(
-                                                text: type=="Feedback"?"Feedback sent by ":type=="Leave"?"Leave Applied by ":"Created by ",
+                                                text: type=="Feedback"?"Feedback sent  ":type=="Leave"?"Leave Applied  ":"Created  ",
                                                 style: TextStyle(
                                                   fontSize: 12,
                                                   color: Color(0xffA80007),
                                                 ),
                                               ),
-                                              TextSpan(
-                                                text: createdBy=="null"?"Admin":createdBy,
-                                                style: const TextStyle(
-                                                  fontSize: 14,
-                                                  fontWeight: FontWeight.w600,
-                                                  color: Color(0xffA80007),
-                                                ),
-                                              ),
+                                              // TextSpan(
+                                              //   text: createdBy=="null"?"Admin":createdBy,
+                                              //   style: const TextStyle(
+                                              //     fontSize: 14,
+                                              //     fontWeight: FontWeight.w600,
+                                              //     color: Color(0xffA80007),
+                                              //   ),
+                                              // ),
                                             ],
                                           ),
                                         ),

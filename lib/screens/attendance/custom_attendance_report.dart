@@ -60,29 +60,29 @@ class _CustomAttendanceReportState extends State<CustomAttendanceReport> {
             ),
             body: GestureDetector(
               behavior: HitTestBehavior.opaque,
-              onHorizontalDragEnd: (details) {
-                if (details.primaryVelocity == null) return;
-
-                // Swipe Left (next month)
-                if (details.primaryVelocity! < 0) {
-                  attProvider.decreaseMonth(widget.userId, "0", false);
-                }
-
-                // Swipe Right (previous month)
-                else if (details.primaryVelocity! > 0) {
-                  attProvider.increaseMonth(widget.userId, "0", false);
-                }
-              },
-              onTapDown: (TapDownDetails details) {
-                final screenWidth = MediaQuery.of(context).size.width;
-                double dx = details.globalPosition.dx;
-
-                if (dx < screenWidth / 2) {
-                  attProvider.decreaseMonth(widget.userId, "0", false);
-                } else {
-                  attProvider.increaseMonth(widget.userId, "0", false);
-                }
-              },
+              // onHorizontalDragEnd: (details) {
+              //   if (details.primaryVelocity == null) return;
+              //
+              //   // Swipe Left (next month)
+              //   if (details.primaryVelocity! < 0) {
+              //     attProvider.decreaseMonth(widget.userId, "0", false);
+              //   }
+              //
+              //   // Swipe Right (previous month)
+              //   else if (details.primaryVelocity! > 0) {
+              //     attProvider.increaseMonth(widget.userId, "0", false);
+              //   }
+              // },
+              // onTapDown: (TapDownDetails details) {
+              //   final screenWidth = MediaQuery.of(context).size.width;
+              //   double dx = details.globalPosition.dx;
+              //
+              //   if (dx < screenWidth / 2) {
+              //     attProvider.decreaseMonth(widget.userId, "0", false);
+              //   } else {
+              //     attProvider.increaseMonth(widget.userId, "0", false);
+              //   }
+              // },
               child: Center(
                 child: SizedBox(
                   width: kIsWeb?webWidth:phoneWidth,

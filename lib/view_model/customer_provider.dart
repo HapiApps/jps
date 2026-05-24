@@ -2968,8 +2968,8 @@ List<Marker> get liveMarker =>_liveMarker;
     enDt=DateTime.now();
     _startDate = DateFormat('dd-MM-yyyy').format(stDt);
     _endDate = DateFormat('dd-MM-yyyy').format(enDt);
-    getVisitReport(context);
-    getEmpWiseReport(context);
+   // getVisitReport(context);
+   // getEmpWiseReport(context);
     notifyListeners();
   }
   void yesterdayVisit(BuildContext context) {
@@ -2977,8 +2977,8 @@ List<Marker> get liveMarker =>_liveMarker;
     enDt=DateTime.now().subtract(const Duration(days: 1));
     _startDate = DateFormat('dd-MM-yyyy').format(stDt);
     _endDate = DateFormat('dd-MM-yyyy').format(enDt);
-    getVisitReport(context);
-    getEmpWiseReport(context);
+    // getVisitReport(context);
+    // getEmpWiseReport(context);
     notifyListeners();
   }
   void last7DaysVisit(BuildContext context) {
@@ -2987,8 +2987,8 @@ List<Marker> get liveMarker =>_liveMarker;
     DateTime lastWeekEnd = now.add(const Duration(days: 1));
     _startDate = DateFormat('dd-MM-yyyy').format(lastWeekStart);
     _endDate = DateFormat('dd-MM-yyyy').format(lastWeekEnd);
-    getVisitReport(context);
-    getEmpWiseReport(context);
+    // getVisitReport(context);
+    // getEmpWiseReport(context);
     notifyListeners();
   }
   void last30DaysVisit(BuildContext context) {
@@ -2997,8 +2997,8 @@ List<Marker> get liveMarker =>_liveMarker;
     DateTime lastMonthEnd = now.add(const Duration(days: 1));
     _startDate = DateFormat('dd-MM-yyyy').format(lastMonthStart);
     _endDate = DateFormat('dd-MM-yyyy').format(lastMonthEnd);
-    getVisitReport(context);
-    getEmpWiseReport(context);
+    // getVisitReport(context);
+    // getEmpWiseReport(context);
     notifyListeners();
   }
   void thisWeekVisit(BuildContext context) {
@@ -3008,8 +3008,8 @@ List<Marker> get liveMarker =>_liveMarker;
     DateTime enDt = now.add(Duration(days: 7 - currentWeekday));
     _startDate = DateFormat('dd-MM-yyyy').format(stDt);
     _endDate = DateFormat('dd-MM-yyyy').format(enDt);
-    getVisitReport(context);
-    getEmpWiseReport(context);
+    // getVisitReport(context);
+    // getEmpWiseReport(context);
     notifyListeners();
   }
   void thisMonthVisit(BuildContext context) {
@@ -3018,8 +3018,8 @@ List<Marker> get liveMarker =>_liveMarker;
     enDt = DateTime(now.year, now.month + 1, 0);
     _startDate = DateFormat('dd-MM-yyyy').format(stDt);
     _endDate = DateFormat('dd-MM-yyyy').format(enDt);
-    getVisitReport(context);
-    getEmpWiseReport(context);
+    // getVisitReport(context);
+    // getEmpWiseReport(context);
     notifyListeners();
   }
   void last3MonthVisit(BuildContext context) {
@@ -3031,8 +3031,8 @@ List<Marker> get liveMarker =>_liveMarker;
 
     _startDate = DateFormat('dd-MM-yyyy').format(stDt);
     _endDate = DateFormat('dd-MM-yyyy').format(enDt);
-    getVisitReport(context);
-    getEmpWiseReport(context);
+    // getVisitReport(context);
+    // getEmpWiseReport(context);
     notifyListeners();
   }
   void lastMonthVisit(BuildContext context) {
@@ -3043,8 +3043,8 @@ List<Marker> get liveMarker =>_liveMarker;
     enDt = DateTime(enDt.year, enDt.month - 1, 1);
     _startDate = DateFormat('dd-MM-yyyy').format(stDt);
     _endDate = DateFormat('dd-MM-yyyy').format(DateTime(enDt.year, enDt.month + 1, 0));
-    getVisitReport(context);
-    getEmpWiseReport(context);
+    // getVisitReport(context);
+    // getEmpWiseReport(context);
     notifyListeners();
   }
   Future<void> getVisitReport(BuildContext context) async {

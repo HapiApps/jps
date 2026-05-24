@@ -2293,7 +2293,7 @@ void changeStatus(bool value){
     enDt=DateTime.now().add(const Duration(days: 1));
     _startDate = DateFormat('dd-MM-yyyy').format(stDt);
     _endDate = DateFormat('dd-MM-yyyy').format(stDt);
-    getLeaveReport(_filter);
+    //getLeaveReport(_filter);
     notifyListeners();
   }
   void yesterday(String id ,String role,bool? isRefresh) {
@@ -2301,7 +2301,7 @@ void changeStatus(bool value){
     enDt = DateTime.now();
     _startDate = DateFormat('dd-MM-yyyy').format(stDt);
     _endDate = DateFormat('dd-MM-yyyy').format(stDt);
-    getLeaveReport(_filter);
+   // getLeaveReport(_filter);
     notifyListeners();
   }
   void last7Days(String id ,String role,bool? isRefresh) {
@@ -2310,7 +2310,7 @@ void changeStatus(bool value){
     DateTime lastWeekEnd = now;
     _startDate = DateFormat('dd-MM-yyyy').format(lastWeekStart);
     _endDate = DateFormat('dd-MM-yyyy').format(lastWeekEnd);
-    getLeaveReport(_filter);
+   // getLeaveReport(_filter);
     notifyListeners();
   }
   void last30Days(String id ,String role,bool? isRefresh) {
@@ -2319,7 +2319,7 @@ void changeStatus(bool value){
     DateTime lastMonthEnd = now;
     _startDate = DateFormat('dd-MM-yyyy').format(lastMonthStart);
     _endDate = DateFormat('dd-MM-yyyy').format(lastMonthEnd);
-    getLeaveReport(_filter);
+   // getLeaveReport(_filter);
     notifyListeners();
   }
   void thisWeek(String id ,String role,bool? isRefresh) {
@@ -2329,7 +2329,7 @@ void changeStatus(bool value){
     DateTime enDt = now.add(Duration(days: 7 - currentWeekday));
     _startDate = DateFormat('dd-MM-yyyy').format(stDt);
     _endDate = DateFormat('dd-MM-yyyy').format(enDt);
-    getLeaveReport(_filter);
+   // getLeaveReport(_filter);
     notifyListeners();
   }
   void thisMonth(String id ,String role,bool? isRefresh) {
@@ -2338,7 +2338,7 @@ void changeStatus(bool value){
     enDt = now; // Today’s date
     _startDate = DateFormat('dd-MM-yyyy').format(stDt);
     _endDate = DateFormat('dd-MM-yyyy').format(enDt);
-    getLeaveReport(_filter);
+   // getLeaveReport(_filter);
     notifyListeners();
   }
   void last3Month(String id ,String role,bool? isRefresh) {
@@ -2350,7 +2350,7 @@ void changeStatus(bool value){
 
     _startDate = DateFormat('dd-MM-yyyy').format(stDt);
     _endDate = DateFormat('dd-MM-yyyy').format(enDt);
-    getLeaveReport(_filter);
+   // getLeaveReport(_filter);
     notifyListeners();
   }
 
