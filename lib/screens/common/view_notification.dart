@@ -86,11 +86,9 @@ class _ViewNotificationState extends State<ViewNotification> with SingleTickerPr
                           child: TextFormField(
                             cursorColor: colorsConst.primary,
                             onChanged: (value) {
-                              setState(() {
-                                empProvider.searchName = value;
-                                empProvider.applyNotificationFilters();
-                              });
-                              },
+                              empProvider.searchName = value;
+                              empProvider.applyNotificationFilters();
+                            },
                             textInputAction: TextInputAction.done,
                             controller: empProvider.search,
                             decoration: InputDecoration(
@@ -342,6 +340,7 @@ class _ViewNotificationState extends State<ViewNotification> with SingleTickerPr
                                                     text: 'Apply Filters',
                                                     callback: () {
                                                       empProvider.initFilterValue(false);
+                                                      empProvider.getNotifications();
                                                       // empProvider.filterList();
                                                       Navigator.of(context, rootNavigator: true).pop();
                                                     },
@@ -588,14 +587,14 @@ class _ViewNotificationState extends State<ViewNotification> with SingleTickerPr
                                                   color: Color(0xffA80007),
                                                 ),
                                               ),
-                                              // TextSpan(
-                                              //   text: createdBy=="null"?"Admin":createdBy,
-                                              //   style: const TextStyle(
-                                              //     fontSize: 14,
-                                              //     fontWeight: FontWeight.w600,
-                                              //     color: Color(0xffA80007),
-                                              //   ),
-                                              // ),
+                                              TextSpan(
+                                                text: createdBy=="null"?"Admin":createdBy,
+                                                style: const TextStyle(
+                                                  fontSize: 14,
+                                                  fontWeight: FontWeight.w600,
+                                                  color: Color(0xffA80007),
+                                                ),
+                                              ),
                                             ],
                                           ),
                                         ),

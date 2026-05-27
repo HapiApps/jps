@@ -1081,7 +1081,7 @@ class _HomePageState extends State<HomePage> {
                                         AttendanceItem(
                                           title: "On-Leave",
                                           onClick: (){
-                                            if(homeProvider.mainReportList.isNotEmpty&&(homeProvider.mainReportList[0]["leave_user"].toString()!="0"||homeProvider.mainReportList[0]["leave_user"].toString()!="0")){
+                                            if(homeProvider.mainReportList.isNotEmpty&&(homeProvider.mainReportList[0]["fulldayleave_user"].toString()!="0"||homeProvider.mainReportList[0]["fulldayleave_user"].toString()!="0")){
                                               // homeProvider.updateIndex(11);
                                               // utils.navigatePage(context, ()=> DashBoard(child: ViewMyLeaves(date1:homeProvider.startDate,date2:homeProvider.endDate,isDirect: true)));
                                               homeProvider.updateIndex(4);
@@ -1090,7 +1090,7 @@ class _HomePageState extends State<HomePage> {
                                               utils.showWarningToast(context, text: "No on leave employee found");
                                             }
                                           },
-                                          count: homeProvider.mainReportList.isEmpty?"0":"${int.parse(homeProvider.mainReportList[0]["leave_user"].toString()=="null"?"0":homeProvider.mainReportList[0]["leave_user"].toString())+int.parse(homeProvider.mainReportList[0]["sessionleave_user"].toString() =="null"?"0":homeProvider.mainReportList[0]["sessionleave_user"].toString())}",
+                                          count: homeProvider.mainReportList.isEmpty?"0":"${int.parse(homeProvider.mainReportList[0]["fulldayleave_user"].toString()=="null"?"0":homeProvider.mainReportList[0]["fulldayleave_user"].toString())+int.parse(homeProvider.mainReportList[0]["sessionleave_user"].toString() =="null"?"0":homeProvider.mainReportList[0]["sessionleave_user"].toString())}",
                                          // count: leaPro.myLevSearch.toString().isEmpty?"0":leaPro.myLevSearch.length.toString(),
                                           bgColor: Color(0xFFE3F2FD),
                                           borderColor: ColorsConst.onLeave,

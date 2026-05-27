@@ -583,6 +583,7 @@ void daily() {
   enDt=DateTime.now().add(const Duration(days: 1));
   _startDate = DateFormat('dd-MM-yyyy').format(stDt);
   _endDate = DateFormat('dd-MM-yyyy').format(stDt);
+
   notifyListeners();
 }
 void yesterday() {
@@ -1632,41 +1633,79 @@ Future<void> getUserLogs(String id) async {
 
 
   void applyNotificationFilters() {
+
     filteredNotifyData = notifyData.where((item) {
 
-      // ---------------- SEARCH FILTER ----------------
-      final searchMatch = searchName.isEmpty ||
-          (item["firstname"] ?? "")
-              .toString()
-              .toLowerCase()
-              .contains(searchName.toLowerCase());
+      /// ---------------- SEARCH FILTER ----------------
+      final firstName =
+      (item["firstname"] ?? "")
+          .toString()
+          .trim()
+          .toLowerCase();
 
-      // ---------------- DATE FILTER ----------------
+      final searchText =
+      searchName
+          .trim()
+          .toLowerCase();
+
+      final searchMatch =
+          searchText.isEmpty ||
+              firstName.contains(searchText);
+
+      /// ---------------- DATE FILTER ----------------
       bool dateMatch = true;
-      if (startDate.isNotEmpty && endDate.isNotEmpty) {
-        final df = DateFormat("dd-MM-yyyy");
 
-        DateTime from = df.parse(startDate);
-        DateTime to = df.parse(endDate);
+      if (startDate.isNotEmpty &&
+          endDate.isNotEmpty) {
 
-        DateTime createdTs = DateTime.parse(item["created_ts"].toString());
+        final df =
+        DateFormat("dd-MM-yyyy");
+
+        DateTime from =
+        df.parse(startDate);
+
+        DateTime to =
+        df.parse(endDate);
+
+        DateTime createdTs =
+        DateTime.parse(
+            item["created_ts"]
+                .toString());
+
         DateTime createdOnly =
-        DateTime(createdTs.year, createdTs.month, createdTs.day);
+        DateTime(
+          createdTs.year,
+          createdTs.month,
+          createdTs.day,
+        );
 
         dateMatch =
-            !createdOnly.isBefore(from) && !createdOnly.isAfter(to);
+            !createdOnly.isBefore(from) &&
+                !createdOnly.isAfter(to);
       }
 
-      // ---------------- EMPLOYEE FILTER ----------------
-      final employeeMatch = userName.isEmpty ||
-          (item["firstname"] ?? "").toString().toLowerCase() ==
-              userName.toLowerCase();
+      /// ---------------- EMPLOYEE FILTER ----------------
+      final selectedUser =
+      userName
+          .trim()
+          .toLowerCase();
 
-      return searchMatch && dateMatch && employeeMatch;
+      final employeeMatch =
+          selectedUser.isEmpty ||
+              firstName == selectedUser;
+
+      return searchMatch &&
+          dateMatch &&
+          employeeMatch;
+
     }).toList();
 
-    // chip show condition
-    _filter = searchName.isNotEmpty || userName.isNotEmpty || (startDate.isNotEmpty && endDate.isNotEmpty);
+    /// ---------------- FILTER CHIP ----------------
+    _filter =
+        searchName.isNotEmpty ||
+            userName.isNotEmpty ||
+            (startDate.isNotEmpty &&
+                endDate.isNotEmpty);
 
     notifyListeners();
   }
@@ -1738,6 +1777,8 @@ Future<void> getNotifications({bool markSeen = false}) async {
       "action": getAllData,
       "search_type": "notifications",
       "cos_id":localData.storage.read("cos_id"),
+      "date1":_startDate,
+       "date2":_endDate,
       "id":localData.storage.read("id"),
     };
 
@@ -1773,6 +1814,7 @@ Future<void> getNotifications({bool markSeen = false}) async {
       "msgTittle": msgTittle,
       "msgBody": msgBody,
       "role": role,
+      "created_by":safeStr(localData.storage.read("id")),
       "send_by": safeStr(localData.storage.read("id")),
       "type": "1",
       "platform": safeStr(localData.storage.read("platform")),
@@ -1813,6 +1855,7 @@ Future<void> getNotifications({bool markSeen = false}) async {
         "msgTittle": msgTittle,
         "msgBody": msgBody,
         "send_by": loginId,
+        "created_by":safeStr(localData.storage.read("id")),
         "id": filteredId,
         "platform": safeStr(localData.storage.read("platform")),
         "purpose_id": purposeId.isNotEmpty ? purposeId : "0",
@@ -1854,6 +1897,7 @@ Future<void> getNotifications({bool markSeen = false}) async {
         "msgTittle": msgTittle,
         "msgBody": msgBody,
         "send_by": id,
+        "created_by":safeStr(localData.storage.read("id")),
         "id": id,
         "platform": safeStr(localData.storage.read("platform")),
         "purpose_id": purposeId.isNotEmpty ? purposeId : "0",
@@ -1882,6 +1926,7 @@ Future<void> getNotifications({bool markSeen = false}) async {
       "msgBody": msgBody,
       "role": role.isEmpty?safeStr(localData.storage.read("role")):role,
       "send_by": safeStr(localData.storage.read("id")),
+      "created_by":safeStr(localData.storage.read("id")),
       "id": assignedId.isEmpty?safeStr(localData.storage.read("id").toString()):assignedId.toString(),
       "type": "1",
       "platform": safeStr(localData.storage.read("platform")),
@@ -1909,6 +1954,7 @@ Future<void> getNotifications({bool markSeen = false}) async {
         "action": userNotification,
         "msgTittle": msgTittle,
         "msgBody": msgBody,
+        "created_by":safeStr(localData.storage.read("id")),
         "send_by": safeStr(localData.storage.read("id")),
         "id": id,
         "platform": safeStr(localData.storage.read("platform")),
