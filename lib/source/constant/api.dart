@@ -1,5 +1,5 @@
- // const String domain="https://aci.hrides.in"; //pro
- const String domain="https://thirumald.hapirides.in";  //dev
+const String domain="https://aci.hrides.in"; //pro
+  //const String domain="https://thirumald.hapirides.in";  //dev
 
 const String path="ACI";
 const String scriptFile="script.php";
@@ -92,6 +92,7 @@ const String roleNotification="role_notification";
 const String userNotification="user_notification";
 const String someUserNotification="some_user_notification";
 const String adminNotification="admin_notification";
+const String seenNotification="update_read_notification";
 
 
 /// PROJECT

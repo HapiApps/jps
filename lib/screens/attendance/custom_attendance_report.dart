@@ -108,41 +108,113 @@ class _CustomAttendanceReportState extends State<CustomAttendanceReport> {
                               itemBuilder: (context, index) {
                                 final sortedData = attProvider.getUserAttendance;
                                 AttendanceModel data = attProvider.getUserAttendance[index];
-                                var inTime = "",outTime = "-",timeD = "-";
-                                var lat = data.lats.toString().split(",");
-                                var lng = data.lngs.toString().split(",");
+
+                                var inTime = "";
+                                var outTime = "-";
+                                var timeD = "-";
+
+// Safe lat/lng
+                                final lat = (data.lats ?? "")
+                                    .toString()
+                                    .trim()
+                                    .isEmpty
+                                    ? <String>[]
+                                    : data.lats
+                                    .toString()
+                                    .split(',')
+                                    .where((e) => e.trim().isNotEmpty)
+                                    .toList();
+
+                                final lng = (data.lngs ?? "")
+                                    .toString()
+                                    .trim()
+                                    .isEmpty
+                                    ? <String>[]
+                                    : data.lngs
+                                    .toString()
+                                    .split(',')
+                                    .where((e) => e.trim().isNotEmpty)
+                                    .toList();
+
+// Safe time split
+                                final timeList = (data.time ?? "")
+                                    .split(',')
+                                    .where((e) => e.trim().isNotEmpty)
+                                    .toList();
+
                                 if (data.status.toString().contains("1,2")) {
-                                  inTime = data.time!.split(",")[0];
-                                  outTime = data.time!.split(",")[1];
-                                  timeD=attProvider.timeDifference("$inTime,$outTime");
-                                }else if (data.status.toString().contains("2,1")) {
-                                  inTime = data.time!.split(",")[1];
-                                  outTime = data.time!.split(",")[0];
-                                  timeD=attProvider.timeDifference("$inTime,$outTime");
-                                }else {
-                                  inTime = data.time!.split(",")[0];
-                                  timeD="-";
+                                  inTime = timeList.isNotEmpty ? timeList[0] : "";
+                                  outTime = timeList.length > 1 ? timeList[1] : "-";
+
+                                  if (outTime != "-") {
+                                    timeD = attProvider.timeDifference("$inTime,$outTime");
+                                  }
+                                } else if (data.status.toString().contains("2,1")) {
+                                  inTime = timeList.length > 1 ? timeList[1] : "";
+                                  outTime = timeList.isNotEmpty ? timeList[0] : "-";
+
+                                  if (inTime.isNotEmpty && outTime != "-") {
+                                    timeD = attProvider.timeDifference("$inTime,$outTime");
+                                  }
+                                } else {
+                                  inTime = timeList.isNotEmpty ? timeList[0] : "";
+                                  outTime = "-";
+                                  timeD = "-";
                                 }
-                                var perCreatedTsList=data.perCreatedTs.toString().split(',');
-                                var perStatusList=data.perStatus.toString().split(',');
-                                var perReasonList=data.perReason.toString().split(',');
-                                var perTimeList=data.perTime.toString().split(',');
-                                List chunked = [];
-                                if(data.perTime.toString()!="null"&&data.perTime.toString()!=""){
-                                  for (var i = 0; i < perTimeList.length; i += 2) {
-                                    String inTime = perTimeList[i];
-                                    String outTime = (i + 1 < perTimeList.length) ? perTimeList[i + 1] : ""; // fallback
 
-                                    String inTs = perCreatedTsList[i];
-                                    String outTs = (i + 1 < perCreatedTsList.length) ? perCreatedTsList[i + 1] : "";
+// Safe Permission Lists
+                                final perCreatedTsList =
+                                (data.perCreatedTs?.toString() ?? "")
+                                    .split(',')
+                                    .where((e) => e.trim().isNotEmpty)
+                                    .toList();
 
+                                final perStatusList =
+                                (data.perStatus?.toString() ?? "")
+                                    .split(',')
+                                    .where((e) => e.trim().isNotEmpty)
+                                    .toList();
+
+                                final perReasonList =
+                                (data.perReason?.toString() ?? "")
+                                    .split(',')
+                                    .where((e) => e.trim().isNotEmpty)
+                                    .toList();
+
+                                final perTimeList =
+                                (data.perTime?.toString() ?? "")
+                                    .split(',')
+                                    .where((e) => e.trim().isNotEmpty)
+                                    .toList();
+
+                                List<Map<String, dynamic>> chunked = [];
+
+                                if (perTimeList.isNotEmpty) {
+                                  for (int i = 0; i < perTimeList.length; i += 2) {
                                     chunked.add({
-                                      "in": inTime,
-                                      "out": outTime,
-                                      "reason": perReasonList[i],
-                                      "status": perStatusList[i],
-                                      "in_ts": inTs,
-                                      "out_ts": outTs
+                                      "in": i < perTimeList.length
+                                          ? perTimeList[i]
+                                          : "",
+
+                                      "out": (i + 1) < perTimeList.length
+                                          ? perTimeList[i + 1]
+                                          : "",
+
+                                      "reason": i < perReasonList.length
+                                          ? perReasonList[i]
+                                          : "",
+
+                                      "status": i < perStatusList.length
+                                          ? perStatusList[i]
+                                          : "",
+
+                                      "in_ts": i < perCreatedTsList.length
+                                          ? perCreatedTsList[i]
+                                          : "",
+
+                                      "out_ts": (i + 1) < perCreatedTsList.length
+                                          ? perCreatedTsList[i + 1]
+                                          : "",
                                     });
                                   }
                                 }
@@ -182,14 +254,17 @@ class _CustomAttendanceReportState extends State<CustomAttendanceReport> {
                                                         children: [
                                                           CustomText(text: inTime,size: 11,),
                                                           GestureDetector(
-                                                            onTap: (){
-                                                              utils.navigatePage(context, ()=>CheckLocation(
-                                                                  lat1: lat[0].toString(),
-                                                                  long1: lng[0].toString(),
-                                                                  lat2: data.status.toString().contains("2")? lat[1].toString(): "",
-                                                                  long2: data.status.toString().contains("2")? lng[1].toString(): ""
-                                                              ));
-                                                            },
+                                                              onTap: () {
+                                                                utils.navigatePage(
+                                                                  context,
+                                                                      () => CheckLocation(
+                                                                    lat1: lat.isNotEmpty ? lat[0] : "",
+                                                                    long1: lng.isNotEmpty ? lng[0] : "",
+                                                                    lat2: lat.length > 1 ? lat[1] : "",
+                                                                    long2: lng.length > 1 ? lng[1] : "",
+                                                                  ),
+                                                                );
+                                                              },
                                                               child: SvgPicture.asset(assets.map,width: 13,height: 13,)),
                                                         ],
                                                       ),
@@ -210,15 +285,23 @@ class _CustomAttendanceReportState extends State<CustomAttendanceReport> {
                                                           CustomText(text: outTime.toString(),size: 11),
                                                           if(outTime.toString()!="-")
                                                             GestureDetector(
-                                                                onTap: (){
-                                                                  utils.navigatePage(context, ()=>CheckLocation(
-                                                                      lat1: lat[0].toString(),
-                                                                      long1: lng[0].toString(),
-                                                                      lat2: data.status.toString().contains("2")? lat[1].toString(): "",
-                                                                      long2: data.status.toString().contains("2")? lng[1].toString(): ""
-                                                                  ));
-                                                                },
-                                                                child: SvgPicture.asset(assets.map,width: 13,height: 13)),
+                                                              onTap: () {
+                                                                utils.navigatePage(
+                                                                  context,
+                                                                      () => CheckLocation(
+                                                                    lat1: lat.isNotEmpty ? lat[0] : "",
+                                                                    long1: lng.isNotEmpty ? lng[0] : "",
+                                                                    lat2: lat.length > 1 ? lat[1] : "",
+                                                                    long2: lng.length > 1 ? lng[1] : "",
+                                                                  ),
+                                                                );
+                                                              },
+                                                              child: SvgPicture.asset(
+                                                                assets.map,
+                                                                width: 13,
+                                                                height: 13,
+                                                              ),
+                                                            ),
                                                         ],
                                                       ),
                                                     ],

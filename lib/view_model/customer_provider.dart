@@ -2079,17 +2079,13 @@ TextEditingController date= TextEditingController(text: "${DateTime.now().day.to
 
         /// 🔥 REFRESH DATA
         getAllCustomers(false);
+        getVisitReport(context);
+        getEmpWiseReport(context);
 
         Provider.of<HomeProvider>(context, listen: false)
             .loadFullDashboard(context);
-
-        // Provider.of<HomeProvider>(context, listen: false)
-        //     .getDashboardReport(true);
-
         callBack();
-
         addCtr.reset();
-
         notifyListeners();
 
       } else {

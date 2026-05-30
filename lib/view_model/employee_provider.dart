@@ -1787,10 +1787,6 @@ Future<void> getNotifications({bool markSeen = false}) async {
       _notifyData=response;
       notifyListeners();
       print("notification In calculateUnreadCount");
-      await calculateUnreadCount();
-      if (markSeen) {
-        await markNotificationsAsSeen();
-      }
       _refresh=true;
     } else {
       _notifyData=[];
@@ -2169,4 +2165,21 @@ void searchUser(String value){
   }
   notifyListeners();
 }
+  Future<void> markNotificationsSeen() async {
+    try {
+      Map data = {
+        "action":seenNotification,
+        "user_id": localData.storage.read("id").toString(),
+      };
+
+      final response =
+      await empRepo.markNotificationsAsRead(data);
+
+      if (response.isNotEmpty) {
+        log("Notifications marked as read");
+      }
+    } catch (e) {
+      log(e.toString());
+    }
+  }
 }

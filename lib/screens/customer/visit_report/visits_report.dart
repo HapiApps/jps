@@ -757,7 +757,6 @@ class _VisitReportState extends State<VisitReport> with SingleTickerProviderStat
                                                       milliseconds:
                                                       300),
                                                       () {
-
                                                     custProvider
                                                         .getVisitReport(
                                                         context);

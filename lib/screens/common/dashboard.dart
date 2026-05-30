@@ -321,16 +321,39 @@ class _DashBoardState extends State<DashBoard> {
                     20.width,
 
                     /// Notification with Badge
-                    Consumer<EmployeeProvider>(
-                      builder: (context, emp, _) {
+                    Consumer<HomeProvider>(
+                      builder: (context, homeProvider, _) {
+
+                        final totalUsers = int.tryParse(
+                          homeProvider.mainReportList.isNotEmpty
+                              ? homeProvider.mainReportList[0]["unread_notification_count"]
+                              .toString()
+                              : "0",
+                        ) ??
+                            0;
+
                         return Stack(
                           children: [
                             InkWell(
-                              onTap: () {
-                                utils.navigatePage(
+                              onTap: () async {
+
+                                // ✅ Badge instant-a 0 aagum
+                                if (homeProvider.mainReportList.isNotEmpty) {
+                                  homeProvider.mainReportList[0]["unread_notification_count"] = "0";
+                                  homeProvider.notifyListeners();
+                                }
+
+                                await Navigator.push(
                                   context,
-                                      () => const DashBoard(child: ViewNotification()),
+                                  MaterialPageRoute(
+                                    builder: (_) =>
+                                    const DashBoard(child: ViewNotification()),
+                                  ),
                                 );
+
+                                // ✅ Notification page lendhu back vandha
+                                // dashboard count refresh
+                                await homeProvider.loadFullDashboard(context);
                               },
                               child: SvgPicture.asset(
                                 assets.not,
@@ -340,23 +363,28 @@ class _DashBoardState extends State<DashBoard> {
                               ),
                             ),
 
-                            if (emp.unreadCount > 0)
+                            if (totalUsers > 0)
                               Positioned(
                                 right: 0,
                                 top: 0,
-
                                 child: Container(
-                                  padding: const EdgeInsets.all(5),
+                                  padding: const EdgeInsets.all(3),
                                   decoration: const BoxDecoration(
                                     color: Colors.white,
                                     shape: BoxShape.circle,
                                   ),
-                                  child: Text(
-                                    emp.unreadCount.toString(),
-                                    style:  TextStyle(
-                                      color: Colors.blue.shade900,
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.bold,
+                                  constraints: const BoxConstraints(
+                                    minWidth: 18,
+                                    minHeight: 18,
+                                  ),
+                                  child: Center(
+                                    child: Text(
+                                      totalUsers.toString(),
+                                      style: TextStyle(
+                                        color: Colors.blue.shade900,
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.bold,
+                                      ),
                                     ),
                                   ),
                                 ),
