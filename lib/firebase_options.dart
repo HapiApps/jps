@@ -64,7 +64,7 @@ class DefaultFirebaseOptions {
     messagingSenderId: '574438658911',
     projectId: 'aci-automation-21bb9',
     storageBucket: 'aci-automation-21bb9.firebasestorage.app',
-    iosBundleId: 'com.example.masterCode',
+    iosBundleId: 'com.hapiapps.jains',
   );
 
   static const FirebaseOptions macos = FirebaseOptions(
@@ -73,7 +73,7 @@ class DefaultFirebaseOptions {
     messagingSenderId: '574438658911',
     projectId: 'aci-automation-21bb9',
     storageBucket: 'aci-automation-21bb9.firebasestorage.app',
-    iosBundleId: 'com.example.masterCode',
+    iosBundleId: 'com.hapiapps.jains',
   );
 
   static const FirebaseOptions windows = FirebaseOptions(
