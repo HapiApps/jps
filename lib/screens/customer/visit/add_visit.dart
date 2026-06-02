@@ -702,7 +702,7 @@ class _CusAddVisitState extends State<CusAddVisit>
 
                                 _myFocusScopeNode.unfocus();
 
-                                await custProvider.addVisit(
+                                final result = await custProvider.addVisit(
                                   context: context,
                                   companyId: widget.isDirect == true
                                       ? companyId
@@ -711,7 +711,7 @@ class _CusAddVisitState extends State<CusAddVisit>
                                       ? companyName
                                       : widget.companyName,
                                   sendList: custProvider.multiSelectedCustomerList
-                                      .map((e) => e["id"].toString())
+                                      .map((e) => e["id"].toString())   // ✅ Map safe
                                       .toList(),
                                   cusName: custProvider.multiSelectedCustomerList
                                       .map((e) => e["name"].toString())
@@ -721,33 +721,23 @@ class _CusAddVisitState extends State<CusAddVisit>
                                   taskId: widget.taskId,
                                   tType: widget.type,
                                   desc: widget.desc,
-                                  callBack: () {
-                                    utils.navigatePage(
-                                      context,
-                                          () => DashBoard(
-                                        child: VisitReport(
-                                          date1: home.startDate,
-                                          date2: home.endDate,
-                                          month: home.month,
-                                          type: home.type,
-                                        ),
-                                      ),
-                                    );
-                                  },
                                 );
 
-                                // ✅ navigate AFTER API complete
-                                utils.navigatePage(
-                                  context,
-                                      () => DashBoard(
-                                    child: VisitReport(
-                                      date1: home.startDate,
-                                      date2: home.endDate,
-                                      month: home.month,
-                                      type: home.type,
+                                if (result == true && context.mounted) {
+                                  await Future.delayed(const Duration(milliseconds: 300));
+
+                                  utils.navigatePage(
+                                    context,
+                                        () => DashBoard(
+                                      child: VisitReport(
+                                        date1: home.startDate,
+                                        date2: home.endDate,
+                                        month: home.month,
+                                        type: home.type,
+                                      ),
                                     ),
-                                  ),
-                                );
+                                  );
+                                }
                               },
 
                               text: 'Save',

@@ -751,7 +751,7 @@ class Utils {
                           SizedBox(
                               // color: Colors.yellow,
                               width: kIsWeb?MediaQuery.of(context).size.width*0.28:MediaQuery.of(context).size.width*0.65,
-                              child: CustomText(text:  "$title ${title2!}",size: 15,isBold: true,)),
+                              child: CustomText(text:  "$title ${title2!}",size: 14,isBold: true,)),
                           Padding(
                             padding: const EdgeInsets.fromLTRB(0, 0, 0, 10),
                             child: InkWell(onTap: (){

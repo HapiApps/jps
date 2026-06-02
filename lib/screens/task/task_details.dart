@@ -303,10 +303,26 @@ class _TaskDetailsState extends State<TaskDetails> with SingleTickerProviderStat
             ],
           ),
           leading: IconButton(
-              onPressed: () {
-                // utils.navigatePage(context, ()=> DashBoard(child: ViewTask(date1: taskProvider.startDate, date2: taskProvider.endDate, type: "Assigned")));
-                Navigator.pop(context);
-              }, icon: Icon(Icons.arrow_back_ios_rounded,color: colorsConst.primary,size: 20,)),
+            onPressed: () async {
+
+              await Provider.of<TaskProvider>(
+                context,
+                listen: false,
+              ).getAllTask(
+                true,
+                date1: widget.data.taskDate.toString(), // or your date1
+                date2: widget.data.taskDate.toString(), // or your date2
+                type: "Assigned", // or your type
+              );
+
+              Navigator.pop(context);
+            },
+            icon: Icon(
+              Icons.arrow_back_ios_rounded,
+              color: colorsConst.primary,
+              size: 20,
+            ),
+          ),
           actions: [
             if(widget.data.statval!="Completed"&&localData.storage.read("role") =="1")
             IconButton(onPressed: (){

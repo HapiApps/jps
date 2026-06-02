@@ -119,23 +119,53 @@ class _CustomerDetailsState extends State<CustomerDetails> {
                                             ],
                                           ),
                                         ):
-                                        AppCustomDataText(title: constValue.contactName, value: usersList[index].toString()=="null"?"":usersList[index].toString().trim(),),
-                                        if(designation[index].toString()!="null"&&designation[index].toString()!="")
-                                        AppCustomDataText(title: "Designation", value: designation[index].toString()=="null"?"":designation[index].toString(),),
-                                        if(department[index].toString()!="null"&&department[index].toString()!="")
-                                        AppCustomDataText(title: "Department", value: department[index].toString()=="null"?"":department[index].toString(),),
-                                        if(phoneList[index].toString()!="null"&&phoneList[index].toString()!="")
                                         AppCustomDataText(
-                                          title: constValue.phoneNumber, value: phoneList[index].toString()=="null"?"":phoneList[index].toString(),
-                                          ),
-                                        if(phoneList2[index].toString()!="null"&&phoneList2[index].toString()!="")
+                                          title: constValue.contactName,
+                                          value: usersList[index].toString() == "null"
+                                              ? ""
+                                              : usersList[index].toString().trim(),
+                                        ),
+
+                                        if (index < designation.length &&
+                                            designation[index].toString() != "null" &&
+                                            designation[index].toString().isNotEmpty)
                                           AppCustomDataText(
-                                          title: constValue.mobileNumber, value: phoneList2[index].toString()=="null"?"":phoneList2[index].toString(),
+                                            title: "Designation",
+                                            value: designation[index].toString(),
                                           ),
-                                        if(emailList[index].toString()!="null"&&emailList[index].toString()!="")
-                                        AppCustomDataText(
-                                          title: constValue.emailId, value: emailList[index].toString()=="null"?"":emailList[index].toString(),
-                                         ),
+
+                                        if (index < department.length &&
+                                            department[index].toString() != "null" &&
+                                            department[index].toString().isNotEmpty)
+                                          AppCustomDataText(
+                                            title: "Department",
+                                            value: department[index].toString(),
+                                          ),
+
+                                        if (index < phoneList.length &&
+                                            phoneList[index].toString() != "null" &&
+                                            phoneList[index].toString().isNotEmpty)
+                                          AppCustomDataText(
+                                            title: constValue.phoneNumber,
+                                            value: phoneList[index].toString(),
+                                          ),
+
+                                        if (index < phoneList2.length &&
+                                            phoneList2[index].toString() != "null" &&
+                                            phoneList2[index].toString().isNotEmpty)
+                                          AppCustomDataText(
+                                            title: constValue.mobileNumber,
+                                            value: phoneList2[index].toString(),
+                                          ),
+
+                                        if (index < emailList.length &&
+                                            emailList[index].toString() != "null" &&
+                                            emailList[index].toString().isNotEmpty)
+                                          AppCustomDataText(
+                                            title: constValue.emailId,
+                                            value: emailList[index].toString(),
+                                          ),
+
                                         const Padding(
                                           padding: EdgeInsets.fromLTRB(5, 0, 5, 0),
                                           child: DotLine(),

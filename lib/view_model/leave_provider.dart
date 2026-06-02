@@ -2124,7 +2124,7 @@ void changeStatus(bool value){
       Map data = {
         "action": getLeaveData,
         "search_type":"my_leave",
-        "id": id,
+        "id": id.isEmpty?localData.storage.read("id"):id,
         "st_dt": st,
         "en_dt": en==""?st:en,
         "cos_id": localData.storage.read("cos_id")
@@ -2163,7 +2163,7 @@ void changeStatus(bool value){
         "en_dt": en,
         "cos_id": localData.storage.read("cos_id"),
         "role": roleId !="0"?localData.storage.read("role"):roleId,
-        "id": userId==""?localData.storage.read("id"):userId,
+        "id": userId==""?"":userId,
       };
 
       final response = await leaveRepo.getLeave(data);

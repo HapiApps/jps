@@ -1960,7 +1960,7 @@ TextEditingController date= TextEditingController(text: "${DateTime.now().day.to
     notifyListeners();
   }
 
-  Future<void> addVisit({
+  Future<bool> addVisit({
     required context,
     required String companyId,
     required String taskId,
@@ -1971,12 +1971,9 @@ TextEditingController date= TextEditingController(text: "${DateTime.now().day.to
     required List sendList,
     required String lat,
     required String lng,
-    required VoidCallback callBack,
-  })
-  async {
+  }) async {
     try {
 
-      /// 🔥 SAFE STORAGE VALUES
       final mobileNumber = localData.storage.read("mobile_number") ?? "";
       final cosId = localData.storage.read("cos_id") ?? "";
       final typeId = localData.storage.read("type_id") ?? "";
@@ -1989,119 +1986,90 @@ TextEditingController date= TextEditingController(text: "${DateTime.now().day.to
 
       final cusTypeData = localData.storage.read("cus_type");
 
-      /// 🔥 FINAL REQUEST MAP
       Map data = {
         "action": addVst,
         "task_id": taskId,
         "log_file": mobileNumber,
         "cos_id": cosId,
         "company_id": companyId,
-
         "customer_id": sendList.isNotEmpty ? sendList.join(",") : "",
         "mobile_number": cNo,
-
         "customer_name": cusName.isNotEmpty ? cusName.join(",") : "",
-
         "type": typeId,
         "created_by": userId,
-
         "discussion_points": disPoint.text.trim().isEmpty ? "NA" : disPoint.text.trim(),
         "action_taken": points.text.trim().isEmpty ? "NA" : points.text.trim(),
-
         "lead": leadId,
         "call_visit_type": visitId,
-
         "cus_type": (cusTypeData is Map && cusTypeData["id"] != null)
             ? cusTypeData["id"].toString()
             : "",
-
         "date": commentDate.text.trim(),
         "review": selectReview ?? "",
-
         "door_no": address.text.trim(),
         "area": comArea.text.trim(),
         "city": city.text.trim(),
         "country": country.text.trim(),
         "state": state.toString(),
         "pincode": pinCode.text.trim(),
-
         "lat": lat,
         "lng": lng,
       };
 
-      print("📤 FINAL API DATA => $data");
-      print("📤 JSON => ${jsonEncode(data)}");
+      print("📤 API DATA => $data");
 
-      /// 🔥 API CALL
       final response = await custRepo.addVisit(data);
 
-      print("📥 RAW RESPONSE => $response");
+      print("📥 RESPONSE => $response");
 
-      /// 🔥 SAFE RESPONSE CHECK
       bool isSuccess = false;
 
       if (response is Map) {
         isSuccess = response["status_code"] == 200;
       } else {
-        isSuccess = response.toString().toLowerCase().contains("ok") ||
-            response.toString().contains('"status_code":200');
+        isSuccess = response.toString().contains('"status_code":200');
       }
 
-      if (isSuccess) {
+      if (!isSuccess) {
+        utils.showErrorToast(context: context);
+        return false;
+      }
 
-        utils.showSuccessToast(
-          context: context,
-          text: constValue.visitSuccess,
-        );
+      // ✅ SUCCESS TOAST
+      utils.showSuccessToast(
+        context: context,
+        text: constValue.visitSuccess,
+      );
 
-        /// 🔥 NOTIFICATION
-        final empProvider =
-        Provider.of<EmployeeProvider>(context, listen: false);
+      // ✅ FIRESTORE
+      await FirebaseFirestore.instance.collection('attendance').add({
+        'emp_id': userId,
+        'time': DateTime.now(),
+        'status': "",
+      });
 
-        try {
-          await empProvider.sendAdminNotification(
-            "Visit report added - $typeName",
-            "Added by $fName",
-            "",
-            taskId,
-            "",
-          );
-        } catch (e) {
-          print("⚠ Notification error ignored: $e");
-        }
-
-        /// 🔥 FIRESTORE LOG
-        await FirebaseFirestore.instance.collection('attendance').add({
-          'emp_id': userId,
-          'time': DateTime.now(),
-          'status': "",
-        });
-
-        /// 🔥 REFRESH DATA
+      // ✅ SAFE REFRESH
+      try {
         getAllCustomers(false);
         getVisitReport(context);
         getEmpWiseReport(context);
 
         Provider.of<HomeProvider>(context, listen: false)
             .loadFullDashboard(context);
-        callBack();
-        addCtr.reset();
-        notifyListeners();
-
-      } else {
-        print("❌ API FAILED RESPONSE => $response");
-
-        utils.showErrorToast(context: context);
+      } catch (e) {
+        print("Refresh error: $e");
       }
+
+      notifyListeners();
+
+      return true;
 
     } catch (e) {
       print("❌ ERROR => $e");
 
       utils.showErrorToast(context: context);
-      addCtr.reset();
+      return false;
     }
-
-    notifyListeners();
   }
 
   List<DateTime> datesBetween = [];
@@ -4623,49 +4591,103 @@ List<Marker> get liveMarker =>_liveMarker;
     }
   }
   DateTime dateTime = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
-  Future insertEmailAPI(BuildContext context, String id, String image) async {
+  Future<void> insertEmailAPI(
+      BuildContext context,
+      String id,
+      String image,
+      ) async {
     try {
-      var request = http.MultipartRequest('POST', Uri.parse(phpFile));
+      var request = http.MultipartRequest(
+        'POST',
+        Uri.parse(phpFile),
+      );
 
       // Body values
-      request.fields['clientMail'] = emailToCtr.text;
-      request.fields['subject'] = emailSubjectCtr.text;
-      request.fields['cos_id'] = localData.storage.read("cos_id").toString();
-      request.fields['count'] = '${1}';
-      request.fields['quotation_name'] = emailQuotationCtr.text;
-      request.fields['body'] = emailMessageCtr.text;
-      request.fields['user_id'] = localData.storage.read("id").toString();
+      request.fields['clientMail'] = emailToCtr.text.trim();
+      request.fields['subject'] = emailSubjectCtr.text.trim();
+      request.fields['cos_id'] =
+          localData.storage.read("cos_id").toString();
+      request.fields['count'] = '1';
+      request.fields['quotation_name'] =
+          emailQuotationCtr.text.trim();
+      request.fields['body'] = emailMessageCtr.text.trim();
+      request.fields['user_id'] =
+          localData.storage.read("id").toString();
       request.fields['id'] = id;
-      request.fields['date'] = "${dateTime.day.toString().padLeft(2, "0")}-${dateTime.month.toString().padLeft(2, "0")}-${dateTime.year.toString()} ${DateFormat('hh:mm a').format(DateTime.now())}";
-      request.fields['action'] =sendMail;
+      request.fields['date'] =
+      "${dateTime.day.toString().padLeft(2, "0")}-"
+          "${dateTime.month.toString().padLeft(2, "0")}-"
+          "${dateTime.year} "
+          "${DateFormat('hh:mm a').format(DateTime.now())}";
+      request.fields['action'] = sendMail;
 
-      if (empFileName.isNotEmpty) {
-        var picture1 = http.MultipartFile.fromBytes(
+      // Attachment
+      if (empFileName.isNotEmpty && empMediaData.isNotEmpty) {
+        var attachment = http.MultipartFile.fromBytes(
           "attachment",
           empMediaData,
           filename: empFileName,
         );
-        request.files.add(picture1);
+
+        request.files.add(attachment);
       }
+
+      // API Call
       var response = await request.send();
+
+      print("Status => ${response.statusCode}");
+
       var body = await response.stream.bytesToString();
-      print(body);
-      if (body.toString() == "Message has been sent") {
-        utils.showWarningToast(context,
-            text: "Mail has been sent");
+
+      print("Body => [$body]");
+
+      // Success
+      if (response.statusCode == 200 &&
+          body.trim().contains("Message has been sent")) {
+        print("SUCCESS BLOCK");
+
+        utils.showWarningToast(
+          context,
+          text: "Mail has been sent",
+        );
+
+        // Clear fields
         emailMessageCtr.clear();
         emailToCtr.clear();
         emailSubjectCtr.clear();
-        await Future.delayed(const Duration(milliseconds: 100));
-        Navigator.pop(Get.context!);
+        emailQuotationCtr.clear();
+
         addCtr.reset();
-      } else {
-        addCtr.reset();
-        utils.showErrorToast(context:context);
+
+        await Future.delayed(
+          const Duration(milliseconds: 200),
+        );
+
+        // Close dialog safely
+        if (context.mounted && Navigator.canPop(context)) {
+          Navigator.pop(context);
+        }
+
+        return;
       }
-    } catch (e) {
-      utils.showErrorToast(context:context);
+
+      // Failed Response
+      print("FAILED RESPONSE => $body");
+
       addCtr.reset();
+
+      utils.showErrorToast(
+        context: context,
+      );
+    } catch (e, s) {
+      print("EMAIL ERROR => $e");
+      print("STACK => $s");
+
+      addCtr.reset();
+
+      utils.showErrorToast(
+        context: context,
+      );
     }
   }
 

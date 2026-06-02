@@ -269,54 +269,66 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
                                 radius: 30,
                                 color: Colors.transparent,
                               ),
-                              child: TextFormField(
-                                cursorColor: colorsConst.primary,
-                                onChanged: (value) {
-                                  taskProvider.searchTask(value.toString());
-                                },
-                                textInputAction: TextInputAction.done,
+                              child:TextFormField(
                                 controller: taskProvider.search,
+                                cursorColor: colorsConst.primary,
+                                style: const TextStyle(
+                                  color: Colors.black,
+                                  fontSize: 14,
+                                ),
+                                onChanged: (value) {
+                                  Future.microtask(() {
+                                    taskProvider.searchTask(value);
+                                  });
+                                },
                                 decoration: InputDecoration(
-                                    hintText:"Search Name or ${constValue.customer}",
-                                    hintStyle: TextStyle(
-                                        color: colorsConst.primary,
-                                        fontSize: 14
+                                  hintText: "Search Name or ${constValue.customer}",
+                                  hintStyle: TextStyle(
+                                    color: colorsConst.primary,
+                                    fontSize: 14,
+                                  ),
+                                  fillColor: Colors.white,
+                                  filled: true,
+
+                                  prefixIcon: const Icon(
+                                    Icons.search,
+                                    color: Colors.grey,
+                                  ),
+                                  suffixIcon: taskProvider.search.text.isNotEmpty
+                                      ? IconButton(
+                                    icon: const Icon(
+                                      Icons.close_rounded,
+                                      color: Colors.grey,
                                     ),
-                                    fillColor: Colors.white,
-                                    filled: true,
-                                    prefixIcon: Icon(Icons.search,color: Colors.grey,),
-                                    suffixIcon: taskProvider.search.text.isNotEmpty?
-                                    GestureDetector(
-                                        onTap: (){
-                                          taskProvider.search.clear();
-                                          taskProvider.searchTask("");
-                                        },
-                                        child: Padding(
-                                          padding: const EdgeInsets.all(8.0),
-                                          child: SvgPicture.asset(assets.cancel2),
-                                        )):null,
-                                  errorStyle: const TextStyle(
-                                    fontSize: 12.0,
-                                    height: 0.20,
+                                    onPressed: () {
+                                      taskProvider.search.clear();
+                                      taskProvider.searchTask("");
+                                    },
+                                  )
+                                      : null,
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 20,
+                                    vertical: 14,
                                   ),
-                                  focusedBorder: OutlineInputBorder(
-                                      borderSide:  BorderSide(color: colorsConst.primary),
-                                      borderRadius: BorderRadius.circular(30)
+
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(30), // 🔥 Round Edge
+                                    borderSide: BorderSide.none,
                                   ),
-                                  focusedErrorBorder: OutlineInputBorder(
-                                      borderSide: BorderSide(color: colorsConst.primary),
-                                      borderRadius: BorderRadius.circular(30)
-                                  ),
-                                  // errorStyle: const TextStyle(height:0.05,fontSize: 12),
-                                  contentPadding:const EdgeInsets.fromLTRB(10, 10, 10, 10),
-                                  errorBorder: OutlineInputBorder(
-                                      borderSide:  const BorderSide(color: Colors.transparent),
-                                      borderRadius: BorderRadius.circular(30)
-                                  ),
+
                                   enabledBorder: OutlineInputBorder(
-                                    // grey.shade300
-                                      borderSide:  BorderSide(color: Colors.grey.shade300),
-                                      borderRadius: BorderRadius.circular(30)
+                                    borderRadius: BorderRadius.circular(30),
+                                    borderSide: BorderSide(
+                                      color: Colors.grey.shade300,
+                                    ),
+                                  ),
+
+                                  focusedBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(30),
+                                    borderSide: BorderSide(
+                                      color: colorsConst.primary,
+                                      width: 1.5,
+                                    ),
                                   ),
                                 ),
                               ),
@@ -1066,9 +1078,7 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
 
-
-
-      RichText(
+                        RichText(
       text: TextSpan(
         children: [
         TextSpan(
@@ -1296,42 +1306,60 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
                     // ),
                     // 10.height,
                     Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
+                        Expanded(
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.message,
+                                color: Colors.red,
+                                size: 18,
+                              ),
+                              const SizedBox(width: 4),
 
+                              Text(
+                                (data.commentCount ?? "").toString().isNotEmpty
+                                    ? "(${data.commentCount}) - "
+                                    : "No comments",
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
 
-                        Column(
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.start,
-                              children: [
-                                Icon(Icons.message,color: Colors.red,),
-                                (data.commentCount ?? "").toString().isNotEmpty?Text("(${data.commentCount})  - "):Text("No comments"),
-                                Text(
-                                  data.lastComment ?? "",
+                              Expanded(
+                                child: RichText(
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
-                                ),
-                                Text(
-                                  data.lastCommentBy == null || data.lastCommentBy.toString().trim().isEmpty
-                                      ? ""
-                                      : "  (last comment by ${data.lastCommentBy})",
-                                  maxLines: 1,
-                                  style: TextStyle(
-                                    color: Colors.red.shade900,   // 👈 color here
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w500,
+                                  text: TextSpan(
+                                    style: const TextStyle(
+                                      color: Colors.black,
+                                      fontSize: 13,
+                                    ),
+                                    children: [
+                                      TextSpan(
+                                        text: data.lastComment ?? "",
+                                      ),
+                                      if (data.lastCommentBy != null &&
+                                          data.lastCommentBy.toString().trim().isNotEmpty)
+                                        TextSpan(
+                                          text: " (last comment by ${data.lastCommentBy})",
+                                          style: TextStyle(
+                                            color: Colors.red.shade900,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                    ],
                                   ),
-                                  overflow: TextOverflow.ellipsis,
-
                                 ),
-
-                              ],
-                            ),
-                          ],
+                              ),
+                            ],
+                          ),
                         ),
-                        GestureDetector(
 
+                        const SizedBox(width: 8),
+
+                        GestureDetector(
                           onTap: () async {
                             final result = await Navigator.push(
                               context,
@@ -1352,14 +1380,20 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
                             );
 
                             if (result == true) {
-                              Provider.of<TaskProvider>(context, listen: false).getAllTask(false);
-                              // 🔥 un refresh method name change panniko
+                              Provider.of<TaskProvider>(
+                                context,
+                                listen: false,
+                              ).getAllTask(false);
                             }
                           },
-                          child: SvgPicture.asset(assets.tMessage, width: 20, height: 20),
+                          child: SvgPicture.asset(
+                            assets.tMessage,
+                            width: 20,
+                            height: 20,
+                          ),
                         ),
                       ],
-                    ) ,
+                    ),
                   ],
                 ),
               ),

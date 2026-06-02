@@ -417,28 +417,27 @@ class _AttendanceReportState extends State<AttendanceReport> {
                                                                             levPvr.changeFilter();
 
                                                                             /// 3️⃣ FETCH NEW DATA WITH DATE RANGE
-                                                                            attProvider.getAttendanceReport(localData.storage.read("id"));
-                                                                            attProvider.getAbsentAttendanceReport(localData.storage.read("id"));
+                                                                            attProvider.getAttendanceReport(custProvider.user);
+                                                                            attProvider.getAbsentAttendanceReport(custProvider.user);
                                                                             print("FILTER DATE : ${attProvider.startDate} to ${attProvider.endDate} ${attProvider.user}");
                                                                             String role = localData.storage.read("role").toString();
 
                                                                             if (role == "1") {
-                                                                              // Admin
                                                                               if (attProvider.user.isEmpty) {
                                                                                 // ✅ employee select pannala → ALL leave
                                                                                 levPvr.allLeaves(attProvider.startDate, attProvider.endDate, true, role,
-                                                                                    localData.storage.read("id").toString());
+                                                                                    custProvider.user);
                                                                               } else {
                                                                                 // ✅ employee selected → that employee leave only
-                                                                                levPvr.allLeaves(attProvider.startDate, attProvider.endDate, true, "0",
-                                                                                    attProvider.user);
+                                                                                levPvr.allLeaves(attProvider.startDate, attProvider.endDate, true, role,
+                                                                                    custProvider.user);
                                                                                 // levPvr.myLeaves(attProvider.startDate, attProvider.endDate, true,
                                                                                 //     attProvider.user);
                                                                               }
                                                                             } else {
                                                                               // Normal user
                                                                               levPvr.myLeaves(attProvider.startDate, attProvider.endDate, true,
-                                                                                  localData.storage.read("id").toString());
+                                                                                  custProvider.user);
                                                                             }
 
                                                                             /// 4️⃣ CLOSE FILTER POPUP
@@ -545,7 +544,7 @@ class _AttendanceReportState extends State<AttendanceReport> {
                                   } else {
                                     await excelReports.downloadAttendanceExcelReport(
                                       context,
-                                      stDate: attProvider.startDate,//
+                                      stDate: attProvider.startDate,
                                       enDate: attProvider.endDate,
                                     );
                                   }
