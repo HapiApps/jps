@@ -167,7 +167,7 @@ class _HomePageState extends State<HomePage> {
                                       },
                                       bgColor: colorsConst.primary,textColor: Colors.white, )
                                   ],
-                                )
+                                ),
                               ],
                             );
                           }

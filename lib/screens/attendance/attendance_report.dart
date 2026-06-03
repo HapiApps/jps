@@ -397,7 +397,7 @@ class _AttendanceReportState extends State<AttendanceReport> {
                                                                             attProvider.getAttendanceReport(localData.storage.read("id"));
                                                                             attProvider.getAbsentAttendanceReport(localData.storage.read("id"));
                                                                             levPvr.changeFilter();
-                                                                            levPvr.allLeaves(attProvider.startDate,attProvider.endDate,true,localData.storage.read("role"),localData.storage.read("id"));
+                                                                            levPvr.allSpecificLeaves(attProvider.startDate,attProvider.endDate,true,localData.storage.read("role"),localData.storage.read("id"));
                                                                             Navigator.of(context, rootNavigator: true).pop();
                                                                             },
                                                                           bgColor: Colors.grey.shade200,
@@ -552,7 +552,7 @@ class _AttendanceReportState extends State<AttendanceReport> {
                                   print("Download Error: $e");
                                 } finally {
                                   setState(() {
-                                    isLoading = false;
+                                     isLoading = false;
                                   });
                                 }
                               },

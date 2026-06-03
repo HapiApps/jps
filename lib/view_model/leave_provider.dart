@@ -2185,7 +2185,45 @@ void changeStatus(bool value){
       return [];
     }
   }
+  // all_specific_leave
+  Future<List<LeaveModel>> allSpecificLeaves(String st, String en, bool refresh,String roleId,String userId) async {
+    try {
 
+      _isLoading = true;
+      notifyListeners();
+
+      myLevSearch.clear();
+      myLev.clear();
+
+      Map data = {
+        "action": getLeaveData,
+        "search_type": " all_specific_leave",
+        "st_dt": st,
+        "en_dt": en,
+        "cos_id": localData.storage.read("cos_id"),
+        "role": roleId !="0"?localData.storage.read("role"):roleId,
+        "id": userId==""?"":userId,
+      };
+
+      final response = await leaveRepo.getLeave(data);
+      print("TODAY LEAVE LIST 33 => ${response}");
+      print("TODAY LEAVE LIST 12 => ${data}");
+      myLev = response;
+      myLevSearch = response;
+      todayLeaveList = response;
+      print("TODAY LEAVE LIST => ${todayLeaveList}");
+      print("MY ID => ${localData.storage.read("id")}");// ✅ store here
+      _isLoading = false;
+      notifyListeners();
+
+      return response;
+
+    } catch (e) {
+      _isLoading = false;
+      notifyListeners();
+      return [];
+    }
+  }
   Future<List<Holiday>> fetchHolidays(String year) async {
     try {
       searchFutureHolidays=[];
