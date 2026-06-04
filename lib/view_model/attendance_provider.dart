@@ -1761,12 +1761,12 @@ void showDatePickerDialog(BuildContext context,List<UserModel>? list) {
       }
 
       if (status == "1") {
-        await FirebaseFirestore.instance.collection('attendance').add({
-          'emp_id': localData.storage.read("id"),
-          'time': DateTime.now(),
-          'status': status,
-        });
-      }
+      //   await FirebaseFirestore.instance.collection('attendance').add({
+      //     'emp_id': localData.storage.read("id"),
+      //     'time': DateTime.now(),
+      //     'status': status,
+      //   });
+       }
 
       if (context.mounted) {
         utils.showSuccessToast(

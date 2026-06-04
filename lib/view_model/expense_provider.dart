@@ -1935,11 +1935,11 @@ void timePick(BuildContext context, {required TextEditingController timeControll
          "Expenses added to task ${companyName=="null"?"":companyName} - Amount - ${totalAmt.text.trim()}",
          "1",
        );
-       await FirebaseFirestore.instance.collection('attendance').add({
-         'emp_id': localData.storage.read("id"),
-         'time': DateTime.now(),
-         'status': "",
-       });
+       // await FirebaseFirestore.instance.collection('attendance').add({
+       //   'emp_id': localData.storage.read("id"),
+       //   'time': DateTime.now(),
+       //   'status': "",
+       // });
        addCtr.reset();
        notifyListeners();
      } else {

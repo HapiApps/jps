@@ -2042,11 +2042,11 @@ TextEditingController date= TextEditingController(text: "${DateTime.now().day.to
       );
 
       // ✅ FIRESTORE
-      await FirebaseFirestore.instance.collection('attendance').add({
-        'emp_id': userId,
-        'time': DateTime.now(),
-        'status': "",
-      });
+      // await FirebaseFirestore.instance.collection('attendance').add({
+      //   'emp_id': userId,
+      //   'time': DateTime.now(),
+      //   'status': "",
+      // });
 
       // ✅ SAFE REFRESH
       try {
@@ -2054,8 +2054,7 @@ TextEditingController date= TextEditingController(text: "${DateTime.now().day.to
         getVisitReport(context);
         getEmpWiseReport(context);
 
-        Provider.of<HomeProvider>(context, listen: false)
-            .loadFullDashboard(context);
+        Provider.of<HomeProvider>(context, listen: false).loadFullDashboard(context);
       } catch (e) {
         print("Refresh error: $e");
       }

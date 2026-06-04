@@ -85,17 +85,18 @@ class _HomePageState extends State<HomePage> {
       } else {
         print("Attendance ID missing! Cannot fetch report");
       }
-      FirebaseFirestore.instance
-          .collection('attendance')
-          .snapshots()
-          .listen((snapshot) {
-        // When any new attendance record is added/updated
-        final homeProvider = Provider.of<HomeProvider>(context, listen: false);
+      // FirebaseFirestore.instance
+      //     .collection('attendance')
+      //     .snapshots()
+      //     .listen((snapshot) {
+      //   // When any new attendance record is added/updated
+      //
+      // });
+      final homeProvider = Provider.of<HomeProvider>(context, listen: false);
 
-        homeProvider.checkThisMonth();
-        homeProvider.loadFullDashboard(context);
-        homeProvider.changeType(context, homeProvider.type);
-      });
+      homeProvider.checkThisMonth();
+      homeProvider.loadFullDashboard(context);
+      homeProvider.changeType(context, homeProvider.type);
       final taskProvider = Provider.of<TaskProvider>(context, listen: false);
       if (taskProvider.statusList.isNotEmpty) {
         taskProvider.setStatusByName(
@@ -110,182 +111,6 @@ class _HomePageState extends State<HomePage> {
       });
     super.initState();
   }
-  void startTracking(BuildContext context,String lat,String lng){
-    showDialog(context: context,
-        barrierDismissible: false,
-        builder: ( context){
-          return AlertDialog(
-            title: Center(
-              child: Column(
-                children: [
-                   CustomText('Do you want',color: Colors.black,size:16,weight: FontWeight.bold,),
-                  10.height,
-                  const CustomText('track your travel?',color: Colors.black,size:16,weight: FontWeight.bold,)
-                ],
-              ),
-            ),
-            actions: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  CustomBtn(width: 70,text: 'NO',
-                    callback: (){
-                      setState(() {
-                        localData.storage.write("Track",false);
-                        Navigator.of(context, rootNavigator: true).pop();
-                      });
-                    },
-                    bgColor: colorsConst.litGrey,textColor: Colors.black, ),
-                  CustomBtn(width: 70,text: 'YES',
-                    callback: ()  {
-                      showDialog(context: context,
-                          barrierDismissible: false,
-                          builder: ( context){
-                            return AlertDialog(
-                              title: Center(
-                                child: Column(
-                                  children: [
-                                    const CustomText('Do not close the app or',color: Colors.black,size:16,weight: FontWeight.bold,),
-                                    10.height,
-                                    const CustomText('turn off the location.',color: Colors.black,size:16,weight: FontWeight.bold,)
-                                  ],
-                                ),
-                              ),
-                              actions: [
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                                  children: [
-                                    CustomBtn(width: 70,text: 'OK',
-                                      callback: (){
-                                        setState(() {
-                                          _startTracking();
-                                          Provider.of<CustomerProvider>(context, listen: false).actionTracking(context,"1");
-                                        });
-                                        Provider.of<CustomerProvider>(context, listen: false).trackingInsert(localData.storage.read("TrackId").toString(),true,lat,lng);
-                                        Navigator.of(context, rootNavigator: true).pop();
-                                        Navigator.of(context, rootNavigator: true).pop();
-                                      },
-                                      bgColor: colorsConst.primary,textColor: Colors.white, )
-                                  ],
-                                ),
-                              ],
-                            );
-                          }
-                      );
-                    },
-                    bgColor: colorsConst.primary,textColor: Colors.white, ),
-                ],
-              )
-            ],
-          );});
-  }
-  void stopTracking(BuildContext context){
-    showDialog(context: context,
-        barrierDismissible: false,
-        builder: ( context){
-          return AlertDialog(
-            title: Center(
-              child: Column(
-                children: [
-                  const CustomText('Do you want',color: Colors.black,size:16,weight: FontWeight.bold,),
-                  10.height,
-                  const CustomText('track off?',color: Colors.black,size:16,weight: FontWeight.bold,)
-                ],
-              ),
-            ),
-            actions: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  CustomBtn(width: 70,text: 'NO',
-                    callback: (){
-                      Navigator.of(context, rootNavigator: true).pop();
-                    },
-                    bgColor: colorsConst.litGrey,textColor: Colors.black, ),
-                  CustomBtn(width: 70,text: 'YES',
-                    callback: _stopTracking,
-                    bgColor: colorsConst.primary,textColor: Colors.white, ),
-                ],
-              )
-            ],
-          );});
-  }
-  Future<void> _checkBatteryOptimization() async {
-    if (Platform.isAndroid) {
-      bool isIgnored = await FlutterForegroundTask.isIgnoringBatteryOptimizations;
-      if (!isIgnored) {
-        await showDialog(
-          context: context,
-          builder: (_) => AlertDialog(
-            title: CustomText("Battery Optimization",color: colorsConst.primary,weight: FontWeight.bold,),
-            content: CustomText("Please disable battery optimization for background tracking.",color: colorsConst.greyClr),
-            actions: [
-              TextButton(
-                onPressed: (){
-                  Navigator.pop(context);
-                },
-                child: CustomText("Don't Allow",color: colorsConst.appRed,weight: FontWeight.bold),
-              ),
-              TextButton(
-                onPressed: () async {
-                  Navigator.pop(context);
-                  await FlutterForegroundTask.requestIgnoreBatteryOptimization();
-                },
-                child: CustomText("Allow",color: colorsConst.blueClr,weight: FontWeight.bold,),
-              ),
-            ],
-          ),
-        );
-      }
-    }
-  }
-  Future<void> _startTracking() async {
-    await _checkBatteryOptimization();
-
-    final storage = GetStorage();
-
-    /// ✅ Update values
-    await storage.write("Track", true);
-    await storage.write("TrackId", localData.storage.read("TrackId") ?? "0");
-    await storage.write("TrackUnitName", localData.storage.read("TrackUnitName") ?? "null");
-    await storage.write("TrackStatus", "1");
-
-    /// ✅ Delay to allow value flush
-    await Future.delayed(const Duration(milliseconds: 500));
-
-    /// ✅ Start the foreground task
-    await FlutterForegroundTask.startService(
-      notificationTitle: constValue.appName,
-      notificationText: 'Tracking is on',
-      callback: startCallbackDispatcher,
-    );
-
-    setState(() {
-      log("✅ Tracking started. Track=${storage.read("Track")}, Unit=${storage.read("TrackUnitName")}");
-    });
-  }
-  Future<void> _stopTracking() async {
-    await FlutterForegroundTask.stopService();
-    setState(() {
-      localData.storage.write("Track",false);
-      if (trackCtr.locationList.isNotEmpty) {
-        Provider.of<CustomerProvider>(context, listen: false).insertTrackList(trackCtr.locationList);
-        trackCtr.locationList.clear();
-        // print("Balance list added list cleared.");
-      }
-      Provider.of<CustomerProvider>(context, listen: false).actionTracking(context,"2");
-      // if(trackCtr.todayTrackReport.isEmpty){
-      //   /// New Changes
-      //   localData.storage.write("TrackId","0");
-      //   localData.storage.write("TrackStatus","2");
-      //   localData.storage.write("T_Shift","");
-      //   localData.storage.write("TrackUnitName","null");
-      // }
-      Navigator.of(context, rootNavigator: true).pop();
-      utils.showSuccessToast(context: context,text: "Tracking stopped");
-    });
-  }
-
   Widget iconBox({required VoidCallback callBack,required String img,required String text}){
     return InkWell(
       onTap:callBack,

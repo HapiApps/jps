@@ -3159,12 +3159,12 @@ class TaskProvider with ChangeNotifier {
           print("Admin notification error: $e");
         }
         taskCtr.reset();
-        await FirebaseFirestore.instance.collection('attendance').add({
-          'emp_id': localData.storage.read("id"),
-          'time': DateTime.now(),
-          'status': "",
-        });
-        // getAllTask(true);
+        // await FirebaseFirestore.instance.collection('attendance').add({
+        //   'emp_id': localData.storage.read("id"),
+        //   'time': DateTime.now(),
+        //   'status': "",
+        // });
+         getAllTask(true);
         utils.navigatePage(context, ()=> DashBoard(child: ViewTask(date1: Provider.of<HomeProvider>(context, listen: false).startDate, date2: Provider.of<HomeProvider>(context, listen: false).endDate, type: Provider.of<HomeProvider>(context, listen: false).type)));
         final homeProvider = Provider.of<HomeProvider>(context, listen: false);
         homeProvider.checkThisMonth();
@@ -3225,11 +3225,11 @@ class TaskProvider with ChangeNotifier {
           print("Admin notification error: $e");
         }
         taskCtr.reset();
-        await FirebaseFirestore.instance.collection('attendance').add({
-          'emp_id': localData.storage.read("id"),
-          'time': DateTime.now(),
-          'status': "",
-        });
+        // await FirebaseFirestore.instance.collection('attendance').add({
+        //   'emp_id': localData.storage.read("id"),
+        //   'time': DateTime.now(),
+        //   'status': "",
+        // });
         Provider.of<HomeProvider>(context, listen: false).loadFullDashboard(context);
         // Provider.of<HomeProvider>(context, listen: false).getMainReport(false);
         if(isDirect==true){
@@ -3769,7 +3769,7 @@ class TaskProvider with ChangeNotifier {
         utils.showSuccessToast(text: status=="1"?"Check In Successful":"Check Out Successful",context: context);
         getAllTask(false);
         // Provider.of<HomeProvider>(context, listen: false).getMainReport(false);
-        Provider.of<HomeProvider>(context, listen: false).loadFullDashboard(context);
+       // Provider.of<HomeProvider>(context, listen: false).loadFullDashboard(context);
         Navigator.of(context, rootNavigator: true).pop();
       }else {
         Navigator.of(context, rootNavigator: true).pop();

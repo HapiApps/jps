@@ -40,7 +40,7 @@ class _ViewNotificationState extends State<ViewNotification> with SingleTickerPr
     Future.delayed(Duration.zero, () {
       Provider.of<EmployeeProvider>(context, listen: false).getNotifications(markSeen: true);
       Provider.of<EmployeeProvider>(context, listen: false).markNotificationsSeen();
-      Provider.of<HomeProvider>(context, listen: false).loadFullDashboard(context);
+     // Provider.of<HomeProvider>(context, listen: false).loadFullDashboard(context);
       Provider.of<EmployeeProvider>(context, listen: false).initFilterValue(true);
 
     });
