@@ -133,6 +133,7 @@ class _CheckLocationState extends State<CheckLocation> {
         ),
         body: Stack(
           children: [
+            20.height,
             GoogleMap(
               myLocationButtonEnabled: false,
               zoomControlsEnabled: true,

@@ -128,6 +128,7 @@ class _AttendanceReportState extends State<AttendanceReport> {
                   child: Column(
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
+                        20.height,
                         if(localData.storage.read("role")=="1")
                         Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,

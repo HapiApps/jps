@@ -60,6 +60,7 @@ class _UserAttendanceReportState extends State<UserAttendanceReport> {
               child: Column(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
+                    20.height,
                     Center(
                       child: CustomDropDown(
                           text: "", valueList: attProvider.typeList,

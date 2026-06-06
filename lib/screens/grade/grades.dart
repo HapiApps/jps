@@ -33,6 +33,7 @@ class Grades extends StatelessWidget {
         backgroundColor: colorsConst.bacColor,
         body: Column(
           children: [
+            20.height,
             Container(
                 height: 40,
                 decoration: customDecoration.baseBackgroundDecoration(
@@ -216,6 +217,7 @@ class _AddGradeState extends State<AddGrade>{
                   Column(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
+                      20.height,
                       CustomTextField(
                           width: kIsWeb?webWidth:phoneWidth,
                           isRequired: true,

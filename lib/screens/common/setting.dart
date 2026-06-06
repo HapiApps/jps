@@ -1,6 +1,7 @@
 import 'package:master_code/screens/grade/grades.dart';
 import 'package:master_code/source/constant/local_data.dart';
 import 'package:flutter/material.dart';
+import 'package:master_code/source/extentions/extensions.dart';
 import 'package:provider/provider.dart';
 import '../../component/animated_drawer.dart';
 import '../../component/custom_appbar.dart';
@@ -38,6 +39,7 @@ class Setting extends StatelessWidget {
           },
           child: Column(
             children: [
+              20.height,
               if(localData.storage.read("role")=="1")
               DrawerListTile(text: "Grades",
                 image: assets.grade,isImage: true,

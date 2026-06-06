@@ -91,6 +91,7 @@ class _ViewTaskTypesState extends State<ViewTaskTypes>{
                       print(data);
                       return Column(
                         children: [
+                          20.height,
                           if(index==0)
                           15.height,
                           Container(

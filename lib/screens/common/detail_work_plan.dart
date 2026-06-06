@@ -532,7 +532,7 @@ class _DailyReportStatusPageState extends State<DailyReportStatusPage>
                   children: [
                     /// ✅ SUBMITTED TAB
                     submittedList.isEmpty
-                        ? const Center(child: Text("No Submitted Plans"))
+                        ? const Center(child: Text("No Daily Work Details Plan"))
                         : ListView.builder(
                       itemCount: submittedList.length,
                       padding: const EdgeInsets.only(bottom: 20),
@@ -718,7 +718,7 @@ class _DailyReportStatusPageState extends State<DailyReportStatusPage>
 
                     /// ❌ NOT SUBMITTED TAB
                     notSubmittedList.isEmpty
-                        ? const Center(child: Text("No Not Submitted Users"))
+                        ? const Center(child: Text("No Daily Work Details Plan"))
                         : ListView.builder(
                       itemCount: notSubmittedList.length,
                       padding: const EdgeInsets.only(bottom: 20),

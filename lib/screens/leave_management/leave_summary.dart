@@ -116,17 +116,27 @@ class LeaveSummaryCard extends StatelessWidget {
               padding: const EdgeInsets.all(10),
               alignment: Alignment.center,
               decoration: BoxDecoration(
-                color: remaining > 0 ? Colors.green.shade50 : Colors.red.shade50,
+                color: allowedVal == 0
+                    ? Colors.orange.shade50
+                    : remaining > 0
+                    ? Colors.green.shade50
+                    : Colors.red.shade50,
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Text(
-                remaining > 0
+                allowedVal == 0
+                    ? "No leaves have been allocated to you yet."
+                    : remaining > 0
                     ? "✨ ${formatDouble(remaining)} days left. Plan smart!"
-                    : "All leaves used. Plan Accordingly",
+                    : "All leaves used. Plan accordingly.",
                 style: TextStyle(
                   fontSize: 14,
-                  color: remaining > 0 ? Colors.green : Colors.red,
                   fontWeight: FontWeight.w500,
+                  color: allowedVal == 0
+                      ? Colors.orange.shade800
+                      : remaining > 0
+                      ? Colors.green
+                      : Colors.red,
                 ),
               ),
             ),

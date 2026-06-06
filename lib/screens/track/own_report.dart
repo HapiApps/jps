@@ -43,7 +43,7 @@ class _OwnReportState extends State<OwnReport> {
         body:  SingleChildScrollView(
           child: Column(
             children: [
-              25.height,
+              35.height,
               CustomText(text: 'Date: ${custProvider.startDate}'),
               custProvider.refresh==false?const Padding(
                 padding: EdgeInsets.fromLTRB(0, 150, 0, 0),

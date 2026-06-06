@@ -86,6 +86,7 @@ class _CorrectionReportState extends State<CorrectionReport> with SingleTickerPr
               width:  kIsWeb?webWidth:phoneWidth,
               child: Column(
                 children: [
+                  20.height,
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [

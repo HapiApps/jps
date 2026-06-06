@@ -76,6 +76,7 @@ class _CustomerDetailsState extends State<CustomerDetails> {
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      20.height,
                       Center(child: CustomText(text: data.companyName.toString(),isBold: true)),5.height,
                       if(formattedAddress!="")
                       Center(child: SizedBox(

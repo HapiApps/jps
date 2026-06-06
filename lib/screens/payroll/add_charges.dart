@@ -68,7 +68,7 @@ class _AddChargesState extends State<AddCharges> {
                     Column(
                       mainAxisAlignment: MainAxisAlignment.start,
                       children: [
-                        20.height,
+                        30.height,
                         if(kIsWeb)
                         SizedBox(
                           width: kIsWeb?webWidth:phoneWidth,

@@ -76,6 +76,7 @@ class _LeaveDetailsState extends State<LeaveDetails> {
                     width: MediaQuery.of(context).size.width * 0.9,
                     child: Column(
                       children: [
+                        20.height,
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [

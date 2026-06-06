@@ -111,6 +111,7 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
                           child: Column(
                             children: [
                               //type
+                              20.height,
                               MapDropDown(
                                 isRequired: true,
                                 isRefresh: taskProvider.typeList.isEmpty,

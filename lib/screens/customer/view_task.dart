@@ -72,6 +72,7 @@ class _ViewTasksState extends State<ViewTasks> with SingleTickerProviderStateMix
               const Loading():
               Column(
                 children: [
+                  20.height,
                   CustomTextField(
                     controller: taskProvider.search,radius: 30,
                     width: kIsWeb?webWidth:phoneWidth,

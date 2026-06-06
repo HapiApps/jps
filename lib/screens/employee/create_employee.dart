@@ -349,6 +349,7 @@ class _CreateEmployeeState extends State<CreateEmployee>with SingleTickerProvide
                 width: kIsWeb?webWidth:phoneWidth,
                 child: Column(
                   children: [
+                    20.height,
                     Container(
                         height: 8,
                         decoration: customDecoration.baseBackgroundDecoration(

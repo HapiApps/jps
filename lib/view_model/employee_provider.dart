@@ -101,6 +101,10 @@ void changeRelation(dynamic value){
   _relation=value;
   notifyListeners();
 }
+void clearRole() {
+  _role = null;
+  notifyListeners();
+}
 List prefix = ["Mr", "Mrs", "Dr", "Ms"];
 TextEditingController gradeCtr = TextEditingController();
 TextEditingController search = TextEditingController();

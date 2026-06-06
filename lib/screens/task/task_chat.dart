@@ -578,6 +578,7 @@ class _TaskChatState extends State<TaskChat> with SingleTickerProviderStateMixin
                               crossAxisAlignment: CrossAxisAlignment.start,
                               mainAxisSize: MainAxisSize.min,
                               children: [
+                                20.height,
                                 if (!isSender)
                                   Padding(
                                     padding: const EdgeInsets.only(bottom: 4),

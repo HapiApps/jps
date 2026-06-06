@@ -1,5 +1,6 @@
 import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
+import 'package:master_code/source/extentions/extensions.dart';
 import 'package:provider/provider.dart';
 import 'package:rounded_loading_button_plus/rounded_loading_button.dart';
 import '../../../component/custom_appbar.dart';
@@ -117,6 +118,7 @@ class _CommentChatState extends State<CommentChat> {
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
+                  20.height,
                   if (showDateHeader==true)
                     Padding(
                       padding: const EdgeInsets.symmetric(vertical: 10),

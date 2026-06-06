@@ -86,6 +86,7 @@ class _EditSalaryState extends State<EditSalary> with SingleTickerProviderStateM
           Center(
             child: Column(
               children: [
+                20.height,
                 SizedBox(
                   width: kIsWeb?webWidth:phoneWidth,
                   child: Row(

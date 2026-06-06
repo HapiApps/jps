@@ -69,6 +69,7 @@ class _SignUpState extends State<SignUp>{
                 child: SingleChildScrollView(
                   child: Column(
                     children: [
+                      20.height,
                       GestureDetector(
                         onTap: (){
                           _myFocusScopeNode.unfocus();

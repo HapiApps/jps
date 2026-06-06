@@ -52,8 +52,10 @@ class _ForgotPasswordState extends State<ForgotPassword> {
             ),
           ),
           body: Column(
+
             // mainAxisAlignment: MainAxisAlignment.center,
             children: [
+              20.height,
               CustomTextField(isRequired: true,
                 text: constValue.password,controller: homeProvider.forgotPassword1,
                 width: kIsWeb?webWidth:phoneWidth,

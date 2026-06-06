@@ -58,6 +58,7 @@ class _UserTasksState extends State<UserTasks>{
             const Loading():
             Column(
               children: [
+                20.height,
                 CustomText(text: "${widget.name}\n"),
                 if(taskProvider.userAllTasks.isNotEmpty)
                 SizedBox(

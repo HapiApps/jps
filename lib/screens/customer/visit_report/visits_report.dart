@@ -122,6 +122,7 @@ class _VisitReportState extends State<VisitReport> with SingleTickerProviderStat
               width: kIsWeb?webWidth:phoneWidth,
               child: Column(
                 children: [
+                  20.height,
                   if(localData.storage.read("role")=="1")
                   Container(
                       height: 40,
@@ -154,477 +155,485 @@ class _VisitReportState extends State<VisitReport> with SingleTickerProviderStat
                           Column(
                             children: [
                               10.height,
-
                               Row(
-                                mainAxisAlignment: MainAxisAlignment.end,
                                 children: [
 
-                                  /// 🔥 Hide Empty Employees
-                                  Row(
-                                    children: [
+                                  /// Search + Filter Container
+                                  Expanded(
+                                    child: Container(
+                                      height: 40,
+                                      decoration: BoxDecoration(
+                                        color: colorsConst.primary,
+                                        borderRadius: BorderRadius.circular(20),
+                                      ),
+                                      child: Row(
+                                        children: [
 
+                                          /// Search Field
+                                          Expanded(
+                                            child: Container(
+                                              margin: const EdgeInsets.all(4),
+                                              decoration: BoxDecoration(
+                                                color: Colors.white,
+                                                borderRadius: BorderRadius.circular(20),
+                                              ),
+                                              child: TextField(
+                                                controller: custProvider.search,
+                                                decoration: InputDecoration(
+                                                  hintText: "Search Name or Customer",
+                                                  prefixIcon: const Icon(
+                                                    Icons.search,
+                                                    color: Colors.grey,
+                                                  ),
+                                                  border: InputBorder.none,
+                                                  contentPadding:
+                                                  const EdgeInsets.symmetric(vertical: 10),
+                                                ),
+                                                onChanged: (value) {
+                                                  custProvider.searchVisitReport(value);
+                                                },
+                                              ),
+                                            ),
+                                          ),
 
+                                          /// Filter Button
+                                          IconButton(
+                                            onPressed: () {
+                                              showDialog(
+                                                context: context,
+                                                builder: (context) {
 
-                                  10.width,
+                                                  return Consumer2<
+                                                      CustomerProvider,
+                                                      EmployeeProvider>(
+                                                    builder:
+                                                        (context, empProvider, ePvr, _) {
 
-                                  /// 🔥 Download Button
-                                  CustomLoadingButton(
-                                    callback: () {
-                                      custProvider.getVisitHoursReport(context);
-                                    },
-                                    isLoading: true,
-                                    backgroundColor: colorsConst.primary,
-                                    controller: custProvider.addCtr,
-                                    radius: 5,
-                                    width: 100,
-                                    text: "Download",
-                                  ),
+                                                      return AlertDialog(
+                                                        actions: [
 
-                                  10.width,
+                                                          SizedBox(
+                                                            width: kIsWeb
+                                                                ? webWidth / 1.2
+                                                                : phoneWidth / 1.2,
 
-                                  /// 🔥 Filter Button
-                                  InkWell(
-                                    onTap: () {
-
-                                      showDialog(
-                                        context: context,
-                                        builder: (context) {
-
-                                          return Consumer2<
-                                              CustomerProvider,
-                                              EmployeeProvider>(
-                                            builder:
-                                                (context, empProvider, ePvr, _) {
-
-                                              return AlertDialog(
-                                                actions: [
-
-                                                  SizedBox(
-                                                    width: kIsWeb
-                                                        ? webWidth / 1.2
-                                                        : phoneWidth / 1.2,
-
-                                                    child: Column(
-                                                      children: [
-
-                                                        20.height,
-
-                                                        Row(
-                                                          mainAxisAlignment:
-                                                          MainAxisAlignment
-                                                              .spaceBetween,
-
-                                                          children: [
-
-                                                            70.width,
-
-                                                            const CustomText(
-                                                              text: 'Filters',
-                                                              colors: Colors.black,
-                                                              size: 16,
-                                                              isBold: true,
-                                                            ),
-
-                                                            30.width,
-
-                                                            InkWell(
-                                                              onTap: () {
-
-                                                                Navigator.of(
-                                                                  context,
-                                                                  rootNavigator:
-                                                                  true,
-                                                                ).pop();
-                                                              },
-
-                                                              child: SvgPicture.asset(
-                                                                assets.cancel,
-                                                              ),
-                                                            )
-                                                          ],
-                                                        ),
-
-                                                        20.height,
-
-                                                        /// From & To Date
-                                                        Row(
-                                                          mainAxisAlignment:
-                                                          MainAxisAlignment
-                                                              .spaceEvenly,
-
-                                                          children: [
-
-                                                            /// From Date
-                                                            Column(
-                                                              crossAxisAlignment:
-                                                              CrossAxisAlignment
-                                                                  .start,
-
+                                                            child: Column(
                                                               children: [
 
-                                                                CustomText(
-                                                                  text: "From Date",
-                                                                  colors: colorsConst
-                                                                      .greyClr,
-                                                                  size: 12,
-                                                                ),
+                                                                20.height,
 
-                                                                InkWell(
-                                                                  onTap: () {
+                                                                Row(
+                                                                  mainAxisAlignment:
+                                                                  MainAxisAlignment
+                                                                      .spaceBetween,
 
-                                                                    custProvider
-                                                                        .datePick(
-                                                                      context:
-                                                                      context,
-                                                                      isStartDate:
-                                                                      true,
-                                                                      date:
-                                                                      custProvider
-                                                                          .startDate,
-                                                                    );
-                                                                  },
+                                                                  children: [
 
-                                                                  child: Container(
-                                                                    height: 30,
+                                                                    70.width,
 
-                                                                    width: kIsWeb
-                                                                        ? webWidth /
-                                                                        2.8
-                                                                        : phoneWidth /
-                                                                        2.8,
-
-                                                                    decoration:
-                                                                    customDecoration
-                                                                        .baseBackgroundDecoration(
-                                                                      color:
-                                                                      Colors.white,
-                                                                      radius: 5,
-                                                                      borderColor:
-                                                                      colorsConst
-                                                                          .litGrey,
+                                                                    const CustomText(
+                                                                      text: 'Filters',
+                                                                      colors: Colors.black,
+                                                                      size: 16,
+                                                                      isBold: true,
                                                                     ),
 
-                                                                    child: Row(
-                                                                      mainAxisAlignment:
-                                                                      MainAxisAlignment
-                                                                          .center,
+                                                                    30.width,
+
+                                                                    InkWell(
+                                                                      onTap: () {
+
+                                                                        Navigator.of(
+                                                                          context,
+                                                                          rootNavigator:
+                                                                          true,
+                                                                        ).pop();
+                                                                      },
+
+                                                                      child: SvgPicture.asset(
+                                                                        assets.cancel,
+                                                                      ),
+                                                                    )
+                                                                  ],
+                                                                ),
+
+                                                                20.height,
+
+                                                                /// From & To Date
+                                                                Row(
+                                                                  mainAxisAlignment:
+                                                                  MainAxisAlignment
+                                                                      .spaceEvenly,
+
+                                                                  children: [
+
+                                                                    /// From Date
+                                                                    Column(
+                                                                      crossAxisAlignment:
+                                                                      CrossAxisAlignment
+                                                                          .start,
 
                                                                       children: [
 
                                                                         CustomText(
-                                                                          text:
-                                                                          custProvider
-                                                                              .startDate,
+                                                                          text: "From Date",
+                                                                          colors: colorsConst
+                                                                              .greyClr,
+                                                                          size: 12,
                                                                         ),
 
-                                                                        5.width,
+                                                                        InkWell(
+                                                                          onTap: () {
 
-                                                                        SvgPicture.asset(
-                                                                          assets
-                                                                              .calendar2,
-                                                                        ),
+                                                                            custProvider
+                                                                                .datePick(
+                                                                              context:
+                                                                              context,
+                                                                              isStartDate:
+                                                                              true,
+                                                                              date:
+                                                                              custProvider
+                                                                                  .startDate,
+                                                                            );
+                                                                          },
+
+                                                                          child: Container(
+                                                                            height: 30,
+
+                                                                            width: kIsWeb
+                                                                                ? webWidth /
+                                                                                2.8
+                                                                                : phoneWidth /
+                                                                                2.8,
+
+                                                                            decoration:
+                                                                            customDecoration
+                                                                                .baseBackgroundDecoration(
+                                                                              color:
+                                                                              Colors.white,
+                                                                              radius: 5,
+                                                                              borderColor:
+                                                                              colorsConst
+                                                                                  .litGrey,
+                                                                            ),
+
+                                                                            child: Row(
+                                                                              mainAxisAlignment:
+                                                                              MainAxisAlignment
+                                                                                  .center,
+
+                                                                              children: [
+
+                                                                                CustomText(
+                                                                                  text:
+                                                                                  custProvider
+                                                                                      .startDate,
+                                                                                ),
+
+                                                                                5.width,
+
+                                                                                SvgPicture.asset(
+                                                                                  assets
+                                                                                      .calendar2,
+                                                                                ),
+                                                                              ],
+                                                                            ),
+                                                                          ),
+                                                                        )
                                                                       ],
                                                                     ),
-                                                                  ),
-                                                                )
-                                                              ],
-                                                            ),
 
-                                                            /// To Date
-                                                            Column(
-                                                              crossAxisAlignment:
-                                                              CrossAxisAlignment
-                                                                  .start,
-
-                                                              children: [
-
-                                                                CustomText(
-                                                                  text: "To Date",
-                                                                  colors: colorsConst
-                                                                      .greyClr,
-                                                                  size: 12,
-                                                                ),
-
-                                                                InkWell(
-                                                                  onTap: () {
-
-                                                                    custProvider
-                                                                        .datePick(
-                                                                      context:
-                                                                      context,
-                                                                      isStartDate:
-                                                                      false,
-                                                                      date:
-                                                                      custProvider
-                                                                          .endDate,
-                                                                    );
-                                                                  },
-
-                                                                  child: Container(
-                                                                    height: 30,
-
-                                                                    width: kIsWeb
-                                                                        ? webWidth /
-                                                                        2.8
-                                                                        : phoneWidth /
-                                                                        2.8,
-
-                                                                    decoration:
-                                                                    customDecoration
-                                                                        .baseBackgroundDecoration(
-                                                                      color:
-                                                                      Colors.white,
-                                                                      radius: 5,
-                                                                      borderColor:
-                                                                      colorsConst
-                                                                          .litGrey,
-                                                                    ),
-
-                                                                    child: Row(
-                                                                      mainAxisAlignment:
-                                                                      MainAxisAlignment
-                                                                          .center,
+                                                                    /// To Date
+                                                                    Column(
+                                                                      crossAxisAlignment:
+                                                                      CrossAxisAlignment
+                                                                          .start,
 
                                                                       children: [
 
                                                                         CustomText(
-                                                                          text:
-                                                                          custProvider
-                                                                              .endDate,
+                                                                          text: "To Date",
+                                                                          colors: colorsConst
+                                                                              .greyClr,
+                                                                          size: 12,
                                                                         ),
 
-                                                                        5.width,
+                                                                        InkWell(
+                                                                          onTap: () {
 
-                                                                        SvgPicture.asset(
-                                                                          assets
-                                                                              .calendar2,
-                                                                        ),
+                                                                            custProvider
+                                                                                .datePick(
+                                                                              context:
+                                                                              context,
+                                                                              isStartDate:
+                                                                              false,
+                                                                              date:
+                                                                              custProvider
+                                                                                  .endDate,
+                                                                            );
+                                                                          },
+
+                                                                          child: Container(
+                                                                            height: 30,
+
+                                                                            width: kIsWeb
+                                                                                ? webWidth /
+                                                                                2.8
+                                                                                : phoneWidth /
+                                                                                2.8,
+
+                                                                            decoration:
+                                                                            customDecoration
+                                                                                .baseBackgroundDecoration(
+                                                                              color:
+                                                                              Colors.white,
+                                                                              radius: 5,
+                                                                              borderColor:
+                                                                              colorsConst
+                                                                                  .litGrey,
+                                                                            ),
+
+                                                                            child: Row(
+                                                                              mainAxisAlignment:
+                                                                              MainAxisAlignment
+                                                                                  .center,
+
+                                                                              children: [
+
+                                                                                CustomText(
+                                                                                  text:
+                                                                                  custProvider
+                                                                                      .endDate,
+                                                                                ),
+
+                                                                                5.width,
+
+                                                                                SvgPicture.asset(
+                                                                                  assets
+                                                                                      .calendar2,
+                                                                                ),
+                                                                              ],
+                                                                            ),
+                                                                          ),
+                                                                        )
                                                                       ],
                                                                     ),
-                                                                  ),
-                                                                )
-                                                              ],
-                                                            ),
-                                                          ],
-                                                        ),
-
-                                                        10.height,
-
-                                                        /// Date Range Dropdown
-                                                        Column(
-                                                          crossAxisAlignment:
-                                                          CrossAxisAlignment
-                                                              .start,
-
-                                                          children: [
-
-                                                            CustomText(
-                                                              text:
-                                                              "Select Date Range",
-                                                              colors:
-                                                              colorsConst.greyClr,
-                                                              size: 12,
-                                                            ),
-
-                                                            Container(
-                                                              height: 30,
-
-                                                              width: kIsWeb
-                                                                  ? webWidth / 1.2
-                                                                  : phoneWidth / 1.2,
-
-                                                              decoration:
-                                                              customDecoration
-                                                                  .baseBackgroundDecoration(
-                                                                radius: 5,
-                                                                color: Colors.white,
-                                                                borderColor:
-                                                                colorsConst
-                                                                    .litGrey,
-                                                              ),
-
-                                                              child: DropdownButton(
-                                                                iconEnabledColor:
-                                                                colorsConst
-                                                                    .greyClr,
-
-                                                                isExpanded: true,
-
-                                                                underline:
-                                                                const SizedBox(),
-
-                                                                icon: const Icon(
-                                                                  Icons
-                                                                      .keyboard_arrow_down_outlined,
+                                                                  ],
                                                                 ),
 
-                                                                value:
-                                                                custProvider
-                                                                    .repType,
+                                                                10.height,
 
-                                                                onChanged:
-                                                                    (value) {
+                                                                /// Date Range Dropdown
+                                                                Column(
+                                                                  crossAxisAlignment:
+                                                                  CrossAxisAlignment
+                                                                      .start,
 
-                                                                  custProvider
-                                                                      .changeDailyVisitType(
-                                                                    value,
-                                                                    context,
-                                                                  );
-                                                                },
+                                                                  children: [
 
-                                                                items:
-                                                                custProvider
-                                                                    .typeList
-                                                                    .map((list) {
-
-                                                                  return DropdownMenuItem(
-                                                                    value: list,
-
-                                                                    child:
                                                                     CustomText(
                                                                       text:
-                                                                      "  $list",
+                                                                      "Select Date Range",
                                                                       colors:
-                                                                      Colors
-                                                                          .black,
-                                                                      isBold:
-                                                                      false,
+                                                                      colorsConst.greyClr,
+                                                                      size: 12,
                                                                     ),
-                                                                  );
-                                                                }).toList(),
-                                                              ),
+
+                                                                    Container(
+                                                                      height: 30,
+                                                                      width: kIsWeb ? webWidth / 1.2 : phoneWidth / 1.2,
+                                                                      decoration: customDecoration.baseBackgroundDecoration(
+                                                                        radius: 5,
+                                                                        color: Colors.white,
+                                                                        borderColor: colorsConst.litGrey,
+                                                                      ),
+                                                                      child: DropdownButton<String>(
+                                                                        iconEnabledColor: colorsConst.greyClr,
+                                                                        isExpanded: true,
+                                                                        underline: const SizedBox(),
+                                                                        icon: const Icon(
+                                                                          Icons.keyboard_arrow_down_outlined,
+                                                                        ),
+
+                                                                        // ✅ Safe value check
+                                                                        value: custProvider.typeList
+                                                                            .toSet()
+                                                                            .toList()
+                                                                            .contains(custProvider.repType)
+                                                                            ? custProvider.repType
+                                                                            : null,
+
+                                                                        onChanged: (value) {
+                                                                          if (value != null) {
+                                                                            custProvider.changeDailyVisitType(
+                                                                              value,
+                                                                              context,
+                                                                            );
+                                                                          }
+                                                                        },
+
+                                                                        items: custProvider.typeList
+                                                                            .toSet() // ✅ Remove duplicate values like "All"
+                                                                            .toList()
+                                                                            .map<DropdownMenuItem<String>>((list) {
+                                                                          return DropdownMenuItem<String>(
+                                                                            value: list,
+                                                                            child: CustomText(
+                                                                              text: "  $list",
+                                                                              colors: Colors.black,
+                                                                              isBold: false,
+                                                                            ),
+                                                                          );
+                                                                        }).toList(),
+                                                                      ),
+                                                                    ),
+                                                                  ],
+                                                                ),
+
+                                                                20.height,
+
+                                                                /// Buttons
+                                                                Row(
+                                                                  mainAxisAlignment:
+                                                                  MainAxisAlignment
+                                                                      .spaceEvenly,
+
+                                                                  children: [
+
+                                                                    CustomBtn(
+                                                                      width: 100,
+                                                                      text: 'Clear All',
+
+                                                                      callback: () {
+
+                                                                        custProvider
+                                                                            .initVisitReport(
+                                                                          custProvider
+                                                                              .startDate,
+                                                                          custProvider
+                                                                              .endDate,
+                                                                          custProvider
+                                                                              .reportType,
+                                                                        );
+
+                                                                        custProvider
+                                                                            .manageFilter(
+                                                                            false);
+
+                                                                        custProvider
+                                                                            .getEmpWiseReport(
+                                                                            context);
+
+                                                                        Navigator.of(
+                                                                          context,
+                                                                          rootNavigator:
+                                                                          true,
+                                                                        ).pop();
+                                                                      },
+
+                                                                      bgColor:
+                                                                      Colors.grey
+                                                                          .shade200,
+
+                                                                      textColor:
+                                                                      Colors.black,
+                                                                    ),
+
+                                                                    CustomBtn(
+                                                                      width: 100,
+                                                                      text:
+                                                                      'Apply Filters',
+
+                                                                      callback: () {
+
+                                                                        custProvider
+                                                                            .manageFilter(
+                                                                            true);
+
+                                                                        custProvider
+                                                                            .getEmpWiseReport(
+                                                                            context);
+
+                                                                        Navigator.of(
+                                                                          context,
+                                                                          rootNavigator:
+                                                                          true,
+                                                                        ).pop();
+                                                                      },
+
+                                                                      bgColor:
+                                                                      colorsConst
+                                                                          .primary,
+
+                                                                      textColor:
+                                                                      Colors.white,
+                                                                    ),
+                                                                  ],
+                                                                ),
+
+                                                                20.height,
+                                                              ],
                                                             ),
-                                                          ],
-                                                        ),
-
-                                                        20.height,
-
-                                                        /// Buttons
-                                                        Row(
-                                                          mainAxisAlignment:
-                                                          MainAxisAlignment
-                                                              .spaceEvenly,
-
-                                                          children: [
-
-                                                            CustomBtn(
-                                                              width: 100,
-                                                              text: 'Clear All',
-
-                                                              callback: () {
-
-                                                                custProvider
-                                                                    .initVisitReport(
-                                                                  custProvider
-                                                                      .startDate,
-                                                                  custProvider
-                                                                      .endDate,
-                                                                  custProvider
-                                                                      .reportType,
-                                                                );
-
-                                                                custProvider
-                                                                    .manageFilter(
-                                                                    false);
-
-                                                                custProvider
-                                                                    .getEmpWiseReport(
-                                                                    context);
-
-                                                                Navigator.of(
-                                                                  context,
-                                                                  rootNavigator:
-                                                                  true,
-                                                                ).pop();
-                                                              },
-
-                                                              bgColor:
-                                                              Colors.grey
-                                                                  .shade200,
-
-                                                              textColor:
-                                                              Colors.black,
-                                                            ),
-
-                                                            CustomBtn(
-                                                              width: 100,
-                                                              text:
-                                                              'Apply Filters',
-
-                                                              callback: () {
-
-                                                                custProvider
-                                                                    .manageFilter(
-                                                                    true);
-
-                                                                custProvider
-                                                                    .getEmpWiseReport(
-                                                                    context);
-
-                                                                Navigator.of(
-                                                                  context,
-                                                                  rootNavigator:
-                                                                  true,
-                                                                ).pop();
-                                                              },
-
-                                                              bgColor:
-                                                              colorsConst
-                                                                  .primary,
-
-                                                              textColor:
-                                                              Colors.white,
-                                                            ),
-                                                          ],
-                                                        ),
-
-                                                        20.height,
-                                                      ],
-                                                    ),
-                                                  )
-                                                ],
+                                                          )
+                                                        ],
+                                                      );
+                                                    },
+                                                  );
+                                                },
                                               );
                                             },
-                                          );
-                                        },
-                                      );
-                                    },
+                                            icon: const Icon(
+                                              Icons.tune,
+                                              color: Colors.white,
+                                              size: 28,
+                                            ),
+                                          ),
 
-                                    child: Container(
-                                      width: kIsWeb
-                                          ? webWidth / 6
-                                          : phoneWidth / 6,
-
-                                      height: 45,
-
-                                      decoration:
-                                      customDecoration
-                                          .baseBackgroundDecoration(
-                                        color: Colors.grey.shade300,
-                                        radius: 5,
-                                      ),
-
-                                      child: Padding(
-                                        padding:
-                                        const EdgeInsets.all(6.0),
-
-                                        child: SvgPicture.asset(
-                                          assets.tFilter,
-                                          width: 15,
-                                          height: 15,
-                                          color: colorsConst.primary,
-                                        ),
+                                          const SizedBox(width: 5),
+                                        ],
                                       ),
                                     ),
                                   ),
-                                      10.width,
+
+                                  const SizedBox(width: 2),
+
+                                  /// Download Button
+                                  IconButton(
+                                    onPressed: () {
+                                      custProvider.getVisitHoursReport(context);
+                                    },
+                                    icon:  Icon(
+                                      Icons.cloud_download,
+                                      color:colorsConst.primary,
+                                      size: 40,
+                                    ),
+                                  ),
+
+                                ],
+                              ),
+                              /// Filter Chip
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Flexible(
+                                    child: custProvider.startDate == custProvider.endDate
+                                        ? filterChip(
+                                      "Date: ${custProvider.startDate}",
+                                    )
+                                        : filterChip(
+                                      "Date: ${custProvider.startDate}-${custProvider.endDate}",
+                                    ),
+                                  ),
+
+                                  const SizedBox(width: 8),
+
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.end,
+                                    children: [
                                       Checkbox(
                                         value: custProvider.hideEmptyEmployees,
-
                                         activeColor: colorsConst.primary,
-
                                         onChanged: (value) {
-
                                           custProvider.toggleHideEmptyEmployees(
                                             value ?? false,
                                           );
@@ -639,22 +648,6 @@ class _VisitReportState extends State<VisitReport> with SingleTickerProviderStat
                                   ),
                                 ],
                               ),
-
-                              /// Filter Chip
-                              if (custProvider.startDate ==
-                                  custProvider.endDate)
-
-                                filterChip(
-                                  "Date: ${custProvider.startDate}",
-                                )
-
-                              else ...[
-
-                                filterChip(
-                                  "Date: ${custProvider.startDate}-${custProvider.endDate}",
-                                ),
-                              ],
-
                               /// Loading
                               custProvider.refresh == false
 
@@ -1003,238 +996,300 @@ class _VisitReportState extends State<VisitReport> with SingleTickerProviderStat
                               ),
                             ],
                           ),
+
                           Column(  //Employee visit
                           children: [
                             Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                SizedBox(
-                                  width: 200,
-                                  child: CustomTextField(
-                                    text: "",radius: 30,
-                                    controller: custProvider.search,
-                                    width: kIsWeb?webWidth/1.2:phoneWidth/1.2,
-                                    hintText: "${constValue.companyName}/${constValue.customer}/Emp/No",
-                                    isIcon: true,
-                                    iconData: Icons.search,
-                                    textInputAction: TextInputAction.done,
-                                    isShadow: true,
-                                    onChanged: (value) {
-                                      custProvider.searchVisitReport(value.toString());
-                                    },
-                                  ),
-                                ),
-                                InkWell(
-                                  onTap: (){
-                                    showDialog(
-                                      context: context,
-                                      builder: (context) {
-                                        return Consumer2<CustomerProvider,EmployeeProvider>(
-                                          builder: (context, empProvider, ePvr,_) {
-                                            return AlertDialog(
-                                              actions: [
-                                                SizedBox(
-                                                  width:kIsWeb?webWidth/1.2:phoneWidth/1.2,
-                                                  child: Column(
-                                                    children: [
-                                                      20.height,
-                                                      Row(
-                                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                                        children: [
-                                                          70.width,
-                                                          const CustomText(
-                                                            text: 'Filters',
-                                                            colors: Colors.black,
-                                                            size: 16,
-                                                            isBold: true,
-                                                          ),
-                                                          30.width,
-                                                          InkWell(
-                                                            onTap: () {
-                                                              Navigator.of(context, rootNavigator: true).pop();
-                                                            },
-                                                            child: SvgPicture.asset(assets.cancel),
-                                                          )
-                                                        ],
-                                                      ),
-                                                      20.height,
-                                                      Row(
-                                                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                                                        children: [
-                                                          Column(
-                                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                 5.height,
+                                /// Search + Filter
+                                Expanded(
+                                  child: Container(
+                                    height: 45,
+                                    decoration: BoxDecoration(
+                                      color: colorsConst.primary,
+                                      borderRadius: BorderRadius.circular(30),
+                                    ),
+                                    child: Row(
+                                      children: [
+
+                                        /// Search Field
+                                        Expanded(
+                                          child: Container(
+                                            margin: const EdgeInsets.all(4),
+                                            decoration: BoxDecoration(
+                                              color: Colors.white,
+                                              borderRadius: BorderRadius.circular(30),
+                                            ),
+                                            child: TextField(
+                                              controller: custProvider.search,
+                                              decoration: InputDecoration(
+                                                hintText:
+                                                "${constValue.companyName}/${constValue.customer}/Emp/No",
+                                                prefixIcon: const Icon(
+                                                  Icons.search,
+                                                  color: Colors.grey,
+                                                ),
+                                                border: InputBorder.none,
+                                                contentPadding:
+                                                const EdgeInsets.symmetric(vertical: 12),
+                                              ),
+                                              onChanged: (value) {
+                                                custProvider.searchVisitReport(value);
+                                              },
+                                            ),
+                                          ),
+                                        ),
+
+                                        /// Filter Button
+                                        IconButton(
+                                          onPressed: () {
+
+                                            showDialog(
+                                              context: context,
+                                              builder: (context) {
+                                                return Consumer2<CustomerProvider, EmployeeProvider>(
+                                                  builder: (context, empProvider, ePvr, _) {
+                                                    return AlertDialog(
+                                                      actions: [
+                                                        SizedBox(
+                                                          width: kIsWeb
+                                                              ? webWidth / 1.2
+                                                              : phoneWidth / 1.2,
+                                                          child: Column(
                                                             children: [
-                                                              CustomText(
-                                                                text: "From Date",
-                                                                colors: colorsConst.greyClr,
-                                                                size: 12,
-                                                              ),
-                                                              InkWell(
-                                                                onTap: () {
-                                                                  custProvider.datePick(
-                                                                    context: context,
-                                                                    isStartDate: true,
-                                                                    date: custProvider.startDate,
-                                                                  );
-                                                                },
-                                                                child: Container(
-                                                                  height: 30,
-                                                                  width:kIsWeb?webWidth/2.8:phoneWidth/2.8,
-                                                                  decoration: customDecoration.baseBackgroundDecoration(
-                                                                    color: Colors.white,
-                                                                    radius: 5,
-                                                                    borderColor: colorsConst.litGrey,
-                                                                  ),
-                                                                  child: Row(
-                                                                    mainAxisAlignment: MainAxisAlignment.center,
-                                                                    children: [
-                                                                      CustomText(text: custProvider.startDate),
-                                                                      5.width,
-                                                                      SvgPicture.asset(assets.calendar2),
-                                                                    ],
-                                                                  ),
-                                                                ),
-                                                              )
-                                                            ],
-                                                          ),
-                                                          Column(
-                                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                                            children: [
-                                                              CustomText(
-                                                                text: "To Date",
-                                                                colors: colorsConst.greyClr,
-                                                                size: 12,
-                                                              ),
-                                                              InkWell(
-                                                                onTap: () {
-                                                                  custProvider.datePick(
-                                                                    context: context,
-                                                                    isStartDate: false,
-                                                                    date: custProvider.endDate,
-                                                                  );
-                                                                },
-                                                                child: Container(
-                                                                  height: 30,
-                                                                  width:kIsWeb?webWidth/2.8:phoneWidth/2.8,
-                                                                  decoration: customDecoration.baseBackgroundDecoration(
-                                                                    color: Colors.white,
-                                                                    radius: 5,
-                                                                    borderColor: colorsConst.litGrey,
-                                                                  ),
-                                                                  child: Row(
-                                                                    mainAxisAlignment: MainAxisAlignment.center,
-                                                                    children: [
-                                                                      CustomText(text: custProvider.endDate),
-                                                                      5.width,
-                                                                      SvgPicture.asset(assets.calendar2),
-                                                                    ],
-                                                                  ),
-                                                                ),
-                                                              )
-                                                            ],
-                                                          ),
-                                                        ],
-                                                      ),
-                                                      10.height,
-                                                      Column(
-                                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                                        children: [
-                                                          CustomText(
-                                                            text: "Select Date Range",
-                                                            colors: colorsConst.greyClr,
-                                                            size: 12,
-                                                          ),
-                                                          Container(
-                                                            height: 30,
-                                                            width:kIsWeb?webWidth/1.2:phoneWidth/1.2,
-                                                            decoration: customDecoration.baseBackgroundDecoration(
-                                                              radius: 5,
-                                                              color: Colors.white,
-                                                              borderColor: colorsConst.litGrey,
-                                                            ),
-                                                            child: DropdownButton(
-                                                              iconEnabledColor: colorsConst.greyClr,
-                                                              isExpanded: true,
-                                                              underline: const SizedBox(),
-                                                              icon: const Icon(Icons.keyboard_arrow_down_outlined),
-                                                              value: custProvider.repType,
-                                                              onChanged: (value) {
-                                                                custProvider.changeDailyVisitType(value,context);
-                                                              },
-                                                              items: custProvider.typeList.map((list) {
-                                                                return DropdownMenuItem(
-                                                                  value: list,
-                                                                  child: CustomText(
-                                                                    text: "  $list",
+
+                                                              20.height,
+
+                                                              Row(
+                                                                mainAxisAlignment:
+                                                                MainAxisAlignment.spaceBetween,
+                                                                children: [
+
+                                                                  70.width,
+
+                                                                  const CustomText(
+                                                                    text: 'Filters',
                                                                     colors: Colors.black,
-                                                                    isBold: false,
+                                                                    size: 16,
+                                                                    isBold: true,
                                                                   ),
-                                                                );
-                                                              }).toList(),
-                                                            ),
+
+                                                                  30.width,
+
+                                                                  InkWell(
+                                                                    onTap: () {
+                                                                      Navigator.of(
+                                                                        context,
+                                                                        rootNavigator: true,
+                                                                      ).pop();
+                                                                    },
+                                                                    child: SvgPicture.asset(
+                                                                      assets.cancel,
+                                                                    ),
+                                                                  )
+                                                                ],
+                                                              ),
+
+                                                              20.height,
+
+                                                              /// FROM DATE
+                                                              Row(
+                                                                mainAxisAlignment:
+                                                                MainAxisAlignment.spaceEvenly,
+                                                                children: [
+
+                                                                  Column(
+                                                                    crossAxisAlignment:
+                                                                    CrossAxisAlignment.start,
+                                                                    children: [
+
+                                                                      CustomText(
+                                                                        text: "From Date",
+                                                                        colors:
+                                                                        colorsConst.greyClr,
+                                                                        size: 12,
+                                                                      ),
+
+                                                                      InkWell(
+                                                                        onTap: () {
+                                                                          custProvider.datePick(
+                                                                            context: context,
+                                                                            isStartDate: true,
+                                                                            date: custProvider.startDate,
+                                                                          );
+                                                                        },
+                                                                        child: Container(
+                                                                          height: 30,
+                                                                          width: kIsWeb
+                                                                              ? webWidth / 2.8
+                                                                              : phoneWidth / 2.8,
+                                                                          decoration:
+                                                                          customDecoration
+                                                                              .baseBackgroundDecoration(
+                                                                            color: Colors.white,
+                                                                            radius: 5,
+                                                                            borderColor:
+                                                                            colorsConst.litGrey,
+                                                                          ),
+                                                                          child: Row(
+                                                                            mainAxisAlignment:
+                                                                            MainAxisAlignment.center,
+                                                                            children: [
+                                                                              CustomText(
+                                                                                text: custProvider.startDate,
+                                                                              ),
+                                                                              5.width,
+                                                                              SvgPicture.asset(
+                                                                                assets.calendar2,
+                                                                              ),
+                                                                            ],
+                                                                          ),
+                                                                        ),
+                                                                      )
+                                                                    ],
+                                                                  ),
+
+                                                                  /// TO DATE
+                                                                  Column(
+                                                                    crossAxisAlignment:
+                                                                    CrossAxisAlignment.start,
+                                                                    children: [
+
+                                                                      CustomText(
+                                                                        text: "To Date",
+                                                                        colors:
+                                                                        colorsConst.greyClr,
+                                                                        size: 12,
+                                                                      ),
+
+                                                                      InkWell(
+                                                                        onTap: () {
+                                                                          custProvider.datePick(
+                                                                            context: context,
+                                                                            isStartDate: false,
+                                                                            date: custProvider.endDate,
+                                                                          );
+                                                                        },
+                                                                        child: Container(
+                                                                          height: 30,
+                                                                          width: kIsWeb
+                                                                              ? webWidth / 2.8
+                                                                              : phoneWidth / 2.8,
+                                                                          decoration:
+                                                                          customDecoration
+                                                                              .baseBackgroundDecoration(
+                                                                            color: Colors.white,
+                                                                            radius: 5,
+                                                                            borderColor:
+                                                                            colorsConst.litGrey,
+                                                                          ),
+                                                                          child: Row(
+                                                                            mainAxisAlignment:
+                                                                            MainAxisAlignment.center,
+                                                                            children: [
+                                                                              CustomText(
+                                                                                text: custProvider.endDate,
+                                                                              ),
+                                                                              5.width,
+                                                                              SvgPicture.asset(
+                                                                                assets.calendar2,
+                                                                              ),
+                                                                            ],
+                                                                          ),
+                                                                        ),
+                                                                      )
+                                                                    ],
+                                                                  ),
+                                                                ],
+                                                              ),
+
+                                                              20.height,
+
+                                                              Row(
+                                                                mainAxisAlignment:
+                                                                MainAxisAlignment.spaceEvenly,
+                                                                children: [
+
+                                                                  CustomBtn(
+                                                                    width: 100,
+                                                                    text: 'Clear All',
+                                                                    callback: () {
+                                                                      custProvider.initVisitReport(
+                                                                        custProvider.startDate,
+                                                                        custProvider.endDate,
+                                                                        custProvider.reportType,
+                                                                      );
+
+                                                                      custProvider.manageFilter(false);
+
+                                                                      custProvider.getVisitReport(
+                                                                        context,
+                                                                      );
+
+                                                                      Navigator.pop(context);
+                                                                    },
+                                                                    bgColor: Colors.grey.shade200,
+                                                                    textColor: Colors.black,
+                                                                  ),
+
+                                                                  CustomBtn(
+                                                                    width: 100,
+                                                                    text: 'Apply Filters',
+                                                                    callback: () {
+
+                                                                      custProvider.manageFilter(true);
+
+                                                                      custProvider.getVisitReport(
+                                                                        context,
+                                                                      );
+
+                                                                      Navigator.pop(context);
+                                                                    },
+                                                                    bgColor:
+                                                                    colorsConst.primary,
+                                                                    textColor: Colors.white,
+                                                                  ),
+                                                                ],
+                                                              ),
+
+                                                              20.height,
+                                                            ],
                                                           ),
-                                                        ],
-                                                      ),
-                                                      20.height,
-                                                      Row(
-                                                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                                                        children: [
-                                                          CustomBtn(
-                                                            width: 100,
-                                                            text: 'Clear All',
-                                                            callback: () {
-                                                              custProvider.initVisitReport(custProvider.startDate,custProvider.endDate,custProvider.reportType);
-                                                              custProvider.manageFilter(false);
-                                                              custProvider.getVisitReport(context);
-                                                              Navigator.of(context, rootNavigator: true).pop();
-                                                            },
-                                                            bgColor: Colors.grey.shade200,
-                                                            textColor: Colors.black,
-                                                          ),
-                                                          CustomBtn(
-                                                            width: 100,
-                                                            text: 'Apply Filters',
-                                                            callback: () {
-                                                              custProvider.manageFilter(true);
-                                                              custProvider.getVisitReport(context);
-                                                              // custProvider.closeVisible();
-                                                              // custProvider.filterList();
-                                                              Navigator.of(context, rootNavigator: true).pop();
-                                                            },
-                                                            bgColor: colorsConst.primary,
-                                                            textColor: Colors.white,
-                                                          ),
-                                                        ],
-                                                      ),
-                                                      20.height,
-                                                    ],
-                                                  ),
-                                                )
-                                              ],
+                                                        )
+                                                      ],
+                                                    );
+                                                  },
+                                                );
+                                              },
                                             );
                                           },
-                                        );
-                                      },
-                                    );
-                                  },
-                                  child: Container(
-                                    width:kIsWeb?webWidth/6:phoneWidth/8,
-                                    height: 45,
-                                    decoration: customDecoration.baseBackgroundDecoration(
-                                        color: custProvider.filter==true?Colors.grey.shade300:Colors.grey.shade300,radius: 5
-                                    ),
-                                    child: Padding(
-                                      padding: const EdgeInsets.all(6.0),
-                                      child: SvgPicture.asset(assets.tFilter,width: 15,height: 15,color: colorsConst.primary,),
+                                          icon: const Icon(
+                                            Icons.tune,
+                                            color: Colors.white,
+                                            size: 28,
+                                          ),
+                                        ),
+
+                                        5.width,
+                                      ],
                                     ),
                                   ),
                                 ),
-                                CustomLoadingButton(callback: (){
-                                  custProvider.getVisitHoursEmpReport(context);
-                                }, isLoading: true, backgroundColor: colorsConst.primary,
-                                  controller: custProvider.addCtr,
-                                  radius: 5, width: 80,text: "Download",),
 
+                                15.width,
+
+                                /// Download Button
+                                IconButton(
+                                  onPressed: () {
+                                    custProvider.getVisitHoursEmpReport(context);
+                                  },
+                                  icon:  Icon(
+                                    Icons.cloud_download,
+                                    color: colorsConst.primary,
+                                    size: 40,
+                                  ),
+                                ),
                               ],
                             ),
                             if (custProvider.filter) ...[
@@ -1312,3 +1367,486 @@ class _VisitReportState extends State<VisitReport> with SingleTickerProviderStat
       return "Invalid Date";
     }
   }}
+// Row(
+//   mainAxisAlignment: MainAxisAlignment.end,
+//   children: [
+//
+//     /// 🔥 Hide Empty Employees
+//     Row(
+//       children: [
+//
+//
+//
+//     10.width,
+//
+//     /// 🔥 Download Button
+//         IconButton(
+//           onPressed: () {
+//             custProvider.getVisitHoursReport(context);
+//           },
+//           icon:  Icon(
+//             Icons.cloud_download,
+//             color: colorsConst.primary,
+//             size: 30,
+//           ),
+//         ),
+//
+//     10.width,
+//
+//     /// 🔥 Filter Button
+//     InkWell(
+//       onTap: () {
+//
+//         showDialog(
+//           context: context,
+//           builder: (context) {
+//
+//             return Consumer2<
+//                 CustomerProvider,
+//                 EmployeeProvider>(
+//               builder:
+//                   (context, empProvider, ePvr, _) {
+//
+//                 return AlertDialog(
+//                   actions: [
+//
+//                     SizedBox(
+//                       width: kIsWeb
+//                           ? webWidth / 1.2
+//                           : phoneWidth / 1.2,
+//
+//                       child: Column(
+//                         children: [
+//
+//                           20.height,
+//
+//                           Row(
+//                             mainAxisAlignment:
+//                             MainAxisAlignment
+//                                 .spaceBetween,
+//
+//                             children: [
+//
+//                               70.width,
+//
+//                               const CustomText(
+//                                 text: 'Filters',
+//                                 colors: Colors.black,
+//                                 size: 16,
+//                                 isBold: true,
+//                               ),
+//
+//                               30.width,
+//
+//                               InkWell(
+//                                 onTap: () {
+//
+//                                   Navigator.of(
+//                                     context,
+//                                     rootNavigator:
+//                                     true,
+//                                   ).pop();
+//                                 },
+//
+//                                 child: SvgPicture.asset(
+//                                   assets.cancel,
+//                                 ),
+//                               )
+//                             ],
+//                           ),
+//
+//                           20.height,
+//
+//                           /// From & To Date
+//                           Row(
+//                             mainAxisAlignment:
+//                             MainAxisAlignment
+//                                 .spaceEvenly,
+//
+//                             children: [
+//
+//                               /// From Date
+//                               Column(
+//                                 crossAxisAlignment:
+//                                 CrossAxisAlignment
+//                                     .start,
+//
+//                                 children: [
+//
+//                                   CustomText(
+//                                     text: "From Date",
+//                                     colors: colorsConst
+//                                         .greyClr,
+//                                     size: 12,
+//                                   ),
+//
+//                                   InkWell(
+//                                     onTap: () {
+//
+//                                       custProvider
+//                                           .datePick(
+//                                         context:
+//                                         context,
+//                                         isStartDate:
+//                                         true,
+//                                         date:
+//                                         custProvider
+//                                             .startDate,
+//                                       );
+//                                     },
+//
+//                                     child: Container(
+//                                       height: 30,
+//
+//                                       width: kIsWeb
+//                                           ? webWidth /
+//                                           2.8
+//                                           : phoneWidth /
+//                                           2.8,
+//
+//                                       decoration:
+//                                       customDecoration
+//                                           .baseBackgroundDecoration(
+//                                         color:
+//                                         Colors.white,
+//                                         radius: 5,
+//                                         borderColor:
+//                                         colorsConst
+//                                             .litGrey,
+//                                       ),
+//
+//                                       child: Row(
+//                                         mainAxisAlignment:
+//                                         MainAxisAlignment
+//                                             .center,
+//
+//                                         children: [
+//
+//                                           CustomText(
+//                                             text:
+//                                             custProvider
+//                                                 .startDate,
+//                                           ),
+//
+//                                           5.width,
+//
+//                                           SvgPicture.asset(
+//                                             assets
+//                                                 .calendar2,
+//                                           ),
+//                                         ],
+//                                       ),
+//                                     ),
+//                                   )
+//                                 ],
+//                               ),
+//
+//                               /// To Date
+//                               Column(
+//                                 crossAxisAlignment:
+//                                 CrossAxisAlignment
+//                                     .start,
+//
+//                                 children: [
+//
+//                                   CustomText(
+//                                     text: "To Date",
+//                                     colors: colorsConst
+//                                         .greyClr,
+//                                     size: 12,
+//                                   ),
+//
+//                                   InkWell(
+//                                     onTap: () {
+//
+//                                       custProvider
+//                                           .datePick(
+//                                         context:
+//                                         context,
+//                                         isStartDate:
+//                                         false,
+//                                         date:
+//                                         custProvider
+//                                             .endDate,
+//                                       );
+//                                     },
+//
+//                                     child: Container(
+//                                       height: 30,
+//
+//                                       width: kIsWeb
+//                                           ? webWidth /
+//                                           2.8
+//                                           : phoneWidth /
+//                                           2.8,
+//
+//                                       decoration:
+//                                       customDecoration
+//                                           .baseBackgroundDecoration(
+//                                         color:
+//                                         Colors.white,
+//                                         radius: 5,
+//                                         borderColor:
+//                                         colorsConst
+//                                             .litGrey,
+//                                       ),
+//
+//                                       child: Row(
+//                                         mainAxisAlignment:
+//                                         MainAxisAlignment
+//                                             .center,
+//
+//                                         children: [
+//
+//                                           CustomText(
+//                                             text:
+//                                             custProvider
+//                                                 .endDate,
+//                                           ),
+//
+//                                           5.width,
+//
+//                                           SvgPicture.asset(
+//                                             assets
+//                                                 .calendar2,
+//                                           ),
+//                                         ],
+//                                       ),
+//                                     ),
+//                                   )
+//                                 ],
+//                               ),
+//                             ],
+//                           ),
+//
+//                           10.height,
+//
+//                           /// Date Range Dropdown
+//                           Column(
+//                             crossAxisAlignment:
+//                             CrossAxisAlignment
+//                                 .start,
+//
+//                             children: [
+//
+//                               CustomText(
+//                                 text:
+//                                 "Select Date Range",
+//                                 colors:
+//                                 colorsConst.greyClr,
+//                                 size: 12,
+//                               ),
+//
+//                               Container(
+//                                 height: 30,
+//
+//                                 width: kIsWeb
+//                                     ? webWidth / 1.2
+//                                     : phoneWidth / 1.2,
+//
+//                                 decoration:
+//                                 customDecoration
+//                                     .baseBackgroundDecoration(
+//                                   radius: 5,
+//                                   color: Colors.white,
+//                                   borderColor:
+//                                   colorsConst
+//                                       .litGrey,
+//                                 ),
+//
+//                                 child: DropdownButton(
+//                                   iconEnabledColor:
+//                                   colorsConst
+//                                       .greyClr,
+//
+//                                   isExpanded: true,
+//
+//                                   underline:
+//                                   const SizedBox(),
+//
+//                                   icon: const Icon(
+//                                     Icons
+//                                         .keyboard_arrow_down_outlined,
+//                                   ),
+//
+//                                   value:
+//                                   custProvider
+//                                       .repType,
+//
+//                                   onChanged:
+//                                       (value) {
+//
+//                                     custProvider
+//                                         .changeDailyVisitType(
+//                                       value,
+//                                       context,
+//                                     );
+//                                   },
+//
+//                                   items:
+//                                   custProvider
+//                                       .typeList
+//                                       .map((list) {
+//
+//                                     return DropdownMenuItem(
+//                                       value: list,
+//
+//                                       child:
+//                                       CustomText(
+//                                         text:
+//                                         "  $list",
+//                                         colors:
+//                                         Colors
+//                                             .black,
+//                                         isBold:
+//                                         false,
+//                                       ),
+//                                     );
+//                                   }).toList(),
+//                                 ),
+//                               ),
+//                             ],
+//                           ),
+//
+//                           20.height,
+//
+//                           /// Buttons
+//                           Row(
+//                             mainAxisAlignment:
+//                             MainAxisAlignment
+//                                 .spaceEvenly,
+//
+//                             children: [
+//
+//                               CustomBtn(
+//                                 width: 100,
+//                                 text: 'Clear All',
+//
+//                                 callback: () {
+//
+//                                   custProvider
+//                                       .initVisitReport(
+//                                     custProvider
+//                                         .startDate,
+//                                     custProvider
+//                                         .endDate,
+//                                     custProvider
+//                                         .reportType,
+//                                   );
+//
+//                                   custProvider
+//                                       .manageFilter(
+//                                       false);
+//
+//                                   custProvider
+//                                       .getEmpWiseReport(
+//                                       context);
+//
+//                                   Navigator.of(
+//                                     context,
+//                                     rootNavigator:
+//                                     true,
+//                                   ).pop();
+//                                 },
+//
+//                                 bgColor:
+//                                 Colors.grey
+//                                     .shade200,
+//
+//                                 textColor:
+//                                 Colors.black,
+//                               ),
+//
+//                               CustomBtn(
+//                                 width: 100,
+//                                 text:
+//                                 'Apply Filters',
+//
+//                                 callback: () {
+//
+//                                   custProvider
+//                                       .manageFilter(
+//                                       true);
+//
+//                                   custProvider
+//                                       .getEmpWiseReport(
+//                                       context);
+//
+//                                   Navigator.of(
+//                                     context,
+//                                     rootNavigator:
+//                                     true,
+//                                   ).pop();
+//                                 },
+//
+//                                 bgColor:
+//                                 colorsConst
+//                                     .primary,
+//
+//                                 textColor:
+//                                 Colors.white,
+//                               ),
+//                             ],
+//                           ),
+//
+//                           20.height,
+//                         ],
+//                       ),
+//                     )
+//                   ],
+//                 );
+//               },
+//             );
+//           },
+//         );
+//       },
+//
+//       child: Container(
+//         width: kIsWeb
+//             ? webWidth / 6
+//             : phoneWidth / 6,
+//
+//         height: 45,
+//
+//         decoration:
+//         customDecoration
+//             .baseBackgroundDecoration(
+//           color: Colors.grey.shade300,
+//           radius: 5,
+//         ),
+//
+//         child: Padding(
+//           padding:
+//           const EdgeInsets.all(6.0),
+//
+//           child: SvgPicture.asset(
+//             assets.tFilter,
+//             width: 15,
+//             height: 15,
+//             color: colorsConst.primary,
+//           ),
+//         ),
+//       ),
+//     ),
+//         10.width,
+//         Checkbox(
+//           value: custProvider.hideEmptyEmployees,
+//
+//           activeColor: colorsConst.primary,
+//
+//           onChanged: (value) {
+//
+//             custProvider.toggleHideEmptyEmployees(
+//               value ?? false,
+//             );
+//           },
+//         ),
+//
+//         const CustomText(
+//           text: "Visit Only",
+//           size: 12,
+//         ),
+//       ],
+//     ),
+//   ],
+// ),

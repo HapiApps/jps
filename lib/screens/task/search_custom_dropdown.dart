@@ -47,7 +47,8 @@ class _SearchCustomDropdownState extends State<SearchCustomDropdown> {
             children: [
               CustomText(
                 text: widget.text.toString(),
-                size: 13,
+                size: 12,
+                colors: colorsConst.greyClr,
               ),
               widget.isOptional == false
                   ? CustomText(
@@ -59,12 +60,12 @@ class _SearchCustomDropdownState extends State<SearchCustomDropdown> {
                   : 0.height,
             ],
           ),
-          widget.isOptional == false ? 0.height : 5.height,
+          widget.isOptional == false ? 0.height : 0.height,
 
           /// ✅ SAME DESIGN LIKE MapDropDown
           SizedBox(
             width: widget.width,
-            height: 43,
+            height: 37,
             child: CustomDropdown.multiSelect(
               hintText: widget.hintText,
               items: widget.valueList,

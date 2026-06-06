@@ -69,6 +69,7 @@ class _ViewInteractionHistoryState extends State<ViewInteractionHistory> {
           ),
           body: Column(
             children: [
+              20.height,
               custProvider.cmtRefresh == false
                   ? const Padding(
                 padding: EdgeInsets.fromLTRB(0, 200, 0, 0),

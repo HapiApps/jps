@@ -173,6 +173,7 @@ class _EditGradeState extends State<EditGrade>{
                               return Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
+                                  20.height,
                                   if(index==0)
                                   const Row(
                                     mainAxisAlignment: MainAxisAlignment.spaceBetween,

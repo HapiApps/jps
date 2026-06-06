@@ -83,7 +83,7 @@ class _ApplyLeaveState extends State<ApplyLeave> {
                 child: Center(
                   child: Column(
                     children: [
-                      20.height,
+                      30.height,
                       SizedBox(
                           width: kIsWeb?webWidth:phoneWidth,
                           child: CustomText(text: "Leave Apply For",

@@ -58,6 +58,7 @@ class _CategoriesState extends State<Categories> {
               child: Center(
                 child: Column(
                   children: [
+                    20.height,
                     payrollPvr.catLoading==false?
                     const Loading():
                     payrollPvr.categoryList.isEmpty?

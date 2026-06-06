@@ -154,6 +154,7 @@ print("type: ${widget.type}");
                     width: kIsWeb?webHeight:phoneHeight,
                     child: Column(
                       children: [
+                        20.height,
                         Container(
                           height: 50,
                             decoration: customDecoration.baseBackgroundDecoration(
@@ -469,97 +470,131 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
                                                     ],
                                                   ),
                                                   10.height,
-                                                  Column(
-                                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                                  Row(
                                                     children: [
-                                                      CustomText(
-                                                        text: "Select Date Range",
-                                                        colors: colorsConst.greyClr,
-                                                        size: 12,
+
+                                                      Expanded(
+                                                        child: Column(
+                                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                                          children: [
+
+                                                            CustomText(
+                                                              text: "Select Date Range",
+                                                              colors: colorsConst.greyClr,
+                                                              size: 12,
+                                                            ),
+
+                                                            Container(
+                                                              height: 30,
+                                                              decoration: customDecoration.baseBackgroundDecoration(
+                                                                radius: 5,
+                                                                color: Colors.white,
+                                                                borderColor: colorsConst.litGrey,
+                                                              ),
+                                                              child: DropdownButton<String>(
+                                                                value: taskProvider.filterTypeList.contains(taskProvider.filterType)
+                                                                    ? taskProvider.filterType
+                                                                    : null,
+                                                                isExpanded: true,
+                                                                underline: const SizedBox(),
+                                                                icon: const Icon(Icons.keyboard_arrow_down_outlined),
+                                                                onChanged: (value) {
+                                                                  if (value != null) {
+                                                                    taskProvider.changeFilterType(value);
+                                                                  }
+                                                                },
+                                                                items: taskProvider.filterTypeList
+                                                                    .toSet()
+                                                                    .map<DropdownMenuItem<String>>((list) {
+                                                                  return DropdownMenuItem<String>(
+                                                                    value: list,
+                                                                    child: CustomText(text: "  $list"),
+                                                                  );
+                                                                }).toList(),
+                                                              ),
+                                                            ),
+                                                          ],
+                                                        ),
                                                       ),
-                                                      Container(
-                                                          height: 30,
-                                                          width: kIsWeb?webHeight:phoneHeight,
-                                                          decoration: customDecoration.baseBackgroundDecoration(
-                                                            radius: 5,
-                                                            color: Colors.white,
-                                                            borderColor: colorsConst.litGrey,
-                                                          ),
-                                                          child: DropdownButton<String>(
-                                                            value: taskProvider.filterTypeList
-                                                                .contains(taskProvider.filterType)
-                                                                ? taskProvider.filterType
-                                                                : null,
-                                                            isExpanded: true,
-                                                            underline: const SizedBox(),
-                                                            icon: const Icon(Icons.keyboard_arrow_down_outlined),
-                                                            iconEnabledColor: colorsConst.greyClr,
-                                                            onChanged: (value) {
-                                                              if (value != null) {
-                                                                taskProvider.changeFilterType(value);
-                                                              }
-                                                            },
-                                                            items: taskProvider.filterTypeList
-                                                                .toSet() // removes duplicates
-                                                                .map<DropdownMenuItem<String>>((list) {
-                                                              return DropdownMenuItem<String>(
-                                                                value: list,
-                                                                child: CustomText(
-                                                                  text: "  $list",
-                                                                  colors: Colors.black,
-                                                                  isBold: false,
-                                                                ),
-                                                              );
-                                                            }).toList(),
-                                                          )
+
+                                                      10.width,
+
+                                                      Expanded(
+                                                        child: localData.storage.read("role") == "1"
+                                                            ? SearchCustomDropdown(
+                                                          text: "Employee Name",
+
+                                                          hintText: taskProvider.assignedId == ""
+                                                              ? ""
+                                                              : taskProvider.assignedNames,
+                                                          valueList: empProvider.activeEmps,
+                                                          onChanged: (value) {},
+                                                          width: double.infinity,
+                                                        )
+                                                            : const SizedBox(),
                                                       ),
                                                     ],
                                                   ),
+
                                                   10.height,
-                                                  // CustomText(
-                                                  //   text: "Employee Name",
-                                                  //   colors: colorsConst.greyClr,
-                                                  //   size: 12,
-                                                  // ),
-                                                  if(localData.storage.read("role")=="1")
-                                                  SearchCustomDropdown(
-                                                      text: "Employee Name",
-                                                      hintText: taskProvider.assignedId==""?"":taskProvider.assignedNames,
-                                                      valueList: empProvider.activeEmps,
-                                                      onChanged: (value) {},
-                                                      width: kIsWeb?webHeight:phoneHeight),
-                                                  // EmployeeDropdown(
-                                                  //   callback: (){
-                                                  //   },
-                                                  //   text: taskProvider.userName==""?"Name":taskProvider.userName,
-                                                  //   employeeList: empProvider.activeEmps,
-                                                  //   onChanged: (UserModel? value) {
-                                                  //     taskProvider.selectUser(value!);
-                                                  //   },
-                                                  //   size: kIsWeb?webHeight:phoneHeight,),
-                                                  10.height,
-                                                  MapDropDown(
-                                                    saveValue: taskProvider.type,
-                                                    hintText: constValue.type,
-                                                    onChanged: (value) {
-                                                      taskProvider.checkFilterType(value);
-                                                    },
-                                                    dropText: 'value',
-                                                    list: taskProvider.typeList.toSet().toList(),
+                                                  Row(
+                                                    children: [
+
+                                                      Expanded(
+                                                        child: Column(
+                                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                                          children: [
+
+                                                            CustomText(
+                                                              text: constValue.type,
+                                                              colors: colorsConst.greyClr,
+                                                              size: 12,
+                                                            ),
+
+                                                            MapDropDown(
+                                                              saveValue: taskProvider.type,
+                                                              hintText: constValue.type,
+                                                              isHint: false,
+                                                              onChanged: (value) {
+                                                                taskProvider.checkFilterType(value);
+                                                              },
+                                                              dropText: 'value',
+                                                              list: taskProvider.typeList.toSet().toList(),
+                                                            ),
+                                                          ],
+                                                        ),
+                                                      ),
+
+                                                      10.width,
+
+                                                      Expanded(
+                                                        child: Column(
+                                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                                          children: [
+
+                                                            CustomText(
+                                                              text: constValue.companyName,
+                                                              colors: colorsConst.greyClr,
+                                                              size: 12,
+                                                            ),
+
+                                                            CustomerDropdown(
+                                                              text: taskProvider.companyName == ""
+                                                                  ? constValue.companyName
+                                                                  : taskProvider.companyName,
+                                                              isRequired: false,
+                                                              hintText: false,
+                                                              employeeList: cusPvr.customer,
+                                                              onChanged: (CustomerModel? value) {
+                                                                taskProvider.changeName(value);
+                                                              },
+                                                              size: double.infinity,
+                                                            ),
+                                                          ],
+                                                        ),
+                                                      ),
+                                                    ],
                                                   ),
-                                                  CustomText(
-                                                    text: constValue.companyName,
-                                                    colors: colorsConst.greyClr,
-                                                    size: 12,
-                                                  ),
-                                                  // 2.height,
-                                                  CustomerDropdown(
-                                                    text: taskProvider.companyName==""?constValue.companyName:taskProvider.companyName,
-                                                    isRequired: true,hintText: false,
-                                                    employeeList: cusPvr.customer,
-                                                    onChanged: (CustomerModel? value) {
-                                                      taskProvider.changeName(value);
-                                                    }, size: kIsWeb?webHeight:phoneHeight,),
                                                   20.height,
                                                   Row(
                                                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,

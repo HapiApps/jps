@@ -117,61 +117,72 @@ class _ViewCustomerState extends State<ViewCustomer>
                       width: kIsWeb ? webWidth : phoneWidth,
                       child: Column(
                         children: [
-                          10.height,
+                          20.height,
 
                           /// SEARCH + FILTER ROW
                           Row(
                             children: [
                               Expanded(
-                                child: CustomTextField(
-                                  text: "",
-                                  radius: 30,
-                                  controller: custProvider.search,
-                                  hintText: "Search Name / Phone No",
-                                  isIcon: true,
-                                  iconData: Icons.search,
-                                  textInputAction: TextInputAction.done,
-                                  isShadow: true,
-                                  onChanged: (value) {
-                                    custProvider.searchCustomer(value.toString());
-                                  },
-                                  isSearch:
-                                  custProvider.search.text.isNotEmpty,
-                                  searchCall: () {
-                                    custProvider.search.clear();
-                                    custProvider.searchCustomer("");
-                                  },
-                                ),
-                              ),
-                              10.width,
-
-                              /// FILTER BUTTON
-                              InkWell(
-                                onTap: () {
-                                  _myFocusScopeNode.unfocus();
-                                  _openFilterDialog(
-                                      context, custProvider, webWidth, phoneWidth);
-                                },
                                 child: Container(
-                                  height: 45,
-                                  width: 50,
-                                  decoration: customDecoration
-                                      .baseBackgroundDecoration(
-                                    color: custProvider.filter == true
-                                        ? colorsConst.primary
-                                        : Colors.white,
-                                    radius: 12,
-                                    borderColor: colorsConst.litGrey,
+                                  height: 55,
+                                  decoration: BoxDecoration(
+                                    color: colorsConst.primary,
+                                    borderRadius: BorderRadius.circular(30),
                                   ),
-                                  child: Center(
-                                    child: SvgPicture.asset(
-                                      assets.tFilter,
-                                      width: 18,
-                                      height: 18,
-                                      color: custProvider.filter == true
-                                          ? Colors.white
-                                          : colorsConst.primary,
-                                    ),
+                                  child: Row(
+                                    children: [
+
+                                      /// Search Field
+                                      Expanded(
+                                        child: Container(
+                                          margin: const EdgeInsets.all(4),
+                                          decoration: BoxDecoration(
+                                            color: Colors.white,
+                                            borderRadius: BorderRadius.circular(30),
+                                          ),
+                                          child: TextField(
+                                            controller: custProvider.search,
+                                            textInputAction: TextInputAction.done,
+                                            decoration: const InputDecoration(
+                                              hintText: "Search Name / Phone No",
+                                              prefixIcon: Icon(
+                                                Icons.search,
+                                                color: Colors.grey,
+                                              ),
+                                              border: InputBorder.none,
+                                              contentPadding:
+                                              EdgeInsets.symmetric(vertical: 15),
+                                            ),
+                                            onChanged: (value) {
+                                              custProvider.searchCustomer(value);
+                                            },
+                                          ),
+                                        ),
+                                      ),
+
+                                      /// Filter Button
+                                      InkWell(
+                                        onTap: () {
+                                          _myFocusScopeNode.unfocus();
+
+                                          _openFilterDialog(
+                                            context,
+                                            custProvider,
+                                            webWidth,
+                                            phoneWidth,
+                                          );
+                                        },
+                                        child: Container(
+                                          width: 60,
+                                          alignment: Alignment.center,
+                                          child: Icon(
+                                            Icons.tune,
+                                            color: Colors.white,
+                                            size: 28,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
                               ),
@@ -181,36 +192,7 @@ class _ViewCustomerState extends State<ViewCustomer>
                           12.height,
 
                           /// CUSTOMER COUNT
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              CustomText(
-                                text:
-                                "Total Customers : ${custProvider.filterCustomerData.length}",
-                                colors: Colors.black,
-                                isBold: true,
-                              ),
-                              if (custProvider.filter == true)
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 10, vertical: 6),
-                                  decoration: BoxDecoration(
-                                    color: colorsConst.primary.withOpacity(0.15),
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                  child: CustomText(
-                                    text: "Filter Applied",
-                                    colors: colorsConst.primary,
-                                    size: 12,
-                                    isBold: true,
-                                  ),
-                                )
-                            ],
-                          ),
 
-                          12.height,
-
-                          /// LIST
                           custProvider.filterCustomerData.isEmpty
                               ? Expanded(
                             child: Column(
@@ -264,30 +246,33 @@ class _ViewCustomerState extends State<ViewCustomer>
                                 return Column(
                                   children: [
                                     /// DATE HEADER STYLE
+
                                     if (showDateHeader)
-                                      Padding(
-                                        padding:
-                                        const EdgeInsets.symmetric(vertical: 10),
-                                        child: Align(
-                                          alignment: Alignment.centerLeft,
-                                          child: Container(
-                                            padding: const EdgeInsets.symmetric(
-                                                horizontal: 12, vertical: 6),
-                                            decoration: BoxDecoration(
-                                              color: Colors.white,
-                                              borderRadius:
-                                              BorderRadius.circular(20),
-                                              border: Border.all(
-                                                  color: colorsConst.litGrey),
-                                            ),
-                                            child: CustomText(
-                                              text: dayOfWeek,
-                                              colors: colorsConst.primary,
-                                              size: 12,
-                                              isBold: true,
+                                      Row(
+                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Padding(
+                                            padding: const EdgeInsets.symmetric(vertical: 10),
+                                            child: Align(
+                                              alignment: Alignment.centerLeft,
+                                              child: CustomText(
+                                                text: dayOfWeek,
+                                                colors: colorsConst.primary,
+                                                size: 12,
+                                                isBold: true,
+                                              ),
                                             ),
                                           ),
-                                        ),
+
+                                          /// First header only
+                                          if (index == 0)
+                                            CustomText(
+                                              text:
+                                              "Total Customers : ${custProvider.filterCustomerData.length}",
+                                              colors: Colors.black,
+                                              isBold: true,
+                                            ),
+                                        ],
                                       ),
 
                                     /// CUSTOMER CARD

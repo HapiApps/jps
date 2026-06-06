@@ -76,6 +76,7 @@ class CalendarAppointment extends State<FixedLeave> {
                 child: SizedBox(
                   child: Column(
                     children: [
+                      20.height,
                       PreferredSize(
                         preferredSize: Size(300, 50),
                         child: CustomAppbar(

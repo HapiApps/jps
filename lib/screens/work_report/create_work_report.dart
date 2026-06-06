@@ -60,6 +60,7 @@ class _CreateWorkReportState extends State<CreateWorkReport> with TickerProvider
                   width: kIsWeb ? web : phone,
                   child: Column(
                     children: [
+                      20.height,
                       InkWell(
                         onTap: () {
                           _myFocusScopeNode.unfocus();

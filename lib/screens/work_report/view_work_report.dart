@@ -79,7 +79,7 @@ class _ViewWorkReportState extends State<ViewWorkReport> with TickerProviderStat
                 repProvider.addedReport.isEmpty?
                 Column(
                   children: [
-                    200.height,
+                    210.height,
                     Center(
                         child: CustomText(text:constValue.noData,size: 14,)),
                   ],

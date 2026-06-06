@@ -205,31 +205,11 @@ class _HomePageState extends State<HomePage> {
   bool isPermission = false;
   DateTime selectedDate = DateTime.now();
   String? selectedFilter = "Today";
-
-  // Future<void> _pickDate() async {
-  //   final DateTime? picked = await showDatePicker(
-  //     context: context,
-  //     initialDate: selectedDate,
-  //     firstDate: DateTime(2020),
-  //     lastDate: DateTime(2100),
-  //   );
-  //
-  //   if (picked != null) {
-  //     setState(() {
-  //       selectedDate = picked;
-  //       selectedFilter = null; // Important
-  //     });
-  //   }
-  // }
   String _formatDate(DateTime date) {
     final day = date.day.toString().padLeft(2, '0');
     final month = date.month.toString().padLeft(2, '0');
     final year = date.year.toString();
     return "$day/$month/$year";
-  }
-
-  String _formatDateRange() {
-    return "${_formatDate(selectedDate)} - ${_formatDate(selectedDate)}";
   }
 
   @override
@@ -315,10 +295,6 @@ class _HomePageState extends State<HomePage> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              /// Top Header Row
-
-
-                              /// Greeting Text
                               Row(
                                 children: [
                                 Text.rich(
@@ -1412,7 +1388,8 @@ class _HomePageState extends State<HomePage> {
                                             /// IMMEDIATE
                                             Expanded(
                                               child: Container(
-                                                padding: const EdgeInsets.symmetric(vertical: 8),
+                                                height: 32,
+                                                padding: const EdgeInsets.symmetric(vertical: 6),
                                                 decoration: BoxDecoration(
                                                   color: const Color(0xffFBF2FE),
                                                   borderRadius: BorderRadius.circular(10),
@@ -1425,12 +1402,12 @@ class _HomePageState extends State<HomePage> {
                                                 ),
                                               ),
                                             ),
-
+                                             5.width,
                                             /// NORMAL
                                             Expanded(
                                               child: Container(
-                                                padding: const EdgeInsets.symmetric(vertical: 8),
-                                                margin: const EdgeInsets.only(right: 8),
+                                                padding: const EdgeInsets.symmetric(vertical: 6),
+                                                margin: const EdgeInsets.only(right: 2),
                                                 decoration: BoxDecoration(
                                                   color: const Color(0xffF2F6FE),
                                                   borderRadius: BorderRadius.circular(10),
@@ -1443,12 +1420,12 @@ class _HomePageState extends State<HomePage> {
                                                 ),
                                               ),
                                             ),
-
+                                            2.width,
                                             /// HIGH
                                             Expanded(
                                               child: Container(
-                                                padding: const EdgeInsets.symmetric(vertical: 8),
-                                                margin: const EdgeInsets.only(right: 8),
+                                                padding: const EdgeInsets.symmetric(vertical: 6),
+                                                margin: const EdgeInsets.only(right: 2),
                                                 decoration: BoxDecoration(
                                                   color: const Color(0xffFEF2F2),
                                                   borderRadius: BorderRadius.circular(10),

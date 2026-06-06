@@ -54,7 +54,7 @@ class _NewEmpReportState extends State<NewEmpReport> with SingleTickerProviderSt
                     itemBuilder: (context,index){
                       return Column(
                           children: [
-                            10.height,
+                            20.height,
                             if(index==0)
                               SizedBox(
                                 width: MediaQuery.of(context).size.width*0.83,

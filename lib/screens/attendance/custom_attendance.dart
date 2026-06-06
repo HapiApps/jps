@@ -1027,7 +1027,11 @@ class _CheckAttendanceState extends State<CheckAttendance> {
                                       //   colors: Colors.green.shade900,
                                       // ),F
                                       CustomText(
-                                        text: homeProvider.mainReportList.isEmpty?"":homeProvider.mainReportList[0]["fulldayleave_user"].toString(),
+                                        text:  homeProvider.mainReportList.isEmpty?"0":"${int.parse(
+                                            homeProvider.mainReportList[0]["fulldayleave_user"].toString()=="null"?"0":
+                                            homeProvider.mainReportList[0]["fulldayleave_user"].toString())+int.parse(
+                                            homeProvider.mainReportList[0]["sessionleave_user"].toString() =="null"?"0":
+                                        homeProvider.mainReportList[0]["sessionleave_user"].toString())}",
                                         size: 16,
                                         isBold: true,
                                         colors: Colors.black,

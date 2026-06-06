@@ -72,7 +72,7 @@ class EmpData extends StatelessWidget {
               decoration: customDecoration.baseBackgroundDecoration(
                 color: employeeData.active.toString() == "1"
                     ? Colors.white
-                    : Colors.red.shade50,
+                    : Colors.white,
                 borderColor: Colors.grey.shade200,
                 // employeeData.active.toString() == "1"
                 //     ? Colors.grey.shade200
@@ -84,23 +84,11 @@ class EmpData extends StatelessWidget {
               child: Column(
                 children: [
                   /// TOP INDICATOR
-                  Align(
-                    alignment: Alignment.topLeft,
-                    child: Container(
-                      width: 6,
-                      height: 10,
-                      decoration: BoxDecoration(
-                        color: colorsConst.appDarkGreen,
-                        borderRadius: const BorderRadius.only(
-                          topLeft: Radius.circular(10),
-                        ),
-                      ),
-                    ),
-                  ),
+
 
                   /// ---------------- ROW 1 ----------------
                   Padding(
-                    padding: const EdgeInsets.fromLTRB(8, 0, 8, 0),
+                    padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
                     child: Row(
                       children: [
                         Expanded(
@@ -126,7 +114,40 @@ class EmpData extends StatelessWidget {
                             ],
                           ),
                         ),
-
+                        Expanded(
+                          flex: 4,
+                          child: Row(
+                            children: [
+                              InkWell(
+                                onTap: employeeData.active.toString() == "2"
+                                    ? null
+                                    : () {
+                                  utils.makingPhoneCall(
+                                    ph: employeeData.mobileNumber
+                                        .toString(),
+                                  );
+                                },
+                                child: SvgPicture.asset(
+                                  employeeData.active.toString() == "1"
+                                      ? assets.call
+                                      : assets.call2,
+                                  width: 15,
+                                  height: 15,
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              Expanded(
+                                child: CustomText(
+                                  text: employeeData.mobileNumber.toString(),
+                                  colors: employeeData.active.toString() == "2"
+                                      ? Colors.black
+                                      : Colors.black,
+                                  size: 13,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
 
 
                         /// EDIT ONLY ACTIVE USER
@@ -183,49 +204,15 @@ class EmpData extends StatelessWidget {
                       ],
                     ),
                   ),
-                  3.height,
-                  const DotLine(),
+
+                //  const DotLine(),
                  3.height,
                   /// ---------------- ROW 2 ----------------
                   Padding(
                     padding: const EdgeInsets.fromLTRB(8, 4, 8, 0),
                     child: Row(
                       children: [
-                        /// MOBILE
-                        Expanded(
-                          flex: 4,
-                          child: Row(
-                            children: [
-                              InkWell(
-                                onTap: employeeData.active.toString() == "2"
-                                    ? null
-                                    : () {
-                                  utils.makingPhoneCall(
-                                    ph: employeeData.mobileNumber
-                                        .toString(),
-                                  );
-                                },
-                                child: SvgPicture.asset(
-                                  employeeData.active.toString() == "1"
-                                      ? assets.call
-                                      : assets.call2,
-                                  width: 15,
-                                  height: 15,
-                                ),
-                              ),
-                              const SizedBox(width: 6),
-                              Expanded(
-                                child: CustomText(
-                                  text: employeeData.mobileNumber.toString(),
-                                  colors: employeeData.active.toString() == "2"
-                                      ? Colors.black
-                                      : Colors.black,
-                                  size: 13,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
+
 
                         /// JOIN DATE
                         Expanded(

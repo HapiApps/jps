@@ -70,6 +70,7 @@ class _TaskReportState extends State<TaskReport> with SingleTickerProviderStateM
               // color: Colors.red,
               child: Column(
                 children: [
+                  20.height,
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [

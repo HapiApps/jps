@@ -28,6 +28,7 @@ class DeveloperScreen extends StatelessWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
+                  5.height,
                   Image.asset(assets.hapiAppsLogo,fit: BoxFit.fill,),
                   const SizedBox(
                     // color: Colors.yellow,

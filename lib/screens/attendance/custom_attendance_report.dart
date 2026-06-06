@@ -89,6 +89,7 @@ class _CustomAttendanceReportState extends State<CustomAttendanceReport> {
                   child: Column(
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
+                        20.height,
                         // if(attProvider.getUserAttendance.isNotEmpty)
                         CustomText(text: attProvider.monthName,colors: colorsConst.networkColor,isBold: true,),
                         attProvider.refresh == false ?

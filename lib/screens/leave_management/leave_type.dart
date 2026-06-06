@@ -59,7 +59,7 @@ class _LeaveTypesState extends State<LeaveTypes> {
             },
             child: Column(
               children: [
-                20.height,
+                30.height,
                 levProvider.getTypes == false
                     ? const Loading()
                     : levProvider.types.isEmpty

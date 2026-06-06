@@ -54,6 +54,7 @@ class _EmployeeFullHistoryState extends State<EmployeeFullHistory> {
           },
           child: Column(
             children: [
+              20.height,
               custProvider.refresh==false?
               const Padding(
                 padding: EdgeInsets.fromLTRB(0, 200, 0, 0),

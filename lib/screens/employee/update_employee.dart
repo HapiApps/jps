@@ -338,6 +338,7 @@ class _UpdatedEmployeeState extends State<UpdatedEmployee> with TickerProviderSt
                 width: kIsWeb?webWidth:phoneWidth,
                 child: Column(
                   children: [
+                    20.height,
                     Container(
                         height: 8,
                         decoration: customDecoration.baseBackgroundDecoration(

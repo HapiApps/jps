@@ -155,6 +155,7 @@ class _UserTaskAttendanceState extends State<UserTaskAttendance> {
                 :Expanded(
                   child: Column(
                     children: [
+                      20.height,
                       CustomText(text: "${widget.name}\n"),
                       Expanded(
                         child: ListView.builder(

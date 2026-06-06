@@ -2324,9 +2324,21 @@ void changeStatus(bool value){
 
     notifyListeners();
   }
+  void daily(String id, String role, bool? isRefresh) {
+
+    _typeReport = "Today";
+
+    stDt = DateTime.now();
+    enDt = DateTime.now();
+
+    _startDate = DateFormat('dd-MM-yyyy').format(stDt);
+    _endDate = DateFormat('dd-MM-yyyy').format(enDt);
+
+    notifyListeners();
+  }
   DateTime stDt = DateTime.now();
   DateTime enDt = DateTime.now().add(const Duration(days: 1));
-  void daily(String id ,String role,bool? isRefresh) {
+  void dailys(String id ,String role,bool? isRefresh) {
     stDt=DateTime.now();
     enDt=DateTime.now().add(const Duration(days: 1));
     _startDate = DateFormat('dd-MM-yyyy').format(stDt);

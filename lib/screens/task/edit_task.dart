@@ -77,6 +77,7 @@ class _EditTaskState extends State<EditTask> with SingleTickerProviderStateMixin
                                 Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
+                                    20.height,
                                     Row(
                                       children: [
                                         CustomText(text: "Type"),
