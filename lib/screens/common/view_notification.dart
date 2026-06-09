@@ -37,14 +37,18 @@ class _ViewNotificationState extends State<ViewNotification> with SingleTickerPr
 
   @override
   void initState() {
-    Future.delayed(Duration.zero, () {
-      Provider.of<EmployeeProvider>(context, listen: false).getNotifications();
-      Provider.of<EmployeeProvider>(context, listen: false).markNotificationsSeen();
-     // Provider.of<HomeProvider>(context, listen: false).loadFullDashboard(context);
-     // Provider.of<EmployeeProvider>(context, listen: false).initFilterValue(true);
-
-    });
     super.initState();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final empProvider =
+      Provider.of<EmployeeProvider>(context, listen: false);
+
+      await empProvider.getNotifications();
+
+      if (empProvider.notifyData.isNotEmpty) {
+        await empProvider.markNotificationsSeen();
+      }
+    });
   }
 
   @override
