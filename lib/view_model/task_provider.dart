@@ -2130,30 +2130,54 @@ class TaskProvider with ChangeNotifier {
   TextEditingController projectSearchCont = TextEditingController();
   TextEditingController taskDt = TextEditingController();
   List<TextEditingController> fileNameCont  = <TextEditingController>[];
-  void searchTask(String value){
-    if(_isFilter==false){
-      final suggestions=_filterUserData.where(
-              (user){
-            final userFName=user.projectName.toString().toLowerCase();
-            final userNumber = user.assignedNames.toString().toLowerCase();
-            final input=value.toString().toLowerCase();
-            return userFName.contains(input) || userNumber.contains(input);
-          }).toList();
-      _filterUserData=suggestions;
-    }else{
-      final suggestions=_filterUserData.where(
-              (user){
-            final userFName=user.projectName.toString().toLowerCase();
-            final userNumber = user.assignedNames.toString().toLowerCase();
-            final input=value.toString().toLowerCase();
-            return userFName.contains(input) || userNumber.contains(input);
-          }).toList();
-      _filterUserData=suggestions;
+  // void searchTask(String value){
+  //   if(_isFilter==false){
+  //     final suggestions=_filterUserData.where(
+  //             (user){
+  //           final userFName=user.projectName.toString().toLowerCase();
+  //           final userNumber = user.assignedNames.toString().toLowerCase();
+  //           final input=value.toString().toLowerCase();
+  //           return userFName.contains(input) || userNumber.contains(input);
+  //         }).toList();
+  //     _filterUserData=suggestions;
+  //   }else{
+  //     final suggestions=_filterUserData.where(
+  //             (user){
+  //           final userFName=user.projectName.toString().toLowerCase();
+  //           final userNumber = user.assignedNames.toString().toLowerCase();
+  //           final input=value.toString().toLowerCase();
+  //           return userFName.contains(input) || userNumber.contains(input);
+  //         }).toList();
+  //     _filterUserData=suggestions;
+  //   }
+  //   if(value.isEmpty){
+  //     filterList();
+  //   }
+  //   // _allTasks=suggestions;
+  //   notifyListeners();
+  // }
+
+  void searchTask(String value) {
+
+    final input = value.toLowerCase();
+
+    if (value.trim().isEmpty) {
+      _filterUserData = List.from(_allTasks);
+    } else {
+      final suggestions = _allTasks.where((user) {
+        final userFName =
+        user.projectName.toString().toLowerCase();
+
+        final userNumber =
+        user.assignedNames.toString().toLowerCase();
+
+        return userFName.contains(input) ||
+            userNumber.contains(input);
+      }).toList();
+
+      _filterUserData = suggestions;
     }
-    if(value.isEmpty){
-      filterList();
-    }
-    // _allTasks=suggestions;
+
     notifyListeners();
   }
   void searchTask2(String value){

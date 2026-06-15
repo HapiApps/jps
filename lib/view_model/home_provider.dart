@@ -469,89 +469,121 @@ String get notificationToken =>_notificationToken;
   }
   void showDatePickerDialog(BuildContext context) {
     DateTime today = DateTime.now();
+
     selectedDate = PickerDateRange(today, today);
-    datesBetween = getDatesInRange(selectedDate!.startDate!, selectedDate!.endDate!);
+
+    datesBetween = getDatesInRange(
+      selectedDate!.startDate!,
+      selectedDate!.endDate!,
+    );
 
     DateFormat dateFormat = DateFormat('dd-MM-yyyy');
-    List<String> formattedDates = datesBetween.map((date) => dateFormat.format(date)).toList();
+
+    List<String> formattedDates =
+    datesBetween.map((date) => dateFormat.format(date)).toList();
+
     betweenDates = formattedDates.join(' || ');
 
     _startDate = dateFormat.format(selectedDate!.startDate!);
+    _endDate = dateFormat.format(selectedDate!.endDate!);
+
     notifyListeners();
-    notifyListeners();
+
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: CustomText(text: '   Select Date',colors: colorsConst.secondary,isBold: true,),
+          title: CustomText(
+            text: '   Select Date',
+            colors: colorsConst.secondary,
+            isBold: true,
+          ),
           content: SizedBox(
-            height: 300, // Adjust height as needed
-            width: 300, // Adjust width as needed
+            height: 300,
+            width: 300,
             child: SfDateRangePicker(
-              minDate: DateTime(2025), // Disable past dates
-              maxDate: DateTime.now(),
-              onSelectionChanged: (DateRangePickerSelectionChangedArgs args) {
-                selectedDate = args.value;
-                _startDate="";
-                _endDate="";
-                if(selectedDate?.endDate!=null){
-                  _startDate="${selectedDate?.startDate?.day.toString().padLeft(2,"0")}"
-                      "-${selectedDate?.startDate?.month.toString().padLeft(2,"0")}"
-                      "-${selectedDate?.startDate?.year.toString()}";
+              minDate: DateTime(2025, 1, 1),
 
-                  _endDate="${selectedDate?.endDate?.day.toString().padLeft(2,"0")}"
-                      "-${selectedDate?.endDate?.month.toString().padLeft(2,"0")}"
-                      "-${selectedDate?.endDate?.year.toString()}";
-                }else{
-                  _startDate="${selectedDate?.startDate?.day.toString().padLeft(2,"0")}"
-                      "-${selectedDate?.startDate?.month.toString().padLeft(2,"0")}"
-                      "-${selectedDate?.startDate?.year.toString()}";
-                  _endDate="${selectedDate?.startDate?.day.toString().padLeft(2,"0")}"
-                      "-${selectedDate?.startDate?.month.toString().padLeft(2,"0")}"
-                      "-${selectedDate?.startDate?.year.toString()}";
+              // Future dates allow
+              // maxDate removed
+
+              selectionMode: DateRangePickerSelectionMode.range,
+
+              onSelectionChanged:
+                  (DateRangePickerSelectionChangedArgs args) {
+                selectedDate = args.value;
+
+                if (selectedDate != null) {
+                  final start = selectedDate!.startDate!;
+                  final end = selectedDate!.endDate ?? start;
+
+                  _startDate =
+                  "${start.day.toString().padLeft(2, '0')}-"
+                      "${start.month.toString().padLeft(2, '0')}-"
+                      "${start.year}";
+
+                  _endDate =
+                  "${end.day.toString().padLeft(2, '0')}-"
+                      "${end.month.toString().padLeft(2, '0')}-"
+                      "${end.year}";
                 }
+
                 notifyListeners();
               },
-              selectionMode: DateRangePickerSelectionMode.range,
             ),
           ),
           actions: [
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                CustomText(text: 'Click and drag to select multiple dates',colors: colorsConst.greyClr,),
+                CustomText(
+                  text: 'Click and drag to select multiple dates',
+                  colors: colorsConst.greyClr,
+                ),
               ],
             ),
+
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
                 TextButton(
-                  child: const CustomText(text:'Cancel',colors: Colors.grey,isBold: true,),
                   onPressed: () {
                     Navigator.of(context).pop();
                   },
+                  child: const CustomText(
+                    text: 'Cancel',
+                    colors: Colors.grey,
+                    isBold: true,
+                  ),
                 ),
+
                 TextButton(
-                  child: CustomText(text: 'OK',colors: colorsConst.primary,isBold: true,),
                   onPressed: () {
                     if (selectedDate != null) {
                       datesBetween = getDatesInRange(
                         selectedDate!.startDate!,
-                        selectedDate!.endDate ?? selectedDate!.startDate!,
+                        selectedDate!.endDate ??
+                            selectedDate!.startDate!,
                       );
-                    }
-                    DateFormat dateFormat = DateFormat('dd-MM-yyyy');
 
-                    List<String> formattedDates = datesBetween.map((date) => dateFormat.format(date)).toList();
-                    betweenDates = formattedDates.join(' || ');
+                      List<String> formattedDates = datesBetween
+                          .map((date) => dateFormat.format(date))
+                          .toList();
+
+                      betweenDates = formattedDates.join(' || ');
+                    }
+
                     loadFullDashboard(context);
-                    // getMainReport(false);
-                    // getDashboardReport(false);
-                    // Provider.of<AttendanceProvider>(context, listen: false).getLateCount(_startDate,_endDate);
-                    //Provider.of<AttendanceProvider>(context, listen: false).getTotalHours(_startDate,_endDate);
+
                     notifyListeners();
+
                     Navigator.of(context).pop();
                   },
+                  child: CustomText(
+                    text: 'OK',
+                    colors: colorsConst.primary,
+                    isBold: true,
+                  ),
                 ),
               ],
             ),

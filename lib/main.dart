@@ -766,10 +766,19 @@ Future<void> main() async {
       final context = navigatorKey.currentContext;
 
       // 🔔 notification list refresh
+
+
       if (context != null) {
-        final empProvider =
-        Provider.of<EmployeeProvider>(context, listen: false);
-        empProvider.getNotifications();
+
+        Provider.of<HomeProvider>(
+          context,
+          listen: false,
+        ).loadFullDashboard(context);
+
+        Provider.of<EmployeeProvider>(
+          context,
+          listen: false,
+        ).getNotifications();
       }
 
       // ✅ SAFE DATA READ
@@ -793,9 +802,6 @@ Future<void> main() async {
         Provider.of<CustomerProvider>(context, listen: false);
         final taskProvider =
         Provider.of<TaskProvider>(context, listen: false);
-        // ❗ only same chat screen update
-
-          // ❗ backend delay handle
           await Future.delayed(const Duration(milliseconds: 500));
 
           await customerProvider.getTaskMainComments(taskId);

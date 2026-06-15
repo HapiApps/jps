@@ -237,13 +237,13 @@ class _CheckAttendanceState extends State<CheckAttendance> {
       String lastPermissionStatus = "";
       bool isPermissionActive = lastPermissionStatus == "1";
       Color getAttendanceColor() {
-        if (isPermissionActive) return colorsConst.appRed;
+        if (isPermissionActive) return Colors.red;
 
         if (attProvider.mainCheckOut == true) return Colors.grey;
 
         return attProvider.mainAttendance == 0
-            ? colorsConst.appGreen
-            : colorsConst.appRed;
+            ? Colors.green
+            : Colors.red;
       }
       if (attProvider.permissionStatus.isNotEmpty) {
         lastPermissionStatus =
@@ -523,212 +523,47 @@ class _CheckAttendanceState extends State<CheckAttendance> {
                         ],
                       ),
                         20.height,
-                        // attProvider.isPermission==true?
-                        // SwipeButton(
-                        //   width: MediaQuery.of(context).size.width*0.9,
-                        //   height: 35,
-                        //   thumb: Padding(
-                        //     padding: const EdgeInsets.fromLTRB(10, 0, 10, 0),
-                        //     child: SvgPicture.asset(assets.arrow),
-                        //   ),
-                        //   activeThumbColor: attProvider.permissionStatus==""||split.last=="2"?colorsConst.appGreen:colorsConst.appRed,
-                        //   // activeTrackColor: attProvider.permissionStatus==""||split.last=="2"?colorsConst.appGreen.withOpacity(0.2):colorsConst.appRed.withOpacity(0.3),
-                        //   activeTrackColor: Colors.white,
-                        //   onSwipe: () async {
-                        //     Map<Permission, PermissionStatus> status = await [
-                        //       Permission.location,
-                        //     ].request();
-                        //     if (status[Permission.location] == PermissionStatus.granted) {
-                        //       bool isLocationServiceEnabled = await Geolocator.isLocationServiceEnabled();
-                        //       if (!isLocationServiceEnabled) {
-                        //         utils.showWarningToast(context, text: "Location services are disabled. Please enable them.");
-                        //       }else{
-                        //         if(locPvr.latitude==""&&locPvr.longitude==""){
-                        //           utils.showWarningToast(text:"Check Your Location",context);
-                        //           await locPvr.manageLocation(context,true);
-                        //         }else{
-                        //           if(attProvider.isSelfie==false){
-                        //             attProvider.putDailyPermission(context,attProvider.permissionStatus==""||split.last=="2"?"1":"2",locPvr.latitude,locPvr.longitude);
-                        //           }else{
-                        //             attProvider.signDialog(context: context,
-                        //               img: attProvider.profile,
-                        //               onTap:(newImg){
-                        //                 attProvider.profilePick(newImg);
-                        //                 attProvider.putDailyPermission(context,attProvider.permissionStatus==""||split.last=="2"?"1":"2",locPvr.latitude,locPvr.longitude);
-                        //               },
-                        //             );
-                        //           }
-                        //         }
-                        //       }
-                        //     }
-                        //     else{
-                        //       await locPvr.manageLocation(context,true);
-                        //     }
-                        //   },
-                        //   child: CustomText(text: attProvider.permissionStatus==""||split.last=="2"?
-                        //   "     Permission In"
-                        //       :"     Permission Out",
-                        //     colors: attProvider.permissionStatus==""||split.last=="2"?colorsConst.appGreen:colorsConst.appRed,size: 15,),
-                        // )
-                        // :SwipeButton(
-                        //   //width: attProvider.mainCheckOut == true?MediaQuery.of(context).size.width*0.9:MediaQuery.of(context).size.width*0.55,
-                        //   width: MediaQuery.of(context).size.width*0.9,
-                        //   height: 35,
-                        //   thumb: Padding(
-                        //     padding: const EdgeInsets.fromLTRB(10, 0, 10, 0),
-                        //     child: SvgPicture.asset(assets.arrow),
-                        //   ),
-                        //   activeThumbColor: attProvider.mainAttendance!=0&&attProvider.mainCheckOut == true?Color(0xff7E7E7E):attProvider.mainAttendance!=0&&attProvider.mainCheckOut == false?colorsConst.appRed:colorsConst.appGreen,
-                        //   //activeTrackColor: attProvider.mainAttendance!=0&&attProvider.mainCheckOut == true?Colors.grey.shade300:attProvider.mainAttendance!=0&&attProvider.mainCheckOut == false?colorsConst.appRed.withOpacity(0.2):colorsConst.litGrey.withOpacity(0.3),
-                        //   activeTrackColor: Colors.white,
-                        //   onSwipe: attProvider.mainCheckOut==true?null:() async {
-                        //     if(!kIsWeb){
-                        //       Map<Permission, PermissionStatus> status = await [
-                        //         Permission.location,
-                        //       ].request();
-                        //       if (status[Permission.location] == PermissionStatus.granted) {
-                        //         // print("in 2");
-                        //         bool isLocationServiceEnabled = await Geolocator.isLocationServiceEnabled();
-                        //         if (!isLocationServiceEnabled) {
-                        //           utils.showWarningToast(context, text: "Location services are disabled. Please enable them.");
-                        //         }else if(attProvider.mainCheckOut==true){
-                        //           // print("in 3");
-                        //           utils.showWarningToast(text:"Attendance marked",context);
-                        //         }else{
-                        //           // print("in 4");
-                        //           if(locPvr.latitude==""&&locPvr.longitude==""){
-                        //             // print("in 5");
-                        //             utils.showWarningToast(text:"Check Your Location",context);
-                        //             await locPvr.manageLocation(context,true);
-                        //           }else{
-                        //             // print("in 6");
-                        //             if(attProvider.isSelfie==false){
-                        //               attProvider.putDailyAttendance(context,attProvider.mainAttendance==0?"1":"2",locPvr.latitude,locPvr.longitude);
-                        //             }else{
-                        //               attProvider.signDialog(context: context,
-                        //                 img: attProvider.profile,
-                        //                 onTap:(newImg){
-                        //                   attProvider.profilePick(newImg);
-                        //                   attProvider.putDailyAttendance(context,attProvider.mainAttendance==0?"1":"2",locPvr.latitude,locPvr.longitude);
-                        //                 },
-                        //               );
-                        //             }
-                        //           }
-                        //         }
-                        //       }else{
-                        //         // print("in");
-                        //         await locPvr.manageLocation(context,true);
-                        //       }
-                        //     }else{
-                        //       // print("in 1");
-                        //       if(attProvider.mainCheckOut==true){
-                        //         // print("in 3");
-                        //         utils.showWarningToast(text:"Attendance marked",context);
-                        //       }else{
-                        //         // print("in 4");
-                        //         if(locPvr.latitude==""&&locPvr.longitude==""){
-                        //           // print("in 5");
-                        //           utils.showWarningToast(text:"Check Your Location",context);
-                        //           await locPvr.manageLocation(context,true);
-                        //         }else{
-                        //           // print("in 6");
-                        //           attProvider.signDialog(context: context,
-                        //             img: attProvider.profile,
-                        //             onTap:(newImg){
-                        //               attProvider.profilePick(newImg);
-                        //               attProvider.putDailyAttendance(context,attProvider.mainAttendance==0?"1":"2",locPvr.latitude,locPvr.longitude);
-                        //             },
-                        //           );
-                        //         }
-                        //       }
-                        //     }
-                        //   },
-                        //   child: CustomText(text: attProvider.mainAttendance==0?
-                        //   "Attendance In"
-                        //       :attProvider.mainCheckOut == true?
-                        //   "            Attendance Marked"
-                        //       :"        Attendance Out",colors: attProvider.mainAttendance==0?colorsConst.appGreen
-                        //       :attProvider.mainCheckOut == true?Colors.grey:colorsConst.appRed,size: 13,),
-                        // ),
-                // isPermissionActive
-                //     ? SwipeButton(
-                //   width: MediaQuery.of(context).size.width * 0.9,
-                //   height: 35,
-                //   thumb: Padding(
-                //     padding: const EdgeInsets.fromLTRB(10, 0, 10, 0),
-                //     child: SvgPicture.asset(assets.arrow),
-                //   ),
-                //   activeThumbColor: colorsConst.appRed,
-                //   activeTrackColor: Colors.white,
-                //   onSwipe: () async {
-                //     attProvider.putDailyPermission(
-                //         context,
-                //         "2",
-                //         locPvr.latitude,
-                //         locPvr.longitude);
-                //   },
-                //   child: const CustomText(
-                //     text: "Permission Out",
-                //     colors: Colors.red,
-                //     size: 15,
-                //   ),
-                // )
-                //     : SwipeButton(
-                //   width: MediaQuery.of(context).size.width * 0.9,
-                //   height: 35,
-                //   thumb: Padding(
-                //     padding: const EdgeInsets.fromLTRB(10, 0, 10, 0),
-                //     child: SvgPicture.asset(assets.arrow),
-                //   ),
-                //   activeThumbColor: attProvider.mainAttendance == 0
-                //       ? colorsConst.appGreen
-                //       : colorsConst.appRed,
-                //   activeTrackColor: Colors.white,
-                //   onSwipe: () async {
-                //     attProvider.putDailyAttendance(
-                //         context,
-                //         attProvider.mainAttendance == 0 ? "1" : "2",
-                //         locPvr.latitude,
-                //         locPvr.longitude);
-                //   },
-                //   child: CustomText(
-                //     text: attProvider.mainAttendance == 0
-                //         ? "Attendance In"
-                //         : attProvider.mainCheckOut == true?
-                //          "  Attendance Marked"
-                //         :"Attendance Out",
-                //     colors: attProvider.mainAttendance == 0
-                //         ? colorsConst.appGreen
-                //         : colorsConst.appRed,
-                //     size: 13,
-                //   ),
-                // ),
 
                         // Container(
                         //   width: MediaQuery.of(context).size.width * 0.9,
                         //   height: 35,
                         //   decoration: BoxDecoration(
                         //     borderRadius: BorderRadius.circular(30),
-                        //
-                        //     // ✅ Border Color same as status
                         //     border: Border.all(
-                        //       color: getAttendanceColor(),
+                        //       color: attProvider.permissionStatus == "1"
+                        //           ? colorsConst.appRed
+                        //           : getAttendanceColor(),
                         //       width: 1.5,
                         //     ),
                         //   ),
                         //   child: ClipRRect(
                         //     borderRadius: BorderRadius.circular(30),
+                        //
                         //     child: attProvider.permissionStatus == "1"
+                        //
+                        //     /// ===================== PERMISSION BUTTON =====================
                         //         ? SwipeButton(
                         //       width: MediaQuery.of(context).size.width * 0.9,
                         //       height: 35,
+                        //
                         //       thumb: Padding(
                         //         padding: const EdgeInsets.fromLTRB(10, 0, 10, 0),
                         //         child: SvgPicture.asset(assets.arrow),
                         //       ),
+                        //
                         //       activeThumbColor: colorsConst.appRed,
                         //       activeTrackColor: Colors.white,
+                        //
+                        //       // ✅ Location check for Permission
                         //       onSwipe: () async {
+                        //         if (locPvr.latitude == null || locPvr.longitude == null) {
+                        //           utils.showWarningToast(
+                        //             context,
+                        //             text: "Location not available. Please enable GPS and try again.",
+                        //           );
+                        //           return;
+                        //         }
+                        //
                         //         attProvider.putDailyPermission(
                         //           context,
                         //           "2",
@@ -736,49 +571,72 @@ class _CheckAttendanceState extends State<CheckAttendance> {
                         //           locPvr.longitude,
                         //         );
                         //       },
+                        //
                         //       child: CustomText(
                         //         text: "    Permission Out",
                         //         colors: colorsConst.appRed,
                         //         size: 15,
                         //       ),
                         //     )
+                        //
+                        //     /// ===================== ATTENDANCE BUTTON =====================
                         //         : SwipeButton(
                         //       width: MediaQuery.of(context).size.width * 0.9,
                         //       height: 35,
+                        //
                         //       thumb: Padding(
                         //         padding: const EdgeInsets.fromLTRB(10, 0, 10, 0),
                         //         child: SvgPicture.asset(assets.arrow),
                         //       ),
                         //
-                        //       // ✅ Thumb color
                         //       activeThumbColor: getAttendanceColor(),
                         //       activeTrackColor: Colors.white,
                         //
-                        //       // ✅ Disable swipe when marked
+                        //       // ✅ Disable if already checkout
                         //       onSwipe: attProvider.mainCheckOut == true
                         //           ? null
                         //           : () async {
                         //
-                        //         /// 🔥 Leave check first
-                        //         final leaveProvider = Provider.of<LeaveProvider>(context, listen: false);
+                        //         if (locPvr.latitude == null ||
+                        //             locPvr.longitude == null) {
+                        //           utils.showWarningToast(
+                        //             context,
+                        //             text:
+                        //             "Location not available. Please enable GPS and try again.",
+                        //           );
+                        //           return;
+                        //         }
                         //
-                        //         bool isOnLeave = leaveProvider.todayLeaveList.any((leave) {
+                        //         /// 🔥 Leave check first
+                        //         final leaveProvider =
+                        //         Provider.of<LeaveProvider>(
+                        //           context,
+                        //           listen: false,
+                        //         );
+                        //
+                        //         bool isOnLeave =
+                        //         leaveProvider.todayLeaveList.any((leave) {
                         //           return leave.userId.toString() ==
-                        //               localData.storage.read("id").toString();
+                        //               localData.storage
+                        //                   .read("id")
+                        //                   .toString();
                         //         });
                         //
                         //         if (isOnLeave) {
                         //           utils.showWarningToast(
                         //             context,
-                        //             text: "You are on leave today. Attendance cannot be marked.",
+                        //             text:
+                        //             "You are on leave today. Attendance cannot be marked.",
                         //           );
-                        //           return; // ❌ stop swipe action
+                        //           return;
                         //         }
                         //
                         //         /// ✅ continue attendance swipe
                         //         attProvider.putDailyAttendance(
                         //           context,
-                        //           attProvider.mainAttendance == 0 ? "1" : "2",
+                        //           attProvider.mainAttendance == 0
+                        //               ? "1"
+                        //               : "2",
                         //           locPvr.latitude,
                         //           locPvr.longitude,
                         //         );
@@ -791,121 +649,121 @@ class _CheckAttendanceState extends State<CheckAttendance> {
                         //             ? "              Attendance Marked"
                         //             : "    Attendance Out",
                         //
-                        //         // ✅ Text color
                         //         colors: getAttendanceColor(),
                         //         size: 13,
                         //       ),
                         //     ),
                         //   ),
-                        // )
+                        // ),
                         Container(
                           width: MediaQuery.of(context).size.width * 0.9,
                           height: 35,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(30),
-                            border: Border.all(
-                              color: attProvider.permissionStatus == "1"
-                                  ? colorsConst.appRed
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: attProvider.mainCheckOut
+                                  ? Colors.grey
+                                  : attProvider.permissionStatus == "1"
+                                  ? Colors.red
                                   : getAttendanceColor(),
-                              width: 1.5,
-                            ),
-                          ),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(30),
-
-                            child: attProvider.permissionStatus == "1"
-
-                            /// ===================== PERMISSION BUTTON =====================
-                                ? SwipeButton(
-                              width: MediaQuery.of(context).size.width * 0.9,
-                              height: 35,
-
-                              thumb: Padding(
-                                padding: const EdgeInsets.fromLTRB(10, 0, 10, 0),
-                                child: SvgPicture.asset(assets.arrow),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
                               ),
+                            ),
 
-                              activeThumbColor: colorsConst.appRed,
-                              activeTrackColor: Colors.white,
+                            // ✅ Disable when attendance already marked
+                            onPressed: attProvider.mainCheckOut
+                                ? null
+                                : () async {
 
-                              // ✅ Location check for Permission
-                              onSwipe: () async {
-                                if (locPvr.latitude == null || locPvr.longitude == null) {
-                                  utils.showWarningToast(
-                                    context,
-                                    text: "Location not available. Please enable GPS and try again.",
-                                  );
-                                  return;
+                              if (locPvr.latitude == null ||
+                                  locPvr.longitude == null) {
+                                utils.showWarningToast(
+                                  context,
+                                  text:
+                                  "Location not available. Please enable GPS and try again.",
+                                );
+                                return;
+                              }
+
+                              /// Leave Check
+                              final leaveProvider =
+                              Provider.of<LeaveProvider>(
+                                context,
+                                listen: false,
+                              );
+
+                              bool isOnLeave =
+                              leaveProvider.todayLeaveList.any(
+                                    (leave) {
+                                  return leave.userId.toString() ==
+                                      localData.storage
+                                          .read("id")
+                                          .toString();
+                                },
+                              );
+
+                              if (isOnLeave) {
+                                utils.showWarningToast(
+                                  context,
+                                  text:
+                                  "You are on leave today. Attendance cannot be marked.",
+                                );
+                                return;
+                              }
+
+                              String message = "";
+
+                              if (attProvider.permissionStatus == "1") {
+                                message =
+                                "Do you want to mark Permission Out?";
+                              } else {
+                                if (attProvider.mainAttendance == 0) {
+                                  message =
+                                  "Do you want to mark Attendance In?";
+                                } else {
+                                  message =
+                                  "Do you want to mark Attendance Out?";
                                 }
+                              }
 
+                              bool? confirm =
+                              await showDialog<bool>(
+                                context: context,
+                                builder: (context) => AlertDialog(
+                                  title: const Text("Confirmation"),
+                                  content: Text(message),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () =>
+                                          Navigator.pop(
+                                              context, false),
+                                      child: const Text("No"),
+                                    ),
+                                    ElevatedButton(
+                                      onPressed: () =>
+                                          Navigator.pop(
+                                              context, true),
+                                      child: const Text("Yes"),
+                                    ),
+                                  ],
+                                ),
+                              );
+
+                              if (confirm != true) return;
+
+                              /// Permission Out
+                              if (attProvider.permissionStatus ==
+                                  "1") {
                                 attProvider.putDailyPermission(
                                   context,
                                   "2",
                                   locPvr.latitude,
                                   locPvr.longitude,
                                 );
-                              },
+                              }
 
-                              child: CustomText(
-                                text: "    Permission Out",
-                                colors: colorsConst.appRed,
-                                size: 15,
-                              ),
-                            )
-
-                            /// ===================== ATTENDANCE BUTTON =====================
-                                : SwipeButton(
-                              width: MediaQuery.of(context).size.width * 0.9,
-                              height: 35,
-
-                              thumb: Padding(
-                                padding: const EdgeInsets.fromLTRB(10, 0, 10, 0),
-                                child: SvgPicture.asset(assets.arrow),
-                              ),
-
-                              activeThumbColor: getAttendanceColor(),
-                              activeTrackColor: Colors.white,
-
-                              // ✅ Disable if already checkout
-                              onSwipe: attProvider.mainCheckOut == true
-                                  ? null
-                                  : () async {
-
-                                if (locPvr.latitude == null ||
-                                    locPvr.longitude == null) {
-                                  utils.showWarningToast(
-                                    context,
-                                    text:
-                                    "Location not available. Please enable GPS and try again.",
-                                  );
-                                  return;
-                                }
-
-                                /// 🔥 Leave check first
-                                final leaveProvider =
-                                Provider.of<LeaveProvider>(
-                                  context,
-                                  listen: false,
-                                );
-
-                                bool isOnLeave =
-                                leaveProvider.todayLeaveList.any((leave) {
-                                  return leave.userId.toString() ==
-                                      localData.storage
-                                          .read("id")
-                                          .toString();
-                                });
-
-                                if (isOnLeave) {
-                                  utils.showWarningToast(
-                                    context,
-                                    text:
-                                    "You are on leave today. Attendance cannot be marked.",
-                                  );
-                                  return;
-                                }
-
-                                /// ✅ continue attendance swipe
+                              /// Attendance In / Out
+                              else {
                                 attProvider.putDailyAttendance(
                                   context,
                                   attProvider.mainAttendance == 0
@@ -914,21 +772,25 @@ class _CheckAttendanceState extends State<CheckAttendance> {
                                   locPvr.latitude,
                                   locPvr.longitude,
                                 );
-                              },
+                              }
+                            },
 
-                              child: CustomText(
-                                text: attProvider.mainAttendance == 0
-                                    ? "Attendance In"
-                                    : attProvider.mainCheckOut == true
-                                    ? "              Attendance Marked"
-                                    : "    Attendance Out",
-
-                                colors: getAttendanceColor(),
-                                size: 13,
+                            child: Text(
+                              attProvider.mainCheckOut
+                                  ? "Attendance Marked"
+                                  : attProvider.permissionStatus == "1"
+                                  ? "Permission Out"
+                                  : attProvider.mainAttendance == 0
+                                  ? "Attendance In"
+                                  : "Attendance Out",
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
                               ),
                             ),
                           ),
-                        ),
+                        )
                       ],
                     ),
                   ),

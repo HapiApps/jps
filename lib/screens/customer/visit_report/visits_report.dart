@@ -2,20 +2,15 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:intl/intl.dart';
-import 'package:master_code/component/custom_loading_button.dart';
 import 'package:master_code/screens/customer/visit_report/visit_report_details.dart';
 import 'package:master_code/source/extentions/extensions.dart';
 import 'package:master_code/view_model/employee_provider.dart';
 import 'package:provider/provider.dart';
 import '../../../component/animated_button.dart';
 import '../../../component/custom_appbar.dart';
-import '../../../component/custom_dropdown.dart';
 import '../../../component/custom_loading.dart';
-import '../../../component/custom_radio_button.dart';
 import '../../../component/custom_text.dart';
-import '../../../component/custom_textfield.dart';
 import '../../../component/dotted_border.dart';
-import '../../../component/map_dropdown.dart';
 import '../../../model/customer/customer_report_model.dart';
 import '../../../model/user_model.dart';
 import '../../../source/constant/assets_constant.dart';
@@ -190,7 +185,7 @@ class _VisitReportState extends State<VisitReport> with SingleTickerProviderStat
                                                   const EdgeInsets.symmetric(vertical: 10),
                                                 ),
                                                 onChanged: (value) {
-                                                  custProvider.searchVisitReport(value);
+                                                 // custProvider.searchEmployee(value);
                                                 },
                                               ),
                                             ),
@@ -678,10 +673,7 @@ class _VisitReportState extends State<VisitReport> with SingleTickerProviderStat
                                 ),
                               )
 
-                                  :
-
-                              /// List
-                              Expanded(
+                                  : Expanded(
                                 child: Builder(
                                   builder: (context) {
 
