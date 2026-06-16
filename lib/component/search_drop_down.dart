@@ -139,6 +139,11 @@ class _CustomerDropdownState extends State<CustomerDropdown> {
                 ),
 
                 itemBuilder: (context, CustomerModel? product, bool isSelected) {
+
+                  if ((product?.companyName ?? '').trim().isEmpty) {
+                    return const SizedBox.shrink();
+                  }
+
                   return Padding(
                     padding: const EdgeInsets.fromLTRB(8, 6, 8, 0),
                     child: Column(
