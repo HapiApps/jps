@@ -438,6 +438,19 @@ class _ViewNotificationState extends State<ViewNotification> with SingleTickerPr
 
                           String title = employeeData["title"] ?? "";
                           String body = employeeData["body"] ?? "";
+
+                          String message = body;
+                          String date = "";
+
+                          if (body.contains("||")) {
+                            List<String> parts = body.split("||");
+
+                            message = parts[0].trim();
+
+                            if (parts.length > 1) {
+                              date = parts[1].trim();
+                            }
+                          }
                           String createdBy =
                           employeeData["firstname"]?.toString() == "null"
                               ? ""
@@ -448,9 +461,11 @@ class _ViewNotificationState extends State<ViewNotification> with SingleTickerPr
                               ? "Feedback":
                           title.toLowerCase().contains("visit report")
                               ? "Visit Report":
-                          body.toLowerCase().contains("requested")
-                              ? "Leave"
-                              : "Task";
+                          message.toLowerCase().contains("requested")
+                              ? "Leave":
+                          message.toLowerCase().contains("Created")
+                              ? "Feedback"
+                              :"Task";
                           final sortedData = empProvider.notifyData;
 
                           String? prevCreatedBy;
@@ -469,6 +484,32 @@ class _ViewNotificationState extends State<ViewNotification> with SingleTickerPr
 
                           final showDateHeader = index == 0 ||
                               createdBy != prevCreatedBy;
+                          String mesBody = empProvider.notifyData[index]["body"] ?? "";
+
+// Example:
+// "testing completed || 16.10.2025"
+
+                          String taskDate = DateFormat("dd-MM-yyyy").format(DateTime.now());
+
+                          if (mesBody.contains("||")) {
+                            final parts = mesBody.split("||");
+
+                            if (parts.length > 1) {
+                              String dateStr = parts[1].trim();
+
+                              try {
+                                taskDate = DateFormat("dd-MM-yyyy").format(
+                                  DateFormat("dd-MM-yyyy").parseStrict(dateStr),
+                                );
+                              } catch (e) {
+                                taskDate = DateFormat("dd-MM-yyyy").format(DateTime.now());
+                                print("Date Parse Error: $e");
+                              }
+                            }
+                          }
+
+                          print("task date $taskDate");
+                          print("task date ${taskDate}");
                           return Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -503,9 +544,16 @@ class _ViewNotificationState extends State<ViewNotification> with SingleTickerPr
                                           DateTime.parse(empProvider.notifyData[index]["created_ts"])),isDirect: true)));
                                     }
                                   }else{
-                                    utils.navigatePage(context, ()=>DashBoard(child: ViewTask(date1:  DateFormat("dd-MM-yyyy").format(
-                                      DateTime.parse(empProvider.notifyData[index]["created_ts"])), date2: DateFormat("dd-MM-yyyy").format(
-                                        DateTime.parse(empProvider.notifyData[index]["created_ts"])), type: 'Today',)));
+                                    utils.navigatePage(
+                                      context,
+                                          () => DashBoard(
+                                        child: ViewTask(
+                                          date1: taskDate,
+                                          date2: taskDate,
+                                          type: "Today",
+                                        ),
+                                      ),
+                                    );
                                   }
                                 },
                                 child: Container(
@@ -583,7 +631,7 @@ class _ViewNotificationState extends State<ViewNotification> with SingleTickerPr
 
                                       /// 🔹 Body
                                       CustomText(
-                                        text: title.toLowerCase().contains("feedback")&&body==""?"Voice Message":body,isBold: true,
+                                        text: title.toLowerCase().contains("feedback")&&message==""?"Voice Message":message,isBold: true,
                                       ),
 
                                       5.height,

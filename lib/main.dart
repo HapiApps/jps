@@ -790,6 +790,21 @@ Future<void> main() async {
 
       final name = message.data['name'] ?? '';
 
+      String messageText = body;
+      String taskDate = DateFormat("dd-MM-yyyy").format(DateTime.now());
+
+      if (body.contains("||")) {
+        final parts = body.split("||");
+
+        messageText = parts[0].trim();
+
+        if (parts.length > 1) {
+          taskDate = parts[1].trim();
+        }
+      }
+
+      print("Message : $messageText");
+      print("Task Date : $taskDate");
       // 🔥 முக்கியம் (both keys support)
       final taskId =
           message.data['task_id'] ?? message.data['purpose_id'] ?? "";
@@ -802,6 +817,7 @@ Future<void> main() async {
         Provider.of<CustomerProvider>(context, listen: false);
         final taskProvider =
         Provider.of<TaskProvider>(context, listen: false);
+
           await Future.delayed(const Duration(milliseconds: 500));
 
           await customerProvider.getTaskMainComments(taskId);
@@ -831,7 +847,7 @@ Future<void> main() async {
       if (title.toString().contains("A new task has been assigned")) {
         await flutterLocalNotificationsPlugin.show(
           message.hashCode,
-          body,
+          messageText,
           "Created by $name .Task",
           platformDetails,
           payload: jsonEncode(message.data),
@@ -839,7 +855,7 @@ Future<void> main() async {
       } else {
         await flutterLocalNotificationsPlugin.show(
           message.hashCode,
-          body,
+          messageText                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        ,
           title,
           platformDetails,
           payload: jsonEncode(message.data),
@@ -847,12 +863,22 @@ Future<void> main() async {
       }
     }
     );
+
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
-      if (message.notification?.title
-          ?.contains("task") ??
-          false) {
+
+      final taskDate = message.data['task_date'] ??
+          DateFormat('dd-MM-yyyy').format(DateTime.now());
+
+      if (message.notification?.title?.toLowerCase().contains("task") ?? false) {
+
         navigatorKey.currentState?.push(
-          MaterialPageRoute(builder: (_) => ViewTask(date1: "${DateTime.now().day.toString().padLeft(2,"0")}-${DateTime.now().month.toString().padLeft(2,"0")}-${DateTime.now().year}", date2: "${DateTime.now().day.toString().padLeft(2,"0")}-${DateTime.now().month.toString().padLeft(2,"0")}-${DateTime.now().year}", type: "Today")),
+          MaterialPageRoute(
+            builder: (_) => ViewTask(
+              date1: taskDate,
+              date2: taskDate,
+              type: taskDate==""?"today":"",
+            ),
+          ),
         );
       }
     });

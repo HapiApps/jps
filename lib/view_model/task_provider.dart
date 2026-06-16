@@ -3163,9 +3163,9 @@ class TaskProvider with ChangeNotifier {
         try {
           await Provider.of<EmployeeProvider>(context, listen: false)
               .sendSomeUserNotification(
-            "${taskTitleCont.text.trim()} by (${localData.storage.read("f_name")})",
-            taskTitleCont.text.trim(),
-            _assignedId,""
+            "${taskTitleCont.text.trim()} by ${localData.storage.read("f_name")}",
+            "${taskTitleCont.text.trim()} || ${taskDt.text.trim()}",
+            _assignedId,"",taskDt.text.trim(),
           );
         } catch (e) {
           print("User notification error: $e");
@@ -3232,7 +3232,7 @@ class TaskProvider with ChangeNotifier {
           await Provider.of<EmployeeProvider>(context, listen: false).sendSomeUserNotification(
             "${taskTitleCont.text.trim()} (${localData.storage.read("f_name")})",
             taskTitleCont.text.trim(),
-            assignedId,""
+            assignedId,"",taskDt.text.trim(),
           );
         } catch (e) {
           print("User notification error: $e");

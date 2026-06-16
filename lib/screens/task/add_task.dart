@@ -49,7 +49,7 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
       final taskProvider = Provider.of<TaskProvider>(context, listen: false);
 
       taskProvider.setTodayDate();
-
+      Provider.of<CustomerProvider>(context, listen: false).getAllCustomers(true);
       await Future.wait([
         taskProvider.getTaskType(false),
        taskProvider.getTaskStatuses(),
@@ -60,6 +60,7 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
       /// 🔥 AFTER THAT default set pannunga
       if (taskProvider.typeList.isNotEmpty) {
         taskProvider.changeType(taskProvider.typeList.first["id"].toString());
+
       }
 
       if (taskProvider.assignEmployees.isEmpty) {
@@ -742,7 +743,8 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
                                   } else {
                                     _myFocusScopeNode.unfocus();
                                     taskProvider.addTask(
-                                        context: context,id:companyId);
+                                        context: context,id:companyId
+                                    );
                                   }
                                 },
                                 controller: taskProvider.taskCtr),

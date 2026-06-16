@@ -1837,7 +1837,8 @@ Future<void> getNotifications({bool markSeen = false}) async {
       String msgTittle,
       String msgBody,
       String id,
-      String purposeId
+      String purposeId,
+      String taskDate
       ) async
   {
 
@@ -1859,6 +1860,7 @@ Future<void> getNotifications({bool markSeen = false}) async {
         "id": filteredId,
         "platform": safeStr(localData.storage.read("platform")),
         "purpose_id": purposeId.isNotEmpty ? purposeId : "0",
+        "task_date":taskDate,
         "task_id": purposeId.isNotEmpty ? purposeId : "0",
         "sender_name": localData.storage.read("f_name"),
       };
@@ -1879,7 +1881,8 @@ Future<void> getNotifications({bool markSeen = false}) async {
       String msgTittle,
       String msgBody,
       String id,
-      String purposeId)
+      String purposeId,
+      String taskDate)
   async
   {
 

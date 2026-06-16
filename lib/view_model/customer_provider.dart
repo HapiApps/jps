@@ -202,7 +202,7 @@ class CustomerProvider with ChangeNotifier{
                   "$commentText Added by ${localData.storage.read("f_name")}",
                   commentText,
                   assignedId,
-                  taskId,
+                  taskId,"",
                 );
               } else {
                 Provider.of<EmployeeProvider>(context, listen: false)
