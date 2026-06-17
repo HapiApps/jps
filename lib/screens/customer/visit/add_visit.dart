@@ -186,6 +186,17 @@ class _CusAddVisitState extends State<CusAddVisit>
 
                               /// ====================== COMPANY DROPDOWN ======================
                               if (widget.isDirect == true)
+                            custProvider.customer.isEmpty
+                                    ? const Center(
+                              child: SizedBox(
+                                width: 25,
+                                height: 25,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              ),
+                            )
+                                    :
                                 Consumer<CustomerProvider>(
                                   builder: (context, custProvider, child) {
                                     List<CustomerModel> updatedCompanyList = [
@@ -224,6 +235,7 @@ class _CusAddVisitState extends State<CusAddVisit>
                                           if (result != null &&
                                               result is CustomerModel) {
                                             setState(() {
+                                              custProvider.isAddCompanyLoading = true;
                                               companyId =
                                                   result.userId.toString();
                                               companyName =

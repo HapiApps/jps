@@ -66,6 +66,7 @@ class CustomerProvider with ChangeNotifier{
   String selectCustomerName = "";
   String selectCustomerNo = "";
   bool hideEmptyEmployees = false;
+  bool isAddCompanyLoading = false;
 
   void toggleHideEmptyEmployees(bool value) {
     hideEmptyEmployees = value;

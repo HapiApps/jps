@@ -173,6 +173,7 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
 
                                       return CustomerDropdown(
                                         key: ValueKey(custProvider.customer.length),
+
                                         hintText: false,// 🔥 force rebuild
                                         text: companyId == "" ? constValue.companyName : companyName,
                                         employeeList: updatedCompanyList,
