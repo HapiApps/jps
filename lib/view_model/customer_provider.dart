@@ -199,7 +199,7 @@ class CustomerProvider with ChangeNotifier{
               if (role == "1") {
                 Provider.of<EmployeeProvider>(context, listen: false)
                     .sendSomeUserNotification(
-                  "$commentText Added by ${localData.storage.read("f_name")}",
+                  "$commentText Added a task feedback ${localData.storage.read("f_name")}",
                   commentText,
                   assignedId,
                   taskId,"",

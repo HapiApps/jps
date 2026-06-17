@@ -29,7 +29,7 @@ class MyTaskHandler extends TaskHandler {
   // Method to handle periodic events
   @override
   void onRepeatEvent(DateTime timestamp) {
-    FlutterForegroundTask.updateService(notificationText: 'Track On');
+    // FlutterForegroundTask.updateService(notificationText: 'Track On');
 
     // Send data to main isolate
     FlutterForegroundTask.sendDataToMain(_count);

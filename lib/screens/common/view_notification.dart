@@ -485,18 +485,12 @@ class _ViewNotificationState extends State<ViewNotification> with SingleTickerPr
                           final showDateHeader = index == 0 ||
                               createdBy != prevCreatedBy;
                           String mesBody = empProvider.notifyData[index]["body"] ?? "";
-
-// Example:
-// "testing completed || 16.10.2025"
-
                           String taskDate = DateFormat("dd-MM-yyyy").format(DateTime.now());
-
                           if (mesBody.contains("||")) {
                             final parts = mesBody.split("||");
 
                             if (parts.length > 1) {
                               String dateStr = parts[1].trim();
-
                               try {
                                 taskDate = DateFormat("dd-MM-yyyy").format(
                                   DateFormat("dd-MM-yyyy").parseStrict(dateStr),

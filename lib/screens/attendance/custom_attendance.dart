@@ -168,12 +168,15 @@ class _CheckAttendanceState extends State<CheckAttendance> {
     await Future.delayed(const Duration(milliseconds: 500));
 
     /// ✅ Start the foreground task
-    await FlutterForegroundTask.startService(
-      notificationTitle: constValue.appName,
-      notificationText: 'Tracking is on',
-      callback: startCallbackDispatcher,
-    );
+    final isRunning = await FlutterForegroundTask.isRunningService;
 
+    if (!isRunning) {
+      await FlutterForegroundTask.startService(
+        notificationTitle: constValue.appName,
+        notificationText: 'Tracking is on',
+        callback: startCallbackDispatcher,
+      );
+    }
     setState(() {
       log("✅ Tracking started. Track=${storage.read("Track")}, Unit=${storage.read("TrackUnitName")}");
     });
