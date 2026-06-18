@@ -37,6 +37,7 @@ class CustomerData extends StatefulWidget {
 class _CustomerDataState extends State<CustomerData> {
   @override
   Widget build(BuildContext context) {
+    bool isExpanded = false;
     var webWidth=MediaQuery.of(context).size.width * 0.5;
     var phoneWidth=MediaQuery.of(context).size.width * 0.9;
     CustomerModel data=widget.customerData;
@@ -100,8 +101,16 @@ class _CustomerDataState extends State<CustomerData> {
                                                   crossAxisAlignment: CrossAxisAlignment.start,
                                                   children: [
                                                     CustomText(text: "Company",isBold: localData.storage.read("role") =="1"?true:true,colors: localData.storage.read("role") =="1"?Colors.black:Colors.black,),
-                                                    CustomText(text: data.companyName.toString().trim(),isBold: localData.storage.read("role") =="1"?false:true,colors: localData.storage.read("role") =="1"?colorsConst.primary:colorsConst.primary,),
+                                                    SizedBox(
+                                                      width: 150, // required
+                                                      child: Text(
+                                                        data.companyName.toString().trim(),
+                                                        style: TextStyle(color: colorsConst.primary),
+                                                        maxLines: 1,
 
+                                                        overflow: TextOverflow.ellipsis,
+                                                      ),
+                                                    )
                                                   ],
                                                 ),
                                                  Row(

@@ -245,8 +245,6 @@ class _ViewCustomerState extends State<ViewCustomer>
 
                                 return Column(
                                   children: [
-                                    /// DATE HEADER STYLE
-
                                     if (showDateHeader)
                                       Row(
                                         mainAxisAlignment: MainAxisAlignment.spaceBetween,

@@ -47,7 +47,7 @@ class _ViewEmployeesState extends State<ViewEmployees>
       Provider.of<LocationProvider>(context, listen: false);
       final employeeProvider =
       Provider.of<EmployeeProvider>(context, listen: false);
-
+      Provider.of<EmployeeProvider>(context, listen: false).getAllUsers();
       locationProvider.manageLocation(context, false);
       employeeProvider.initFilterValue(true);
       employeeProvider.getGrades(true);

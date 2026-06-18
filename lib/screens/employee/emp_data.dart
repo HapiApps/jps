@@ -242,8 +242,8 @@ class EmpData extends StatelessWidget {
                           flex: 2,
                           child: Align(
                             alignment: Alignment.centerRight,
-                            child: InkWell(
-                              onTap: () {
+                            child: ElevatedButton(
+                              onPressed: () {
                                 focusScope.unfocus();
                                 empProvider.deleteReason.clear();
 
@@ -257,24 +257,21 @@ class EmpData extends StatelessWidget {
                                   title: 'Do you want to',
                                   title2:
                                   '${employeeData.active.toString() == "1" ? "Deactivate" : "Activate"} this employee?',
-                                  roundedLoadingButtonController:
-                                  empProvider.signCtr,
+                                  roundedLoadingButtonController: empProvider.signCtr,
                                   textEditCtr: empProvider.deleteReason,
                                   callback: () {
-                                    if (empProvider.deleteReason.text
-                                        .trim()
-                                        .isEmpty) {
-                                      utils.showWarningToast(context,
-                                          text: "Type a reason");
+                                    if (empProvider.deleteReason.text.trim().isEmpty) {
+                                      utils.showWarningToast(
+                                        context,
+                                        text: "Type a reason",
+                                      );
                                       empProvider.signCtr.reset();
                                     } else {
                                       focusScope.unfocus();
                                       empProvider.empActive(
                                         context,
                                         userId: employeeData.id.toString(),
-                                        active:
-                                        employeeData.active.toString() ==
-                                            "1"
+                                        active: employeeData.active.toString() == "1"
                                             ? '2'
                                             : '1',
                                       );
@@ -282,19 +279,32 @@ class EmpData extends StatelessWidget {
                                   },
                                 );
                               },
-                              child: CustomText(
-                                text: employeeData.active.toString() == "1"
-                                    ? "Inactive"
-                                    : "Activate",
-                                colors: employeeData.active.toString() == "1"
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: employeeData.active.toString() == "1"
                                     ? Colors.red
                                     : colorsConst.appDarkGreen,
-                                isBold: true,
-                                size: 12,
+                                foregroundColor: Colors.white,
+                                // padding: const EdgeInsets.symmetric(
+                                //   horizontal: 8,
+                                //   vertical: 2,
+                                // ),
+                                minimumSize: const Size(70, 27),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                              ),
+                              child: Text(
+                                employeeData.active.toString() == "1"
+                                    ? "Inactive"
+                                    : "Activate",
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                             ),
                           ),
-                        ),
+                        )
                       ],
                     ),
                   ),
