@@ -3,8 +3,6 @@ import 'package:flutter_svg/svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:master_code/component/custom_loading.dart';
-import 'package:master_code/component/custom_textfield.dart';
-import 'package:master_code/component/dotted_border.dart';
 import 'package:master_code/component/map_dropdown.dart';
 import 'package:master_code/screens/task/add_task.dart';
 import 'package:master_code/screens/task/edit_task.dart';
@@ -12,8 +10,6 @@ import 'package:master_code/screens/task/search_custom_dropdown.dart' hide MapDr
 import 'package:master_code/screens/task/task_calendar.dart';
 import 'package:master_code/screens/task/task_chat.dart';
 import 'package:master_code/screens/task/task_details.dart';
-import 'package:master_code/screens/task/task_report.dart';
-import 'package:master_code/screens/task/visit/add_visit.dart';
 import 'package:master_code/source/extentions/extensions.dart';
 import 'package:master_code/view_model/customer_provider.dart';
 import 'package:master_code/view_model/employee_provider.dart';
@@ -25,13 +21,11 @@ import 'package:provider/provider.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
 import '../../component/animated_button.dart';
 import '../../component/custom_appbar.dart';
-import '../../component/custom_loading_button.dart';
 import '../../component/custom_text.dart';
 import '../../component/expand_text.dart';
 import '../../component/search_drop_down.dart';
 import '../../model/customer/customer_model.dart';
 import '../../model/task/task_data_model.dart';
-import '../../model/user_model.dart';
 import '../../source/constant/assets_constant.dart';
 import '../../source/constant/colors_constant.dart';
 import '../../source/constant/default_constant.dart';
@@ -41,7 +35,7 @@ import '../../source/utilities/utils.dart';
 import '../../view_model/task_provider.dart';
 import '../common/dashboard.dart';
 import '../common/home_page.dart';
-import '../expense/create_expense.dart';
+
 
 class ViewTask extends StatefulWidget {
   final String date1;
@@ -74,17 +68,19 @@ class _ViewTaskState extends State<ViewTask> with SingleTickerProviderStateMixin
       taskProvider.search.clear();
       taskProvider.search2.clear();
 
-      empProvider.filterEmps();
+      //empProvider.filterEmps();
 
       if (kIsWeb) {
         taskProvider.getTaskType(false);
         taskProvider.getTaskStatuses();
+        taskProvider.getTaskUsers();
         custProvider.getLeadCategory();
         custProvider.getVisitType();
         custProvider.getCmtType();
       } else {
         taskProvider.getAllTypes();
         taskProvider.getTypeSts();
+        taskProvider.getTaskUsers();
         custProvider.getLead();
         custProvider.getVisit();
         custProvider.getCommentType();
@@ -98,7 +94,7 @@ class _ViewTaskState extends State<ViewTask> with SingleTickerProviderStateMixin
       );
 print("type: ${widget.type}");
       taskProvider.dataSource = _getDataSource();
-
+      taskProvider.getTaskUsers();
       taskProvider.getAllTask(
         true,
         date1: widget.date1,
@@ -134,11 +130,19 @@ print("type: ${widget.type}");
                     utils.navigatePage(context, ()=>const DashBoard(child: HomePage()));
                   },
                   isButton: localData.storage.read("role") =="1"?true:false,
-                  buttonCallback:  () {
+                  buttonCallback: () async {
                     taskProvider.typeList.removeWhere((e) => e['value'] == 'All');
-                    _myFocusScopeNode.unfocus();
-                    utils.navigatePage(context, ()=>const DashBoard(child: AddTask()));
-                  },),
+
+                    await taskProvider.getTaskUsers();
+
+                    if (!mounted) return;
+
+                    utils.navigatePage(
+                      context,
+                          () => const DashBoard(child: AddTask()),
+                    );
+                  },
+                ),
               ),
               body: PopScope(
                 canPop: false,
@@ -218,19 +222,19 @@ class ViewfilterUserData extends StatefulWidget {
 
 class _ViewfilterUserDataState extends State<ViewfilterUserData>{
   final FocusScopeNode _myFocusScopeNode = FocusScopeNode();
-  // @override
-  // void initState() {
-  //   super.initState();
-  //   WidgetsBinding.instance.addPostFrameCallback((_) {
-  //     final taskProvider = Provider.of<TaskProvider>(context, listen: false);
-  //     taskProvider.initFilterValue(true,date1:widget.date1,date2:widget.date2,type:widget.type);
-  //     taskProvider.dataSource = _getDataSource();
-  //     taskProvider.getAllTask(true,date1:widget.date1,date2:widget.date2,type:widget.type);
-  //     if(localData.storage.read("role")=="1"){
-  //       taskProvider.getTaskUsers();
-  //     }
-  //   });
-  // }
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final taskProvider = Provider.of<TaskProvider>(context, listen: false);
+      taskProvider.initFilterValue(true,date1:widget.date1,date2:widget.date2,type:widget.type);
+      taskProvider.dataSource = _getDataSource();
+      taskProvider.getAllTask(true,date1:widget.date1,date2:widget.date2,type:widget.type);
+      if(localData.storage.read("role")=="1"){
+        taskProvider.getTaskUsers();
+      }
+    });
+  }
   @override
   void dispose() {
     _myFocusScopeNode.dispose();

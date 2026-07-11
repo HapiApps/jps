@@ -2948,26 +2948,45 @@ class TaskProvider with ChangeNotifier {
   List historyDetails=[];
 
   Future<void> getTaskUsers() async {
+    print("========== getTaskUsers() CALLED ==========");
+    log("========== getTaskUsers() CALLED ==========");
+
     try {
       Map data = {
         "action": getAllData,
         "search_type": "task_users",
-        "cos_id":localData.storage.read("cos_id"),
-        "role":localData.storage.read("role"),
+        "cos_id": localData.storage.read("cos_id"),
+        "role": localData.storage.read("role"),
       };
-      final response =await _taskRepo.getUsers(data);
-      // log(response.toString());
+
+      print("Request Data: $data");
+
+      final response = await _taskRepo.getUsers(data);
+
+      print("API Response: $response");
+      print("Response Length: ${response.length}");
+
       if (response.isNotEmpty) {
-        assignEmployees=[];
-        assignEmployees=response;
-      }else{
-        assignEmployees=[];
+        assignEmployees = [];
+        assignEmployees = response;
+
+        print("assignEmployees Count: ${assignEmployees.length}");
+        print("assignEmployees: $assignEmployees");
+
+      } else {
+        assignEmployees = [];
+        print("Response is Empty");
       }
-    } catch (e) {
-      assignEmployees=[];
-      log(e.toString());
+    } catch (e, stackTrace) {
+      assignEmployees = [];
+      print("ERROR in getTaskUsers(): $e");
+      print(stackTrace);
     }
+
+    print("notifyListeners() called");
     notifyListeners();
+
+    print("========== getTaskUsers() END ==========");
   }
   Future<void> getStatusHistory(String taskId) async {
     try {
@@ -3147,7 +3166,6 @@ class TaskProvider with ChangeNotifier {
         'type': _type.toString(),
         'assigned': assignedId,
         'level': level,
-        // 'status': localData.storage.read("status_id"),
         'status': _status.toString(),
         'user_id': localData.storage.read("id"),
         'task_date': taskDt.text.trim(),
