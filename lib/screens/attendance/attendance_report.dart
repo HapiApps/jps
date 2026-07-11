@@ -612,100 +612,82 @@ class _AttendanceReportState extends State<AttendanceReport> {
 
                           ],
                         ),
-                        10.height,
-                        Row(
-                          children: [
-                            Container(
-                              width: phoneWidth/1.18,
-                              height: 45,
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.only(
-                                  topLeft: Radius.circular(5),
-                                  bottomLeft: Radius.circular(5),
-                                ),
-                                // border: Border.all(color: Colors.grey.shade300),
-                              ),
-                              child: ToggleButtons(
-                                borderRadius: BorderRadius.only(
-                                  topLeft: Radius.circular(5),
-                                  bottomLeft: Radius.circular(5),
-                                ),
-                                borderWidth: 1,                      // ⭐ important
-                                borderColor: Colors.grey.shade300,
-                                selectedBorderColor: Colors.white,
-                                fillColor: Colors.green, // selected background
+                        15.height,
+                        Padding(
+                          padding: const EdgeInsets.only(left: 12.0),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Expanded(
+                                child: SizedBox(
+                                  height: 45,
+                                  child: ToggleButtons(
 
-                                disabledBorderColor: Colors.transparent,
-                                isSelected: List.generate(
-                                  attProvider.items.length,
-                                      (index) => attProvider.selectedIndex == index,
-                                ),
-
-                                onPressed: (index) {
-                                  setState(() {
-                                    attProvider.selectedIndex = index;
-                                    if(attProvider.selectedIndex==1){
-                                      showType="Absent";
-                                    }
-                                    if(attProvider.selectedIndex==2){
-                                      showType="Late";
-                                    }
-                                    if(attProvider.selectedIndex==4){
-                                      showType="Permission";
-                                    }
-                                    if(attProvider.selectedIndex==0){
-                                      showType="Present";
-                                    }
-                                    if(attProvider.selectedIndex==3){
-                                      showType="Leave";
-                                    }
-                                  });
-                                },
-
-                                children: List.generate(attProvider.items.length, (index) {
-                                  bool isSelected = attProvider.selectedIndex == index;
-
-                                  final totalWidth = phoneWidth / 1.10; // ⭐ same as container
-
-                                  return SizedBox(
-                                    width: totalWidth / attProvider.items.length,
-                                    child: Center(
-                                      child: CustomText(
-                                        text: attProvider.items[index],size: 12,
-                                        colors: isSelected
-                                            ? Colors.white
-                                            : attProvider.itemColors[index].withOpacity(0.6),
-                                        isBold: true,
-                                      ),
+                                    isSelected: List.generate(
+                                      attProvider.items.length,
+                                          (index) => attProvider.selectedIndex == index,
                                     ),
-                                  );
-                                }),
+
+                                    onPressed: (index) {
+                                      setState(() {
+                                        attProvider.selectedIndex = index;
+
+                                        switch (index) {
+                                          case 0:
+                                            showType = "Present";
+                                            break;
+                                          case 1:
+                                            showType = "Absent";
+                                            break;
+                                          case 2:
+                                            showType = "Late";
+                                            break;
+                                          case 3:
+                                            showType = "Leave";
+                                            break;
+                                          case 4:
+                                            showType = "Permission";
+                                            break;
+                                        }
+                                      });
+                                    },
+
+                                    borderRadius: const BorderRadius.only(
+                                      topLeft: Radius.circular(5),
+                                      bottomLeft: Radius.circular(5),
+                                    ),
+                                    borderWidth: 1,
+                                    borderColor: Colors.grey.shade300,
+                                    selectedBorderColor: Colors.green,
+                                    fillColor: Colors.green,
+                                    constraints: const BoxConstraints(
+                                      minHeight: 45,
+                                      minWidth: 0,
+                                    ),
+
+                                    children: attProvider.items.map((item) {
+                                      final index = attProvider.items.indexOf(item);
+                                      final isSelected = attProvider.selectedIndex == index;
+
+                                      return Padding(
+                                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                                        child: Center(
+                                          child: CustomText(
+                                            text: item,
+                                            size: 12,
+                                            colors: isSelected
+                                                ? Colors.white
+                                                : attProvider.itemColors[index].withOpacity(0.6),
+                                            isBold: true,
+                                          ),
+                                        ),
+                                      );
+                                    }).toList(),
+                                  ),
+                                ),
                               ),
-                            ),
-                            //A to Z
-                            // InkWell(
-                            //   onTap: (){
-                            //     attProvider.sorting(context);
-                            //   },
-                            //   child: Container(
-                            //       height: 45,
-                            //       width:phoneWidth/9,
-                            //       decoration: BoxDecoration(
-                            //         color: Colors.white,
-                            //         borderRadius: BorderRadius.only(
-                            //           topRight: Radius.circular(5),
-                            //           bottomRight: Radius.circular(5),
-                            //         ),
-                            //         border: Border.all(
-                            //           color: Colors.grey.shade300, // ⭐ border color
-                            //           width: 1,           // optional
-                            //         ),
-                            //       ),
-                            //       child: Icon(Icons.sort_by_alpha)
-                            //   ),
-                            // ),
-                          ],
+                            ],
+                          ),
                         ),
                         attProvider.refresh == false ?
                         const Padding(
@@ -923,143 +905,150 @@ class _AttendanceReportState extends State<AttendanceReport> {
                                 }),
                           ):
                         attProvider.selectedIndex==2 &&
-                        attProvider.lateCountShow!=0?
-                        Flexible(
-                          child: ListView.builder(
-                            itemCount: attProvider.getDailyAttendance.length,
-                            itemBuilder: (context, index) {
+                        attProvider.lateCountShow!=0? Flexible(
+                          child: Builder(
+                            builder: (context) {
 
                               final sortedData =
                               List<AttendanceModel>.from(attProvider.getDailyAttendance);
 
                               sortedData.sort((a, b) {
-
                                 DateTime aTime =
                                 DateTime.parse(a.createdTs.toString().split(',')[0]);
-
                                 DateTime bTime =
                                 DateTime.parse(b.createdTs.toString().split(',')[0]);
-
                                 return bTime.compareTo(aTime);
-
                               });
 
-                              AttendanceModel data = sortedData[index];
+                              /// ✅ FIRST FIND IN-TIME FOR EACH RECORD & FILTER ONLY LATE ONES
+                              final lateList = sortedData.where((data) {
+                                List<String> timeList = (data.time ?? "").split(",");
+                                String inT = "-";
 
-                              String inTime = "-";
-                              String outTime = "-";
-                              String timeD = "-";
-
-                              /// SAFE TIME SPLIT
-                              List<String> timeList = (data.time ?? "").split(",");
-
-                              /// SAFE LAT LNG
-                              List<String> latList = (data.lats ?? "").split(",");
-                              List<String> lngList = (data.lngs ?? "").split(",");
-
-                              /// TIME HANDLE
-                              if(timeList.length > 1){
-
-                                if (data.status.toString().contains("1,2")) {
-                                  inTime  = timeList[0];
-                                  outTime = timeList[1];
-                                }
-                                else if (data.status.toString().contains("2,1")) {
-                                  inTime  = timeList[1];
-                                  outTime = timeList[0];
+                                if (timeList.length > 1) {
+                                  if (data.status.toString().contains("1,2")) {
+                                    inT = timeList[0];
+                                  } else if (data.status.toString().contains("2,1")) {
+                                    inT = timeList[1];
+                                  }
+                                } else if (timeList.isNotEmpty) {
+                                  inT = timeList[0];
                                 }
 
-                                if(inTime != "-" && outTime != "-"){
-                                  timeD = attProvider.timeDifference("$inTime,$outTime");
-                                }
+                                return isLate(inT);
+                              }).toList();
 
-                              } else if(timeList.isNotEmpty){
-                                inTime = timeList[0];
+                              /// ✅ IF NO LATE RECORD -> SHOW NO DATA FOUND
+                              if (lateList.isEmpty) {
+                                return Padding(
+                                  padding: const EdgeInsets.fromLTRB(0, 150, 0, 0),
+                                  child: CustomText(text: constValue.noData, size: 15),
+                                );
                               }
 
-                              /// DATE HEADER
-                              String timestamp = data.createdTs.toString();
-                              List<String> times = timestamp.split(',');
-                              DateTime startTime = DateTime.parse(times[0]);
+                              return ListView.builder(
+                                itemCount: lateList.length,
+                                itemBuilder: (context, index) {
 
-                              String createdBy = formatCreatedDate(startTime);
-                              String? prevCreatedBy;
+                                  AttendanceModel data = lateList[index];
 
-                              if (index != 0) {
-                                String prevTimestamp = sortedData[index - 1].createdTs.toString();
-                                List<String> prevTimes = prevTimestamp.split(',');
-                                DateTime prevStartTime = DateTime.parse(prevTimes[0]);
-                                prevCreatedBy = formatCreatedDate(prevStartTime);
-                              }
+                                  String inTime = "-";
+                                  String outTime = "-";
+                                  String timeD = "-";
 
-                              final showDateHeader = index == 0 || createdBy != prevCreatedBy;
+                                  List<String> timeList = (data.time ?? "").split(",");
+                                  List<String> latList = (data.lats ?? "").split(",");
+                                  List<String> lngList = (data.lngs ?? "").split(",");
 
-                              /// LATE FILTER
-                              if(!isLate(inTime)) return const SizedBox();
+                                  if (timeList.length > 1) {
+                                    if (data.status.toString().contains("1,2")) {
+                                      inTime = timeList[0];
+                                      outTime = timeList[1];
+                                    } else if (data.status.toString().contains("2,1")) {
+                                      inTime = timeList[1];
+                                      outTime = timeList[0];
+                                    }
+                                    if (inTime != "-" && outTime != "-") {
+                                      timeD = attProvider.timeDifference("$inTime,$outTime");
+                                    }
+                                  } else if (timeList.isNotEmpty) {
+                                    inTime = timeList[0];
+                                  }
 
-                              return Padding(
-                                padding: EdgeInsets.fromLTRB(
-                                    5,
-                                    10,
-                                    5,
-                                    index == attProvider.getDailyAttendance.length - 1 ? 30 : 0
-                                ),
+                                  String timestamp = data.createdTs.toString();
+                                  List<String> times = timestamp.split(',');
+                                  DateTime startTime = DateTime.parse(times[0]);
 
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
+                                  String createdBy = formatCreatedDate(startTime);
+                                  String? prevCreatedBy;
 
-                                    if(showDateHeader)
-                                      Padding(
-                                        padding: const EdgeInsets.fromLTRB(0, 10, 0, 10),
-                                        child: CustomText(
-                                          text: createdBy,
-                                          colors: colorsConst.greyClr,
-                                          size: 12,
+                                  if (index != 0) {
+                                    String prevTimestamp = lateList[index - 1].createdTs.toString();
+                                    List<String> prevTimes = prevTimestamp.split(',');
+                                    DateTime prevStartTime = DateTime.parse(prevTimes[0]);
+                                    prevCreatedBy = formatCreatedDate(prevStartTime);
+                                  }
+
+                                  final showDateHeader = index == 0 || createdBy != prevCreatedBy;
+
+                                  return Padding(
+                                    padding: EdgeInsets.fromLTRB(
+                                        5, 10, 5, index == lateList.length - 1 ? 30 : 0),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+
+                                        if (showDateHeader)
+                                          Padding(
+                                            padding: const EdgeInsets.fromLTRB(0, 10, 0, 10),
+                                            child: CustomText(
+                                              text: createdBy,
+                                              colors: colorsConst.greyClr,
+                                              size: 12,
+                                            ),
+                                          ),
+
+                                        AttendanceDetails(
+                                          showDate: index == 0,
+                                          date: data.date.toString(),
+                                          img: data.image.toString(),
+                                          inTime: inTime,
+                                          outTime: outTime,
+                                          timeD: timeD,
+                                          name: data.firstname.toString(),
+                                          role: data.role.toString(),
+
+                                          callback: () {
+                                            String lat1 = latList.isNotEmpty ? latList[0] : "";
+                                            String lng1 = lngList.isNotEmpty ? lngList[0] : "";
+
+                                            String lat2 = "";
+                                            String lng2 = "";
+
+                                            if (data.status.toString().contains("2") &&
+                                                latList.length > 1 &&
+                                                lngList.length > 1) {
+                                              lat2 = latList[1];
+                                              lng2 = lngList[1];
+                                            }
+
+                                            utils.navigatePage(context, () => CheckLocation(
+                                              lat1: lat1,
+                                              long1: lng1,
+                                              lat2: lat2,
+                                              long2: lng2,
+                                            ));
+                                          },
+
+                                          perStatus: data.perStatus.toString(),
+                                          perReason: data.perReason.toString(),
+                                          perTime: data.perTime.toString(),
+                                          perCreatedTs: data.perCreatedTs.toString(),
                                         ),
-                                      ),
-
-                                    AttendanceDetails(
-                                      showDate: index==0,
-                                      date: data.date.toString(),
-                                      img: data.image.toString(),
-                                      inTime: inTime,
-                                      outTime: outTime,
-                                      timeD: timeD,
-                                      name: data.firstname.toString(),
-                                      role: data.role.toString(),
-
-                                      callback: () {
-
-                                        String lat1 = latList.isNotEmpty ? latList[0] : "";
-                                        String lng1 = lngList.isNotEmpty ? lngList[0] : "";
-
-                                        String lat2 = "";
-                                        String lng2 = "";
-
-                                        if(data.status.toString().contains("2")
-                                            && latList.length > 1
-                                            && lngList.length > 1){
-
-                                          lat2 = latList[1];
-                                          lng2 = lngList[1];
-                                        }
-
-                                        utils.navigatePage(context, ()=>CheckLocation(
-                                          lat1: lat1,
-                                          long1: lng1,
-                                          lat2: lat2,
-                                          long2: lng2,
-                                        ));
-                                      },
-
-                                      perStatus: data.perStatus.toString(),
-                                      perReason: data.perReason.toString(),
-                                      perTime: data.perTime.toString(),
-                                      perCreatedTs: data.perCreatedTs.toString(),
+                                      ],
                                     ),
-                                  ],
-                                ),
+                                  );
+                                },
                               );
                             },
                           ),
@@ -1068,7 +1057,8 @@ class _AttendanceReportState extends State<AttendanceReport> {
                         levPvr.myLevSearch.isNotEmpty?
                         Flexible(
                               child: itemBuilder(levPvr.myLevSearch,levPvr)):
-      attProvider.selectedIndex == 4 && attProvider.permisCount != 0
+      attProvider.selectedIndex == 4 &&
+          attProvider.permisCount != 0
       ? Flexible(
       child: Builder(
       builder: (context) {
@@ -1160,20 +1150,36 @@ class _AttendanceReportState extends State<AttendanceReport> {
       String timestamp = data.createdTs.toString();
       List<String> createdTimes = timestamp.split(',');
 
-      DateTime startTime = DateTime.parse(createdTimes[0]);
+      DateTime startTime =
+      DateTime.parse(createdTimes[0]).toLocal();
+
       String createdBy = formatCreatedDate(startTime);
 
-      String? prevCreatedBy;
-      if (index != 0) {
-      String prevTimestamp =
-      filteredList[index - 1].createdTs.toString();
-      List<String> prevTimes = prevTimestamp.split(',');
-      DateTime prevStart = DateTime.parse(prevTimes[0]);
-      prevCreatedBy = formatCreatedDate(prevStart);
-      }
+// Empty வந்தாலும் Today காட்டும்
+        if (createdBy.trim().isEmpty) {
+          createdBy = "Today";
+        }
 
-      final showDateHeader =
-      index == 0 || createdBy != prevCreatedBy;
+        String? prevCreatedBy;
+
+        if (index != 0) {
+          String prevTimestamp =
+          filteredList[index - 1].createdTs.toString();
+
+          List<String> prevTimes = prevTimestamp.split(',');
+
+          DateTime prevStart =
+          DateTime.parse(prevTimes[0]).toLocal();
+
+          prevCreatedBy = formatCreatedDate(prevStart);
+
+          if (prevCreatedBy.trim().isEmpty) {
+            prevCreatedBy = "Today";
+          }
+        }
+
+        final bool showDateHeader =
+            index == 0 || createdBy != prevCreatedBy;
 
       /// ---------------- UI ----------------
 
@@ -1181,17 +1187,15 @@ class _AttendanceReportState extends State<AttendanceReport> {
       ? Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-      if (showDateHeader)
-      Padding(
-      padding:
-      const EdgeInsets.fromLTRB(0, 10, 0, 10),
-      child: CustomText(
-      text: createdBy,
-      colors: colorsConst.greyClr,
-      size: 12,
-      ),
-      ),
-
+        if (showDateHeader)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(0, 10, 0, 10),
+            child: CustomText(
+              text: createdBy,
+              colors: colorsConst.greyClr,
+              size: 12,
+            ),
+          ),
       InkWell(
       onTap: () {
       utils.navigatePage(

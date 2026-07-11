@@ -67,6 +67,8 @@ class _ViewTaskState extends State<ViewTask> with SingleTickerProviderStateMixin
 
       taskProvider.search.clear();
       taskProvider.search2.clear();
+      Provider.of<CustomerProvider>(context, listen: false)
+          .getAllCustomers(true);
 
       //empProvider.filterEmps();
 
@@ -307,6 +309,7 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
                                     ),
                                     onPressed: () {
                                       taskProvider.search.clear();
+
                                       taskProvider.searchTask("");
                                     },
                                   )
@@ -373,7 +376,9 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
                                                       30.width,
                                                       InkWell(
                                                         onTap: () {
+                                                          taskProvider.initFilterValue(true,date1:widget.date1,date2:widget.date2,type:widget.type);
                                                           Navigator.of(context, rootNavigator: true).pop();
+
                                                         },
                                                         child: SvgPicture.asset(assets.cancel),
                                                       )
@@ -582,8 +587,15 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
                                                               size: 12,
                                                             ),
 
-                                                            CustomerDropdown(
-                                                              text: taskProvider.companyName == ""
+                                                            cusPvr.customer.isEmpty
+                                                                ? const SizedBox(
+                                                              height: 30,
+                                                              child: Center(
+                                                                child: CircularProgressIndicator(strokeWidth: 2),
+                                                              ),
+                                                            )
+                                                                : CustomerDropdown(
+                                                              text: taskProvider.companyName.isEmpty
                                                                   ? constValue.companyName
                                                                   : taskProvider.companyName,
                                                               isRequired: false,
@@ -619,7 +631,7 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
                                                         callback: () {
                                                           taskProvider.initFilterValue(false);
                                                           taskProvider.filterList();
-
+                                                          taskProvider.applyDateAndStatusFilter();
                                                           Navigator.of(context, rootNavigator: true).pop();
                                                         },
                                                         bgColor: colorsConst.primary,
@@ -728,53 +740,10 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
                               ],
                             ),
                           )
-                          // GestureDetector(
-                          //   onTap: () {
-                          //     showDialog(
-                          //       context: context,
-                          //       builder: (context) {
-                          //         return AlertDialog(
-                          //           title: Text("Download"),
-                          //           content: Column(
-                          //             mainAxisSize: MainAxisSize.min,
-                          //             children: [
-                          //
-                          //               ListTile(
-                          //                 leading: Icon(Icons.task),
-                          //                 title: Text("Task Details"),
-                          //                 onTap: () {
-                          //                   Navigator.pop(context);
-                          //                   taskProvider.downloadAllTask(context);
-                          //                 },
-                          //               ),
-                          //
-                          //               Divider(),
-                          //
-                          //               ListTile(
-                          //                 leading: Icon(Icons.comment),
-                          //                 title: Text("Task Comment Details"),
-                          //                 onTap: () {
-                          //                   Navigator.pop(context);
-                          //                   taskProvider.downloadAllTaskComment(context);
-                          //                 },
-                          //               ),
-                          //             ],
-                          //           ),
-                          //         );
-                          //       },
-                          //     );
-                          //   },
-                          //   child: SvgPicture.asset(
-                          //     assets.tDownload,
-                          //     width: 27,
-                          //     height: 27,
-                          //   ),
-                          // ),
+
                         ],
                       ),
-                      // CustomLoadingButton(callback: (){
-                      // }, text: "PF", isLoading: false,
-                      //     backgroundColor: colorsConst.primary, radius: 5, width: 60)
+
                     ],
                   )
                   ,10.height,
@@ -834,81 +803,12 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
                         Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            /// Left chips
-                            // Expanded(
-                            //   child: Wrap(
-                            //     spacing: 8,
-                            //     runSpacing: 8,
-                            //     children: [
-                            //       if (taskProvider.startDate != taskProvider.endDate)
-                            //         if ((taskProvider.startDate ?? "").isNotEmpty &&
-                            //             (taskProvider.endDate ?? "").isNotEmpty)
-                            //         _filterChip(
-                            //           "${taskProvider.startDate}  to  ${taskProvider.endDate}",
-                            //         ),
-                            //
-                            //       if ((taskProvider.filterType ?? "").isNotEmpty && taskProvider.filterType != "null")
-                            //         _filterChip(taskProvider.filterType), // Last 7 days
-                            //
-                            //       if ((taskProvider.assignedNames ?? "").isNotEmpty)
-                            //         _filterChip(taskProvider.assignedNames),
-                            //
-                            //       if ((taskProvider.fType ?? "").isNotEmpty && taskProvider.fType != "null")
-                            //         _filterChip(taskProvider.fType),
-                            //
-                            //       if ((taskProvider.companyName ?? "").isNotEmpty)
-                            //         _filterChip(taskProvider.companyName),
-                            //
-                            //       // if (taskProvider.audioPath!.isNotEmpty)
-                            //       //   _filterChip(taskProvider.audioPath.toString()),
-                            //
-                            //     ],
-                            //   ),
-                            // ),
+
                           ],
                         ),
                       ],
                     ),
                   ),
-
-                  // if(taskProvider.filterUserData.isNotEmpty)
-                  // Row(
-                  //   mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  //   children: [
-                  //     InkWell(
-                  //         onTap: () {
-                  //           taskProvider.showDatePickerDialog(context);
-                  //         },
-                  //         child: Container(
-                  //           height: 45,
-                  //           width: kIsWeb?webHeight/2:phoneHeight/1.6,
-                  //           decoration: customDecoration.baseBackgroundDecoration(
-                  //               color: Colors.white,
-                  //               radius: 5,borderColor: Colors.grey.shade200
-                  //           ),
-                  //           child: Row(
-                  //             children: [
-                  //               5.width,
-                  //               CustomText(
-                  //                   text: "${taskProvider.startDate}${taskProvider.startDate!=taskProvider.endDate? " To ${taskProvider.endDate}": ""}"),10.width,
-                  //               SvgPicture.asset(assets.calendar2)
-                  //             ],
-                  //           ),
-                  //         )),
-                  //     // Padding(
-                  //     //   padding: const EdgeInsets.fromLTRB(0, 10, 0, 0),
-                  //     //   child: MapDropDown(saveValue: taskProvider.status, hintText: "Status",
-                  //     //       width: kIsWeb?webHeight/1.5:phoneHeight/4,isHint: false,
-                  //     //       onChanged: (value){
-                  //     //         taskProvider.changeFilterStatus(value);
-                  //     //       }, dropText: "value", list: taskProvider.statusList),
-                  //     // ),
-                  //     CustomLoadingButton(callback: (){
-                  //       taskProvider.downloadAllTask(context);
-                  //     }, text: "Download", isLoading: false,
-                  //         backgroundColor: colorsConst.primary, radius: 5, width: kIsWeb?webHeight/2:phoneHeight/3)
-                  //   ],
-                  // ),
                   taskProvider.filterUserData.isEmpty||(taskProvider.statusId!=""&&taskProvider.matched==0)?
                   Column(
                     children: [
@@ -1315,40 +1215,7 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
 
                     const Divider(thickness: 2,),
                     /// STATUS + PRIORITY
-                    // Row(
-                    //   mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    //   children: [
-                    //     _statusChip(
-                    //       data.statval ?? "",
-                    //       data.statval == "Completed"
-                    //           ? const Color(0xff1FAF38)
-                    //           : Color(0xff007AAE),
-                    //       Colors.white,
-                    //     ),
-                    //     20.width,
-                    //     Container(
-                    //       padding: const EdgeInsets.symmetric(
-                    //           horizontal: 14, vertical: 6),
-                    //       decoration: BoxDecoration(
-                    //         color: priorityBg,
-                    //         borderRadius: BorderRadius.circular(20),
-                    //       ),
-                    //       child: Row(
-                    //         children: [
-                    //           Icon(Icons.circle,
-                    //               size: 8, color: priorityTextColor),
-                    //           const SizedBox(width: 6),
-                    //           CustomText(
-                    //             text: priorityText,
-                    //             colors: priorityTextColor,
-                    //             size: 13,
-                    //           ),
-                    //         ],
-                    //       ),
-                    //     ),
-                    //  ],
-                    // ),
-                    // 10.height,
+
                     Row(
                       children: [
                         Expanded(

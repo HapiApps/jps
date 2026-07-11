@@ -39,7 +39,7 @@ class _ForgotPasswordState extends State<ForgotPassword> {
         child: Scaffold(
           backgroundColor: colorsConst.bacColor,
           appBar: PreferredSize(
-            preferredSize: const Size(300, 100),
+            preferredSize: const Size(300, 60),
             child: CustomAppbar(text: "Forgot Password"),
           ),
           bottomNavigationBar: SizedBox(
@@ -55,7 +55,7 @@ class _ForgotPasswordState extends State<ForgotPassword> {
 
             // mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              20.height,
+             20.height,
               CustomTextField(isRequired: true,
                 text: constValue.password,controller: homeProvider.forgotPassword1,
                 width: kIsWeb?webWidth:phoneWidth,

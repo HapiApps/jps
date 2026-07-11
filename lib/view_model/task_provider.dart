@@ -2157,29 +2157,29 @@ class TaskProvider with ChangeNotifier {
   //   notifyListeners();
   // }
 
-  void searchTask(String value) {
-
-    final input = value.toLowerCase();
-
-    if (value.trim().isEmpty) {
-      _filterUserData = List.from(_allTasks);
-    } else {
-      final suggestions = _allTasks.where((user) {
-        final userFName =
-        user.projectName.toString().toLowerCase();
-
-        final userNumber =
-        user.assignedNames.toString().toLowerCase();
-
-        return userFName.contains(input) ||
-            userNumber.contains(input);
-      }).toList();
-
-      _filterUserData = suggestions;
-    }
-
-    notifyListeners();
-  }
+  // void searchTask(String value) {
+  //
+  //   final input = value.toLowerCase();
+  //
+  //   if (value.trim().isEmpty) {
+  //     _filterUserData = List.from(_allTasks);
+  //   } else {
+  //     final suggestions = _allTasks.where((user) {
+  //       final userFName =
+  //       user.projectName.toString().toLowerCase();
+  //
+  //       final userNumber =
+  //       user.assignedNames.toString().toLowerCase();
+  //
+  //       return userFName.contains(input) ||
+  //           userNumber.contains(input);
+  //     }).toList();
+  //
+  //     _filterUserData = suggestions;
+  //   }
+  //
+  //   notifyListeners();
+  // }
   void searchTask2(String value){
     _filterTasks=0;
     final suggestions=_searchAllTasks.where(
@@ -4436,4 +4436,90 @@ class TaskProvider with ChangeNotifier {
     if (status == "Completed") return Colors.green;
     return colorsConst.primary;
   }
+  /// ✅ NEW: holds data AFTER date/status filter applied, BEFORE search applied
+  List<TaskData> _filteredBeforeSearch = [];
+
+  /// ✅ Call this from initFilterValue() / filterList() / status tab change,
+  /// right after you finish computing the date-filtered list.
+  /// (wherever you currently assign the date-filtered result, also assign it here)
+  void updateFilteredBeforeSearch(List<TaskData> dateFilteredList) {
+    _filteredBeforeSearch = dateFilteredList;
+
+    /// re-apply existing search text if user already typed something
+    searchTask(search.text);
+  }
+
+  /// ✅ FIXED searchTask — searches within _filteredBeforeSearch, NOT _allTasks
+  void searchTask(String value) {
+    final input = value.toLowerCase();
+
+    if (value.trim().isEmpty) {
+      _filterUserData = List.from(_filteredBeforeSearch);
+    } else {
+      final suggestions = _filteredBeforeSearch.where((user) {
+        final userFName = user.projectName.toString().toLowerCase();
+        final userNumber = user.assignedNames.toString().toLowerCase();
+
+        return userFName.contains(input) || userNumber.contains(input);
+      }).toList();
+
+      _filterUserData = suggestions;
+    }
+
+    notifyListeners();
+  }
+  /// Call this whenever date filter / status tab changes (Apply Filters, Clear All, tab click, initial load)
+  void applyDateAndStatusFilter() {
+    List<TaskData> baseList = List<TaskData>.from(allTasks); // your full/original list
+
+    /// ---- DATE FILTER ----
+    if (isFilter == true) {
+      baseList = baseList.where((task) {
+        try {
+          DateTime taskDate = DateFormat('dd-MM-yyyy').parse(task.taskDate.toString());
+          DateTime from = DateFormat('dd-MM-yyyy').parse(startDate);
+          DateTime to = DateFormat('dd-MM-yyyy').parse(endDate);
+          DateTime taskOnly = DateTime(taskDate.year, taskDate.month, taskDate.day);
+          DateTime fromOnly = DateTime(from.year, from.month, from.day);
+          DateTime toOnly = DateTime(to.year, to.month, to.day);
+          return (taskOnly.isAtSameMomentAs(fromOnly) || taskOnly.isAfter(fromOnly)) &&
+              (taskOnly.isAtSameMomentAs(toOnly) || taskOnly.isBefore(toOnly));
+        } catch (_) {
+          return false;
+        }
+      }).toList();
+    } else {
+      // No filter applied -> default to today only (matches your "Today: ${startDate}" label)
+      baseList = baseList.where((task) {
+        try {
+          DateTime taskDate = DateFormat('dd-MM-yyyy').parse(task.taskDate.toString());
+          DateTime today = DateTime.now();
+          return taskDate.year == today.year &&
+              taskDate.month == today.month &&
+              taskDate.day == today.day;
+        } catch (_) {
+          return false;
+        }
+      }).toList();
+    }
+
+    /// ---- STATUS TAB FILTER (All / Assigned / Started / Completed) ----
+    if (statusIds.isNotEmpty) {
+      baseList = baseList.where((task) =>
+      task.statval.toString() == statusIds).toList();
+    }
+
+    _filteredBeforeSearch = baseList;
+
+    /// ---- RE-APPLY SEARCH TEXT (if user already typed something) ----
+    if (search.text.trim().isNotEmpty) {
+      searchTask(search.text.trim());
+    } else {
+      _filterUserData = List<TaskData>.from(_filteredBeforeSearch);
+    }
+
+    notifyListeners();
+  }
+
+/// ✅ FIXED SEARCH: searches only WITHIN
   }

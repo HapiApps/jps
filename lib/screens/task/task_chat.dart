@@ -58,7 +58,14 @@ class _TaskChatState extends State<TaskChat> with SingleTickerProviderStateMixin
   final FocusScopeNode _myFocusScopeNode = FocusScopeNode();
 
   final AudioRecorder _audioRecorder = AudioRecorder();
+
+  /// 🔥 Player for the local "recorded preview" (before sending)
   final AudioPlayer _audioPlayer = AudioPlayer();
+
+  /// 🔥 Separate player for playing audio bubbles inside the chat list.
+  /// Using a dedicated player avoids the recorded-preview player and the
+  /// chat player fighting over the same duration/position/state streams.
+  final AudioPlayer _chatPlayer = AudioPlayer();
 
   bool isRecording = false;
   String? recordedPath;
@@ -105,39 +112,66 @@ class _TaskChatState extends State<TaskChat> with SingleTickerProviderStateMixin
 
     /// 🔥 Duration Fix (Recorded Preview)
     _audioPlayer.onDurationChanged.listen((d) {
+      if (!mounted) return;
       setState(() {
         totalDuration = d;
       });
     });
 
     _audioPlayer.onPositionChanged.listen((p) {
+      if (!mounted) return;
       setState(() {
         currentPosition = p;
       });
     });
 
     _audioPlayer.onPlayerStateChanged.listen((state) {
+      if (!mounted) return;
       setState(() {
         isPlaying = state == PlayerState.playing;
       });
     });
 
+    // Reset the preview player back to the start when it finishes playing,
+    // otherwise the play/pause icon gets stuck on "pause".
+    _audioPlayer.onPlayerComplete.listen((event) {
+      if (!mounted) return;
+      setState(() {
+        isPlaying = false;
+        currentPosition = Duration.zero;
+      });
+    });
+
     /// 🔥 Duration Fix (Network Audio inside Chat)
-    _audioPlayer.onDurationChanged.listen((d) {
+    _chatPlayer.onDurationChanged.listen((d) {
+      if (!mounted) return;
       setState(() {
         networkTotal = d;
       });
     });
 
-    _audioPlayer.onPositionChanged.listen((p) {
+    _chatPlayer.onPositionChanged.listen((p) {
+      if (!mounted) return;
       setState(() {
         networkCurrent = p;
       });
     });
 
-    _audioPlayer.onPlayerStateChanged.listen((state) {
+    _chatPlayer.onPlayerStateChanged.listen((state) {
+      if (!mounted) return;
       setState(() {
         networkPlaying = state == PlayerState.playing;
+      });
+    });
+
+    // 🔥 This was missing — without it, networkPlaying never resets to
+    // false when a chat audio clip finishes, so the icon stays on "pause"
+    // and tapping it again just calls pause() instead of restarting.
+    _chatPlayer.onPlayerComplete.listen((event) {
+      if (!mounted) return;
+      setState(() {
+        networkPlaying = false;
+        networkCurrent = Duration.zero;
       });
     });
 
@@ -207,50 +241,23 @@ class _TaskChatState extends State<TaskChat> with SingleTickerProviderStateMixin
     }
   }
 
-  // Future<void> playNetworkAudio(String url) async {
-  //   try {
-  //     // Pause if same audio already playing
-  //     if (playingUrl == url && networkPlaying) {
-  //       await _audioPlayer.pause();
-  //       setState(() {
-  //         networkPlaying = false;
-  //       });
-  //       return;
-  //     }
-  //
-  //     setState(() {
-  //       isBuffering = true;
-  //       bufferingUrl = url;
-  //       playingUrl = url;
-  //       networkCurrent = Duration.zero;
-  //       networkTotal = Duration.zero;
-  //     });
-  //
-  //     await _audioPlayer.stop();
-  //     await _audioPlayer.play(UrlSource(url));
-  //
-  //     setState(() {
-  //       isBuffering = false;
-  //       networkPlaying = true;
-  //     });
-  //   } catch (e) {
-  //     print("Audio play error => $e");
-  //     setState(() {
-  //       isBuffering = false;
-  //       networkPlaying = false;
-  //       bufferingUrl = "";
-  //     });
-  //
-  //     utils.showWarningToast(context, text: "Audio cannot be played");
-  //   }
-  // }
+
   Future<void> playNetworkAudio(String url) async {
     try {
       // If same audio already playing -> pause
       if (playingUrl == url && networkPlaying) {
-        await _audioPlayer.pause();
+        await _chatPlayer.pause();
         setState(() {
           networkPlaying = false;
+        });
+        return;
+      }
+
+      // If same audio was paused midway -> just resume instead of restarting
+      if (playingUrl == url && !networkPlaying && networkCurrent > Duration.zero) {
+        await _chatPlayer.resume();
+        setState(() {
+          networkPlaying = true;
         });
         return;
       }
@@ -264,8 +271,17 @@ class _TaskChatState extends State<TaskChat> with SingleTickerProviderStateMixin
         networkTotal = Duration.zero;
       });
 
-      await _audioPlayer.stop();
-      await _audioPlayer.play(UrlSource(url));
+      await _chatPlayer.stop();
+      await _chatPlayer.play(UrlSource(url));
+
+      // 🔥 Fallback: onDurationChanged doesn't always fire promptly (or at
+      // all) for streamed network sources, so also ask the player directly.
+      final fetchedDuration = await _chatPlayer.getDuration();
+      if (fetchedDuration != null && fetchedDuration > Duration.zero) {
+        setState(() {
+          networkTotal = fetchedDuration;
+        });
+      }
 
       // when play starts -> loading off
       setState(() {
@@ -296,6 +312,7 @@ class _TaskChatState extends State<TaskChat> with SingleTickerProviderStateMixin
     animationController.dispose();
     _myFocusScopeNode.dispose();
     _audioPlayer.dispose();
+    _chatPlayer.dispose();
     _audioRecorder.dispose();
     super.dispose();
   }
@@ -653,7 +670,7 @@ class _TaskChatState extends State<TaskChat> with SingleTickerProviderStateMixin
                                                 : 1,
                                             onChanged: (value) async {
                                               if (playingUrl == audioUrl) {
-                                                await _audioPlayer.seek(
+                                                await _chatPlayer.seek(
                                                   Duration(seconds: value.toInt()),
                                                 );
                                               }
@@ -663,7 +680,7 @@ class _TaskChatState extends State<TaskChat> with SingleTickerProviderStateMixin
                                         Text(
                                           (playingUrl == audioUrl)
                                               ? "${formatTime(networkCurrent)} / ${formatTime(networkTotal)}"
-                                              : "00:00 / 00:00",
+                                              : " ",
                                           style: const TextStyle(fontSize: 11),
                                         ),
                                         const SizedBox(width: 5),

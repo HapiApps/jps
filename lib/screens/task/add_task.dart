@@ -272,10 +272,12 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
                               ),
                               SearchCustomDropdown(
                                   text: "Assign To",
+
                                   hintText: taskProvider.assignedNames.isEmpty
                                       ? "Assign To"
                                       : taskProvider.assignedNames,
                                   valueList: empPvr.activeEmps,
+                                  isOptional: false,
                                   onChanged: (value) {},
                                   width: kIsWeb?webWidth:phoneWidth
                               ),
