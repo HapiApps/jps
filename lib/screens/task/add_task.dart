@@ -135,29 +135,7 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
                                 },
                                 dropText: 'value',
                               ),
-                              // cusPvr.refresh == false?
-                              // const Loading()
 
-                              // Column(
-                              //   children: [
-                              //     Row(
-                              //       children: [
-                              //         CustomText(text:constValue.companyName,size:13,isBold: false,),
-                              //         // CustomText(text:"*",colors:colorsConst.appRed,size:18,isBold: false,),
-                              //       ],
-                              //     ),
-                              //     CustomerDropdown(
-                              //       text: companyId==""?constValue.companyName:companyName,
-                              //       isRequired: true,hintText: false,
-                              //       employeeList: cusPvr.customer,
-                              //       onChanged: (CustomerModel? value) {
-                              //         setState(() {
-                              //           companyId=value!.userId.toString();
-                              //           companyName=value.companyName.toString();
-                              //         });
-                              //       }, size: kIsWeb?webWidth:phoneWidth,),
-                              //   ],
-                              // ),
                               Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [

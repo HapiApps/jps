@@ -2311,7 +2311,6 @@ void manageFilter(value){
     }
     notifyListeners();
   }
-
   void decrementDates(String id,String type) {
     stDt = stDt.subtract(const Duration(days: 1));
     enDt = enDt.subtract(const Duration(days: 1));
@@ -2370,18 +2369,40 @@ void manageFilter(value){
     }
     notifyListeners();
   }
-  Future<void> insertTrackList(RxList dataList) async {
+  Future<void> insertTrackList(List dataList) async {
+    log("📍 insertTrackList called with ${dataList.length} items");
+
+    if (dataList.isEmpty) {
+      log("⚠️ insertTrackList: dataList is EMPTY, nothing to send");
+      return;
+    }
+
     final Map<String, dynamic> sendData = {
       'action': trackListInsert,
       'empList': dataList
     };
-    await http.post(
-      Uri.parse(phpFile),
-      headers: <String, String>{
-        'Content-Type': 'application/json; charset=UTF-8',
-      },
-      body: jsonEncode(sendData),
-    );
+
+    try {
+      log("📤 Sending payload: ${jsonEncode(sendData)}");
+
+      final response = await http.post(
+        Uri.parse(phpFile),
+        headers: <String, String>{
+          'Content-Type': 'application/json; charset=UTF-8',
+        },
+        body: jsonEncode(sendData),
+      );
+
+      log("📥 insertTrackList response status: ${response.statusCode}");
+      log("📥 insertTrackList response body: ${response.body}");
+
+      if (response.statusCode != 200) {
+        log("❌ insertTrackList FAILED with status ${response.statusCode}");
+      }
+    } catch (e, stack) {
+      log("❌ insertTrackList EXCEPTION: $e");
+      log(stack.toString());
+    }
   }
   List _allData = [];
   List get allData => _allData;
@@ -2511,6 +2532,15 @@ List<Marker> get liveMarker =>_liveMarker;
           Placemark area = placeMark[0];
 
           BitmapDescriptor markerIcon = await createCustomMarkerFromNetwork(dataList[i]["image"] ?? "");
+
+          /// ✅ FIX: safely handle null / "null" string / empty / missing key
+          String unitName = dataList[i]["unit_name"]?.toString() ?? "";
+          if (unitName.trim().isEmpty || unitName.toLowerCase() == "null") {
+            unitName = "";
+          }
+
+          String unitLabel = unitName.isEmpty ? "" : "( $unitName ) ";
+
           _liveMarker.add(
             Marker(
               markerId: MarkerId(dataList[i]["id"].toString()),
@@ -2522,7 +2552,7 @@ List<Marker> get liveMarker =>_liveMarker;
               infoWindow: InfoWindow(
                 title: dataList[i]["firstname"],
                 snippet:
-                "${dataList[i]["unit_name"] == "null" ? "" : "( ${dataList[i]["unit_name"]} ) "}${area.subLocality}-${DateFormat('HH:mm:ss').format(dateTime)}",
+                "$unitLabel${area.subLocality}-${DateFormat('HH:mm:ss').format(dateTime)}",
               ),
             ),
           );
@@ -2538,7 +2568,7 @@ List<Marker> get liveMarker =>_liveMarker;
       _refresh=true;
     }
     notifyListeners();
-}
+  }
   String crtDate(String dateTimeString, String type) {
     var parts = dateTimeString.split(' ');
     var dateParts = parts[0].split('-'); // Split the date into year, month, and day

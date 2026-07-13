@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:developer';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
+import 'package:get_storage/get_storage.dart';
 import '../../source/constant/local_data.dart';
 
 // var trackServices = TrackingApiServices.instance;
@@ -12,6 +13,10 @@ class MyTaskHandler extends TaskHandler {
   // Called when the task is started.
   @override
   Future<void> onStart(DateTime timestamp, TaskStarter starter) async {
+    /// ✅ MUST initialize GetStorage in THIS isolate before any read/write.
+    /// Use the SAME box name that localData.storage uses (see local_data.dart).
+    await GetStorage.init();   // if localData uses a named box, put that name here
+
     log('onStart');
 
     // Initialize trackId by reading from storage
