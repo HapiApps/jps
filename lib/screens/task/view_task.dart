@@ -117,6 +117,7 @@ print("type: ${widget.type}");
   Widget build(BuildContext context) {
     var webHeight=MediaQuery.of(context).size.width * 0.5;
     var phoneHeight=MediaQuery.of(context).size.width * 0.95;
+
     return Consumer3<TaskProvider,HomeProvider,LocationProvider>(
         builder: (context, taskProvider, homeProvider,locPvr, _) {
           return FocusScope(
@@ -125,19 +126,33 @@ print("type: ${widget.type}");
               backgroundColor: colorsConst.bacColor,
               appBar: PreferredSize(
                 preferredSize: const Size(300, 50),
-                child: CustomAppbar(text: "View Tasks",
-                  callback: (){
+                child: CustomAppbar(
+                  text: "View Tasks",
+                  callback: () {
                     _myFocusScopeNode.unfocus();
                     homeProvider.updateIndex(0);
-                    utils.navigatePage(context, ()=>const DashBoard(child: HomePage()));
+                    utils.navigatePage(context, () => const DashBoard(child: HomePage()));
                   },
-                  isButton: localData.storage.read("role") =="1"?true:false,
+                  isButton: localData.storage.read("role") == "1" ? true : false, // ✅ FIX: was missing
+                  isLoading: taskProvider.isAddTaskLoading, // ✅ FIX: was hardcoded `true`
                   buttonCallback: () async {
+                    if (taskProvider.isAddTaskLoading) return; // 🔒 double-tap block
+
+                    setState(() {
+                      taskProvider.isAddTaskLoading = true;
+                    });
+
                     taskProvider.typeList.removeWhere((e) => e['value'] == 'All');
 
-                    await taskProvider.getTaskUsers();
+                    if (taskProvider.assignedNames.isEmpty) {
+                      await taskProvider.getTaskUsers();
+                    }
 
                     if (!mounted) return;
+
+                    setState(() {
+                      taskProvider.isAddTaskLoading = false;
+                    });
 
                     utils.navigatePage(
                       context,

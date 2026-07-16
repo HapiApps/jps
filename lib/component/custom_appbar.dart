@@ -14,6 +14,7 @@ class CustomAppbar extends StatelessWidget {
     this.isMain = false,
     this.isButton,
     this.buttonCallback,
+    this.isLoading = false, // ✅ NEW: shows spinner instead of + button
   });
 
   final String text;
@@ -21,6 +22,7 @@ class CustomAppbar extends StatelessWidget {
   final VoidCallback? buttonCallback;
   final bool? isMain;
   final bool? isButton;
+  final bool isLoading; // ✅ NEW
 
   @override
   Widget build(BuildContext context) {
@@ -73,7 +75,23 @@ class CustomAppbar extends StatelessWidget {
               : null,
           actions: [
             if (isButton == true)
-              CreateButton(
+            // ✅ FIX: show spinner while loading, block re-tap, else show + button
+              isLoading
+                  ? Padding(
+                padding: const EdgeInsets.symmetric(vertical: 5),
+                child: AspectRatio(
+                  aspectRatio: 1, // ✅ FIX: forces perfect square, no stretch
+                  child: SizedBox(
+                    width: 6,
+                    height: 3,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 1.8,
+                      color: colorsConst.primary,
+                    ),
+                  ),
+                ),
+              )
+                  : CreateButton(
                 callback: buttonCallback!,
               ),
             20.width,

@@ -58,7 +58,7 @@ class TaskProvider with ChangeNotifier {
   bool _isDisposed = false;
   RoundedLoadingButtonController taskCtr = RoundedLoadingButtonController();
   RoundedLoadingButtonController taskStatusCtr = RoundedLoadingButtonController();
-
+  bool isAddTaskLoading = false;
   GroupButtonController statusController = GroupButtonController();
   bool _isFilter=false;
   bool get isFilter=>_isFilter;

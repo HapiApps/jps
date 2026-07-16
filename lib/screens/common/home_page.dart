@@ -1247,7 +1247,8 @@ class _HomePageState extends State<HomePage> {
                                           /// RIGHT SIDE
                                           if (localData.storage.read("role") == "1")
                                             InkWell(
-                                              onTap: () {
+                                              onTap: () async {
+
                                                 utils.navigatePage(context, () => const DashBoard(child: AddTask()));
                                               },
                                               child: Container(

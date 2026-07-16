@@ -393,7 +393,7 @@ class _CusAddVisitState extends State<CusAddVisit>
                                     selectedItems:
                                     custProvider.multiSelectedCustomerList,
                                     onChanged: (list) async {
-                                      closeAllDropdowns();
+
 
                                       bool isAddCustomerSelected = list.any(
                                               (item) =>

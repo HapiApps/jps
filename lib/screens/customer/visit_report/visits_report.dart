@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:master_code/screens/customer/visit_report/visit_report_details.dart';
 import 'package:master_code/source/extentions/extensions.dart';
 import 'package:master_code/view_model/employee_provider.dart';
+import 'package:master_code/view_model/task_provider.dart';
 import 'package:provider/provider.dart';
 import '../../../component/animated_button.dart';
 import '../../../component/custom_appbar.dart';
@@ -74,7 +75,7 @@ class _VisitReportState extends State<VisitReport> with SingleTickerProviderStat
   }
   @override
   Widget build(BuildContext context) {
-    return Consumer<CustomerProvider>(builder: (context,custProvider,_){
+    return Consumer2<CustomerProvider,TaskProvider>(builder: (context,custProvider,taskprovider,_){
       Set<String> seenNames = {};
       var webWidth=MediaQuery.of(context).size.width * 0.5;
       var phoneWidth=MediaQuery.of(context).size.width * 0.95;
@@ -92,25 +93,40 @@ class _VisitReportState extends State<VisitReport> with SingleTickerProviderStat
           appBar: PreferredSize(
             preferredSize: const Size.fromHeight(50),
 
-            child: CustomAppbar(
-              text: constValue.visitRepo,
-              isMain: false,
-              isButton: true,
-              buttonCallback: (){
-                utils.navigatePage(context, ()=> DashBoard(child:
-                CusAddVisit(taskId:"",companyId: "",companyName: "",
-                    numberList: [],isDirect: true, type: "", desc: "")));
-              },
-              callback: () {
-                Navigator.pushAndRemoveUntil(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const DashBoard(child:  HomePage()),
-                  ),
-                      (route) => false,
-                );
-              },
-            ),
+            child:CustomAppbar(
+            text: constValue.visitRepo,
+            isMain: false,
+            isButton: true,
+            isLoading: taskprovider.isAddTaskLoading, // ✅ ADD இது
+            buttonCallback: () async {    // ✅ () { } -> async () { } ஆக மாத்துங்க
+              if (taskprovider.isAddTaskLoading) return;
+
+              setState(() {
+                taskprovider.isAddTaskLoading = true;
+              });
+
+              await Future.delayed(const Duration(milliseconds: 350));
+
+              if (!mounted) return;
+
+              setState(() {
+                taskprovider.isAddTaskLoading = false;
+              });
+
+              utils.navigatePage(context, ()=> DashBoard(child:
+              CusAddVisit(taskId:"",companyId: "",companyName: "",
+                  numberList: [],isDirect: true, type: "", desc: "")));
+            },
+            callback: () {
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const DashBoard(child:  HomePage()),
+                ),
+                    (route) => false,
+              );
+            },
+          ),
           ),
           body:Center(
             child: SizedBox(
