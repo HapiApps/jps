@@ -937,7 +937,7 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
       ),
     );
   }
-  Widget _taskCard(dynamic data) {
+  Widget _taskCard(TaskData data) {
     Color priorityBg;
     Color priorityTextColor;
     String priorityText;
@@ -1030,63 +1030,61 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
                       ],
                     ),
 
-                    const SizedBox(height: 6),
-
                     /// ASSIGNED USERS
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
 
                         RichText(
-      text: TextSpan(
-        children: [
-        TextSpan(
-        text: displayName,
-        style: const TextStyle(
-          color: Color(0xff007AAE),
-          fontSize: 15,
-        ),
-        recognizer: TapGestureRecognizer()
-          ..onTap = () {
-            showDialog(
-              context: context,
-              builder: (context) {
-                return AlertDialog(
-                  title: const Text("Assigned User"),
-                  content: Text(fullName),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: const Text("Close"),
-                    ),
-                  ],
-                );
-              },
-            );
-          },
-      ),
+                          text: TextSpan(
+                            children: [
+                            TextSpan(
+                            text: displayName,
+                            style: const TextStyle(
+                              color: Color(0xff007AAE),
+                              fontSize: 15,
+                            ),
+                            recognizer: TapGestureRecognizer()
+                              ..onTap = () {
+                                showDialog(
+                                  context: context,
+                                  builder: (context) {
+                                    return AlertDialog(
+                                      title: const Text("Assigned User"),
+                                      content: Text(fullName),
+                                      actions: [
+                                        TextButton(
+                                          onPressed: () => Navigator.pop(context),
+                                          child: const Text("Close"),
+                                        ),
+                                      ],
+                                    );
+                                  },
+                                );
+                              },
+                          ),
 
-        if (formatAssignedNames(data.assignedNames).contains('+'))
-    TextSpan(
-    text:
-    " +${formatAssignedNames(data.assignedNames).split('+').last.trim()}",
-    style: const TextStyle(
-    color: Color(0xff007AAE),
-    fontSize: 11,
-    ),
-    ),
+                            if (formatAssignedNames(data.assignedNames).contains('+'))
+                        TextSpan(
+                        text:
+                        " +${formatAssignedNames(data.assignedNames).split('+').last.trim()}",
+                        style: const TextStyle(
+                        color: Color(0xff007AAE),
+                        fontSize: 11,
+                        ),
+                        ),
 
-    if (formatAssignedNames(data.assignedNames).contains('+'))
-    const TextSpan(
-    text: " others",
-    style: TextStyle(
-    color: Color(0xff007AAE),
-    fontSize: 11,
-    ),
-    ),
-    ],
-    ),
-    ),
+                        if (formatAssignedNames(data.assignedNames).contains('+'))
+                        const TextSpan(
+                        text: " others",
+                        style: TextStyle(
+                        color: Color(0xff007AAE),
+                        fontSize: 11,
+                        ),
+                        ),
+                        ],
+                        ),
+                        ),
 
                         Padding(
                           padding: const EdgeInsets.fromLTRB(0, 0, 2,0 ),
@@ -1132,10 +1130,33 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
                         ),
                       ],
                     ),
-                    const SizedBox(height: 10),
                     const Divider(thickness: 2,),
                     if ((data.projectName ?? "").trim().isNotEmpty)
                       _infoBlock("Company", data.projectName ?? ""),
+                    const SizedBox(height: 5),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            CustomText(text: "Customer",size: 12,colors: const Color(0xff7E7E7E),isBold: true,),
+                            CustomText(text: data.name??'',size: 14,isBold: true,),
+                          ],
+                        ),
+                        Row(
+                          children: [
+                            CustomText(text: data.phoneNo??'',size: 14,),5.width,
+                            GestureDetector(
+                              onTap: (){
+                                utils.makingPhoneCall(ph:data.phoneNo.toString());
+                              },
+                              child: Icon(Icons.call,color: Colors.blue,),
+                            )
+                          ],
+                        )
+                      ],
+                    ),
                     const SizedBox(height: 5),
                     /// COMPANY + TASK TYPE
                     Row(
@@ -1167,7 +1188,7 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
                                   size: 13,isBold: true,
                                 ),
                                 CustomText(
-                                  text: data.creator,
+                                  text: data.creator.toString(),
                                   colors:Colors.black,
                                   size: 13,isBold: true,
                                 ),
@@ -1200,7 +1221,7 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
                                   size: 13,isBold: true,
                                 ),
                                 CustomText(
-                                  text: data.updatedByName==null?"-":data.updatedByName,
+                                  text: data.updatedByName==null?"-":data.updatedByName.toString(),
                                   colors:Colors.black,
                                   size: 13,isBold: true,
                                 ),

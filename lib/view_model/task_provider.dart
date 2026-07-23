@@ -3596,8 +3596,8 @@ class TaskProvider with ChangeNotifier {
 
       final response = await _taskRepo.getReport(data);
 
-      print("API Response Type : ${response.runtimeType}");
-      print("API Response Length : ${response.length}");
+      // print("API Response Type : ${response.runtimeType}");
+      // print("API Response Length : ${response.length}");
 
       if (response.isNotEmpty) {
         print("Response not empty");

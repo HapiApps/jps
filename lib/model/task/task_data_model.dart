@@ -31,9 +31,13 @@ class TaskData {
   final String? lastComment;
   final String? lastCommentBy;
   final String? allComments;
+  final String? name;
+  final String? phoneNo;
 
   TaskData(
     {
+    this.name,
+    this.phoneNo,
     this.id,
     this.taskTitle,
     this.projectName,
@@ -99,11 +103,15 @@ class TaskData {
       allComments: json['all_comments'],
       hasVoice: json['has_voice']?.toString(),
       updatedByName: json['updated_by_name'],
+      name: json['name'],
+      phoneNo: json['phone_no'],
     );
   }
 
   Map<String?, dynamic> toJson() {
     return {
+      'name': name,
+      'phone_no': phoneNo,
       'id': id,
       'role': role,
       'task_title': taskTitle,
