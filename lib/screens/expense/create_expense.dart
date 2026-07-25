@@ -1,25 +1,26 @@
 import 'dart:io';
-import 'package:master_code/component/custom_loading.dart';
-import 'package:master_code/component/custom_text.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:master_code/component/custom_loading_button.dart';
-import 'package:master_code/component/custom_textfield.dart';
-import 'package:master_code/source/constant/colors_constant.dart';
-import 'package:master_code/source/constant/key_constant.dart';
-import 'package:master_code/source/extentions/extensions.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:master_code/source/styles/decoration.dart';
 import '../../component/custom_appbar.dart';
+import '../../component/custom_loading.dart';
+import '../../component/custom_loading_button.dart';
+import '../../component/custom_text.dart';
+import '../../component/custom_textfield.dart';
 import '../../component/map_dropdown.dart';
 import '../../model/task/task_data_model.dart';
 import '../../source/constant/assets_constant.dart';
+import '../../source/constant/colors_constant.dart';
 import '../../source/constant/default_constant.dart';
+import '../../source/constant/key_constant.dart';
 import '../../source/constant/local_data.dart';
+import '../../source/extentions/int_extensions.dart';
+import '../../source/styles/decoration.dart';
 import '../../source/utilities/utils.dart';
 import '../../view_model/expense_provider.dart';
 import '../common/fullscreen_photo.dart';
+
 class CreateExpense extends StatefulWidget {
   final String? taskId;
   final TaskData? data;
@@ -132,7 +133,7 @@ class _CreateExpenseState extends State<CreateExpense> with TickerProviderStateM
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        CustomText(text: widget.companyName=="null"?"":widget.companyName,colors: colorsConst.primary,isBold: true,),10.width,
+                        CustomText(text: widget.companyName,colors: colorsConst.primary,isBold: true,),10.width,
                         CustomText(text: widget.type,colors: colorsConst.greyClr,isItalic: true,),
                       ],
                     ),10.height,
@@ -190,72 +191,6 @@ class _CreateExpenseState extends State<CreateExpense> with TickerProviderStateM
                       child: TabBarView(
                           controller: expensePvr.tabController,
                           children: [
-                            // Column(
-                            //   mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            //   children: [
-                            //     Column(
-                            //       children: [
-                            //         Row(
-                            //           mainAxisAlignment: MainAxisAlignment.spaceAround,
-                            //           children: [
-                            //             CustomText(text: "Employee & Trip Details",colors: colorsConst.primary,isBold: true,),
-                            //             Row(
-                            //               children: [
-                            //                 CustomText(text: "Total : ",colors: colorsConst.greyClr),
-                            //                 CustomText(text: "₹ ${expensePvr.totalAmt.text.isEmpty?"0":expensePvr.totalAmt.text}",colors: colorsConst.primary,isBold: true,),
-                            //               ],
-                            //             ),
-                            //           ],
-                            //         ),10.height,
-                            //         Row(
-                            //           mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            //           children: [
-                            //             CustomTextField(text: "Place Visited",
-                            //               controller: expensePvr.visitPlace,
-                            //               isRequired: true,
-                            //               width: splitWidth,
-                            //               inputFormatters: constInputFormatters.addressInput,
-                            //             ),
-                            //             CustomTextField(text: constValue.customer,
-                            //               controller: expensePvr.client,
-                            //               isRequired: true,
-                            //               width: splitWidth,
-                            //               inputFormatters: constInputFormatters.addressInput,
-                            //             )
-                            //           ],
-                            //         ),
-                            //         CustomTextField(text: "Purpose",
-                            //           isRequired: true,
-                            //           controller: expensePvr.purpose,
-                            //           textInputAction: TextInputAction.done,
-                            //         ),
-                            //       ],
-                            //     ),
-                            //     Row(
-                            //       mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            //       children: [
-                            //         CustomLoadingButton(
-                            //             callback: (){
-                            //               Future.microtask(() => Navigator.pop(context));
-                            //             }, isLoading: false,text: "Cancel",
-                            //             backgroundColor: Colors.white, textColor: colorsConst.primary,radius: 10, width: splitWidth),
-                            //         CustomLoadingButton(
-                            //             callback: (){
-                            //               if (expensePvr.visitPlace.text.trim().isEmpty) {
-                            //                 utils.showWarningToast(context,text: "Please fill place visited");
-                            //               }else if (expensePvr.client.text.trim().isEmpty) {
-                            //                 utils.showWarningToast(context,text: "Please fill ${constValue.customerName}");
-                            //               } else if (expensePvr.purpose.text.trim().isEmpty) {
-                            //                 utils.showWarningToast(context,text: "Please fill purpose");
-                            //               }else {
-                            //                 expensePvr.updateIndex(1);
-                            //               }
-                            //             }, isLoading: false,text: "Next",
-                            //             backgroundColor: colorsConst.primary,radius: 10, width: splitWidth),
-                            //       ],
-                            //     ),
-                            //   ],
-                            // ),
                             ListView(
                               // mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
@@ -279,7 +214,7 @@ class _CreateExpenseState extends State<CreateExpense> with TickerProviderStateM
                                         Row(
                                           children: [
                                             CustomText(text: "Total : ",colors: colorsConst.greyClr),
-                                            CustomText(text: "₹ ${expensePvr.otherAmt}",colors: colorsConst.primary,isBold: true,),
+                                            CustomText(text: "₹ ${expensePvr.formatter.format(expensePvr.otherAmt)}",colors: colorsConst.primary,isBold: true,),
                                           ],
                                         ),
                                       ],
@@ -297,6 +232,15 @@ class _CreateExpenseState extends State<CreateExpense> with TickerProviderStateM
                                         ],
                                       ),
                                     CustomTextField(
+                                      isRequired: expensePvr.checkValidation3(),
+                                      readOnly: true,
+                                      text: "Date",
+                                      onTap: (){
+                                        expensePvr.datePick(context: context, date: expensePvr.otherExp[expensePvr.otherIndex].dateT);
+                                      },
+                                      controller: expensePvr.otherExp[expensePvr.otherIndex].dateT,
+                                    ),
+                                    CustomTextField(
                                       text: "# of Days",
                                       isRequired: expensePvr.checkValidation3(),
                                       onChanged: (value){
@@ -312,7 +256,8 @@ class _CreateExpenseState extends State<CreateExpense> with TickerProviderStateM
                                       //   expensePvr.datePick(context: context, date: expensePvr.otherExp[expensePvr.otherIndex].date);
                                       // },
                                       controller: expensePvr.otherExp[expensePvr.otherIndex].date,
-                                    ),CustomTextField(
+                                    ),
+                                    CustomTextField(
                                       isRequired: expensePvr.checkValidation3(),
                                       text: "Particular",
                                       onChanged: (value){
@@ -322,8 +267,10 @@ class _CreateExpenseState extends State<CreateExpense> with TickerProviderStateM
                                       },
                                       inputFormatters: constInputFormatters.addressInput,
                                       controller: expensePvr.otherExp[expensePvr.otherIndex].particular,
-                                    ),CustomTextField(
+                                    ),
+                                    CustomTextField(
                                       text: "Amount",
+                                      hintText: "0",
                                       onChanged: (value){
                                         if(localData.storage.read("da_amount")=="0"||
                                             localData.storage.read("da_amount")==""||
@@ -338,6 +285,17 @@ class _CreateExpenseState extends State<CreateExpense> with TickerProviderStateM
                                       inputFormatters: constInputFormatters.amtInput,
                                       keyboardType: TextInputType.number,
                                       controller: expensePvr.otherExp[expensePvr.otherIndex].amount,
+                                    ),
+                                    CustomTextField(
+                                      isRequired: expensePvr.checkValidation3(),
+                                      text: "Remark",
+                                      onChanged: (value){
+                                        setState(() {
+                                          expensePvr.checkValidation3();
+                                        });
+                                      },
+                                      inputFormatters: constInputFormatters.addressInput,
+                                      controller: expensePvr.otherExp[expensePvr.otherIndex].remark,
                                       textInputAction: TextInputAction.done,
                                     ),
                                   ],
@@ -493,8 +451,10 @@ class _CreateExpenseState extends State<CreateExpense> with TickerProviderStateM
                                             utils.showWarningToast(context,text: "Please fill particular reason");
                                           } else if (expensePvr.otherExp[expensePvr.otherIndex].amount.text.trim().isEmpty) {
                                             utils.showWarningToast(context,text: "Please fill amount");
+                                          }  else if (expensePvr.otherExp[expensePvr.otherIndex].remark.text.trim().isEmpty) {
+                                            utils.showWarningToast(context,text: "Please fill remark");
                                           } else {
-                                            expensePvr.addOtherExp();
+                                            expensePvr.addOtherExp(widget.date);
                                           }
                                         }, isLoading: false,text: "Add More",
                                         backgroundColor: colorsConst.primary,radius: 10, width: splitWidth),
@@ -502,7 +462,8 @@ class _CreateExpenseState extends State<CreateExpense> with TickerProviderStateM
                                         callback: (){
                                           if (expensePvr.otherExp[expensePvr.otherIndex].date.text.trim().isEmpty&&
                                               expensePvr.otherExp[expensePvr.otherIndex].particular.text.trim().isEmpty&&
-                                              expensePvr.otherExp[expensePvr.otherIndex].amount.text.trim().isEmpty) {
+                                              expensePvr.otherExp[expensePvr.otherIndex].amount.text.trim().isEmpty&&
+                                              expensePvr.otherExp[expensePvr.otherIndex].remark.text.trim().isEmpty) {
                                             _myFocusScopeNode.unfocus();
                                             expensePvr.updateIndex(1);
                                           }else{
@@ -512,6 +473,8 @@ class _CreateExpenseState extends State<CreateExpense> with TickerProviderStateM
                                               utils.showWarningToast(context,text: "Please fill particular reason");
                                             } else if (expensePvr.otherExp[expensePvr.otherIndex].amount.text.trim().isEmpty) {
                                               utils.showWarningToast(context,text: "Please fill amount");
+                                            }  else if (expensePvr.otherExp[expensePvr.otherIndex].remark.text.trim().isEmpty) {
+                                              utils.showWarningToast(context,text: "Please fill remark");
                                             } else {
                                               _myFocusScopeNode.unfocus();
                                               expensePvr.updateIndex(1);
@@ -545,7 +508,7 @@ class _CreateExpenseState extends State<CreateExpense> with TickerProviderStateM
                                     Row(
                                       children: [
                                         CustomText(text: "Total : ",colors: colorsConst.greyClr),
-                                        CustomText(text: "₹ ${expensePvr.travelAmt}",colors: colorsConst.primary,isBold: true,),
+                                        CustomText(text: "₹ ${expensePvr.formatter.format(expensePvr.travelAmt)}",colors: colorsConst.primary,isBold: true,),
                                       ],
                                     ),
                                   ],
@@ -656,7 +619,7 @@ class _CreateExpenseState extends State<CreateExpense> with TickerProviderStateM
                                 Row(
                                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
-                                    MapDropDown(
+                                    CustomMapDropDown(
                                         isRequired: expensePvr.checkValidation(),
                                         width: splitWidth,
                                         isRefresh: expensePvr.expenseList.isEmpty?true:false,
@@ -680,15 +643,28 @@ class _CreateExpenseState extends State<CreateExpense> with TickerProviderStateM
                                       isRequired: expensePvr.checkValidation(),
                                       width: splitWidth,
                                       text: "Amount",
+                                      hintText: "0",
                                       onChanged: (value){
                                         expensePvr.addTravelAmt();
                                       },
                                       keyboardType: TextInputType.number,
                                       inputFormatters: constInputFormatters.amtInput,
                                       controller: expensePvr.travelExp[expensePvr.travelIndex].amt,
-                                      textInputAction: TextInputAction.done,
                                     ),
                                   ],
+                                ),
+                                CustomTextField(
+                                  text: "Remark",
+                                  onChanged: (value){
+                                    setState(() {
+                                      expensePvr.checkValidation();
+                                      expensePvr.addTravelAmt();
+                                    });
+                                  },
+                                  isRequired: expensePvr.checkValidation(),
+                                  inputFormatters: constInputFormatters.addressInput,
+                                  controller: expensePvr.travelExp[expensePvr.travelIndex].remark,
+                                  textInputAction: TextInputAction.done,
                                 ),
                                 ListView.builder(
                                     shrinkWrap: true,
@@ -830,6 +806,8 @@ class _CreateExpenseState extends State<CreateExpense> with TickerProviderStateM
                                             utils.showWarningToast(context, text: "Please select mode");
                                           } else if (expensePvr.travelExp[expensePvr.travelIndex].amt.text.trim().isEmpty) {
                                             utils.showWarningToast(context, text: "Please fill amount");
+                                          }else if (expensePvr.travelExp[expensePvr.travelIndex].remark.text.trim().isEmpty) {
+                                            utils.showWarningToast(context, text: "Please fill remark");
                                           }else {
                                             expensePvr.addExpTravel(widget.date);
                                           }
@@ -844,6 +822,7 @@ class _CreateExpenseState extends State<CreateExpense> with TickerProviderStateM
                                               expensePvr.travelExp[expensePvr.travelIndex].to.text.trim().isEmpty&&
                                               expensePvr.travelExp[expensePvr.travelIndex].enDate.text.trim().isEmpty&&
                                               expensePvr.travelExp[expensePvr.travelIndex].enTime.text.trim().isEmpty&&
+                                              expensePvr.travelExp[expensePvr.travelIndex].remark.text.trim().isEmpty&&
                                               expensePvr.travelExp[expensePvr.travelIndex].mode == null
                                           // &&expensePvr.travelExp[expensePvr.travelIndex].amt.text.trim().isEmpty
                                           ) {
@@ -866,6 +845,8 @@ class _CreateExpenseState extends State<CreateExpense> with TickerProviderStateM
                                               utils.showWarningToast(context, text: "Please select mode");
                                             } else if (expensePvr.travelExp[expensePvr.travelIndex].amt.text.trim().isEmpty) {
                                               utils.showWarningToast(context, text: "Please fill amount");
+                                            } else if (expensePvr.travelExp[expensePvr.travelIndex].remark.text.trim().isEmpty) {
+                                              utils.showWarningToast(context, text: "Please fill remark");
                                             }else {
                                               _myFocusScopeNode.unfocus();
                                               expensePvr.updateIndex(2);
@@ -897,7 +878,7 @@ class _CreateExpenseState extends State<CreateExpense> with TickerProviderStateM
                                     Row(
                                       children: [
                                         CustomText(text: "Total : ",colors: colorsConst.greyClr),
-                                        CustomText(text: "₹ ${expensePvr.convAmt}",colors: colorsConst.primary,isBold: true,),
+                                        CustomText(text: "₹ ${expensePvr.formatter.format(expensePvr.convAmt)}",colors: colorsConst.primary,isBold: true,),
                                       ],
                                     ),
                                   ],
@@ -953,7 +934,7 @@ class _CreateExpenseState extends State<CreateExpense> with TickerProviderStateM
                                 //   text: "Mode",
                                 //   controller: expensePvr.conveyanceExp[expensePvr.conveyanceIndex].mode,
                                 // ):
-                                MapDropDown(
+                                CustomMapDropDown(
                                     isRequired: expensePvr.checkValidation2(),
                                     isRefresh: expensePvr.expenseList.isEmpty?true:false,
                                     callback: (){
@@ -975,6 +956,7 @@ class _CreateExpenseState extends State<CreateExpense> with TickerProviderStateM
                                 CustomTextField(
                                   isRequired: expensePvr.checkValidation2(),
                                   text: "Amount",
+                                  hintText: "0",
                                   onChanged: (value){
                                     setState(() {
                                       expensePvr.checkValidation2();
@@ -984,6 +966,18 @@ class _CreateExpenseState extends State<CreateExpense> with TickerProviderStateM
                                   keyboardType: TextInputType.number,
                                   inputFormatters: constInputFormatters.amtInput,
                                   controller: expensePvr.conveyanceExp[expensePvr.conveyanceIndex].amt,
+                                ),
+                                CustomTextField(
+                                  text: "Remark",
+                                  isRequired: expensePvr.checkValidation2(),
+                                  onChanged: (value){
+                                    setState(() {
+                                      expensePvr.checkValidation2();
+                                    });
+                                    expensePvr.addConvAmt();
+                                  },
+                                  inputFormatters: constInputFormatters.addressInput,
+                                  controller: expensePvr.conveyanceExp[expensePvr.conveyanceIndex].remark,
                                   textInputAction: TextInputAction.done,
                                 ),
                                 ListView.builder(
@@ -1140,6 +1134,8 @@ class _CreateExpenseState extends State<CreateExpense> with TickerProviderStateM
                                             utils.showWarningToast(context,text: "Please fill mode");
                                           } else if (expensePvr.conveyanceExp[expensePvr.conveyanceIndex].amt.text.trim().isEmpty) {
                                             utils.showWarningToast(context,text: "Please fill amount");
+                                          }else if (expensePvr.conveyanceExp[expensePvr.conveyanceIndex].remark.text.trim().isEmpty) {
+                                            utils.showWarningToast(context,text: "Please fill remark");
                                           }else {
                                             expensePvr.addConveyanceExp(widget.date);
                                           }
@@ -1151,6 +1147,7 @@ class _CreateExpenseState extends State<CreateExpense> with TickerProviderStateM
                                           // expensePvr.conveyanceExp[expensePvr.conveyanceIndex].date.text.trim().isEmpty&&
                                           expensePvr.conveyanceExp[expensePvr.conveyanceIndex].from.text.trim().isEmpty&&
                                               expensePvr.conveyanceExp[expensePvr.conveyanceIndex].to.text.trim().isEmpty&&
+                                              expensePvr.conveyanceExp[expensePvr.conveyanceIndex].remark.text.trim().isEmpty&&
                                               expensePvr.conveyanceExp[expensePvr.conveyanceIndex].mode == null
                                           // &&expensePvr.conveyanceExp[expensePvr.conveyanceIndex].amt.text.trim().isEmpty
                                           ) {
@@ -1167,6 +1164,8 @@ class _CreateExpenseState extends State<CreateExpense> with TickerProviderStateM
                                               utils.showWarningToast(context,text: "Please fill mode");
                                             } else if (expensePvr.conveyanceExp[expensePvr.conveyanceIndex].amt.text.trim().isEmpty) {
                                               utils.showWarningToast(context,text: "Please fill amount");
+                                            }else if (expensePvr.conveyanceExp[expensePvr.conveyanceIndex].remark.text.trim().isEmpty) {
+                                              utils.showWarningToast(context,text: "Please fill remark");
                                             }else {
                                               _myFocusScopeNode.unfocus();
                                               expensePvr.updateIndex(3);
@@ -1178,148 +1177,6 @@ class _CreateExpenseState extends State<CreateExpense> with TickerProviderStateM
                                 ),50.height,
                               ],
                             ),
-                            // SingleChildScrollView(
-                            //   child: Column(
-                            //     children: [
-                            //       ListView.builder(
-                            //           shrinkWrap: true,
-                            //           physics: const ScrollPhysics(),
-                            //           itemCount: expensePvr.selectedFiles1.length,
-                            //           itemBuilder: (context, index) {
-                            //             final file = expensePvr.selectedFiles1[index];
-                            //             return InkWell(
-                            //               onTap: (){
-                            //                 Navigator.push(context, MaterialPageRoute(builder: (context)=>FullScreen(
-                            //                   image: file['path'], isNetwork: false,)));
-                            //               },
-                            //               child: Container(
-                            //                 width: kIsWeb?webHeight:phoneHeight,
-                            //                 height: 60,
-                            //                 decoration: customDecoration.baseBackgroundDecoration(
-                            //                     color: Colors.white,radius: 10,
-                            //                     borderColor: colorsConst.litGrey
-                            //                 ),
-                            //                 child: Column(
-                            //                   children: [
-                            //                     Row(
-                            //                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            //                       children: [
-                            //                         Row(
-                            //                           children: [
-                            //                             10.width,
-                            //                             SvgPicture.asset(assets.docs),
-                            //                             10.width,
-                            //                             SizedBox(
-                            //                               width: MediaQuery.of(context).size.width*0.5,
-                            //                               child: Column(
-                            //                                 crossAxisAlignment: CrossAxisAlignment.start,
-                            //                                 children: [10.height,
-                            //                                   CustomText(text: file['name']),5.height,
-                            //                                   CustomText(text: file['size'],colors: colorsConst.greyClr,size: 10,)
-                            //                                 ],
-                            //                               ),
-                            //                             ),
-                            //                           ],
-                            //                         ),
-                            //                         IconButton(
-                            //                           onPressed: (){
-                            //                             expensePvr.removeFile(index);
-                            //                           },
-                            //                           icon: const Icon(Icons.clear),
-                            //                         ),
-                            //                       ],
-                            //                     ),
-                            //                     3.height,
-                            //                     Container(
-                            //                       height: 7,
-                            //                       decoration: BoxDecoration(
-                            //                         color: colorsConst.appDarkGreen,
-                            //                         borderRadius: const BorderRadius.only(
-                            //                           bottomLeft: Radius.circular(8),
-                            //                           bottomRight: Radius.circular(8),
-                            //                         ),
-                            //                       ),
-                            //                     ),
-                            //                   ],
-                            //                 ),
-                            //               ),
-                            //             );
-                            //           }),
-                            //       10.height,
-                            //       InkWell(
-                            //         onTap: (){
-                            //           expensePvr.pickFile();
-                            //         },
-                            //         child: Container(
-                            //           width: kIsWeb?webHeight:phoneHeight,height: 70,
-                            //           decoration: customDecoration.baseBackgroundDecoration(
-                            //               color: Colors.white,
-                            //               radius: 10,
-                            //               borderColor: colorsConst.litGrey
-                            //           ),
-                            //           child: Row(
-                            //             mainAxisAlignment: MainAxisAlignment.center,
-                            //             children: [
-                            //               SvgPicture.asset(assets.upload),5.width,
-                            //               CustomText(text: "Upload File",colors: colorsConst.greyClr,),
-                            //             ],
-                            //           ),
-                            //         ),
-                            //       ),10.height,
-                            //       GridView.builder(
-                            //           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                            //             crossAxisCount: 2,
-                            //             crossAxisSpacing: 30,
-                            //             mainAxisSpacing: 30,
-                            //             mainAxisExtent: 70,
-                            //           ),
-                            //           shrinkWrap: true,
-                            //           physics: const ScrollPhysics(),
-                            //           itemCount: expensePvr.selectedPhotos1.length,
-                            //           itemBuilder: (context,index){
-                            //             return Row(
-                            //               children: [
-                            //                 Container(
-                            //                   height: 70,
-                            //                   width: 90,
-                            //                   decoration: BoxDecoration(
-                            //                     borderRadius: BorderRadius.circular(5),
-                            //                     color: Colors.grey[200], // optional background
-                            //                   ),
-                            //                   clipBehavior: Clip.hardEdge,
-                            //                   child: Image.file(
-                            //                     File(expensePvr.selectedPhotos1[index]),
-                            //                     fit: BoxFit.cover, // or BoxFit.contain if you want full image
-                            //                   ),
-                            //                 ),
-                            //                 IconButton(
-                            //                   onPressed: () {
-                            //                     expensePvr.removePhotos(index);
-                            //                   },
-                            //                   icon: SvgPicture.asset(assets.deleteValue),
-                            //                 ),
-                            //               ],
-                            //             );
-                            //           }),
-                            //       40.height,
-                            //       Row(
-                            //         mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            //         children: [
-                            //           CustomLoadingButton(
-                            //               callback: (){
-                            //                 expensePvr.updateIndex(2);
-                            //                 }, isLoading: false,text: "Back",
-                            //               backgroundColor: Colors.white, textColor: colorsConst.primary,radius: 10, width: splitWidth),
-                            //           CustomLoadingButton(
-                            //               callback: (){
-                            //                 expensePvr.updateIndex(4);
-                            //               }, isLoading: false,text: "Next",
-                            //               backgroundColor: colorsConst.primary,radius: 10, width: splitWidth),
-                            //         ],
-                            //       ),
-                            //     ],
-                            //   ),
-                            // ),
                             Column(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
@@ -1330,28 +1187,28 @@ class _CreateExpenseState extends State<CreateExpense> with TickerProviderStateM
                                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                       children: [
                                         CustomText(text: "DA/Board/Lodging/Other Expenses",colors: colorsConst.greyClr),
-                                        CustomText(text: "₹ ${expensePvr.otherAmt}",colors: colorsConst.appRed,isBold: true,),
+                                        CustomText(text: "₹ ${expensePvr.formatter.format(expensePvr.otherAmt)}",colors: colorsConst.appRed,isBold: true,),
                                       ],
                                     ),10.height,
                                     Row(
                                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                       children: [
                                         CustomText(text: "Travel Expenses",colors: colorsConst.greyClr),
-                                        CustomText(text: "₹ ${expensePvr.travelAmt}",colors: colorsConst.appRed,isBold: true,),
+                                        CustomText(text: "₹ ${expensePvr.formatter.format(expensePvr.travelAmt)}",colors: colorsConst.appRed,isBold: true,),
                                       ],
                                     ),10.height,
                                     Row(
                                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                       children: [
                                         CustomText(text: "Local Conveyance Expenses",colors: colorsConst.greyClr),
-                                        CustomText(text: "₹ ${expensePvr.convAmt}",colors: colorsConst.appRed,isBold: true,),
+                                        CustomText(text: "₹ ${expensePvr.formatter.format(expensePvr.convAmt)}",colors: colorsConst.appRed,isBold: true,),
                                       ],
                                     ),10.height,
                                     Row(
                                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                       children: [
                                         CustomText(text: "Total Expenses",colors: colorsConst.greyClr),
-                                        CustomText(text: "₹ ${expensePvr.totalAmt.text}",colors: colorsConst.appRed,isBold: true,),
+                                        CustomText(text: "₹ ${expensePvr.formatter.format(double.parse(expensePvr.totalAmt.text))}",colors: colorsConst.appRed,isBold: true,),
                                       ],
                                     ),
                                   ],
@@ -1406,6 +1263,7 @@ class _CreateExpenseState extends State<CreateExpense> with TickerProviderStateM
                                               if (expensePvr.conveyanceExp[i].date.text.trim().isEmpty ||
                                                   expensePvr.conveyanceExp[i].from.text.trim().isEmpty ||
                                                   expensePvr.conveyanceExp[i].to.text.trim().isEmpty ||
+                                                  expensePvr.conveyanceExp[i].remark.text.trim().isEmpty ||
                                                   expensePvr.conveyanceExp[i].mode == null ||
                                                   expensePvr.conveyanceExp[i].amt.text.trim().isEmpty) {
                                                 utils.showWarningToast(context, text: "Check Local Conveyance Expenses Bill No ${i + 1}");
@@ -1423,6 +1281,7 @@ class _CreateExpenseState extends State<CreateExpense> with TickerProviderStateM
                                                   expensePvr.travelExp[i].to.text.trim().isEmpty ||
                                                   expensePvr.travelExp[i].enDate.text.trim().isEmpty ||
                                                   expensePvr.travelExp[i].enTime.text.trim().isEmpty ||
+                                                  expensePvr.travelExp[i].remark.text.trim().isEmpty ||
                                                   expensePvr.travelExp[i].mode == null ||
                                                   expensePvr.travelExp[i].amt.text.trim().isEmpty) {
                                                 utils.showWarningToast(context, text: "Check Travel Expenses Bill No ${i + 1}");
@@ -1436,6 +1295,7 @@ class _CreateExpenseState extends State<CreateExpense> with TickerProviderStateM
                                             for (var i = 0; i < expensePvr.otherExp.length; i++) {
                                               if (expensePvr.otherExp[i].date.text.trim().isEmpty ||
                                                   expensePvr.otherExp[i].particular.text.trim().isEmpty ||
+                                                  expensePvr.otherExp[i].remark.text.trim().isEmpty ||
                                                   expensePvr.otherExp[i].amount.text.trim().isEmpty) {
                                                 utils.showWarningToast(context, text: "DA/Board/Lodging/Other Expenses Bill No ${i + 1}");
                                                 expensePvr.addCtr.reset();
@@ -1477,5 +1337,3 @@ class _CreateExpenseState extends State<CreateExpense> with TickerProviderStateM
     });
   }
 }
-
-

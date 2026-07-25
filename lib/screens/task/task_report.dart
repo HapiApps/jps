@@ -147,7 +147,7 @@ class _TaskReportState extends State<TaskReport> with SingleTickerProviderStateM
                                         onTap: (){
                                           utils.navigatePage(context, ()=> DashBoard(child: ExpenseDetails(visitId: widget.taskId, isExpense: false,companyId: widget.coId, id: expProvider.expenseData[index].id.toString(),
                                               name: expProvider.expenseData[index].firstname.toString(), role: expProvider.expenseData[index].role.toString(),
-                                              customer: widget.coName.toString(), purpose: expProvider.expenseData[index].taskTitle.toString())));
+                                              customer: widget.coName.toString(), purpose: expProvider.expenseData[index].taskTitle.toString(), date: '',)));
                                           },
                                         child: Padding(
                                           padding: const EdgeInsets.fromLTRB(0, 20, 0, 0),

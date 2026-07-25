@@ -4,6 +4,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
 import '../screens/common/fullscreen_photo.dart';
+import '../screens/common/pdf_view.dart';
 import '../source/constant/api.dart';
 import '../source/utilities/utils.dart';
 import 'custom_loading.dart';
@@ -563,3 +564,39 @@ class _ShowNetWrKImgState extends State<ShowNetWrKImg> {
     );
   }
 }
+
+
+
+class ShowNetWrKPdf extends StatefulWidget {
+  final String img;
+  const ShowNetWrKPdf({super.key, required this.img});
+
+  @override
+  State<ShowNetWrKPdf> createState() => _ShowNetWrKPdfState();
+}
+
+class _ShowNetWrKPdfState extends State<ShowNetWrKPdf> {
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: (){
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => PdfViewPage(
+              pdfPath: '$imageFile?path=${widget.img}',
+            ),
+          ),
+        );
+      },
+      child: Container(
+          width: 70,height:70,
+          decoration: customDecoration.baseBackgroundDecoration(
+              color: Colors.white,borderColor: Colors.grey.shade200,radius: 10
+          ),
+          child: Icon(Icons.picture_as_pdf_outlined,color: colorsConst.primary,size: 30,)
+      ),
+    );
+  }
+}
+

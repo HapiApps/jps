@@ -24,7 +24,6 @@ class PieChart2State extends State<TravelPieChart> {
         final List<Map<String, dynamic>> rawData = expProvider.report2
             .whereType<Map<String, dynamic>>()
             .toList();
-      print(rawData);
         rawData.sort((a, b) {
           double amtA = double.tryParse(a["total_amount"].toString().replaceAll(",", "")) ?? 0;
           double amtB = double.tryParse(b["total_amount"].toString().replaceAll(",", "")) ?? 0;

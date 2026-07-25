@@ -102,6 +102,8 @@ dependencies:
   multi_dropdown: ^3.1.0
   google_fonts:
   timezone:
+  syncfusion_flutter_pdfviewer:
+  syncfusion_flutter_pdf:
 dev_dependencies:
   flutter_launcher_icons:
   flutter_test:

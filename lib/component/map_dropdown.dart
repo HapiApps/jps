@@ -535,3 +535,88 @@ class EmployeeDropdown extends StatelessWidget {
     );
   }
 }
+
+
+class CustomMapDropDown extends StatelessWidget {
+  final double? width;
+  final dynamic saveValue;
+  final String hintText;
+  final String dropText;
+  final List list;
+  final ValueChanged<Object?> onChanged;
+  final Color? color;
+  final bool? isHint;
+  final bool? isRequired;
+  final bool? isRefresh;
+  final VoidCallback? callback;
+  const CustomMapDropDown({super.key, this.width, required this.saveValue, required this.hintText, required this.onChanged, required this.dropText,
+    this.color=Colors.white, this.isHint=true, required this.list, this.isRequired=false, this.isRefresh, this.callback});
+
+  @override
+  Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final fieldWidth = width ?? screenWidth * 0.83;
+    return SizedBox(
+      // height: 70,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if(isHint==true)
+            SizedBox(
+              width: fieldWidth,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      CustomText(text:hintText,colors: colorsConst.greyClr,size:13,isBold: false,),
+                      if(isRequired==true)
+                        CustomText(text:"*",colors: colorsConst.appRed,size:20,isBold: false,),
+                    ],
+                  ),
+                  if(isRefresh==true)
+                    GestureDetector(
+                        onTap:callback,
+                        child: const Icon(Icons.refresh,size: 15,color: Colors.red,))
+                ],
+              ),
+            ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(0, 1, 0, 4),
+            child: Container(
+              width: fieldWidth,
+              height: 43,
+              decoration: customDecoration.baseBackgroundDecoration(
+                  color: color,
+                  radius: 10,
+                  borderColor: Colors.grey.shade300
+              ),
+              child:DropdownButtonHideUnderline(
+                child:ButtonTheme(
+                  alignedDropdown:true,
+                  child: DropdownButton(
+                    hint: CustomText(text:hintText,colors: Colors.grey,size:13,isBold: false,),
+                    // hint: CustomText(text:hintText,colors: Colors.grey,size: 17,),
+                    isExpanded: true,
+                    value:saveValue,
+                    icon: const Icon(Icons.keyboard_arrow_down_rounded),
+                    iconEnabledColor: Colors.black,
+                    items:list.map((list) {
+                      return DropdownMenuItem(
+                        value: list,
+                        child: CustomText(text:list[dropText]),
+                      );
+                    }
+                    ).toList(),
+                    onChanged: onChanged,
+                  ),
+                ),
+              ),
+            ),
+          ),
+          10.height
+        ],
+      ),
+    );
+  }
+}

@@ -1,6 +1,6 @@
 import 'package:intl/intl.dart';
 
-class ExpenseModel {
+class ExpenseModel2 {
   String? id;
   String? status;
   String? firstname;
@@ -54,7 +54,7 @@ class ExpenseModel {
   String? daCreatedTs;
   String? daDateT;
 
-  ExpenseModel({
+  ExpenseModel2({
     this.id,
     this.type,
     this.status,
@@ -109,7 +109,7 @@ class ExpenseModel {
     this.daDateT,
   });
 
-  factory ExpenseModel.fromJson(Map<String?, dynamic> json) => ExpenseModel(
+  factory ExpenseModel2.fromJson(Map<String?, dynamic> json) => ExpenseModel2(
     id: json["id"],
     type: json["type"],
     daCreatedTs: json["dacreated_ts"],
@@ -166,7 +166,7 @@ class ExpenseModel {
   @override
   String toString() {
     return ''' 
-ExpenseModel(
+ExpenseModel2(
   id: $id,
   status: $status,
   firstname: $firstname,
@@ -199,9 +199,6 @@ ExpenseModel(
   cemode: $ceMode,
   ceamount: $ceAmount,
   da_amt: $daAmt,
-  daremark: $daRemark,
-  ceremark: $ceRemark,
-  txremark: $txRemark,
   conveyance_amt: $conveyanceAmt,
   travel_amt: $travelAmt,
   project_name: $projectName,
@@ -233,17 +230,14 @@ ExpenseModel(
       'txendTime': txEndTime,
       'txmode': txMode,
       'txamount': txAmount,
-      'txremark': txRemark,
       'dadate': daDate,
       'daparticular': daParticular,
       'daamount': daAmount,
-      'daremark': daRemark,
       'cedate': ceDate,
       'cefrom': ceFrom,
       'ceto': ceTo,
       'cemode': ceMode,
       'ceamount': ceAmount,
-      'ceremark': ceRemark,
       'da_amt': daAmt,
       'conveyance_amt': conveyanceAmt,
       'travel_amt': travelAmt,
@@ -260,7 +254,7 @@ ExpenseModel(
 
 // 1. Expense Report Data Structure
 // This class holds the four main tables and the final summary totals.
-class ExpenseReportData {
+class ExpenseReportData2 {
   final List<Map<String, dynamic>> taskDetails;
   final List<Map<String, dynamic>> daDetails;
   final List<Map<String, dynamic>> travelDetails;
@@ -269,7 +263,7 @@ class ExpenseReportData {
   final double totalTravelAmount;
   final double totalConveyanceAmount;
 
-  ExpenseReportData({
+  ExpenseReportData2({
     required this.taskDetails,
     required this.daDetails,
     required this.travelDetails,
@@ -281,13 +275,13 @@ class ExpenseReportData {
 }
 
 // 2. Data Preparation Function (Core Logic)
-ExpenseReportData prepareExpenseDataForExcel(List<ExpenseModel> dataList) {
+ExpenseReportData2 prepareExpenseDataForExcel(List<ExpenseModel2> dataList) {
   // --- Initialization ---
   List<Map<String, dynamic>> taskDetails = [];
   List<Map<String, dynamic>> daDetails = [];
   List<Map<String, dynamic>> travelDetails = [];
   List<Map<String, dynamic>> conveyanceDetails = [];
-  Map<String, List<ExpenseModel>> groupedByProject = {};
+  Map<String, List<ExpenseModel2>> groupedByProject = {};
 
   // --- 1. Task Details / Report Summary (Grouped by Project Name) ---
   for (var item in dataList) {
@@ -443,7 +437,7 @@ ExpenseReportData prepareExpenseDataForExcel(List<ExpenseModel> dataList) {
   double conveyTotal = conveyanceDetails.fold<double>(
       0, (sum, e) => sum + (double.tryParse(e['Amount'] as String) ?? 0.0));
 
-  return ExpenseReportData(
+  return ExpenseReportData2(
     taskDetails: taskDetails,
     daDetails: daDetails,
     travelDetails: travelDetails,

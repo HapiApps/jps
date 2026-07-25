@@ -1,5 +1,4 @@
 import 'package:flutter/cupertino.dart';
-
 class AddExpTravelModel {
   TextEditingController from = TextEditingController();
   TextEditingController to = TextEditingController();
@@ -8,6 +7,7 @@ class AddExpTravelModel {
   TextEditingController stTime=TextEditingController();
   TextEditingController enTime=TextEditingController();
   TextEditingController amt=TextEditingController();
+  TextEditingController remark=TextEditingController();
   dynamic mode;
   String modeId;
   String modeName;
@@ -22,6 +22,7 @@ class AddExpTravelModel {
     required this.mode,
     required this.modeId,
     required this.modeName,
+    required this.remark,
   });
 
   factory AddExpTravelModel.fromJson(Map<String, dynamic> json) => AddExpTravelModel(
@@ -35,6 +36,7 @@ class AddExpTravelModel {
     modeId: json["mode_id"],
     modeName: json["modeName"],
     amt: TextEditingController(text: json["amount"]),
+    remark: TextEditingController(text: json["remark"]),
   );
 
   Map<String, dynamic> toJson() => {
@@ -46,30 +48,84 @@ class AddExpTravelModel {
     "end_time": enTime.text,
     "mode": mode,
     "amount": amt.text,
+    "remark": remark.text,
     "mode_id": modeId,
     "modeName": modeName
   };
 }
 
 class OtherExpModel {
+  TextEditingController dateT = TextEditingController();
   TextEditingController date = TextEditingController();
   TextEditingController particular = TextEditingController();
   TextEditingController amount=TextEditingController();
+  TextEditingController remark=TextEditingController();
   OtherExpModel({
+    required this.dateT,
     required this.date,
     required this.particular,
     required this.amount,
+    required this.remark,
   });
 
   factory OtherExpModel.fromJson(Map<String, dynamic> json) => OtherExpModel(
-    date: TextEditingController(text: json["date"]),
-    particular: TextEditingController(text: json["particular"]),
-    amount: TextEditingController(text: json["amount"])
+      dateT: TextEditingController(text: json["dateT"]),
+      date: TextEditingController(text: json["date"]),
+      particular: TextEditingController(text: json["particular"]),
+      amount: TextEditingController(text: json["amount"]),
+      remark: TextEditingController(text: json["remark"])
   );
   Map<String, dynamic> toJson() => {
+    "dateT": dateT.text,
     "date": date.text,
     "particular": particular.text,
-    "amount": amount.text
+    "amount": amount.text,
+    "remark": remark.text,
+  };
+
+}
+
+class ConveyanceExpModel {
+  TextEditingController from = TextEditingController();
+  TextEditingController to = TextEditingController();
+  TextEditingController date=TextEditingController();
+  TextEditingController amt=TextEditingController();
+  TextEditingController stTime=TextEditingController();
+  TextEditingController remark=TextEditingController();
+  dynamic mode;
+  String modeId;
+  String modeName;
+  ConveyanceExpModel({
+    required this.from,
+    required this.to,
+    required this.date,
+    required this.amt,
+    required this.mode,
+    required this.modeId,
+    required this.modeName,
+    required this.remark,
+  });
+
+  factory ConveyanceExpModel.fromJson(Map<String, dynamic> json) => ConveyanceExpModel(
+    from: TextEditingController(text: json["from"]),
+    to: TextEditingController(text: json["to"]),
+    date: TextEditingController(text: json["date"]),
+    mode: json["mode"],
+    modeId: json["mode_id"],
+    modeName: json["modeName"],
+    amt: TextEditingController(text: json["amount"]),
+    remark: TextEditingController(text: json["remark"]),
+  );
+
+  Map<String, dynamic> toJson() => {
+    "date": date.text,
+    "from": from.text,
+    "to": to.text,
+    "mode": mode,
+    "amount": amt.text,
+    "remark": remark.text,
+    "mode_id": modeId,
+    "modeName": modeName
   };
 
 }
@@ -87,47 +143,6 @@ class SimpleExpModel {
   Map<String, dynamic> toJson() => {
     "doc": doc,
     "docName": docName.text
-  };
-
-}
-
-class ConveyanceExpModel {
-  TextEditingController from = TextEditingController();
-  TextEditingController to = TextEditingController();
-  TextEditingController date=TextEditingController();
-  TextEditingController amt=TextEditingController();
-  TextEditingController stTime=TextEditingController();
-  dynamic mode;
-  String modeId;
-  String modeName;
-  ConveyanceExpModel({
-    required this.from,
-    required this.to,
-    required this.date,
-    required this.amt,
-    required this.mode,
-    required this.modeId,
-    required this.modeName,
-  });
-
-  factory ConveyanceExpModel.fromJson(Map<String, dynamic> json) => ConveyanceExpModel(
-    from: TextEditingController(text: json["from"]),
-    to: TextEditingController(text: json["to"]),
-    date: TextEditingController(text: json["date"]),
-    mode: json["mode"],
-    modeId: json["mode_id"],
-    modeName: json["modeName"],
-    amt: TextEditingController(text: json["amount"]),
-  );
-
-  Map<String, dynamic> toJson() => {
-    "date": date.text,
-    "from": from.text,
-    "to": to.text,
-    "mode": mode,
-    "amount": amt.text,
-    "mode_id": modeId,
-    "modeName": modeName
   };
 
 }

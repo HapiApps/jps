@@ -123,10 +123,10 @@ class _ProjectReportState extends State<ProjectReport> with SingleTickerProvider
                                       createdBy = "${dateTime.day}/${dateTime.month}/${dateTime.year}";
                                       return InkWell(
                                         onTap: (){
-                                          utils.navigatePage(context, ()=> DashBoard(child: ExpenseDetails(visitId: widget.projectId,isProject: true,
+                                          utils.navigatePage(context, ()=> DashBoard(child: ExpenseDetails(visitId: widget.projectId,
                                               isExpense: false,companyId: "", id: expProvider.expenseData[index].id.toString(),
                                               name: expProvider.expenseData[index].firstname.toString(), role: expProvider.expenseData[index].role.toString(),
-                                              customer: widget.projectName, purpose: "")));
+                                              customer: widget.projectName, purpose: "", date: '',)));
                                           },
                                         child: Padding(
                                           padding: const EdgeInsets.fromLTRB(0, 20, 0, 0),

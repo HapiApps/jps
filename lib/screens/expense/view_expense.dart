@@ -1,4 +1,3 @@
-import 'package:animated_custom_dropdown/custom_dropdown.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:master_code/source/constant/default_constant.dart';
 import 'package:master_code/view_model/expense_provider.dart';
@@ -48,7 +47,6 @@ class _ViewExpenseState extends State<ViewExpense> with SingleTickerProviderStat
     Future.delayed(Duration.zero, () {
       Provider.of<ExpenseProvider>(context, listen: false).changeDate();
       Provider.of<ExpenseProvider>(context, listen: false).getAllExpense(date1:widget.date1,date2:widget.date2);
-      Provider.of<ExpenseProvider>(context, listen: false).filterList();
       Provider.of<ExpenseProvider>(context, listen: false).initFilterValue(false);
       Provider.of<ExpenseProvider>(context, listen: false).initExpenseValue(widget.date1,widget.date2,widget.type);
     });
@@ -103,7 +101,6 @@ class _ViewExpenseState extends State<ViewExpense> with SingleTickerProviderStat
                           InkWell(
                             onTap: (){
                               _myFocusScopeNode.unfocus();
-                              print(expProvider.stList);
                               showDialog(
                                 context: context,
                                 builder: (context) {
@@ -308,7 +305,7 @@ class _ViewExpenseState extends State<ViewExpense> with SingleTickerProviderStat
                                                       text: 'Apply Filters',
                                                       callback: () {
                                                         expProvider.initFilterValue(false);
-                                                        expProvider.filterList();
+                                                        expProvider.getAllExpense(date1:expProvider.startDate,date2:expProvider.endDate);
                                                         Navigator.of(context, rootNavigator: true).pop();
                                                       },
                                                       bgColor: colorsConst.primary,
@@ -438,7 +435,7 @@ class _ViewExpenseState extends State<ViewExpense> with SingleTickerProviderStat
                                   _myFocusScopeNode.unfocus();
                                   utils.navigatePage(context, ()=> DashBoard(child: ExpenseDetails(visitId: '0', isExpense: true,companyId: "", id: data.id.toString(),
                                     name: data.firstname.toString(), role: data.role.toString(),
-                                    customer: data.projectName.toString(), purpose: data.taskTitle.toString(),)));
+                                    customer: data.projectName.toString(), purpose: data.taskTitle.toString(), date: createdBy)));
                                 },
                                 child: Column(
                                   children: [
@@ -497,7 +494,7 @@ class _ViewExpenseState extends State<ViewExpense> with SingleTickerProviderStat
         child: Padding(
           padding: const EdgeInsets.all(8.0),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
+            // crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -506,12 +503,32 @@ class _ViewExpenseState extends State<ViewExpense> with SingleTickerProviderStat
                   Row(
                     children: [
                       const CustomText(text: "Task : ",colors: Colors.grey),
-                      CustomText(text: data.projectName.toString(),colors: colorsConst.bankColor),
+                      SizedBox(
+                        // color: Colors.pinkAccent,
+                          width: kIsWeb?webHeight/3:phoneHeight/1.7,
+                          child: CustomText(text: data.projectName.toString(),colors: colorsConst.bankColor)),
                     ],
                   ):
-                  CustomText(text: data.status.toString()=="0"?"Rejected":data.status.toString()=="2"?"Approved":"In Process",
-                    colors: data.status.toString()=="0"?colorsConst.appRed:data.status.toString()=="2"?colorsConst.appDarkGreen:Colors.grey,isItalic: true,),
-                  CustomText(text: createdBy,colors: Colors.grey,),
+                  Container(
+                    decoration: customDecoration.baseBackgroundDecoration(
+                        color: data.status.toString()=="0"?Colors.red:data.status.toString()=="2"?colorsConst.appDarkGreen:Colors.grey.shade100,radius: 5
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(3),
+                      child: CustomText(text: data.status.toString()=="0"?"Rejected":data.status.toString()=="2"?"Approved":"In Process",
+                        colors: Colors.white,isItalic: true,),
+                    ),
+                  ),
+                  SizedBox(
+                    // color: Colors.blueGrey,
+                      width: kIsWeb?webHeight/6.8:phoneHeight/4.6,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          CustomText(text: "Added Date : ",colors: Colors.grey,),
+                          CustomText(text: createdBy),
+                        ],
+                      )),
                 ],
               ),
               5.height,
@@ -523,25 +540,35 @@ class _ViewExpenseState extends State<ViewExpense> with SingleTickerProviderStat
                       // color: Colors.pinkAccent,
                         width: kIsWeb?webHeight/2:phoneHeight/1.4,
                         child: CustomText(text: data.taskTitle.toString(),colors: colorsConst.greyClr)),
-                    CustomText(text: data.status.toString()=="0"?"Rejected":data.status.toString()=="2"?"Approved":"In Process",
-                      colors: data.status.toString()=="0"?colorsConst.appRed:data.status.toString()=="2"?colorsConst.appDarkGreen:Colors.grey,isItalic: true,),
+                    Container(
+                        decoration: customDecoration.baseBackgroundDecoration(
+                            color: data.status.toString()=="0"?Colors.red:data.status.toString()=="2"?colorsConst.appDarkGreen:colorsConst.adm1,radius: 5
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(3),
+                          child: CustomText(text: data.status.toString()=="0"?"Rejected":data.status.toString()=="2"?"Approved":"In Process",
+                            colors: Colors.white,isItalic: true,),
+                        )),
                   ],
                 ),
               5.height,
               Row(
+                // mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  CustomText(text: "Added By : ",colors: Colors.grey,),
+                  CustomText(text: data.firstname.toString(),),
+                ],
+              ),5.height,
+              Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  CustomText(text: data.firstname.toString(),),
-                  // CustomText(text: data.placeVisited.toString(),),
-                  CustomText(text: "₹ ${utils.formatNo(data.amount.toString())}",colors: colorsConst.primary,isBold: true,),
-                ],
-              ),
-              if(data.status.toString()=="2")
-                5.height,
-              if(data.status.toString()=="2")
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
+                  Row(
+                    children: [
+                      CustomText(text: "Expense Amt : ",isBold: true,),
+                      CustomText(text: "₹ ${utils.formatNo(data.amount.toString())}",colors: colorsConst.primary,isBold: true,),
+                    ],
+                  ),
+                  if(data.status.toString()=="2")
                     Row(
                       children: [
                         const CustomText(text: "Approved Amount : ",colors: Colors.blueGrey,),
@@ -549,15 +576,16 @@ class _ViewExpenseState extends State<ViewExpense> with SingleTickerProviderStat
                         utils.formatNo(data.approvalAmt.toString()):"0"}",colors: colorsConst.appOrg,isBold: true,),
                       ],
                     ),
+                  if(data.status.toString()=="2")
                     Row(
                       children: [
                         const CustomText(text: "Paid Amount : ",colors: Colors.blueGrey,),
                         CustomText(text: "₹ ${data.paidAmt.toString()!=""&&data.paidAmt.toString()!="null"?
-                        utils.formatNo(data.paidAmt.toString()):"0"}",colors: colorsConst.appGreen,isBold: true,),
+                        utils.formatNo(data.paidAmt.toString()):"0"}",colors: Colors.lightGreen,isBold: true,),
                       ],
                     ),
-                  ],
-                ),
+                ],
+              ),
             ],
           ),
         ),
@@ -567,6 +595,337 @@ class _ViewExpenseState extends State<ViewExpense> with SingleTickerProviderStat
 }
 
 
+class DownloadExpense extends StatefulWidget {
+  final String date1;
+  final String date2;
+  final String type;
+  const DownloadExpense({super.key, required this.date1, required this.date2, required this.type});
+
+  @override
+  State<DownloadExpense> createState() => _DownloadExpenseState();
+}
+
+class _DownloadExpenseState extends State<DownloadExpense> with SingleTickerProviderStateMixin {
+  final FocusScopeNode _myFocusScopeNode = FocusScopeNode();
+
+  @override
+  void initState() {
+    Future.delayed(Duration.zero, () {
+      // Provider.of<ExpenseProvider>(context, listen: false).changeDate();
+      // Provider.of<ExpenseProvider>(context, listen: false).getAllExpense();
+      // Provider.of<ExpenseProvider>(context, listen: false).initFilterValue(true);
+      Provider.of<ExpenseProvider>(context, listen: false).initFilterValue(true);
+      Provider.of<ExpenseProvider>(context, listen: false).addFilterList();
+    });
+    super.initState();
+  }
+  @override
+  void dispose() {
+    _myFocusScopeNode.dispose();
+    super.dispose();
+  }
+  @override
+  Widget build(BuildContext context) {
+    var webHeight=MediaQuery.of(context).size.width * 0.5;
+    var phoneHeight=MediaQuery.of(context).size.width * 0.9;
+    return Consumer2<ExpenseProvider,EmployeeProvider>(builder: (context,expProvider,empProvider,_){
+      return FocusScope(
+        node: _myFocusScopeNode,
+        child: SafeArea(
+          child: Scaffold(
+              backgroundColor: colorsConst.bacColor,
+              body: Center(
+                child: SizedBox(
+                  width: kIsWeb?webHeight:phoneHeight,
+                  // color: Colors.red,
+                  child: expProvider.refresh==false?
+                  const Loading():
+                  Column(
+                    children: [
+                      SizedBox(
+                        width: kIsWeb?webHeight:phoneHeight,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            20.height,
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                InkWell(
+                                    onTap: () {
+                                      expProvider.showDatePickerDialog(context);
+                                      // expProvider.initFilterValue(false);
+                                      if(expProvider.user!=null){
+                                        expProvider.fetchEmpExpense(context,expProvider.user,false);
+                                      }
+                                    },
+                                    child: Container(
+                                      height: 45,
+                                      width: kIsWeb?webHeight/2:phoneHeight/1.8,
+                                      decoration: customDecoration.baseBackgroundDecoration(
+                                          color: colorsConst.primary,
+                                          radius: 5,borderColor: Colors.grey.shade200
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          5.width,
+                                          CustomText(
+                                            text: "Select Date : ",colors: Colors.white,),
+                                          CustomText(
+                                            text: "${expProvider.startDate}${expProvider.startDate!=expProvider.endDate? " To ${expProvider.endDate}": ""}",colors: Colors.white,isBold: true,),
+                                        ],
+                                      ),
+                                    )),
+                                Container(
+                                  height: 45,
+                                  width: kIsWeb?webHeight/2:phoneHeight/2.3,
+                                  decoration: customDecoration.baseBackgroundDecoration(
+                                    radius: 5,
+                                    color: Colors.white,
+                                    borderColor: colorsConst.litGrey,
+                                  ),
+                                  child: DropdownButton(
+                                    iconEnabledColor: colorsConst.greyClr,
+                                    isExpanded: true,
+                                    underline: const SizedBox(),
+                                    icon: const Icon(Icons.keyboard_arrow_down_outlined),
+                                    value: expProvider.filterType,
+                                    onChanged: (value) {
+                                      expProvider.changeFilterType(value);
+                                      expProvider.initFilterValue(false);
+                                      if(expProvider.user!=null){
+                                        expProvider.fetchEmpExpense(context,expProvider.user,false);
+                                      }
+                                    },
+                                    items: expProvider.downloadFilterTypeList.map((list) {
+                                      return DropdownMenuItem(
+                                        value: list,
+                                        child: CustomText(
+                                          text: "  $list",
+                                          colors: Colors.black,
+                                          isBold: false,
+                                        ),
+                                      );
+                                    }).toList(),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            10.height,
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Stack(
+                                  children:[
+                                    EmployeeDropdown(
+                                        callback: (){},
+                                        text: expProvider.userName.toString()==""?"Employee Name":expProvider.userName,
+                                        employeeList: empProvider.activeEmps,
+                                        onChanged: (UserModel? value) {
+                                          expProvider.selectUser(value!);
+                                          expProvider.initFilterValue(false);
+                                          expProvider.fetchEmpExpense(context,expProvider.user,false);
+                                        },
+                                        size: kIsWeb?webHeight/2:phoneHeight/1.8),
+                                   Positioned(
+                                     left: 10,top: 10,
+                                       child:  CustomText(text: expProvider.userName.toString()==""?"Employee Name":""))
+                                  ]
+                                ),
+                                SizedBox(
+                                  height: 30,width: kIsWeb?webHeight/4:55,
+                                  child: ElevatedButton(onPressed: (){
+                                    if(expProvider.empExpenseData.isEmpty){
+                                      utils.showWarningToast(context, text: "No Expense Found");
+                                    }else{
+                                      expProvider.downloadAllExpense2(context,expProvider.user,false);
+                                    }
+                                  }, child: CustomText(text: "PDF",isBold: true,colors: Colors.white,size: 10,)),
+                                ),
+                                SizedBox(
+                                  height: 30,width: kIsWeb?webHeight/4:60,
+                                  child: ElevatedButton(onPressed: (){
+                                    if(expProvider.empExpenseData.isEmpty){
+                                      utils.showWarningToast(context, text: "No Expense Found");
+                                    }else{
+                                      expProvider.downloadAllExpense2(context,expProvider.user,true);
+                                    }
+                                  }, child: const CustomText(text: "Excel",isBold: true,colors: Colors.white,size: 10,)),
+                                )
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      expProvider.userName==""?
+                      Column(
+                        children: [
+                          100.height,
+                          CustomText(text: "Select Employee Name",
+                              colors: colorsConst.greyClr)
+                        ],
+                      ):
+                      expProvider.empExpenseData.isEmpty?
+                      Column(
+                        children: [
+                          100.height,
+                          CustomText(text: "No Expense Found",
+                              colors: colorsConst.greyClr)
+                        ],
+                      ) :
+                      Expanded(
+                        child: ListView.builder(
+                            itemCount: expProvider.empExpenseData.length,
+                            itemBuilder: (context, index) {
+                              final sortedData = expProvider.empExpenseData;
+                              final data = sortedData[index];
+                              var createdBy = "";
+                              String timestamp = data.createdTs.toString();
+                              DateTime dateTime = DateTime.parse(timestamp);
+                              DateFormat('EEEE').format(dateTime);
+                              DateTime today = DateTime.now();
+                              if (dateTime.day == today.day && dateTime.month == today.month && dateTime.year == today.year) {
+                              } else if (dateTime.isAfter(today.subtract(const Duration(days: 1))) &&
+                                  dateTime.isBefore(today)) {
+                              } else {
+                              }
+                              createdBy = "${dateTime.day}/${dateTime.month}/${dateTime.year}";
+                              return InkWell(
+                                onTap: (){
+                                  _myFocusScopeNode.unfocus();
+                                  utils.navigatePage(context, ()=> DashBoard(child: ExpenseDetails(visitId: '0', isExpense: true,companyId: "", id: data.id.toString(),
+                                      name: data.firstname.toString(), role: data.role.toString(),
+                                      customer: data.projectName.toString(), purpose: data.taskTitle.toString(), date: createdBy,)));
+                                },
+                                child: Column(
+                                  children: [
+                                    expenseDetail(createdBy: createdBy,data: data),
+                                    if(index==expProvider.empExpenseData.length-1)
+                                    80.height
+                                  ],
+                                ),
+                              );
+                              // :0.width;
+                            }),
+                      ),
+                    ],
+                  ),
+                ),
+              )
+          ),
+        ),
+      );
+    });
+  }
+  String getCreatedDate(data) {
+    final timestamp = data.createdTs.toString();
+    final dateTime = DateTime.parse(timestamp);
+    return "${dateTime.day}/${dateTime.month}/${dateTime.year}";
+  }
+  Widget expenseDetail({required String createdBy, required ExpenseModel data}){
+    var webHeight=MediaQuery.of(context).size.width * 0.5;
+    var phoneHeight=MediaQuery.of(context).size.width * 0.9;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(0, 10, 0, 0),
+      child: Container(
+        decoration: customDecoration.baseBackgroundDecoration(
+            color: Colors.white,radius: 10
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Column(
+            // crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  data.projectName.toString()!="null"?
+                  Row(
+                    children: [
+                      const CustomText(text: "Task : ",colors: Colors.grey),
+                      SizedBox(
+                        // color: Colors.pinkAccent,
+                          width: kIsWeb?webHeight/3:phoneHeight/1.7,
+                          child: CustomText(text: data.projectName.toString(),colors: colorsConst.bankColor)),
+                    ],
+                  ):
+                  Container(
+                    decoration: customDecoration.baseBackgroundDecoration(
+                      color: data.status.toString()=="0"?Colors.red:data.status.toString()=="2"?colorsConst.appDarkGreen:Colors.grey.shade100,radius: 5
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(3),
+                      child: CustomText(text: data.status.toString()=="0"?"Rejected":data.status.toString()=="2"?"Approved":"In Process",
+                        colors: Colors.white,isItalic: true,),
+                    ),
+                  ),
+                  SizedBox(
+                    // color: Colors.blueGrey,
+                      width: kIsWeb?webHeight/6.8:phoneHeight/4.6,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          CustomText(text: "Added Date : ",colors: Colors.grey,),
+                          CustomText(text: createdBy),
+                        ],
+                      )),
+                ],
+              ),
+              5.height,
+              if(data.projectName.toString()!="null")
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    SizedBox(
+                      // color: Colors.pinkAccent,
+                        width: kIsWeb?webHeight/2:phoneHeight/1.4,
+                        child: CustomText(text: data.taskTitle.toString(),colors: colorsConst.greyClr)),
+                    Container(
+                      decoration: customDecoration.baseBackgroundDecoration(
+                          color: data.status.toString()=="0"?Colors.red:data.status.toString()=="2"?colorsConst.appDarkGreen:colorsConst.adm1,radius: 5
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(3),
+                        child: CustomText(text: data.status.toString()=="0"?"Rejected":data.status.toString()=="2"?"Approved":"In Process",
+                          colors: Colors.white,isItalic: true,),
+                      )),
+                  ],
+                ),
+              5.height,
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      CustomText(text: "Expense Amt : ",isBold: true,),
+                      CustomText(text: "₹ ${utils.formatNo(data.amount.toString())}",colors: colorsConst.primary,isBold: true,),
+                    ],
+                  ),
+                  if(data.status.toString()=="2")
+                  Row(
+                    children: [
+                      const CustomText(text: "Approved Amount : ",colors: Colors.blueGrey,),
+                      CustomText(text: "₹ ${data.approvalAmt.toString()!=""&&data.approvalAmt.toString()!="null"?
+                      utils.formatNo(data.approvalAmt.toString()):"0"}",colors: colorsConst.appOrg,isBold: true,),
+                    ],
+                  ),
+                  if(data.status.toString()=="2")
+                  Row(
+                    children: [
+                      const CustomText(text: "Paid Amount : ",colors: Colors.blueGrey,),
+                      CustomText(text: "₹ ${data.paidAmt.toString()!=""&&data.paidAmt.toString()!="null"?
+                      utils.formatNo(data.paidAmt.toString()):"0"}",colors: Colors.lightGreen,isBold: true,),
+                    ],
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
 
 
 

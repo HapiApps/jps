@@ -57,7 +57,7 @@ class _ExpenseDashboardState extends State<ExpenseDashboard> {
                   decoration: customDecoration.baseBackgroundDecoration(
                       color: Colors.white,radius: 10
                   ),
-                  height: 250,
+                  height: 255,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -68,7 +68,7 @@ class _ExpenseDashboardState extends State<ExpenseDashboard> {
                         children: [
                           Padding(
                             padding: const EdgeInsets.fromLTRB(0, 10, 0, 0),
-                            child: MapDropDown(
+                            child: CustomMapDropDown(
                               isHint: false,
                               isRefresh: expProvider.expenseList.isEmpty?true:false,
                               callback: (){
@@ -344,7 +344,7 @@ class _ExpenseDashboardState extends State<ExpenseDashboard> {
                               height: 42,
                               width: localData.storage.read("role")=="1"&&kIsWeb?webWidth/2.2:
                               localData.storage.read("role")=="1"&&!kIsWeb?phoneWidth/2.2:
-                              localData.storage.read("role")!="1"&&kIsWeb?webWidth/1:phoneWidth/1,
+                              localData.storage.read("role")!="1"&&kIsWeb?webWidth/1:phoneWidth/1.05,
                               decoration: customDecoration.baseBackgroundDecoration(
                                 radius: 10,
                                 color: Colors.white,

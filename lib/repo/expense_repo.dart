@@ -38,8 +38,8 @@ class ExpenseRepository{
           },
           body: jsonEncode(data),
           encoding: Encoding.getByName("utf-8"));
-      // print(data);
-      // print(request.body);
+      print(data);
+      print(request.body);
       if (request.statusCode == 200){
         List response = json.decode(request.body);
         return response.map((json) => ExpenseModel.fromJson(json)).toList();

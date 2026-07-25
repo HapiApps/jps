@@ -8,6 +8,7 @@ import 'package:master_code/view_model/home_provider.dart';
 import '../../component/custom_appbar.dart';
 import '../../component/custom_text.dart';
 import '../../source/constant/colors_constant.dart';
+import '../../source/constant/local_data.dart';
 import '../../source/styles/decoration.dart';
 import '../../source/utilities/utils.dart';
 import '../common/dashboard.dart';
@@ -26,7 +27,7 @@ class _ExpensePageState extends State<ExpensePage> with SingleTickerProviderStat
   final FocusScopeNode _myFocusScopeNode = FocusScopeNode();
   @override
   void initState() {
-    tabController = TabController(length: 2, vsync: this);
+    tabController = TabController(length: localData.storage.read("role")=="1"?3:2, vsync: this);
     tabController.addListener(() {
       _myFocusScopeNode.unfocus();
     });
@@ -95,9 +96,11 @@ class _ExpensePageState extends State<ExpensePage> with SingleTickerProviderStat
                               ),
                               labelColor: Colors.green,
                               unselectedLabelColor: Colors.green,
-                              tabs:  const [
+                              tabs:  [
                                 Tab(child:CustomText(text: "Report")),
                                 Tab(child:CustomText(text: "Expense Details")),
+                                if(localData.storage.read("role")=="1")
+                                Tab(child:CustomText(text: "Download Expense")),
                               ],
                             )
                         ),
@@ -107,6 +110,8 @@ class _ExpensePageState extends State<ExpensePage> with SingleTickerProviderStat
                               children: [
                                 ExpenseDashboard(),
                                 ViewExpense(date1: homeProvider.startDate, date2: homeProvider.endDate,type: homeProvider.type,tab:true),
+                                if(localData.storage.read("role")=="1")
+                                DownloadExpense(date1: homeProvider.startDate, date2: homeProvider.endDate,type: homeProvider.type),
                               ]),
                         )
                       ],
