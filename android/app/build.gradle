@@ -36,14 +36,14 @@ android {
         multiDexEnabled true
     }
 
-//    signingConfigs {
-//        release {
-//            keyAlias keystoreProperties['keyAlias']
-//            keyPassword keystoreProperties['keyPassword']
-//            storeFile file(keystoreProperties['storeFile'])
-//            storePassword keystoreProperties['storePassword']
-//        }
-//    }
+    signingConfigs {
+        release {
+            keyAlias keystoreProperties['keyAlias']
+            keyPassword keystoreProperties['keyPassword']
+            storeFile file(keystoreProperties['storeFile'])
+            storePassword keystoreProperties['storePassword']
+        }
+    }
 
     buildTypes {
         release {
@@ -55,11 +55,11 @@ android {
                     'proguard-rules.pro'
             )
 
-//            signingConfig signingConfigs.release
+            signingConfig signingConfigs.release
         }
 
         debug {
-//            signingConfig signingConfigs.debug
+            signingConfig signingConfigs.debug
         }
     }
 }

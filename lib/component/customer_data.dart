@@ -86,8 +86,8 @@ class _CustomerDataState extends State<CustomerData> {
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
-                                  SizedBox(
-                                      width:kIsWeb?webWidth/1.15:phoneWidth/1.13,
+                                  Container(
+                                      // width:kIsWeb?webWidth/1.15:phoneWidth/1.15,
                                       // color: Colors.pinkAccent,
                                       child: Padding(
                                         padding: const EdgeInsets.fromLTRB(5, 0, 0, 0),

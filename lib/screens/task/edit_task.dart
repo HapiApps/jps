@@ -13,6 +13,7 @@ import '../../component/custom_loading.dart';
 import '../../component/custom_loading_button.dart';
 import '../../component/custom_text.dart';
 import '../../component/custom_textfield.dart';
+import '../../component/maxline_textfield.dart';
 import '../../component/search_drop_down.dart';
 import '../../model/customer/customer_model.dart';
 import '../../source/constant/colors_constant.dart';
@@ -131,9 +132,9 @@ class _EditTaskState extends State<EditTask> with SingleTickerProviderStateMixin
                                       }, size: kIsWeb?webWidth:phoneWidth,),
                                   ],
                                 ),
-                                CustomTextField(
+                                MaxLineTextField(
                                   text: "Task Title / Description",isRequired: true,
-                                  controller: taskProvider.taskTitleCont,
+                                  controller: taskProvider.taskTitleCont,maxLine: 4,
                                   width: kIsWeb?webWidth:phoneWidth,
                                   textCapitalization: TextCapitalization.sentences,
                                 ),

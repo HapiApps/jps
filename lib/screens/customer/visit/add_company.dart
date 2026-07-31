@@ -1,5 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:master_code/source/constant/key_constant.dart';
 import 'package:provider/provider.dart';
 import '../../../component/custom_loading_button.dart';
 import '../../../model/customer/customer_model.dart';
@@ -96,6 +98,7 @@ class _AddCompanyPopupState extends State<AddCompanyPopup> {
               controller: mobileController,
               keyboardType: TextInputType.phone,
               maxLength: 10,
+              inputFormatters: constInputFormatters.mobileNumberInput,
               decoration: const InputDecoration(
                 labelText: "Mobile Number",
                 border: OutlineInputBorder(),

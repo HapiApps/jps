@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:master_code/component/custom_checkbox.dart';
 import 'package:master_code/component/custom_loading_button.dart';
@@ -160,6 +161,7 @@ class _CreateCustomerState extends State<CreateCustomer> with TickerProviderStat
                       ),
                       CustomTextField(
                         text: "Emergency Number",
+
                         width: kIsWeb?webWidth:phoneWidth,
                         inputFormatters: constInputFormatters.mobileNumberInput,
                         controller: custProvider.emgNo,

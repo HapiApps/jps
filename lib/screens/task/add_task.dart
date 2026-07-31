@@ -49,7 +49,7 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
       final taskProvider = Provider.of<TaskProvider>(context, listen: false);
 
       taskProvider.setTodayDate();
-
+      taskProvider.taskTitleCont.clear();
       await Provider.of<CustomerProvider>(context, listen: false)
           .getAllCustomers(true);
 
@@ -260,6 +260,7 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
                                   width: kIsWeb?webWidth:phoneWidth
                               ),
                               Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   MapDropDown(
@@ -272,15 +273,14 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
                                     },
                                     width: kIsWeb
                                         ? webWidth
-                                        : MediaQuery.of(context).size.width * 0.4,
+                                        : MediaQuery.of(context).size.width * 0.42,
                                   ),
-                                  20.width,
                                   Padding(
                                     padding: const EdgeInsets.only(top: 4.0,left: 4),
                                     child: CustomTextField(
                                       width: kIsWeb
                                           ? webWidth
-                                          : 170,// MediaQuery.of(context).size.width * 0.4,
+                                          : MediaQuery.of(context).size.width * 0.42,
                                       text: "Task Date",
                                       controller: taskProvider.taskDt,
                                       hintText: "DD-MM-YYYY",

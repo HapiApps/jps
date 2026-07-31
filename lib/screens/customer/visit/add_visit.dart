@@ -606,7 +606,7 @@ class _CusAddVisitState extends State<CusAddVisit>
                                 textCapitalization:
                                 TextCapitalization.sentences,
                                 controller: custProvider.disPoint,
-                                maxLine: 5,
+                                maxLine: 4,
                               ),
 
                               MaxLineTextField(
@@ -615,7 +615,7 @@ class _CusAddVisitState extends State<CusAddVisit>
                                 textCapitalization:
                                 TextCapitalization.sentences,
                                 controller: custProvider.points,
-                                maxLine: 5,
+                                maxLine: 4,
                                 textInputAction: TextInputAction.done,
                               ),
 

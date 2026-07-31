@@ -35,11 +35,12 @@ class MaxLineTextField extends StatelessWidget {
         SizedBox(
           width: width,
           child: TextFormField(
-              maxLines: maxLine,
+              minLines: maxLine,
+              maxLines: null,
               onChanged: onChanged,
+              keyboardType: TextInputType.multiline,
+              textInputAction: TextInputAction.newline,
               textCapitalization: textCapitalization!,
-              textInputAction: textInputAction,
-              keyboardType: TextInputType.text,
               controller: controller,
               decoration: customStyle.inputDecoration(fieldClr: Colors.white
               )
