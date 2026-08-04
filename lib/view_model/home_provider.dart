@@ -869,7 +869,7 @@ Future<void> loginOuts(context) async {
   List<WorkPlanModelDetails> workPlanList = [];
   bool workPlanRefresh = false;
 
-  Future<void> getWorkPlanList(bool isRefresh, String date) async {
+  Future<void> getWorkPlanList(bool isRefresh, String startDate, String endDate) async {
     if (isRefresh == true) {
       workPlanList.clear();
       workPlanRefresh = false;
@@ -884,16 +884,19 @@ Future<void> loginOuts(context) async {
         "user_id": localData.storage.read("id"),
         "role": localData.storage.read("role"),
         "cos_id": localData.storage.read("cos_id"),
-        "date": date
+        "start_date": startDate,
+        "end_date": endDate,
       };
 
       final response = await homeRepo.getDashboardReport(data);
-
+      print("Request Data: $data");
       if (response.isNotEmpty) {
+        print("Request Data 123 : $response");
         workPlanList =
             response.map<WorkPlanModelDetails>((e) => WorkPlanModelDetails.fromJson(e)).toList();
         workPlanRefresh = true;
       } else {
+        print("Request Data 12345 : $response");
         workPlanList = [];
         workPlanRefresh = true;
       }
@@ -937,11 +940,11 @@ Future<void> loginOuts(context) async {
       if (response.isNotEmpty && response[0]["status"] == true) {
         workPlanRefresh = true;
 
-        String today = DateFormat("yyyy-MM-dd").format(DateTime.now());
+        String startDate = DateFormat("yyyy-MM-dd").format(DateTime.now());
+        String endDate = DateTime.now().toIso8601String().split("T")[0];
+        print("🎯 Status Updated Successfully. Fetching WorkPlan List for $startDate");
 
-        print("🎯 Status Updated Successfully. Fetching WorkPlan List for $today");
-
-        await getWorkPlanList(true, today);
+        await getWorkPlanList(true, startDate,endDate);
         final homeProvider = Provider.of<HomeProvider>(context, listen: false);
         homeProvider.checkThisMonth();
         homeProvider.loadFullDashboard(context);
@@ -1533,4 +1536,5 @@ Future<void> deleteUseAccount(context) async {
     _month=DateFormat("MMM yyyy").format(DateTime.now());
     notifyListeners();
   }
+
 }

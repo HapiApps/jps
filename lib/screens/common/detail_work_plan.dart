@@ -1,11 +1,17 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:master_code/source/constant/colors_constant.dart';
 import 'package:master_code/source/extentions/extensions.dart';
+import 'package:open_file/open_file.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 import '../../model/task/work_details_plan.dart';
 import '../../source/constant/local_data.dart';
 import '../../view_model/home_provider.dart';
+import 'package:excel/excel.dart' as excel_pkg;
 
 class DailyReportStatusPage extends StatefulWidget {
   final int initialTab;
@@ -21,7 +27,8 @@ class DailyReportStatusPage extends StatefulWidget {
 
 class _DailyReportStatusPageState extends State<DailyReportStatusPage>
     with SingleTickerProviderStateMixin {
-  DateTime selectedDate = DateTime.now();
+  DateTime startDate = DateTime.now();
+  DateTime endDate = DateTime.now();
 
   late TabController tabController;
   Color indicatorColor = Colors.green;
@@ -46,11 +53,13 @@ class _DailyReportStatusPageState extends State<DailyReportStatusPage>
     });
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      String todayDate = DateTime.now().toIso8601String().split("T")[0];
+      String start = startDate.toIso8601String().split("T")[0];
+      String end = endDate.toIso8601String().split("T")[0];
       Provider.of<HomeProvider>(context, listen: false)
-          .getWorkPlanList(true, todayDate);
+          .getWorkPlanList(true, start, end);
     });
   }
+
   String formatDateTime(String? dateTime) {
     if (dateTime == null || dateTime.isEmpty) return "-";
 
@@ -61,6 +70,113 @@ class _DailyReportStatusPageState extends State<DailyReportStatusPage>
       return dateTime;
     }
   }
+
+  Future<void> exportWorkPlanToExcel(
+      List<WorkPlanModelDetails> workPlanList, BuildContext context) async {
+    if (Platform.isAndroid) {
+      await Permission.storage.request();
+    }
+
+    var excelFile = excel_pkg.Excel.createExcel();
+    excel_pkg.Sheet sheet = excelFile['Daily Work Plan'];
+    excelFile.setDefaultSheet('Daily Work Plan');
+
+    String startStr = DateFormat("dd-MM-yyyy").format(startDate);
+    String endStr = DateFormat("dd-MM-yyyy").format(endDate);
+    String dateStr = startStr == endStr ? startStr : "${startStr}_to_$endStr";
+
+    int rowIndex = 0;
+
+    for (var emp in workPlanList) {
+      // ---- Employee Heading Row ----
+      var nameCell = sheet.cell(excel_pkg.CellIndex.indexByColumnRow(
+          columnIndex: 0, rowIndex: rowIndex));
+      nameCell.value = "${emp.name} (${emp.role})";
+
+      var dateCell = sheet.cell(excel_pkg.CellIndex.indexByColumnRow(
+          columnIndex: 5, rowIndex: rowIndex));
+      dateCell.value = "Date: ${emp.date ?? dateStr}";
+
+      rowIndex++;
+
+      if (emp.plans.isEmpty) {
+        var noPlanCell = sheet.cell(excel_pkg.CellIndex.indexByColumnRow(
+            columnIndex: 0, rowIndex: rowIndex));
+        noPlanCell.value = "Not Submitted";
+        rowIndex++;
+        rowIndex++; // blank line
+        continue;
+      }
+
+      // ---- Sub header row for this employee's plans ----
+      List<String> subHeaders = [
+        "S.No",
+        "Description",
+        "Company",
+        "Customer",
+        "Status",
+        "Created Time",
+        "Updated Time"
+      ];
+      for (int c = 0; c < subHeaders.length; c++) {
+        var cell = sheet.cell(excel_pkg.CellIndex.indexByColumnRow(
+            columnIndex: c, rowIndex: rowIndex));
+        cell.value = subHeaders[c];
+      }
+      rowIndex++;
+
+      // ---- Plan rows ----
+      for (int i = 0; i < emp.plans.length; i++) {
+        DailyWorkPlanDetails plan = emp.plans[i];
+        List<String> rowData = [
+          "${i + 1}",
+          plan.desc,
+          plan.company ?? "",
+          plan.customer ?? "",
+          plan.workStatus == "1" ? "Achieved" : "Not Achieved",
+          formatDateTime(plan.createdTime),
+          formatDateTime(plan.updatedTime),
+        ];
+        for (int c = 0; c < rowData.length; c++) {
+          var cell = sheet.cell(excel_pkg.CellIndex.indexByColumnRow(
+              columnIndex: c, rowIndex: rowIndex));
+          cell.value = rowData[c];
+        }
+        rowIndex++;
+      }
+
+      rowIndex++; // ✅ blank line before next employee block
+    }
+
+    // ---- Save file ----
+    Directory? directory;
+    if (Platform.isAndroid) {
+      directory = Directory('/storage/emulated/0/Download');
+      if (!(await directory.exists())) {
+        directory = await getExternalStorageDirectory();
+      }
+    } else {
+      directory = await getApplicationDocumentsDirectory();
+    }
+
+    String filePath = "${directory!.path}/DailyWorkPlan_$dateStr.xlsx";
+
+    final fileBytes = excelFile.encode();
+    if (fileBytes != null) {
+      File(filePath)
+        ..createSync(recursive: true)
+        ..writeAsBytesSync(fileBytes);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Excel saved: $filePath")),
+        );
+      }
+
+      OpenFile.open(filePath);
+    }
+  }
+
   @override
   void dispose() {
     tabController.dispose();
@@ -90,7 +206,6 @@ class _DailyReportStatusPageState extends State<DailyReportStatusPage>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-
               /// Plan Number + Description Row
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -266,8 +381,8 @@ class _DailyReportStatusPageState extends State<DailyReportStatusPage>
                 ],
               ),
 
+              5.height,
 
-            5.height,
               /// Company + Customer Row
               if ((plan.company ?? "").toString().trim().isNotEmpty)
                 Row(
@@ -276,7 +391,7 @@ class _DailyReportStatusPageState extends State<DailyReportStatusPage>
                       child: Text.rich(
                         TextSpan(
                           children: [
-                             TextSpan(
+                            TextSpan(
                               text: "Company : ",
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
@@ -303,12 +418,11 @@ class _DailyReportStatusPageState extends State<DailyReportStatusPage>
                       child: Text.rich(
                         TextSpan(
                           children: [
-                             TextSpan(
+                            TextSpan(
                               text: "Customer : ",
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 color: Colors.grey.shade600,
-
                                 fontSize: 13,
                               ),
                             ),
@@ -329,8 +443,6 @@ class _DailyReportStatusPageState extends State<DailyReportStatusPage>
                   ],
                 ),
 
-
-
               /// Created + Updated Time Row
               Row(
                 children: [
@@ -338,13 +450,12 @@ class _DailyReportStatusPageState extends State<DailyReportStatusPage>
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                         Text(
+                        Text(
                           "Created: ",
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.bold,
                             color: Colors.grey.shade600,
-
                           ),
                         ),
                         const SizedBox(height: 4),
@@ -363,7 +474,7 @@ class _DailyReportStatusPageState extends State<DailyReportStatusPage>
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                         Text(
+                        Text(
                           "  Updated: ",
                           style: TextStyle(
                             fontSize: 12,
@@ -386,19 +497,20 @@ class _DailyReportStatusPageState extends State<DailyReportStatusPage>
                 ],
               ),
               /// Status Button (Last Row)
-
             ],
           ),
         ),
-
-        if (planIndex != totalPlans - 1)
-          const SizedBox(height: 2),
+        if (planIndex != totalPlans - 1) const SizedBox(height: 2),
       ],
     );
   }
+
   @override
   Widget build(BuildContext context) {
-    String dateText = DateFormat("dd-MM-yyyy").format(selectedDate);
+    String startText = DateFormat("dd-MM-yyyy").format(startDate);
+    String endText = DateFormat("dd-MM-yyyy").format(endDate);
+    String dateRangeText =
+    startText == endText ? startText : "$startText  to  $endText";
 
     return Scaffold(
       backgroundColor: colorsConst.bacColor,
@@ -420,6 +532,16 @@ class _DailyReportStatusPageState extends State<DailyReportStatusPage>
           icon: const Icon(Icons.arrow_back_ios),
           color: colorsConst.primary,
         ),
+        actions: [
+          if (isAdmin)
+            IconButton(
+              icon: Icon(Icons.download, color: colorsConst.primary),
+              onPressed: () {
+                final provider = Provider.of<HomeProvider>(context, listen: false);
+                exportWorkPlanToExcel(provider.workPlanList, context);
+              },
+            ),
+        ],
 
         /// ✅ ONLY ADMIN TAB BAR SHOW
         bottom: isAdmin
@@ -486,43 +608,52 @@ class _DailyReportStatusPageState extends State<DailyReportStatusPage>
             children: [
               5.height,
 
-              /// Date Picker
+              /// Date Range Picker
               Row(
                 children: [
                   20.width,
-                  Text(
-                    "Date : $dateText",
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 15,
+                  Expanded(
+                    child: Text(
+                      "Date : $dateRangeText",
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
+                      ),
                     ),
                   ),
                   IconButton(
                     icon:
                     Icon(Icons.calendar_month, color: colorsConst.primary),
                     onPressed: () async {
-                      DateTime? picked = await showDatePicker(
+                      DateTimeRange? picked = await showDateRangePicker(
                         context: context,
-                        initialDate: selectedDate,
+                        initialDateRange: DateTimeRange(
+                          start: startDate,
+                          end: endDate,
+                        ),
                         firstDate: DateTime(2020),
                         lastDate: DateTime(2100),
                       );
 
                       if (picked != null) {
                         setState(() {
-                          selectedDate = picked;
+                          startDate = picked.start;
+                          endDate = picked.end;
                         });
 
                         /// ✅ API format date (yyyy-MM-dd)
-                        String apiDate =
-                        picked.toIso8601String().split("T")[0];
+                        String start =
+                        picked.start.toIso8601String().split("T")[0];
+                        String end =
+                        picked.end.toIso8601String().split("T")[0];
 
                         /// ✅ Call Provider API
                         Provider.of<HomeProvider>(context, listen: false)
-                            .getWorkPlanList(true, apiDate);
+                            .getWorkPlanList(true, start, end);
                       }
                     },
-                  )
+                  ),
+                  10.width,
                 ],
               ),
 
@@ -758,8 +889,6 @@ class _DailyReportStatusPageState extends State<DailyReportStatusPage>
           );
         },
       ),
-
     );
-
   }
 }
