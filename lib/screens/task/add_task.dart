@@ -31,7 +31,7 @@ import '../customer/visit/add_company.dart';
 class AddTask extends StatefulWidget {
   const AddTask({super.key});
 
-  @override //
+  @override
   State<AddTask> createState() => _AddTaskState();
 }
 
@@ -39,42 +39,56 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
   late AnimationController animationController;
   late Animation<double> animation;
   final FocusScopeNode _myFocusScopeNode = FocusScopeNode();
-  List sendList=[];
-  @override
+  List sendList = [];
+
+  // ✅ page load ஆகும் வரைக்கும் loader காட்ட
+  bool _isLoading = true;
+
+  var companyId = "";
+  var companyName = "";
+
   @override
   void initState() {
     super.initState();
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final taskProvider = Provider.of<TaskProvider>(context, listen: false);
+      final customerProvider =
+      Provider.of<CustomerProvider>(context, listen: false);
 
       taskProvider.setTodayDate();
       taskProvider.taskTitleCont.clear();
-      await Provider.of<CustomerProvider>(context, listen: false)
-          .getAllCustomers(true);
 
+      // ✅ எல்லா API calls-um ஒரே நேரத்துல parallel-ஆ கிளம்பும்
       await Future.wait([
+        customerProvider.getAllCustomers(true),
         taskProvider.getTaskType(false),
         taskProvider.getTaskStatuses(),
+        taskProvider.getTaskUsers(),
       ]);
 
       taskProvider.setDefaultType();
       taskProvider.initValue();
 
-      if (taskProvider.typeList.isNotEmpty) {
+      // ✅ ஏற்கனவே type select ஆகியிருந்தா, அதை overwrite பண்ண வேண்டாம்
+      if (taskProvider.typeList.isNotEmpty && taskProvider.type == null) {
         taskProvider.changeType(
           taskProvider.typeList.first["id"].toString(),
         );
       }
 
-      if (taskProvider.assignEmployees.isEmpty) {
-        await taskProvider.getTaskUsers();
-      }
-
-      if (taskProvider.statusList.isNotEmpty) {
+      // ✅ ஏற்கனவே status select ஆகியிருந்தா, அதை overwrite பண்ண வேண்டாம்
+      if (taskProvider.statusList.isNotEmpty && taskProvider.status == null) {
         taskProvider.setStatusByName(
           taskProvider.statusList.first["value"],
         );
+      }
+
+      // ✅ எல்லாம் load முடிஞ்ச பிறகு தான் form-ஐ காட்டு
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
       }
     });
 
@@ -92,14 +106,13 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
     _myFocusScopeNode.dispose();
     super.dispose();
   }
-  var companyId="";
-  var companyName="";
+
   @override
   Widget build(BuildContext context) {
-    var webWidth=MediaQuery.of(context).size.width * 0.5;
-    var phoneWidth=MediaQuery.of(context).size.width * 0.9;
-    return Consumer3<TaskProvider,CustomerProvider,EmployeeProvider>(
-        builder: (context, taskProvider, cusPvr,empPvr, _) {
+    var webWidth = MediaQuery.of(context).size.width * 0.5;
+    var phoneWidth = MediaQuery.of(context).size.width * 0.9;
+    return Consumer3<TaskProvider, CustomerProvider, EmployeeProvider>(
+        builder: (context, taskProvider, cusPvr, empPvr, _) {
           return FocusScope(
             node: _myFocusScopeNode,
             child: Scaffold(
@@ -108,9 +121,16 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
                 preferredSize: Size(300, 50),
                 child: CustomAppbar(text: "Add Task"),
               ),
-              body: Center(
+              // ✅ முழு page-ஐயும் loading state-க்கு ஏத்த switch பண்றது
+              body: _isLoading
+                  ? Center(
+                child: CircularProgressIndicator(
+                  color: colorsConst.primary,
+                ),
+              )
+                  : Center(
                 child: SizedBox(
-                  width: kIsWeb?webWidth:phoneWidth,
+                  width: kIsWeb ? webWidth : phoneWidth,
                   child: Column(
                     children: [
                       Expanded(
@@ -127,11 +147,10 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
                                 },
                                 width: kIsWeb ? webWidth : phoneWidth,
                                 hintText: constValue.type,
-                                list: taskProvider.typeList,   // ✅ FIX
+                                list: taskProvider.typeList,
                                 saveValue: taskProvider.type,
                                 onChanged: (value) {
-                                  print("Value $value");
-                                  taskProvider.changeType(value.toString()); // ✅ FIX
+                                  taskProvider.changeType(value.toString());
                                 },
                                 dropText: 'value',
                               ),
@@ -139,11 +158,14 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
                               Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  CustomText(text:constValue.companyName,size:13,isBold: false,),
+                                  CustomText(
+                                    text: constValue.companyName,
+                                    size: 13,
+                                    isBold: false,
+                                  ),
                                   3.height,
                                   Consumer<CustomerProvider>(
                                     builder: (context, custProvider, child) {
-
                                       List<CustomerModel> updatedCompanyList = [
                                         CustomerModel(
                                           userId: "add_company",
@@ -157,17 +179,16 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
 
                                       return CustomerDropdown(
                                         key: ValueKey(custProvider.customer.length),
-
-                                        hintText: false,// 🔥 force rebuild
-                                        text: companyId == "" ? constValue.companyName : companyName,
+                                        hintText: false,
+                                        text: companyId == ""
+                                            ? constValue.companyName
+                                            : companyName,
                                         employeeList: updatedCompanyList,
                                         onChanged: (CustomerModel? value) async {
-
                                           if (value == null) return;
 
                                           // ✅ Add Company Click
                                           if (value.userId.toString() == "add_company") {
-
                                             final result = await showDialog(
                                               context: context,
                                               barrierDismissible: false,
@@ -175,8 +196,6 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
                                             );
 
                                             if (result != null && result is CustomerModel) {
-
-                                              // ✅ company set instantly
                                               setState(() {
                                                 companyId = result.userId.toString();
                                                 companyName = result.companyName.toString();
@@ -184,12 +203,14 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
 
                                               custProvider.setMultiSelectedCustomers([]);
 
-                                              // ✅ build customer list for that company
                                               List<Map<String, dynamic>> tempList = [];
 
-                                              var idList = result.customerId.toString().split("||");
-                                              var usersList = result.firstName.toString().split("||");
-                                              var phoneList = result.phoneNumber.toString().split("||");
+                                              var idList =
+                                              result.customerId.toString().split("||");
+                                              var usersList =
+                                              result.firstName.toString().split("||");
+                                              var phoneList =
+                                              result.phoneNumber.toString().split("||");
 
                                               for (int i = 0; i < usersList.length; i++) {
                                                 tempList.add({
@@ -203,13 +224,13 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
                                                 sendList = tempList;
                                               });
 
-                                              // ✅ auto select first customer
                                               if (tempList.isNotEmpty) {
-                                                custProvider.setMultiSelectedCustomers([tempList[0]]);
+                                                custProvider
+                                                    .setMultiSelectedCustomers([tempList[0]]);
                                               }
                                             }
 
-                                            return; // 🔥 stop here
+                                            return;
                                           }
 
                                           // ✅ Normal Company Select
@@ -223,8 +244,10 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
                                           List<Map<String, dynamic>> tempList = [];
 
                                           var idList = value.customerId.toString().split("||");
-                                          var usersList = value.firstName.toString().split("||");
-                                          var phoneList = value.phoneNumber.toString().split("||");
+                                          var usersList =
+                                          value.firstName.toString().split("||");
+                                          var phoneList =
+                                          value.phoneNumber.toString().split("||");
 
                                           for (int i = 0; i < usersList.length; i++) {
                                             tempList.add({
@@ -239,7 +262,8 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
                                           });
 
                                           if (tempList.length == 1) {
-                                            custProvider.setMultiSelectedCustomers([tempList[0]]);
+                                            custProvider
+                                                .setMultiSelectedCustomers([tempList[0]]);
                                           }
                                         },
                                         size: kIsWeb ? webWidth : phoneWidth,
@@ -250,15 +274,13 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
                               ),
                               SearchCustomDropdown(
                                   text: "Assign To",
-
                                   hintText: taskProvider.assignedNames.isEmpty
                                       ? "Assign To"
                                       : taskProvider.assignedNames,
                                   valueList: empPvr.activeEmps,
                                   isOptional: false,
                                   onChanged: (value) {},
-                                  width: kIsWeb?webWidth:phoneWidth
-                              ),
+                                  width: kIsWeb ? webWidth : phoneWidth),
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -276,7 +298,7 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
                                         : MediaQuery.of(context).size.width * 0.42,
                                   ),
                                   Padding(
-                                    padding: const EdgeInsets.only(top: 4.0,left: 4),
+                                    padding: const EdgeInsets.only(top: 4.0, left: 4),
                                     child: CustomTextField(
                                       width: kIsWeb
                                           ? webWidth
@@ -287,7 +309,8 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
                                       readOnly: true,
                                       onTap: () {
                                         _myFocusScopeNode.unfocus();
-                                        taskProvider.datePick(context: context, date: taskProvider.taskDt);
+                                        taskProvider.datePick(
+                                            context: context, date: taskProvider.taskDt);
                                       },
                                     ),
                                   ),
@@ -296,12 +319,13 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
                               Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const CustomText(text: "Priority Level"),5.height,
+                                  const CustomText(text: "Priority Level"),
+                                  5.height,
                                   Row(
                                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                     children: [
                                       CustomRadioButton(
-                                          width: MediaQuery.of(context).size.width*0.2,
+                                          width: MediaQuery.of(context).size.width * 0.2,
                                           text: "Normal",
                                           onChanged: (value) {
                                             taskProvider.changeLevel(value.toString());
@@ -310,14 +334,14 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
                                           confirmValue: 'Normal'),
                                       CustomRadioButton(
                                           text: "High",
-                                          width: MediaQuery.of(context).size.width*0.2,
+                                          width: MediaQuery.of(context).size.width * 0.2,
                                           onChanged: (value) {
                                             taskProvider.changeLevel(value.toString());
                                           },
                                           saveValue: taskProvider.level,
                                           confirmValue: 'High'),
                                       CustomRadioButton(
-                                          width: MediaQuery.of(context).size.width*0.2,
+                                          width: MediaQuery.of(context).size.width * 0.2,
                                           text: "Immediate",
                                           onChanged: (value) {
                                             taskProvider.changeLevel(value.toString());
@@ -327,26 +351,26 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
                                     ],
                                   ),
                                 ],
-                              ),4.height,
+                              ),
+                              4.height,
                               MaxLineTextField(
-                                width: kIsWeb?webWidth:phoneWidth,
-                                text: " Task Title / Description",isRequired: true,
+                                width: kIsWeb ? webWidth : phoneWidth,
+                                text: " Task Title / Description",
+                                isRequired: true,
                                 controller: taskProvider.taskTitleCont,
-                                // si: kIsWeb?webWidth:phoneWidth,
-                                textCapitalization: TextCapitalization.sentences, maxLine: 4,
+                                textCapitalization: TextCapitalization.sentences,
+                                maxLine: 4,
                               ),
-                              if(!kIsWeb)
-                              SizedBox(
-                                width: kIsWeb?webWidth:phoneWidth,
-                                child: const Row(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    CustomText(text: "Notes Attachments")
-                                  ],
+                              if (!kIsWeb)
+                                SizedBox(
+                                  width: kIsWeb ? webWidth : phoneWidth,
+                                  child: const Row(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [CustomText(text: "Notes Attachments")],
+                                  ),
                                 ),
-                              ),
                               SizedBox(
-                                width: kIsWeb?webWidth:phoneWidth,
+                                width: kIsWeb ? webWidth : phoneWidth,
                                 child: ListView.builder(
                                     shrinkWrap: true,
                                     physics: const ScrollPhysics(),
@@ -356,21 +380,27 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
                                       return Padding(
                                         padding: const EdgeInsets.fromLTRB(0, 10, 0, 0),
                                         child: InkWell(
-                                          onTap: (){
-                                            Navigator.push(context, MaterialPageRoute(builder: (context)=>FullScreen(
-                                              image: file['path'], isNetwork: false,)));
+                                          onTap: () {
+                                            Navigator.push(
+                                                context,
+                                                MaterialPageRoute(
+                                                    builder: (context) => FullScreen(
+                                                      image: file['path'],
+                                                      isNetwork: false,
+                                                    )));
                                           },
                                           child: Container(
-                                            width: kIsWeb?webWidth:phoneWidth,
+                                            width: kIsWeb ? webWidth : phoneWidth,
                                             height: 60,
                                             decoration: customDecoration.baseBackgroundDecoration(
-                                                color: Colors.white,radius: 10,
-                                                borderColor: colorsConst.litGrey
-                                            ),
+                                                color: Colors.white,
+                                                radius: 10,
+                                                borderColor: colorsConst.litGrey),
                                             child: Column(
                                               children: [
                                                 Row(
-                                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                  mainAxisAlignment:
+                                                  MainAxisAlignment.spaceBetween,
                                                   children: [
                                                     Row(
                                                       children: [
@@ -378,25 +408,33 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
                                                         SvgPicture.asset(assets.docs),
                                                         10.width,
                                                         SizedBox(
-                                                          // color: Colors.pinkAccent,
-                                                          width: kIsWeb?webWidth/1.5:phoneWidth/1.5,
+                                                          width: kIsWeb
+                                                              ? webWidth / 1.5
+                                                              : phoneWidth / 1.5,
                                                           child: Column(
-                                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                                            children: [10.height,
-                                                              CustomText(text: file['name']),5.height,
-                                                              CustomText(text: file['size'],colors: colorsConst.greyClr,size: 10,)
+                                                            crossAxisAlignment:
+                                                            CrossAxisAlignment.start,
+                                                            children: [
+                                                              10.height,
+                                                              CustomText(text: file['name']),
+                                                              5.height,
+                                                              CustomText(
+                                                                text: file['size'],
+                                                                colors: colorsConst.greyClr,
+                                                                size: 10,
+                                                              )
                                                             ],
                                                           ),
                                                         ),
                                                       ],
                                                     ),
                                                     IconButton(
-                                                      onPressed: (){
+                                                      onPressed: () {
                                                         utils.customDialog(
                                                             context: context,
                                                             title: "Do you want to",
-                                                            title2:"Delete this photo?",
-                                                            callback: (){
+                                                            title2: "Delete this photo?",
+                                                            callback: () {
                                                               Navigator.pop(context);
                                                               taskProvider.removeFile(index);
                                                             },
@@ -426,68 +464,79 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
                               ),
                               10.height,
                               ///
-                              if(!kIsWeb)
-                              SizedBox(
-                                width: kIsWeb?webWidth:phoneWidth,
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
+                              if (!kIsWeb)
+                                SizedBox(
+                                  width: kIsWeb ? webWidth : phoneWidth,
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
                                       InkWell(
-                                      onTap: (){
-                                        _myFocusScopeNode.unfocus();
-                                        taskProvider.pickFile();
-                                      },
-                                      child: Container(
-                                        width: kIsWeb?webWidth:phoneWidth/1.5,height: 70,
-                                        decoration: customDecoration.baseBackgroundDecoration(
-                                            color: Colors.white,
-                                            radius: 10,
-                                            borderColor: colorsConst.litGrey
-                                        ),
-                                        child: Row(
-                                          mainAxisAlignment: MainAxisAlignment.center,
-                                          children: [
-                                            SvgPicture.asset(assets.upload),5.width,
-                                            CustomText(text: "Upload File",colors: colorsConst.greyClr,),
-                                          ],
+                                        onTap: () {
+                                          _myFocusScopeNode.unfocus();
+                                          taskProvider.pickFile();
+                                        },
+                                        child: Container(
+                                          width: kIsWeb ? webWidth : phoneWidth / 1.5,
+                                          height: 70,
+                                          decoration: customDecoration.baseBackgroundDecoration(
+                                              color: Colors.white,
+                                              radius: 10,
+                                              borderColor: colorsConst.litGrey),
+                                          child: Row(
+                                            mainAxisAlignment: MainAxisAlignment.center,
+                                            children: [
+                                              SvgPicture.asset(assets.upload),
+                                              5.width,
+                                              CustomText(
+                                                text: "Upload File",
+                                                colors: colorsConst.greyClr,
+                                              ),
+                                            ],
+                                          ),
                                         ),
                                       ),
-                                    ),
                                       CircleAvatar(
                                         backgroundColor: colorsConst.blueClr,
                                         child: IconButton(
-                                            onPressed: (){
+                                            onPressed: () {
                                               _myFocusScopeNode.unfocus();
                                               taskProvider.pickCamera(context);
                                             },
-                                            icon: const Icon(Icons.camera_alt_outlined,color: Colors.white,)),
+                                            icon: const Icon(
+                                              Icons.camera_alt_outlined,
+                                              color: Colors.white,
+                                            )),
                                       ),
                                       CircleAvatar(
                                         backgroundColor: colorsConst.appGreen,
                                         child: IconButton(
-                                            onPressed: (){
+                                            onPressed: () {
                                               _myFocusScopeNode.unfocus();
                                               HapticFeedback.vibrate();
-                                              if(taskProvider.isRecording){
+                                              if (taskProvider.isRecording) {
                                                 taskProvider.stopRecording();
-                                              }else{
+                                              } else {
                                                 taskProvider.startRecording();
                                               }
                                             },
-                                            icon: Icon(taskProvider.isRecording?Icons.send:Icons.mic,color: Colors.white,)),
+                                            icon: Icon(
+                                              taskProvider.isRecording
+                                                  ? Icons.send
+                                                  : Icons.mic,
+                                              color: Colors.white,
+                                            )),
                                       ),
-                                  ],
+                                    ],
+                                  ),
                                 ),
-                              ),
                               10.height,
-                              if(taskProvider.isRecording)
-                              Container(
-                                    width: kIsWeb?webWidth:phoneWidth,
+                              if (taskProvider.isRecording)
+                                Container(
+                                    width: kIsWeb ? webWidth : phoneWidth,
                                     height: 65,
                                     alignment: Alignment.centerLeft,
                                     decoration: customDecoration.baseBackgroundDecoration(
-                                        color: Colors.white,radius: 10
-                                    ),
+                                        color: Colors.white, radius: 10),
                                     child: Row(
                                       children: [
                                         10.width,
@@ -495,67 +544,89 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
                                           animation: animation,
                                           builder: (context, child) {
                                             return Transform.scale(
-                                                scale: taskProvider.isRecording?animation.value:1.0,
-                                                child: const Icon(Icons.mic,color: Colors.green,size: 15,)
-                                            );
+                                                scale: taskProvider.isRecording
+                                                    ? animation.value
+                                                    : 1.0,
+                                                child: const Icon(
+                                                  Icons.mic,
+                                                  color: Colors.green,
+                                                  size: 15,
+                                                ));
                                           },
-                                        ),10.width,
-                                        CustomText(text:"${taskProvider.recordingDuration.toStringAsFixed(2)}s",
+                                        ),
+                                        10.width,
+                                        CustomText(
+                                          text:
+                                          "${taskProvider.recordingDuration.toStringAsFixed(2)}s",
                                           colors: Colors.red,
                                           size: 15,
                                           isBold: true,
                                         ),
                                       ],
-                                    )
-                                ),
+                                    )),
                               SizedBox(
-                                width: kIsWeb?webWidth:phoneWidth,
+                                width: kIsWeb ? webWidth : phoneWidth,
                                 child: ListView.builder(
                                     shrinkWrap: true,
                                     reverse: true,
                                     physics: const ScrollPhysics(),
                                     itemCount: taskProvider.recordedAudioPaths.length,
-                                    itemBuilder: (context,index){
+                                    itemBuilder: (context, index) {
                                       return Padding(
                                         padding: const EdgeInsets.fromLTRB(0, 10, 0, 0),
                                         child: Row(
-                                          mainAxisAlignment: taskProvider.recordedAudioPaths.isNotEmpty && taskProvider.isRecording==false?MainAxisAlignment.spaceAround:MainAxisAlignment.center,
+                                          mainAxisAlignment: taskProvider
+                                              .recordedAudioPaths.isNotEmpty &&
+                                              taskProvider.isRecording == false
+                                              ? MainAxisAlignment.spaceAround
+                                              : MainAxisAlignment.center,
                                           children: [
                                             Container(
-                                              width: kIsWeb ? webWidth / 1.5 : phoneWidth / 1.3,
+                                              width:
+                                              kIsWeb ? webWidth / 1.5 : phoneWidth / 1.3,
                                               height: 65,
-                                              decoration: customDecoration.baseBackgroundDecoration(
+                                              decoration:
+                                              customDecoration.baseBackgroundDecoration(
                                                 color: Colors.white,
                                                 radius: 10,
                                               ),
                                               child: Row(
-                                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                mainAxisAlignment:
+                                                MainAxisAlignment.spaceBetween,
                                                 children: [
-
                                                   /// PLAY BUTTON
                                                   IconButton(
                                                     onPressed: () {
-                                                      if (taskProvider.recordedAudioPaths[index].play) {
-                                                        taskProvider.recordedAudioPaths[index].play = false;
+                                                      if (taskProvider
+                                                          .recordedAudioPaths[index].play) {
+                                                        taskProvider
+                                                            .recordedAudioPaths[index]
+                                                            .play = false;
                                                         taskProvider.stopAudio();
                                                       } else {
-                                                        taskProvider.recordedAudioPaths[index].play = true;
+                                                        taskProvider
+                                                            .recordedAudioPaths[index]
+                                                            .play = true;
 
-                                                        /// 🔥 start from beginning
-                                                        taskProvider.audioPlayer.seek(Duration.zero);
+                                                        taskProvider.audioPlayer
+                                                            .seek(Duration.zero);
 
                                                         taskProvider.playAudio(
-                                                          taskProvider.recordedAudioPaths[index].audioPath,
+                                                          taskProvider
+                                                              .recordedAudioPaths[index]
+                                                              .audioPath,
                                                           index,
                                                         );
                                                       }
                                                     },
                                                     icon: Icon(
-                                                      taskProvider.recordedAudioPaths[index].play
+                                                      taskProvider.recordedAudioPaths[index]
+                                                          .play
                                                           ? Icons.pause
                                                           : Icons.play_arrow,
                                                       size: 30,
-                                                      color: taskProvider.recordedAudioPaths[index].play
+                                                      color: taskProvider
+                                                          .recordedAudioPaths[index].play
                                                           ? colorsConst.primary
                                                           : colorsConst.litGrey,
                                                     ),
@@ -563,33 +634,42 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
 
                                                   /// SLIDER
                                                   SizedBox(
-                                                    width: kIsWeb ? webWidth / 1.5 : phoneWidth / 2.1,
+                                                    width: kIsWeb
+                                                        ? webWidth / 1.5
+                                                        : phoneWidth / 2.1,
                                                     child: Slider(
                                                       activeColor: colorsConst.primary,
                                                       inactiveColor: colorsConst.litGrey,
-
                                                       onChanged: (value) {
-                                                        final duration =
-                                                            taskProvider.recordedAudioPaths[index].duration;
+                                                        final duration = taskProvider
+                                                            .recordedAudioPaths[index]
+                                                            .duration;
 
-                                                        if (duration.inMilliseconds == 0) return;
+                                                        if (duration.inMilliseconds == 0) {
+                                                          return;
+                                                        }
 
                                                         final positionValue =
                                                             value * duration.inMilliseconds;
 
                                                         taskProvider.audioPlayer.seek(
-                                                          Duration(milliseconds: positionValue.round()),
+                                                          Duration(
+                                                              milliseconds:
+                                                              positionValue.round()),
                                                         );
                                                       },
-
                                                       value: (taskProvider
-                                                          .recordedAudioPaths[index].duration
+                                                          .recordedAudioPaths[index]
+                                                          .duration
                                                           .inMilliseconds >
                                                           0)
-                                                          ? taskProvider.recordedAudioPaths[index].position
+                                                          ? taskProvider
+                                                          .recordedAudioPaths[index]
+                                                          .position
                                                           .inMilliseconds /
                                                           taskProvider
-                                                              .recordedAudioPaths[index].duration
+                                                              .recordedAudioPaths[index]
+                                                              .duration
                                                               .inMilliseconds
                                                           : 0.0,
                                                     ),
@@ -600,7 +680,8 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
                                                     children: [
                                                       CustomText(
                                                         text: taskProvider
-                                                            .recordedAudioPaths[index].second
+                                                            .recordedAudioPaths[index]
+                                                            .second
                                                             .toStringAsFixed(2),
                                                         colors: colorsConst.greyClr,
                                                         size: 13,
@@ -613,19 +694,18 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
                                             ),
                                             2.width,
                                             IconButton(
-                                                onPressed: (){
+                                                onPressed: () {
                                                   utils.customDialog(
                                                       context: context,
                                                       title: "Do you want to",
-                                                      title2:"Delete this audio?",
-                                                      callback: (){
+                                                      title2: "Delete this audio?",
+                                                      callback: () {
                                                         Navigator.pop(context);
                                                         taskProvider.removeAudio(index);
                                                       },
                                                       isLoading: false);
                                                 },
-                                                icon: SvgPicture.asset(assets.deleteValue)
-                                            ),
+                                                icon: SvgPicture.asset(assets.deleteValue)),
                                           ],
                                         ),
                                       );
@@ -633,9 +713,10 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
                               ),
                               10.height,
                               SizedBox(
-                                width: kIsWeb?webWidth:phoneWidth,
+                                width: kIsWeb ? webWidth : phoneWidth,
                                 child: GridView.builder(
-                                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                                    gridDelegate:
+                                    const SliverGridDelegateWithFixedCrossAxisCount(
                                       crossAxisCount: 2,
                                       crossAxisSpacing: 50,
                                       mainAxisSpacing: 50,
@@ -644,22 +725,28 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
                                     shrinkWrap: true,
                                     physics: const ScrollPhysics(),
                                     itemCount: taskProvider.selectedPhotos.length,
-                                    itemBuilder: (context,index){
+                                    itemBuilder: (context, index) {
                                       return Row(
                                         children: [
                                           GestureDetector(
-                                            onTap:(){
-                                              Navigator.push(context, MaterialPageRoute(builder: (context)=>FullScreen(
-                                                image: taskProvider.selectedPhotos[index], isNetwork: false,)));
+                                            onTap: () {
+                                              Navigator.push(
+                                                  context,
+                                                  MaterialPageRoute(
+                                                      builder: (context) => FullScreen(
+                                                        image: taskProvider
+                                                            .selectedPhotos[index],
+                                                        isNetwork: false,
+                                                      )));
                                             },
                                             child: Container(
-                                              width: 60, // or whatever width you want
-                                              height: 60, // or height
+                                              width: 60,
+                                              height: 60,
                                               decoration: BoxDecoration(
-                                                borderRadius: BorderRadius.circular(10), // round corners
-                                                border: Border.all(color: Colors.grey), // optional border
+                                                borderRadius: BorderRadius.circular(10),
+                                                border: Border.all(color: Colors.grey),
                                               ),
-                                              clipBehavior: Clip.antiAlias, // clip child with border radius
+                                              clipBehavior: Clip.antiAlias,
                                               child: ClipRRect(
                                                 borderRadius: BorderRadius.circular(10),
                                                 child: Image.file(
@@ -675,8 +762,8 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
                                               utils.customDialog(
                                                   context: context,
                                                   title: "Do you want to",
-                                                  title2:"Delete this photo?",
-                                                  callback: (){
+                                                  title2: "Delete this photo?",
+                                                  callback: () {
                                                     Navigator.pop(context);
                                                     taskProvider.removePhotos(index);
                                                   },
@@ -689,49 +776,48 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
                                     }),
                               ),
                               10.height,
-
-                              //40.height
                             ],
                           ),
                         ),
                       ),
                       SizedBox(
-                        width: kIsWeb?webWidth:phoneWidth,
+                        width: kIsWeb ? webWidth : phoneWidth,
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             CustomLoadingButton(
-                                callback: (){
+                                callback: () {
                                   Future.microtask(() => Navigator.pop(context));
-                                }, isLoading: false,text: "Cancel",
-                                backgroundColor: Colors.white, textColor: colorsConst.primary,
-                                radius: 10, width: kIsWeb?webWidth/2.5:phoneWidth/2.5),
+                                },
+                                isLoading: false,
+                                text: "Cancel",
+                                backgroundColor: Colors.white,
+                                textColor: colorsConst.primary,
+                                radius: 10,
+                                width: kIsWeb ? webWidth / 2.5 : phoneWidth / 2.5),
                             CustomLoadingButton(
-                                isLoading: true,radius: 10,
-                                width: kIsWeb?webWidth/2.5:phoneWidth/2.5,
+                                isLoading: true,
+                                radius: 10,
+                                width: kIsWeb ? webWidth / 2.5 : phoneWidth / 2.5,
                                 backgroundColor: colorsConst.primary,
                                 text: "Save",
-                                callback: ()  {
-                                  // if (companyId=="") {
-                                  //   _myFocusScopeNode.unfocus();
-                                  //   utils.showWarningToast(context,text: "Please Select ${constValue.customerName}");
-                                  //   taskProvider.taskCtr.reset();
-                                  // } else
-                                  if (taskProvider.type==null) {
+                                callback: () {
+                                  if (taskProvider.type == null) {
                                     _myFocusScopeNode.unfocus();
-                                    utils.showWarningToast(context,text: "Please select a type");
+                                    utils.showWarningToast(context,
+                                        text: "Please select a type");
                                     taskProvider.taskCtr.reset();
                                   } else if (taskProvider.taskTitleCont.text.isEmpty) {
-                                    utils.showWarningToast(context,text: "Please fill description");
+                                    utils.showWarningToast(context,
+                                        text: "Please fill description");
                                     taskProvider.taskCtr.reset();
-                                  } else if (taskProvider.assignedId=="") {
-                                    utils.showWarningToast(context,text: "Please select assigned to");
+                                  } else if (taskProvider.assignedId == "") {
+                                    utils.showWarningToast(context,
+                                        text: "Please select assigned to");
                                     taskProvider.taskCtr.reset();
                                   } else {
                                     _myFocusScopeNode.unfocus();
-                                    taskProvider.addTask(
-                                        context: context,id:companyId
-                                    );
+                                    taskProvider.addTask(context: context, id: companyId);
                                   }
                                 },
                                 controller: taskProvider.taskCtr),
@@ -742,7 +828,7 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
                     ],
                   ),
                 ),
-              )
+              ),
             ),
           );
         });

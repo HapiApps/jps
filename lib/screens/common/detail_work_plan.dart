@@ -8,6 +8,7 @@ import 'package:open_file/open_file.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
+import 'package:syncfusion_flutter_datepicker/datepicker.dart';
 import '../../model/task/work_details_plan.dart';
 import '../../source/constant/local_data.dart';
 import '../../view_model/home_provider.dart';
@@ -71,6 +72,125 @@ class _DailyReportStatusPageState extends State<DailyReportStatusPage>
     }
   }
 
+  // ✅ emp.date எந்த format-ல வந்தாலும் dd-MM-yyyy-ஆ மாத்த
+  String? formatDateOnly(String? date) {
+    if (date == null || date.isEmpty) return null;
+
+    try {
+      DateTime dt = DateTime.parse(date);
+      return DateFormat("dd-MM-yyyy").format(dt);
+    } catch (e) {
+      return date; // parse ஆகலைன்னா original string-ஐ காட்டு
+    }
+  }
+
+  // =====================================================================
+  // ✅ NEW: Syncfusion Date Range Picker Dialog
+  // =====================================================================
+  void showDatePickerDialog(BuildContext context) {
+    DateTime today = DateTime.now();
+
+    // ✅ Current selected range-ஐ initial-ஆ வையுங்க
+    PickerDateRange tempSelectedDate = PickerDateRange(startDate, endDate);
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: Text(
+            '   Select Date',
+            style: TextStyle(
+              color: colorsConst.primary,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          content: SizedBox(
+            height: 300,
+            width: 300,
+            child: SfDateRangePicker(
+              initialSelectedRange: tempSelectedDate,
+              minDate: DateTime(2020),
+              // Future dates allow — maxDate remove பண்ணி இருக்கு
+              selectionMode: DateRangePickerSelectionMode.range,
+              onSelectionChanged:
+                  (DateRangePickerSelectionChangedArgs args) {
+                if (args.value is PickerDateRange) {
+                  tempSelectedDate = args.value;
+                }
+              },
+            ),
+          ),
+          actions: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  'Click and drag to select multiple dates',
+                  style: TextStyle(
+                    color: Colors.grey.shade600,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                  child: const Text(
+                    'Cancel',
+                    style: TextStyle(
+                      color: Colors.grey,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                TextButton(
+                  onPressed: () {
+                    final DateTime start =
+                        tempSelectedDate.startDate ?? today;
+                    final DateTime end =
+                        tempSelectedDate.endDate ?? start;
+
+                    setState(() {
+                      startDate = start;
+                      endDate = end;
+                    });
+
+                    // ✅ API format date (yyyy-MM-dd)
+                    String startStr =
+                    start.toIso8601String().split("T")[0];
+                    String endStr =
+                    end.toIso8601String().split("T")[0];
+
+                    // ✅ Call Provider API
+                    Provider.of<HomeProvider>(context, listen: false)
+                        .getWorkPlanList(true, startStr, endStr);
+
+                    Navigator.of(context).pop();
+                  },
+                  child: Text(
+                    'OK',
+                    style: TextStyle(
+                      color: colorsConst.primary,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   Future<void> exportWorkPlanToExcel(
       List<WorkPlanModelDetails> workPlanList, BuildContext context) async {
     if (Platform.isAndroid) {
@@ -87,65 +207,106 @@ class _DailyReportStatusPageState extends State<DailyReportStatusPage>
 
     int rowIndex = 0;
 
+    // ✅ Name அடிப்படையில் group பண்றது — ஒரு employee-க்கு பல dates
+    // இருந்தாலும் Name ஒரு தடவை மட்டும், கீழ ஒவ்வொரு date-உம் தனி block
+    Map<String, List<WorkPlanModelDetails>> groupedByEmp = {};
     for (var emp in workPlanList) {
-      // ---- Employee Heading Row ----
+      String key = "${emp.name}|${emp.role}";
+      groupedByEmp.putIfAbsent(key, () => []).add(emp);
+    }
+
+    // ✅ ASCENDING ORDER: employee Name அடிப்படையில் (A → Z) sort பண்ணுது
+    var sortedGroupEntries = groupedByEmp.entries.toList()
+      ..sort((a, b) {
+        String nameA = (a.value.first.name ?? "").toLowerCase().trim();
+        String nameB = (b.value.first.name ?? "").toLowerCase().trim();
+        return nameA.compareTo(nameB);
+      });
+
+    for (var groupEntry in sortedGroupEntries) {
+      List<WorkPlanModelDetails> empEntries = groupEntry.value;
+
+      // ✅ ASCENDING ORDER: அதே employee-க்குள்ள Date அடிப்படையில் (பழையது → புதியது) sort பண்ணுது
+      empEntries.sort((a, b) {
+        DateTime? dateA = DateTime.tryParse(a.date ?? "");
+        DateTime? dateB = DateTime.tryParse(b.date ?? "");
+        if (dateA == null || dateB == null) return 0;
+        return dateA.compareTo(dateB);
+      });
+
+      WorkPlanModelDetails first = empEntries.first;
+
+      // ---- Name Row (ஒரு தடவை மட்டும்) ----
       var nameCell = sheet.cell(excel_pkg.CellIndex.indexByColumnRow(
           columnIndex: 0, rowIndex: rowIndex));
-      nameCell.value = "${emp.name} (${emp.role})";
-
-      var dateCell = sheet.cell(excel_pkg.CellIndex.indexByColumnRow(
-          columnIndex: 5, rowIndex: rowIndex));
-      dateCell.value = "Date: ${emp.date ?? dateStr}";
-
+      nameCell.value = "${first.name} (${first.role})";
       rowIndex++;
 
-      if (emp.plans.isEmpty) {
-        var noPlanCell = sheet.cell(excel_pkg.CellIndex.indexByColumnRow(
+      // ---- ஒவ்வொரு Date-க்கும் தனி table ----
+      for (var emp in empEntries) {
+        var dateCell = sheet.cell(excel_pkg.CellIndex.indexByColumnRow(
             columnIndex: 0, rowIndex: rowIndex));
-        noPlanCell.value = "Not Submitted";
+        dateCell.value = "Date: ${formatDateOnly(emp.date) ?? dateStr}";
         rowIndex++;
-        rowIndex++; // blank line
-        continue;
-      }
 
-      // ---- Sub header row for this employee's plans ----
-      List<String> subHeaders = [
-        "S.No",
-        "Description",
-        "Company",
-        "Customer",
-        "Status",
-        "Created Time",
-        "Updated Time"
-      ];
-      for (int c = 0; c < subHeaders.length; c++) {
-        var cell = sheet.cell(excel_pkg.CellIndex.indexByColumnRow(
-            columnIndex: c, rowIndex: rowIndex));
-        cell.value = subHeaders[c];
-      }
-      rowIndex++;
+        if (emp.plans.isEmpty) {
+          var noPlanCell = sheet.cell(excel_pkg.CellIndex.indexByColumnRow(
+              columnIndex: 0, rowIndex: rowIndex));
+          noPlanCell.value = "Not Submitted";
+          rowIndex++;
+          rowIndex++; // blank line
+          continue;
+        }
 
-      // ---- Plan rows ----
-      for (int i = 0; i < emp.plans.length; i++) {
-        DailyWorkPlanDetails plan = emp.plans[i];
-        List<String> rowData = [
-          "${i + 1}",
-          plan.desc,
-          plan.company ?? "",
-          plan.customer ?? "",
-          plan.workStatus == "1" ? "Achieved" : "Not Achieved",
-          formatDateTime(plan.createdTime),
-          formatDateTime(plan.updatedTime),
+        // ✅ ASCENDING ORDER: அதே date-க்குள்ள plans-ஐ Created Time அடிப்படையில் sort பண்ணுது
+        emp.plans.sort((a, b) {
+          DateTime? timeA = DateTime.tryParse(a.createdTime ?? "");
+          DateTime? timeB = DateTime.tryParse(b.createdTime ?? "");
+          if (timeA == null || timeB == null) return 0;
+          return timeA.compareTo(timeB);
+        });
+
+        // ---- Sub header row for this date's plans ----
+        List<String> subHeaders = [
+          "S.No",
+          "Description",
+          "Company",
+          "Customer",
+          "Status",
+          "Created Time",
+          "Updated Time"
         ];
-        for (int c = 0; c < rowData.length; c++) {
+        for (int c = 0; c < subHeaders.length; c++) {
           var cell = sheet.cell(excel_pkg.CellIndex.indexByColumnRow(
               columnIndex: c, rowIndex: rowIndex));
-          cell.value = rowData[c];
+          cell.value = subHeaders[c];
         }
         rowIndex++;
+
+        // ---- Plan rows ----
+        for (int i = 0; i < emp.plans.length; i++) {
+          DailyWorkPlanDetails plan = emp.plans[i];
+          List<String> rowData = [
+            "${i + 1}",
+            plan.desc,
+            plan.company ?? "",
+            plan.customer ?? "",
+            plan.workStatus == "1" ? "Achieved" : "Not Achieved",
+            formatDateTime(plan.createdTime),
+            formatDateTime(plan.updatedTime),
+          ];
+          for (int c = 0; c < rowData.length; c++) {
+            var cell = sheet.cell(excel_pkg.CellIndex.indexByColumnRow(
+                columnIndex: c, rowIndex: rowIndex));
+            cell.value = rowData[c];
+          }
+          rowIndex++;
+        }
+
+        rowIndex++; // ✅ அடுத்த date block-க்கு முன்ன blank line
       }
 
-      rowIndex++; // ✅ blank line before next employee block
+      rowIndex++; // ✅ அடுத்த employee block-க்கு முன்ன extra blank line
     }
 
     // ---- Save file ----
@@ -168,9 +329,7 @@ class _DailyReportStatusPageState extends State<DailyReportStatusPage>
         ..writeAsBytesSync(fileBytes);
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Excel saved: $filePath")),
-        );
+
       }
 
       OpenFile.open(filePath);
@@ -538,6 +697,20 @@ class _DailyReportStatusPageState extends State<DailyReportStatusPage>
               icon: Icon(Icons.download, color: colorsConst.primary),
               onPressed: () {
                 final provider = Provider.of<HomeProvider>(context, listen: false);
+
+                // ✅ data இல்லேன்னா export பண்ணாம message காட்டு
+                bool hasAnyPlan =
+                provider.workPlanList.any((emp) => emp.plans.isNotEmpty);
+
+                if (provider.workPlanList.isEmpty || !hasAnyPlan) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text("No data available to download"),
+                    ),
+                  );
+                  return;
+                }
+
                 exportWorkPlanToExcel(provider.workPlanList, context);
               },
             ),
@@ -624,33 +797,9 @@ class _DailyReportStatusPageState extends State<DailyReportStatusPage>
                   IconButton(
                     icon:
                     Icon(Icons.calendar_month, color: colorsConst.primary),
-                    onPressed: () async {
-                      DateTimeRange? picked = await showDateRangePicker(
-                        context: context,
-                        initialDateRange: DateTimeRange(
-                          start: startDate,
-                          end: endDate,
-                        ),
-                        firstDate: DateTime(2020),
-                        lastDate: DateTime(2100),
-                      );
-
-                      if (picked != null) {
-                        setState(() {
-                          startDate = picked.start;
-                          endDate = picked.end;
-                        });
-
-                        /// ✅ API format date (yyyy-MM-dd)
-                        String start =
-                        picked.start.toIso8601String().split("T")[0];
-                        String end =
-                        picked.end.toIso8601String().split("T")[0];
-
-                        /// ✅ Call Provider API
-                        Provider.of<HomeProvider>(context, listen: false)
-                            .getWorkPlanList(true, start, end);
-                      }
+                    onPressed: () {
+                      // ✅ NEW: Syncfusion date range picker dialog
+                      showDatePickerDialog(context);
                     },
                   ),
                   10.width,
