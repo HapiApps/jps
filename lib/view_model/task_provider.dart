@@ -1,0 +1,5066 @@
+import 'dart:async';
+import 'dart:convert';
+import 'dart:developer';
+import 'dart:io';
+import 'package:excel/excel.dart';
+import 'package:master_code/source/extentions/extensions.dart';
+import 'package:master_code/source/utilities/utils.dart';
+import 'package:audioplayers/audioplayers.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:group_button/group_button.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:intl/intl.dart';
+import 'package:loading_animation_widget/loading_animation_widget.dart';
+import 'package:open_file/open_file.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:provider/provider.dart';
+import 'package:record/record.dart';
+import 'package:rounded_loading_button_plus/rounded_loading_button.dart';
+import 'package:syncfusion_flutter_calendar/calendar.dart';
+import 'package:video_player/video_player.dart';
+import '../component/custom_text.dart';
+import '../local_database/sqlite.dart';
+import '../model/audio_model.dart';
+import '../model/customer/customer_attendance_model.dart';
+import '../model/leave/holidays_model.dart';
+import '../model/task/task_data_model.dart';
+import '../model/task/task_details_model.dart';
+import '../model/user_model.dart';
+import '../repo/task_repo.dart';
+import '../model/task/task_chart_model.dart';
+import '../screens/common/camera.dart';
+import '../screens/common/dashboard.dart';
+import '../screens/task/view_task.dart';
+import '../source/constant/api.dart';
+import '../source/constant/colors_constant.dart';
+import '../source/constant/default_constant.dart';
+import '../source/constant/local_data.dart';
+import 'employee_provider.dart';
+import 'home_provider.dart';
+import 'package:flutter_image_compress/flutter_image_compress.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
+import 'package:http/http.dart' as http;
+import 'package:image/image.dart' as img;
+import 'package:syncfusion_flutter_datepicker/datepicker.dart';
+
+
+class TaskProvider with ChangeNotifier {
+  late VideoPlayerController videoPlayerController;
+  final TaskRepo _taskRepo = TaskRepo();
+  bool _isDisposed = false;
+  RoundedLoadingButtonController completeCtr = RoundedLoadingButtonController();
+  RoundedLoadingButtonController startCtr = RoundedLoadingButtonController();
+  RoundedLoadingButtonController holdCtr = RoundedLoadingButtonController();
+  RoundedLoadingButtonController resumeCtr = RoundedLoadingButtonController();
+  RoundedLoadingButtonController taskCtr = RoundedLoadingButtonController();
+  RoundedLoadingButtonController taskStatusCtr = RoundedLoadingButtonController();
+  String formatDuration2(
+      int totalSeconds,
+      ) {
+
+    final minutes =
+        totalSeconds ~/ 60;
+
+    final seconds =
+        totalSeconds % 60;
+
+    return "$minutes:"
+        "${seconds.toString().padLeft(2, '0')}";
+  }
+
+  bool isAddTaskLoading = false;
+  GroupButtonController statusController = GroupButtonController();
+  bool _isFilter=false;
+  bool get isFilter=>_isFilter;
+  String _startDate = "";
+  String get startDate => _startDate;
+  String lStatus="";
+  String _endDate="";
+  String get endDate => _endDate;
+  String _companyName="";
+  String get companyName => _companyName;
+  void setFilterDate(String value) {
+    if (_filterDate == value) return; // 🔥 avoid unnecessary rebuild
+    _filterDate = value;
+    notifyListeners();
+  }
+  final ScrollController scrollController = ScrollController();
+  void scrollToBottom() {
+    if (scrollController.hasClients) {
+      scrollController.animateTo(
+        scrollController.position.maxScrollExtent,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+    }
+  }
+  void changeFilterStatusTab(String id) {
+    _statusIds = id;
+    filterList();
+    notifyListeners();
+  }
+  void setDefaultType() {
+    if (typeList.isNotEmpty && (type == null || type.toString().isEmpty)) {
+      _type = typeList.first["id"].toString();
+      notifyListeners();
+    }
+  }
+  // void dateFilterList(String date1,String date2) {
+  //   final dateFormat = DateFormat('dd-MM-yyyy');
+  //   final parsedStartDate = dateFormat.parse(date1);
+  //   final parsedEndDate = dateFormat.parse(date2);
+  //
+  //   _filterUserData = _searchAllTasks.where((contact) {
+  //     // Parse contact.taskDate (in dd-MM-yyyy format)
+  //     final taskDate = dateFormat.parse(contact.taskDate.toString());
+  //     final taskDateOnly = DateTime(taskDate.year, taskDate.month, taskDate.day);
+  //
+  //     // Filter by date range
+  //     final isWithinDateRange =
+  //         !taskDateOnly.isBefore(parsedStartDate) && !taskDateOnly.isAfter(parsedEndDate);
+  //
+  //     // Optional filters
+  //     final isTypeMatch = _fType == "" || _fType == contact.type;
+  //     final isEmpMatch = _userName == "" || contact.assignedNames.toString().contains(_userName);
+  //     final isCusMatch = _companyName == "" || contact.projectName == _companyName;
+  //
+  //     // Return if all filters match
+  //     return isWithinDateRange && isTypeMatch && isEmpMatch && isCusMatch;
+  //   }).toList();
+  //   print("(((((((((((((((((.......${_filterUserData.length}");
+  //
+  //   notifyListeners();
+  // }
+  ///
+  // void filterList() {
+  //   print("*****filter list");
+  //   final dateFormat = DateFormat('dd-MM-yyyy');
+  //   final parsedStartDate = dateFormat.parse(_startDate);
+  //   final parsedEndDate = dateFormat.parse(_endDate);
+  //
+  //   _filterUserData = _searchAllTasks.where((contact) {
+  //     // Parse contact.taskDate (in dd-MM-yyyy format)
+  //     final taskDate = dateFormat.parse(contact.taskDate.toString());
+  //     final taskDateOnly = DateTime(taskDate.year, taskDate.month, taskDate.day);
+  //
+  //     // Filter by date range
+  //     final isWithinDateRange =
+  //         !taskDateOnly.isBefore(parsedStartDate) && !taskDateOnly.isAfter(parsedEndDate);
+  //
+  //     // Optional filters
+  //     final isTypeMatch = _fType == "" || _fType == contact.type;
+  //     final isEmpMatch = _userName == "" || contact.assignedNames.toString().contains(_userName);
+  //     final isCusMatch = _companyName == "" || contact.projectName == _companyName;
+  //
+  //     // Return if all filters match
+  //     return isWithinDateRange && isTypeMatch && isEmpMatch && isCusMatch;
+  //   }).toList();
+  //
+  //   notifyListeners();
+  // }
+  ///
+  // void filterList() {
+  //   if (_startDate.isEmpty || _endDate.isEmpty) return;
+  //
+  //   final dateFormat = DateFormat('dd-MM-yyyy');
+  //
+  //   DateTime parsedStartDate;
+  //   DateTime parsedEndDate;
+  //
+  //   try {
+  //     parsedStartDate = dateFormat.parse(_startDate);
+  //     parsedEndDate = dateFormat.parse(_endDate);
+  //   } catch (e) {
+  //     return;
+  //   }
+  //
+  //   _filterUserData = _searchAllTasks.where((contact) {
+  //
+  //     /// 🔴 DATE CHECK
+  //     if (contact.taskDate == null || contact.taskDate.toString().isEmpty) {
+  //       return false;
+  //     }
+  //
+  //     DateTime? taskDate;
+  //
+  //     try {
+  //       taskDate = dateFormat.parse(contact.taskDate.toString());
+  //     } catch (e) {
+  //       return false;
+  //     }
+  //
+  //     final taskDateOnly = DateTime(taskDate.year, taskDate.month, taskDate.day);
+  //
+  //     final isWithinDateRange =
+  //         !taskDateOnly.isBefore(parsedStartDate) &&
+  //             !taskDateOnly.isAfter(parsedEndDate);
+  //
+  //     /// 🔴 TYPE
+  //     final isTypeMatch = _fType.isEmpty || _fType == contact.type;
+  //
+  //     /// 🔴 EMPLOYEE
+  //     // final assignedList = (contact.assignedNames ?? "")
+  //     //     .split(',')
+  //     //     .map((e) => e.trim().toLowerCase())
+  //     //     .toList();
+  //     //
+  //     // final isEmpMatch = _assignedNames.isEmpty ||
+  //     //     assignedList.any((name) =>
+  //     //     name.contains(_assignedNames.toLowerCase()) ||
+  //     //         _assignedNames.toLowerCase().contains(name));
+  //
+  //     /// 🔴 EMPLOYEE
+  //     /// 🔴 EMPLOYEE
+  //     final rawAssignedNames = contact.assignedNames ?? "";
+  //
+  //     final assignedList = rawAssignedNames
+  //         .split(',')
+  //         .map((e) => e.trim().toLowerCase())
+  //         .where((e) => e.isNotEmpty)
+  //         .toList();
+  //
+  //     final searchName = _assignedNames.trim().toLowerCase();
+  //
+  //     final matchedNames = assignedList.where((name) {
+  //       return name.contains(searchName) || searchName.contains(name);
+  //     }).toList();
+  //
+  //     print("👤 Raw Assigned Names: '$rawAssignedNames'");
+  //     print("📋 Assigned List: $assignedList");
+  //     print("🔍 Search Name: '$searchName'");
+  //     print("✅ Matched Value: $matchedNames");
+  //
+  //     final isEmpMatch =
+  //         searchName.isEmpty || matchedNames.isNotEmpty;
+  //
+  //     print("🎯 isEmpMatch: $isEmpMatch");
+  //
+  //     /// 🔴 CUSTOMER
+  //     final isCusMatch =
+  //         _companyName.isEmpty || contact.projectName == _companyName;
+  //
+  //     /// ✅ STATUS FILTER
+  //     final taskStatus = (contact.statval ?? "").toString().trim();
+  //     final selectedStatus = _statusIds.toString().trim();
+  //
+  //     final isStatusMatch = selectedStatus.isEmpty || taskStatus == selectedStatus;
+  //
+  //     return isWithinDateRange &&
+  //         isTypeMatch &&
+  //         isEmpMatch &&
+  //         isCusMatch &&
+  //         isStatusMatch;   // ✅ THIS IS IMPORTANT
+  //
+  //   }).toList();
+  //
+  //   if (!_isDisposed) notifyListeners();
+  // }
+  void filterList() {
+    if (_startDate.isEmpty || _endDate.isEmpty) return;
+
+    final dateFormat = DateFormat('dd-MM-yyyy');
+
+    DateTime parsedStartDate;
+    DateTime parsedEndDate;
+
+    try {
+      final startDate = dateFormat.parse(_startDate);
+      final endDate = dateFormat.parse(_endDate);
+
+      // Date மட்டும் compare பண்ண time remove
+      parsedStartDate = DateTime(
+        startDate.year,
+        startDate.month,
+        startDate.day,
+      );
+
+      parsedEndDate = DateTime(
+        endDate.year,
+        endDate.month,
+        endDate.day,
+      );
+    } catch (e) {
+      print("❌ Start/End Date Parse Error: $e");
+      return;
+    }
+
+    _filterUserData = _searchAllTasks.where((contact) {
+
+      // ============================================================
+      // 🔴 DATE CHECK
+      // ============================================================
+
+      if (contact.taskDate == null ||
+          contact.taskDate.toString().trim().isEmpty) {
+        print("❌ Task Date Empty");
+        return false;
+      }
+
+      DateTime taskDate;
+
+      try {
+        taskDate = dateFormat.parse(
+          contact.taskDate.toString().trim(),
+        );
+      } catch (e) {
+        print(
+          "❌ Task Date Parse Error: ${contact.taskDate} | Error: $e",
+        );
+        return false;
+      }
+
+      final taskDateOnly = DateTime(
+        taskDate.year,
+        taskDate.month,
+        taskDate.day,
+      );
+
+      final isWithinDateRange =
+          !taskDateOnly.isBefore(parsedStartDate) &&
+              !taskDateOnly.isAfter(parsedEndDate);
+
+      // ============================================================
+      // 🔴 TYPE CHECK
+      // ============================================================
+
+      final selectedType =
+      _fType.toString().trim().toLowerCase();
+
+      final contactType =
+      (contact.type ?? "").toString().trim().toLowerCase();
+
+      final isTypeMatch =
+          selectedType.isEmpty ||
+              selectedType == contactType;
+
+      // ============================================================
+      // 🔴 EMPLOYEE CHECK
+      // ============================================================
+
+      final rawAssignedNames =
+      (contact.assignedNames ?? "").toString();
+
+      final assignedList = rawAssignedNames
+          .split(',')
+          .map((e) => e.trim().toLowerCase())
+          .where((e) => e.isNotEmpty)
+          .toList();
+
+      final searchName =
+      _assignedNames.trim().toLowerCase();
+
+      final matchedNames = assignedList.where((name) {
+        return name == searchName ||
+            name.contains(searchName) ||
+            searchName.contains(name);
+      }).toList();
+
+      final isEmpMatch =
+          searchName.isEmpty ||
+              matchedNames.isNotEmpty;
+
+      // ============================================================
+      // 🔴 CUSTOMER CHECK
+      // ============================================================
+
+      final selectedCompany =
+      _companyName.toString().trim().toLowerCase();
+
+      final contactCompany =
+      (contact.projectName ?? "")
+          .toString()
+          .trim()
+          .toLowerCase();
+
+      final isCusMatch =
+          selectedCompany.isEmpty ||
+              selectedCompany == contactCompany;
+
+      // ============================================================
+      // 🔴 STATUS CHECK
+      // ============================================================
+
+      final taskStatus =
+      (contact.statval ?? "")
+          .toString()
+          .trim();
+
+      final selectedStatus =
+      _statusIds.toString().trim();
+
+      final isStatusMatch =
+          selectedStatus.isEmpty ||
+              taskStatus == selectedStatus;
+
+      // ============================================================
+      // 🔍 DEBUG
+      // ============================================================
+
+      final finalMatch =
+          isWithinDateRange &&
+              isTypeMatch &&
+              isEmpMatch &&
+              isCusMatch &&
+              isStatusMatch;
+
+      print("""
+==================================================
+👤 ASSIGNED NAME : $rawAssignedNames
+🔍 SEARCH NAME   : $searchName
+📋 ASSIGNED LIST : $assignedList
+✅ MATCHED NAME  : $matchedNames
+
+📅 TASK DATE     : ${contact.taskDate}
+📅 START DATE    : $_startDate
+📅 END DATE      : $_endDate
+📅 DATE MATCH    : $isWithinDateRange
+
+📌 CONTACT TYPE  : $contactType
+📌 SELECTED TYPE : $selectedType
+📌 TYPE MATCH    : $isTypeMatch
+
+🏢 PROJECT NAME  : $contactCompany
+🏢 SELECTED      : $selectedCompany
+🏢 CUSTOMER MATCH: $isCusMatch
+
+📊 TASK STATUS   : '$taskStatus'
+📊 SELECTED      : '$selectedStatus'
+📊 STATUS MATCH  : $isStatusMatch
+
+🎯 EMP MATCH     : $isEmpMatch
+🚀 FINAL MATCH   : $finalMatch
+==================================================
+""");
+
+      // ============================================================
+      // 🔥 FINAL FILTER
+      // ============================================================
+
+      return finalMatch;
+
+    }).toList();
+
+    print("==============================================");
+    print("📊 TOTAL TASKS   : ${_searchAllTasks.length}");
+    print("📊 FILTERED TASKS: ${_filterUserData.length}");
+    print("==============================================");
+
+    if (!_isDisposed) {
+      notifyListeners();
+    }
+  }
+  // void filterList() {
+  //   final dateFormat = DateFormat('dd-MM-yyyy');
+  //   final parsedStartDate = dateFormat.parse(_startDate);
+  //   final parsedEndDate = dateFormat.parse(_endDate);
+  //
+  //   _filterUserData = _searchAllTasks.where((contact) {
+  //     // Parse contact.taskDate (in dd-MM-yyyy format)
+  //     final taskDate = dateFormat.parse(contact.taskDate.toString());
+  //     final taskDateOnly = DateTime(taskDate.year, taskDate.month, taskDate.day);
+  //
+  //     // Filter by date range
+  //     final isWithinDateRange = !taskDateOnly.isBefore(parsedStartDate) && !taskDateOnly.isAfter(parsedEndDate);
+  //     // Optional filters
+  //     final isTypeMatch = _fType == "" || _fType == contact.type;
+  //     final isEmpMatch = _userName == "" || contact.assignedNames.toString().contains(_userName);
+  //     final isCusMatch = _companyName == "" || contact.projectName == _companyName;
+  //
+  //     // Return if all filters match
+  //     return isWithinDateRange && isTypeMatch && isEmpMatch && isCusMatch;
+  //   }).toList();
+  //
+  //   notifyListeners();
+  // }
+
+  String _fType = "";
+  String get fType => _fType;
+  void checkFilterType(dynamic value) {
+    _type = value;
+
+    if (value == null) {
+      _fType = "";
+    } else if (value is Map) {
+      _fType = value["value"] == "All" ? "" : value["value"].toString();
+    } else {
+      // value is String
+      _fType = value.toString() == "All" ? "" : value.toString();
+    }
+
+    notifyListeners();
+  }
+
+  void filterList2() {
+    final dateFormat = DateFormat('dd-MM-yyyy');
+    final parsedStartDate = dateFormat.parse(_startDate);
+    final parsedEndDate = dateFormat.parse(_endDate);
+    _filterUserData = _searchAllTasks.where((contact) {
+      // Parse contact.taskDate (in dd-MM-yyyy format)
+      final taskDate = dateFormat.parse(contact.taskDate.toString());
+      final taskDateOnly = DateTime(taskDate.year, taskDate.month, taskDate.day);
+
+      // Filter by date range
+      final isWithinDateRange =
+          !taskDateOnly.isBefore(parsedStartDate) && !taskDateOnly.isAfter(parsedEndDate);
+
+      // Optional filters
+      final isTypeMatch = _fType == "" || _fType == contact.type;
+      final isEmpMatch = _userName == "" || contact.assignedNames.toString().contains(_userName);
+      final isCusMatch = _companyName == "" || contact.projectName == _companyName;
+
+      // Return if all filters match
+      return isWithinDateRange && isTypeMatch && isEmpMatch && isCusMatch;
+    }).toList();
+
+    notifyListeners();
+  }
+  void changeName(value) {
+    _companyName=value!.companyName.toString();
+    notifyListeners();
+  }
+  String _stDate="";
+  String _enDate="";
+  String get stDate=> _stDate;
+  String get enDate=> _enDate;
+  PickerDateRange? selectedDate2;
+  List<DateTime> datesBetween = [];
+  String betweenDates="";
+  List<DateTime> getDatesInRange(DateTime start, DateTime end) {
+    List<DateTime> days = [];
+    for (int i = 0; i <= end.difference(start).inDays; i++) {
+      days.add(DateTime(start.year, start.month, start.day + i));
+    }
+    return days;
+  }
+  void showDatePickerDialog(BuildContext context) {
+    DateTime today = DateTime.now();
+    selectedDate2 = PickerDateRange(today, today);
+    datesBetween = getDatesInRange(selectedDate2!.startDate!, selectedDate2!.endDate!);
+
+    DateFormat dateFormat = DateFormat('dd-MM-yyyy');
+    List<String> formattedDates = datesBetween.map((date) => dateFormat.format(date)).toList();
+    betweenDates = formattedDates.join(' || ');
+
+    _stDate = dateFormat.format(selectedDate2!.startDate!);
+    notifyListeners();
+    notifyListeners();
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: CustomText(text: '   Select Date',colors: colorsConst.secondary,isBold: true,),
+          content: SizedBox(
+            height: 300, // Adjust height as needed
+            width: 300, // Adjust width as needed
+            child: SfDateRangePicker(
+              minDate: DateTime(2025), // Disable past dates
+              maxDate: DateTime.now(),
+              onSelectionChanged: (DateRangePickerSelectionChangedArgs args) {
+                selectedDate2 = args.value;
+                _startDate="";
+                _endDate="";
+                if(selectedDate2?.endDate!=null){
+                  _startDate="${selectedDate2?.startDate?.day.toString().padLeft(2,"0")}"
+                      "-${selectedDate2?.startDate?.month.toString().padLeft(2,"0")}"
+                      "-${selectedDate2?.startDate?.year.toString()}";
+
+                  _endDate="${selectedDate2?.endDate?.day.toString().padLeft(2,"0")}"
+                      "-${selectedDate2?.endDate?.month.toString().padLeft(2,"0")}"
+                      "-${selectedDate2?.endDate?.year.toString()}";
+                }else{
+                  _startDate="${selectedDate2?.startDate?.day.toString().padLeft(2,"0")}"
+                      "-${selectedDate2?.startDate?.month.toString().padLeft(2,"0")}"
+                      "-${selectedDate2?.startDate?.year.toString()}";
+                  _endDate="${selectedDate2?.startDate?.day.toString().padLeft(2,"0")}"
+                      "-${selectedDate2?.startDate?.month.toString().padLeft(2,"0")}"
+                      "-${selectedDate2?.startDate?.year.toString()}";
+                }
+                notifyListeners();
+              },
+              selectionMode: DateRangePickerSelectionMode.range,
+            ),
+          ),
+          actions: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                CustomText(text: 'Click and drag to select multiple dates',colors: colorsConst.greyClr,),
+              ],
+            ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                TextButton(
+                  child: const CustomText(text:'Cancel',colors: Colors.grey,isBold: true,),
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                ),
+                TextButton(
+                  child: CustomText(text: 'OK',colors: colorsConst.primary,isBold: true,),
+                  onPressed: () {
+                    if (selectedDate2 != null) {
+                      datesBetween = getDatesInRange(
+                        selectedDate2!.startDate!,
+                        selectedDate2!.endDate ?? selectedDate2!.startDate!,
+                      );
+                    }
+                    DateFormat dateFormat = DateFormat('dd-MM-yyyy');
+
+                    List<String> formattedDates = datesBetween.map((date) => dateFormat.format(date)).toList();
+                    betweenDates = formattedDates.join(' || ');
+                    filterList2();
+                    initFilterValue(false);
+                    notifyListeners();
+                    Navigator.of(context).pop();
+                  },
+                ),
+              ],
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void initDateValue(String date1,String date2,String type,){
+      _isFilter=false;
+      _filterType=type;
+      _type=null;
+      _companyName="";
+      _fType="";
+      _filterUserData=_allTasks;
+      _userName="";
+    _filterDate="";
+    _startDate=date1;
+    _endDate=date2;
+    search.clear();
+    filterList();
+    notifyListeners();
+  }
+  void initFilterValue(bool isClear,{String? date1, String? date2, String? type}){
+    if(isClear==false){
+      _isFilter=true;
+    }else{
+      _isFilter=false;
+      _filterType=type;
+      _type=null;
+      _companyName="";
+      _fType="";
+      _filterUserData=_allTasks;
+      _userName="";
+      _filterDate="";
+      _startDate=date1!;
+      _endDate=date2!;
+      search.clear();
+      _assignedNames="";
+    }
+    // _filterDate="";
+    // _stDate="${DateTime.now().day.toString().padLeft(2,"0")}-${DateTime.now().month.toString().padLeft(2,"0")}-${DateTime.now().year}";
+    // _enDate="${DateTime.now().day.toString().padLeft(2,"0")}-${DateTime.now().month.toString().padLeft(2,"0")}-${DateTime.now().year}";
+    search.clear();
+    notifyListeners();
+  }
+  void filterPick({required BuildContext context, required String date, required bool isStartDate}) {
+    DateTime dateTime = DateTime.now();
+    final parsedDate = DateFormat('dd-MM-yyyy').parse(date);
+    final now = DateTime.now();
+    DateTime initDate = DateTime(
+      parsedDate.year,
+      parsedDate.month,
+      parsedDate.day,
+      now.hour,
+      now.minute,
+      now.second,
+    );
+    showDatePicker(
+      context: context,
+      initialDate: initDate,
+      firstDate: DateTime(1920),
+      lastDate: DateTime(2050),
+    ).then((value) {
+      if (value != null) {
+        String formattedDate = "${value.day.toString().padLeft(2, "0")}-"
+            "${value.month.toString().padLeft(2, "0")}-"
+            "${value.year.toString()}";
+
+        if (isStartDate) {
+          _startDate = formattedDate;
+        } else {
+          _endDate = formattedDate;
+        }
+
+        notifyListeners();
+      }
+    });
+  }
+  dynamic _filterType;
+  dynamic get filterType =>_filterType;
+  void changeFilterType(dynamic value){
+    _filterType = value;
+    if(_filterType=="Today"){
+      daily();
+    }else if(_filterType=="Yesterday"){
+      yesterday();
+    }else if(_filterType=="Last 7 Days"){
+      last7Days();
+    }else if(_filterType=="Last 30 Days"){
+      last30Days();
+    }else if(_filterType=="This Week"){
+      thisWeek();
+    }else if(_filterType=="This Month"){
+      thisMonth();
+    }else if(_filterType=="Last 3 months"){
+      last3Month();
+    }
+    notifyListeners();
+  }
+
+  DateTime stDt = DateTime.now();
+  DateTime enDt = DateTime.now().add(const Duration(days: 1));
+  void daily() {
+    stDt=DateTime.now();
+    enDt=DateTime.now().add(const Duration(days: 1));
+    _startDate = DateFormat('dd-MM-yyyy').format(stDt);
+    _endDate = DateFormat('dd-MM-yyyy').format(stDt);
+    notifyListeners();
+  }
+  void yesterday() {
+    stDt=DateTime.now().subtract(const Duration(days: 1));
+    enDt = DateTime.now();
+    _startDate = DateFormat('dd-MM-yyyy').format(stDt);
+    _endDate = DateFormat('dd-MM-yyyy').format(stDt);
+    notifyListeners();
+  }
+  void last7Days() {
+    DateTime now = DateTime.now();
+    DateTime lastWeekStart = now.subtract(const Duration(days: 6));
+    DateTime lastWeekEnd = now;
+    _startDate = DateFormat('dd-MM-yyyy').format(lastWeekStart);
+    _endDate = DateFormat('dd-MM-yyyy').format(lastWeekEnd);
+    notifyListeners();
+  }
+  void last30Days() {
+    DateTime now = DateTime.now();
+    DateTime lastMonthStart = now.subtract(const Duration(days: 29));
+    DateTime lastMonthEnd = now;
+    _startDate = DateFormat('dd-MM-yyyy').format(lastMonthStart);
+    _endDate = DateFormat('dd-MM-yyyy').format(lastMonthEnd);
+    notifyListeners();
+  }
+  void thisWeek() {
+    DateTime now = DateTime.now();
+    int currentWeekday = now.weekday;
+    DateTime stDt = now.subtract(Duration(days: currentWeekday - 1));
+    DateTime enDt = now.add(Duration(days: 7 - currentWeekday));
+    _startDate = DateFormat('dd-MM-yyyy').format(stDt);
+    _endDate = DateFormat('dd-MM-yyyy').format(enDt);
+    notifyListeners();
+  }
+  // void thisMonth() {
+  //   DateTime now = DateTime.now();
+  //   stDt = DateTime(now.year, now.month, 1);
+  //   enDt = DateTime(now.year, now.month + 1, 0);
+  //   _startDate = DateFormat('dd-MM-yyyy').format(stDt);
+  //   _endDate = DateFormat('dd-MM-yyyy').format(enDt);
+  //   notifyListeners();
+  // }
+  void thisMonth() {
+    DateTime now = DateTime.now();
+    stDt = DateTime(now.year, now.month, 1); // Start of month
+    enDt = now; // Today’s date
+    _startDate = DateFormat('dd-MM-yyyy').format(stDt);
+    _endDate = DateFormat('dd-MM-yyyy').format(enDt);
+    notifyListeners();
+  }
+
+  void last3Month() {
+    DateTime now = DateTime.now();
+
+// Subtract 3 months from today
+    DateTime stDt = DateTime(now.year, now.month - 3, now.day);
+    DateTime enDt = now;
+
+    _startDate = DateFormat('dd-MM-yyyy').format(stDt);
+    _endDate = DateFormat('dd-MM-yyyy').format(enDt);
+    notifyListeners();
+  }
+  void lastMonth() {
+    DateTime now = DateTime.now();
+    stDt = DateTime(now.year, now.month, 1);
+    enDt = DateTime(now.year, now.month + 1, 0);
+    stDt = DateTime(stDt.year, stDt.month - 1, 1);
+    enDt = DateTime(enDt.year, enDt.month - 1, 1);
+    _startDate = DateFormat('dd-MM-yyyy').format(stDt);
+    _endDate = DateFormat('dd-MM-yyyy').format(DateTime(enDt.year, enDt.month + 1, 0));
+    notifyListeners();
+  }
+  var filterTypeList = ["Today","Yesterday","Last 7 Days","Last 30 Days","This Week","This Month","Last 3 months"];
+  dynamic _user;
+  dynamic get user=>_user;
+  String _userName="";
+  String get userName=>_userName;
+  void selectUser(UserModel value){
+    _user=value.id;
+    _userName=value.firstname.toString();
+    filterList();
+    notifyListeners();
+  }
+
+  Future<void> downloadAllTask(BuildContext context) async {
+    notifyListeners();
+
+    try {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => const Center(child: CircularProgressIndicator()),
+      );
+
+      Map data = {
+        "action": taskDatas,
+        "search_type": "download_reports",
+        "cos_id": localData.storage.read("cos_id"),
+        "role": localData.storage.read("role"),
+        "id": localData.storage.read("id"),
+        "date1": _startDate,
+        "date2": _endDate,
+      };
+
+      final response = await _taskRepo.downloadReport(data);
+       print("log response${response}");
+      if (!context.mounted) return;
+
+      if (response.isNotEmpty) {
+        List<DTaskModel> taskList = List<DTaskModel>.from(response);
+
+        List<DTaskModel> filteredList = taskList.where((task) {
+          final isTypeMatch = _fType.isEmpty || (_fType == task.type);
+
+          final isEmpMatch = _userName.isEmpty ||
+              (task.assignedNames ?? "").contains(_userName);
+
+          final isCusMatch = _companyName.isEmpty ||
+              (_companyName == (task.projectName?? ""));
+
+          return isTypeMatch && isEmpMatch && isCusMatch;
+        }).toList();
+
+        filteredList = List<DTaskModel>.from(filteredList);
+
+        if (filteredList.isNotEmpty) {
+          await exportTaskEmployeeWiseExcel(
+            taskList: filteredList,
+            fromDate: _startDate,
+            toDate: _endDate,
+          );
+
+          if (context.mounted) Navigator.pop(context);
+        } else {
+          if (context.mounted) {
+            Navigator.pop(context);
+            utils.showWarningToast(context, text: "No Task Found");
+          }
+        }
+      } else {
+        if (context.mounted) {
+          Navigator.pop(context);
+          utils.showWarningToast(context, text: "No Task Found");
+        }
+      }
+    } catch (e) {
+      if (context.mounted) {
+        Navigator.pop(context);
+        utils.showWarningToast(context, text: "No Task Found");
+      }
+    }
+
+    notifyListeners();
+  }
+  Future<void> downloadAllOnlyEmpTask(BuildContext context) async {
+    notifyListeners();
+
+    try {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => const Center(child: CircularProgressIndicator()),
+      );
+
+      Map data = {
+        "action": taskDatas,
+        "search_type": "download_reports",
+        "cos_id": localData.storage.read("cos_id"),
+        "role": localData.storage.read("role"),
+        "id": localData.storage.read("id"),
+        "date1": _startDate,
+        "date2": _endDate,
+      };
+
+      final response = await _taskRepo.downloadReport(data);
+      print("log response${response}");
+      if (!context.mounted) return;
+
+      if (response.isNotEmpty) {
+        List<DTaskModel> taskList = List<DTaskModel>.from(response);
+
+        List<DTaskModel> filteredList = taskList.where((task) {
+          final isTypeMatch = _fType.isEmpty || (_fType == task.type);
+
+          final isEmpMatch = _userName.isEmpty ||
+              (task.assignedNames ?? "").contains(_userName);
+
+          final isCusMatch = _companyName.isEmpty ||
+              (_companyName == (task.projectName?? ""));
+
+          return isTypeMatch && isEmpMatch && isCusMatch;
+        }).toList();
+
+        filteredList = List<DTaskModel>.from(filteredList);
+
+        if (filteredList.isNotEmpty) {
+          await
+          exportTaskOnlyEmployeeWiseExcel(
+            taskList: taskList,
+            fromDate: _startDate,
+            toDate: _endDate,
+            role: "2",
+            userName: localData.storage.read("f_name").toString(),
+          );
+
+          if (context.mounted) Navigator.pop(context);
+        } else {
+          if (context.mounted) {
+            Navigator.pop(context);
+            utils.showWarningToast(context, text: "No Task Found");
+          }
+        }
+      } else {
+        if (context.mounted) {
+          Navigator.pop(context);
+          utils.showWarningToast(context, text: "No Task Found");
+        }
+      }
+    } catch (e) {
+      if (context.mounted) {
+        Navigator.pop(context);
+        utils.showWarningToast(context, text: "No Task Found");
+      }
+    }
+    notifyListeners();
+  }
+
+  Future<void> exportTaskWithCommentsBlockExcel({
+    required List<DTaskModel> taskList,
+    required String fromDate,
+    required String toDate,
+  })
+  async {
+    try {
+      var excel = Excel.createExcel();
+      Sheet sheet = excel["Sheet1"];
+
+      CellStyle titleStyle = CellStyle(
+        bold: true,
+        fontSize: 16,
+        horizontalAlign: HorizontalAlign.Center,
+        verticalAlign: VerticalAlign.Center,
+      );
+
+      CellStyle headerStyle = CellStyle(
+        bold: true,
+        backgroundColorHex: "#D9E1F2",
+        fontColorHex: "#000000",
+        horizontalAlign: HorizontalAlign.Center,
+        verticalAlign: VerticalAlign.Center,
+      );
+
+      CellStyle subHeaderStyle = CellStyle(
+        bold: true,
+        backgroundColorHex: "#FFF2CC",
+        fontColorHex: "#000000",
+        horizontalAlign: HorizontalAlign.Center,
+        verticalAlign: VerticalAlign.Center,
+      );
+
+      CellStyle dataStyle = CellStyle(
+        horizontalAlign: HorizontalAlign.Left,
+        verticalAlign: VerticalAlign.Top,
+        textWrapping: TextWrapping.WrapText,
+      );
+
+      sheet.appendRow(["TASK COMMENT REPORT DETAILS ($fromDate to $toDate)"]);
+      sheet.merge(
+        CellIndex.indexByString("A1"),
+        CellIndex.indexByString("G1"),
+      );
+      sheet.cell(CellIndex.indexByString("A1")).cellStyle = titleStyle;
+
+      sheet.appendRow([""]);
+
+      int rowIndex = 2;
+
+      String safeText(dynamic value) {
+        if (value == null) return "";
+        String text = value.toString();
+        if (text == "null") return "";
+        return text.trim();
+      }
+
+      List<Map<String, String>> parseComments(String? commentsFull) {
+        List<Map<String, String>> comments = [];
+
+        if (commentsFull == null || commentsFull.trim().isEmpty) return comments;
+
+        List<String> rawComments = commentsFull.split("||");
+
+        for (var c in rawComments) {
+          List<String> parts = c.split("|");
+
+          String name = parts.isNotEmpty ? parts[0].trim() : "";
+          String comment = parts.length > 1 ? parts[1].trim() : "";
+          String time = parts.length > 2 ? parts[2].trim() : "";
+
+          String formattedTime = "";
+
+          if (time.isNotEmpty) {
+            try {
+              DateTime dt = DateTime.parse(time.trim());
+              formattedTime =
+              "${DateFormat("dd-MM-yyyy").format(dt)} ${DateFormat("hh:mm a").format(dt)}";
+            } catch (e) {
+              formattedTime = time;
+            }
+          }
+
+          comments.add({
+            "time": formattedTime,
+            "name": name,
+            "comment": comment,
+          });
+        }
+
+        return comments;
+      }
+
+      for (int i = 0; i < taskList.length; i++) {
+        final task = taskList[i];
+
+        sheet.appendRow([
+          "Task Date",
+          "Task Title",
+          "Company",
+          "Task Type",
+          "Assigned",
+          "Created By",
+          "Status",
+        ]);
+
+        for (int col = 0; col < 7; col++) {
+          sheet
+              .cell(CellIndex.indexByColumnRow(
+              columnIndex: col, rowIndex: rowIndex))
+              .cellStyle = headerStyle;
+        }
+
+        rowIndex++;
+
+        // ✅ FIXED: projectName ❌ -> companyName ✅
+        sheet.appendRow([
+          safeText(task.taskDate),
+          safeText(task.taskTitle),
+          safeText(task.projectName),
+          safeText(task.type),
+          safeText(task.assignedNames),
+          safeText(task.creator),
+          safeText(task.status),
+        ]);
+
+        for (int col = 0; col < 7; col++) {
+          sheet
+              .cell(CellIndex.indexByColumnRow(
+              columnIndex: col, rowIndex: rowIndex))
+              .cellStyle = dataStyle;
+        }
+
+        rowIndex++;
+
+        sheet.appendRow([""]);
+        rowIndex++;
+
+        sheet.appendRow(["COMMENTS"]);
+        sheet.merge(
+          CellIndex.indexByString("A${rowIndex + 1}"),
+          CellIndex.indexByString("C${rowIndex + 1}"),
+        );
+
+        sheet
+            .cell(CellIndex.indexByString("A${rowIndex + 1}"))
+            .cellStyle = subHeaderStyle;
+
+        rowIndex++;
+
+        sheet.appendRow(["Date Time", "Sender", "Comments"]);
+
+        for (int col = 0; col < 3; col++) {
+          sheet
+              .cell(CellIndex.indexByColumnRow(
+              columnIndex: col, rowIndex: rowIndex))
+              .cellStyle = headerStyle;
+        }
+
+        rowIndex++;
+
+        List<Map<String, String>> comments = parseComments(task.commentsFull);
+
+        if (comments.isEmpty) {
+          sheet.appendRow(["-", "-", "No Comments"]);
+          rowIndex++;
+        } else {
+          for (var c in comments) {
+            sheet.appendRow([
+              c["time"] ?? "",
+              c["name"] ?? "",
+              c["comment"] ?? "",
+            ]);
+
+            sheet
+                .cell(CellIndex.indexByColumnRow(
+                columnIndex: 2, rowIndex: rowIndex))
+                .cellStyle = dataStyle;
+
+            rowIndex++;
+          }
+        }
+
+        sheet.appendRow([""]);
+        sheet.appendRow([""]);
+        rowIndex += 2;
+      }
+
+      sheet.setColWidth(0, 22);
+      sheet.setColWidth(1, 35);
+      sheet.setColWidth(2, 30);
+      sheet.setColWidth(3, 20);
+      sheet.setColWidth(4, 25);
+      sheet.setColWidth(5, 18);
+      sheet.setColWidth(6, 15);
+
+      sheet.setColWidth(0, 22);
+      sheet.setColWidth(1, 18);
+      sheet.setColWidth(2, 60);
+
+      final dir = await getApplicationDocumentsDirectory();
+
+      String cleanFromDate = fromDate.replaceAll("/", "-").replaceAll(":", "-");
+      String cleanToDate = toDate.replaceAll("/", "-").replaceAll(":", "-");
+
+      String filePath =
+          "${dir.path}/Task_Comments_Block_${cleanFromDate}_to_${cleanToDate}.xlsx";
+
+      final bytes = excel.encode();
+      if (bytes == null) return;
+
+      final file = File(filePath);
+      await file.writeAsBytes(bytes, flush: true);
+
+      await OpenFile.open(filePath);
+    } catch (e) {
+      print("Excel Export Error => $e");
+    }
+  }
+
+  Future<void> downloadAllTaskComment(BuildContext context) async {
+    notifyListeners();
+
+    try {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => const Center(child: CircularProgressIndicator()),
+      );
+
+      Map data = {
+        "action": taskDatas,
+        "search_type": "download_reports",
+        "cos_id": localData.storage.read("cos_id"),
+        "role": localData.storage.read("role"),
+        "id": localData.storage.read("id"),
+        "date1": _startDate,
+        "date2": _endDate
+      };
+
+      final response = await _taskRepo.downloadReport(data);
+
+      if (!context.mounted) return;
+
+      if (response.isNotEmpty) {
+        // ✅ make modifiable list
+        List<DTaskModel> taskList = List<DTaskModel>.from(response);
+
+        // ✅ filter
+        List<DTaskModel> test = taskList.where((task) {
+          final isTypeMatch = _fType.isEmpty || _fType == task.type;
+
+          final isEmpMatch = _userName.isEmpty ||
+              (task.assignedNames ?? "").contains(_userName);
+
+          // ✅ IMPORTANT FIX: projectName ❌ -> companyName ✅
+          final isCusMatch = _companyName.isEmpty ||
+              (task.projectName ?? "") == _companyName;
+
+          return isTypeMatch && isEmpMatch && isCusMatch;
+        }).toList();
+
+        test = List<DTaskModel>.from(test);
+
+        if (test.isNotEmpty) {
+          if (context.mounted) Navigator.pop(context);
+
+          await exportTaskWithCommentsBlockExcel(
+            taskList: test,
+            fromDate: _startDate,
+            toDate: _endDate,
+          );
+        } else {
+          if (context.mounted) Navigator.pop(context);
+          utils.showWarningToast(context, text: "No Task Found");
+        }
+      } else {
+        if (context.mounted) Navigator.pop(context);
+        utils.showWarningToast(context, text: "No Task Found");
+      }
+    } catch (e) {
+      if (context.mounted) Navigator.pop(context);
+      utils.showWarningToast(context, text: "No Task Found");
+    }
+
+    notifyListeners();
+  }
+
+  Future<void> exportTaskEmployeeWiseExcel({
+    required List<DTaskModel> taskList,
+    required String fromDate,
+    required String toDate,
+  })
+  async {
+    var excel = Excel.createExcel();
+    Sheet sheet = excel["Sheet1"];
+
+    /// =================== STYLES ===================
+    CellStyle titleStyle = CellStyle(
+      bold: true,
+      fontSize: 16,
+      horizontalAlign: HorizontalAlign.Center,
+      verticalAlign: VerticalAlign.Center,
+    );
+
+    CellStyle headerStyle = CellStyle(
+      bold: true,
+      backgroundColorHex: "#FFFF00",
+      fontColorHex: "#000000",
+      horizontalAlign: HorizontalAlign.Center,
+      verticalAlign: VerticalAlign.Center,
+    );
+
+    CellStyle empStyle = CellStyle(
+      bold: true,
+      backgroundColorHex: "#D9E1F2",
+      fontColorHex: "#000000",
+      horizontalAlign: HorizontalAlign.Left,
+      verticalAlign: VerticalAlign.Center,
+    );
+
+    CellStyle normalStyle = CellStyle(
+      horizontalAlign: HorizontalAlign.Left,
+      verticalAlign: VerticalAlign.Center,
+    );
+
+    /// =================== TOP TITLE ===================
+    sheet.appendRow(["JPS TASK REPORT DETAILS"]);
+    sheet.merge(
+      CellIndex.indexByString("A1"),
+      CellIndex.indexByString("H1"),
+    );
+    sheet.cell(CellIndex.indexByString("A1")).cellStyle = titleStyle;
+
+    /// EMPTY ROW
+    sheet.appendRow([""]);
+
+    /// =================== GROUP BY EMPLOYEE ===================
+    Map<String, List<DTaskModel>> groupedTasks = {};
+
+    for (var task in taskList) {
+      String names = task.assignedNames ?? "Unknown";
+
+      // ✅ split comma separated names
+      List<String> empList = names.split(",");
+
+      for (var emp in empList) {
+        String empName = emp.trim();
+        if (empName.isEmpty) empName = "Unknown";
+
+        groupedTasks.putIfAbsent(empName, () => []);
+        groupedTasks[empName]!.add(task);
+      }
+    }
+
+    int rowIndex = 2; // because already 2 rows added
+
+    /// =================== LOOP EMPLOYEE WISE ===================
+    groupedTasks.forEach((empName, tasks) {
+      /// ✅ SORT DATE ASCENDING (dd-MM-yyyy)
+      tasks.sort((a, b) {
+        DateTime da = parseDate(a.taskDate);
+        DateTime db = parseDate(b.taskDate);
+        return da.compareTo(db);
+      });
+
+      /// EMPLOYEE NAME + DATE RANGE
+      sheet.appendRow(["$empName ($fromDate to $toDate)"]);
+
+      sheet.merge(
+        CellIndex.indexByString("A${rowIndex + 1}"),
+        CellIndex.indexByString("H${rowIndex + 1}"),
+      );
+
+      sheet.cell(CellIndex.indexByString("A${rowIndex + 1}")).cellStyle =
+          empStyle;
+
+      rowIndex++;
+
+      /// HEADER ROW
+      sheet.appendRow([
+        "Task Created Date",
+        "Task Title",
+        "Company",
+        "Task Type",
+        "Service Date",
+        "Assigned To",
+        "Created By",
+        "Status",
+      ]);
+
+      for (int col = 0; col < 8; col++) {
+        sheet
+            .cell(CellIndex.indexByColumnRow(columnIndex: col, rowIndex: rowIndex))
+            .cellStyle = headerStyle;
+      }
+      rowIndex++;
+
+      /// TASK DATA ROWS
+      for (var task in tasks) {
+        sheet.appendRow([
+          task.taskDate ?? "-",
+          task.taskTitle ?? "-",
+          task.projectName ?? "-",
+          task.type ?? "-",
+          task.taskDate ?? "-",
+          task.assignedNames ?? "-",
+          task.creator ?? "-",
+          task.status ?? "-",
+        ]);
+
+        for (int col = 0; col < 8; col++) {
+          sheet
+              .cell(CellIndex.indexByColumnRow(
+              columnIndex: col, rowIndex: rowIndex))
+              .cellStyle = normalStyle;
+        }
+
+        rowIndex++;
+      }
+
+      /// GAP AFTER EACH EMPLOYEE
+      sheet.appendRow([""]);
+      rowIndex++;
+    });
+
+    /// =================== COLUMN WIDTH ===================
+    sheet.setColWidth(0, 22);
+    sheet.setColWidth(1, 50);
+    sheet.setColWidth(2, 30);
+    sheet.setColWidth(3, 25);
+    sheet.setColWidth(4, 18);
+    sheet.setColWidth(5, 30);
+    sheet.setColWidth(6, 18);
+    sheet.setColWidth(7, 15);
+
+    /// =================== SAVE FILE ===================
+    final dir = await getApplicationDocumentsDirectory();
+
+    String filePath =
+        "${dir.path}/Employee_Task_Report_($fromDate to $toDate).xlsx";
+
+    File(filePath)
+      ..createSync(recursive: true)
+      ..writeAsBytesSync(excel.encode()!);
+
+    await OpenFile.open(filePath);
+  }
+
+  Future<void> exportTaskOnlyEmployeeWiseExcel({
+    required List<DTaskModel> taskList,
+    required String fromDate,
+    required String toDate,
+    required String role,
+    String? userName, // 👈 employee login name
+  }) async {
+    var excel = Excel.createExcel();
+    Sheet sheet = excel["Sheet1"];
+
+    /// =================== STYLES ===================
+    CellStyle titleStyle = CellStyle(
+      bold: true,
+      fontSize: 16,
+      horizontalAlign: HorizontalAlign.Center,
+      verticalAlign: VerticalAlign.Center,
+    );
+
+    CellStyle headerStyle = CellStyle(
+      bold: true,
+      backgroundColorHex: "#FFFF00",
+      fontColorHex: "#000000",
+      horizontalAlign: HorizontalAlign.Center,
+      verticalAlign: VerticalAlign.Center,
+    );
+
+    CellStyle empStyle = CellStyle(
+      bold: true,
+      backgroundColorHex: "#D9E1F2",
+      fontColorHex: "#000000",
+      horizontalAlign: HorizontalAlign.Left,
+      verticalAlign: VerticalAlign.Center,
+    );
+
+    CellStyle normalStyle = CellStyle(
+      horizontalAlign: HorizontalAlign.Left,
+      verticalAlign: VerticalAlign.Center,
+    );
+
+    /// =================== TOP TITLE ===================
+    sheet.appendRow(["JPS TASK REPORT DETAILS"]);
+    sheet.merge(CellIndex.indexByString("A1"), CellIndex.indexByString("H1"));
+    sheet.cell(CellIndex.indexByString("A1")).cellStyle = titleStyle;
+
+    sheet.appendRow([""]);
+
+    /// =================== FILTER LIST ===================
+    List<DTaskModel> filteredTasks = [];
+
+    if (role == "1") {
+      /// ✅ Admin = all tasks
+      filteredTasks = taskList;
+    } else {
+      /// ✅ Employee = only assigned tasks for that user
+      String filter = (userName ?? "").trim().toLowerCase();
+
+      filteredTasks = taskList.where((task) {
+        String assignedNames = (task.assignedNames ?? "").trim();
+        if (assignedNames.isEmpty) return false;
+
+        List<String> empList = assignedNames.split(",");
+
+        return empList.any((e) => e.trim().toLowerCase() == filter);
+      }).toList();
+    }
+
+    /// =================== GROUP BY EMPLOYEE ===================
+    Map<String, List<DTaskModel>> groupedTasks = {};
+
+    for (var task in filteredTasks) {
+      String names = task.assignedNames ?? "Unknown";
+      List<String> empList = names.split(",");
+
+      for (var emp in empList) {
+        String empName = emp.trim();
+        if (empName.isEmpty) empName = "Unknown";
+
+        /// Employee role na only login user name group la add pannum
+        if (role != "1") {
+          if (empName.toLowerCase() != (userName ?? "").trim().toLowerCase()) {
+            continue;
+          }
+        }
+
+        groupedTasks.putIfAbsent(empName, () => []);
+        groupedTasks[empName]!.add(task);
+      }
+    }
+
+    /// =================== IF EMPTY ===================
+    if (groupedTasks.isEmpty) {
+      sheet.appendRow(["No Tasks Found"]);
+    }
+
+    int rowIndex = 2;
+
+    /// =================== LOOP EMPLOYEE WISE ===================
+    groupedTasks.forEach((empName, tasks) {
+      tasks.sort((a, b) {
+        DateTime da = parseDate(a.taskDate);
+        DateTime db = parseDate(b.taskDate);
+        return da.compareTo(db);
+      });
+
+      sheet.appendRow(["$empName ($fromDate to $toDate)"]);
+
+      sheet.merge(
+        CellIndex.indexByString("A${rowIndex + 1}"),
+        CellIndex.indexByString("H${rowIndex + 1}"),
+      );
+
+      sheet.cell(CellIndex.indexByString("A${rowIndex + 1}")).cellStyle =
+          empStyle;
+
+      rowIndex++;
+
+      sheet.appendRow([
+        "Task Created Date",
+        "Task Title",
+        "Company",
+        "Task Type",
+        "Service Date",
+        "Assigned To",
+        "Created By",
+        "Status",
+      ]);
+
+      for (int col = 0; col < 8; col++) {
+        sheet
+            .cell(CellIndex.indexByColumnRow(columnIndex: col, rowIndex: rowIndex))
+            .cellStyle = headerStyle;
+      }
+
+      rowIndex++;
+
+      for (var task in tasks) {
+        sheet.appendRow([
+          task.taskDate ?? "-",
+          task.taskTitle ?? "-",
+          task.projectName ?? "-",
+          task.type ?? "-",
+          task.taskDate ?? "-",
+          task.assignedNames ?? "-",
+          task.creator ?? "-",
+          task.status ?? "-",
+        ]);
+
+        for (int col = 0; col < 8; col++) {
+          sheet
+              .cell(CellIndex.indexByColumnRow(
+              columnIndex: col, rowIndex: rowIndex))
+              .cellStyle = normalStyle;
+        }
+
+        rowIndex++;
+      }
+
+      sheet.appendRow([""]);
+      rowIndex++;
+    });
+
+    /// =================== COLUMN WIDTH ===================
+    sheet.setColWidth(0, 22);
+    sheet.setColWidth(1, 50);
+    sheet.setColWidth(2, 30);
+    sheet.setColWidth(3, 25);
+    sheet.setColWidth(4, 18);
+    sheet.setColWidth(5, 30);
+    sheet.setColWidth(6, 18);
+    sheet.setColWidth(7, 15);
+
+    /// =================== SAVE FILE ===================
+    final dir = await getApplicationDocumentsDirectory();
+
+    String fileName = role == "1"
+        ? "All_Employee_Task_Report_($fromDate to $toDate).xlsx"
+        : "${userName}_Task_Report_($fromDate to $toDate).xlsx";
+
+    String filePath = "${dir.path}/$fileName";
+
+    File(filePath)
+      ..createSync(recursive: true)
+      ..writeAsBytesSync(excel.encode()!);
+
+    await OpenFile.open(filePath);
+  }
+
+  Future<void> generatePdf(List<DTaskModel> taskList, BuildContext context) async {
+    final pdf = pw.Document();
+
+    final font = await PdfGoogleFonts.notoSansRegular();
+    final boldFont = await PdfGoogleFonts.notoSansBold();
+
+    /// 🔹 Image Loader
+    Future<pw.MemoryImage?> loadAndCompressImage(String url,
+        {int maxWidth = 600, int maxHeight = 600, int quality = 50}) async {
+      try {
+        final response = await http.get(Uri.parse("$imageFile?path=$url"));
+        if (response.statusCode == 200 && response.bodyBytes.isNotEmpty) {
+          img.Image? image = img.decodeImage(response.bodyBytes);
+          if (image != null) {
+            image = img.copyResize(
+              image,
+              width: image.width > maxWidth ? maxWidth : image.width,
+              height: image.height > maxHeight ? maxHeight : image.height,
+            );
+            return pw.MemoryImage(img.encodeJpg(image, quality: quality));
+          }
+        }
+      } catch (_) {}
+      return null;
+    }
+
+    /// 🔹 Preload Images
+    Map<DTaskModel, List<pw.MemoryImage>> taskImages = {};
+    for (var task in taskList) {
+      final images = <pw.MemoryImage>[];
+      final docs = [task.docsType1, task.docsType2, task.docsType3];
+
+      for (var docList in docs) {
+        if (docList != null && docList.isNotEmpty) {
+          for (var url in docList) {
+            if (url.isNotEmpty && url != "null") {
+              final imgData = await loadAndCompressImage(url);
+              if (imgData != null) images.add(imgData);
+            }
+          }
+        }
+      }
+      taskImages[task] = images;
+    }
+
+    /// 🔹 Build Task Section
+    pw.Widget buildTaskSection(DTaskModel task, List<pw.MemoryImage> images) {
+
+      /// 🔥 COMMENTS PARSE
+      List<Map<String, String>> comments = [];
+
+      if (task.commentsFull != null && task.commentsFull!.trim().isNotEmpty) {
+        final rawComments = task.commentsFull!.split("||");
+
+        for (var c in rawComments) {
+          final parts = c.split("|");
+
+          String name = parts.isNotEmpty ? parts[0].trim() : "";
+          String comment = parts.length > 1 ? parts[1].trim() : "";
+          String time = parts.length > 2 ? parts[2].trim() : "";
+
+          String date = "";
+          String formattedTime = "";
+
+          if (time.isNotEmpty) {
+            final dt = DateTime.tryParse(time);
+            if (dt != null) {
+              date = DateFormat('dd-MM-yyyy').format(dt);
+              formattedTime = DateFormat('hh:mm a').format(dt);
+            }
+          }
+
+          comments.add({
+            "name": name,
+            "comment": comment,
+            "date": date,
+            "time": formattedTime,
+          });
+        }
+      }
+
+      return pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+
+          pw.Divider(),
+
+          /// 🔹 Title
+          pw.Text("Task Reports - ${task.taskDate}",
+              style: pw.TextStyle(fontSize: 16, font: boldFont)),
+
+          pw.SizedBox(height: 5),
+
+          /// 🔹 Basic Info
+          pw.Text("Task: ${task.taskTitle}", style: pw.TextStyle(font: font)),
+          pw.Text("Company: ${task.projectName}", style: pw.TextStyle(font: font)),
+          pw.Text("Assigned To: ${task.assignedNames}", style: pw.TextStyle(font: font)),
+          pw.Text("Created By: ${task.creator}", style: pw.TextStyle(font: font)),
+
+          pw.SizedBox(height: 10),
+
+          /// 🔥 COMMENTS TABLE
+          if (comments.isNotEmpty)
+            pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+
+                pw.Text("Comments",
+                    style: pw.TextStyle(font: boldFont, fontSize: 14)),
+
+                pw.SizedBox(height: 5),
+
+                pw.Table(
+                  border: pw.TableBorder.all(color: PdfColors.grey300),
+                  columnWidths: {
+                    0: const pw.FlexColumnWidth(2),
+                    1: const pw.FlexColumnWidth(2),
+                    2: const pw.FlexColumnWidth(6),
+                  },
+                  children: [
+
+                    /// HEADER
+                    pw.TableRow(
+                      decoration: pw.BoxDecoration(color: PdfColors.grey200),
+                      children: [
+                        pw.Padding(
+                          padding: const pw.EdgeInsets.all(5),
+                          child: pw.Text("Time",
+                              style: pw.TextStyle(font: boldFont, fontSize: 10)),
+                        ),
+                        pw.Padding(
+                          padding: const pw.EdgeInsets.all(5),
+                          child: pw.Text("Name",
+                              style: pw.TextStyle(font: boldFont, fontSize: 10)),
+                        ),
+                        pw.Padding(
+                          padding: const pw.EdgeInsets.all(5),
+                          child: pw.Text("Comment",
+                              style: pw.TextStyle(font: boldFont, fontSize: 10)),
+                        ),
+                      ],
+                    ),
+
+                    /// DATA
+                    ...comments.map((c) {
+                      return pw.TableRow(
+                        children: [
+                          pw.Padding(
+                            padding: const pw.EdgeInsets.all(3),
+                            child: pw.Text(
+                              "${c["date"]} ${c["time"]}",
+                              style: pw.TextStyle(font: font, fontSize: 9),
+                            ),
+                          ),
+                          pw.Padding(
+                            padding: const pw.EdgeInsets.all(5),
+                            child: pw.Text(
+                              c["name"] ?? "",
+                              style: pw.TextStyle(font: font, fontSize: 9),
+                            ),
+                          ),
+                          pw.Padding(
+                            padding: const pw.EdgeInsets.all(5),
+                            child: pw.Text(
+                              c["comment"] ?? "",
+                              style: pw.TextStyle(font: font, fontSize: 9),
+                            ),
+                          ),
+                        ],
+                      );
+                    }).toList(),
+                  ],
+                ),
+              ],
+            ),
+
+          pw.SizedBox(height: 10),
+
+          /// 🔹 Images
+          if (images.isNotEmpty)
+            pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                pw.Text("Documents", style: pw.TextStyle(font: boldFont)),
+                pw.SizedBox(height: 5),
+
+                ...images.map((img) => pw.Padding(
+                  padding: const pw.EdgeInsets.all(5),
+                  child: pw.Image(img, width: 150, height: 100),
+                ))
+              ],
+            ),
+        ],
+      );
+    }
+
+    /// 🔹 Add Pages
+    for (var task in taskList) {
+      pdf.addPage(
+        pw.MultiPage(
+          build: (context) => [
+            buildTaskSection(task, taskImages[task] ?? [])
+          ],
+        ),
+      );
+    }
+
+    Navigator.pop(context);
+    await Printing.layoutPdf(onLayout: (format) async => pdf.save());
+  }
+
+
+
+
+  /// ===============================================================
+  /// ✅ EXPORT EMPLOYEE WISE EXCEL FULL CODE
+  /// ===============================================================
+
+
+  /// ===============================================================
+  /// ✅ DATE PARSE FUNCTION (dd-MM-yyyy support)
+  /// ===============================================================
+  DateTime parseDate(String? date) {
+    if (date == null || date.isEmpty) return DateTime(2000);
+
+    try {
+      return DateFormat("dd-MM-yyyy").parse(date);
+    } catch (e) {
+      try {
+        return DateTime.parse(date);
+      } catch (e) {
+        return DateTime(2000);
+      }
+    }
+  }
+
+  /// ===============================================================
+  /// ✅ CREATED TS FORMAT FUNCTION
+  /// (server format: 2026-04-04 17:28:11)
+  /// ===============================================================
+  String formatDate(String? dateTime) {
+    if (dateTime == null || dateTime.isEmpty) return "-";
+
+    try {
+      DateTime dt = DateTime.parse(dateTime);
+      return DateFormat("dd-MM-yyyy hh:mm a").format(dt);
+    } catch (e) {
+      return dateTime;
+    }
+  }
+
+  // String parseDate(String value) {
+  //   try {
+  //     return DateFormat('dd-MM-yyyy hh:mm a').format(DateTime.parse(value));
+  //   } catch (_) {
+  //     return value; // if invalid format, return as-is
+  //   }
+  // }
+
+  // Future<void> generatePdf(List<DTaskModel> taskList, BuildContext context) async {
+  //   final pdf = pw.Document();
+  //
+  //   // Unicode-safe fonts
+  //   final font = await PdfGoogleFonts.notoSansRegular();
+  //   final boldFont = await PdfGoogleFonts.notoSansBold();
+  //
+  //   // Helper to load and compress images
+  //   Future<pw.MemoryImage?> loadAndCompressImage(String url,
+  //       {int maxWidth = 800, int maxHeight = 800, int quality = 70}) async {
+  //     try {
+  //       final response = await http.get(Uri.parse("$imageFile?path=$url"));
+  //       if (response.statusCode == 200 && response.bodyBytes.isNotEmpty) {
+  //         img.Image? image = img.decodeImage(response.bodyBytes);
+  //         if (image != null) {
+  //           image = img.copyResize(image,
+  //               width: image.width > maxWidth ? maxWidth : image.width,
+  //               height: image.height > maxHeight ? maxHeight : image.height);
+  //           return pw.MemoryImage(img.encodeJpg(image, quality: quality));
+  //         }
+  //       }
+  //     } catch (_) {}
+  //     return null;
+  //   }
+  //
+  //   // Preload all images for tasks
+  //   Map<DTaskModel, List<pw.MemoryImage>> taskImages = {};
+  //   for (var task in taskList) {
+  //     final images = <pw.MemoryImage>[];
+  //     final docs = [task.docsType1, task.docsType2, task.docsType3];
+  //     for (var docList in docs) {
+  //       if (docList != null && docList.isNotEmpty) {
+  //         for (var url in docList) {
+  //           if (url.isNotEmpty && url != "null") {
+  //             final imgData = await loadAndCompressImage(url);
+  //             if (imgData != null) images.add(imgData);
+  //           }
+  //         }
+  //       }
+  //     }
+  //     taskImages[task] = images;
+  //   }
+  //
+  //   // Build PDF
+  //   pdf.addPage(
+  //     pw.MultiPage(
+  //       pageFormat: PdfPageFormat.a4,
+  //       build: (context) {
+  //         return [
+  //           pw.Center(
+  //             child: pw.Text(
+  //               "Task Reports - $startDate${startDate != endDate ? " To $endDate" : ""}",
+  //               style: pw.TextStyle(fontSize: 20, font: boldFont),
+  //             ),
+  //           ),
+  //           pw.SizedBox(height: 15),
+  //           ...taskList.map((task) {
+  //             // Prepare expense data map
+  //             final expIds = task.expenseIds;
+  //             final expAmounts = task.expenseAmount;
+  //             final expStatus = task.expenseStatus;
+  //             Map<String, Map<String, List<List<String>>>> expenseData = {};
+  //             for (var id in expIds) {
+  //               expenseData[id] = {"travel": [], "da": [], "conv": []};
+  //             }
+  //
+  //             // Travel details
+  //             if (task.travelDetails != null) {
+  //               for (var travelBlock in task.travelDetails) {
+  //                 final travelRows = travelBlock.split("||");
+  //                 for (var row in travelRows) {
+  //                   final parts = row.split("|").map((e) => e.trim()).toList();
+  //                   if (parts.isNotEmpty && expenseData.containsKey(parts[0])) {
+  //                     expenseData[parts[0]]!["travel"]!.add(parts.sublist(1));
+  //                   }
+  //                 }
+  //               }
+  //             }
+  //
+  //             // DA details
+  //             if (task.daDetails != null) {
+  //               for (var daBlock in task.daDetails) {
+  //                 final daGroups = daBlock.split("###");
+  //                 for (var group in daGroups) {
+  //                   final rows = group.split("||");
+  //                   for (var row in rows) {
+  //                     final parts = row.split("|").map((e) => e.trim()).toList();
+  //                     if (parts.isNotEmpty && expenseData.containsKey(parts[0])) {
+  //                       expenseData[parts[0]]!["da"]!.add(parts.sublist(1));
+  //                     }
+  //                   }
+  //                 }
+  //               }
+  //             }
+  //
+  //             // Conveyance details
+  //             if (task.convDetails != null) {
+  //               for (var convBlock in task.convDetails) {
+  //                 final convGroups = convBlock.split("###");
+  //                 for (var group in convGroups) {
+  //                   final rows = group.split("||");
+  //                   for (var row in rows) {
+  //                     final parts = row.split("|").map((e) => e.trim()).toList();
+  //                     if (parts.isNotEmpty && expenseData.containsKey(parts[0])) {
+  //                       expenseData[parts[0]]!["conv"]!.add(parts.sublist(1));
+  //                     }
+  //                   }
+  //                 }
+  //               }
+  //             }
+  //
+  //             // Build task section
+  //             return pw.Column(
+  //               crossAxisAlignment: pw.CrossAxisAlignment.start,
+  //               children: [
+  //                 pw.Row(
+  //                     mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+  //                     children: [
+  //                       pw.RichText(
+  //                         text: pw.TextSpan(
+  //                           children: [
+  //                             pw.TextSpan(text: "Task Date: ", style: pw.TextStyle(font: font)),
+  //                             pw.TextSpan(text: task.taskDate, style: pw.TextStyle(font: boldFont)),
+  //                           ],
+  //                         ),
+  //                       ),
+  //                       pw.RichText(
+  //                         text: pw.TextSpan(
+  //                           children: [
+  //                             pw.TextSpan(text: "Status: ", style: pw.TextStyle(font: font)),
+  //                             pw.TextSpan(text: task.status, style: pw.TextStyle(font: boldFont)),
+  //                           ],
+  //                         ),
+  //                       ),
+  //                     ]
+  //                 ),
+  //                 pw.RichText(
+  //                   text: pw.TextSpan(
+  //                     children: [
+  //                       pw.TextSpan(text: "Task: ", style: pw.TextStyle(font: font)),
+  //                       pw.TextSpan(text: task.taskTitle, style: pw.TextStyle(font: boldFont)),
+  //                     ],
+  //                   ),
+  //                 ),
+  //                 pw.RichText(
+  //                   text: pw.TextSpan(
+  //                     children: [
+  //                       pw.TextSpan(text: "Company Name: ", style: pw.TextStyle(font: font)),
+  //                       pw.TextSpan(text: task.projectName, style: pw.TextStyle(font: boldFont)),
+  //                     ],
+  //                   ),
+  //                 ),
+  //                 pw.Row(
+  //                     mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+  //                     children: [
+  //                       pw.RichText(
+  //                         text: pw.TextSpan(
+  //                           children: [
+  //                             pw.TextSpan(text: "Assigned To: ", style: pw.TextStyle(font: font)),
+  //                             pw.TextSpan(text: task.assignedNames, style: pw.TextStyle(font: boldFont)),
+  //                           ],
+  //                         ),
+  //                       ),
+  //                       pw.RichText(
+  //                         text: pw.TextSpan(
+  //                           children: [
+  //                             pw.TextSpan(text: "Created By: ", style: pw.TextStyle(font: font)),
+  //                             pw.TextSpan(text: task.creator, style: pw.TextStyle(font: boldFont)),
+  //                           ],
+  //                         ),
+  //                       ),
+  //                     ]
+  //                 ),
+  //                 pw.SizedBox(height: 5),
+  //                 // Attendance
+  //                 if (task.checkInTs.toString()!="null")
+  //                   pw.Column(
+  //                     crossAxisAlignment: pw.CrossAxisAlignment.start,
+  //                     children: [
+  //                       pw.Text("Visits", style: pw.TextStyle(font: boldFont, fontSize: 14)),
+  //                       pw.SizedBox(height: 5),
+  //
+  //                       // Split the comma-separated strings
+  //                           () {
+  //                         final inTimeList = task.checkInTs.toString().split(",");
+  //                         final outTimeList = task.checkOutTs.toString().split(",");
+  //                         final isCheckedOutList = task.isCheckedOut.toString().split(",");
+  //                         final visitedRows = <List<String>>[];
+  //
+  //                         for (var i = 0; i < inTimeList.length; i++) {
+  //                           final inTime = inTimeList.length > i ? inTimeList[i].trim() : "";
+  //                           final outTime = outTimeList.length > i ? outTimeList[i].trim() : "";
+  //                           final isCheckedOut = isCheckedOutList.length > i ? isCheckedOutList[i].trim() : "";
+  //
+  //                           // Extract only the date part from inTime
+  //                           String datePart = "";
+  //                           String inTimeOnly = "";
+  //                           String outTimeOnly = "-";
+  //
+  //                           if (inTime.isNotEmpty) {
+  //                             final dt = DateTime.tryParse(inTime);
+  //                             if (dt != null) {
+  //                               datePart = DateFormat('dd-MM-yyyy').format(dt);
+  //                               inTimeOnly = DateFormat('hh:mm a').format(dt);
+  //                             }
+  //                           }
+  //
+  //                           if (outTime.isNotEmpty && isCheckedOut == "2") {
+  //                             final dtOut = DateTime.tryParse(outTime);
+  //                             if (dtOut != null) {
+  //                               outTimeOnly = DateFormat('hh:mm a').format(dtOut);
+  //                             }
+  //                           }
+  //
+  //                           visitedRows.add([datePart, inTimeOnly, outTimeOnly]);
+  //                         }
+  //
+  //                         // Return a table with headers
+  //                         return pw.Table.fromTextArray(
+  //                           headers: ['Date', 'Check-In', 'Check-Out'],
+  //                           data: visitedRows,
+  //                           headerStyle: pw.TextStyle(font: boldFont),
+  //                           cellStyle: pw.TextStyle(font: font),
+  //                           headerDecoration: pw.BoxDecoration(color: PdfColors.grey300),
+  //                           cellAlignment: pw.Alignment.centerLeft,
+  //                         );
+  //                       }(),
+  //                     ],
+  //                   ),
+  //                 pw.SizedBox(height: 10),
+  //
+  //                 // Attendance
+  //                 if (task.cvDates.toString()!="null")
+  //                   pw.Column(
+  //                     crossAxisAlignment: pw.CrossAxisAlignment.start,
+  //                     children: [
+  //                       pw.Text("Visits Report", style: pw.TextStyle(font: boldFont, fontSize: 14)),
+  //                       pw.SizedBox(height: 5),
+  //
+  //                           () {
+  //                         final dateList = task.cvDates.toString().split(",");
+  //                         final cusNameList = task.cvCustomerNames.toString().split(",");
+  //                         final discList = task.cvDiscussionPoints.toString().split(",");
+  //                         final actionList = task.cvActionTakens.toString().split(",");
+  //                         final visitedRows = <List<String>>[];
+  //
+  //                         for (var i = 0; i < dateList.length; i++) {
+  //                           visitedRows.add([
+  //                             dateList[i].trim(),
+  //                             cusNameList.length > i ? cusNameList[i].trim() : "",
+  //                             discList.length > i ? discList[i].trim() : "",
+  //                             actionList.length > i ? actionList[i].trim() : "",
+  //                           ]);
+  //                         }
+  //
+  //                         return pw.Table.fromTextArray(
+  //                           headers: ['Date', 'Customer Name', 'Discussion Points', 'Action to be taken'],
+  //                           data: visitedRows,
+  //                           headerStyle: pw.TextStyle(font: boldFont),
+  //                           cellStyle: pw.TextStyle(font: font),
+  //                           headerDecoration: pw.BoxDecoration(color: PdfColors.grey300),
+  //                           cellAlignment: pw.Alignment.centerLeft,
+  //                         );
+  //                       }(),
+  //                     ],
+  //                   ),
+  //                 pw.SizedBox(height: 10),
+  //
+  //                 // Expenses
+  //                 if (expenseData.isNotEmpty)
+  //                   pw.Column(
+  //                     crossAxisAlignment: pw.CrossAxisAlignment.start,
+  //                     children: [
+  //                       pw.Text("Expenses", style: pw.TextStyle(fontSize: 14, font: boldFont)),
+  //                       pw.SizedBox(height: 5),
+  //                       ...expenseData.keys.map((id) {
+  //                         final index = expIds.indexOf(id);
+  //                         final total = index < expAmounts.length ? expAmounts[index] : "0";
+  //                         final status = index < expStatus.length ? expStatus[index] : "0";
+  //
+  //                         return pw.Column(
+  //                           crossAxisAlignment: pw.CrossAxisAlignment.start,
+  //                           children: [
+  //                             pw.Text(
+  //                               "Expense - Total: ₹$total – Status: ${status == "0" ? "Rejected" : status == "1" ? "In Process" : "Approved"}",
+  //                               style: pw.TextStyle(font: font),
+  //                             ),
+  //                             pw.SizedBox(height: 5),
+  //
+  //                             // DA Table
+  //                             if (expenseData[id]!["da"]!.isNotEmpty)
+  //                               pw.Column(
+  //                                 crossAxisAlignment: pw.CrossAxisAlignment.start,
+  //                                 children: [
+  //                                   pw.Text("DA Expenses", style: pw.TextStyle(font: boldFont)),
+  //                                   ...chunkList(expenseData[id]!["da"]!, 15).map((chunk) {
+  //                                     return pw.Table.fromTextArray(
+  //                                       headers: ['Day', 'Type', 'Amount'],
+  //                                       data: chunk,
+  //                                     );
+  //                                   }),
+  //                                 ],
+  //                               ),
+  //
+  //                             // Travel Table
+  //                             if (expenseData[id]!["travel"]!.isNotEmpty)
+  //                               pw.Column(
+  //                                 crossAxisAlignment: pw.CrossAxisAlignment.start,
+  //                                 children: [
+  //                                   pw.Text("Travel Expenses", style: pw.TextStyle(font: boldFont)),
+  //                                   ...chunkList(expenseData[id]!["travel"]!, 15).map((chunk) {
+  //                                     return pw.Table.fromTextArray(
+  //                                       headers: [
+  //                                         'From', 'To', 'Start Date', 'Start Time',
+  //                                         'End Date', 'End Time', 'Mode', 'Amount'
+  //                                       ],
+  //                                       data: chunk,
+  //                                     );
+  //                                   }),
+  //                                 ],
+  //                               ),
+  //
+  //                             // Conveyance Table
+  //                             if (expenseData[id]!["conv"]!.isNotEmpty)
+  //                               pw.Column(
+  //                                 crossAxisAlignment: pw.CrossAxisAlignment.start,
+  //                                 children: [
+  //                                   pw.Text("Conveyance Expenses", style: pw.TextStyle(font: boldFont)),
+  //                                   ...chunkList(expenseData[id]!["conv"]!, 15).map((chunk) {
+  //                                     return pw.Table.fromTextArray(
+  //                                       headers: ['Date', 'From', 'To', 'Mode', 'Amount'],
+  //                                       data: chunk,
+  //                                     );
+  //                                   }),
+  //                                 ],
+  //                               ),
+  //                             pw.SizedBox(height: 10),
+  //                           ],
+  //                         );
+  //                       }),
+  //                     ],
+  //                   ),
+  //
+  //                 // Expense images
+  //                 if (taskImages[task] != null && taskImages[task]!.isNotEmpty)
+  //                   pw.Column(
+  //                     crossAxisAlignment: pw.CrossAxisAlignment.start,
+  //                     children: [
+  //                       pw.Text("Expense Documents", style: pw.TextStyle(font: boldFont, fontSize: 14)),
+  //                       pw.SizedBox(height: 5),
+  //                       ...List.generate((taskImages[task]!.length / 3).ceil(), (rowIndex) {
+  //                         final rowImages = taskImages[task]!.skip(rowIndex * 3).take(3).toList();
+  //                         return pw.Row(
+  //                           mainAxisAlignment: pw.MainAxisAlignment.start,
+  //                           children: rowImages
+  //                               .map((img) => pw.Padding(
+  //                             padding: const pw.EdgeInsets.only(right: 5, bottom: 5),
+  //                             child: pw.Image(img, width: 180, height: 120, fit: pw.BoxFit.contain),
+  //                           ))
+  //                               .toList(),
+  //                         );
+  //                       }),
+  //                     ],
+  //                   ),
+  //                 pw.Divider(),
+  //                 pw.SizedBox(height: 20),
+  //               ],
+  //             );
+  //           }),
+  //         ];
+  //       },
+  //     ),
+  //   );
+  //
+  //   Navigator.pop(context); // hide loading
+  //   await Printing.layoutPdf(onLayout: (format) async => pdf.save());
+  // }
+
+// Helper to chunk large lists into smaller lists (to prevent too many rows in one table)
+  List<List<T>> chunkList<T>(List<T> list, int chunkSize) {
+    List<List<T>> chunks = [];
+    for (var i = 0; i < list.length; i += chunkSize) {
+      chunks.add(list.sublist(i, i + chunkSize > list.length ? list.length : i + chunkSize));
+    }
+    return chunks;
+  }
+
+
+  late CalendarDataSource dataSource;
+
+  String _year="";
+  String get year=> _year;
+  int total=0;
+
+  dynamic _defaultMonth=DateTime.now().month;
+  dynamic get defaultMonth =>_defaultMonth;
+  String _thisMonthLeave = "0";
+  String get thisMonthLeave=>_thisMonthLeave;
+
+  int _filterTasks = 0;
+  int get filterTasks=>_filterTasks;
+  List<HolyDaysModel> _fixedLeaves= <HolyDaysModel>[];
+  List<HolyDaysModel> get fixedLeaves=> _fixedLeaves;
+  List<TaskData> get filteredTasks {
+    return _allTasks.where((task) {
+      String dateStr = task.taskDate ?? "";
+      DateTime st = DateFormat('dd-MM-yyyy').parse(dateStr);
+
+      bool sameMonth = utils.returnPadLeft(defaultMonth.toString()) ==
+          utils.returnPadLeft(st.month.toString());
+
+      bool dateMatch = (filterDate == "" || filterDate == dateStr);
+
+      return sameMonth && dateMatch;
+    }).toList();
+  }
+  void checkMonth(ViewChangedDetails details){
+    _filterDate="";
+    // _filterTasks=0;
+    _defaultMonth =details.visibleDates[15].month;
+    var count = 0;
+    for (var i = 0; i <_allTasks.length; i++) {
+      String dateStr = _allTasks[i].taskDate.toString(); // "24-05-2025"
+      DateTime parsedDate = DateFormat('dd-MM-yyyy').parse(dateStr);
+      var st = parsedDate;
+      if (utils.returnPadLeft(_defaultMonth.toString()) ==
+          utils.returnPadLeft(st.month.toString())) {
+        count++;
+      }
+    }
+    _thisMonthLeave = count.toString();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      notifyListeners();
+    });
+    print("_filterDate22 ${_filterDate}");
+
+  }
+  void changeMonth(dynamic value){
+    _defaultMonth = value;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      notifyListeners();
+    });
+  }
+  void checkMonth2(){
+    var count = 0;
+    for (var i = 0; i <_allTasks.length; i++) {
+      if (_filterDate==_allTasks[i].taskDate.toString()) {
+        count++;
+      }
+    }
+    _filterTasks = count;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      notifyListeners();
+    });
+    // print("_filterDate ${_filterDate}");
+  }
+
+  String _filterDate = "";
+  String get filterDate=>_filterDate;
+  void filterDateList(String value,DateTime dateTime){
+    _filterDate=value;
+    _selectedDate = dateTime;
+    print(_filterDate);
+    print(_selectedDate);
+    notifyListeners();
+  }
+
+  var _statusT;
+  String _filter="1";
+  String statusId="";
+  String _statusIds = "";
+  String get statusIds => _statusIds;
+  int matched=0;
+  get statusT => _statusT;
+  String get filter => _filter;
+  void changeFilterStatus(dynamic value) {
+    _status=value;
+    statusId="";
+    matched=0;
+    print(value);
+    var list = [];
+    list.add(value);
+    statusId = list[0]["value"];
+    for(var i=0;i<_allTasks.length;i++){
+      if(statusId==_allTasks[i].statval){
+        matched++;
+      }
+    }
+    notifyListeners();
+  } void changeFilter(String value) {
+    _filter = value;
+    notifyListeners();
+  } void changeStatusT(String value) {
+    _statusT = value;
+    lStatus=value;
+    notifyListeners();
+  }
+  void setStatus(String value) {
+    for(var i=0;i<statusList.length;i++){
+      if(statusList[i]["value"]==value){
+        statusController = GroupButtonController(selectedIndex: i);
+      }
+    }
+    notifyListeners();
+  }
+
+  TextEditingController search     = TextEditingController();
+  TextEditingController search2     = TextEditingController();
+  TextEditingController taskTitleCont     = TextEditingController();
+  TextEditingController projectNameCont   = TextEditingController();
+  TextEditingController departmentCont    = TextEditingController();
+  TextEditingController projectSearchCont = TextEditingController();
+  TextEditingController taskDt = TextEditingController();
+  List<TextEditingController> fileNameCont  = <TextEditingController>[];
+  // void searchTask(String value){
+  //   if(_isFilter==false){
+  //     final suggestions=_filterUserData.where(
+  //             (user){
+  //           final userFName=user.projectName.toString().toLowerCase();
+  //           final userNumber = user.assignedNames.toString().toLowerCase();
+  //           final input=value.toString().toLowerCase();
+  //           return userFName.contains(input) || userNumber.contains(input);
+  //         }).toList();
+  //     _filterUserData=suggestions;
+  //   }else{
+  //     final suggestions=_filterUserData.where(
+  //             (user){
+  //           final userFName=user.projectName.toString().toLowerCase();
+  //           final userNumber = user.assignedNames.toString().toLowerCase();
+  //           final input=value.toString().toLowerCase();
+  //           return userFName.contains(input) || userNumber.contains(input);
+  //         }).toList();
+  //     _filterUserData=suggestions;
+  //   }
+  //   if(value.isEmpty){
+  //     filterList();
+  //   }
+  //   // _allTasks=suggestions;
+  //   notifyListeners();
+  // }
+
+  // void searchTask(String value) {
+  //
+  //   final input = value.toLowerCase();
+  //
+  //   if (value.trim().isEmpty) {
+  //     _filterUserData = List.from(_allTasks);
+  //   } else {
+  //     final suggestions = _allTasks.where((user) {
+  //       final userFName =
+  //       user.projectName.toString().toLowerCase();
+  //
+  //       final userNumber =
+  //       user.assignedNames.toString().toLowerCase();
+  //
+  //       return userFName.contains(input) ||
+  //           userNumber.contains(input);
+  //     }).toList();
+  //
+  //     _filterUserData = suggestions;
+  //   }
+  //
+  //   notifyListeners();
+  // }
+  void searchTask2(String value){
+    _filterTasks=0;
+    final suggestions=_searchAllTasks.where(
+            (user){
+          final userFName=user.projectName.toString().toLowerCase();
+          final userNumber = user.assignedNames.toString().toLowerCase();
+          final input=value.toString().toLowerCase();
+          return userFName.contains(input) || userNumber.contains(input);
+        }).toList();
+    _allTasks=suggestions;
+    _filterTasks=_taskList.length;
+    if(value.isEmpty){
+      _filterTasks=_searchAllTasks.length;
+    }
+    notifyListeners();
+  }
+  String _signPrefix = "Mr";
+  String _assignedId = "";
+  String _assName = "";
+  String get assName => _assName;
+  String _assignedNames = "";
+  String get assignedNames => _assignedNames;
+
+  String _cusId = "";
+  String _cusName = "";
+  String get cusId => _cusId;
+  String get cusName => _cusName;
+  var _title;
+  var _department;
+  var _type;
+  String? _status;
+  bool _isUpdate=false;
+  String _level = "Normal";
+  String _taskSDate = "";
+  String _taskEDate = "";
+  String _taskSTime = "";
+  String _taskETime = "";
+  String _changeTaskStatus = "";
+
+  bool get isUpdate => _isUpdate;
+  void updateChanges(){
+    _isUpdate=true;
+    notifyListeners();
+  }
+  String get signPrefix => _signPrefix;
+  String get assignedId => _assignedId;
+  get title => _title;
+  get department => _department;
+  get type => _type;
+  String? get status => _status;
+  String get level => _level;
+  String get taskSDate => _taskSDate;
+  String get taskEDate => _taskEDate;
+  String get taskSTime => _taskSTime;
+  String get taskETime => _taskETime;
+  String get changeTaskStatus => _changeTaskStatus;
+
+  var prefix = ["Mr", "Mrs", "Dr", "Ms"];
+  List<String> titleList = [
+    "Bug Report",
+    "UI Update",
+    "API Integration",
+    "Issue Fix"
+  ];
+  var departmentList = ["UI/UX Design", "Development", "Testing","HR"];
+  // var statusList = ["Assigned", "In-Queue", "Started", "On Hold", "New Issues"];
+  var fullStatusList = [
+    "Assigned",
+    "In-Queue",
+    "Started",
+    "On Hold",
+    "New Issues",
+    "Cancelled",
+    "Completed"
+  ];
+
+  void changeSignPrefix(String value) {
+    _signPrefix = value;
+    notifyListeners();
+  }
+
+  void changedTaskStatus(String value) {
+    _changeTaskStatus = value;
+    notifyListeners();
+  }
+  Future<void> refreshCusType() async {
+    _selectType=null;
+    cusTypeList.clear();
+    List storedLeads = await LocalDatabase.getCusTypes();
+    cusTypeList=storedLeads;
+    if(cusTypeList.isNotEmpty){
+      _selectType=cusTypeList[0];
+    }
+    notifyListeners();
+  }
+  // void changeAssignedIs(context, List<dynamic> names) {
+  //   List<String> ids = [];
+  //   var list = Provider.of<EmployeeProvider>(context, listen: false).filterUserData;
+  //
+  //   for (var name in names) {
+  //     var found = list.firstWhere(
+  //           (element) => element.firstname.toString().trim().toLowerCase() == name.toString().trim().toLowerCase(),
+  //       orElse: () => UserModel(id: "0", firstname: ''), // use valid default
+  //     );
+  //
+  //     if (found.id != 0) {
+  //       ids.add(found.id.toString());
+  //     }
+  //   }
+  //
+  //   _assignedId = ids.join(",");
+  //   print("assign $_assignedId");
+  //   notifyListeners();
+  // }
+  void changeAssignedIs(context, List<dynamic> names) {
+    List<String> ids = [];
+    List<String> selectedNames = [];
+
+    var list = Provider.of<EmployeeProvider>(context, listen: false).activeEmps;
+
+    for (var name in names) {
+      var found = list.firstWhere(
+            (element) => element.firstname.toString().trim().toLowerCase() == name.toString().trim().toLowerCase(),
+        orElse: () => UserModel(id: "0", firstname: ''),
+      );
+
+      if (found.id != "0") {
+        ids.add(found.id.toString());
+        selectedNames.add(found.firstname.toString()); // save the matched name
+      }
+    }
+
+    _assignedId = ids.join(",");
+    // _assignedNames = selectedNames.join(", "); // <- add this line to save names
+    _assignedNames = selectedNames.join(", ").replaceAll(".", ",");
+
+    print("Assigned IDs: $_assignedId");
+    print("Assigned Names: $_assignedNames");
+
+    notifyListeners();
+  }
+
+  void changeTitle(String value) {
+    _title = value;
+    notifyListeners();
+  }
+
+  void changeDepartment(String value) {
+    _department = value;
+    notifyListeners();
+  }
+
+  void changeType(dynamic value) {
+    _selectType = value;
+    _type = value;
+    print("VVV $value");
+    localData.storage.write("type_id", value);
+    notifyListeners();
+  }
+  void changeCusType(dynamic value) {
+    _selectType = value;
+    _type = value;
+    localData.storage.write("cus_type", value["id"].toString());
+    localData.storage.write("cus_type", value);
+    notifyListeners();
+  }
+  // void changeStatus(dynamic value) {
+  //   _status = value;
+  //   var list = [];
+  //   list.add(value);
+  //   localData.storage.write("status_id", list[0]["id"]);
+  //   notifyListeners();
+  // }
+  void changeStatus(dynamic value) {
+    _status = value is Map ? value["id"].toString() : value.toString();
+    localData.storage.write("status_id", _status);
+    print("Selected Status ID => $_status");
+    notifyListeners();
+  }
+  void setTodayDate() {
+    final now = DateTime.now();
+
+    String formattedDate =
+        "${now.day.toString().padLeft(2, '0')}-"
+        "${now.month.toString().padLeft(2, '0')}-"
+        "${now.year}";
+
+    taskDt.text = formattedDate;
+
+    notifyListeners();
+  }
+  void setStatusByName(String value) {
+    try {
+      final selectedStatus = statusList.firstWhere(
+            (status) =>
+        status["value"]
+            .toString()
+            .trim()
+            .toLowerCase() ==
+            value.trim().toLowerCase(),
+      );
+
+      _status = selectedStatus["id"].toString(); // ✅ store ID only
+      print("Selected Status ID => $_status");
+      localData.storage.write("status_id", _status);
+      _isUpdate = false;
+      notifyListeners();
+    } catch (e) {
+      print("Status not found: $value");
+    }
+  }
+  void changeLevel(String value) {
+    _level = value;
+    notifyListeners();
+  }
+
+  List<Map<String, dynamic>> _selectedFiles = [];
+
+  List<Map<String, dynamic>> get selectedFiles => _selectedFiles;
+  final ImagePicker picker = ImagePicker();
+
+  /// Pick Image or File from Gallery
+  Future<void> pickFile() async {
+    final List<XFile> files = await picker.pickMultiImage();
+
+    if (files.isNotEmpty) {
+      for (XFile file in files) {
+        final int fileSizeBytes = File(file.path).lengthSync();
+        final String formattedSize = formatFileSize(fileSizeBytes);
+
+        _selectedFiles.add({
+          'name': file.name,
+          'size': formattedSize,
+          'path': file.path,
+        });
+        fileNameCont.add(TextEditingController());
+      }
+
+      notifyListeners();
+    }
+  }
+
+  /// Format file size dynamically (KB or MB)
+  String formatFileSize(int bytes) {
+    double kb = bytes / 1024;
+    if (kb < 1024) {
+      return "${kb.toStringAsFixed(2)} KB";
+    } else {
+      double mb = kb / 1024;
+      return "${mb.toStringAsFixed(2)} MB";
+    }
+  }
+
+  /// Remove File from List
+  void removeFile(int index) {
+    _selectedFiles.removeAt(index);
+    fileNameCont.removeAt(index);
+    notifyListeners();
+  }
+
+  void removeVideo(int index) {
+    _videos.removeAt(index);
+    notifyListeners();
+  }
+
+  List<String> _assignList = [];
+  List<String> get assignList => _assignList;
+
+  List<Map<String, dynamic>> _assignItems = [
+    {'name': 'Selvi', 'selected': false},
+    {'name': 'Priya Mehra', 'selected': false},
+    {'name': 'Aditya Singh', 'selected': false},
+    {'name': 'Meera Nair', 'selected': false},
+  ];
+
+  List<Map<String, dynamic>> get assignItems => _assignItems;
+
+  String get selectedItemsText {
+    final selectedNames = _assignItems
+        .where((item) => item['selected'])
+        .map((item) => item['name'])
+        .toList();
+    return selectedNames.isEmpty
+        ? 'Select Assignees'
+        : selectedNames.join(', ');
+  }
+
+  void toggleSelectAll(bool? isSelected) {
+    for (var item in _assignItems) {
+      item['selected'] = isSelected ?? false;
+    }
+    notifyListeners();
+  }
+
+  void toggleItem(int index, bool? isSelected) {
+    _assignItems[index]['selected'] = isSelected ?? false;
+    notifyListeners();
+  }
+
+  final AudioRecorder _record = AudioRecorder();
+  final AudioPlayer audioPlayer = AudioPlayer();
+
+  String? _audioPath;
+  String? _currentlyPlayingPath;
+  bool _isRecording = false;
+  bool _isPlaying = true;
+  bool _isVedioPlaying = false;
+  bool _isLoading = false;
+  bool _isProjectLoading = false;
+  bool _isDepartmentLoading = false;
+  bool _isTaskLoading = false;
+  bool _isError = false;
+  DateTime _selectedDate = DateTime.now();
+
+  DateTime get selectedDate => _selectedDate;
+
+  void datePick({required BuildContext context, required TextEditingController date, required bool isPreviousDate}) {
+    DateTime dateTime = DateTime.now();
+
+    showDatePicker(
+      context: context,
+      initialDate: dateTime,
+      firstDate: isPreviousDate==true?DateTime(1920):DateTime.now(),
+      lastDate: DateTime(3000),
+    ).then((value) {
+      if (value != null) {
+        String formattedDate = "${value.day.toString().padLeft(2, "0")}-"
+            "${value.month.toString().padLeft(2, "0")}-"
+            "${value.year.toString()}";
+        date.text = formattedDate;
+        notifyListeners();
+      }
+    });
+  }
+
+  Future<void> customTimePicker({
+    required BuildContext context,
+    required bool isStartTime,
+  }) async {
+    TimeOfDay? time = await showTimePicker(
+        context: context,
+        initialTime: TimeOfDay.now(),
+        builder: (BuildContext context, Widget? child) {
+          return MediaQuery(
+            data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: false),
+            child: child!,
+          );
+        });
+    if (time != null) {
+      var selectedTime = _formatTime12Hour(time, context);
+      if (isStartTime) {
+        _taskSTime = selectedTime.toString();
+      } else {
+        _taskETime = selectedTime.toString();
+      }
+      notifyListeners();
+    }
+  }
+
+  String _formatTime12Hour(TimeOfDay time, BuildContext context) {
+    int hour = time.hourOfPeriod;
+    String period = time.period == DayPeriod.am ? 'AM' : 'PM';
+
+    String hourStr = hour.toString().padLeft(2, '0');
+    String minuteStr = time.minute.toString().padLeft(2, '0');
+
+    return '$hourStr:$minuteStr $period';
+  }
+
+  String? get currentlyPlayingPath => _currentlyPlayingPath;
+  String? get audioPath => _audioPath;
+  bool get isRecording => _isRecording;
+  bool get isPlaying => _isPlaying;
+  bool get isVideoPlaying => _isVedioPlaying;
+  bool get isLoading => _isLoading;
+  bool get isProjectLoading => _isProjectLoading;
+  bool get isDepartmentLoading => _isDepartmentLoading;
+  bool get isTaskLoading => _isTaskLoading;
+  bool get isError => _isError;
+  int _recordingDuration = 0;
+  int get recordingDuration => _recordingDuration;
+
+  List<AddAudioModel> audioList = [];
+  final AudioPlayer player = AudioPlayer();
+  void deleteAudio(int index) {
+
+    // if (currentIndex == index) {
+    //   player.stop();
+    // }
+
+    audioList.removeAt(index);
+    notifyListeners();
+  }
+  int currentIndex = -1;
+
+  Future<void> playAudio2(int index) async {
+    try {
+      AddAudioModel audio = audioList[index];
+
+      // Pause current audio
+      if (audio.play) {
+        audio.position =
+            await player.getCurrentPosition() ?? Duration.zero;
+
+        await player.pause();
+
+        audio.play = false;
+        notifyListeners();
+        return;
+      }
+
+      // Stop previous playing audio
+      if (currentIndex != -1 && currentIndex != index) {
+        audioList[currentIndex].play = false;
+        audioList[currentIndex].position = Duration.zero;
+
+        await player.stop();
+      }
+
+      currentIndex = index;
+
+      // Play selected audio
+      await player.play(
+        DeviceFileSource(audio.audioPath),
+        position: audio.position,
+      );
+
+      audio.play = true;
+
+      audio.duration =
+          await player.getDuration() ??
+              Duration(milliseconds: (audio.second * 1000).toInt());
+
+      notifyListeners();
+
+      // Listen for completion
+      player.onPlayerComplete.listen((event) {
+        audio.play = false;
+        audio.position = Duration.zero;
+        notifyListeners();
+      });
+
+      // Update current position
+      player.onPositionChanged.listen((position) {
+        if (currentIndex == index) {
+          audio.position = position;
+          notifyListeners();
+        }
+      });
+
+    } catch (e) {
+      print("Audio Play Error: $e");
+    }
+  }
+
+
+  Duration _position = Duration.zero;
+  Duration? _duration;
+
+  Duration get position => _position;
+  Duration? get duration => _duration;
+
+  Timer? timer;
+  late DateTime _startTime;
+
+  final List<String> _videos = [];
+
+  List<String> get videos => _videos;
+  List<TaskData> get _taskList {
+    return _allTasks.where((task) {
+
+      String dateStr = task.taskDate ?? "";
+
+      // ❌ empty date skip
+      if (dateStr.isEmpty) return false;
+
+      DateTime? st;
+
+      try {
+        st = DateFormat('dd-MM-yyyy').parse(dateStr);
+      } catch (e) {
+        print("Invalid date: $dateStr");
+        return false; // ❌ wrong format skip
+      }
+
+      bool sameMonth =
+          utils.returnPadLeft(defaultMonth.toString()) ==
+              utils.returnPadLeft(st.month.toString());
+
+      bool dateMatch = (filterDate == "" || filterDate == dateStr);
+
+      return sameMonth && dateMatch;
+
+    }).toList();
+  }
+
+  List<String> _projectDropList = [];
+  List<DepResponse> _departmentList = [];
+  //List<Response> get taskList => _taskList;
+  List<TaskData> get taskList => _taskList;
+  List<String>  get projectDropList => _projectDropList;
+  List<DepResponse> get serverDepartmentList => _departmentList;
+  List<TaskResponse> _taskDetailsList = [];
+  List<TaskResponse> get taskDetailsList => _taskDetailsList;
+  List<dynamic> _userNameList = [];
+  List<dynamic> get userNameList => _userNameList;
+
+  String _recordingTime = "";
+  String formatDurationTime(int milliseconds) {
+    final seconds = milliseconds ~/ 1000;
+    final hours = seconds ~/ 3600;
+    final minutes = (seconds % 3600) ~/ 60;
+    final secs = seconds % 60;
+
+    return formatTime(hours: hours,minutes: minutes,seconds: secs);
+  }
+  String formatTime({
+    required int hours,
+    required int minutes,
+    required int seconds,
+  }) {
+    if (hours > 0) {
+      // hours irundha → h.m.s
+      return "$hours.$minutes.$seconds";
+    } else if (minutes > 0) {
+      // minutes irundha → m.s
+      return "$minutes.$seconds";
+    } else {
+      // only seconds → 0.s
+      return "0.$seconds";
+    }
+  }
+  Future<void> pickedVideo() async {
+    final XFile? recordedFile =
+    await picker.pickVideo(source: ImageSource.gallery);
+    if (recordedFile != null) {
+      // print("Path ${recordedFile.path}");
+      //String url = await _taskRepo.insertVideoApi(video: recordedFile.path);
+      _videos.add(recordedFile.path);
+    }
+    notifyListeners();
+  }
+
+  Future<VideoPlayerController> initializeVideoController(String path) async {
+    try {
+      final controller = VideoPlayerController.file(File(path));
+      await controller.initialize();
+      await controller.pause(); // Keep the video in a paused state
+      return controller;
+    } catch (e) {
+      throw "Video error";
+    }
+  }
+
+  List<AddAudioModel> _recordedAudioPaths = [];
+  List<AddAudioModel> get recordedAudioPaths => _recordedAudioPaths;
+
+  /// Start Recording
+  // Future<void> startRecording() async {
+  //   HapticFeedback.heavyImpact();
+  //
+  //   try {
+  //     if (await _record.hasPermission()) {
+  //       // print("Audio Start");
+  //       final dir = await getApplicationDocumentsDirectory();
+  //       String path =
+  //           "${dir.path}/recorded_audio_${DateTime.now().millisecondsSinceEpoch}.m4a";
+  //       await _record.start(const RecordConfig(), path: path);
+  //
+  //       _isRecording = true;
+  //       _startTime = DateTime.now();
+  //       _recordingDuration = 0.0;
+  //
+  //       timer = Timer.periodic(const Duration(milliseconds: 100), (timer) {
+  //         final elapsed = DateTime.now().difference(_startTime).inMilliseconds;
+  //         _recordingDuration = elapsed / 1000; // Convert to seconds
+  //         notifyListeners();
+  //       });
+  //     }
+  //   } catch (e) {
+  //     log("Error in startRecording: $e");
+  //   }
+  //   notifyListeners();
+  // }
+  Future<void> startRecording() async {
+
+    try {
+
+      if (_isRecording) return;
+
+      _recordingDuration = 0;
+
+      final dir =
+      await getApplicationDocumentsDirectory();
+
+      final path =
+          "${dir.path}/audio_${DateTime.now().millisecondsSinceEpoch}.m4a";
+
+      final permission =
+      await _record.hasPermission();
+
+      if (!permission) {
+        return;
+      }
+
+      await _record.start(
+
+        const RecordConfig(
+
+          encoder:
+          AudioEncoder.aacLc,
+
+          sampleRate:
+          44100,
+
+          bitRate:
+          128000,
+        ),
+
+        path: path,
+      );
+
+      _isRecording = true;
+
+      timer?.cancel();
+
+      timer = Timer.periodic(
+        const Duration(
+          seconds: 1,
+        ),
+            (_) {
+
+          _recordingDuration++;
+
+          notifyListeners();
+        },
+      );
+
+    } catch (e) {
+
+      debugPrint(
+        "Record Error $e",
+      );
+    }
+
+    notifyListeners();
+  }  /// Stop Recording
+
+  /// Stop Recording
+  // Future<void> stopRecording() async {
+  //   try {
+  //     final path = await _record.stop();
+  //     if (path != null) {
+  //       _isRecording = false;
+  //       _recordedAudioPaths
+  //           .add(AddAudioModel(audioPath: path, second: _recordingDuration));
+  //       await Future.delayed(Duration(seconds: 1));
+  //       loadAudioDuration(path);
+  //     }
+  //     timer?.cancel();
+  //     // print("_recordedAudioPaths: ${_recordedAudioPaths.last.second}");
+  //   } catch (e) {
+  //     // print("Error in stopRecording: $e");
+  //   }
+  //   notifyListeners();
+  // }
+  Future<void> stopRecording() async {
+
+    if (!_isRecording) return;
+
+    try {
+
+      final path =
+      await _record.stop();
+
+      timer?.cancel();
+
+      _isRecording =
+      false;
+
+      if (path != null) {
+
+        audioList.insert(
+          0,
+
+          AddAudioModel(
+
+            audioPath:
+            path,
+
+            time:
+            DateTime.now()
+                .toString(),
+
+            second:
+            recordingDuration.toDouble(),
+
+            duration:
+            Duration(
+              seconds:
+              recordingDuration,
+            ),
+          ),
+        );
+
+        _recordingDuration =
+        0;
+      }
+
+    } catch (e) {
+
+      log("$e");
+    }
+
+    notifyListeners();
+  }
+
+  void removeAudio(int index) {
+    _recordedAudioPaths.removeAt(index);
+    notifyListeners();
+  }
+
+  // Future<void> playAudio(String audioPath, int index) async {
+  //   if (audioPath.isNotEmpty) {
+  //     _isPlaying = true;
+  //     _recordedAudioPaths[index].play = true;
+  //     notifyListeners();
+  //
+  //     audioPlayer.onDurationChanged.listen((durationV) {
+  //       _duration = durationV;
+  //       notifyListeners();
+  //     });
+  //
+  //     audioPlayer.onPositionChanged.listen((positionV) {
+  //       _position = positionV;
+  //       notifyListeners();
+  //     });
+  //
+  //     audioPlayer.onPlayerComplete.listen((event) {
+  //       _isPlaying = false;
+  //       _position = Duration.zero;
+  //       _recordedAudioPaths[index].play = false;
+  //       notifyListeners();
+  //     });
+  //
+  //     try {
+  //       await audioPlayer.play(DeviceFileSource(audioPath));
+  //     } catch (e) {
+  //       _isPlaying = false;
+  //       _recordedAudioPaths[index].play = false;
+  //       // print("Audio play error: $e");
+  //       notifyListeners();
+  //     }
+  //   }
+  // }
+  Future<void> playAudio(String audioPath, int index) async {
+    if (audioPath.isNotEmpty) {
+
+      // Reset all to false
+      for (var i = 0; i < _recordedAudioPaths.length; i++) {
+        _recordedAudioPaths[i].play = false;
+      }
+
+      _isPlaying = true;
+      _recordedAudioPaths[index].play = true;
+      notifyListeners();
+
+      // Remove old subscriptions
+      audioPlayer.onDurationChanged.listen(null);
+      audioPlayer.onPositionChanged.listen(null);
+      audioPlayer.onPlayerComplete.listen(null);
+
+      audioPlayer.onDurationChanged.listen((durationV) {
+        _recordedAudioPaths[index].duration = durationV;
+        notifyListeners();
+      });
+
+      audioPlayer.onPositionChanged.listen((positionV) {
+        _recordedAudioPaths[index].position = positionV;
+        notifyListeners();
+      });
+
+      audioPlayer.onPlayerComplete.listen((event) {
+        _isPlaying = false;
+        _recordedAudioPaths[index].position = Duration.zero;
+        _recordedAudioPaths[index].play = false;
+        notifyListeners();
+      });
+
+      try {
+
+        /// 🔥 START FROM 0
+        await audioPlayer.seek(Duration.zero);
+
+        await audioPlayer.play(DeviceFileSource(audioPath));
+
+      } catch (e) {
+        _isPlaying = false;
+        _recordedAudioPaths[index].play = false;
+        notifyListeners();
+      }
+    }
+  }
+
+  Future<void> stopAudio() async {
+    await audioPlayer.pause();
+    _isPlaying = false;
+    notifyListeners();
+  }
+
+  Future<void> loadAudioDuration(String url) async {
+    try {
+      await audioPlayer.setSourceUrl(url);
+      Duration? fetchedDuration = await audioPlayer.getDuration();
+      if (fetchedDuration != null) {
+        _duration = fetchedDuration;
+        // print("Duration $duration");
+      }
+    } catch (e) {
+      // print("Error fetching duration: $e");
+    }
+    notifyListeners();
+  }
+
+
+  String calculateDueDays(String dateRange,
+      {String? timeRange, String? updatedDate, String? status}) {
+    try {
+      List<String> dates = dateRange.split("||");
+      DateTime endDate = DateFormat("dd-MM-yyyy").parse(dates[1].trim());
+
+      DateTime now = DateTime.now();
+      DateTime today = DateTime(now.year, now.month, now.day);
+      DateTime taskEndDate = DateTime(endDate.year, endDate.month, endDate.day);
+
+      if (status == "Completed") {
+        String updateDateStr = updatedDate.toString();
+        DateTime updateDate = DateTime.parse(updateDateStr);
+        int diffDays = updateDate.difference(taskEndDate).inDays;
+        if (diffDays > 0) {
+          return "Completed - Extra $diffDays days";
+        } else {
+          return "Completed";
+        }
+      }
+
+      // Check if today is same as end date
+      if (taskEndDate == today && timeRange != null && timeRange.contains("||")) {
+        List<String> times = timeRange.split("||");
+
+        String endTimeStr = times[1].trim();
+        // print("end $endTimeStr");
+        if (endTimeStr.isEmpty) {
+          endTimeStr = "11:59 PM"; // Default fallback time
+        }
+
+        DateTime parsedEndTime = DateFormat("hh:mm a").parse(endTimeStr);
+
+        DateTime endTime = DateTime(
+          today.year,
+          today.month,
+          today.day,
+          parsedEndTime.hour,
+          parsedEndTime.minute,
+        );
+
+        if (now.isAfter(endTime)) {
+          return "Overdue";
+        } else {
+          int remainingMinutes = endTime.difference(now).inMinutes;
+          int hours = remainingMinutes ~/ 60;
+          int minutes = remainingMinutes % 60;
+
+          return hours == 0
+              ? "$minutes minutes left"
+              : "$hours hours $minutes minutes left";
+        }
+      }
+
+      if (taskEndDate.isBefore(today)) {
+        return "Overdue";
+      }
+
+      int remainingDays = taskEndDate.difference(today).inDays;
+      return "$remainingDays days left";
+    } catch (e) {
+      return "Invalid Input";
+    }
+  }
+  bool _refresh = true;
+  bool get refresh =>_refresh;
+
+  bool _viewRefresh = true;
+  bool get viewRefresh =>_viewRefresh;
+  List<TaskData> _allTasks = <TaskData>[];
+  List<TaskData> _searchAllTasks = <TaskData>[];
+  List<TaskData> get allTasks => _allTasks;
+  List<TaskData> get searchAllTasks => _searchAllTasks;
+  List<UserModel> assignEmployees=[];
+  List historyDetails=[];
+
+  Future<void> getTaskUsers() async {
+    print("========== getTaskUsers() CALLED ==========");
+    log("========== getTaskUsers() CALLED ==========");
+
+    try {
+      Map data = {
+        "action": getAllData,
+        "search_type": "task_users",
+        "cos_id": localData.storage.read("cos_id"),
+        "role": localData.storage.read("role"),
+      };
+
+      print("Request Data: $data");
+
+      final response = await _taskRepo.getUsers(data);
+
+      print("API Response: $response");
+      print("Response Length: ${response.length}");
+
+      if (response.isNotEmpty) {
+        assignEmployees = [];
+        assignEmployees = response;
+
+        print("assignEmployees Count: ${assignEmployees.length}");
+        print("assignEmployees: $assignEmployees");
+
+      } else {
+        assignEmployees = [];
+        print("Response is Empty");
+      }
+    } catch (e, stackTrace) {
+      assignEmployees = [];
+      print("ERROR in getTaskUsers(): $e");
+      print(stackTrace);
+    }
+
+    print("notifyListeners() called");
+    notifyListeners();
+
+    print("========== getTaskUsers() END ==========");
+  }
+  Future<void> getStatusHistory(String taskId) async {
+    try {
+      _refresh=false;
+      // historyDetails.clear();
+      Map data = {
+        "action": taskDatas,
+        "search_type": "task_status_history",
+        "cos_id":localData.storage.read("cos_id"),
+        "role":localData.storage.read("role"),
+        "id":localData.storage.read("id"),
+        "task_id":taskId,
+      };
+      final response =await _taskRepo.getTasks(data);
+      log(response.toString());
+      if (response.isNotEmpty) {
+        historyDetails=response;
+        _refresh=true;
+      }else{
+        historyDetails=[];
+        _refresh=true;
+      }
+    } catch (e) {
+      historyDetails=[];
+      _refresh=true;
+      log(e.toString());
+    }
+    notifyListeners();
+  }
+  // void initValue() {
+  //
+  //   _isRecording = false;
+  //   _selectedFiles.clear();
+  //   _recordedAudioPaths.clear();
+  //   selectedPhotos.clear();
+  //   taskTitleCont.clear();
+  //
+  //   _type = null;
+  //   _status = null;
+  //   _assignedId = "";
+  //   _level = "Normal";
+  //
+  //   if (typeList.isNotEmpty) {
+  //     _type = typeList[0]["id"].toString();
+  //   }
+  //
+  //   if (statusList.isNotEmpty) {
+  //
+  //     final selectedStatus = statusList.firstWhere(
+  //           (status) => status["value"]?.trim() == "Assigned",
+  //       orElse: () => statusList.first,
+  //     );
+  //
+  //     _status = selectedStatus["id"].toString();
+  //   }
+  //
+  //   taskDt.text =
+  //   "${DateTime.now().day.toString().padLeft(2, "0")}-"
+  //       "${DateTime.now().month.toString().padLeft(2, "0")}-"
+  //       "${DateTime.now().year}";
+  //
+  //   notifyListeners();
+  // }
+  void initValue() {
+    _isRecording = false;
+    _selectedFiles.clear();
+    _recordedAudioPaths.clear();
+    selectedPhotos.clear();
+    taskTitleCont.clear();
+
+    _type = null;
+    _status = null;
+    _assignedId = "";
+    _level = "Normal";
+
+    if (typeList.isNotEmpty) {
+      _type = typeList[0]["id"].toString();
+    }
+
+    if (statusList.isNotEmpty) {
+      final match = statusList.where(
+            (status) =>
+        status["value"].toString().trim() == "Assigned",
+      ).toList();
+
+      final selectedStatus =
+      match.isNotEmpty ? match.first : statusList.first;
+
+      _status = selectedStatus["id"].toString();
+    }
+
+    final now = DateTime.now();
+    taskDt.text =
+    "${now.day.toString().padLeft(2, "0")}-"
+        "${now.month.toString().padLeft(2, "0")}-"
+        "${now.year}";
+
+    notifyListeners();
+  }
+  void initEditValue(context, TaskData data) {
+
+    taskTitleCont.text = data.taskTitle.toString();
+    _level = data.level.toString();
+    taskDt.text = data.taskDate.toString();
+    _assignedId = data.assigned.toString();
+    _assName = data.assignedNames.toString();
+    _cusId = data.companyId.toString();
+    _cusName = data.projectName.toString();
+
+    _status = null;
+    _type = null;
+
+    /// STATUS
+    final selectedStatus = statusList.firstWhere(
+          (status) => status["value"]?.trim() == data.statval?.trim(),
+      orElse: () => <String, String>{
+        "id": statusList.isNotEmpty ? statusList[0]["id"]! : "",
+        "value": statusList.isNotEmpty ? statusList[0]["value"]! : "",
+      },
+    );
+
+    _status = selectedStatus["id"]?.toString();
+
+    localData.storage.write("status_id", _status);
+
+    /// TYPE
+    final selectedType = typeList.firstWhere(
+          (status) => status["value"] == data.type,
+      orElse: () => <String, String>{
+        "id": typeList.isNotEmpty ? typeList[0]["id"]! : "",
+        "value": typeList.isNotEmpty ? typeList[0]["value"]! : "",
+      },
+    );
+
+    _type = selectedType["id"];
+
+    localData.storage.write("type_id", selectedType["id"]);
+
+    changeAssignedIs(context, data.assignedNames.toString().split(","));
+
+    notifyListeners();
+  }
+  Future<void> addTask({context,required String id}) async {
+    try {
+      List<Map<String, String>> customersList = [];
+
+// Loop for selected files
+      for (int i = 0; i < _selectedFiles.length; i++) {
+        // print("////$i");
+        customersList.add({
+          "image_$i": _selectedFiles[i]['path'],
+        });
+      }
+
+// Loop for recorded audio paths
+      for (int i = _selectedFiles.length; i < _selectedFiles.length + audioList.length; i++) {
+        // print("----$i");
+        customersList.add({
+          "image_$i": audioList[i - _selectedFiles.length].audioPath, // Adjust index
+        });
+      }
+
+// Loop for selected photos
+      for (int i = _selectedFiles.length + audioList.length; i < _selectedFiles.length + audioList.length + selectedPhotos.length; i++) {
+        // print("]]]]$i");
+        customersList.add({
+          "image_$i": selectedPhotos[i - (_selectedFiles.length + audioList.length)], // Adjust index
+        });
+      }
+
+      String jsonString = json.encode(customersList);
+      Map<String, String> data = {
+        'project_name': id,
+        'task_title': taskTitleCont.text.trim(),
+        'department': departmentCont.text.trim(),
+        'log_file': localData.storage.read("mobile_number"),
+        'type': _type.toString(),
+        'assigned': assignedId,
+        'level': level,
+        'status': _status.toString(),
+        'user_id': localData.storage.read("id"),
+        'task_date': taskDt.text.trim(),
+        'task_time': "$taskSTime||$taskETime",
+        'action': adTask,
+        'cos_id': localData.storage.read("cos_id"),
+        "data": jsonString,
+      };
+      final response =await _taskRepo.addTask(data,customersList);
+      log(response.toString());
+      if (response.toString().contains("200")){
+        utils.showSuccessToast(context: context,text: constValue.successTask,);
+        try {
+          await Provider.of<EmployeeProvider>(context, listen: false)
+              .sendSomeUserNotification(
+            "${taskTitleCont.text.trim()} by ${localData.storage.read("f_name")}",
+            "${taskTitleCont.text.trim()} || ${taskDt.text.trim()}",
+            _assignedId,"",taskDt.text.trim(),
+          );
+        } catch (e) {
+          print("User notification error: $e");
+        }
+
+        // admin notification (always run)
+        try {
+          // await Provider.of<EmployeeProvider>(context, listen: false)
+          //     .sendAdminNotification(
+          //   "${ taskTitleCont.text.trim()}assigned to $assignedNames.",
+          //   taskTitleCont.text.trim(),
+          //   localData.storage.read("role"),""
+          // );
+        } catch (e) {
+          print("Admin notification error: $e");
+        }
+        taskCtr.reset();
+        // await FirebaseFirestore.instance.collection('attendance').add({
+        //   'emp_id': localData.storage.read("id"),
+        //   'time': DateTime.now(),
+        //   'status': "",
+        // });
+         getAllTask(true);
+        utils.navigatePage(context, ()=> DashBoard(child: ViewTask(date1: Provider.of<HomeProvider>(context, listen: false).startDate, date2: Provider.of<HomeProvider>(context, listen: false).endDate, type: Provider.of<HomeProvider>(context, listen: false).type)));
+        final homeProvider = Provider.of<HomeProvider>(context, listen: false);
+        homeProvider.checkThisMonth();
+        homeProvider.loadFullDashboard(context);
+        // homeProvider.getMainReport(false);
+        // Future.microtask(() => Navigator.pop(context));
+      }else {
+        utils.showErrorToast(context: context);
+        taskCtr.reset();
+      }
+    } catch (e) {
+      utils.showWarningToast(context,text: e.toString());
+      taskCtr.reset();
+    }
+    notifyListeners();
+  }
+  Future<void> updateTaskDetail(context,{required String taskId,required String id,required bool isDirect,required List numberList,required String companyName}) async {
+    try {
+      Map<String, String> data = {
+        'id': taskId,
+        'project_name': id,
+        'task_title': taskTitleCont.text.trim(),
+        'department': departmentCont.text.trim(),
+        'log_file': localData.storage.read("mobile_number"),
+        'type': localData.storage.read("type_id"),
+        'assigned': assignedId,
+        'level': level,
+        'status': localData.storage.read("status_id"),
+        'user_id': localData.storage.read("id"),
+        'task_date': taskDt.text.trim(),
+        'task_time': "$taskSTime||$taskETime",
+        'action': updateTask,
+        'cos_id': localData.storage.read("cos_id"),
+      };
+      final response =await _taskRepo.updateTask(data);
+      // print(data.toString());
+      log(response.toString());
+      if (response.toString().contains("200")){
+        utils.showSuccessToast(context: context,text: constValue.updated,);
+        try {
+          await Provider.of<EmployeeProvider>(context, listen: false).sendSomeUserNotification(
+            "${taskTitleCont.text.trim()} (${localData.storage.read("f_name")})",
+            taskTitleCont.text.trim(),
+            assignedId,"",taskDt.text.trim(),
+          );
+        } catch (e) {
+          print("User notification error: $e");
+        }
+
+        // admin notification (always run)
+        try {
+          await Provider.of<EmployeeProvider>(context, listen: false).sendAdminNotification(
+            "${taskTitleCont.text.trim()}(${localData.storage.read("f_name")})",
+            taskTitleCont.text.trim(),"",
+            localData.storage.read("role"),""
+          );
+        } catch (e) {
+          print("Admin notification error: $e");
+        }
+        taskCtr.reset();
+        // await FirebaseFirestore.instance.collection('attendance').add({
+        //   'emp_id': localData.storage.read("id"),
+        //   'time': DateTime.now(),
+        //   'status': "",
+        // });
+        Provider.of<HomeProvider>(context, listen: false).loadFullDashboard(context);
+        // Provider.of<HomeProvider>(context, listen: false).getMainReport(false);
+        if(isDirect==true){
+          utils.navigatePage(context, ()=> DashBoard(child: ViewTask(date1: Provider.of<HomeProvider>(context, listen: false).startDate, date2: Provider.of<HomeProvider>(context, listen: false).endDate, type: Provider.of<HomeProvider>(context, listen: false).type)));
+        }else{
+          utils.navigatePage(context, ()=> DashBoard(child: ViewTask(date1: Provider.of<HomeProvider>(context, listen: false).startDate, date2: Provider.of<HomeProvider>(context, listen: false).endDate, type: Provider.of<HomeProvider>(context, listen: false).type)));
+        }
+      }else {
+        utils.showErrorToast(context: context);
+        taskCtr.reset();
+      }
+    } catch (e) {
+      utils.showWarningToast(context,text: "Failed",);
+      taskCtr.reset();
+    }
+    notifyListeners();
+  }
+  Future<void> updateLevelDetail(context,{required String id,required String level}) async {
+    try {
+      Map<String, String> data = {
+        'id': id,
+        'level': level,
+        'user_id': localData.storage.read("id"),
+        'action': updateLevel,
+        'cos_id': localData.storage.read("cos_id"),
+        'log_file': localData.storage.read("mobile_number"),
+      };
+      final response =await _taskRepo.updateTask(data);
+      print(data.toString());
+      log(response.toString());
+      if (response.toString().contains("200")){
+        utils.showSuccessToast(context: context,text: constValue.updated,);
+        taskCtr.reset();
+        getAllTask(false);
+      }else {
+        utils.showErrorToast(context: context);
+        taskCtr.reset();
+      }
+    } catch (e) {
+      utils.showWarningToast(context,text: "Failed",);
+      taskCtr.reset();
+    }
+    notifyListeners();
+  }
+  String formatHours(String time) {
+    final parts = time.split(":");
+
+    if (parts.length != 3) return time;
+
+    final hours = int.parse(parts[0]);
+    final minutes = int.parse(parts[1]);
+    final seconds = int.parse(parts[2]);
+
+    List<String> result = [];
+
+    if (hours > 0) {
+      result.add("${hours}h");
+    }
+
+    if (minutes > 0) {
+      result.add("${minutes}m");
+    }
+
+    if (seconds > 0) {
+      result.add("${seconds}s");
+    }
+    return result.toString()=="null"||result.isEmpty ? "0 sec" : result.join(" ");
+  }
+  Future<void> insertTaskLogHistory(context,{required String id,required String level}) async {
+    try {
+      Map<String, String> data = {
+        'task_id': id,
+        'status': level,
+        'user_id': localData.storage.read("id"),
+        'action': insertTaskLog,
+        'cos_id': localData.storage.read("cos_id"),
+        'log_file': localData.storage.read("mobile_number"),
+      };
+      final response =await _taskRepo.addType(data);
+      print(data.toString());
+      log(response.toString());
+      if (response.toString().contains("200")){
+        utils.showSuccessToast(context: context,text: constValue.updated,);
+        startCtr.reset();
+        holdCtr.reset();
+        completeCtr.reset();
+        resumeCtr.reset();
+        getAllTask(false);
+      }else {
+        utils.showErrorToast(context: context);
+        startCtr.reset();
+        holdCtr.reset();
+        completeCtr.reset();
+        resumeCtr.reset();
+      }
+    } catch (e) {
+      utils.showWarningToast(context,text: "Failed",);
+      startCtr.reset();
+      holdCtr.reset();
+      completeCtr.reset();
+      resumeCtr.reset();
+    }
+    notifyListeners();
+  }
+
+  List<CustomerAttendanceModel> _customerAttendanceReport = <CustomerAttendanceModel>[];
+  List<CustomerAttendanceModel> get customerAttendanceReport=>_customerAttendanceReport;
+
+  Future<void> getAttendance(String id) async {
+    _refresh=false;
+    _customerAttendanceReport.clear();
+    notifyListeners();
+    try {
+      Map data = {
+        "action": getAllData,
+        "search_type":"task_visits",
+        "task_id":id,
+        "id":localData.storage.read("id"),
+        "cos_id":localData.storage.read("cos_id"),
+        "role":localData.storage.read("role"),
+      };
+      final response =await _taskRepo.getAttendances1(data);
+      log(data.toString());
+      log(response.toString());
+      if (response.isNotEmpty) {
+        _customerAttendanceReport=response;
+        _refresh=true;
+      } else {
+        _refresh=true;
+      }
+    } catch (e) {
+      _refresh=true;
+    }
+    notifyListeners();
+  }
+  Future<void> getUserTaskAttendance(String id,String date1,String date2) async {
+    _refresh=false;
+    _customerAttendanceReport.clear();
+    notifyListeners();
+    try {
+      Map data = {
+        "action": taskDatas,
+        "search_type":"emp_visits_details",
+        "id":localData.storage.read("role")=="1"?id:localData.storage.read("id"),
+        "date1":date1,
+        "date2":date2,
+        "cos_id":localData.storage.read("cos_id"),
+        "role":localData.storage.read("role"),
+      };
+      final response =await _taskRepo.getAttendances(data);
+      log(data.toString());
+      log(response.toString());
+      if (response.isNotEmpty) {
+        _customerAttendanceReport=response;
+        _refresh=true;
+      } else {
+        _refresh=true;
+      }
+    } catch (e) {
+      _refresh=true;
+    }
+    notifyListeners();
+  }
+  Future<void> getCustomerTaskAttendance(String id,String date1,String date2) async {
+    _refresh=false;
+    _customerAttendanceReport.clear();
+    notifyListeners();
+    try {
+      Map data = {
+        "action": taskDatas,
+        "search_type":"customer_visits_details",
+        "id":id,
+        "date1":date1,
+        "date2":date2,
+        "cos_id":localData.storage.read("cos_id"),
+        "role":localData.storage.read("role"),
+        "user_id":localData.storage.read("role")=="1"?id:localData.storage.read("id"),
+      };
+      final response =await _taskRepo.getAttendances(data);
+      log(data.toString());
+      log(response.toString());
+      if (response.isNotEmpty) {
+        _customerAttendanceReport=response;
+        _refresh=true;
+      } else {
+        _refresh=true;
+      }
+    } catch (e) {
+      _refresh=true;
+    }
+    notifyListeners();
+  }
+  String crtDate(String dateTimeString, String type) {
+    var parts = dateTimeString.split(' ');
+    var dateParts = parts[0].split('-'); // Split the date into year, month, and day
+    var formattedDate = "${dateParts[2]}/${dateParts[1]}/${dateParts[0]}"; // Reorder to dd-MM-yyyy
+
+    var timeParts = parts[1].split(':');
+    int hour = int.parse(timeParts[0]);
+    String period = hour >= 12 ? 'PM' : 'AM';
+    hour = hour % 12 == 0 ? 12 : hour % 12;
+
+    if (type == "1") {
+      return formattedDate;
+    } else {
+      return "$hour:${timeParts[1]} $period";
+    }
+  }
+
+  Future<void> editTask({context,required TaskData data,required String taskId,required String coId,required bool isDirect}) async {
+    try {
+      // Map<String, String> data = {
+      //   "user_id": localData.storage.read("id"),
+      //   "action": "update_status",
+      //   "task_id": taskId,
+      //   "status": status,
+      //   "mobile": localData.storage.read("mobile_number"),
+      //   'cos_id': localData.storage.read("cos_id")
+      // };
+      final response =await _taskRepo.updateTaskStatusApi(taskId: taskId, status: localData.storage.read("status_id"));
+      print(response.toString());
+      if (response.toString().contains("200")){
+        utils.showSuccessToast(context: context,text: constValue.updated,);
+        taskStatusCtr.reset();
+        // Provider.of<HomeProvider>(context, listen: false).getMainReport(false);
+        Provider.of<HomeProvider>(context, listen: false).loadFullDashboard(context);
+        getAllTask(false);
+        TaskData? sentData;
+        for(var i=0;i<_allTasks.length;i++){
+          if(_allTasks[i].id==data.id){
+            sentData=_allTasks[i];
+            break;
+          }
+        }
+        getStatusHistory(data.id.toString());
+        // utils.navigatePage(context, ()=>DashBoard(child: TaskDetails(
+        //     data:sentData!,isDirect:true,coId: "0", numberList: const [])));
+        // Future.microtask(() => Navigator.pop(context));
+      }else {
+        utils.showErrorToast(context: context);
+        taskStatusCtr.reset();
+      }
+    } catch (e) {
+      utils.showWarningToast(context,text: "Failed",);
+      taskStatusCtr.reset();
+    }
+    notifyListeners();
+  }
+  Future<void> getAllCoTask(String coId,bool isRefresh) async {
+    if(isRefresh==true){
+      _filter="1";
+      statusId="";
+      matched=0;
+      _status=null;
+      search.clear();
+      _allTasks.clear();
+      _searchAllTasks.clear();
+      _refresh=false;
+    }
+    notifyListeners();
+    try {
+      Map data = {
+        "action": taskDatas,
+        "search_type":"co_tasks",
+        "co_id":coId,
+        "cos_id": localData.storage.read("cos_id"),
+        "role": localData.storage.read("role"),
+        "id": localData.storage.read("id")
+      };
+      final response =await _taskRepo.getReport(data);
+      // print(data.toString());
+      // print(response.toString());
+      if (response.isNotEmpty) {
+        _allTasks=response;
+        _searchAllTasks=response;
+        _refresh=true;
+      }
+    } catch (e) {
+      _allTasks=[];
+      _searchAllTasks=[];
+      _refresh=true;
+    }
+    notifyListeners();
+  }
+  String _profile="";
+  String get profile=>_profile;
+  Future<void> signDialog({required BuildContext context, required String img,required Function(String newImg) onTap}) async {
+    _profile="";
+    var imgData = await Navigator.push(
+        context,
+        MaterialPageRoute(
+            builder: (context) => const CameraWidget(
+              cameraPosition: CameraType.front,
+              isSelfie: true,
+            )));
+    if (!context.mounted) return;
+    // Navigator.pop(context);
+    if (imgData != null) {
+      final compressedFile = await compressImage(imgData);
+      onTap(compressedFile.path);
+    }
+  }
+  Future<XFile> compressImage(String filePath) async {
+    final dir = await getTemporaryDirectory();
+    final targetPath = '${dir.absolute.path}/temp_${DateTime.now().millisecondsSinceEpoch}.jpg';
+
+    final result = await FlutterImageCompress.compressAndGetFile(
+      filePath,
+      targetPath,
+      quality: 70, // lower = more compressed
+    );
+
+    return result!;
+  }
+  void profilePick(String imgData){
+    _profile = imgData;
+    notifyListeners();
+  }
+  bool hasAppointment(DateTime date) {
+    return dataSource.appointments!.any((appt) =>
+    appt.startTime.year == date.year &&
+        appt.startTime.month == date.month &&
+        appt.startTime.day == date.day);
+  }
+  bool hasStatus(DateTime date, String status) {
+    return dataSource.appointments!.any((appt) =>
+    appt.startTime.year == date.year &&
+        appt.startTime.month == date.month &&
+        appt.startTime.day == date.day &&
+        (appt.subject?.toLowerCase() ?? '') == status.toLowerCase());
+  }
+  String _checkAtt="";
+  String _checkAttName="";
+  String get checkAtt => _checkAtt;
+  String get checkAttName => _checkAttName;
+  List<TaskData> _filterUserData = <TaskData>[];
+  List<TaskData> get filterUserData => _filterUserData;
+
+  Future<void> getAllTask(bool isRefresh,{String? date1, String? date2, String? type})async {
+
+    print("=====  getAllTask START =====");
+
+    _checkAtt = "";
+    _checkAttName = "";
+
+    if (isRefresh == true) {
+      print("Refreshing data...");
+
+      _filter = "1";
+      statusId = "";
+      matched = 0;
+      _filterDate = "";
+      _filterTasks = 0;
+      _status = null;
+
+      search.clear();
+      search2.clear();
+
+      _allTasks.clear();
+      _searchAllTasks.clear();
+      _filterUserData.clear();
+
+      dataSource.appointments!.clear();
+
+      _viewRefresh = false;
+    }
+
+
+
+    try {
+      Map data = {
+        "action": taskDatas,
+        "search_type": "all_tasks",
+        "cos_id": localData.storage.read("cos_id"),
+        "role": localData.storage.read("role"),
+        "id": localData.storage.read("id"),
+      };
+
+      print("API Request : $data");
+
+      final response = await _taskRepo.getReport(data);
+
+      // print("API Response Type : ${response.runtimeType}");
+      // print("API Response Length : ${response.length}");
+
+      if (response.isNotEmpty) {
+        print("Response not empty");
+
+        _allTasks = response;
+        _searchAllTasks = response;
+        _filterUserData = response;
+
+        print("_allTasks length : ${_allTasks.length}");
+
+        for (var i = 0; i < response.length; i++) {
+          // print("Loop index : $i");
+          String? dateStr = response[i].taskDate;
+          // print("Task Date String : $dateStr");
+          /// 🔴 EMPTY DATE SKIP
+          if (dateStr == null || dateStr.isEmpty) {
+            // print("Task date empty - skipping index $i");
+            continue;
+          }
+          DateTime parsedDate = DateFormat('dd-MM-yyyy').parse(dateStr);
+          // print("Parsed Date : $parsedDate");
+          Appointment app = Appointment(
+            startTime: parsedDate,
+            endTime: parsedDate,
+            subject: response[i].statval.toString(),
+            color: colorsConst.red2,
+          );
+
+          dataSource.appointments!.add(app);
+
+          dataSource.notifyListeners(
+            CalendarDataSourceAction.add,
+            <Appointment>[app],
+          );
+
+          /// THIS MONTH CHECK
+          if (utils.returnPadLeft(defaultMonth.toString()) ==
+              utils.returnPadLeft(parsedDate.month.toString())) {
+            _thisMonthLeave = "1";
+          }
+        }
+
+        /// CHECKED TASK
+        for (var i = 0; i < response.length; i++) {
+
+          if (response[i].isChecked.toString() == "1") {
+            _checkAtt = response[i].id.toString();
+            _checkAttName = response[i].projectName.toString();
+            break;
+          }
+        }
+        filterList();
+        _viewRefresh = true;
+      } else {
+        // print("Response EMPTY");
+      }
+
+    } catch (e) {
+      // print("ERROR OCCURRED : $e");
+      _allTasks = [];
+      _searchAllTasks = [];
+      _filterUserData = [];
+
+      _checkAtt = "";
+      _checkAttName = "";
+
+      _viewRefresh = true;
+    }
+
+    print("===== getAllTask END =====");
+
+    notifyListeners();
+  }
+
+  List<TaskData> _userAllTasks = <TaskData>[];
+  List<TaskData> get userAllTasks => _userAllTasks;
+  Future<void> getUserTasks(String id,String date1,String date2) async {
+    _filter="1";
+    statusId="";
+    matched=0;
+    _filterDate=="";
+    _filterTasks=0;
+    _status=null;
+    _userAllTasks.clear();
+    _viewRefresh=false;
+    notifyListeners();
+    try {
+      Map data = {
+        "action": taskDatas,
+        "search_type":"emp_tasks_details",
+        "cos_id": localData.storage.read("cos_id"),
+        "role": localData.storage.read("role"),
+        "id":localData.storage.read("role")=="1"?id:localData.storage.read("id"),
+        "date1": date1,
+        "date2": date2
+      };
+      final response =await _taskRepo.getReport(data);
+      // print(data.toString());
+      // print(response.toString());
+      if (response.isNotEmpty) {
+        _userAllTasks=response;
+        _viewRefresh=true;
+      }
+    } catch (e) {
+      _userAllTasks=[];
+      _viewRefresh=true;
+    }
+    notifyListeners();
+  }
+  Future<void> getCustomerTasks(String id,String date1,String date2) async {
+    _filter="1";
+    statusId="";
+    matched=0;
+    _filterDate=="";
+    _filterTasks=0;
+    _status=null;
+    _userAllTasks.clear();
+    _viewRefresh=false;
+    notifyListeners();
+    try {
+      Map data = {
+        "action": taskDatas,
+        "search_type":"customer_tasks_details",
+        "cos_id": localData.storage.read("cos_id"),
+        "role": localData.storage.read("role"),
+        "user_id":localData.storage.read("role")=="1"?id:localData.storage.read("id"),
+        "id":id,
+        "date1": date1,
+        "date2": date2
+      };
+      final response =await _taskRepo.getReport(data);
+      // print(data.toString());
+      // print(response.toString());
+      if (response.isNotEmpty) {
+        _userAllTasks=response;
+        _viewRefresh=true;
+      }
+    } catch (e) {
+      _userAllTasks=[];
+      _viewRefresh=true;
+    }
+    notifyListeners();
+  }
+
+  Future<void> taskAttDirect(context,{required String status,required String lat, required String lng,required String taskId}) async {
+    try {
+      showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: Center(
+                child: Column(
+                  children: [
+                    const CustomText(text: "Marking Please Wait",
+                      colors: Colors.grey,
+                      size: 15,
+                      isBold: true,),
+                    20.height,
+                    LoadingAnimationWidget.staggeredDotsWave(
+                      color: colorsConst.primary,
+                      size: 25,
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }
+      );
+      Map<String, String> data = {
+        "action": taskAtt,
+        "log_file": localData.storage.read("mobile_number"),
+        "line_id": "0",
+        "line_customer_id": taskId,
+        "salesman_id": localData.storage.read("id"),
+        "self_img_count": "0",
+        "comp_img_count": "0",
+        "collection_amt": "0",
+        "sales_amt": "0",
+        "is_checked_out": status,
+        "lat": lat,
+        "lng": lng,
+        "traveled_kms": "0.0",
+        "id": localData.storage.read("tk_id").toString(),
+        "cos_id": localData.storage.read("cos_id"),
+
+      };
+      final response =await _taskRepo.addAttendance(data,_profile);
+      // print(response.toString());
+      if (response.isNotEmpty){
+        localData.storage.write("tk_id", response[0]["id"]);
+        utils.showSuccessToast(text: status=="1"?"Check In Successful":"Check Out Successful",context: context);
+        getAllTask(false);
+        // Provider.of<HomeProvider>(context, listen: false).getMainReport(false);
+       // Provider.of<HomeProvider>(context, listen: false).loadFullDashboard(context);
+        Navigator.of(context, rootNavigator: true).pop();
+      }else {
+        Navigator.of(context, rootNavigator: true).pop();
+        utils.showErrorToast(context: context);
+        notifyListeners();
+      }
+    } catch (e) {
+      Navigator.of(context, rootNavigator: true).pop();
+      log(e.toString());
+      utils.showErrorToast(context: context);
+    }finally{
+      notifyListeners();
+    }
+  }
+  Future<void> taskAttendance(context,
+      {required String status,
+        required String taskId,
+        required String coId,
+        required String lat,
+        required String lng}) async {
+    try {
+      showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: Center(
+                child: Column(
+                  children: [
+                    const CustomText(text: "Marking Please Wait",
+                      colors: Colors.grey,
+                      size: 15,
+                      isBold: true,),
+                    20.height,
+                    LoadingAnimationWidget.staggeredDotsWave(
+                      color: colorsConst.primary,
+                      size: 25,
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }
+      );
+      Map<String, String> data = {
+        "action": taskAtt,
+        "log_file": localData.storage.read("mobile_number"),
+        "line_id": "0",
+        "line_customer_id": taskId,
+        "salesman_id": localData.storage.read("id"),
+        "self_img_count": "0",
+        "comp_img_count": "0",
+        "collection_amt": "0",
+        "sales_amt": "0",
+        "is_checked_out": status,
+        "lat": lat,
+        "lng": lng,
+        "traveled_kms": "0.0",
+        "id": localData.storage.read("tk_id"),
+        "cos_id": localData.storage.read("cos_id"),
+      };
+      final response =await _taskRepo.addAttendance(data,_profile);
+      log(response.toString());
+      if (response.isNotEmpty){
+        localData.storage.write("tk_id", response[0]["id"]);
+        utils.showSuccessToast(text: status=="1"?"Check In Successful":"Check Out Successful",context: context);
+        getAllCoTask(coId,false);
+        Navigator.of(context, rootNavigator: true).pop();
+      }else {
+        Navigator.of(context, rootNavigator: true).pop();
+        utils.showErrorToast(context: context);
+      }
+    } catch (e) {
+      log(e.toString());
+      Navigator.of(context, rootNavigator: true).pop();
+      utils.showErrorToast(context: context);
+    }
+    notifyListeners();
+  }
+
+  var typeList=[];
+  var customerList=[];
+  var cusTypeList=[];
+  var statusList=[];
+
+  bool _addRefresh = true;
+  bool get addRefresh =>_addRefresh;
+  dynamic _selectType;
+  dynamic get selectType=>_selectType;
+  dynamic _selectType1;
+  dynamic get selectType1=>_selectType1;
+
+  void changeTypeValue(dynamic value){
+    _selectType=null;
+    _selectType=value;
+    var list=[];
+    list.add(value);
+    localData.storage.write("type_id",list[0]["id"]);
+    localData.storage.write("typeName",list[0]["value"]);
+
+    notifyListeners();
+  }
+  String? typeId;
+  String? typeName;
+
+  void changeTypeValue1(Object? value) {
+    if (value == null) return;
+
+    final selected = typeList.firstWhere(
+          (e) => e['id'].toString() == value.toString(),
+      orElse: () => <String, String>{},
+    );
+
+    if (selected.isEmpty) {
+      print("Type not found");
+      return;
+    }
+
+    _selectType = selected;
+
+    localData.storage.write("type_id", selected["id"].toString());
+
+    print("Saved TYPE ID => ${selected["id"]}");
+
+    notifyListeners();
+  }
+  Future<void> getTaskType(bool isRefresh) async {
+    try {
+      _selectType = null;
+
+      if (isRefresh == true) {
+        _addRefresh = false;
+        notifyListeners();
+      }
+
+      Map data = {
+        "action": getAllData,
+        "search_type": "cmt_type",
+        "cat_id": "7",
+        "cos_id": localData.storage.read("cos_id")
+      };
+
+      final response = await _taskRepo.getListDatas(data);
+
+      log("Data => ${data.toString()}");
+      log("Response task list=> ${response.toString()}");
+
+      if (response.isNotEmpty) {
+        List<Map<String, String>> list = response.map((e) => {
+          "id": e['id'].toString(),
+          "value": e['value'].toString().trim(),
+          "categories": e['categories'].toString(),
+          "created_ts": e['created_ts'].toString(),
+          "created_by": e['created_by'].toString(),
+        }).toList();
+
+        if (!kIsWeb) {
+          await LocalDatabase.insertTaskType(list);
+          getAllTypes();
+        } else {
+          typeList.clear();
+          typeList = list;
+          if (typeList.isNotEmpty) {
+            changeType(typeList.first["id"].toString());
+          }
+          _addRefresh = true;
+          notifyListeners();
+        }
+      } else {
+        _addRefresh = true;
+      }
+    } catch (e) {
+      _addRefresh = true;
+    }
+
+    notifyListeners();
+  }
+  Future<void> getCustomerType(bool isRefresh) async {
+    try {
+      _selectType= null;
+
+      if (isRefresh == true) {
+        _addRefresh = false;
+        notifyListeners();
+      }
+
+      Map data = {
+        "action": getAllData,
+        "search_type": "cus_type",
+        "cat_id": "12",
+        "cos_id": localData.storage.read("cos_id")
+      };
+
+      final response = await _taskRepo.getListDatas(data);
+
+      log("Data => ${data.toString()}");
+      log("Response task list=> ${response.toString()}");
+
+      if (response.isNotEmpty) {
+        List<Map<String, String>> list = response.map((e) => {
+          "id": e['id'].toString(),
+          "value": e['value'].toString().trim(),
+          "categories": e['categories'].toString(),
+          "created_ts": e['created_ts'].toString(),
+          "created_by": e['created_by'].toString(),
+        }).toList();
+        if (!kIsWeb) {
+          await LocalDatabase.insertCusType(list);
+          getAllCusTypes();
+        } else {
+          cusTypeList.clear();
+          cusTypeList = list;
+          _addRefresh = true;
+          notifyListeners();
+        }
+      } else {
+        _addRefresh = true;
+      }
+    } catch (e) {
+      _addRefresh = true;
+    }
+
+    notifyListeners();
+  }
+  TextEditingController typeCtr = TextEditingController();
+
+  // Future<void> getTaskStatuses() async {
+  //   try {
+  //     Map data = {
+  //       "action": getAllData,
+  //       "search_type":"cmt_type",
+  //       "cat_id":"8",
+  //       "cos_id": localData.storage.read("cos_id")
+  //     };
+  //     final response =await _taskRepo.getListDatas(data);
+  //    log("Task status ${response.toString()}");
+  //     if (response.isNotEmpty) {
+  //       List<Map<String, String>> list = response.map((e) => {
+  //         "id": e['id'].toString(),
+  //         "value": e['value'].toString(),
+  //         "categories": e['categories'].toString()
+  //       }).toList();
+  //       if(!kIsWeb){
+  //         await LocalDatabase.insertTaskStatus(list);
+  //       }else{
+  //         statusList.clear();
+  //         statusList=list;
+  //         notifyListeners();
+  //       }
+  //     }
+  //   } catch (e) {
+  //     // _refresh=true;
+  //   }
+  //   notifyListeners();
+  // }
+  Future<void> getTaskStatuses() async {
+    try {
+      Map data = {
+        "action": getAllData,
+        "search_type": "cmt_type",
+        "cat_id": "8",
+        "cos_id": localData.storage.read("cos_id")
+      };
+
+      final response = await _taskRepo.getListDatas(data);
+
+      log("Task status ${response.toString()}");
+
+      if (response.isNotEmpty) {
+
+        List<Map<String, String>> list = response.map<Map<String, String>>((e) => {
+          "id": e['id'].toString(),
+          "value": e['value'].toString(),
+          "categories": e['categories'].toString(),
+        }).toList();
+
+        /// ⭐ always update provider list
+        statusList = list;
+
+        print("STATUS LIST $statusList");
+
+        /// save offline
+        if(!kIsWeb){
+          await LocalDatabase.insertTaskStatus(list);
+        }
+
+        notifyListeners();
+      }
+
+    } catch (e) {
+      print("STATUS ERROR $e");
+    }
+  }
+  Future<void> getAllTypes() async {
+    typeList.clear();
+    List storedLeads = await LocalDatabase.getTaskTypes();
+    typeList=storedLeads;
+    _addRefresh=true;
+    print("local db typeList......${typeList}");
+    _selectType=null;
+    notifyListeners();
+  }
+  Future<void> refreshTypes() async {
+    _type=null;
+    typeList.clear();
+    List storedLeads = await LocalDatabase.getTaskTypes();
+    typeList=storedLeads;
+    notifyListeners();
+  }
+  Future<void> getTypeSts() async {
+    statusList.clear();
+    List storedLeads = await LocalDatabase.getTaskStatus();
+    statusList=storedLeads;
+    notifyListeners();
+  }
+  Future<void> refreshStatus() async {
+    _status=null;
+    statusList.clear();
+    List storedLeads = await LocalDatabase.getTaskStatus();
+    statusList=storedLeads;
+    notifyListeners();
+  }
+  Future<void> getAllCusTypes() async {
+    cusTypeList.clear();
+
+    List storedLeads = await LocalDatabase.getCusTypes();
+    cusTypeList = storedLeads;
+
+    _addRefresh = true;
+
+    print("local db typeList.customer .....$cusTypeList");
+
+    if (cusTypeList.isNotEmpty) {
+      _selectType ??= cusTypeList[0];
+    }
+
+    notifyListeners();
+  }
+  Future<void> refreshCusTypes() async {
+    _type=null;
+    cusTypeList.clear();
+    List storedLeads = await LocalDatabase.getCusTypes();
+    cusTypeList=storedLeads;
+    notifyListeners();
+  }
+
+  Future<void> fetchUserNameList() async {
+    _isLoading = true;
+    notifyListeners();
+    try {
+      final response = await _taskRepo.getUserNames();
+      if (response["ResponseCode"].toString() == "200") {
+        List<dynamic> data = response["Response"] ?? [];
+        _userNameList = data;
+        _assignList = [];
+        // for(var name in _userNameList){
+        //   if(name["f_name"]==localData.currentUserName){
+        //     _assignList.add("Self");
+        //   }else{
+        //     _assignList.add(name["f_name"]);
+        //   }
+        // }
+        _assignList = _userNameList.map((e) => e["f_name"].toString()).toList();
+      } else {
+        _userNameList = [];
+      }
+    } catch (e) {
+      // print("FetchUserNameList error $e");
+      _userNameList = [];
+      notifyListeners();
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  /// Play Recorded Audio
+  // Future<void> playAudio() async {
+  //   if (_audioPath != null) {
+  //     _isPlaying = true;
+  //     notifyListeners();
+  //     await _audioPlayer.play(DeviceFileSource(_audioPath!));
+  //     _audioPlayer.onPlayerComplete.listen((event) {
+  //       _isPlaying = false;
+  //       notifyListeners();
+  //     });
+  //   }
+  // }
+
+  /// Stop Audio Playback
+  // Future<void> stopAudio() async {
+  //   await _audioPlayer.stop();
+  //   _isPlaying = false;
+  //   notifyListeners();
+  // }
+  /// CHART
+  String _totalCount = "";
+  String _pendingCount = "";
+  String _completedCount = "";
+  String _overdueCount = "";
+  double _pendingCountPer = 0.0;
+  double _completedCountPer = 0.0;
+  double _overdueCountPer = 0.0;
+  bool _isDashboardLoading = false;
+
+  String get totalCount => _totalCount;
+  String get pendingCount => _pendingCount;
+  String get completedCount => _completedCount;
+  String get overdueCount => _overdueCount;
+  double get pendingCountPer => _pendingCountPer;
+  double get completedCountPer => _completedCountPer;
+  double get overdueCountPer => _overdueCountPer;
+  bool get isDashboardLoading => _isDashboardLoading;
+
+  Future<void> fetchTaskCount() async {
+    _isDashboardLoading = true;
+    notifyListeners();
+    try {
+      final response = await _taskRepo.getDashboardCount();
+      // print("dashboard output ${response["Response"]}");
+      if (response["ResponseCode"].toString() == "200") {
+        List<dynamic> data = response["Response"] ?? [];
+        _totalCount = data[0]["total_count"];
+        _pendingCount = data[0]["pending_count"];
+        _completedCount = data[0]["complete_count"];
+        _overdueCount = data[0]["overdue_count"];
+        double total = double.tryParse(_totalCount) ?? 1;
+        double completed = double.tryParse(_completedCount) ?? 0;
+        double pending = double.tryParse(_pendingCount) ?? 0;
+        double overdue = double.tryParse(_overdueCount) ?? 0;
+        _completedCountPer = (completed / total) * 100;
+        _pendingCountPer = (pending / total) * 100;
+        _overdueCountPer = (overdue / total) * 100;
+        notifyListeners();
+      } else {
+        _totalCount = "0";
+        _pendingCount = "0";
+        _completedCount = "0";
+        _overdueCount = "0";
+      }
+      notifyListeners();
+    } catch (e) {
+      _totalCount = "0";
+      _pendingCount = "0";
+      _completedCount = "0";
+      _overdueCount = "0";
+      // print("FetchUserNameList error $e");
+      notifyListeners();
+    } finally {
+      _isDashboardLoading = false;
+      notifyListeners();
+    }
+  }
+  /// copy of customer add visit page
+
+
+  List<String> _selectedPhotos = [];
+
+  List<String> get selectedPhotos => _selectedPhotos;
+
+  Future<void> pickCamera(BuildContext context) async {
+    var imgData = await Navigator.push(
+        context,
+        MaterialPageRoute(
+            builder: (context) => const CameraWidget(
+              cameraPosition: CameraType.back,
+            )));
+    _selectedPhotos.add(imgData);
+    notifyListeners();
+  }
+  void removePhotos(int index) {
+    _selectedPhotos.removeAt(index);
+    notifyListeners();
+  }
+
+  final AudioRecorder record = AudioRecorder();
+
+  bool isValidUrl(String url) {
+    final Uri? uri = Uri.tryParse(url);
+    return uri != null && (uri.hasScheme && uri.hasAuthority);
+  }
+
+  String formatDuration(Duration d) {
+    String minutes = d.inMinutes.toString().padLeft(2, '0');
+    String seconds = (d.inSeconds % 60).toString().padLeft(2, '0');
+    return "$minutes:$seconds";
+  }
+  Future<void> insertTaskType(context) async {
+    try {
+      Map<String, String> data = {
+        "action": addTaskType,
+        "meta_id":"7",
+        "value":typeCtr.text.trim(),
+        "created_by": localData.storage.read("id"),
+        "platform": localData.storage.read("platform").toString(),
+        "cos_id": localData.storage.read("cos_id").toString(),
+        "log_file": localData.storage.read("mobile_number").toString(),
+      };
+      final response =await _taskRepo.addType(data);
+      print(data.toString());
+      print(response.toString());
+      if (response.toString().contains("This type already exits")){
+        utils.showWarningToast(context,text: "This type already exits");
+        taskCtr.reset();
+      }else if (response["status_code"]==200){
+        utils.showSuccessToast(context: context,text: constValue.success);
+        getTaskType(true);
+        Navigator.pop(context);
+        taskCtr.reset();
+      }else {
+        utils.showErrorToast(context: context);
+        taskCtr.reset();
+      }
+    } catch (e) {
+      log(e.toString());
+      utils.showErrorToast(context: context);
+      taskCtr.reset();
+    }
+    notifyListeners();
+  }
+  void deleteType(context,String id) async {
+    try {
+      Map data = {
+        "action":delete,
+        "ops":"type",
+        "id":id,
+        "meta_id":"7",
+        "updated_by":localData.storage.read("id"),
+        "platform": localData.storage.read("platform"),
+        "cos_id": localData.storage.read("cos_id"),
+      };
+      final response = await _taskRepo.addType(data);
+      if (response["status_code"]==200) {
+        utils.showSuccessToast(context: context,text: constValue.deleted);
+        if(!kIsWeb){
+          await LocalDatabase.deleteTaskTypeById(id);
+        }
+        getTaskType(false);
+        Navigator.pop(context);
+        taskCtr.reset();
+      } else {
+        utils.showErrorToast(context: context);
+        taskCtr.reset();
+      }
+    } catch (e) {
+      utils.showErrorToast(context: context);
+      taskCtr.reset();
+    }
+    notifyListeners();
+  }
+
+
+  bool isAssignedDisabled = false;
+  bool isStartedDisabled = false;
+  bool isCompletedDisabled = false;
+
+  void updateDisableStatus(String currentStatus) {
+  isAssignedDisabled = false;
+  isStartedDisabled = false;
+  isCompletedDisabled = false;
+
+  if (currentStatus == "Assigned") {
+  isAssignedDisabled = true;
+  } else if (currentStatus == "Started") {
+  isAssignedDisabled = true;
+  isStartedDisabled = true;
+  } else if (currentStatus == "Completed") {
+  isAssignedDisabled = true;
+  isStartedDisabled = true;
+  isCompletedDisabled = true;
+  }
+  }
+
+  String selectedStatusValue = "Assigned";
+
+  Color getButtonColor(String status, bool isSelected) {
+  if (isSelected) {
+  if (status == "Assigned") return Colors.orange;
+  if (status == "Started") return Colors.blue;
+  if (status == "Completed") return Colors.green;
+  }
+  return Colors.white;
+  }
+
+  Color getBorderColor(String status) {
+  if (status == "Assigned") return Colors.orange;
+  if (status == "Started") return Colors.blue;
+  if (status == "Completed") return Colors.green;
+  return Colors.grey;
+  }
+
+  Color getTextColor(String status, bool isSelected) {
+  if (isSelected) return Colors.white;
+
+  if (status == "Assigned") return Colors.orange;
+  if (status == "Started") return Colors.blue;
+  if (status == "Completed") return Colors.green;
+
+  return Colors.black;
+  }
+  String currentStatus = "Assigned"; // default
+
+  bool isButtonDisabled(String status) {
+    if (currentStatus == "Assigned") {
+      return status == "Assigned"; // Assigned மட்டும் disable
+    }
+
+    if (currentStatus == "Started") {
+      return status == "Assigned" || status == "Started"; // Assigned+Started disable
+    }
+
+    if (currentStatus == "Completed") {
+      return true; // எல்லாமே disable
+    }
+
+    return false;
+  }
+
+  Color getStatusColor(String status) {
+    if (status == "Assigned") return Colors.orange;
+    if (status == "Started") return Colors.blue;
+    if (status == "Completed") return Colors.green;
+    return colorsConst.primary;
+  }
+  /// ✅ NEW: holds data AFTER date/status filter applied, BEFORE search applied
+  List<TaskData> _filteredBeforeSearch = [];
+
+  /// ✅ Call this from initFilterValue() / filterList() / status tab change,
+  /// right after you finish computing the date-filtered list.
+  /// (wherever you currently assign the date-filtered result, also assign it here)
+  void updateFilteredBeforeSearch(List<TaskData> dateFilteredList) {
+    _filteredBeforeSearch = dateFilteredList;
+
+    /// re-apply existing search text if user already typed something
+    searchTask(search.text);
+  }
+
+  /// ✅ FIXED searchTask — searches within _filteredBeforeSearch, NOT _allTasks
+  void searchTask(String value) {
+    final input = value.toLowerCase();
+
+    if (value.trim().isEmpty) {
+      _filterUserData = List.from(_filteredBeforeSearch);
+    } else {
+      final suggestions = _filteredBeforeSearch.where((user) {
+        final userFName = user.projectName.toString().toLowerCase();
+        final userNumber = user.assignedNames.toString().toLowerCase();
+
+        return userFName.contains(input) || userNumber.contains(input);
+      }).toList();
+
+      _filterUserData = suggestions;
+    }
+
+    notifyListeners();
+  }
+  /// Call this whenever date filter / status tab changes (Apply Filters, Clear All, tab click, initial load)
+  void applyDateAndStatusFilter() {
+    List<TaskData> baseList = List<TaskData>.from(allTasks); // your full/original list
+
+    /// ---- DATE FILTER ----
+    if (isFilter == true) {
+      baseList = baseList.where((task) {
+        try {
+          DateTime taskDate = DateFormat('dd-MM-yyyy').parse(task.taskDate.toString());
+          DateTime from = DateFormat('dd-MM-yyyy').parse(startDate);
+          DateTime to = DateFormat('dd-MM-yyyy').parse(endDate);
+          DateTime taskOnly = DateTime(taskDate.year, taskDate.month, taskDate.day);
+          DateTime fromOnly = DateTime(from.year, from.month, from.day);
+          DateTime toOnly = DateTime(to.year, to.month, to.day);
+          return (taskOnly.isAtSameMomentAs(fromOnly) || taskOnly.isAfter(fromOnly)) &&
+              (taskOnly.isAtSameMomentAs(toOnly) || taskOnly.isBefore(toOnly));
+        } catch (_) {
+          return false;
+        }
+      }).toList();
+    } else {
+      // No filter applied -> default to today only (matches your "Today: ${startDate}" label)
+      baseList = baseList.where((task) {
+        try {
+          DateTime taskDate = DateFormat('dd-MM-yyyy').parse(task.taskDate.toString());
+          DateTime today = DateTime.now();
+          return taskDate.year == today.year &&
+              taskDate.month == today.month &&
+              taskDate.day == today.day;
+        } catch (_) {
+          return false;
+        }
+      }).toList();
+    }
+
+    /// ---- STATUS TAB FILTER (All / Assigned / Started / Completed) ----
+    if (statusIds.isNotEmpty) {
+      baseList = baseList.where((task) =>
+      task.statval.toString() == statusIds).toList();
+    }
+
+    _filteredBeforeSearch = baseList;
+
+    /// ---- RE-APPLY SEARCH TEXT (if user already typed something) ----
+    if (search.text.trim().isNotEmpty) {
+      searchTask(search.text.trim());
+    } else {
+      _filterUserData = List<TaskData>.from(_filteredBeforeSearch);
+    }
+
+    notifyListeners();
+  }
+
+/// ✅ FIXED SEARCH: searches only WITHIN
+
+  Future<void> editTaskType(context,String id) async {
+    try {
+      Map<String, String> data = {
+        "action": updateTaskType,
+        "id": id,
+        "meta_id":"7",
+        "value":typeCtr.text.trim(),
+        "created_by": localData.storage.read("id"),
+        "platform": localData.storage.read("platform").toString(),
+        "cos_id": localData.storage.read("cos_id").toString(),
+        "log_file": localData.storage.read("mobile_number").toString(),
+      };
+      final response =await _taskRepo.addType(data);
+      print(data.toString());
+      print(response.toString());
+      if (response.toString().contains("This type already exits")){
+        utils.showWarningToast(context,text: "This type already exits");
+        taskCtr.reset();
+      }else if (response["status_code"]==200){
+        utils.showSuccessToast(context: context,text: constValue.updated);
+        getTaskType(true);
+        Navigator.pop(context);
+        taskCtr.reset();
+      }else {
+        utils.showErrorToast(context: context);
+        taskCtr.reset();
+      }
+    } catch (e) {
+      log(e.toString());
+      utils.showErrorToast(context: context);
+      taskCtr.reset();
+    }
+    notifyListeners();
+  }
+  Future<void> insertTaskStatus(context) async {
+    try {
+      Map<String, String> data = {
+        "action": addTaskType,
+        "meta_id":"8",
+        "value":typeCtr.text.trim(),
+        "created_by": localData.storage.read("id"),
+        "platform": localData.storage.read("platform").toString(),
+        "cos_id": localData.storage.read("cos_id").toString(),
+        "log_file": localData.storage.read("mobile_number").toString(),
+      };
+      final response =await _taskRepo.addType(data);
+      print(data.toString());
+      print(response.toString());
+      if (response.toString().contains("already exits")){
+        utils.showWarningToast(context,text: "This status already exits");
+        taskCtr.reset();
+      }else if (response["status_code"]==200){
+        utils.showSuccessToast(context: context,text: constValue.success);
+        getTaskStatuses();
+        Navigator.pop(context);
+        taskCtr.reset();
+      }else {
+        utils.showErrorToast(context: context);
+        taskCtr.reset();
+      }
+    } catch (e) {
+      log(e.toString());
+      utils.showErrorToast(context: context);
+      taskCtr.reset();
+    }
+    notifyListeners();
+  }
+  void deleteStatus(context,String id) async {
+    try {
+      Map data = {
+        "action":delete,
+        "ops":"type",
+        "id":id,
+        "meta_id":"8",
+        "updated_by":localData.storage.read("id"),
+        "platform": localData.storage.read("platform"),
+        "cos_id": localData.storage.read("cos_id"),
+      };
+      final response = await _taskRepo.addType(data);
+      if (response["status_code"]==200) {
+        utils.showSuccessToast(context: context,text: constValue.deleted);
+        if(!kIsWeb){
+          await LocalDatabase.deleteTaskStatusById(id);
+        }
+        getTaskStatuses();
+        getTypeSts();
+        Navigator.pop(context);
+        taskCtr.reset();
+      } else {
+        utils.showErrorToast(context: context);
+        taskCtr.reset();
+      }
+    } catch (e) {
+      utils.showErrorToast(context: context);
+      taskCtr.reset();
+    }
+    notifyListeners();
+  }
+  Future<void> editTaskStatus(context,String id) async {
+    try {
+      Map<String, String> data = {
+        "action": updateTaskType,
+        "id": id,
+        "meta_id":"8",
+        "value":typeCtr.text.trim(),
+        "created_by": localData.storage.read("id"),
+        "platform": localData.storage.read("platform").toString(),
+        "cos_id": localData.storage.read("cos_id").toString(),
+        "log_file": localData.storage.read("mobile_number").toString(),
+      };
+      final response =await _taskRepo.addType(data);
+      print(data.toString());
+      print(response.toString());
+      if (response.toString().contains("already exits")){
+        utils.showWarningToast(context,text: "This status already exits");
+        taskCtr.reset();
+      }else if (response["status_code"]==200){
+        utils.showSuccessToast(context: context,text: constValue.updated);
+        getTaskStatuses();
+        Navigator.pop(context);
+        taskCtr.reset();
+      }else {
+        utils.showErrorToast(context: context);
+        taskCtr.reset();
+      }
+    } catch (e) {
+      log(e.toString());
+      utils.showErrorToast(context: context);
+      taskCtr.reset();
+    }
+    notifyListeners();
+  }
+
+  }

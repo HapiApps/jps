@@ -1,0 +1,2016 @@
+import 'package:flutter/gestures.dart';
+import 'package:flutter_svg/svg.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
+import 'package:master_code/component/custom_loading.dart';
+import 'package:master_code/component/custom_loading_button.dart';
+import 'package:master_code/component/map_dropdown.dart';
+import 'package:master_code/screens/task/add_task.dart';
+import 'package:master_code/screens/task/edit_task.dart';
+import 'package:master_code/screens/task/search_custom_dropdown.dart' hide MapDropDown;
+import 'package:master_code/screens/task/task_calendar.dart';
+import 'package:master_code/screens/task/task_chat.dart';
+import 'package:master_code/screens/task/task_details.dart';
+import 'package:master_code/screens/task/task_report.dart';
+import 'package:master_code/source/extentions/extensions.dart';
+import 'package:master_code/view_model/customer_provider.dart';
+import 'package:master_code/view_model/employee_provider.dart';
+import 'package:master_code/view_model/home_provider.dart';
+import 'package:master_code/view_model/location_provider.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:syncfusion_flutter_calendar/calendar.dart';
+import '../../component/animated_button.dart';
+import '../../component/custom_appbar.dart';
+import '../../component/custom_text.dart';
+import '../../component/expand_text.dart';
+import '../../component/search_drop_down.dart';
+import '../../model/customer/customer_model.dart';
+import '../../model/task/task_data_model.dart';
+import '../../source/constant/assets_constant.dart';
+import '../../source/constant/colors_constant.dart';
+import '../../source/constant/default_constant.dart';
+import '../../source/constant/local_data.dart';
+import '../../source/styles/decoration.dart';
+import '../../source/utilities/utils.dart';
+import '../../view_model/task_provider.dart';
+import '../common/dashboard.dart';
+import '../common/home_page.dart';
+import '../expense/create_expense.dart';
+
+
+class ViewTask extends StatefulWidget {
+  final String date1;
+  final String date2;
+  final String type;
+  const ViewTask({super.key,required this.date1, required this.date2, required this.type});
+
+  @override
+  State<ViewTask> createState() => _ViewTaskState();
+}
+
+class _ViewTaskState extends State<ViewTask> with SingleTickerProviderStateMixin {
+  final FocusScopeNode _myFocusScopeNode = FocusScopeNode();
+  late TabController tabController;
+  @override
+  void initState() {
+    super.initState();
+    tabController=TabController(length:2, vsync: this);
+    tabController.addListener(() {
+      _myFocusScopeNode.unfocus();
+      tabController.index;
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return; // 🔥 IMPORTANT FIX
+
+      final taskProvider = Provider.of<TaskProvider>(context, listen: false);
+      final empProvider = Provider.of<EmployeeProvider>(context, listen: false);
+      final custProvider = Provider.of<CustomerProvider>(context, listen: false);
+      empProvider.getAllUsers(isRefresh: false);
+
+      taskProvider.search.clear();
+      taskProvider.search2.clear();
+      Provider.of<CustomerProvider>(context, listen: false)
+          .getAllCustomers(true);
+
+      //empProvider.filterEmps();
+
+      if (kIsWeb) {
+        taskProvider.getTaskType(false);
+        taskProvider.getTaskStatuses();
+        taskProvider.getTaskUsers();
+        custProvider.getLeadCategory();
+        custProvider.getVisitType();
+        custProvider.getCmtType();
+      } else {
+        taskProvider.getAllTypes();
+        taskProvider.getTypeSts();
+        taskProvider.getTaskUsers();
+        custProvider.getLead();
+        custProvider.getVisit();
+        custProvider.getCommentType();
+      }
+
+      taskProvider.initFilterValue(
+        true,
+        date1: widget.date1,
+        date2: widget.date2,
+        type: widget.type,
+      );
+      taskProvider.dataSource = _getDataSource();
+      taskProvider.getTaskUsers();
+      taskProvider.getAllTask(
+        true,
+        date1: widget.date1,
+        date2: widget.date2,
+        type: widget.type,
+      );
+    });
+  }
+  @override
+
+  void dispose() {
+    tabController.dispose();
+
+    _myFocusScopeNode.dispose();
+    super.dispose();
+  }
+  @override
+  Widget build(BuildContext context) {
+    var webHeight=MediaQuery.of(context).size.width * 0.5;
+    var phoneHeight=MediaQuery.of(context).size.width * 0.95;
+
+    return Consumer3<TaskProvider,HomeProvider,LocationProvider>(
+        builder: (context, taskProvider, homeProvider,locPvr, _) {
+          return FocusScope(
+            node: _myFocusScopeNode,
+            child: Scaffold(
+              backgroundColor: colorsConst.bacColor,
+              appBar: PreferredSize(
+                preferredSize: const Size(300, 50),
+                child: CustomAppbar(
+                  text: "View Tasks",
+                  callback: () {
+                    _myFocusScopeNode.unfocus();
+                    homeProvider.updateIndex(0);
+                    utils.navigatePage(context, () => const DashBoard(child: HomePage()));
+                  },
+                isButton: homeProvider.roleAccess.any((f) => f['feature'] == 'Task Management'&&f['name'] == 'Create')? true : false, // ✅ FIX: was missing
+                  isLoading: taskProvider.isAddTaskLoading, // ✅ FIX: was hardcoded `true`
+                  buttonCallback: () async {
+                    if (taskProvider.isAddTaskLoading) return; // 🔒 double-tap block
+
+                    setState(() {
+                      taskProvider.isAddTaskLoading = true;
+                    });
+
+                    taskProvider.typeList.removeWhere((e) => e['value'] == 'All');
+
+                    if (taskProvider.assignedNames.isEmpty) {
+                      await taskProvider.getTaskUsers();
+                    }
+
+                    if (!mounted) return;
+
+                    setState(() {
+                      taskProvider.isAddTaskLoading = false;
+                    });
+
+                    utils.navigatePage(
+                      context,
+                          () => const DashBoard(child: AddTask()),
+                    );
+                  },
+                ),
+              ),
+              body: PopScope(
+                canPop: false,
+                onPopInvoked: (bool didPop) {
+                  _myFocusScopeNode.unfocus();
+                  homeProvider.updateIndex(0);
+                  if (!didPop) {
+                    utils.navigatePage(context, ()=>const DashBoard(child: HomePage()));
+                  }
+                },
+                child: Center(
+                  child: SizedBox(
+                    width: kIsWeb?webHeight:phoneHeight,
+                    child: Column(
+                      children: [
+                        20.height,
+                        Container(
+                          height: 50,
+                            decoration: customDecoration.baseBackgroundDecoration(
+                              color: Colors.white,
+                              radius: 30,
+                            ),
+                            child: TabBar(
+                              indicator: customDecoration.baseBackgroundDecoration(
+                                  radius: 30,
+                                  color:colorsConst.primary
+                              ),
+                              indicatorSize: TabBarIndicatorSize.tab,
+                              labelColor: Colors.white,
+                              unselectedLabelColor: Colors.black,
+                              controller: tabController,
+                              tabs:  [
+                                Tab(child:Text("Tasks",style:TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontFamily:'Lato'))),
+                                Tab(child:Text("Calendar",style:TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontFamily:'Lato'))),
+                              ],
+                            )
+                        ),
+                        Expanded(
+                          child: TabBarView(
+                            controller: tabController,
+                            children: [
+                              ViewfilterUserData(date1: widget.date1,date2:widget.date2,type:widget.type),
+                              TaskCalendar(taskPvr: taskProvider),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          );
+        });
+  }
+  _DataSource _getDataSource() {
+    List<Appointment> appointments = <Appointment>[];
+    return _DataSource(appointments);
+  }
+}
+
+
+
+class ViewfilterUserData extends StatefulWidget {
+  final String date1;
+  final String date2;
+  final String type;
+  const ViewfilterUserData({super.key,required this.date1, required this.date2, required this.type});
+
+  @override
+  State<ViewfilterUserData> createState() => _ViewfilterUserDataState();
+}
+
+class _ViewfilterUserDataState extends State<ViewfilterUserData>{
+  final FocusScopeNode _myFocusScopeNode = FocusScopeNode();
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final taskProvider = Provider.of<TaskProvider>(context, listen: false);
+      taskProvider.initFilterValue(true,date1:widget.date1,date2:widget.date2,type:widget.type);
+      taskProvider.dataSource = _getDataSource();
+      taskProvider.getAllTask(true,date1:widget.date1,date2:widget.date2,type:widget.type);
+      if(localData.storage.read("role")=="1"){
+        taskProvider.getTaskUsers();
+      }
+    });
+  }
+  @override
+  void dispose() {
+    _myFocusScopeNode.dispose();
+    super.dispose();
+  }
+  @override
+  Widget build(BuildContext context) {
+    var webHeight=MediaQuery.of(context).size.width * 0.5;
+    var phoneHeight=MediaQuery.of(context).size.width * 0.95;
+    return Consumer3<TaskProvider,HomeProvider,LocationProvider>(
+        builder: (context, taskProvider, homeProvider,locPvr, _) {
+          return FocusScope(
+            node: _myFocusScopeNode,
+            child: Scaffold(
+              backgroundColor: Color(0xffEAEAEA),
+              body: taskProvider.viewRefresh==false?
+              const Loading():
+              Column(
+                children: [
+                  10.height,
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Container(
+                        width: kIsWeb?webHeight/1.2:phoneHeight/1.4,
+                        decoration: customDecoration.baseBackgroundDecoration(
+                          radius: 30,
+                          color: colorsConst.primary,
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Container(
+                              width: kIsWeb?webHeight/1.5:phoneHeight/1.8,
+                              height: 45,
+                              decoration: customDecoration.baseBackgroundDecoration(
+                                radius: 30,
+                                color: Colors.transparent,
+                              ),
+                              child:TextFormField(
+                                controller: taskProvider.search,
+                                cursorColor: colorsConst.primary,
+                                style: const TextStyle(
+                                  color: Colors.black,
+                                  fontSize: 14,
+                                ),
+                                onChanged: (value) {
+                                  Future.microtask(() {
+                                    taskProvider.searchTask(value);
+                                  });
+                                },
+                                decoration: InputDecoration(
+                                  hintText: "Search Name or ${constValue.customer}",
+                                  hintStyle: TextStyle(
+                                    color: colorsConst.primary,
+                                    fontSize: 14,
+                                  ),
+                                  fillColor: Colors.white,
+                                  filled: true,
+
+                                  prefixIcon: const Icon(
+                                    Icons.search,
+                                    color: Colors.grey,
+                                  ),
+                                  suffixIcon: taskProvider.search.text.isNotEmpty
+                                      ? IconButton(
+                                    icon: const Icon(
+                                      Icons.close_rounded,
+                                      color: Colors.grey,
+                                    ),
+                                    onPressed: () {
+                                      taskProvider.search.clear();
+
+                                      taskProvider.searchTask("");
+                                    },
+                                  )
+                                      : null,
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 20,
+                                    vertical: 14,
+                                  ),
+
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(30), // 🔥 Round Edge
+                                    borderSide: BorderSide.none,
+                                  ),
+
+                                  enabledBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(30),
+                                    borderSide: BorderSide(
+                                      color: Colors.grey.shade300,
+                                    ),
+                                  ),
+
+                                  focusedBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(30),
+                                    borderSide: BorderSide(
+                                      color: colorsConst.primary,
+                                      width: 1.5,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            InkWell(
+                              onTap: (){
+                                _myFocusScopeNode.unfocus();
+                                if (!taskProvider.typeList.any((e) => e['value'] == 'All')) {
+                                  taskProvider.typeList.insert(0, {
+                                    "id": "",
+                                    "value": "All",
+                                  });
+                                }
+                                showDialog(
+                                  context: context,
+                                  builder: (context) {
+                                    return Consumer3<TaskProvider,CustomerProvider,EmployeeProvider>(
+                                      builder: (context, taskProvider,cusPvr,empProvider, _) {
+                                        return AlertDialog(
+                                          actions: [
+                                            SizedBox(
+                                              width: kIsWeb?MediaQuery.of(context).size.width*0.3:MediaQuery.of(context).size.width*0.9,
+                                              child: Column(
+                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                children: [
+                                                  20.height,
+                                                  Row(
+                                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                    children: [
+                                                      70.width,
+                                                      const CustomText(
+                                                        text: 'Filters',
+                                                        colors: Colors.black,
+                                                        size: 16,
+                                                        isBold: true,
+                                                      ),
+                                                      30.width,
+                                                      InkWell(
+                                                        onTap: () {
+                                                          taskProvider.initFilterValue(true,date1:widget.date1,date2:widget.date2,type:widget.type);
+                                                          Navigator.of(context, rootNavigator: true).pop();
+
+                                                        },
+                                                        child: SvgPicture.asset(assets.cancel),
+                                                      )
+                                                    ],
+                                                  ),
+                                                  20.height,
+                                                  Row(
+                                                    children: [
+                                                      Expanded(
+                                                        child: Column(
+                                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                                          children: [
+                                                            CustomText(
+                                                              text: "From Date",
+                                                              colors: colorsConst.greyClr,
+                                                              size: 12,
+                                                            ),
+                                                            InkWell(
+                                                              onTap: () {
+                                                                taskProvider.filterPick(
+                                                                  context: context,
+                                                                  isStartDate: true,
+                                                                  date: taskProvider.startDate,
+                                                                );
+                                                              },
+                                                              child: Container(
+                                                                height: 30,
+                                                                width: double.infinity, // 🔥 IMPORTANT
+                                                                decoration: customDecoration.baseBackgroundDecoration(
+                                                                  color: Colors.white,
+                                                                  radius: 5,
+                                                                  borderColor: colorsConst.litGrey,
+                                                                ),
+                                                                child: Row(
+                                                                  mainAxisAlignment: MainAxisAlignment.center,
+                                                                  children: [
+                                                                    Expanded(
+                                                                      child: CustomText(
+                                                                        text: taskProvider.startDate,
+                                                                        //overflow: TextOverflow.ellipsis, // 🔥 FIX
+                                                                      ),
+                                                                    ),
+                                                                    5.width,
+                                                                    SvgPicture.asset(assets.calendar2),
+                                                                  ],
+                                                                ),
+                                                              ),
+                                                            )
+                                                          ],
+                                                        ),
+                                                      ),
+
+                                                      10.width,
+
+                                                      Expanded(
+                                                        child: Column(
+                                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                                          children: [
+                                                            CustomText(
+                                                              text: "To Date",
+                                                              colors: colorsConst.greyClr,
+                                                              size: 12,
+                                                            ),
+                                                            InkWell(
+                                                              onTap: () {
+                                                                taskProvider.filterPick(
+                                                                  context: context,
+                                                                  isStartDate: false,
+                                                                  date: taskProvider.endDate,
+                                                                );
+                                                              },
+                                                              child: Container(
+                                                                height: 30,
+                                                                width: double.infinity, // 🔥 IMPORTANT
+                                                                decoration: customDecoration.baseBackgroundDecoration(
+                                                                  color: Colors.white,
+                                                                  radius: 5,
+                                                                  borderColor: colorsConst.litGrey,
+                                                                ),
+                                                                child: Row(
+                                                                  mainAxisAlignment: MainAxisAlignment.center,
+                                                                  children: [
+                                                                    Expanded(
+                                                                      child: CustomText(
+                                                                        text: taskProvider.endDate,
+                                                                        //overflow: TextOverflow.ellipsis, // 🔥 FIX
+                                                                      ),
+                                                                    ),
+                                                                    5.width,
+                                                                    SvgPicture.asset(assets.calendar2),
+                                                                  ],
+                                                                ),
+                                                              ),
+                                                            )
+                                                          ],
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                  10.height,
+                                                  Row(
+                                                    children: [
+
+                                                      Expanded(
+                                                        child: Column(
+                                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                                          children: [
+
+                                                            CustomText(
+                                                              text: "Select Date Range",
+                                                              colors: colorsConst.greyClr,
+                                                              size: 12,
+                                                            ),
+
+                                                            Container(
+                                                              height: 30,
+                                                              decoration: customDecoration.baseBackgroundDecoration(
+                                                                radius: 5,
+                                                                color: Colors.white,
+                                                                borderColor: colorsConst.litGrey,
+                                                              ),
+                                                              child: DropdownButton<String>(
+                                                                value: taskProvider.filterTypeList.contains(taskProvider.filterType)
+                                                                    ? taskProvider.filterType
+                                                                    : null,
+                                                                isExpanded: true,
+                                                                underline: const SizedBox(),
+                                                                icon: const Icon(Icons.keyboard_arrow_down_outlined),
+                                                                onChanged: (value) {
+                                                                  if (value != null) {
+                                                                    taskProvider.changeFilterType(value);
+                                                                  }
+                                                                },
+                                                                items: taskProvider.filterTypeList
+                                                                    .toSet()
+                                                                    .map<DropdownMenuItem<String>>((list) {
+                                                                  return DropdownMenuItem<String>(
+                                                                    value: list,
+                                                                    child: CustomText(text: "  $list"),
+                                                                  );
+                                                                }).toList(),
+                                                              ),
+                                                            ),
+                                                          ],
+                                                        ),
+                                                      ),
+
+                                                      10.width,
+
+                                                      Expanded(
+                                                        child: localData.storage.read("role") == "1"
+                                                            ? SearchCustomDropdown(
+                                                          text: "Employee Name",
+
+                                                          hintText: taskProvider.assignedId == ""
+                                                              ? ""
+                                                              : taskProvider.assignedNames,
+                                                          valueList: empProvider.activeEmps,
+                                                          onChanged: (value) {},
+                                                          width: double.infinity,
+                                                        )
+                                                            : const SizedBox(),
+                                                      ),
+                                                    ],
+                                                  ),
+
+                                                  10.height,
+                                                  Row(
+                                                    children: [
+
+                                                      Expanded(
+                                                        child: Column(
+                                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                                          children: [
+
+                                                            CustomText(
+                                                              text: constValue.type,
+                                                              colors: colorsConst.greyClr,
+                                                              size: 12,
+                                                            ),
+
+                                                            MapDropDown(
+                                                              saveValue: taskProvider.type,
+                                                              hintText: constValue.type,
+                                                              isHint: false,
+                                                              onChanged: (value) {
+                                                                taskProvider.checkFilterType(value);
+                                                              },
+                                                              dropText: 'value',
+                                                              list: taskProvider.typeList.toSet().toList(),
+                                                            ),
+                                                          ],
+                                                        ),
+                                                      ),
+
+                                                      10.width,
+
+                                                      Expanded(
+                                                        child: Column(
+                                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                                          children: [
+
+                                                            CustomText(
+                                                              text: constValue.companyName,
+                                                              colors: colorsConst.greyClr,
+                                                              size: 12,
+                                                            ),
+
+                                                            cusPvr.customer.isEmpty
+                                                                ? const SizedBox(
+                                                              height: 30,
+                                                              child: Center(
+                                                                child: CircularProgressIndicator(strokeWidth: 2),
+                                                              ),
+                                                            )
+                                                                : CustomerDropdown(
+                                                              text: taskProvider.companyName.isEmpty
+                                                                  ? constValue.companyName
+                                                                  : taskProvider.companyName,
+                                                              isRequired: false,
+                                                              hintText: false,
+                                                              employeeList: cusPvr.customer,
+                                                              onChanged: (CustomerModel? value) {
+                                                                taskProvider.changeName(value);
+                                                              },
+                                                              size: double.infinity,
+                                                            ),
+                                                          ],
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                  20.height,
+                                                  Row(
+                                                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                                    children: [
+                                                      CustomBtn(
+                                                        width: 100,
+                                                        text: 'Clear All',
+                                                        callback: () {
+                                                          taskProvider.initFilterValue(true,date1:widget.date1,date2:widget.date2,type:widget.type);
+                                                          Navigator.of(context, rootNavigator: true).pop();
+                                                        },
+                                                        bgColor: Colors.grey.shade200,
+                                                        textColor: Colors.black,
+                                                      ),
+                                                      CustomBtn(
+                                                        width: 100,
+                                                        text: 'Apply Filters',
+                                                        callback: () {
+                                                          taskProvider.initFilterValue(false);
+                                                          taskProvider.filterList();
+                                                          taskProvider.applyDateAndStatusFilter();
+                                                          Navigator.of(context, rootNavigator: true).pop();
+                                                        },
+                                                        bgColor: colorsConst.primary,
+                                                        textColor: Colors.white,
+                                                      ),
+                                                    ],
+                                                  ),
+                                                  20.height,
+                                                ],
+                                              ),
+                                            )
+                                          ],
+                                        );
+                                      },
+                                    );
+                                  },
+                                );
+                              },
+                              child: Padding(
+                                padding: const EdgeInsets.all(6.0),
+                                child: SvgPicture.asset(assets.tFilter,width: 20,height: 20,),
+                              ),
+                            ),
+                            5.width
+                          ],
+                        ),),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          // downloadAllOnlyEmpTask
+                      localData.storage.read("role").toString() == "1"
+                          ? InkWell(
+                        onTap: () async {
+                          taskProvider.downloadAllTask(context); // Admin full report
+                        },
+                        borderRadius: BorderRadius.circular(12),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            SvgPicture.asset(
+                              assets.tDownload,
+                              width: 20,
+                              height: 20,
+                            ),
+                            const SizedBox(height: 5),
+                            const Text(
+                              "Task",
+                              style: TextStyle(
+                                color: Colors.black,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                              ),
+                            )
+                          ],
+                        ),
+                      )
+                          : InkWell(
+                        onTap: () async {
+                          taskProvider.downloadAllOnlyEmpTask(context); // Employee only assigned
+                        },
+                        borderRadius: BorderRadius.circular(12),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            SvgPicture.asset(
+                              assets.tDownload,
+                              width: 20,
+                              height: 20,
+                            ),
+                            const SizedBox(height: 5),
+                            const Text(
+                              "Task",
+                              style: TextStyle(
+                                color: Colors.black,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                              ),
+                            )
+                          ],
+                        ),
+                      ),
+                          const SizedBox(width: 8),
+                          InkWell(
+                            onTap: () async {
+                              await taskProvider.downloadAllTaskComment(context);
+                            },
+                            borderRadius: BorderRadius.circular(12),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                SvgPicture.asset(
+                                  assets.tDownload,
+                                  width: 20,
+                                  height: 20,
+
+                                ),
+                                const SizedBox(width: 8),
+                                const Text(
+                                  "Comments",
+                                  style: TextStyle(
+                                    color: Colors.black,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12,
+                                  ),
+                                )
+                              ],
+                            ),
+                          )
+
+                        ],
+                      ),
+
+                    ],
+                  )
+                  ,10.height,
+                  Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+
+
+
+
+                        /// ✅ STATUS TABS (Search கீழே)
+                        SizedBox(
+                          height: 40,
+                          child: ListView(
+                            scrollDirection: Axis.horizontal,
+                            children: [
+                              _statusTab(taskProvider, "All", ""),
+                              _statusTab(taskProvider, "Assigned", "Assigned"),
+                              _statusTab(taskProvider, "Started", "Started"),
+                              _statusTab(taskProvider, "Completed", "Completed"),
+                            ],
+                          ),
+                        ),
+
+                        10.height,
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            CustomText(
+                              text: taskProvider.isFilter!=true?"Today: ${taskProvider.startDate}":"",
+                              //overflow: TextOverflow.ellipsis, // 🔥 FIX
+                            ),
+                            if(taskProvider.isFilter==true)
+                            // const Text(
+                            //   "Filters Selected",
+                            //   style: TextStyle(
+                            //     fontSize: 13,
+                            //     fontWeight: FontWeight.bold,
+                            //   ),
+                            // ),
+
+                            Text(
+                              "Total Tasks : ${taskProvider.filterUserData.length}",
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.black54,
+                              ),
+                            ),
+                          ],
+                        ),
+                        6.height,
+                        if(taskProvider.isFilter==true)
+
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  taskProvider.filterUserData.isEmpty||(taskProvider.statusId!=""&&taskProvider.matched==0)?
+                  Column(
+                    children: [
+                      100.height,
+                      CustomText(text: "No Task Found",
+                          colors: colorsConst.greyClr)
+                    ],
+                  ) :
+                  Expanded(
+                    child: ListView.builder(
+                      itemCount: taskProvider.filterUserData.length,
+                      itemBuilder: (context, index) {
+                        final sortedData = taskProvider.filterUserData;
+                        final data = sortedData[index];
+                        String timestamp = data.createdTs.toString();
+                        DateTime dateTime = DateTime.parse(timestamp);
+
+                        DateTime today = DateTime.now();
+                        String headerText;
+
+                        if (dateTime.year == today.year &&
+                            dateTime.month == today.month &&
+                            dateTime.day == today.day) {
+                          headerText = "Today";
+                        } else if (dateTime.isAfter(today.subtract(const Duration(days: 1))) &&
+                            dateTime.isBefore(today)) {
+                          headerText = "Yesterday";
+                        } else {
+                          headerText = "${dateTime.day}/${dateTime.month}/${dateTime.year}";
+                        }
+
+                        String createdBy = "${dateTime.day}/${dateTime.month}/${dateTime.year}";
+
+                        final showDateHeader = index == 0 || createdBy != getCreatedDate(sortedData[index - 1]);
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            if (showDateHeader)
+                              Padding(
+                                padding: const EdgeInsets.fromLTRB(8, 0, 0, 0),
+                                child: CustomText(
+                                  text: headerText,
+                                  colors: colorsConst.greyClr,
+                                  size: 13,
+                                  isBold: true,
+                                ),
+                              ),
+                            _taskCard(data,taskProvider,homeProvider),
+                            if (index == taskProvider.filterUserData.length - 1)
+                              50.height,
+                          ],
+                        );
+                      },
+                    ),
+                  ),
+
+
+                ],
+              ),
+            ),
+          );
+        });
+  }
+  Widget _filterChip(String text) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: Color(0xff353535),
+        borderRadius: BorderRadius.circular(5),
+      ),
+      child: Text(
+        text,
+        style: const TextStyle(
+          color: Color(0xffF5F5F5),
+          fontSize: 12,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+    );
+  }
+
+  Widget _statusTab(TaskProvider taskProvider, String text, String id) {
+    bool isSelected = taskProvider.statusIds == id;
+
+    return InkWell(
+      onTap: () {
+        taskProvider.changeFilterStatusTab(id);
+      },
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 5),
+        padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? colorsConst.primary : Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isSelected ? colorsConst.primary : Colors.grey.shade300,
+          ),
+        ),
+        child: Center(
+          child: Text(
+            text,
+            style: TextStyle(
+              color: isSelected ? Colors.white : Colors.black,
+              fontWeight: FontWeight.bold,
+              fontSize: 12,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+  Widget _taskCard(TaskData data,TaskProvider taskPvr,HomeProvider homeProvider) {
+    Color priorityBg;
+    Color priorityTextColor;
+    String priorityText;
+    switch (data.level.toString()) {
+      case "High":
+        priorityBg = const Color(0xffFEF2F2);
+        priorityTextColor = Colors.red;
+        priorityText = "High";
+        break;
+      case "Normal":
+        priorityBg = const Color(0xffF2F6FE);
+        priorityTextColor = const Color(0xff1A85DB);
+        priorityText = "Normal";
+        break;
+      case "Immediate":
+        priorityBg = const Color(0xffFBF2FE);
+        priorityTextColor = const Color(0xffB35CFF);
+        priorityText = "Immediate";
+        break;
+      default:
+        priorityBg = const Color(0xffF2F6FE);
+        priorityTextColor = Colors.grey;
+        priorityText = "Normal";
+    }
+    //final Color roleColor = const Color(0xffFF8E1C);
+    final Color roleColor =
+    data.role.toString() == "1"
+        ? const Color(0xffA80007)
+        : const Color(0xffFF8E1C);
+    String fullName =
+    formatAssignedNames(data.assignedNames).split('+').first.trim();
+    String displayName =
+    fullName.length > 15 ? "${fullName.substring(0, 15)}..." : fullName;
+    var webWidth=MediaQuery.of(context).size.width * 0.5;
+    var phoneWidth=MediaQuery.of(context).size.width * 0.9;
+    var statusList=data.employeeStatus.toString().split('||');
+    var hoursList=data.employeeHours.toString().split('||');
+    return Padding(
+      padding: const EdgeInsets.all(8.0),
+      child: GestureDetector(
+        onTap: (){
+          _myFocusScopeNode.unfocus();
+          Provider.of<HomeProvider>(context, listen: false).panelClose();
+          utils.navigatePage(
+            context, () => DashBoard(
+            child: TaskDetails(
+              data: data,
+              isDirect: true,
+              coId: "0",
+              numberList: const [],
+            ),
+          ),
+          );
+        },
+        child: Container(
+          margin: const EdgeInsets.only(bottom: 16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(18),
+          ),
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(13),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    /// TITLE
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        SizedBox(
+                          width: kIsWeb ? webWidth / 1.2 : phoneWidth / 1.2,
+                          child: ExpandableText(
+                            text: data.taskTitle ?? "",
+                            trimLines: 2,
+                            fontSize: 14,
+                            isBold: true,
+                          ),
+                        ),
+                        if(localData.storage.read("role") =="1")
+                        Column(
+                          children: [
+                            InkWell(onTap: (){
+                              utils.navigatePage(context, ()=> DashBoard(child: EditTask(
+                                  data: data,isDirect: false,numberList: [])));
+                            }, child: SvgPicture.asset(assets.tEdit,width: 20,height: 20,)),
+                            const SizedBox(height: 12),
+
+                          ],
+                        )
+                      ],
+                    ),
+
+                    /// ASSIGNED USERS
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+
+                        RichText(
+                          text: TextSpan(
+                            children: [
+                            TextSpan(
+                            text: displayName,
+                            style: const TextStyle(
+                              color: Color(0xff007AAE),
+                              fontSize: 15,
+                            ),
+                            recognizer: TapGestureRecognizer()
+                              ..onTap = () {
+                                showDialog(
+                                  context: context,
+                                  builder: (context) {
+                                    return AlertDialog(
+                                      title: const Text("Assigned User"),
+                                      content: Text(fullName),
+                                      actions: [
+                                        TextButton(
+                                          onPressed: () => Navigator.pop(context),
+                                          child: const Text("Close"),
+                                        ),
+                                      ],
+                                    );
+                                  },
+                                );
+                              },
+                          ),
+
+                            if (formatAssignedNames(data.assignedNames).contains('+'))
+                        TextSpan(
+                        text:
+                        " +${formatAssignedNames(data.assignedNames).split('+').last.trim()}",
+                        style: const TextStyle(
+                        color: Color(0xff007AAE),
+                        fontSize: 11,
+                        ),
+                        ),
+
+                        if (formatAssignedNames(data.assignedNames).contains('+'))
+                        const TextSpan(
+                        text: " others",
+                        style: TextStyle(
+                        color: Color(0xff007AAE),
+                        fontSize: 11,
+                        ),
+                        ),
+                        ],
+                        ),
+                        ),
+
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(0, 0, 2,0 ),
+                          child: Container(height: 16, width: 2, color: Colors.grey),
+                        ),
+                        Column(
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                _statusChip(
+                                  data.statval ?? "",
+                                  data.statval == "Completed"
+                                      ? const Color(0xff1FAF38)
+                                      : Color(0xff007AAE),
+                                  Colors.white,
+                                ),
+                                2.width,
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 14, vertical: 6),
+                                  decoration: BoxDecoration(
+                                    color: priorityBg,
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Icon(Icons.circle,
+                                          size: 8, color: priorityTextColor),
+                                      const SizedBox(width: 6),
+                                      CustomText(
+                                        text: priorityText,
+                                        colors: priorityTextColor,
+                                        size: 13,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+
+                          ],
+                        ),
+                      ],
+                    ),
+                    const Divider(thickness: 2,),
+                    if ((data.projectName ?? "").trim().isNotEmpty)
+                      _infoBlock("Company", data.projectName ?? ""),
+                    const SizedBox(height: 5),
+                    if(data.name.toString()!="null"&&data.name.toString()!="")
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            CustomText(text: "Customer",size: 12,colors: const Color(0xff7E7E7E),isBold: true,),
+                            CustomText(text: data.name??'',size: 14,isBold: true,),
+                          ],
+                        ),
+                        Row(
+                          children: [
+                            CustomText(text: data.phoneNo??'',size: 14,),5.width,
+                            GestureDetector(
+                              onTap: (){
+                                utils.makingPhoneCall(ph:data.phoneNo.toString());
+                              },
+                              child: Icon(Icons.call,color: Colors.blue,),
+                            )
+                          ],
+                        )
+                      ],
+                    ),
+                    const SizedBox(height: 5),
+                    /// COMPANY + TASK TYPE
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+
+
+                        _infoBlock("Task Type", data.type ?? ""),
+                        _infoBlock("Task Date", data.taskDate ?? ""),
+                      ],
+                    ),
+                    if(homeProvider.roleAccess.any((f) => f['feature'] == 'Task Management'&&f['name'] == 'Expense'))
+                      Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        TextButton(
+                            onPressed: (){
+                              _myFocusScopeNode.unfocus();
+                              utils.navigatePage(context, ()=> DashBoard(child: CreateExpense(taskId: data.id.toString(),data: data,coId: "",numberList: const [],
+                                  companyName: data.projectName??'', type: data.type.toString(), desc: data.taskTitle.toString(),
+                                  date: data.taskDate.toString())));
+                            },
+                            child: CustomText(text: "Add Expense",colors: colorsConst.blueClr,)),
+                        TextButton(
+                            onPressed: (){
+                              _myFocusScopeNode.unfocus();
+                              utils.navigatePage(context, ()=>DashBoard(child:
+                              TaskReport(taskId: data.id.toString(),coId: data.companyId.toString(),numberList: const [], isTask: true,
+                                coName: data.projectName.toString(),description: data.taskTitle.toString(),type: data.type.toString(),
+                                callback: () {
+                                  Future.microtask(() => Navigator.pop(context));
+                                }, index: 0,
+                              )));
+                            },
+                            child: CustomText(text: "View Report",colors: colorsConst.appDarkGreen,)),
+                      ],
+                    ),
+                    const Divider(thickness: 2,),
+                    // "employee_status":"Hariharan##Complete##30-07-2026 13:13:00||Santhiya##Complete##30-07-2026 12:57:13","employee_hours":"Hariharan##00:02:07||Santhiya##00:29:53"
+                    localData.storage.read("role")=="1"&&data.employeeStatus!=''?
+                    SizedBox(
+                      width:kIsWeb?MediaQuery.of(context).size.width*0.5:MediaQuery.of(context).size.width*0.83,
+                      child: ListView.builder(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount:statusList.length,
+                          itemBuilder: (context,index){
+                            return Padding(
+                              padding: const EdgeInsets.fromLTRB(0, 5, 0, 0),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Icon(Icons.person_outline_sharp,color: Colors.grey,size: 20,),
+                                      Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          CustomText(text: statusList[index].split("##")[0],isBold: true,colors: colorsConst.pink2),
+                                          Row(
+                                            children: [
+                                              CustomText(text: statusList[index].split("##")[1]),
+                                            ],
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                  CustomText(text: "Working Time : ${taskPvr.formatHours(hoursList[index].split("##")[1])}"),
+                                ],
+                              ),
+                            );
+                          }),
+                    ):
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            CustomText(text: "Status : "),
+                            CustomText(text: "${data.workStatus}",isBold: true,colors: colorsConst.orange,),
+                          ],
+                        ),
+                        CustomText(text: "Total Hours : ${data.totalHours.toString()=="null"?"0 Sec":taskPvr.formatHours(data.totalHours.toString())}"),
+                      ],
+                    ),5.height,
+                    if(data.workStatus!="Complete")
+                    taskButton(taskPvr,data.id.toString(),data.workStatus.toString()),
+                    const Divider(thickness: 2,),
+                    /// DATE + CREATED BY
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start ,
+                          children: [
+                            Row(
+                              children: [
+                                CustomText(
+                                  text: "Created:  ",
+                                  colors:const Color(0xff7E7E7E),
+                                  size: 13,isBold: true,
+                                ),
+                                CustomText(
+                                  text: data.creator.toString(),
+                                  colors:Colors.black,
+                                  size: 13,isBold: true,
+                                ),
+                              ],
+                            ),
+                            Row(
+                              children: [
+                                CustomText(
+                                  text: "",
+                                  colors:Colors.black,
+                                  size: 13,isBold: true,
+                                ),
+                                CustomText(
+                                  text: formatDateTime(data.createdTs.toString()),
+                                  colors:Colors.black,
+                                  size: 12,
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start ,
+                          children: [
+                            Row(
+                              children: [
+                                CustomText(
+                                  text: "Updated :  ",
+                                  colors:const Color(0xff7E7E7E),
+                                  size: 13,isBold: true,
+                                ),
+                                CustomText(
+                                  text: data.updatedByName==null?"-":data.updatedByName.toString(),
+                                  colors:Colors.black,
+                                  size: 13,isBold: true,
+                                ),
+                              ],
+                            ),
+                            Row(
+                              children: [
+                                CustomText(
+                                  text: "",
+                                  colors:Colors.black,
+                                  size: 13,isBold: true,
+                                ),
+                                CustomText(
+                                  text: formatDateTime(data.updatedTs.toString()),
+                                  colors:Colors.black,
+                                  size: 12,
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+
+                      ],
+                    ),
+                    const Divider(thickness: 2,),
+                    /// STATUS + PRIORITY
+
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.message,
+                                color: Colors.red,
+                                size: 18,
+                              ),
+                              const SizedBox(width: 4),
+
+                              Text(
+                                (data.commentCount ?? "").toString().isNotEmpty
+                                    ? "(${data.commentCount}) - "
+                                    : "No comments",
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+
+                              Expanded(
+                                child: RichText(
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  text: TextSpan(
+                                    style: const TextStyle(
+                                      color: Colors.black,
+                                      fontSize: 13,
+                                    ),
+                                    children: [
+                                      TextSpan(
+                                        text: data.lastComment ?? "",
+                                      ),
+                                      if (data.lastCommentBy != null &&
+                                          data.lastCommentBy.toString().trim().isNotEmpty)
+                                        TextSpan(
+                                          text: " (last comment by ${data.lastCommentBy})",
+                                          style: TextStyle(
+                                            color: Colors.red.shade900,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        const SizedBox(width: 8),
+
+                        GestureDetector(
+                          onTap: () async {
+                            final result = await Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => DashBoard(
+                                  child: TaskChat(
+                                    isVisit: false,
+                                    taskId: data.id.toString(),
+                                    assignedId: data.assigned.toString(),
+                                    name: data.creator.toString(),
+                                    assignedName: data.assignedNames.toString(),
+                                    date1: widget.date1,
+                                    date2: widget.date2,
+                                    type: widget.type,
+                                  ),
+                                ),
+                              ),
+                            );
+
+                            if (result == true) {
+                              Provider.of<TaskProvider>(
+                                context,
+                                listen: false,
+                              ).getAllTask(false);
+                            }
+                          },
+                          child: SvgPicture.asset(
+                            assets.tMessage,
+                            width: 20,
+                            height: 20,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+
+
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget taskButton(TaskProvider taskPvr,String id,String status) {
+    switch (status) {
+      case "Complete":
+        return Row(
+          children: [
+            CustomLoadingButton(
+              callback: (){
+                taskPvr.insertTaskLogHistory(context,id:id,level:"Start");
+              }, isLoading: true, controller: taskPvr.startCtr,
+              backgroundColor: colorsConst.pink, radius: 50, height: 30,width: 70,text: "Start"
+              ),
+            10.width,
+            CustomLoadingButton(
+                callback: (){
+                  taskPvr.insertTaskLogHistory(context,id:id,level:"Complete");
+                }, isLoading: true, controller: taskPvr.completeCtr,
+                backgroundColor: Colors.green, radius: 50, height: 30, width: 100,text: "Complete"
+            ),
+          ],
+        );
+      case "Pending":
+        return Row(
+          children: [
+            CustomLoadingButton(
+              callback: (){
+                taskPvr.insertTaskLogHistory(context,id:id,level:"Start");
+              }, isLoading: true, controller: taskPvr.startCtr,
+              backgroundColor: colorsConst.pink, radius: 50, height: 30,width: 70,text: "Start"
+              ),
+            10.width,
+            CustomLoadingButton(
+                callback: (){
+                  taskPvr.insertTaskLogHistory(context,id:id,level:"Complete");
+                }, isLoading: true, controller: taskPvr.completeCtr,
+                backgroundColor: Colors.green, radius: 50, height: 30, width: 100,text: "Complete"
+            ),
+          ],
+        );
+      case "Start":
+        return Row(
+          children: [
+            CustomLoadingButton(
+                callback: (){
+                  taskPvr.insertTaskLogHistory(context,id:id,level:"Hold");
+                }, isLoading: true, controller: taskPvr.holdCtr,
+                backgroundColor: Colors.blue, radius: 50, height: 30,width: 70,text: "Hold",),
+            10.width,
+            CustomLoadingButton(
+              callback: (){
+                taskPvr.insertTaskLogHistory(context,id:id,level:"Complete");
+              }, isLoading: true, controller: taskPvr.completeCtr,
+              backgroundColor: Colors.green, radius: 50, height: 30, width: 100,text: "Complete"
+            ),
+          ],
+        );
+
+      case "Hold":
+        return CustomLoadingButton(
+            callback: (){
+              taskPvr.insertTaskLogHistory(context,id:id,level:"Start");
+            }, isLoading: true, controller: taskPvr.resumeCtr,
+            backgroundColor: colorsConst.red1, radius: 50, height: 30,width: 100,text: "Resume"
+        );
+
+      case "Completed":
+        return const Text(
+          "✓ Task Completed",
+          style: TextStyle(
+            color: Colors.green,
+            fontWeight: FontWeight.bold,
+          ),
+        );
+
+      default:
+        return const SizedBox();
+    }
+  }
+
+  String formatDateTime(String? date) {
+    if (date == null || date.isEmpty) return "";
+
+    final parsedDate = DateTime.parse(date);
+
+    return DateFormat('dd-MM-yyyy h:mm a').format(parsedDate);
+  }
+  String formatAssignedNames(String? names) {
+    if (names == null || names.trim().isEmpty) return "";
+
+    List<String> nameList =
+    names.split(',').map((e) => e.trim()).toList();
+
+    if (nameList.length <= 4) {
+      return nameList.join(', ');
+    }
+
+    final firstFour = nameList.take(4).join(', ');
+    final remainingCount = nameList.length - 4;
+
+    return "$firstFour +$remainingCount";
+  }
+
+  Widget _statusChip(String text, Color bg, Color txt) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: CustomText(
+        text: text,
+        colors: txt,
+        size: 11,
+      ),
+    );
+  }
+
+  Widget _infoBlock(String title, String value) {
+    return RichText(
+      text: TextSpan(
+        children: [
+          TextSpan(
+            text: "$title\n",
+            style: GoogleFonts.lato(
+              fontSize: 12,
+              color: const Color(0xff7E7E7E),
+              fontWeight: FontWeight.bold
+            ),
+          ),
+          TextSpan(
+            text: value,
+            style: GoogleFonts.lato(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: Colors.black,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _infoBlockNew(String title, String value) {
+    return RichText(
+      text: TextSpan(
+        children: [
+          TextSpan(
+            text: "$title\n",
+            style: GoogleFonts.lato(
+                fontSize: 12,
+                color: const Color(0xff7E7E7E),
+                fontWeight: FontWeight.bold
+            ),
+          ),
+          TextSpan(
+            text: value,
+            style: GoogleFonts.lato(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: Colors.black,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+  String formatCreatedDate(DateTime dateTime) {
+    DateTime now = DateTime.now();
+    DateTime today = DateTime(now.year, now.month, now.day);
+    DateTime dataDate = DateTime(dateTime.year, dateTime.month, dateTime.day);
+
+    if (dataDate == today) {
+      return "Today";
+    } else if (dataDate == today.subtract(const Duration(days: 1))) {
+      return "Yesterday";
+    } else {
+      return "${dateTime.day}/${dateTime.month}/${dateTime.year}";
+    }
+  }
+  String getCreatedDate(data) {
+    final timestamp = data.createdTs.toString();
+    final dateTime = DateTime.parse(timestamp);
+    return "${dateTime.day}/${dateTime.month}/${dateTime.year}";
+  }
+  Widget detail({required double width, required TaskData data,required VoidCallback callBack}){
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(0, 0, 0, 10),
+      child: Container(
+        width: width,
+        // decoration: customDecoration.baseBackgroundDecoration(
+        //     color: Colors.white,radius: 10
+        // ),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+
+          // shadow
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black12,
+              blurRadius: 6,
+              offset: Offset(0, 3),
+            ),
+          ],
+
+          // top border color (blue line)
+          border: Border(
+            top: BorderSide(
+              color: data.statval.toString().contains("ompleted")?Colors.green:Colors.blue,
+              width: 4,
+            ),
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    // Container(
+                    //   width: 3,
+                    //   decoration: BoxDecoration(
+                    //     color: data.statval.toString().contains("ompleted")?Colors.green:Colors.blue,
+                    //     borderRadius: const BorderRadius.only(
+                    //       topLeft: Radius.circular(50),
+                    //       bottomLeft: Radius.circular(50),
+                    //     ),
+                    //   ),
+                    //   height: 100,),
+                    // kIsWeb?10.width:
+                    // 5.width,
+                    SizedBox(
+                      width: width,
+                      // color: Colors.yellow,
+                      child: Padding(
+                        padding: const EdgeInsets.all(5.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: [
+                            // 5.height,
+                            //   Row(
+                            //     mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            //     children: [
+                            //       CustomText(text: data.taskDate.toString(),colors: colorsConst.greyClr,),
+                            //       Row(
+                            //         children: [
+                            //           CircleAvatar(backgroundColor: data.expenseReportCount.toString()=="0"?colorsConst.red2:colorsConst.green2,radius: 4,),
+                            //           2.width,
+                            //           CustomText(text: "Expense",colors: data.expenseReportCount.toString()=="0"?colorsConst.red2:colorsConst.green2,isItalic: true,),10.width,
+                            //           CircleAvatar(backgroundColor: data.visitReportCount.toString()=="0"?colorsConst.red2:colorsConst.green2,radius: 4,),2.width,
+                            //           CustomText(text: "Visit",colors: data.visitReportCount.toString()=="0"?colorsConst.red2:colorsConst.green2,isItalic: true),
+                            //         ],
+                            //       ),
+                            //     ],
+                            //   ),5.height,
+                            Row(
+                              children: [
+                                CustomText(text: "Service Date ",colors: colorsConst.greyClr,isBold: true),
+                                CustomText(text: data.taskDate.toString()),
+                              ],
+                            ),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Row(
+                                  children: [
+                                    CustomText(text: data.projectName.toString()=="null"?"":data.projectName.toString(),isBold: true,),
+                                    if(data.projectName.toString()!="null")
+                                    CustomText(text: " - ",isBold: true),
+                                    CustomText(text: data.type.toString().trim(),isBold: true),
+                                  ],
+                                ),
+                                if(localData.storage.read("role") =="1")
+                                  IconButton(icon: SvgPicture.asset(assets.tEdit,width: 20,height: 20,),onPressed: (){
+                                  utils.navigatePage(context, ()=> DashBoard(child: EditTask(
+                                      data: data,isDirect:true, numberList: const [])));
+                                },)
+                              ],
+                            ),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                CustomText(text: "ASSIGNED TO",colors: colorsConst.greyClr,isBold: true),
+                                CustomText(text: data.assignedNames.toString().trim()),
+                              ],
+                            ),3.height,
+                            Divider(color: Colors.grey.shade200,),3.height,
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                CustomText(text: "CREATED BY",colors: colorsConst.greyClr,isBold: true),
+                                CustomText(text: data.creator.toString().trim()),
+                              ],
+                            ),3.height,
+                            Divider(color: Colors.grey.shade200,),
+
+                            // Row(
+                            //   children: [
+                            //     CircleAvatar(backgroundColor: data.statval.toString().contains("ompleted")?Colors.green:Colors.blue,radius: 4,),2.width,
+                            //   ],
+                            // ),5.height,
+                            // CustomText(text: data.taskTitle.toString(),colors: Colors.grey,),5.height
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            Padding(
+              padding: const EdgeInsets.all(5.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Container(
+                    decoration: customDecoration.baseBackgroundDecoration(
+                        color: data.statval.toString().contains("ompleted")?Colors.green:Colors.grey,
+                        radius: 30
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(5.0),
+                      child: CustomText(text: "${data.statval==""?"-":data.statval}",colors: Colors.white,),
+                    ),
+                  ),
+                Row(
+                  children: [
+                    Container(
+                        decoration: customDecoration.baseBackgroundDecoration(
+                            color: data.level=='High'?Colors.red.shade50:data.level=='Immediate'?Colors.orange.shade50:Colors.pink.shade50,
+                            radius: 10
+                        ),
+                        child: Padding(
+                      padding: const EdgeInsets.all(5.0),
+                      child: Row(
+                        children: [
+                          Icon(Icons.circle,color: data.level=='High'?Colors.red:data.level=='Immediate'?Colors.orange:Colors.pink,size: 10,),5.width,
+                          CustomText(text: "${data.level}",colors: data.level=='High'?Colors.red:data.level=='Immediate'?Colors.orange:Colors.pink),
+                        ],
+                      ),
+                    )),
+                    Icon(Icons.add),
+                    IconButton(onPressed: (){
+                      utils.navigatePage(context, ()=> DashBoard(child: TaskChat(isVisit:false,
+                          taskId: data.id.toString(), assignedId: data.assigned.toString(),
+                        name: data.creator.toString(), assignedName: data.assignedNames.toString(), date1: widget.date1
+                        , date2: widget.date2, type: widget.type,)));
+                    }, icon: SvgPicture.asset(assets.tMessage,width: 10,height: 10,)),
+                  ],
+                ),
+                ],
+              ),
+            ),
+
+          ],
+        ),
+      ),
+    );
+  }
+  _DataSource _getDataSource() {
+    List<Appointment> appointments = <Appointment>[];
+    return _DataSource(appointments);
+  }
+
+}
+
+class _DataSource extends CalendarDataSource {
+  _DataSource(List<Appointment> source) {
+    appointments = source;
+  }
+}
+
+// Expanded(
+//   child: ListView.builder(
+//       itemCount: taskProvider.filterUserData.length,
+//       itemBuilder: (context, index) {
+//         final sortedData = taskProvider.filterUserData;
+//         final data = sortedData[index];
+//         var createdBy = "";
+//         String timestamp = data.createdTs.toString();
+//         DateTime dateTime = DateTime.parse(timestamp);
+//         String dayOfWeek = DateFormat('EEEE').format(dateTime);
+//         DateTime today = DateTime.now();
+//         if (dateTime.day == today.day && dateTime.month == today.month && dateTime.year == today.year) {
+//           dayOfWeek = 'Today';
+//         } else if (dateTime.isAfter(today.subtract(const Duration(days: 1))) &&
+//             dateTime.isBefore(today)) {
+//           dayOfWeek = 'Yesterday';
+//         } else {
+//           dayOfWeek = "${dateTime.day}/${dateTime.month}/${dateTime.year}";
+//         }
+//         createdBy = "${dateTime.day}/${dateTime.month}/${dateTime.year}";
+//         final showDateHeader = index == 0 || createdBy != getCreatedDate(sortedData[index - 1]);
+//         return InkWell(
+//           onTap: (){
+//             _myFocusScopeNode.unfocus();
+//             Provider.of<HomeProvider >(context, listen: false).panelClose();
+//             utils.navigatePage(context, ()=>DashBoard(child: TaskDetails(
+//                 data:data,isDirect:true,coId: "0", numberList: const [])));
+//           },
+//           child: Column(
+//             children: [
+//               if (showDateHeader)
+//                 CustomText(
+//                     text: dayOfWeek,
+//                     colors: colorsConst.greyClr
+//                 ),
+//               taskProvider.statusId==""?
+//               detail(
+//                   width: kIsWeb?webHeight:phoneHeight,
+//                   data: data, callBack: () async {
+//                 _myFocusScopeNode.unfocus();
+//                 if(locPvr.latitude!=""&&locPvr.longitude!=""){
+//                   if(taskProvider.checkAtt==""){
+//                     taskProvider.signDialog(context: context,
+//                       img: taskProvider.profile,
+//                       onTap:(newImg){
+//                         taskProvider.profilePick(newImg);
+//                         taskProvider.taskAttDirect(
+//                             context,
+//                             status:data.isChecked.toString()=="null"||data.isChecked.toString()=="2"?"1":"2",
+//                             taskId: data.id.toString(),
+//                             lat:locPvr.latitude,
+//                             lng:locPvr.longitude);
+//                       },
+//                     );
+//                   }
+//                   else if(taskProvider.checkAtt==data.id.toString()){
+//                     taskProvider.signDialog(context: context,
+//                       img: taskProvider.profile,
+//                       onTap:(newImg){
+//                         taskProvider.profilePick(newImg);
+//                         taskProvider.taskAttDirect(
+//                             context,
+//                             status:data.isChecked.toString()=="null"||data.isChecked.toString()=="2"?"1":"2",
+//                             taskId: data.id.toString(),
+//                             lat:locPvr.latitude,
+//                             lng:locPvr.longitude);
+//                       },
+//                     );
+//                   }else{
+//                     utils.showWarningToast(context, text: "Please check out previous ${taskProvider.checkAttName} task");
+//                   }
+//                 }else{
+//                   utils.showWarningToast(context, text: "Check your location accuracy.");
+//                   await locPvr.manageLocation(context, true);
+//                 }
+//               })
+//                   :taskProvider.statusId!=""&&taskProvider.statusId==data.statval?
+//               detail(
+//                   width: kIsWeb?webHeight:phoneHeight,
+//                   data: data, callBack: () async {
+//                 _myFocusScopeNode.unfocus();
+//                 if(locPvr.latitude!=""&&locPvr.longitude!=""){
+//                   if(taskProvider.checkAtt==""){
+//                     taskProvider.signDialog(context: context,
+//                       img: taskProvider.profile,
+//                       onTap:(newImg){
+//                         taskProvider.profilePick(newImg);
+//                         taskProvider.taskAttDirect(
+//                             context,
+//                             status:data.isChecked.toString()=="null"||data.isChecked.toString()=="2"?"1":"2",
+//                             taskId: data.id.toString(),
+//                             lat:locPvr.latitude,
+//                             lng:locPvr.longitude);
+//                       },
+//                     );
+//                   }
+//                   else if(taskProvider.checkAtt==data.id.toString()){
+//                     taskProvider.signDialog(context: context,
+//                       img: taskProvider.profile,
+//                       onTap:(newImg){
+//                         taskProvider.profilePick(newImg);
+//                         taskProvider.taskAttDirect(
+//                             context,
+//                             status:data.isChecked.toString()=="null"||data.isChecked.toString()=="2"?"1":"2",
+//                             taskId: data.id.toString(),
+//                             lat:locPvr.latitude,
+//                             lng:locPvr.longitude);
+//                       },
+//                     );
+//                   }else{
+//                     utils.showWarningToast(context, text: "Please check out previous ${taskProvider.checkAttName} task");
+//                   }
+//                 }else{
+//                   utils.showWarningToast(context, text: "Check your location accuracy.");
+//                   await locPvr.manageLocation(context, true);
+//                 }
+//               }):const SizedBox.shrink(),
+//               if(index==taskProvider.filterUserData.length-1)
+//                 50.height
+//             ],
+//           ),
+//         );
+//         // :0.width;
+//       }),
+// ),
+// const Padding(
+//   padding: EdgeInsets.fromLTRB(0, 0, 0, 5),
+//   child: DotLine(),
+// ),
+// Padding(
+//   padding: const EdgeInsets.fromLTRB(kIsWeb?10:5, 0, 5, 0),
+//   child: Row(
+//     mainAxisAlignment: MainAxisAlignment.spaceBetween,
+//     children: [
+//       if(data.assignedNames.toString()!="null")
+//         SizedBox(
+//           // color:Colors.pinkAccent,
+//             width: kIsWeb?MediaQuery.of(context).size.width*0.3:MediaQuery.of(context).size.width*0.6,
+//             child: CustomText(text: data.assignedNames.toString())),
+//       if((localData.storage.read("role")=="1"&&data.assignedNames.toString().contains(localData.storage.read("f_name"))||localData.storage.read("role")!="1")&&(!kIsWeb&&!data.statval.toString().contains("ompleted")))
+//         SizedBox(
+//           width:MediaQuery.of(context).size.width*0.3,
+//           height: 30,
+//           child: ElevatedButton(
+//             style: ElevatedButton.styleFrom(
+//                 backgroundColor: data.isChecked.toString()=="null"?colorsConst.litGrey
+//                     :data.isChecked.toString()=="2"?colorsConst.litGrey:colorsConst.appGreen,
+//                 shape: const StadiumBorder()
+//             ),
+//             onPressed: callBack,
+//             child: Row(
+//               mainAxisAlignment: MainAxisAlignment.center,
+//               children: [
+//                 Icon(Icons.location_on_outlined,color: data.isChecked.toString()=="null"?Colors.black: data.isChecked.toString()=="2"?Colors.black: Colors.white,size: 15,),
+//                 CustomText(text: data.isChecked.toString()=="null"?"Check In":data.isChecked.toString()=="1"?"Check Out":"Check In",
+//                   colors: data.isChecked.toString()=="null"?Colors.black:data.isChecked.toString()=="2"?Colors.black: Colors.white,isBold: true,),
+//               ],
+//             ),
+//           ),
+//         ),
+//       // if(data.statval.toString().contains("ompleted")||kIsWeb)
+//       //   TextButton(
+//       //       onPressed: (){
+//       //         _myFocusScopeNode.unfocus();
+//       //         utils.navigatePage(context, ()=>DashBoard(child:
+//       //         TaskReport(taskId: data.id.toString(),coId: data.companyId.toString(),numberList: const [], isTask: true,
+//       //           coName: data.projectName.toString(),description: data.taskTitle.toString(),type: data.type.toString(),
+//       //           callback: () {
+//       //             Future.microtask(() => Navigator.pop(context));
+//       //           }, index: 0,
+//       //         )));
+//       //       },
+//       //       child: CustomText(text: "View Report",colors: colorsConst.appDarkGreen,)),
+//     ],
+//   ),
+// ),
+// if(!kIsWeb)
+//   Row(
+//     mainAxisAlignment: MainAxisAlignment.spaceBetween,
+//     children: [
+//       TextButton(
+//           onPressed: (){
+//             _myFocusScopeNode.unfocus();
+//             utils.navigatePage(context, ()=> DashBoard(child: CreateExpense(taskId: data.id.toString(),data: data,coId: "",numberList: const [], companyName: data.projectName.toString(), type: data.type.toString(), desc: data.taskTitle.toString(),
+//                 date: data.taskDate.toString())));
+//           },
+//           child: CustomText(text: "Add Expense",colors: colorsConst.blueClr,)),
+//       TextButton(
+//           onPressed: (){
+//             _myFocusScopeNode.unfocus();
+//             utils.navigatePage(context, ()=> DashBoard(child:
+//             AddVisit(taskId:data.id.toString(),companyId: data.companyId.toString(),companyName: data.projectName.toString(),
+//                 numberList: const [],isDirect: true, type: data.type.toString(), desc: data.taskTitle.toString())));
+//           },
+//           child: CustomText(text: "Add Visit Report",colors: colorsConst.bankColor,)),
+//       TextButton(
+//           onPressed: (){
+//             _myFocusScopeNode.unfocus();
+//             // homeProvider.showTaskType(5);
+//             // homeProvider.changeTaskList(taskId: data.id.toString(),coId: data.companyId.toString(),numberList: [],isDirect: true);
+//
+//             utils.navigatePage(context, ()=>DashBoard(child:
+//             TaskReport(taskId: data.id.toString(),coId: data.companyId.toString(),numberList: const [], isTask: true,
+//               coName: data.projectName.toString(),description: data.taskTitle.toString(),type: data.type.toString(),
+//               callback: () {
+//                 Future.microtask(() => Navigator.pop(context));
+//               }, index: 0,
+//             )));
+//           },
+//           child: CustomText(text: "View Report",colors: colorsConst.appDarkGreen,)),
+//     ],
+//   ),

@@ -1,0 +1,1787 @@
+import 'dart:async';
+import 'dart:convert';
+import 'dart:developer';
+import 'dart:io';
+import 'package:master_code/view_model/attendance_provider.dart';
+import 'package:master_code/view_model/customer_provider.dart';
+import 'package:master_code/view_model/employee_provider.dart';
+import 'package:master_code/view_model/expense_provider.dart';
+import 'package:master_code/view_model/task_provider.dart';
+import 'package:device_info_plus/device_info_plus.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_foreground_task/flutter_foreground_task.dart';
+import 'package:intl/intl.dart';
+import 'package:otp_text_field_v2/otp_field_v2.dart';
+import 'package:provider/provider.dart';
+import 'package:master_code/component/custom_text.dart';
+import 'package:master_code/screens/employee/view_all_employees.dart';
+import 'package:master_code/screens/forgot_password.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:rounded_loading_button_plus/rounded_loading_button.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:sidebarx/sidebarx.dart';
+import 'package:syncfusion_flutter_datepicker/datepicker.dart';
+import '../component/month_calendar.dart';
+import '../component/panel_button.dart';
+import '../local_database/sqlite.dart';
+import '../model/attendance_model.dart';
+import '../model/panel_model.dart';
+import '../model/task/work_details_plan.dart';
+import '../model/user_model.dart';
+import '../repo/home_repo.dart';
+import '../screens/common/dashboard.dart';
+import '../screens/common/setting.dart';
+import '../screens/common/home_page.dart';
+import '../screens/customer/view_all_customer.dart';
+import '../screens/expense/expense_page.dart';
+import '../screens/log_in.dart';
+import '../screens/report_dashboard/report_dashboard.dart';
+import '../screens/track/live_location.dart';
+import '../source/constant/api.dart';
+import '../source/constant/colors_constant.dart';
+import '../source/constant/local_data.dart';
+import '../source/utilities/utils.dart';
+import 'leave_provider.dart';
+import 'package:http/http.dart' as http;
+class HomeProvider with ChangeNotifier{
+final HomeRepository homeRepo = HomeRepository();
+final sidebarController = SidebarXController(selectedIndex: 0, extended: true);
+
+Future<void> deleteCacheDir() async {
+  final cacheDir = await getTemporaryDirectory();
+
+  if (cacheDir.existsSync()) {
+    // Delete all files and directories in the cache directory
+    for (final entity in cacheDir.listSync()) {
+      // Exclude deletion of database and image files
+      if (entity is File && !entity.path.endsWith('.db') && !entity.path.endsWith('.jpg')) {
+        entity.deleteSync();
+      } else if (entity is Directory) {
+        entity.deleteSync(recursive: true);
+      }
+    }
+
+    if (cacheDir.listSync().isEmpty) {
+      // log('Cache directory cleared successfully.');
+    } else {
+      // log('Failed to clear cache directory completely.');
+    }
+  } else {
+    // log('Cache directory does not exist.');
+  }
+}
+Future<void> deleteAppDir() async {
+  final appDir = await getApplicationSupportDirectory();
+
+  if(appDir.existsSync()){
+    appDir.deleteSync(recursive: true);
+    if (!appDir.existsSync()) {
+      // log('App directory cleared successfully.');
+    } else {
+      // log('Failed to clear app directory.');
+    }
+  } else {
+    // log('App directory does not exist.');
+  }
+}
+bool _isOpen = false;
+bool get isOpen  => _isOpen;
+
+void changeButton(){
+  _isOpen=!_isOpen;
+  notifyListeners();
+}void panelClose(){
+  _isOpen=false;
+  notifyListeners();
+}
+
+void updateIndex(int index){
+  _selectedIndex=index;
+  notifyListeners();
+}
+int _empType=0;
+int get empType =>_empType;
+int _cusType=0;
+int get cusType =>_cusType;
+int _mainType=0;
+int get mainType =>_mainType;
+int _expType=0;
+int get expType =>_expType;
+int _taskType=0;
+int get taskype =>_taskType;
+int _noAttendanceCount = 0;
+int get noAttendanceCount => _noAttendanceCount;
+final List<Widget> _mainContents = [
+  const HomePage(),
+  const ViewEmployees(),
+  const ViewCustomer(),
+  const TrackingLive(),
+  // const AttendanceReport(),
+  const ReportDashboard(),
+  const Center(child: CustomText(text: "Notifications")),
+  const Setting(),
+  const Center(child: CustomText(text: "Help")),
+  const ExpensePage(),
+  // ViewTask(date1: _startDate, date2: _endDate),
+];
+List<Widget> get mainContents =>_mainContents;
+// void showType(int type){
+//   _empType=type;
+//   notifyListeners();
+// }
+// void showTaskType(int type){
+//   _taskType=type;
+//   notifyListeners();
+// }
+// void showExpType(int type){
+//   _expType=type;
+//   notifyListeners();
+// }void showCusType(int type){
+//   _cusType=type;
+//   notifyListeners();
+// }
+// void showSetType(int type){
+//   _setType=type;
+//   notifyListeners();
+// }
+// void showMainType(int type){
+//   _mainType=type;
+//   notifyListeners();
+// }
+// void changeList({String? id,String? name,String? active,String? role}){
+//   _mainContents[1] =
+//     _empType==0?const ViewEmployees():
+//     _empType==1?const CreateEmployee():
+//     _empType==2? UpdatedEmployee(id: id!,):
+//     _empType==3?EmployeeDetails(id:id!, active: active!, role: role!):
+//     _empType==4?ViewLog(id:id!):
+//     _empType==5?UserAttendanceReport(id: id!, name: name!, active: active!, roleName: role!,):
+//     _empType==6?ViewLog2(id:id!, active: active!, roleName: role!,):
+//     EmployeeCustomers(id:id!, active: active!, roleName: role!,);
+// }
+// void changeCusList({String? id,String? companyId,String? taskId,
+//   String? visitId,String? custId,String? companyName,List? customerList,bool? isDirect}){
+//   _mainContents[2] =
+//   _cusType==0?const ViewCustomer():
+//   _cusType==1?const CreateCustomer():
+//   _cusType==2?UpdateCustomer(customerId: id!):
+//   _cusType==3?CustomerAttendance(companyId: companyId!, companyName: companyName!):
+//   _cusType==4?CustomerVisits(companyId: companyId!, companyName: companyName!, customerList: customerList!, taskId: taskId!,):
+//   _cusType==5?AddVisit(taskId:taskId!,companyId: companyId!, companyName: companyName!, numberList: customerList!, isDirect: isDirect!,):
+//   _cusType==6?CustomerDetails(id: id!,):
+//   _cusType==7?ViewInteractionHistory(companyId: companyId!, companyName: companyName!):
+//   _cusType==8?CustomerComments(visitId: visitId!, companyName: companyName!,companyId: companyId!,numberList: customerList!, taskId: taskId!,):
+//   _cusType==9?AddComment(visitId: visitId!, companyName: companyName!, companyId: companyId!,customerList: customerList!, taskId: taskId!,):
+//   _cusType==10?const ViaMap():
+//   ViewTasks(coId: companyId!, numberList: customerList!,);
+// }
+// void changesetList({String? id,String? companyId,String? companyName,List? customerList}){
+//   _mainContents[7] =
+//   _setType==0?const Setting():
+//  const DeveloperScreen();
+// }
+// void changeExpList({ExpenseModel? data,required String taskId,required bool isExpense,String? coId,List? customerList}){
+//   _mainContents[9] =
+//   _expType==0?const ExpensePage():
+//   _expType==1?CreateExpense(taskId: taskId,coId: coId!,numberList: customerList!,):
+//   ExpenseDetails(data: data!,isExpense:isExpense, visitId: taskId, companyId: coId!,);
+// }
+// void changeTaskList({String? coId,TaskData? data,String? taskId,List? numberList,bool? isDirect}){
+//   _mainContents[10] =
+//   _taskType==0? const ViewAllTasks():
+//   _taskType==1?const AddTask():
+//   _taskType==2?TaskDetails(data: data!,isDirect:isDirect!,coId: coId!, numberList: numberList!,):
+//   _taskType==3?CreateExpense(taskId: taskId,data: data, coId: coId!, numberList: numberList!,):
+//   _taskType==4?EditTask(data: data!, isDirect: isDirect!,numberList: numberList!):
+//   TaskReport(taskId: taskId!,coId: coId!, numberList: numberList!, isTask: isDirect!,);
+// }
+// void changeMainList({String? id,String? name}){
+//   _mainContents[0] =
+//   _mainType==0?const HomePage():
+//   _mainType==1?const CorrectionReport():
+//  NewEmpReport(id: id!, name: name!,);
+// }
+
+int _selectedIndex=0;
+int get selectedIndex =>_selectedIndex;
+
+int  platformId = 0;
+void checkPlatform()  {
+    if (kIsWeb) {
+      log('Running on the web');
+      platformId=3;
+    } else if (Platform.isAndroid) {
+      platformId=1;
+      log('Running on Android');
+    } else if (Platform.isIOS) {
+      log('Running on iOS');
+      platformId=2;
+    } else if (Platform.isMacOS) {
+      log('Running on macOS');
+      platformId=4;
+    } else if (Platform.isWindows) {
+      log('Running on Windows');
+      platformId=5;
+    } else if (Platform.isLinux) {
+      log('Running on Linux');
+      platformId=6;
+    } else {
+      log('Unknown platform');
+      platformId=7;
+    }
+    localData.storage.write("platform", platformId);
+  }
+
+String _usingVersion = "0";
+String _currentVersion = "";
+String _currentAPK = "";
+String get usingVersion =>_usingVersion;
+String get currentVersion =>_currentVersion;
+String get currentAPK =>_currentAPK;
+void updateLater(){
+  _versionActive = true;
+  _updateAvailable = false;
+  notifyListeners();
+}
+checkForUpdates(bool login,context) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    _usingVersion= prefs.getString('appVersion') ?? "0";
+    if (_usingVersion != localData.versionNumber) {
+      prefs.setString('appVersion', localData.versionNumber);
+    }else {
+      prefs.setString('appVersion', localData.versionNumber);
+    }
+    log(prefs.getString('appVersion').toString());
+    log(prefs.getBool('loginscreen').toString());
+  }
+/// Login
+bool _isEyeOpen = true;
+bool _isEyeOpen2 = true;
+bool _rememberMe = false;
+bool _versionCheck = false;
+bool _versionActive = false;
+bool _updateAvailable = false;
+bool get isEyeOpen =>_isEyeOpen;
+bool get isEyeOpen2 =>_isEyeOpen2;
+bool get rememberMe =>_rememberMe;
+bool get versionCheck =>_versionCheck;
+bool get versionActive =>_versionActive;
+bool get updateAvailable =>_updateAvailable;
+void manageEye(){
+  _isEyeOpen=!_isEyeOpen;
+  notifyListeners();
+}
+void manageEye2(){
+  _isEyeOpen2=!_isEyeOpen2;
+  notifyListeners();
+}
+Future<void> remember(bool isClick) async {
+  if(isClick==true){
+    _rememberMe=!_rememberMe;
+  }
+  if(_rememberMe==true){
+    final prefs =await SharedPreferences.getInstance();
+    prefs.setString("mobileNumber", loginNumber.text);
+    prefs.setString("password", loginPassword.text);
+  }else{
+    final prefs =await SharedPreferences.getInstance();
+    prefs.setString("password", "");
+    prefs.setString("mobileNumber", "");
+  }
+  notifyListeners();
+}
+TextEditingController loginNumber = TextEditingController();
+TextEditingController loginPassword = TextEditingController();
+TextEditingController forgotPassword1 = TextEditingController();
+TextEditingController forgotPassword2 = TextEditingController();
+final RoundedLoadingButtonController loginCtr =RoundedLoadingButtonController();
+final RoundedLoadingButtonController forgotCtr =RoundedLoadingButtonController();
+final RoundedLoadingButtonController checkCtr =RoundedLoadingButtonController();
+
+  Future<void> checkLoginValues(String number) async {
+    final prefs =await SharedPreferences.getInstance();
+    final mobileNumber= number!="null"&&number!=""?number:prefs.getString("mobileNumber")??"";
+    final password= prefs.getString("password")??"";
+    loginNumber.text=mobileNumber.toString();
+    loginPassword.text=password.toString();
+    _isEyeOpen=true;
+    if(mobileNumber!=""){
+      _rememberMe=true;
+    }
+    notifyListeners();
+  }
+
+
+/// Version
+Future<void> checkVersion() async {
+  try {
+    // notifyListeners();
+    Map data = {
+      "action": getAllData,
+      "search_type":"version_check",
+      "version":localData.versionNumber,
+      "cos_id":localData.storage.read("cos_id"),
+      "platform":localData.storage.read("platform")
+    };
+    final response = await homeRepo.selectDataList(data);
+    // log("response.toString()");
+    // log(response.toString());
+    if (response.isNotEmpty){
+      _currentVersion=response[0]["current_version"];
+      _currentAPK=response[0]["current_url"];
+      _versionCheck=true;
+      if(localData.versionNumber==currentVersion){
+        _versionActive=true;
+      }else if(response[0]["active"]=="1"){
+        _updateAvailable=true;
+      }else{
+        _versionActive=false;
+        _updateAvailable=false;
+      }
+    }
+    else {
+      _versionCheck=true;
+    }
+  } catch (e) {
+    _versionCheck=true;
+  }
+  notifyListeners();
+}
+bool _refresh=true;
+bool get refresh =>_refresh;
+
+String _date=DateFormat('MMM d, yyyy').format(DateTime.now());
+String get date =>_date;
+String _time=DateFormat('hh:mm a').format(DateTime.now());
+String get time =>_time;
+
+
+void check(){
+  _date=DateFormat('MMM d, yyyy').format(DateTime.now());
+  _time=DateFormat('hh:mm a').format(DateTime.now());
+  notifyListeners();
+}
+
+List _roleEmp=[];
+final List<Color> _roleEmpColor=[
+const Color(0XFF01BED3),
+const Color(0xffFFAE00),
+const Color(0xff2B9EE5),
+const Color(0xff2B9EE5),
+const Color(0xff2B9EE5),
+const Color(0xff2B9EE5),
+const Color(0xff2B9EE5),
+const Color(0xff2B9EE5),
+const Color(0xff2B9EE5),
+const Color(0xff2B9EE5),
+const Color(0xff2B9EE5),
+const Color(0xff2B9EE5),
+const Color(0xff2B9EE5),
+const Color(0xff2B9EE5),
+];
+List get roleEmp =>_roleEmp;
+List<Color> get roleEmpColor =>_roleEmpColor;
+// Future<void> roleEmployees() async {
+//   try {
+//     _roleEmp.clear();
+//     _refresh=false;
+//     notifyListeners();
+//     Map data = {
+//       "action": getAllData,
+//       "search_type":"role_wise_details_users",
+//       "cos_id":localData.storage.read("cos_id"),
+//       "date1": _startDate,
+//       "date2": _endDate
+//     };
+//     final response = await homeRepo.selectDataList(data);
+//     log("response.toString()");
+//     log(response.toString());
+//     if (response.isNotEmpty){
+//       _roleEmp=response;
+//       _refresh=true;
+//     }else {
+//       _roleEmp=[];
+//       _refresh=true;
+//     }
+//   } catch (e) {
+//     _roleEmp=[];
+//     _refresh=true;
+//   }
+//   notifyListeners();
+// }
+/// Login
+Future<void> verifyUser(context) async {
+    try {
+      Map data = {
+        "action": getAllData,
+        "search_type": "verify_user",
+        "mobile_number": loginNumber.text.trim(),
+        "cos_id": localData.storage.read("cos_id"),
+      };
+      final response = await homeRepo.selectDataList(data);
+      if(response.isNotEmpty){
+        checkCtr.reset();
+        utils.navigatePage(context,()=>const ForgotPassword());
+      }else{
+        utils.showWarningToast(context,text: "No user for this number");
+        checkCtr.reset();
+      }
+    } catch (e) {
+      utils.showWarningToast(context,text: "No user for this number");
+      checkCtr.reset();
+    }
+    notifyListeners();
+}
+String _notificationToken="";
+String get notificationToken =>_notificationToken;
+  Future<void> getToken() async {
+    try {
+      String? token;
+      /// Try 3 times
+      for (int i = 0; i < 3; i++) {
+        token = await FirebaseMessaging.instance.getToken();
+        if (token != null && token.isNotEmpty) {
+          break;
+        }
+        await Future.delayed(const Duration(seconds: 2));
+      }
+      _notificationToken = token ?? "";
+      debugPrint("FCM Token 1234: $_notificationToken");
+    } catch (e) {
+      debugPrint("Token error: $e");
+      _notificationToken = "";
+    }
+  }
+  // Future<void> getToken() async {
+  //   try{
+  //     String? token="";
+  //     token=await FirebaseMessaging.instance.getToken();
+  //     _notificationToken=token.toString();
+  //    debugPrint("token$token");
+  //   }catch(e){
+  //     debugPrint("token error ....$e");
+  //   }
+  // }
+  PickerDateRange? selectedDate;
+  List<DateTime> datesBetween = [];
+  String betweenDates="";
+  List<DateTime> getDatesInRange(DateTime start, DateTime end) {
+    List<DateTime> days = [];
+    for (int i = 0; i <= end.difference(start).inDays; i++) {
+      days.add(DateTime(start.year, start.month, start.day + i));
+    }
+    return days;
+  }
+  void showDatePickerDialog(BuildContext context) {
+    DateTime today = DateTime.now();
+
+    selectedDate = PickerDateRange(today, today);
+
+    datesBetween = getDatesInRange(
+      selectedDate!.startDate!,
+      selectedDate!.endDate!,
+    );
+
+    DateFormat dateFormat = DateFormat('dd-MM-yyyy');
+
+    List<String> formattedDates =
+    datesBetween.map((date) => dateFormat.format(date)).toList();
+
+    betweenDates = formattedDates.join(' || ');
+
+    _startDate = dateFormat.format(selectedDate!.startDate!);
+    _endDate = dateFormat.format(selectedDate!.endDate!);
+
+    notifyListeners();
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: CustomText(
+            text: '   Select Date',
+            colors: colorsConst.secondary,
+            isBold: true,
+          ),
+          content: SizedBox(
+            height: 300,
+            width: 300,
+            child: SfDateRangePicker(
+              minDate: DateTime(2025, 1, 1),
+
+              // Future dates allow
+              // maxDate removed
+
+              selectionMode: DateRangePickerSelectionMode.range,
+
+              onSelectionChanged:
+                  (DateRangePickerSelectionChangedArgs args) {
+                selectedDate = args.value;
+
+                if (selectedDate != null) {
+                  final start = selectedDate!.startDate!;
+                  final end = selectedDate!.endDate ?? start;
+
+                  _startDate =
+                  "${start.day.toString().padLeft(2, '0')}-"
+                      "${start.month.toString().padLeft(2, '0')}-"
+                      "${start.year}";
+
+                  _endDate =
+                  "${end.day.toString().padLeft(2, '0')}-"
+                      "${end.month.toString().padLeft(2, '0')}-"
+                      "${end.year}";
+                }
+
+                notifyListeners();
+              },
+            ),
+          ),
+          actions: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                CustomText(
+                  text: 'Click and drag to select multiple dates',
+                  colors: colorsConst.greyClr,
+                ),
+              ],
+            ),
+
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                  child: const CustomText(
+                    text: 'Cancel',
+                    colors: Colors.grey,
+                    isBold: true,
+                  ),
+                ),
+
+                TextButton(
+                  onPressed: () {
+                    if (selectedDate != null) {
+                      datesBetween = getDatesInRange(
+                        selectedDate!.startDate!,
+                        selectedDate!.endDate ??
+                            selectedDate!.startDate!,
+                      );
+
+                      List<String> formattedDates = datesBetween
+                          .map((date) => dateFormat.format(date))
+                          .toList();
+
+                      betweenDates = formattedDates.join(' || ');
+                    }
+
+                    loadFullDashboard(context);
+
+                    notifyListeners();
+
+                    Navigator.of(context).pop();
+                  },
+                  child: CustomText(
+                    text: 'OK',
+                    colors: colorsConst.primary,
+                    isBold: true,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        );
+      },
+    );
+  }
+Future<void> login(context) async {
+  // print("printttt");
+  // log("logggg");
+  //   try {
+
+  await getToken();
+  checkPlatform();
+      var id="",brand="",model="",version="";
+      if(kIsWeb){
+        final deviceInfoPlugin = DeviceInfoPlugin();
+        final deviceInfo = await deviceInfoPlugin.deviceInfo;
+        final allInfo = deviceInfo.data;
+        id="";
+        brand="";
+        model=allInfo.toString();
+        version="";
+      }else{
+        if (Platform.isIOS) {
+          DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
+          IosDeviceInfo iosInfo = await deviceInfo.iosInfo;
+          id="";
+          brand=iosInfo.name.toString();
+          model=iosInfo.model.toString();
+          version=iosInfo.systemVersion.toString();
+        }else{
+          DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
+          AndroidDeviceInfo androidInfo = await deviceInfo.androidInfo;
+          id=androidInfo.id.toString();
+          brand=androidInfo.brand.toString();
+          model=androidInfo.model.toString();
+          version=androidInfo.version.release.toString();
+        }
+      }
+      final prefs =await SharedPreferences.getInstance();
+      Map data = {
+        "action": loginUser,
+        "mobile_number": loginNumber.text.trim(),
+        "password": loginPassword.text.trim(),
+        "cos_id":localData.storage.read("cos_id"),
+        'app_version': localData.versionNumber,
+        'device_id': id,
+        'device_brand': brand,
+        'device_model':model,
+        'device_os': version,
+        'token': _notificationToken,
+        'platform': localData.storage.read("platform").toString()
+      };
+      print("body data ${data}");      final response = await homeRepo.loginApi(data);
+      log(response.toString());
+      if(response.toString().contains("No user found")){
+        utils.showWarningToast(context,text: "No user found");
+        loginCtr.reset();
+      }else if(response.toString().contains("Incorrect password")){
+        utils.showWarningToast(context,text: "Incorrect password");
+        loginCtr.reset();
+      }else if(response.toString().contains("Something went wrong")){
+        utils.showWarningToast(context,text: "Something went wrong");
+        loginCtr.reset();
+      }else{
+        if(response.isNotEmpty){
+          localData.storage.write("f_name",response['firstname']);
+          localData.storage.write("mobile_number",response['mobile_number']);
+          localData.storage.write("id",response['id']);
+          localData.storage.write("role_name",response['role_name']);
+          localData.storage.write("role",response['role']);
+          localData.storage.write("cos_id",response['cos_id']);
+          localData.storage.write("conveyance_amount",response['conveyance_amount'].toString()=="null"||response['conveyance_amount'].toString()==""?"0":response['conveyance_amount'].toString());
+          localData.storage.write("travel_amount",response['travel_amount'].toString()=="null"||response['travel_amount'].toString()==""?"0":response['travel_amount'].toString());
+          localData.storage.write("da_amount",response['da_amount'].toString()=="null"||response['da_amount'].toString()==""?"0":response['da_amount'].toString());
+          prefs.setBool("homescreen", true);
+          prefs.setString("appVersion", localData.versionNumber);
+          if(!kIsWeb){
+            LocalDatabase.initDb();
+            Provider.of<EmployeeProvider>(context, listen: false).getRoles();
+            Provider.of<CustomerProvider>(context, listen: false).getLeadCategory();
+            Provider.of<CustomerProvider>(context, listen: false).getVisitType();
+            Provider.of<CustomerProvider>(context, listen: false).getCmtType();
+
+            Provider.of<TaskProvider>(context, listen: false).getTaskType(false);
+            Provider.of<TaskProvider>(context, listen: false).getTaskStatuses();
+            Provider.of<ExpenseProvider>(context, listen: false).getExpenseType();
+          }
+
+          Provider.of<HomeProvider>(context, listen: false).updateIndex(0);
+          Provider.of<HomeProvider>(context, listen: false).initValue();
+          // Provider.of<HomeProvider>(context, listen: false).roleEmployees();
+          Provider.of<HomeProvider>(context, listen: false).loadFullDashboard(context);
+          // Provider.of<AttendanceProvider>(context, listen: false).getMainAttendance();
+          // getMainReport(false);
+          // getDashboardReport(false);
+          Future.microtask(() {
+            utils.navigatePage(context,()=>const DashBoard(child: HomePage()));
+          });
+        }else{
+          utils.showErrorToast(context: context);
+          loginCtr.reset();
+        }
+      }
+    // } catch (e) {
+    //   // print(e.toString());
+    //   utils.showErrorToast(context: context);
+    //   loginCtr.reset();
+    // }
+    notifyListeners();
+}
+Future<void> loginOuts(context) async {
+    try {
+      Map data = {
+        "action": logOut,
+        'id': localData.storage.read("id"),
+        'token':''
+      };
+      final response = await homeRepo.loginApi(data);
+      log(response.toString());
+      if(response.isNotEmpty){
+        final prefs =await SharedPreferences.getInstance();
+        prefs.setBool("homescreen", false);
+        localData.storage.remove("firstname");
+        loginNumber.clear();
+        loginPassword.clear();
+
+        LocalDatabase.deleteDb();
+        if(localData.storage.read("Track")==true){
+          FlutterForegroundTask.stopService();
+          localData.storage.write("Track", false);
+          localData.storage.write("TrackId", "0");
+          localData.storage.write("TrackStatus", "2");
+          localData.storage.write("T_Shift", "");
+          localData.storage.write("TrackUnitName", "null");
+        }
+        utils.navigatePage(context,()=>const LoginPage());
+        loginCtr.reset();
+      }else{
+        utils.showErrorToast(context: context);
+        loginCtr.reset();
+      }
+    } catch (e) {
+      utils.showErrorToast(context: context);
+      loginCtr.reset();
+    }
+    notifyListeners();
+}
+// Future<void> updateToken(context) async {
+//     try {
+//       String? token="";
+//       token=await FirebaseMessaging.instance.getToken();
+//       _notificationToken=token.toString();
+//       Map data = {
+//         "action": logOut,
+//         'id': localData.storage.read("id"),
+//         'token':_notificationToken
+//       };
+//       final response = await homeRepo.loginApi(data);
+//       log(data.toString());
+//       log(response.toString());
+//       if(response.isNotEmpty){
+//         debugPrint("Token updated successfully");
+//       }else{
+//       }
+//     } catch (e) {
+//       // utils.showErrorToast(context: context);
+//       // loginCtr.reset();
+//     }
+//     notifyListeners();
+// }
+  List _mainReportList=[];
+  List get mainReportList => _mainReportList;
+
+  Future<void> getMainReport(bool isRefresh) async {
+    if(isRefresh==true){
+      _refresh=false;
+      _mainReportList.clear();
+      notifyListeners();
+    }
+    try {
+      Map data = {
+        "action": getAllData,
+        "search_type": "main_report",
+        "id": localData.storage.read("id"),
+        "role": localData.storage.read("role"),
+        "cos_id": localData.storage.read("cos_id"),
+        "date1": _startDate,
+        "date2": _endDate,
+        "date3": _startDateM,
+        "date4": _endDateM
+      };
+      final response =await homeRepo.getDashboardReport(data);
+      print(data);
+      print(response);
+      if (response.isNotEmpty) {
+        // _incompleteCount=response[0]["incomplete_count"];
+        // _completeCount=response[0]["complete_count"];
+        // _totalCount=response[0]["total_tasks"];
+        // _totalAtt=response[0]["total_attendance"];
+
+        _mainReportList=response;
+        _mainReportList=response;
+        localData.storage.write("conveyance_amount",response[0]['conveyance_amount'].toString()=="null"||response[0]['conveyance_amount'].toString()==""?"0":response[0]['conveyance_amount'].toString());
+        localData.storage.write("travel_amount",response[0]['travel_amount'].toString()=="null"||response[0]['travel_amount'].toString()==""?"0":response[0]['travel_amount'].toString());
+        localData.storage.write("da_amount",response[0]['da_amount'].toString()=="null"||response[0]['da_amount'].toString()==""?"0":response[0]['da_amount'].toString());
+        _refresh=true;
+      }else{
+        _mainReportList=[];
+        _refresh=true;
+      }
+    } catch (e) {
+      _mainReportList=[];
+      _refresh=true;
+    }
+    notifyListeners();
+  }
+
+
+  String _totalV="0";
+  int activeVisit=0;
+  int inActiveVisit=0;
+  List _visitCount=[];
+  List get visitCount => _visitCount;
+  String get totalV => _totalV;
+  bool _vRefresh = true;
+  bool get vRefresh =>_vRefresh;
+
+
+
+  Future<void> getDashboardReport(bool isRefresh) async {
+    inActiveVisit=0;
+    activeVisit=0;
+    if(isRefresh==true){
+      _totalV="0";
+      _vRefresh=false;
+      _visitCount.clear();
+    }
+    notifyListeners();
+    try {
+      Map data = {
+        "action": getAllData,
+        "search_type": "dashboard_main_report",
+        "id": localData.storage.read("id"),
+        "role": localData.storage.read("role"),
+        "cos_id": localData.storage.read("cos_id"),
+        "date1": _startDate,
+        "date2": _endDate
+      };
+      print("Input....$data}");
+      final response =await homeRepo.getDashboardReport(data);
+      if (response.isNotEmpty) {
+        print("response....${response}");
+        _visitCount=response;
+        var store=0;
+        inActiveVisit=0;
+        activeVisit=0;
+        for(var i=0;i<response.length;i++){
+          store+=int.parse(response[i]["total_count"]);
+          if(response[i]["total_count"].toString()=="0"){
+            inActiveVisit++;
+          }else{
+            activeVisit++;
+          }
+        }
+        _totalV=store.toString();
+        _vRefresh=true;
+      }else{
+        _visitCount=[];
+        _vRefresh=true;
+      }
+      _vRefresh=true;
+      notifyListeners();
+    } catch (e) {
+      _visitCount=[];
+      _vRefresh=true;
+      notifyListeners();
+    }
+    notifyListeners();
+  }
+  List<WorkPlanModelDetails> workPlanList = [];
+  bool workPlanRefresh = false;
+
+  Future<void> getWorkPlanList(bool isRefresh, String startDate, String endDate) async {
+    if (isRefresh == true) {
+      workPlanList.clear();
+      workPlanRefresh = false;
+    }
+
+    notifyListeners();
+
+    try {
+      Map data = {
+        "action": getAllData,
+        "search_type": "work_plan_list",
+        "user_id": localData.storage.read("id"),
+        "role": localData.storage.read("role"),
+        "cos_id": localData.storage.read("cos_id"),
+        "start_date": startDate,
+        "end_date": endDate,
+      };
+
+      final response = await homeRepo.getDashboardReport(data);
+      print("Request Data: $data");
+      if (response.isNotEmpty) {
+        print("Request Data 123 : $response");
+        workPlanList =
+            response.map<WorkPlanModelDetails>((e) => WorkPlanModelDetails.fromJson(e)).toList();
+        workPlanRefresh = true;
+      } else {
+        print("Request Data 12345 : $response");
+        workPlanList = [];
+        workPlanRefresh = true;
+      }
+
+      notifyListeners();
+    } catch (e) {
+      print("WorkPlan Error: $e");
+      workPlanList = [];
+      workPlanRefresh = true;
+      notifyListeners();
+    }
+  }
+
+  Future<void> updateWorkStatus(
+      bool isRefresh,
+      String detailId,
+      String workStatus,
+      BuildContext context
+      ) async {
+    if (isRefresh == true) {
+      workPlanRefresh = false;
+    }
+
+    notifyListeners();
+
+    try {
+      Map data = {
+        "action": getAllData,
+        "search_type": "update_work_status",
+        "cos_id": localData.storage.read("cos_id"),
+        "detail_id": detailId,
+        "work_status": workStatus,
+      };
+      final response = await homeRepo.getDashboardReport(data);
+      if (response.isNotEmpty && response[0]["status"] == true) {
+        workPlanRefresh = true;
+
+        String startDate = DateFormat("yyyy-MM-dd").format(DateTime.now());
+        String endDate = DateTime.now().toIso8601String().split("T")[0];
+
+        await getWorkPlanList(true, startDate,endDate);
+        final homeProvider = Provider.of<HomeProvider>(context, listen: false);
+        homeProvider.checkThisMonth();
+        homeProvider.loadFullDashboard(context);
+      } else {
+        workPlanRefresh = true;
+      }
+
+      notifyListeners();
+    } catch (e) {
+      workPlanRefresh = true;
+      notifyListeners();
+    }
+  }
+
+  // Future<void> loadFullDashboard(BuildContext context) async {
+  //
+  //   _refresh = false;
+  //   notifyListeners();
+  //
+  //   try {
+  //
+  //     Map data = {
+  //       "action": home,
+  //       "id": localData.storage.read("id"),
+  //       "salesman_id": localData.storage.read("id"),
+  //       "role": localData.storage.read("role"),
+  //       "cos_id": localData.storage.read("cos_id"),
+  //       "st_dt": _startDate,
+  //       "en_dt": _endDate,
+  //       "date1": _startDate,
+  //       "date2": _endDate,
+  //     };
+  //
+  //     final response = await homeRepo.getFullDashboard(data);
+  //
+  //
+  //     /* ================= MAIN REPORT ================= */
+  //
+  //     _mainReportList = [response["main_report"]];
+  //     localData.storage.write("conveyance_amount",response[0]['conveyance_amount'].toString()=="null"||response[0]['conveyance_amount'].toString()==""?"0":response[0]['conveyance_amount'].toString());
+  //     localData.storage.write("travel_amount",response[0]['travel_amount'].toString()=="null"||response[0]['travel_amount'].toString()==""?"0":response[0]['travel_amount'].toString());
+  //     localData.storage.write("da_amount",response[0]['da_amount'].toString()=="null"||response[0]['da_amount'].toString()==""?"0":response[0]['da_amount'].toString());
+  //     /* ================= DASHBOARD VISIT ================= */
+  //
+  //     _visitCount = response["dashboard_report"];
+  //
+  //     /* ================= USERS ================= */
+  //
+  //     final attendanceProvider =
+  //     Provider.of<AttendanceProvider>(context, listen: false);
+  //
+  //     final employeeProvider =
+  //     Provider.of<EmployeeProvider>(context, listen: false);
+  //
+  //     final customerProvider =
+  //     Provider.of<CustomerProvider>(context, listen: false);
+  //
+  //     /* ================= ATTENDANCE ================= */
+  //
+  //     attendanceProvider.setAttendanceData(
+  //       (response["attendance"] as List)
+  //           .map((e) => AttendanceModel.fromJson(e))
+  //           .toList(),
+  //     );
+  //
+  //     /* ================= USERS ================= */
+  //
+  //     employeeProvider.setUserData(
+  //       (response["allusers"] as List)
+  //           .map((e) => UserModel.fromJson(e))
+  //           .toList(),
+  //     );
+  //
+  //     /* ================= CUSTOMERS ================= */
+  //
+  //     customerProvider.setCustomerData(
+  //       (response["allcustomers"] as List)
+  //           .map((e) => CustomerModel.fromJson(e))
+  //           .toList(),
+  //     );
+  //
+  //     /* ================= NOTIFICATIONS ================= */
+  //
+  //     employeeProvider.setNotifications(response["notifications"]);
+  //
+  //     _refresh = true;
+  //
+  //   } catch (e) {
+  //     _refresh = true;
+  //   }
+  //
+  //   notifyListeners();
+  // }
+  int permisCount = 0;
+  int lateCountShow = 0;
+  bool isLate(String inTime) {
+    try {
+      final format = DateFormat("hh:mm a");
+
+      DateTime officeTime = format.parse("09:00 AM");
+      DateTime userTime = format.parse(inTime);
+
+      return userTime.isAfter(officeTime);
+    } catch (e) {
+      return false;
+    }
+  }
+  Future<void> loadFullDashboard(BuildContext context) async {
+    _refresh = false;
+    notifyListeners();
+
+    try {
+      Map data = {
+        "action": home,
+        "id": localData.storage.read("id"),
+        "salesman_id": localData.storage.read("id"),
+        "role": localData.storage.read("role"),
+        "cos_id": localData.storage.read("cos_id"),
+        "st_dt": _startDate,
+        "en_dt": _endDate,
+        "date1": _startDate,
+        "date2": _endDate,
+      };
+
+      print("===== REQUEST DATA =====");
+      print(data);
+
+      final response = await homeRepo.getFullDashboard(data);
+
+      // print("===== FULL API RESPONSE =====");
+      // print(response);
+
+      /* ================= MAIN REPORT ================= */
+
+      // print("===== MAIN REPORT =====");
+      // print(response["main_report"]);
+
+      // ✅ main_report is Map, so wrap inside list safely
+      _mainReportList =
+      response["main_report"] == null ? [] : [response["main_report"]];
+
+      var mainReport = response["main_report"] ?? {};
+
+      _noAttendanceCount =
+          int.tryParse(mainReport["no_attendance_count"].toString()) ?? 0;
+
+      // 🔥 no attendance count store
+      localData.storage.write(
+        "no_attendance_count",
+        mainReport["no_attendance_count"] == null ||
+            mainReport["no_attendance_count"].toString().isEmpty
+            ? "0"
+            : mainReport["no_attendance_count"].toString(),
+      );
+
+      // print("✅ no_attendance_count variable : $_noAttendanceCount");
+      // print("No Attendance Count local : ${mainReport["no_attendance_count"]}");
+
+      localData.storage.write(
+        "conveyance_amount",
+        mainReport["conveyance_amount"] == null ||
+            mainReport["conveyance_amount"].toString().isEmpty
+            ? "0"
+            : mainReport["conveyance_amount"].toString(),
+      );
+
+      localData.storage.write(
+        "travel_amount",
+        mainReport["travel_amount"] == null ||
+            mainReport["travel_amount"].toString().isEmpty
+            ? "0"
+            : mainReport["travel_amount"].toString(),
+      );
+
+      localData.storage.write(
+        "da_amount",
+        mainReport["da_amount"] == null ||
+            mainReport["da_amount"].toString().isEmpty
+            ? "0"
+            : mainReport["da_amount"].toString(),
+      );
+
+      print("Conveyance Amount : ${mainReport["conveyance_amount"]}");
+      print("Travel Amount : ${mainReport["travel_amount"]}");
+      print("DA Amount : ${mainReport["da_amount"]}");
+
+      /* ================= DASHBOARD VISIT ================= */
+      _visitCount = response["dashboard_report"] ?? [];
+
+      int store = 0;
+      inActiveVisit = 0;
+      activeVisit = 0;
+
+      for (var i = 0; i < _visitCount.length; i++) {
+        int count = int.tryParse(_visitCount[i]["total_count"].toString()) ?? 0;
+
+        store += count; // total visits sum
+
+        if (count == 0) {
+          inActiveVisit++;   // pending visit type count
+        } else {
+          activeVisit++;     // ✅ active visit type count (NOT sum)
+        }
+      }
+
+      _totalV = store.toString();
+
+      // print("✅ Total Visits Count : $_totalV");
+      // print("✅ Pending Visit Types : $inActiveVisit");
+      // print("✅ Active Visit Types : $activeVisit");
+
+      final attendanceProvider =
+      Provider.of<AttendanceProvider>(context, listen: false);
+
+      final employeeProvider =
+      Provider.of<EmployeeProvider>(context, listen: false);
+
+      final customerProvider =
+      Provider.of<CustomerProvider>(context, listen: false);
+
+      /* ================= ATTENDANCE ================= */
+
+      // print("===== ATTENDANCE =====");
+      // print(response["attendance"]);
+
+      final attendanceList = (response["attendance"] ?? []) as List;
+
+      attendanceProvider.setAttendanceData(
+        attendanceList
+            .map<AttendanceModel>((e) => AttendanceModel.fromJson(e))
+            .toList(),
+      );
+
+// ✅ now no error
+      attendanceProvider.setMainAttendanceFromDashboard(attendanceList);
+      /* ================= LATE + PERMISSION COUNT (FROM SAME RESPONSE) ================= */
+
+      permisCount = 0;
+      lateCountShow = 0;
+
+      for (var i = 0; i < attendanceList.length; i++) {
+        var row = attendanceList[i];
+
+        // Permission Count
+        if (row["per_status"] != null && row["per_status"].toString() != "null") {
+          permisCount++;
+        }
+
+        // Late Count
+        String status = row["status"].toString();
+        String time = row["time"]?.toString() ?? "";
+
+        if (time.isEmpty) continue;
+
+        String inTime = "";
+
+        if (status.contains("1,2")) {
+          inTime = time.split(",")[0];
+        } else if (status.contains("2,1")) {
+          inTime = time.split(",")[1];
+        } else {
+          inTime = time.split(",")[0];
+        }
+
+        if (inTime.isNotEmpty && isLate(inTime)) {
+          lateCountShow++;
+        }
+      }
+
+      print("✅ permisCount : $permisCount");
+      print("✅ lateCountShow : $lateCountShow");
+      /* ================= USERS ================= */
+
+      // print("===== USERS =====");
+      // print(response["allusers"]);
+
+      employeeProvider.setUserData(
+        (response["allusers"] ?? [])
+            .map<UserModel>((e) => UserModel.fromJson(e))
+            .toList(),
+      );
+
+      /* ================= CUSTOMERS ================= */
+
+      // print("===== CUSTOMERS =====");
+      // print(response["allcustomers"]);
+
+      // customerProvider.setCustomerData(
+      //   (response["allcustomers"] ?? [])
+      //       .map<CustomerModel>((e) => CustomerModel.fromJson(e))
+      //       .toList(),
+      // );
+
+      /* ================= NOTIFICATIONS ================= */
+
+      // print("===== NOTIFICATIONS =====");
+      // print(response["notifications"]);
+
+      employeeProvider.setNotifications(response["notifications"] ?? []);
+
+      _refresh = true;
+    } catch (e, stack) {
+      print("===== DASHBOARD ERROR =====");
+      print(e);
+      print(stack);
+      _refresh = true;
+    }
+
+    notifyListeners();
+  }
+
+  OtpFieldControllerV2 otpbox = OtpFieldControllerV2();
+  String otp='';
+  String sentOtp='';
+  String countryDial = "+91";
+
+  void sentOtpNumber(String number,context) async {
+    try{
+      Map data = {
+        "action":psdOtp,
+        "number":number
+      };
+      final request = await http.post(Uri.parse(phpFile),
+          headers: {
+            "Accept": "application/text",
+            "Content-Type": "application/x-www-form-urlencoded"
+          },
+          body: jsonEncode(data),
+          encoding: Encoding.getByName("utf-8"));
+      // print("request.body");
+      // print(otp);
+      // print(data.toString());
+      // print(request.body);
+      // print(request.statusCode);
+      if (request.statusCode==200){
+        var jsonResponse = json.decode(request.body);
+        sentOtp=jsonResponse['otp'].toString();
+        // print("%%%%%  ${testController.sentOtp.value}");
+        utils.showSuccessToast(context:context,text: "OTP Sent");
+      } else {
+        utils.showErrorToast(context: context);
+      }
+    }catch(e){
+      utils.showErrorToast(context: context);
+    }
+  }
+
+  Future<void> forgotPassword(context) async {
+  try{
+      Map data = {
+        "action":forgotPsd,
+        "mobile_number":loginNumber.text.trim(),
+        "password":forgotPassword1.text.trim(),
+        "updated_by":localData.storage.read("id")??"0",
+        "cos_id":localData.storage.read("cos_id")
+      };
+      final response = await homeRepo.forgotPwd(data);
+      if(response.toString().contains("No user for this number")){
+        utils.showWarningToast(context,text: "No user for this number",);
+        forgotCtr.reset();
+      }else if(response.isNotEmpty){
+        utils.showSuccessToast(context: context,text: "Password Updated Successfully",);
+        utils.navigatePage(context,()=> LoginPage(number: loginNumber.text.trim()));
+        forgotCtr.reset();
+      }else{
+        utils.showErrorToast(context: context);
+        forgotCtr.reset();
+      }
+  }catch(e){
+    utils.showErrorToast(context: context);
+    forgotCtr.reset();
+  }
+      notifyListeners();
+}
+
+  Future<void> checkNumber(context) async {
+  try{
+      Map data = {
+        "action":forgotPsd,
+        "mobile_number":loginNumber.text.trim(),
+        "password":'',
+        "updated_by":localData.storage.read("id")??"0",
+        "cos_id":localData.storage.read("cos_id")
+      };
+      final response = await homeRepo.forgotPwd(data);
+      if(response.toString().contains("No user for this number")){
+        utils.showWarningToast(context,text: "No user for this number",);
+      }else if(response.isNotEmpty){
+        if(isRelease==true){
+          sentOtpNumber('$countryDial${loginNumber.text}',context);
+        }else{
+          utils.showSuccessToast(context:context,text: "OTP Sent");
+        }
+        utils.navigatePage(context,()=>const Otp());
+      }else{
+        if(isRelease==true){
+          sentOtpNumber('$countryDial${loginNumber.text}',context);
+        }else{
+          utils.showSuccessToast(context:context,text: "OTP Sent");
+        }
+        utils.navigatePage(context,()=>const Otp());
+      }
+  }catch(e){
+    if(isRelease==true){
+      sentOtpNumber('$countryDial${loginNumber.text}',context);
+    }else{
+      utils.showSuccessToast(context:context,text: "OTP Sent");
+    }
+    utils.navigatePage(context,()=>const Otp());
+  }
+      notifyListeners();
+}
+
+  Future<void> verifyOtp(BuildContext context) async {
+    if(isRelease==true) {
+      showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (BuildContext context){
+            return AlertDialog(
+              title: Center(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    CustomText(text: "Verifying OTP",colors: colorsConst.primary,size: 15,isBold: true,),
+                    CircularProgressIndicator(color: colorsConst.appGreen,)
+                  ],
+                )
+              ),
+            );
+          }
+      );
+      // log(testController.sentOtp.value);
+      // log(testController.otp.value);
+      if (sentOtp == otp) {
+        // log("success  login");
+        utils.showSuccessToast(context: context,text: "Verified Successfully",);
+        utils.navigatePage(context,()=>const ForgotPassword());
+      } else {
+        log("failed");
+        utils.showErrorToast(context: context);
+        Navigator.pop(context);
+      }
+    }
+    else{
+        if (otp=='123456') {
+          log("success  login");
+          utils.showSuccessToast(context: context,text: "Verified Successfully",);
+          utils.navigatePage(context,()=>const ForgotPassword());
+        } else {
+          log("failed");
+          utils.showErrorToast(context: context);
+          Navigator.pop(context);
+        }
+    }
+  }
+
+
+Future<void> deleteUseAccount(context) async {
+      Map data = {
+        "action":deleteAccount,
+        "log_file":localData.storage.read("mobile_number"),
+        "user_id":localData.storage.read("id")??"0",
+        "mobile_number":localData.storage.read("mobile_number"),
+        "cos_id":localData.storage.read("cos_id"),
+        "platform":localData.storage.read("platform"),
+      };
+      final response = await homeRepo.forgotPwd(data);
+      if(response.isNotEmpty){
+        utils.showSuccessToast(context: context,text: "Account deleted successfully",);
+        LocalDatabase.deleteDb();
+        utils.navigatePage(context,()=>const LoginPage());
+        loginCtr.reset();
+      }else{
+        utils.showErrorToast(context: context);
+        loginCtr.reset();
+      }
+      notifyListeners();
+}
+
+
+
+
+  String _startDate = "";
+  String get startDate => _startDate;
+  String _startDateM = "";
+  String get startDateM => _startDateM;
+  String _endDate="";
+  String get endDate => _endDate;
+  String _endDateM="";
+  String get endDateM => _endDateM;
+  void datePick({required BuildContext context, required String date, required bool isStartDate,required void Function() function}) {
+    print("Date : $date");
+    final parsedDate = DateFormat('dd-MM-yyyy').parse(date);
+    final now = DateTime.now();
+    DateTime initDate = DateTime(
+      parsedDate.year,
+      parsedDate.month,
+      parsedDate.day,
+      now.hour,
+      now.minute,
+      now.second,
+    );
+    showDatePicker(
+      context: context,
+      initialDate: initDate,
+      firstDate: DateTime(1920),
+      lastDate: DateTime.now(),
+    ).then((value) {
+      if (value != null) {
+        String formattedDate = "${value.day.toString().padLeft(2, "0")}-"
+            "${value.month.toString().padLeft(2, "0")}-"
+            "${value.year.toString()}";
+        _startDate = formattedDate;
+        _startDateM = formattedDate;
+        _endDate = formattedDate;
+        _endDateM = formattedDate;
+        function();
+        notifyListeners();
+      }
+    });
+  }
+  String _type = "Today";
+  String get type => _type;
+  String _month="";
+  String get month => _month;
+  var typeList = ["Today","Yesterday","Last 7 Days","Last 30 Days","This Week","This Month","Last 3 months"];
+
+  void changeType(context,dynamic value){
+    _type = value;
+    if(_type=="Today"){
+      daily();
+    }else if(_type=="Yesterday"){
+      yesterday();
+    }else if(_type=="Last 7 Days"){
+      last7Days();
+    }else if(_type=="Last 30 Days"){
+      last30Days();
+    }else if(_type=="This Week"){
+      thisWeek();
+    }else if(_type=="This Month"){
+      thisMonth();
+    }else if(_type=="Last 3 months"){
+      last3Month();
+    }
+    checkThisMonth();
+    loadFullDashboard(context);
+    // getMainReport(false);
+ //   getDashboardReport(false);
+    Provider.of<AttendanceProvider>(context, listen: false).getLateCount(_startDate,_endDate);
+
+    Provider.of<AttendanceProvider>(context, listen: false).initDate(id:localData.storage.read("id"),role:localData.storage.read("role"),isRefresh:true,date1:_startDate,date2:_endDate,type:"");
+    Provider.of<AttendanceProvider>(context, listen: false).getAttendanceReport(localData.storage.read("id"));
+    Provider.of<AttendanceProvider>(context, listen: false).getAbsentAttendanceReport(localData.storage.read("id"));
+    Provider.of<LeaveProvider>(context, listen: false).allLeaves(_startDate,_endDate,true,localData.storage.read("role"),localData.storage.read("id"));
+    notifyListeners();
+  }
+  DateTime stDt = DateTime.now();
+  DateTime enDt = DateTime.now().add(const Duration(days: 1));
+  void daily() {
+    stDt=DateTime.now();
+    enDt=DateTime.now().add(const Duration(days: 1));
+    _startDate = DateFormat('dd-MM-yyyy').format(stDt);
+    _startDateM = DateFormat('dd-MM-yyyy').format(stDt);
+    _endDate = DateFormat('dd-MM-yyyy').format(stDt);
+    _endDateM = DateFormat('dd-MM-yyyy').format(stDt);
+    notifyListeners();
+  }
+  void yesterday() {
+    stDt=DateTime.now().subtract(const Duration(days: 1));
+    enDt = DateTime.now();
+    _startDate = DateFormat('dd-MM-yyyy').format(stDt);
+    _startDateM = DateFormat('dd-MM-yyyy').format(stDt);
+    _endDate = DateFormat('dd-MM-yyyy').format(stDt);
+    _endDateM = DateFormat('dd-MM-yyyy').format(stDt);
+    notifyListeners();
+  }
+  void last7Days() {
+    DateTime now = DateTime.now();
+    DateTime lastWeekStart = now.subtract(const Duration(days: 6));
+    DateTime lastWeekEnd = now;
+    _startDate = DateFormat('dd-MM-yyyy').format(lastWeekStart);
+    _startDateM = DateFormat('dd-MM-yyyy').format(lastWeekStart);
+    _endDate = DateFormat('dd-MM-yyyy').format(lastWeekEnd);
+    _endDateM = DateFormat('dd-MM-yyyy').format(lastWeekEnd);
+    notifyListeners();
+  }
+  void last30Days() {
+    DateTime now = DateTime.now();
+    DateTime lastMonthStart = now.subtract(const Duration(days: 29));
+    DateTime lastMonthEnd = now;
+    _startDate = DateFormat('dd-MM-yyyy').format(lastMonthStart);
+    _startDateM = DateFormat('dd-MM-yyyy').format(lastMonthStart);
+    _endDate = DateFormat('dd-MM-yyyy').format(lastMonthEnd);
+    _endDateM = DateFormat('dd-MM-yyyy').format(lastMonthEnd);
+    notifyListeners();
+  }
+  void thisWeek() {
+    DateTime now = DateTime.now();
+    int currentWeekday = now.weekday;
+    DateTime stDt = now.subtract(Duration(days: currentWeekday - 1));
+    DateTime enDt = now.add(Duration(days: 7 - currentWeekday));
+    _startDate = DateFormat('dd-MM-yyyy').format(stDt);
+    _startDateM = DateFormat('dd-MM-yyyy').format(stDt);
+    _endDate = DateFormat('dd-MM-yyyy').format(enDt);
+    _endDateM = DateFormat('dd-MM-yyyy').format(enDt);
+    notifyListeners();
+  }
+  void thisMonth() {
+    DateTime now = DateTime.now();
+    stDt = DateTime(now.year, now.month, 1);
+    enDt = now; // Today’s date
+    _startDate = DateFormat('dd-MM-yyyy').format(stDt);
+    _startDateM = DateFormat('dd-MM-yyyy').format(stDt);
+    _endDate = DateFormat('dd-MM-yyyy').format(enDt);
+    _endDateM = DateFormat('dd-MM-yyyy').format(enDt);
+    _month=DateFormat("MMM yyyy").format(stDt);
+    notifyListeners();
+  }
+  void checkThisMonth() {
+    _startDateM = DateFormat('dd-MM-yyyy').format(DateTime(DateTime.now().year, DateTime.now().month, 1));
+    _endDateM = DateFormat('dd-MM-yyyy').format(DateTime.now());
+    _month=DateFormat("MMM yyyy").format(stDt);
+    notifyListeners();
+  }
+  void last3Month() {
+    DateTime now = DateTime.now();
+
+// Subtract 3 months from today
+    DateTime stDt = DateTime(now.year, now.month - 3, now.day);
+    DateTime enDt = now;
+
+    _startDate = DateFormat('dd-MM-yyyy').format(stDt);
+    _startDateM = DateFormat('dd-MM-yyyy').format(stDt);
+    _endDate = DateFormat('dd-MM-yyyy').format(enDt);
+    _endDateM = DateFormat('dd-MM-yyyy').format(enDt);
+    notifyListeners();
+  }
+  void lastMonth() {
+    DateTime now = DateTime.now();
+    stDt = DateTime(now.year, now.month, 1);
+    enDt = DateTime(now.year, now.month + 1, 0);
+    stDt = DateTime(stDt.year, stDt.month - 1, 1);
+    enDt = DateTime(enDt.year, enDt.month - 1, 1);
+    _startDate = DateFormat('dd-MM-yyyy').format(stDt);
+    _startDateM = DateFormat('dd-MM-yyyy').format(stDt);
+    _endDateM = DateFormat('dd-MM-yyyy').format(DateTime(enDt.year, enDt.month + 1, 0));
+    notifyListeners();
+  }
+  void showCustomMonthPicker({
+    required BuildContext context,
+    required void Function() function,
+  }) {
+    // If _month already has a value like "Nov 2025", parse it
+    DateTime now = DateTime.now();
+    DateTime initialDate;
+
+    try {
+      initialDate = _month.isNotEmpty
+          ? DateFormat("MMM yyyy").parse(_month)
+          : now;
+    } catch (e) {
+      initialDate = now;
+    }
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          child: SizedBox(
+            width: 300,
+            height: 400,
+            child: CustomMonthPicker(
+              initialMonth: initialDate.month,
+              initialYear: initialDate.year,
+              firstYear: 2024,
+              lastYear: DateTime.now().year,
+              onSelected: (value) {
+                int selectedMonth = value.month;
+                int selectedYear = value.year;
+
+                String startDate = DateFormat("dd-MM-yyyy")
+                    .format(DateTime(selectedYear, selectedMonth, 1));
+                String endDate = DateFormat("dd-MM-yyyy")
+                    .format(DateTime(selectedYear, selectedMonth + 1, 0));
+
+                _month = DateFormat("MMM yyyy").format(value);
+                _startDate = startDate;
+                _startDateM = startDate;
+                _endDate = endDate;
+                _endDateM = endDate;
+
+                function();
+                notifyListeners();
+              },
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void initValue(){
+    _type="Today";
+    daily();
+    _month=DateFormat("MMM yyyy").format(DateTime.now());
+    notifyListeners();
+  }
+
+
+  List _appComponent = [];
+  List get appComponent =>_appComponent;
+
+  List _roleAccess = [];
+  List get roleAccess =>_roleAccess;
+
+  Color _primary=Colors.blue;
+  Color _secondary=Colors.blue.shade400;
+  Color get primary => _primary;
+  Color get secondary => _secondary;
+  String _primaryCode="";
+  String get primaryCode => _primaryCode;
+  Future<void> appComponents() async {
+    try {
+      _appComponent=[];
+      notifyListeners();
+      Map data = {
+        "action": settingData,
+        "search_type":"app_components",
+        "cos_id":localData.storage.read("cos_id")
+      };
+      final response = await homeRepo.settingList(data);
+      // print("response.toString()");
+      print("app_components");
+      print(response.toString());
+      if (response.isNotEmpty){
+        _appComponent=response;
+        String hexColor = response[0]["app_primaryclr"];
+        String hexSecondary = response[0]["app_primaryclr"];
+        _primary = Color(int.parse('0xFF$hexColor'));
+        _primaryCode = hexColor;
+        _secondary = Color(int.parse('0xFF$hexSecondary'));
+        // _primary=Colors.pink;
+        notifyListeners();
+        print(_primary);
+      }else {
+        _appComponent=[];
+      }
+    } catch (e) {
+      _appComponent=[];
+    }
+    notifyListeners();
+  }
+  Future<void> getRoleAccess() async {
+    try {
+      // _roleAccess=[];
+      notifyListeners();
+      Map data = {
+        "action": settingData,
+        "search_type":"role_access",
+        "cos_id":localData.storage.read("cos_id"),
+        "role":localData.storage.read("role")
+      };
+      // print(data.toString());
+      final response = await homeRepo.settingList(data);
+      print("role_access");
+      log(response.toString());
+      // print("response.toString()");
+      if (response.isNotEmpty){
+        _roleAccess=response;
+        notifyListeners();
+      }else {
+        _roleAccess=[];
+      }
+    } catch (e) {
+      _roleAccess=[];
+    }
+    notifyListeners();
+  }
+
+
+  List _appFeatures = [];
+  List get appFeatures =>_appFeatures;
+  List<PanelItem> _allItems = [];
+  List<PanelButton> _panelButtons = [];
+  List<PanelButton> get panelButtons => _panelButtons;
+  Future<void> activeFeatures() async {
+    // try {
+    _appFeatures=[];
+    notifyListeners();
+    Map data = {
+      "action": settingData,
+      "search_type":"active_features",
+      "cos_id":localData.storage.read("cos_id")
+    };
+    final response = await homeRepo.settingList(data);
+    print("active_features");
+    print(response.toString());
+    if (response.isNotEmpty){
+      _appFeatures=response;
+    }else {
+      _appFeatures=[];
+    }
+    // } catch (e) {
+    //   _appFeatures=[];
+    // }
+    notifyListeners();
+  }
+
+  List _settingFeatures = [];
+  List get settingFeatures =>_settingFeatures;
+  Future<void> getSettingFeatures() async {
+    try {
+      _refresh=false;
+      _settingFeatures=[];
+      notifyListeners();
+      Map data = {
+        "action": settingData,
+        "search_type":"feature_setting",
+        "cos_id":localData.storage.read("cos_id")
+      };
+      print("active_features");
+      final response = await homeRepo.settingList(data);
+      // print("response.toString()");
+      // print(response.toString());
+      if (response.isNotEmpty){
+        _settingFeatures=response;
+        _refresh=true;
+      }else {
+        _settingFeatures=[];
+        _refresh=true;
+      }
+    } catch (e) {
+      _settingFeatures=[];
+      _refresh=true;
+    }
+    notifyListeners();
+  }
+}
