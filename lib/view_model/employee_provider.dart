@@ -1551,9 +1551,9 @@ Future<void> getAllUsers({bool? isRefresh=true}) async {
       for (var user in _filterUserData) {
         user.active == "1" ? _active++ : _inActive++;
       }
-      if(isRefresh==false){
+      // if(isRefresh==false){
         filterEmps();
-      }
+      // }
       _empRefresh=true;
     } else {
       _empRefresh=true;

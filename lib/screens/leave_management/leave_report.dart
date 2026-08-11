@@ -535,15 +535,12 @@ class _ViewMyLeavesState extends State<ViewMyLeaves> {
                             }
 
                             List<LeaveModel> onLeaveToday;
-
+                            print(levProvider.isFilterApplied);
                             if (levProvider.isFilterApplied) {
                               onLeaveToday = levProvider.myLevSearch;
                             } else {
-
                               DateTime today = DateTime.now();
-
                               onLeaveToday = levProvider.myLevSearch.where((e) {
-
                                 DateTime start = DateTime.parse(e.startDate.toString());
 
                                 DateTime end = (e.endDate != null && e.endDate.toString() != "")

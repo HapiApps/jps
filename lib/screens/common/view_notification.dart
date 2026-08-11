@@ -449,7 +449,6 @@ class _ViewNotificationState extends State<ViewNotification> with SingleTickerPr
                           employeeData["firstname"]?.toString() == "null"
                               ? ""
                               : employeeData["firstname"].toString();
-                          print(title);
                           String type =
                           title.toLowerCase().contains("feedback")
                               ? "Feedback":
@@ -458,7 +457,9 @@ class _ViewNotificationState extends State<ViewNotification> with SingleTickerPr
                           message.toLowerCase().contains("requested")
                               ? "Leave":
                           message.toLowerCase().contains("Created")
-                              ? "Feedback"
+                              ? "Feedback":
+                          message.toLowerCase().contains("daily work plan")
+                              ? "Daily Work Plan"
                               :"Task";
                           final sortedData = empProvider.notifyData;
 
@@ -495,9 +496,6 @@ class _ViewNotificationState extends State<ViewNotification> with SingleTickerPr
                               }
                             }
                           }
-
-                          print("task date $taskDate");
-                          print("task date ${taskDate}");
                           return Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [

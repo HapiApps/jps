@@ -907,7 +907,9 @@ class _HomePageState extends State<HomePage> {
                                   ],
                                 ),
                               ),
+                              if(homeProvider.roleAccess.any((f) => f['feature'] == 'Task Management'&&f['name'] == 'Visit Report'))
                               10.height,
+                              if(homeProvider.roleAccess.any((f) => f['feature'] == 'Task Management'&&f['name'] == 'Visit Report'))
                               InkWell(
                                 onTap:(){
                                   utils.navigatePage(context, ()=> DashBoard(child: VisitReport(date1: homeProvider.startDate, date2: homeProvider.endDate,month: homeProvider.month,type: homeProvider.type,)));
@@ -1180,8 +1182,8 @@ class _HomePageState extends State<HomePage> {
                                   ),
                                 ),
                               ),
-
-                              const SizedBox(height: 20),
+                              if(homeProvider.roleAccess.any((f) => f['feature'] == 'Task Management'&&f['name'] == 'View'))
+                              10.height,
                               if(homeProvider.roleAccess.any((f) => f['feature'] == 'Task Management'&&f['name'] == 'View'))
                               InkWell(
                                 onTap: (){

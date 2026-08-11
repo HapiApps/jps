@@ -3710,6 +3710,38 @@ class TaskProvider with ChangeNotifier {
   }
   Future<void> insertTaskLogHistory(context,{required String id,required String level}) async {
     try {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: Center(
+              child: Column(
+                children: [
+                  const CustomText(
+                    text: "Loading",
+                    colors: Colors.grey,
+                    size: 15,
+                    isBold: true,
+                  ),
+                  10.height,
+                  const CustomText(
+                    text: "Please Wait",
+                    colors: Colors.grey,
+                    size: 15,
+                    isBold: true,
+                  ),
+                  20.height,
+                  LoadingAnimationWidget.staggeredDotsWave(
+                    color: colorsConst.secondary,
+                    size: 25,
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      );
       Map<String, String> data = {
         'task_id': id,
         'status': level,
@@ -3723,24 +3755,15 @@ class TaskProvider with ChangeNotifier {
       log(response.toString());
       if (response.toString().contains("200")){
         utils.showSuccessToast(context: context,text: constValue.updated,);
-        startCtr.reset();
-        holdCtr.reset();
-        completeCtr.reset();
-        resumeCtr.reset();
         getAllTask(false);
+        Navigator.pop(context);
       }else {
         utils.showErrorToast(context: context);
-        startCtr.reset();
-        holdCtr.reset();
-        completeCtr.reset();
-        resumeCtr.reset();
+        Navigator.pop(context);
       }
     } catch (e) {
       utils.showWarningToast(context,text: "Failed",);
-      startCtr.reset();
-      holdCtr.reset();
-      completeCtr.reset();
-      resumeCtr.reset();
+      Navigator.pop(context);
     }
     notifyListeners();
   }

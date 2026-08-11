@@ -1248,7 +1248,7 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
                         CustomText(text: "Total Hours : ${data.totalHours.toString()=="null"?"0 Sec":taskPvr.formatHours(data.totalHours.toString())}"),
                       ],
                     ),5.height,
-                    if(data.workStatus!="Complete")
+                    if(data.statval!="Complete")
                     taskButton(taskPvr,data.id.toString(),data.workStatus.toString()),
                     const Divider(thickness: 2,),
                     /// DATE + CREATED BY
@@ -1436,14 +1436,14 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
             CustomLoadingButton(
               callback: (){
                 taskPvr.insertTaskLogHistory(context,id:id,level:"Start");
-              }, isLoading: true, controller: taskPvr.startCtr,
+              }, isLoading: false,
               backgroundColor: colorsConst.pink, radius: 50, height: 30,width: 70,text: "Start"
               ),
             10.width,
             CustomLoadingButton(
                 callback: (){
                   taskPvr.insertTaskLogHistory(context,id:id,level:"Complete");
-                }, isLoading: true, controller: taskPvr.completeCtr,
+                }, isLoading: false,
                 backgroundColor: Colors.green, radius: 50, height: 30, width: 100,text: "Complete"
             ),
           ],
@@ -1454,14 +1454,14 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
             CustomLoadingButton(
               callback: (){
                 taskPvr.insertTaskLogHistory(context,id:id,level:"Start");
-              }, isLoading: true, controller: taskPvr.startCtr,
+              }, isLoading: false,
               backgroundColor: colorsConst.pink, radius: 50, height: 30,width: 70,text: "Start"
               ),
             10.width,
             CustomLoadingButton(
                 callback: (){
                   taskPvr.insertTaskLogHistory(context,id:id,level:"Complete");
-                }, isLoading: true, controller: taskPvr.completeCtr,
+                }, isLoading: false,
                 backgroundColor: Colors.green, radius: 50, height: 30, width: 100,text: "Complete"
             ),
           ],
@@ -1472,13 +1472,13 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
             CustomLoadingButton(
                 callback: (){
                   taskPvr.insertTaskLogHistory(context,id:id,level:"Hold");
-                }, isLoading: true, controller: taskPvr.holdCtr,
+                }, isLoading: false,
                 backgroundColor: Colors.blue, radius: 50, height: 30,width: 70,text: "Hold",),
             10.width,
             CustomLoadingButton(
               callback: (){
                 taskPvr.insertTaskLogHistory(context,id:id,level:"Complete");
-              }, isLoading: true, controller: taskPvr.completeCtr,
+              }, isLoading: false,
               backgroundColor: Colors.green, radius: 50, height: 30, width: 100,text: "Complete"
             ),
           ],
@@ -1488,7 +1488,7 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
         return CustomLoadingButton(
             callback: (){
               taskPvr.insertTaskLogHistory(context,id:id,level:"Start");
-            }, isLoading: true, controller: taskPvr.resumeCtr,
+            }, isLoading: false,
             backgroundColor: colorsConst.red1, radius: 50, height: 30,width: 100,text: "Resume"
         );
 

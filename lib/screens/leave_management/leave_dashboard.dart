@@ -30,7 +30,6 @@ class _LeaveManagementDashboardState extends State<LeaveManagementDashboard> {
       /// ✅ DEFAULT PAGE = REPORT TAB (index = 2)
       levProvider.changeIndex(2);
 
-      Provider.of<EmployeeProvider>(context, listen: false).getAllUsers();
       Provider.of<LeaveProvider>(context, listen: false).getLeaveTypes();
     });
   }
