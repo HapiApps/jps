@@ -1,12 +1,12 @@
-buildscript {
-    dependencies {
-        classpath 'com.android.tools.build:gradle:8.6.1'
-    }
-    repositories {
-        google()
-        mavenCentral()
-    }
-}
+//buildscript {
+//    dependencies {
+//        classpath 'com.android.tools.build:gradle:8.6.1'
+//    }
+//    repositories {
+//        google()
+//        mavenCentral()
+//    }
+//}
 
 allprojects {
     repositories {

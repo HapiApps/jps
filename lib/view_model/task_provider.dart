@@ -49,6 +49,17 @@ import 'package:syncfusion_flutter_datepicker/datepicker.dart';
 
 
 class TaskProvider with ChangeNotifier {
+  void updateTaskComment(int index, String commentText) {
+    // print("index $index");
+    _filterUserData[index].lastComment=commentText;
+    _filterUserData[index].lastCommentBy=localData.storage.read("f_name");
+    _filterUserData[index].commentCount="${int.parse(_filterUserData[index].commentCount??'0')+1}";
+    // print("taskProvider.filterUserData[index] ${taskProvider.filterUserData[index].lastComment}");
+    // print("taskProvider.filterUserData[index] ${taskProvider.filterUserData[index].lastCommentBy}");
+    // print("taskProvider.filterUserData[index] ${taskProvider.filterUserData[index].commentCount}");
+    notifyListeners();
+  }
+
   late VideoPlayerController videoPlayerController;
   final TaskRepo _taskRepo = TaskRepo();
   bool _isDisposed = false;
@@ -1281,10 +1292,10 @@ class TaskProvider with ChangeNotifier {
     );
 
     /// =================== TOP TITLE ===================
-    sheet.appendRow(["JPS TASK REPORT DETAILS"]);
+    sheet.appendRow(["${constValue.appName} TASK REPORT DETAILS"]);
     sheet.merge(
       CellIndex.indexByString("A1"),
-      CellIndex.indexByString("H1"),
+      CellIndex.indexByString("I1"),
     );
     sheet.cell(CellIndex.indexByString("A1")).cellStyle = titleStyle;
 
@@ -1325,7 +1336,7 @@ class TaskProvider with ChangeNotifier {
 
       sheet.merge(
         CellIndex.indexByString("A${rowIndex + 1}"),
-        CellIndex.indexByString("H${rowIndex + 1}"),
+        CellIndex.indexByString("I${rowIndex + 1}"),
       );
 
       sheet.cell(CellIndex.indexByString("A${rowIndex + 1}")).cellStyle =
@@ -1343,9 +1354,10 @@ class TaskProvider with ChangeNotifier {
         "Assigned To",
         "Created By",
         "Status",
+        "Working Time",
       ]);
 
-      for (int col = 0; col < 8; col++) {
+      for (int col = 0; col < 9; col++) {
         sheet
             .cell(CellIndex.indexByColumnRow(columnIndex: col, rowIndex: rowIndex))
             .cellStyle = headerStyle;
@@ -1353,7 +1365,63 @@ class TaskProvider with ChangeNotifier {
       rowIndex++;
 
       /// TASK DATA ROWS
+      // for (var task in tasks) {
+      //   var hoursList=task.employeeHours.toString().split('||');
+      //   // sheet.appendRow([
+      //   //   task.taskDate ?? "-",
+      //   //   task.taskTitle ?? "-",
+      //   //   task.projectName ?? "-",
+      //   //   task.type ?? "-",
+      //   //   task.taskDate ?? "-",
+      //   //   task.assignedNames ?? "-",
+      //   //   task.creator ?? "-",
+      //   //   task.status ?? "-",
+      //   //   hoursList[index]==""?"0 sec":taskPvr.formatHours(hoursList[index].split("##")[1])
+      //   // ]);
+      //   String hours = "0 sec";
+      //
+      //   if (index < hoursList.length && hoursList[index].isNotEmpty) {
+      //     var parts = hoursList[index].split("##");
+      //
+      //     if (parts.length > 1 && parts[1].isNotEmpty) {
+      //       hours = taskPvr.formatHours(parts[1]);
+      //     }
+      //   }
+      //
+      //   sheet.appendRow([
+      //     task.taskDate ?? "-",
+      //     task.taskTitle ?? "-",
+      //     task.projectName ?? "-",
+      //     task.type ?? "-",
+      //     task.taskDate ?? "-",
+      //     task.assignedNames ?? "-",
+      //     task.creator ?? "-",
+      //     task.status ?? "-",
+      //     hours,
+      //   ]);
+      //
+      //   for (int col = 0; col < 9; col++) {
+      //     sheet
+      //         .cell(CellIndex.indexByColumnRow(
+      //         columnIndex: col, rowIndex: rowIndex))
+      //         .cellStyle = normalStyle;
+      //   }
+      //
+      //   rowIndex++;
+      // }
+      ///
       for (var task in tasks) {
+        var hoursList = task.employeeHours.toString().split('||');
+        var statusList=task.employeeStatus.toString().split('||');
+
+        String hours = "";
+
+        if (hoursList.isNotEmpty&&hoursList.first.isNotEmpty) {
+          for(var i=0;i<hoursList.length;i++){
+            hours+="${statusList[i].split("##")[0]} : ${hoursList[i]==""?"0 sec":formatHours(hoursList[i].split("##")[1])} ";
+          }
+        }
+
         sheet.appendRow([
           task.taskDate ?? "-",
           task.taskTitle ?? "-",
@@ -1363,18 +1431,11 @@ class TaskProvider with ChangeNotifier {
           task.assignedNames ?? "-",
           task.creator ?? "-",
           task.status ?? "-",
+          hours,
         ]);
-
-        for (int col = 0; col < 8; col++) {
-          sheet
-              .cell(CellIndex.indexByColumnRow(
-              columnIndex: col, rowIndex: rowIndex))
-              .cellStyle = normalStyle;
-        }
 
         rowIndex++;
       }
-
       /// GAP AFTER EACH EMPLOYEE
       sheet.appendRow([""]);
       rowIndex++;
@@ -1389,6 +1450,7 @@ class TaskProvider with ChangeNotifier {
     sheet.setColWidth(5, 30);
     sheet.setColWidth(6, 18);
     sheet.setColWidth(7, 15);
+    sheet.setColWidth(8, 15);
 
     /// =================== SAVE FILE ===================
     final dir = await getApplicationDocumentsDirectory();

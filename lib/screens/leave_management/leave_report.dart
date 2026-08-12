@@ -463,28 +463,25 @@ class _ViewMyLeavesState extends State<ViewMyLeaves> {
                         Builder(
                           builder: (context) {
 
-                            List<LeaveModel> createdToday;
+                            List<LeaveModel> applied;
+                            List<LeaveModel> approved;
 
-                            if (levProvider.isFilterApplied) {
+                            applied = levProvider.myLevSearch;
 
-                              /// SHOW ALL FILTERED DATA
-                              createdToday = levProvider.myLevSearch;
-
-                            } else {
-
-                              /// PAGE LOAD → SHOW TODAY ONLY
-                              DateTime today = DateTime.now();
-
-                              createdToday = levProvider.myLevSearch.where((e) {
-
-                                DateTime created = DateTime.parse(e.createdTs.toString());
-
-                                return created.year == today.year &&
-                                    created.month == today.month &&
-                                    created.day == today.day;
-
-                              }).toList();
-                            }
+                            DateTime startDate = parseLeaveDate(levProvider.startDate)!;
+                            DateTime endDate = parseLeaveDate(levProvider.endDate)!;
+                            startDate = DateTime(startDate.year,startDate.month, startDate.day);
+                            endDate = DateTime(endDate.year,endDate.month,endDate.day);
+                            approved = levProvider.myLevSearch.where((e) {
+                              DateTime? leaveStart = parseLeaveDate(e.startDate?.toString());
+                              DateTime? leaveEnd = parseLeaveDate(e.endDate?.toString());
+                              if (leaveStart == null || leaveEnd == null) {
+                                return false;
+                              }
+                              leaveStart = DateTime(leaveStart.year,leaveStart.month,leaveStart.day);
+                              leaveEnd = DateTime(leaveEnd.year,leaveEnd.month,leaveEnd.day);
+                              return !leaveStart.isAfter(endDate) &&!leaveEnd.isBefore(startDate);
+                            }).toList();
 
                             return DefaultTabController(
                               length: 3,
@@ -507,13 +504,13 @@ class _ViewMyLeavesState extends State<ViewMyLeaves> {
                                       children: [
 
                                         /// APPLIED (status 0)
-                                        leaveStatusList(createdToday, "0",levProvider.isLoading),
+                                        leaveStatusList(applied, "0",levProvider.isLoading),
 
                                         /// APPROVED (status 1)
-                                        leaveStatusList(createdToday, "1",levProvider.isLoading),
+                                        leaveStatusList(approved, "1",levProvider.isLoading),
 
                                         /// CANCELLED (status 2)
-                                        leaveStatusList(createdToday, "2",levProvider.isLoading),
+                                        leaveStatusList(approved, "2",levProvider.isLoading),
                                       ],
                                     ),
                                   ),
@@ -533,31 +530,41 @@ class _ViewMyLeavesState extends State<ViewMyLeaves> {
                             if (levProvider.isLoading) {
                               return const Center(child: CircularProgressIndicator());
                             }
-
                             List<LeaveModel> onLeaveToday;
-                            print(levProvider.isFilterApplied);
-                            if (levProvider.isFilterApplied) {
-                              onLeaveToday = levProvider.myLevSearch;
-                            } else {
-                              DateTime today = DateTime.now();
-                              onLeaveToday = levProvider.myLevSearch.where((e) {
-                                DateTime start = DateTime.parse(e.startDate.toString());
-
-                                DateTime end = (e.endDate != null && e.endDate.toString() != "")
-                                    ? DateTime.parse(e.endDate.toString())
-                                    : start;
-
-                                return today.isAfter(start.subtract(const Duration(days: 1))) &&
-                                    today.isBefore(end.add(const Duration(days: 1)));
-
-                              }).toList();
-                            }
-
-                            // ✅ after loading, check empty
+                            // print(levProvider.isFilterApplied);
+                            // if (levProvider.isFilterApplied) {
+                            //   onLeaveToday = levProvider.myLevSearch;
+                            // } else {
+                            //   DateTime today = DateTime.now();
+                            //   onLeaveToday = levProvider.myLevSearch.where((e) {
+                            //     DateTime start = DateTime.parse(e.startDate.toString());
+                            //
+                            //     DateTime end = (e.endDate != null && e.endDate.toString() != "")
+                            //         ? DateTime.parse(e.endDate.toString())
+                            //         : start;
+                            //
+                            //     return today.isAfter(start.subtract(const Duration(days: 1))) &&
+                            //         today.isBefore(end.add(const Duration(days: 1)));
+                            //
+                            //   }).toList();
+                            // }
+                            DateTime startDate = parseLeaveDate(levProvider.startDate)!;
+                            DateTime endDate = parseLeaveDate(levProvider.endDate)!;
+                            startDate = DateTime(startDate.year,startDate.month, startDate.day);
+                            endDate = DateTime(endDate.year,endDate.month,endDate.day);
+                            onLeaveToday = levProvider.myLevSearch.where((e) {
+                              DateTime? leaveStart = parseLeaveDate(e.startDate?.toString());
+                              DateTime? leaveEnd = parseLeaveDate(e.endDate?.toString());
+                              if (leaveStart == null || leaveEnd == null) {
+                                return false;
+                              }
+                              leaveStart = DateTime(leaveStart.year,leaveStart.month,leaveStart.day);
+                              leaveEnd = DateTime(leaveEnd.year,leaveEnd.month,leaveEnd.day);
+                              return !leaveStart.isAfter(endDate) &&!leaveEnd.isBefore(startDate);
+                            }).toList();
                             if (onLeaveToday.isEmpty) {
                               return const Center(child: Text("No Employees On Leave Today"));
                             }
-
                             return ListView.builder(
                               padding: const EdgeInsets.all(10),
                               itemCount: onLeaveToday.length,
@@ -579,6 +586,33 @@ class _ViewMyLeavesState extends State<ViewMyLeaves> {
         ),
       );
     });
+  }
+  DateTime? parseLeaveDate(String? value) {
+    if (value == null || value.trim().isEmpty) return null;
+
+    final date = value.trim();
+
+    try {
+      // yyyy-MM-dd
+      if (RegExp(r'^\d{4}-\d{2}-\d{2}$').hasMatch(date)) {
+        return DateTime.parse(date);
+      }
+
+      // dd-MM-yyyy
+      if (RegExp(r'^\d{2}-\d{2}-\d{4}$').hasMatch(date)) {
+        final parts = date.split('-');
+
+        return DateTime(
+          int.parse(parts[2]),
+          int.parse(parts[1]),
+          int.parse(parts[0]),
+        );
+      }
+    } catch (e) {
+      print("Date parse error: $value -> $e");
+    }
+
+    return null;
   }
   String getCreatedDate(data) {
     final timestamp = data.createdTs.toString();

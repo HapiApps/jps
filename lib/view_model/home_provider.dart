@@ -326,8 +326,6 @@ Future<void> checkVersion() async {
       "platform":localData.storage.read("platform")
     };
     final response = await homeRepo.selectDataList(data);
-    // log("response.toString()");
-    // log(response.toString());
     if (response.isNotEmpty){
       _currentVersion=response[0]["current_version"];
       _currentAPK=response[0]["current_url"];
@@ -1156,14 +1154,7 @@ Future<void> loginOuts(context) async {
       // print("✅ Pending Visit Types : $inActiveVisit");
       // print("✅ Active Visit Types : $activeVisit");
 
-      final attendanceProvider =
-      Provider.of<AttendanceProvider>(context, listen: false);
-
-      final employeeProvider =
-      Provider.of<EmployeeProvider>(context, listen: false);
-
-      final customerProvider =
-      Provider.of<CustomerProvider>(context, listen: false);
+      final attendanceProvider = Provider.of<AttendanceProvider>(context, listen: false);
 
       /* ================= ATTENDANCE ================= */
 
@@ -1213,38 +1204,123 @@ Future<void> loginOuts(context) async {
           lateCountShow++;
         }
       }
+      // employeeProvider.setNotifications(response["notifications"] ?? []);
 
-      print("✅ permisCount : $permisCount");
-      print("✅ lateCountShow : $lateCountShow");
-      /* ================= USERS ================= */
+      _refresh = true;
+    } catch (e, stack) {
+      print("===== DASHBOARD ERROR =====");
+      print(e);
+      print(stack);
+      _refresh = true;
+    }
 
-      // print("===== USERS =====");
-      // print(response["allusers"]);
+    notifyListeners();
+  }
+  Future<void> loadDashboard(BuildContext context) async {
+    _refresh = false;
+    notifyListeners();
 
-      employeeProvider.setUserData(
-        (response["allusers"] ?? [])
-            .map<UserModel>((e) => UserModel.fromJson(e))
+    try {
+      Map data = {
+        "action": home,
+        "id": localData.storage.read("id"),
+        "salesman_id": localData.storage.read("id"),
+        "role": localData.storage.read("role"),
+        "cos_id": localData.storage.read("cos_id"),
+        "st_dt": _startDate,
+        "en_dt": _endDate,
+        "date1": _startDate,
+        "date2": _endDate,
+      };
+
+      print("===== REQUEST DATA =====");
+      print(data);
+
+      final response = await homeRepo.getFullDashboard(data);
+
+      // print("===== FULL API RESPONSE =====");
+      // print(response);
+
+      /* ================= MAIN REPORT ================= */
+
+      // print("===== MAIN REPORT =====");
+      // print(response["main_report"]);
+
+      // ✅ main_report is Map, so wrap inside list safely
+      _mainReportList =
+      response["main_report"] == null ? [] : [response["main_report"]];
+
+      var mainReport = response["main_report"] ?? {};
+
+      _noAttendanceCount =
+          int.tryParse(mainReport["no_attendance_count"].toString()) ?? 0;
+
+      // 🔥 no attendance count store
+      localData.storage.write(
+        "no_attendance_count",
+        mainReport["no_attendance_count"] == null ||
+            mainReport["no_attendance_count"].toString().isEmpty
+            ? "0"
+            : mainReport["no_attendance_count"].toString(),
+      );
+      /* ================= DASHBOARD VISIT ================= */
+      _visitCount = response["dashboard_report"] ?? [];
+
+      int store = 0;
+      inActiveVisit = 0;
+      activeVisit = 0;
+
+      for (var i = 0; i < _visitCount.length; i++) {
+        int count = int.tryParse(_visitCount[i]["total_count"].toString()) ?? 0;
+
+        store += count; // total visits sum
+
+        if (count == 0) {
+          inActiveVisit++;   // pending visit type count
+        } else {
+          activeVisit++;     // ✅ active visit type count (NOT sum)
+        }
+      }
+      _totalV = store.toString();
+
+      final attendanceProvider = Provider.of<AttendanceProvider>(context, listen: false);
+      final attendanceList = (response["attendance"] ?? []) as List;
+      attendanceProvider.setAttendanceData(
+        attendanceList
+            .map<AttendanceModel>((e) => AttendanceModel.fromJson(e))
             .toList(),
       );
+      permisCount = 0;
+      lateCountShow = 0;
 
-      /* ================= CUSTOMERS ================= */
+      for (var i = 0; i < attendanceList.length; i++) {
+        var row = attendanceList[i];
 
-      // print("===== CUSTOMERS =====");
-      // print(response["allcustomers"]);
+        // Permission Count
+        if (row["per_status"] != null && row["per_status"].toString() != "null") {
+          permisCount++;
+        }
 
-      // customerProvider.setCustomerData(
-      //   (response["allcustomers"] ?? [])
-      //       .map<CustomerModel>((e) => CustomerModel.fromJson(e))
-      //       .toList(),
-      // );
+        // Late Count
+        String status = row["status"].toString();
+        String time = row["time"]?.toString() ?? "";
 
-      /* ================= NOTIFICATIONS ================= */
+        if (time.isEmpty) continue;
 
-      // print("===== NOTIFICATIONS =====");
-      // print(response["notifications"]);
+        String inTime = "";
 
-      employeeProvider.setNotifications(response["notifications"] ?? []);
+        if (status.contains("1,2")) {
+          inTime = time.split(",")[0];
+        } else if (status.contains("2,1")) {
+          inTime = time.split(",")[1];
+        } else {
+          inTime = time.split(",")[0];
+        }
 
+        if (inTime.isNotEmpty && isLate(inTime)) {
+          lateCountShow++;
+        }
+      }
       _refresh = true;
     } catch (e, stack) {
       print("===== DASHBOARD ERROR =====");

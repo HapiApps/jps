@@ -874,7 +874,7 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
                                   isBold: true,
                                 ),
                               ),
-                            _taskCard(data,taskProvider,homeProvider),
+                            _taskCard(data,taskProvider,homeProvider,index),
                             if (index == taskProvider.filterUserData.length - 1)
                               50.height,
                           ],
@@ -938,7 +938,7 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
       ),
     );
   }
-  Widget _taskCard(TaskData data,TaskProvider taskPvr,HomeProvider homeProvider) {
+  Widget _taskCard(TaskData data,TaskProvider taskPvr,HomeProvider homeProvider,int index) {
     Color priorityBg;
     Color priorityTextColor;
     String priorityText;
@@ -988,7 +988,7 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
               data: data,
               isDirect: true,
               coId: "0",
-              numberList: const [],
+              numberList: const [], index: index,
             ),
           ),
           );
@@ -1230,7 +1230,7 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
                                       ),
                                     ],
                                   ),
-                                  CustomText(text: "Working Time : ${taskPvr.formatHours(hoursList[index].split("##")[1])}"),
+                                  CustomText(text: "Working Time : ${hoursList[index]==""?"0 sec":taskPvr.formatHours(hoursList[index].split("##")[1])}"),
                                 ],
                               ),
                             );
@@ -1248,7 +1248,7 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
                         CustomText(text: "Total Hours : ${data.totalHours.toString()=="null"?"0 Sec":taskPvr.formatHours(data.totalHours.toString())}"),
                       ],
                     ),5.height,
-                    if(data.statval!="Complete")
+                    if(data.statval!="Completed")
                     taskButton(taskPvr,data.id.toString(),data.workStatus.toString()),
                     const Divider(thickness: 2,),
                     /// DATE + CREATED BY
@@ -1395,7 +1395,7 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
                                     assignedName: data.assignedNames.toString(),
                                     date1: widget.date1,
                                     date2: widget.date2,
-                                    type: widget.type,
+                                    type: widget.type, index: index,
                                   ),
                                 ),
                               ),
@@ -1611,7 +1611,7 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
     final dateTime = DateTime.parse(timestamp);
     return "${dateTime.day}/${dateTime.month}/${dateTime.year}";
   }
-  Widget detail({required double width, required TaskData data,required VoidCallback callBack}){
+  Widget detail({required double width, required TaskData data,required VoidCallback callBack,required int index}){
     return Padding(
       padding: const EdgeInsets.fromLTRB(0, 0, 0, 10),
       child: Container(
@@ -1776,7 +1776,7 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
                       utils.navigatePage(context, ()=> DashBoard(child: TaskChat(isVisit:false,
                           taskId: data.id.toString(), assignedId: data.assigned.toString(),
                         name: data.creator.toString(), assignedName: data.assignedNames.toString(), date1: widget.date1
-                        , date2: widget.date2, type: widget.type,)));
+                        , date2: widget.date2, type: widget.type, index: index,)));
                     }, icon: SvgPicture.asset(assets.tMessage,width: 10,height: 10,)),
                   ],
                 ),

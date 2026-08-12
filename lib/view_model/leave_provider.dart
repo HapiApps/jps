@@ -2718,7 +2718,7 @@ void changeStatus(bool value){
         String body = "Daily Work Plan";
 
         try {
-          await empProvider.sendAdminNotification(
+          empProvider.sendAdminNotification(
             title,
             body,
             "",
@@ -2730,7 +2730,7 @@ void changeStatus(bool value){
         }
 
         final homeProvider = Provider.of<HomeProvider>(context, listen: false);
-        await homeProvider.loadFullDashboard(context);
+        homeProvider.loadFullDashboard(context);
 
         Navigator.pop(context, true);
       } else {

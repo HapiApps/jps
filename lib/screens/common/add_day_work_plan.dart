@@ -61,17 +61,19 @@ class _DayWorkPlanPageState extends State<DayWorkPlanPage> {
 
   void addNewPlan() {
     if (workPlans.isNotEmpty) {
-      if (workPlans.last.descriptionController.text.trim().isEmpty) {
+      if (workPlans.last.companyName.trim().isEmpty&&workPlans.last.companyId.trim().isEmpty) {
+        utils.showWarningToast(context, text: "Please select customer");
+        return;
+      }else if (workPlans.last.descriptionController.text.trim().isEmpty) {
         utils.showWarningToast(context, text: "Please enter description");
         return;
       }
+    }else{
+      setState(() {
+        workPlans.add(WorkPlanModel());
+      });
+      scrollToBottom();
     }
-
-    setState(() {
-      workPlans.add(WorkPlanModel());
-    });
-
-    scrollToBottom();
   }
 
   bool validateAllPlans() {

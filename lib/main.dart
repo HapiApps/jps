@@ -475,11 +475,13 @@
 
 import 'dart:convert';
 import 'package:intl/intl.dart';
+import 'package:master_code/screens/common/detail_work_plan.dart';
 import 'package:master_code/screens/common/home_page.dart';
 import 'package:master_code/screens/customer/visit_report/visits_report.dart';
 import 'package:master_code/screens/expense/view_expense.dart';
 import 'package:master_code/screens/leave_management/leave_dashboard.dart';
 import 'package:master_code/screens/leave_management/leave_report.dart';
+import 'package:master_code/screens/task/task_chat.dart';
 import 'package:master_code/screens/task/view_task.dart';
 import 'package:master_code/screens/track/background_task.dart';
 import 'package:master_code/source/utilities/utils.dart';
@@ -774,7 +776,7 @@ Future<void> main() async {
         Provider.of<HomeProvider>(
           context,
           listen: false,
-        ).loadFullDashboard(context);
+        ).loadDashboard(context);
 
         Provider.of<EmployeeProvider>(
           context,
@@ -871,7 +873,6 @@ Future<void> main() async {
           DateFormat('dd-MM-yyyy').format(DateTime.now());
 
       if (message.notification?.title?.toLowerCase().contains("task") ?? false) {
-
         navigatorKey.currentState?.push(
           MaterialPageRoute(
             builder: (_) => ViewTask(
@@ -880,6 +881,40 @@ Future<void> main() async {
               type: taskDate==""?"today":"",
             ),
           ),
+        );
+      }
+      if (message.notification?.body?.toLowerCase().contains("daily work plan") ?? false) {
+        navigatorKey.currentState?.push(
+          MaterialPageRoute(
+            builder: (_) => DailyReportStatusPage(),
+          ),
+        );
+      }
+      if (message.notification?.body?.toLowerCase().contains("requested") ?? false) {
+        navigatorKey.currentState?.push(
+          MaterialPageRoute(
+            builder: (_) => ViewMyLeaves(),
+          ),
+        );
+      }
+      if (message.notification?.title?.toLowerCase().contains("visit report") ?? false) {
+        navigatorKey.currentState?.push(
+          MaterialPageRoute(
+            builder: (_) => VisitReport(date1: DateFormat("dd-MM-yyyy").format(
+                DateTime.parse(DateTime.now().toString())), date2: DateFormat("dd-MM-yyyy").format(
+                DateTime.parse(DateTime.now().toString())),
+              month: "",type: "Today",),
+          ),
+        );
+      }
+      if (message.notification?.title?.toLowerCase().contains("feedback") ?? false) {
+        navigatorKey.currentState?.push(
+          MaterialPageRoute(
+            builder: (_) =>  TaskChat(isVisit:false,
+              taskId: '',
+              assignedId: "",assignedName: "",
+              name: '', date1: '', date2: '', type: '',
+              index: -1,))
         );
       }
     });

@@ -27,9 +27,9 @@ class TaskData {
   final String? expenseReportCount;
 
   /// 🔥 NEW FIELDS
-  final String? commentCount;
-  final String? lastComment;
-  final String? lastCommentBy;
+  String? commentCount;
+  String? lastComment;
+  String? lastCommentBy;
   final String? allComments;
   final String? name;
   final String? phoneNo;
@@ -207,7 +207,9 @@ class DTaskModel {
   // 🔥 NEW - Comments
   final String commentsFull;
   final List<String> commentsList;
-
+  final String? totalHours;
+  final String? employeeHours;
+  final String? employeeStatus;
   DTaskModel({
     required this.taskTitle,
     required this.taskDate,
@@ -240,7 +242,8 @@ class DTaskModel {
     required this.docsType3,
     /// 🔥 NEW
     required this.commentsFull,
-    required this.commentsList,
+    required this.commentsList,this.totalHours,
+    this.employeeHours,this.employeeStatus,
   });
 
   factory DTaskModel.fromJson(Map<String, dynamic> json) {
@@ -260,6 +263,9 @@ class DTaskModel {
     }
 
     return DTaskModel(
+      totalHours: json['total_hours'],
+      employeeStatus: json['employee_status'],
+      employeeHours: json['employee_hours'],
       taskDate: json['task_date'] ?? '',
       taskTitle: json['task_title'] ?? '',
       projectName: json['company_name'] ?? '',
@@ -304,6 +310,9 @@ class DTaskModel {
     String joinList(List<String> list, {String separator = '||'}) => list.join(separator);
 
     return {
+      'employee_status': employeeStatus,
+      'employee_hours': employeeHours,
+      'total_hours': totalHours,
       'task_date': taskDate,
       'taskTitle': taskTitle,
       'projectName': projectName,

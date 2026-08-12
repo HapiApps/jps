@@ -30,7 +30,8 @@ final TaskData data;
 final bool isDirect;
 final String coId;
 final List numberList;
-  const TaskDetails({super.key, required this.data, required this.isDirect, required this.coId, required this.numberList});
+final int index;
+  const TaskDetails({super.key, required this.data, required this.isDirect, required this.coId, required this.numberList, required this.index});
 
   @override
   State<TaskDetails> createState() => _TaskDetailsState();
@@ -915,7 +916,8 @@ class _TaskDetailsState extends State<TaskDetails> with SingleTickerProviderStat
                                 InkWell(onTap: (){
                                   utils.navigatePage(context, ()=> DashBoard(child: TaskChat(isVisit:false,
                                     taskId: widget.data.id.toString(), assignedId: widget.data.assigned.toString(),
-                                    name: widget.data.creator.toString(), assignedName: widget.data.assignedNames.toString(), date1: '', date2: '', type: '',)));
+                                    name: widget.data.creator.toString(), assignedName: widget.data.assignedNames.toString(), date1: '', date2: '', type: '',
+                                    index: widget.index,)));
                                 }, child: SvgPicture.asset(assets.tMessage,width: 25,height: 25,))
                               ],
                             ),
@@ -1002,7 +1004,7 @@ class _TaskDetailsState extends State<TaskDetails> with SingleTickerProviderStat
                                                   .toString(),
                                               date1: '',
                                               date2: '',
-                                              type: '',
+                                              type: '', index: widget.index,
                                             ),
                                           ),
                                         );
@@ -1149,7 +1151,7 @@ class _TaskDetailsState extends State<TaskDetails> with SingleTickerProviderStat
                                                   .toString(),
                                               date1: '',
                                               date2: '',
-                                              type: '',
+                                              type: '', index: widget.index,
                                             ),
                                           ),
                                         );

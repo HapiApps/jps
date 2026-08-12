@@ -139,6 +139,7 @@ class CustomerProvider with ChangeNotifier{
     required String taskId,
     required String assignedId,
     required String path,
+    required int index,
   }) async {
     /// ✅ Store comment before clearing controller
     final commentText = disPoint.text.trim();
@@ -155,8 +156,13 @@ class CustomerProvider with ChangeNotifier{
     );
 
     _customerReport.add(tempMessage);
+    print("index $index");
+    if(index!=-1){
+      final taskProvider = Provider.of<TaskProvider>(context, listen: false);
+      taskProvider.updateTaskComment(index,commentText);
+      notifyListeners();
+    }
     notifyListeners();
-
     try {
       /// ✅ 2. MINIMAL PAYLOAD
       List<Map<String, String>> customersList = [];

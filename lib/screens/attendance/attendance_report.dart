@@ -849,56 +849,55 @@ class _AttendanceReportState extends State<AttendanceReport> {
                                 itemCount: attProvider.noAttendanceList.length,
                                 itemBuilder: (context, index) {
                                   var data = attProvider.noAttendanceList[index];
+                                  var createdBy = "";
+                                  String timestamp = data.missingDate.toString();
+                                  DateTime dateTime = DateTime.parse(timestamp);
+                                  String dayOfWeek = DateFormat('EEEE').format(dateTime);
+                                  DateTime today = DateTime.now();
+                                  if (dateTime.day == today.day && dateTime.month == today.month && dateTime.year == today.year) {
+                                    dayOfWeek = 'Today';
+                                  } else if (dateTime.isAfter(today.subtract(const Duration(days: 1))) &&
+                                      dateTime.isBefore(today)) {
+                                    dayOfWeek = 'Yesterday';
+                                  } else {
+                                    dayOfWeek = "${dateTime.day}/${dateTime.month}/${dateTime.year}";
+                                  }
+                                  createdBy = "${dateTime.day}/${dateTime.month}/${dateTime.year}";
+                                  final showDateHeader = index == 0 || createdBy != getCreatedDate(attProvider.noAttendanceList[index - 1]);
                                   return Padding(
                                     padding: EdgeInsets.fromLTRB(0, 10, 0, index==attProvider.noAttendanceList.length-1?30:0),
-                                    child: Card(
-                                      child: Padding(
-                                        padding: const EdgeInsets.all(8.0),
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            Row(
-                                              crossAxisAlignment: CrossAxisAlignment.start,
-                                              mainAxisAlignment: MainAxisAlignment.start,
+                                    child: Column(
+                                      children: [
+                                      if (showDateHeader)
+                                        CustomText(
+                                          text: dayOfWeek,
+                                          colors: Colors.black,
+                                        ),
+                                        Card(
+                                          child: Padding(
+                                            padding: const EdgeInsets.all(8.0),
+                                            child: Row(
+                                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                               children: [
-                                                if(localData.storage.read("role")=="1")
-                                                  CircleAvatar(
-                                                    radius: 15,
-                                                    backgroundColor: Colors.grey.shade400,
-                                                    // child: NetworkImg(image: img, width: 50,)
-                                                    child: SvgPicture.asset(assets.profile)
-                                                ),5.width,
-                                                Column(
-                                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                                Row(
                                                   children: [
                                                     if(localData.storage.read("role")=="1")
-                                                      CustomText(text: data.firstname.toString(),isBold: true,),
-                                                    Row(
-                                                      children: [
-                                                        if(localData.storage.read("role")=="1")
-                                                          SizedBox(
-                                                          width: phoneWidth/1.9,
-                                                            child: CustomText(text: data.role.toString(),colors:colorsConst.blueClr)),
-
-                                                        Row(
-                                                          children: [
-                                                            Icon(Icons.calendar_today_sharp,color:colorsConst.greyClr,size: 15,),5.width,
-                                                            CustomText(
-                                                              text: DateFormat('dd MMM yyyy')
-                                                                  .format(DateTime.parse(data.missingDate.toString())),
-                                                              colors: colorsConst.greyClr,
-                                                            )
-                                                          ],
-                                                        ),
-                                                      ],
-                                                    ),
+                                                      CircleAvatar(
+                                                          radius: 15,
+                                                          backgroundColor: Colors.grey.shade400,
+                                                          // child: NetworkImg(image: img, width: 50,)
+                                                          child: SvgPicture.asset(assets.profile)
+                                                      ),
+                                                    5.width,
+                                                    CustomText(text: data.firstname.toString(),isBold: true,),
                                                   ],
                                                 ),
+                                                CustomText(text: data.role.toString(),colors:colorsConst.blueClr),
                                               ],
                                             ),
-                                          ],
+                                          ),
                                         ),
-                                      ),
+                                      ],
                                     ),
                                   );
                                 }),
@@ -1259,7 +1258,7 @@ class _AttendanceReportState extends State<AttendanceReport> {
     });
   }
   String getCreatedDate(data) {
-    final timestamp = data.createdTs.toString();
+    final timestamp = data.missingDate.toString();
     final dateTime = DateTime.parse(timestamp);
     return "${dateTime.day}/${dateTime.month}/${dateTime.year}";
   }

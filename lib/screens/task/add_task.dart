@@ -48,7 +48,10 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
       taskProvider.taskTitleCont.clear();
       taskProvider.audioList.clear();
       taskProvider.setTodayDate();
-
+      final empProvider = Provider.of<EmployeeProvider>(context, listen: false);
+      if(empProvider.activeEmps.isEmpty){
+        empProvider.getAllUsers(isRefresh: false);
+      }
       await Provider.of<CustomerProvider>(context, listen: false)
           .getAllCustomers(true);
 

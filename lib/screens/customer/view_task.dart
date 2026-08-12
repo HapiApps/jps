@@ -142,7 +142,7 @@ class _ViewTasksState extends State<ViewTasks> with SingleTickerProviderStateMix
                             onTap: (){
                               _myFocusScopeNode.unfocus();
                               utils.navigatePage(context, ()=> DashBoard(child:
-                              TaskDetails(data: data,isDirect: false,coId: widget.coId.toString(),numberList: widget.numberList)));
+                              TaskDetails(data: data,isDirect: false,coId: widget.coId.toString(),numberList: widget.numberList, index: 000,)));
                             },
                             child: Column(
                               children: [

@@ -430,7 +430,7 @@ class CalendarAppointment extends State<TaskCalendar> {
                                   kIsWeb
                                       ? webWidth
                                       : phoneWidth,
-                                  data);
+                                  data,index);
                             }
 
                             return const SizedBox();
@@ -461,7 +461,7 @@ class CalendarAppointment extends State<TaskCalendar> {
         date1.day == date2.day;
   }
 
-  Widget dataList(double width, TaskData data) {
+  Widget dataList(double width, TaskData data, int index) {
     return GestureDetector(
       onTap: () {
         utils.navigatePage(
@@ -471,7 +471,7 @@ class CalendarAppointment extends State<TaskCalendar> {
               data: data,
               isDirect: true,
               coId: "0",
-              numberList: const [],
+              numberList: const [], index: index,
             ),
           ),
         );
@@ -593,7 +593,7 @@ class CalendarAppointment extends State<TaskCalendar> {
                                   assignedName: data.assignedNames.toString(),
                                   date1: '',
                                   date2: '',
-                                  type: '',
+                                  type: '', index: index,
                                 ),
                               );
                             },

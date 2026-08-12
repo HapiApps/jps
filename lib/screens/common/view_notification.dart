@@ -19,6 +19,7 @@ import '../leave_management/leave_report.dart';
 import 'dashboard.dart';
 import '../customer/visit_report/visits_report.dart';
 import '../task/task_chat.dart';
+import 'detail_work_plan.dart';
 
 class ViewNotification extends StatefulWidget {
   const ViewNotification({super.key});
@@ -511,12 +512,16 @@ class _ViewNotificationState extends State<ViewNotification> with SingleTickerPr
                                 onTap:(){
                                   if(type=="Feedback"){
                                     utils.navigatePage(context, ()=> DashBoard(child: TaskChat(isVisit:false,
-                                        taskId: empProvider.notifyData[index]["purpose_id"], assignedId: "",assignedName: "", name: createdBy, date1: '', date2: '', type: '',)));
-                                  }else if(type=="Visit Report"){
+                                        taskId: empProvider.notifyData[index]["purpose_id"], assignedId: "",assignedName: "", name: createdBy, date1: '', date2: '', type: '',
+                                      index: -1,)));
+                                  }
+                                  else if(type=="Visit Report"){
                                     utils.navigatePage(context, ()=> DashBoard(child: VisitReport(date1: DateFormat("dd-MM-yyyy").format(
                                         DateTime.parse(empProvider.notifyData[index]["created_ts"])), date2: DateFormat("dd-MM-yyyy").format(
-                                        DateTime.parse(empProvider.notifyData[index]["created_ts"])),month: "",type: "Today",)));
-                                  }else if(type=="Leave"){
+                                        DateTime.parse(empProvider.notifyData[index]["created_ts"])),
+                                      month: "",type: "Today",)));
+                                  }
+                                  else if(type=="Leave"){
                                     if(localData.storage.read("role")=="1"){
                                       Provider.of<LeaveProvider>(context, listen: false).changeIndex(2);
 
@@ -529,7 +534,11 @@ class _ViewNotificationState extends State<ViewNotification> with SingleTickerPr
                                           DateTime.parse(empProvider.notifyData[index]["created_ts"])),date2:DateFormat("dd-MM-yyyy").format(
                                           DateTime.parse(empProvider.notifyData[index]["created_ts"])),isDirect: true)));
                                     }
-                                  }else{
+                                  }
+                                  else if(type=="Daily Work Plan"){
+                                    utils.navigatePage(context,()=>const DashBoard(child: DailyReportStatusPage()));
+                                  }
+                                  else{
                                     utils.navigatePage(
                                       context,
                                           () => DashBoard(
@@ -569,7 +578,9 @@ class _ViewNotificationState extends State<ViewNotification> with SingleTickerPr
                                             padding:
                                             const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                                             decoration: BoxDecoration(
-                                              color: type == "Task"
+                                              color: type == "Daily Work Plan"
+                                                  ? Colors.brown.shade50
+                                                  : type == "Task"
                                                   ? const Color(0xffE8F5E9)
                                                   : type == "Leave"?Colors.red.shade200
                                                   : type == "Feedback"?Colors.purple.shade200:
@@ -579,7 +590,9 @@ class _ViewNotificationState extends State<ViewNotification> with SingleTickerPr
                                             child: Text(
                                               type,
                                               style: TextStyle(
-                                                color: type == "Task"
+                                                color: type == "Daily Work Plan"
+                                                    ? Colors.brown:
+                                                    type == "Task"
                                                     ? const Color(0xff2E7D32):
                                                     type == "Leave"?Colors.red:
                                                     type == "Feedback"?Colors.purple:
@@ -616,10 +629,11 @@ class _ViewNotificationState extends State<ViewNotification> with SingleTickerPr
                                       5.height,
 
                                       /// 🔹 Body
+                                      if(!message.toLowerCase().contains("daily work plan"))
                                       CustomText(
                                         text: title.toLowerCase().contains("feedback")&&message==""?"Voice Message":message,isBold: true,
                                       ),
-
+                                      if(!message.toLowerCase().contains("daily work plan"))
                                       5.height,
 
                                       /// 🔹 Created By
@@ -630,7 +644,7 @@ class _ViewNotificationState extends State<ViewNotification> with SingleTickerPr
                                             text: TextSpan(
                                               children: [
                                                 TextSpan(
-                                                  text: type=="Feedback"?"Feedback sent  ":type=="Leave"?"Leave Applied  ":"Created  ",
+                                                  text: message.toLowerCase().contains("daily work plan")?"Added by ":type=="Feedback"?"Feedback sent by ":type=="Leave"?"Leave Applied  ":"Created by ",
                                                   style: TextStyle(
                                                     fontSize: 12,
                                                     color: Color(0xffA80007),

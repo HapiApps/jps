@@ -32,6 +32,7 @@ class TaskChat extends StatefulWidget {
   final String date1;
   final String date2;
   final String type;
+  final int index;
 
   const  TaskChat({
     super.key,
@@ -44,6 +45,7 @@ class TaskChat extends StatefulWidget {
     required this.date1,
     required this.date2,
     required this.type,
+    required this.index,
   });
 
   @override
@@ -578,7 +580,7 @@ class _TaskChatState extends State<TaskChat> with SingleTickerProviderStateMixin
                               context: context,
                               taskId: widget.taskId.toString(),
                               assignedId: widget.assignedId.toString(),
-                              path: recordedPath ?? "",
+                              path: recordedPath ?? "", index: widget.index,
                             );
                           }
 

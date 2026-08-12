@@ -73,7 +73,7 @@ class _HomePageState extends State<HomePage> {
       //
       // });
       final homeProvider = Provider.of<HomeProvider>(context, listen: false);
-
+      homeProvider.checkVersion();
       homeProvider.checkThisMonth();
       homeProvider.loadFullDashboard(context);
       homeProvider.changeType(context, homeProvider.type);
@@ -394,7 +394,6 @@ class _HomePageState extends State<HomePage> {
                               10.height,
 
                               /// DAILY WORK PLAN
-                              if (homeProvider.roleAccess.any((f) => f['feature'] == 'Daily Work Plan'&&f['name'] == 'View'))
                               Container(
                                 margin: const EdgeInsets.only(bottom: 8),
                                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -415,6 +414,7 @@ class _HomePageState extends State<HomePage> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     /// LEFT TEXT
+                                    if (homeProvider.roleAccess.any((f) => f['feature'] == 'Daily Work Plan'&&f['name'] == 'View'))
                                     Row(
                                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                       children: [
