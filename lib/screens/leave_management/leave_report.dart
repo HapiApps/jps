@@ -1,7 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
-import 'package:group_button/group_button.dart';
 import 'package:intl/intl.dart';
 import 'package:master_code/source/extentions/extensions.dart';
 import 'package:master_code/source/utilities/utils.dart';
@@ -9,16 +8,12 @@ import 'package:master_code/view_model/employee_provider.dart';
 import 'package:provider/provider.dart';
 import '../../component/animated_button.dart';
 import '../../component/custom_appbar.dart';
-import '../../component/custom_loading.dart';
 import '../../component/custom_text.dart';
-import '../../component/custom_textfield.dart';
 import '../../component/map_dropdown.dart';
 import '../../model/leave/leave_model.dart';
 import '../../model/user_model.dart';
 import '../../source/constant/assets_constant.dart';
 import '../../source/constant/colors_constant.dart';
-import '../../source/constant/default_constant.dart';
-import '../../source/constant/key_constant.dart';
 import '../../source/constant/local_data.dart';
 import '../../source/styles/decoration.dart';
 import '../../view_model/home_provider.dart';
@@ -119,12 +114,12 @@ class _ViewMyLeavesState extends State<ViewMyLeaves> {
                 _myFocusScopeNode.unfocus();
               },
               child:DefaultTabController(
-              length: 2,
-              child: Column(
-                children: [
-                  20.height,
-                  /// SEARCH BAR (UNCHANGED)
-                  // if(localData.storage.read("role") == "1")
+                length: 2,
+                child: Column(
+                  children: [
+                    20.height,
+                    /// SEARCH BAR (UNCHANGED)
+                    // if(localData.storage.read("role") == "1")
                     Padding(
                       padding: const EdgeInsets.symmetric(vertical: 8),
                       child: Container(
@@ -317,27 +312,27 @@ class _ViewMyLeavesState extends State<ViewMyLeaves> {
                                                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                                                     children: [
                                                       if(localData.storage.read("role") == "1")
-                                                      Column(
-                                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                                        children: [
-                                                          CustomText(
-                                                            text: "Employee Name",
-                                                            colors: colorsConst.greyClr,
-                                                            size: 12,
-                                                          ),
-                                                          EmployeeDropdown(
-                                                            callback: (){
-                                                              empProvider.getAllUsers();
-                                                            },
-                                                            text: levPvr.userName==""?"Name":levPvr.userName,
-                                                            employeeList: empProvider.filterUserData,
-                                                            onChanged: (UserModel? value) {
-                                                              levPvr.selectUserReport(value!);
-                                                            },
-                                                            size: kIsWeb?webWidth/2.7:phoneWidth/2.7,
-                                                          ),
-                                                        ],
-                                                      ),
+                                                        Column(
+                                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                                          children: [
+                                                            CustomText(
+                                                              text: "Employee Name",
+                                                              colors: colorsConst.greyClr,
+                                                              size: 12,
+                                                            ),
+                                                            EmployeeDropdown(
+                                                              callback: (){
+                                                                empProvider.getAllUsers();
+                                                              },
+                                                              text: levPvr.userName==""?"Name":levPvr.userName,
+                                                              employeeList: empProvider.filterUserData,
+                                                              onChanged: (UserModel? value) {
+                                                                levPvr.selectUserReport(value!);
+                                                              },
+                                                              size: kIsWeb?webWidth/2.7:phoneWidth/2.7,
+                                                            ),
+                                                          ],
+                                                        ),
                                                       Padding(
                                                         padding: EdgeInsets.fromLTRB(0, empProvider.filterUserData.isEmpty?20:0, 0, 0),
                                                         child: Column(
@@ -447,146 +442,224 @@ class _ViewMyLeavesState extends State<ViewMyLeaves> {
                       ),
                     ),
 
-                  /// TAB BAR
-                  const TabBar(
-                    labelColor: Colors.black,
-                    indicatorColor: Colors.red,
-                    tabs: [
-                      Tab(text: "Leave Created "),
-                      Tab(text: "Employees On Leave"),
-                    ],
-                  ),
-
-                  /// TAB VIEW
-                  Expanded(
-                    child: TabBarView(
-                      children: [
-
-                        /// ===============================
-                        /// TAB 1 – LEAVE CREATED TODAY
-                        /// ===============================
-                        Builder(
-                          builder: (context) {
-
-                            List<LeaveModel> createdToday;
-
-                            if (levProvider.isFilterApplied) {
-
-                              /// SHOW ALL FILTERED DATA
-                              createdToday = levProvider.myLevSearch;
-
-                            } else {
-
-                              /// PAGE LOAD → SHOW TODAY ONLY
-                              DateTime today = DateTime.now();
-
-                              createdToday = levProvider.myLevSearch.where((e) {
-
-                                DateTime created = DateTime.parse(e.createdTs.toString());
-
-                                return created.year == today.year &&
-                                    created.month == today.month &&
-                                    created.day == today.day;
-
-                              }).toList();
-                            }
-
-                            return DefaultTabController(
-                              length: 3,
-                              child: Column(
-                                children: [
-
-                                  /// SUB TAB BAR
-                                  const TabBar(
-                                    labelColor: Colors.black,
-                                    indicatorColor: Colors.red,
-                                    tabs: [
-                                      Tab(text: "Applied"),
-                                      Tab(text: "Approved"),
-                                      Tab(text: "Rejected"),
-                                    ],
-                                  ),
-
-                                  Expanded(
-                                    child: TabBarView(
-                                      children: [
-
-                                        /// APPLIED (status 0)
-                                        leaveStatusList(createdToday, "0",levProvider.isLoading),
-
-                                        /// APPROVED (status 1)
-                                        leaveStatusList(createdToday, "1",levProvider.isLoading),
-
-                                        /// CANCELLED (status 2)
-                                        leaveStatusList(createdToday, "2",levProvider.isLoading),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            );
-                          },
-                        ),
-
-                        /// ===============================
-                        /// TAB 2 – EMPLOYEE ON LEAVE TODAY
-                        /// ===============================
-                        Builder(
-                          builder: (context) {
-
-                            // ✅ Loading first
-                            if (levProvider.isLoading) {
-                              return const Center(child: CircularProgressIndicator());
-                            }
-
-                            List<LeaveModel> onLeaveToday;
-
-                            if (levProvider.isFilterApplied) {
-                              onLeaveToday = levProvider.myLevSearch;
-                            } else {
-
-                              DateTime today = DateTime.now();
-
-                              onLeaveToday = levProvider.myLevSearch.where((e) {
-
-                                DateTime start = DateTime.parse(e.startDate.toString());
-
-                                DateTime end = (e.endDate != null && e.endDate.toString() != "")
-                                    ? DateTime.parse(e.endDate.toString())
-                                    : start;
-
-                                return today.isAfter(start.subtract(const Duration(days: 1))) &&
-                                    today.isBefore(end.add(const Duration(days: 1)));
-
-                              }).toList();
-                            }
-
-                            // ✅ after loading, check empty
-                            if (onLeaveToday.isEmpty) {
-                              return const Center(child: Text("No Employees On Leave Today"));
-                            }
-
-                            return ListView.builder(
-                              padding: const EdgeInsets.all(10),
-                              itemCount: onLeaveToday.length,
-                              itemBuilder: (context, index) {
-                                final data = onLeaveToday[index];
-                                return leaveCard(data, showButtons: false,showCancelOnly: true);
-                              },
-                            );
-                          },
-                        ),
+                    /// TAB BAR
+                    TabBar(
+                      labelColor: Colors.black,
+                      indicatorColor: colorsConst.primary,
+                      tabs: [
+                        Tab(text: "Leave Created "),
+                        Tab(text: "Employees On Leave"),
                       ],
                     ),
-                  ),
-                ],
+
+                    /// TAB VIEW
+                    Expanded(
+                      child: TabBarView(
+                        children: [
+
+                          /// ===============================
+                          /// TAB 1 – LEAVE CREATED TODAY
+                          /// ===============================
+                          Builder(
+                            builder: (context) {
+
+                              List<LeaveModel> applied;
+                              List<LeaveModel> approved;
+                              if (levProvider.isFilterApplied) {
+                                DateTime startDate = parseLeaveDate(levProvider.startDate)!;
+                                DateTime endDate = parseLeaveDate(levProvider.endDate)!;
+
+                                startDate = DateTime(
+                                  startDate.year,
+                                  startDate.month,
+                                  startDate.day,
+                                );
+
+                                endDate = DateTime(
+                                  endDate.year,
+                                  endDate.month,
+                                  endDate.day,
+                                );
+
+                                applied = levProvider.myLevSearch.where((e) {
+                                  DateTime? createdDate =
+                                  parseCreatedDate(e.createdTs?.toString());
+                                  if (createdDate == null) {
+                                    return false;
+                                  }
+                                  createdDate = DateTime(
+                                    createdDate.year,
+                                    createdDate.month,
+                                    createdDate.day,
+                                  );
+                                  return !createdDate!.isBefore(startDate) &&
+                                      !createdDate!.isAfter(endDate);
+                                }).toList();
+                              }else {
+                                applied = levProvider.myLevSearch;
+                              }
+                              DateTime? startDate = parseLeaveDate(levProvider.startDate);
+                              DateTime? endDate = parseLeaveDate(levProvider.endDate);
+
+                              if (startDate == null || endDate == null) {
+                                approved = [];
+                              } else {
+                                startDate = DateTime(startDate.year,startDate.month,startDate.day);
+                                endDate = DateTime(endDate.year,endDate.month,endDate.day);
+                                approved = levProvider.myLevSearch.where((e) {
+                                  DateTime? leaveStart =parseLeaveDate(e.startDate?.toString());
+                                  DateTime? leaveEnd =parseLeaveDate(e.endDate?.toString());
+                                  if (leaveStart == null || leaveEnd == null) {
+                                    return false;
+                                  }
+                                  leaveStart = DateTime(leaveStart.year,leaveStart.month,leaveStart.day,);
+                                  leaveEnd = DateTime(leaveEnd.year, leaveEnd.month,leaveEnd.day);
+
+                                  return !leaveStart.isAfter(endDate!) &&!leaveEnd.isBefore(startDate!);
+                                }).toList();
+                              }
+                              return DefaultTabController(
+                                length: 3,
+                                child: Column(
+                                  children: [
+
+                                    /// SUB TAB BAR
+                                    TabBar(
+                                      labelColor: Colors.black,
+                                      indicatorColor: colorsConst.primary,
+                                      tabs: [
+                                        Tab(text: "Applied"),
+                                        Tab(text: "Approved"),
+                                        Tab(text: "Rejected"),
+                                      ],
+                                    ),
+
+                                    Expanded(
+                                      child: TabBarView(
+                                        children: [
+
+                                          /// APPLIED (status 0)
+                                          leaveStatusList(applied, "0",levProvider.isLoading),
+
+                                          /// APPROVED (status 1)
+                                          leaveStatusList(approved, "1",levProvider.isLoading),
+
+                                          /// CANCELLED (status 2)
+                                          leaveStatusList(approved, "2",levProvider.isLoading),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            },
+                          ),
+
+                          /// ===============================
+                          /// TAB 2 – EMPLOYEE ON LEAVE TODAY
+                          /// ===============================
+                          Builder(
+                            builder: (context) {
+
+                              // ✅ Loading first
+                              if (levProvider.isLoading) {
+                                return const Center(child: CircularProgressIndicator());
+                              }
+                              List<LeaveModel> onLeaveToday;
+                              // print(levProvider.isFilterApplied);
+                              // if (levProvider.isFilterApplied) {
+                              //   onLeaveToday = levProvider.myLevSearch;
+                              // } else {
+                              //   DateTime today = DateTime.now();
+                              //   onLeaveToday = levProvider.myLevSearch.where((e) {
+                              //     DateTime start = DateTime.parse(e.startDate.toString());
+                              //
+                              //     DateTime end = (e.endDate != null && e.endDate.toString() != "")
+                              //         ? DateTime.parse(e.endDate.toString())
+                              //         : start;
+                              //
+                              //     return today.isAfter(start.subtract(const Duration(days: 1))) &&
+                              //         today.isBefore(end.add(const Duration(days: 1)));
+                              //
+                              //   }).toList();
+                              // }
+                              DateTime startDate = parseLeaveDate(levProvider.startDate)!;
+                              DateTime endDate = parseLeaveDate(levProvider.endDate)!;
+                              startDate = DateTime(startDate.year,startDate.month, startDate.day);
+                              endDate = DateTime(endDate.year,endDate.month,endDate.day);
+                              onLeaveToday = levProvider.myLevSearch.where((e) {
+                                DateTime? leaveStart = parseLeaveDate(e.startDate?.toString());
+                                DateTime? leaveEnd = parseLeaveDate(e.endDate?.toString());
+                                if (leaveStart == null || leaveEnd == null) {
+                                  return false;
+                                }
+                                leaveStart = DateTime(leaveStart.year,leaveStart.month,leaveStart.day);
+                                leaveEnd = DateTime(leaveEnd.year,leaveEnd.month,leaveEnd.day);
+                                return !leaveStart.isAfter(endDate) &&!leaveEnd.isBefore(startDate);
+                              }).toList();
+                              if (onLeaveToday.isEmpty) {
+                                return const Center(child: Text("No Employees On Leave Today"));
+                              }
+                              return ListView.builder(
+                                padding: const EdgeInsets.all(10),
+                                itemCount: onLeaveToday.length,
+                                itemBuilder: (context, index) {
+                                  final data = onLeaveToday[index];
+                                  return leaveCard(data, showButtons: false,showCancelOnly: true);
+                                },
+                              );
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
             ),
           ),
         ),
       );
     });
+  }
+  DateTime? parseCreatedDate(String? value) {
+    if (value == null || value.isEmpty) {
+      return null;
+    }
+
+    try {
+      // yyyy-MM-dd HH:mm:ss
+      return DateTime.parse(value);
+    } catch (e) {
+      return null;
+    }
+  }
+  DateTime? parseLeaveDate(String? value) {
+    if (value == null || value.trim().isEmpty) return null;
+
+    final date = value.trim();
+
+    try {
+      // yyyy-MM-dd
+      if (RegExp(r'^\d{4}-\d{2}-\d{2}$').hasMatch(date)) {
+        return DateTime.parse(date);
+      }
+
+      // dd-MM-yyyy
+      if (RegExp(r'^\d{2}-\d{2}-\d{4}$').hasMatch(date)) {
+        final parts = date.split('-');
+
+        return DateTime(
+          int.parse(parts[2]),
+          int.parse(parts[1]),
+          int.parse(parts[0]),
+        );
+      }
+    } catch (e) {
+      print("Date parse error: $value -> $e");
+    }
+
+    return null;
   }
   String getCreatedDate(data) {
     final timestamp = data.createdTs.toString();
@@ -1044,44 +1117,44 @@ class _ViewMyLeavesState extends State<ViewMyLeaves> {
             if (showSummary) ...[
 
 
-    if (allowed > 0 || taken > 0) ...[
-    Row(
-    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-    children: [
-    Row(
-    children: [
-    const CustomText(
-    text: " Total Leave: ",
-    size: 13,
-    isBold: true,
-    ),
-      CustomText(
-        text: taken % 1 == 0
-            ? taken.toInt().toString()
-            : taken.toString(),
-        size: 13,
-        colors: const Color(0xff7E7E7E),
-    ),
-    ],
-    ),
-    Row(
-    children: [
-    const CustomText(
-    text: " Leave Taken : ",
-    size: 13,
-    isBold: true,
-    ),
-    CustomText(
-    text: taken % 1 == 0
-    ? taken.toInt().toString()
-        : taken.toString(),
-    size: 13,
-    colors: const Color(0xff7E7E7E),),
-    ],
-    ),
-    ],
-    ),
-    ],
+              if (allowed > 0 || taken > 0) ...[
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        const CustomText(
+                          text: " Total Leave: ",
+                          size: 13,
+                          isBold: true,
+                        ),
+                        CustomText(
+                          text: taken % 1 == 0
+                              ? taken.toInt().toString()
+                              : taken.toString(),
+                          size: 13,
+                          colors: const Color(0xff7E7E7E),
+                        ),
+                      ],
+                    ),
+                    Row(
+                      children: [
+                        const CustomText(
+                          text: " Leave Taken : ",
+                          size: 13,
+                          isBold: true,
+                        ),
+                        CustomText(
+                          text: taken % 1 == 0
+                              ? taken.toInt().toString()
+                              : taken.toString(),
+                          size: 13,
+                          colors: const Color(0xff7E7E7E),),
+                      ],
+                    ),
+                  ],
+                ),
+              ],
               10.height,
             ],
 
@@ -1209,7 +1282,6 @@ class _ViewMyLeavesState extends State<ViewMyLeaves> {
                         onPressed: () async {
                           final provider =
                           Provider.of<LeaveProvider>(context, listen: false);
-
                           await provider.approveApply(
                             context,
                             data.id.toString(),
