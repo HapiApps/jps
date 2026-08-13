@@ -2169,7 +2169,20 @@ void changeStatus(bool value){
       // print("TODAY LEAVE LIST 12 => ${data}");
       myLev = response;
       myLevSearch = response;
-      todayLeaveList = response;
+
+      DateTime parseDate(String date) {
+        final parts = date.split('-');
+        return DateTime( int.parse(parts[2]),int.parse(parts[1]),int.parse(parts[0]));
+      }
+      DateTime today = DateTime.now();
+      today = DateTime(today.year, today.month, today.day);
+      DateTime stDate = parseDate(st);
+      DateTime enDate = parseDate(en);
+
+      bool isToday = !today.isBefore(stDate) &&!today.isAfter(enDate);
+      if(isToday){
+        todayLeaveList = response;
+      }
       // print("TODAY LEAVE LIST => ${todayLeaveList}");
       // print("MY ID => ${localData.storage.read("id")}");// ✅ store here
       _isLoading = false;
@@ -2208,7 +2221,19 @@ void changeStatus(bool value){
       // print("TODAY LEAVE LIST 12 => ${data}");
       myLev = response;
       myLevSearch = response;
-      todayLeaveList = response;
+      DateTime parseDate(String date) {
+        final parts = date.split('-');
+        return DateTime( int.parse(parts[2]),int.parse(parts[1]),int.parse(parts[0]));
+      }
+      DateTime today = DateTime.now();
+      today = DateTime(today.year, today.month, today.day);
+      DateTime stDate = parseDate(st);
+      DateTime enDate = parseDate(en);
+
+      bool isToday = !today.isBefore(stDate) &&!today.isAfter(enDate);
+      if(isToday){
+        todayLeaveList = response;
+      }
       // print("TODAY LEAVE LIST => ${todayLeaveList}");
       // print("MY ID => ${localData.storage.read("id")}");// ✅ store here
       _isLoading = false;

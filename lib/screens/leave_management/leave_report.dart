@@ -465,24 +465,59 @@ class _ViewMyLeavesState extends State<ViewMyLeaves> {
 
                             List<LeaveModel> applied;
                             List<LeaveModel> approved;
+                            if (levProvider.isFilterApplied) {
+                              DateTime startDate = parseLeaveDate(levProvider.startDate)!;
+                              DateTime endDate = parseLeaveDate(levProvider.endDate)!;
 
-                            applied = levProvider.myLevSearch;
+                              startDate = DateTime(
+                                startDate.year,
+                                startDate.month,
+                                startDate.day,
+                              );
 
-                            DateTime startDate = parseLeaveDate(levProvider.startDate)!;
-                            DateTime endDate = parseLeaveDate(levProvider.endDate)!;
-                            startDate = DateTime(startDate.year,startDate.month, startDate.day);
-                            endDate = DateTime(endDate.year,endDate.month,endDate.day);
-                            approved = levProvider.myLevSearch.where((e) {
-                              DateTime? leaveStart = parseLeaveDate(e.startDate?.toString());
-                              DateTime? leaveEnd = parseLeaveDate(e.endDate?.toString());
-                              if (leaveStart == null || leaveEnd == null) {
-                                return false;
-                              }
-                              leaveStart = DateTime(leaveStart.year,leaveStart.month,leaveStart.day);
-                              leaveEnd = DateTime(leaveEnd.year,leaveEnd.month,leaveEnd.day);
-                              return !leaveStart.isAfter(endDate) &&!leaveEnd.isBefore(startDate);
-                            }).toList();
+                              endDate = DateTime(
+                                endDate.year,
+                                endDate.month,
+                                endDate.day,
+                              );
 
+                              applied = levProvider.myLevSearch.where((e) {
+                                DateTime? createdDate =
+                                parseCreatedDate(e.createdTs?.toString());
+                                if (createdDate == null) {
+                                  return false;
+                                }
+                                createdDate = DateTime(
+                                  createdDate.year,
+                                  createdDate.month,
+                                  createdDate.day,
+                                );
+                                return !createdDate!.isBefore(startDate) &&
+                                    !createdDate!.isAfter(endDate);
+                              }).toList();
+                            }else {
+                              applied = levProvider.myLevSearch;
+                            }
+                            DateTime? startDate = parseLeaveDate(levProvider.startDate);
+                            DateTime? endDate = parseLeaveDate(levProvider.endDate);
+
+                            if (startDate == null || endDate == null) {
+                              approved = [];
+                            } else {
+                              startDate = DateTime(startDate.year,startDate.month,startDate.day);
+                              endDate = DateTime(endDate.year,endDate.month,endDate.day);
+                              approved = levProvider.myLevSearch.where((e) {
+                                DateTime? leaveStart =parseLeaveDate(e.startDate?.toString());
+                                DateTime? leaveEnd =parseLeaveDate(e.endDate?.toString());
+                                if (leaveStart == null || leaveEnd == null) {
+                                  return false;
+                                }
+                                leaveStart = DateTime(leaveStart.year,leaveStart.month,leaveStart.day,);
+                                leaveEnd = DateTime(leaveEnd.year, leaveEnd.month,leaveEnd.day);
+
+                                return !leaveStart.isAfter(endDate!) &&!leaveEnd.isBefore(startDate!);
+                              }).toList();
+                            }
                             return DefaultTabController(
                               length: 3,
                               child: Column(
@@ -586,6 +621,18 @@ class _ViewMyLeavesState extends State<ViewMyLeaves> {
         ),
       );
     });
+  }
+  DateTime? parseCreatedDate(String? value) {
+    if (value == null || value.isEmpty) {
+      return null;
+    }
+
+    try {
+      // yyyy-MM-dd HH:mm:ss
+      return DateTime.parse(value);
+    } catch (e) {
+      return null;
+    }
   }
   DateTime? parseLeaveDate(String? value) {
     if (value == null || value.trim().isEmpty) return null;
