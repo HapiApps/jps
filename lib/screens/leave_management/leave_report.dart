@@ -588,6 +588,9 @@ class _ViewMyLeavesState extends State<ViewMyLeaves> {
                               startDate = DateTime(startDate.year,startDate.month, startDate.day);
                               endDate = DateTime(endDate.year,endDate.month,endDate.day);
                               onLeaveToday = levProvider.myLevSearch.where((e) {
+                                if (e.status.toString() != "1") {
+                                  return false;
+                                }
                                 DateTime? leaveStart = parseLeaveDate(e.startDate?.toString());
                                 DateTime? leaveEnd = parseLeaveDate(e.endDate?.toString());
                                 if (leaveStart == null || leaveEnd == null) {
@@ -1115,8 +1118,6 @@ class _ViewMyLeavesState extends State<ViewMyLeaves> {
 
             // ✅ SHOW SUMMARY ONLY IF FILTER NOT APPLIED
             if (showSummary) ...[
-
-
               if (allowed > 0 || taken > 0) ...[
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1149,7 +1150,8 @@ class _ViewMyLeavesState extends State<ViewMyLeaves> {
                               ? taken.toInt().toString()
                               : taken.toString(),
                           size: 13,
-                          colors: const Color(0xff7E7E7E),),
+                          colors: const Color(0xff7E7E7E),
+                        ),
                       ],
                     ),
                   ],
@@ -1162,9 +1164,7 @@ class _ViewMyLeavesState extends State<ViewMyLeaves> {
               Row(
                 children: [
                   CustomText(
-                    text: data.status == "1"
-                        ? " Approved by : "
-                        : " Rejected by : ",
+                    text: data.status == "1" ? " Approved by : " : " Rejected by : ",
                     size: 13,
                     isBold: true,
                   ),
@@ -1181,9 +1181,7 @@ class _ViewMyLeavesState extends State<ViewMyLeaves> {
               Row(
                 children: [
                   CustomText(
-                    text: data.status == "1"
-                        ? " Approved on: "
-                        : " Rejected on: ",
+                    text: data.status == "1" ? " Approved on: " : " Rejected on: ",
                     size: 13,
                     isBold: true,
                   ),
@@ -1199,129 +1197,199 @@ class _ViewMyLeavesState extends State<ViewMyLeaves> {
             ],
 
             /// Cancel Only Button
-            if (showCancelOnly && localData.storage.read("role") != "1" && data.status!="3") ...[
-              Align(
-                alignment: Alignment.centerRight,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red,
-                  ),
-                  onPressed: () async {
-                    final provider =
-                    Provider.of<LeaveProvider>(context, listen: false);
-
-                    await provider.approveApply(
-                      context,
-                      data.id.toString(),
-                      data.userId.toString(),
-                      "3",
-                    );
-                  },
-                  child: const Text("Cancel Leave"),
-                ),
+            if (showCancelOnly &&
+                localData.storage.read("role") != "1" &&
+                data.status != "3") ...[
+              Consumer<LeaveProvider>(
+                builder: (context, provider, _) {
+                  final isLoading = provider.loadingLeaveId == data.id.toString();
+                  return Align(
+                    alignment: Alignment.centerRight,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red,
+                      ),
+                      onPressed: isLoading
+                          ? null
+                          : () async {
+                        await provider.approveApply(
+                          context,
+                          data.id.toString(),
+                          data.userId.toString(),
+                          "3",
+                        );
+                      },
+                      child: isLoading
+                          ? const SizedBox(
+                        height: 18,
+                        width: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                          : const Text("Cancel Leave"),
+                    ),
+                  );
+                },
               ),
             ],
 
-            /// Admin Buttons
+            /// Admin Buttons — status 0 (Approve / Reject)
             if (showButtons && localData.storage.read("role") == "1") ...[
               if (data.status == "0") ...[
-                Row(
-                  children: [
-                    Expanded(
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.green,
-                        ),
-                        onPressed: () async {
-                          final provider =
-                          Provider.of<LeaveProvider>(context, listen: false);
+                Consumer<LeaveProvider>(
+                  builder: (context, provider, _) {
+                    final isApproveLoading = provider.loadingLeaveId == data.id.toString() &&
+                        provider.loadingAction == "approve";
+                    final isRejectLoading = provider.loadingLeaveId == data.id.toString() &&
+                        provider.loadingAction == "reject";
+                    final isAnyLoading = provider.loadingLeaveId == data.id.toString();
 
-                          await provider.approveApply(
-                            context,
-                            data.id.toString(),
-                            data.userId.toString(),
-                            "1",
-                          );
-                        },
-                        child: const Text("Approve Leave"),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.red,
+                    return Row(
+                      children: [
+                        Expanded(
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.green,
+                            ),
+                            onPressed: isAnyLoading
+                                ? null
+                                : () async {
+                              await provider.approveApply(
+                                context,
+                                data.id.toString(),
+                                data.userId.toString(),
+                                "1",
+                              );
+                            },
+                            child: isApproveLoading
+                                ? const SizedBox(
+                              height: 18,
+                              width: 18,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                                : const Text("Approve Leave"),
+                          ),
                         ),
-                        onPressed: () async {
-                          final provider =
-                          Provider.of<LeaveProvider>(context, listen: false);
-
-                          await provider.approveApply(
-                            context,
-                            data.id.toString(),
-                            data.userId.toString(),
-                            "2",
-                          );
-                        },
-                        child: const Text("Reject Leave"),
-                      ),
-                    ),
-                  ],
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.red,
+                            ),
+                            onPressed: isAnyLoading
+                                ? null
+                                : () async {
+                              await provider.approveApply(
+                                context,
+                                data.id.toString(),
+                                data.userId.toString(),
+                                "2",
+                              );
+                            },
+                            child: isRejectLoading
+                                ? const SizedBox(
+                              height: 18,
+                              width: 18,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                                : const Text("Reject Leave"),
+                          ),
+                        ),
+                      ],
+                    );
+                  },
                 ),
               ],
             ],
+
+            /// Admin Buttons — status 1 (Cancel Approved Leave)
             if (showButtons && localData.storage.read("role") == "1") ...[
               if (data.status == "1") ...[
-                Row(
-                  children: [
-                    Expanded(
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.green,
+                Consumer<LeaveProvider>(
+                  builder: (context, provider, _) {
+                    final isLoading = provider.loadingLeaveId == data.id.toString();
+                    return Row(
+                      children: [
+                        Expanded(
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.green,
+                            ),
+                            onPressed: isLoading
+                                ? null
+                                : () async {
+                              await provider.approveApply(
+                                context,
+                                data.id.toString(),
+                                data.userId.toString(),
+                                "2",
+                              );
+                            },
+                            child: isLoading
+                                ? const SizedBox(
+                              height: 18,
+                              width: 18,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                                : const Text("Cancel Approved Leave"),
+                          ),
                         ),
-                        onPressed: () async {
-                          final provider =
-                          Provider.of<LeaveProvider>(context, listen: false);
-                          await provider.approveApply(
-                            context,
-                            data.id.toString(),
-                            data.userId.toString(),
-                            "2",
-                          );
-                        },
-                        child: const Text("Cancel Approved Leave"),
-                      ),
-                    ),
-
-                  ],
+                      ],
+                    );
+                  },
                 ),
               ],
             ],
+
+            /// Admin Buttons — status 2 (Approve Rejected Leave)
             if (showButtons && localData.storage.read("role") == "1") ...[
               if (data.status == "2") ...[
-                Row(
-                  children: [
-
-                    Expanded(
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.red,
+                Consumer<LeaveProvider>(
+                  builder: (context, provider, _) {
+                    final isLoading = provider.loadingLeaveId == data.id.toString();
+                    return Row(
+                      children: [
+                        Expanded(
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.red,
+                            ),
+                            onPressed: isLoading
+                                ? null
+                                : () async {
+                              await provider.approveApply(
+                                context,
+                                data.id.toString(),
+                                data.userId.toString(),
+                                "1",
+                              );
+                            },
+                            child: isLoading
+                                ? const SizedBox(
+                              height: 18,
+                              width: 18,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                                : const Text("Approve Rejected Leave"),
+                          ),
                         ),
-                        onPressed: () async {
-                          final provider =
-                          Provider.of<LeaveProvider>(context, listen: false);
-
-                          await provider.approveApply(
-                            context,
-                            data.id.toString(),
-                            data.userId.toString(),
-                            "1",
-                          );
-                        },
-                        child: const Text("Approve Rejected Leave"),
-                      ),
-                    ),
-                  ],
+                      ],
+                    );
+                  },
                 ),
               ],
             ],

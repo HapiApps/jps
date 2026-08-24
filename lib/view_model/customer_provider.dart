@@ -832,6 +832,7 @@ int get listItem=>_listItem;
   TextEditingController emgName = TextEditingController();
   TextEditingController emgNo = TextEditingController();
   final RoundedLoadingButtonController addCtr =RoundedLoadingButtonController();
+  final RoundedLoadingButtonController delctr =RoundedLoadingButtonController();
 
  bool required = false,status1 = false,status2 = false,status3 = false;
  var statusType = "1";
@@ -906,6 +907,32 @@ int get listItem=>_listItem;
     } catch (e) {
       utils.showErrorToast(context: context);
       addCtr.reset();
+    }
+    notifyListeners();
+  }
+  Future<void> deleteCompany(context, {required String cusId,required String comId, required String id}) async {
+    try {
+      Map<String, String> data = {
+        "action":delete,
+        "ops": "company",
+        "id": id,
+        "cus_id": cusId,
+        "com_id": comId,
+        "cos_id": localData.storage.read("cos_id"),
+        "updated_by": localData.storage.read("id"),
+        "platform": localData.storage.read("platform").toString(),
+      };
+      final response =await custRepo.deleteCompany(data);
+      if (response.toString().contains("ok")) {
+        Navigator.pop(context);
+        utils.showSuccessToast(context: context, text: "Deleted Successfully",);
+        getCustomerDetail(cusId,false,true);
+        getAllCustomers(false);
+        delctr.reset();
+      }
+    } catch (e) {
+      utils.showErrorToast(context: context);
+      delctr.reset();
     }
     notifyListeners();
   }

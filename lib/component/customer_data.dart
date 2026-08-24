@@ -4,11 +4,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:master_code/source/constant/assets_constant.dart';
 import 'package:master_code/source/extentions/extensions.dart';
+import 'package:provider/provider.dart';
 import '../model/customer/customer_model.dart';
 import '../source/constant/colors_constant.dart';
 import '../source/constant/local_data.dart';
 import '../source/styles/decoration.dart';
 import '../source/utilities/utils.dart';
+import '../view_model/customer_provider.dart';
 import 'custom_text.dart';
 import 'dotted_border.dart';
 
@@ -28,7 +30,11 @@ class CustomerData extends StatefulWidget {
   final VoidCallback? shareCallback;
   final VoidCallback? mailCallback;
   const CustomerData({super.key,
-    required this.customerData, required this.callback, required this.iconCallback, this.show=false, required this.callback2, required this.editCallBack, required this.reportCallBack, required this.visitsCallBack, required this.showDateHeader, required this.dayOfWeek, required this.taskCallBack, required this.iconCallback2, this.shareCallback, this.mailCallback});
+    required this.customerData,
+    required this.callback, required this.iconCallback, this.show=false, required this.callback2,
+    required this.editCallBack, required this.reportCallBack, required this.visitsCallBack,
+    required this.showDateHeader, required this.dayOfWeek, required this.taskCallBack,
+    required this.iconCallback2, this.shareCallback, this.mailCallback});
 
   @override
   State<CustomerData> createState() => _CustomerDataState();
@@ -38,6 +44,7 @@ class _CustomerDataState extends State<CustomerData> {
   @override
   Widget build(BuildContext context) {
     bool isExpanded = false;
+    final custProvider = Provider.of<CustomerProvider>(context, listen: false);
     var webWidth=MediaQuery.of(context).size.width * 0.5;
     var phoneWidth=MediaQuery.of(context).size.width * 0.9;
     CustomerModel data=widget.customerData;
@@ -100,7 +107,9 @@ class _CustomerDataState extends State<CustomerData> {
                                                 Column(
                                                   crossAxisAlignment: CrossAxisAlignment.start,
                                                   children: [
-                                                    CustomText(text: "Company",isBold: localData.storage.read("role") =="1"?true:true,colors: localData.storage.read("role") =="1"?Colors.black:Colors.black,),
+                                                    CustomText(text: "Company",isBold: localData.storage
+                                                        .read("role") =="1"?true:true,colors: localData.storage.read("role") =="1"?
+                                                    Colors.black:Colors.black,),
                                                     SizedBox(
                                                       width: 150, // required
                                                       child: Text(
@@ -141,6 +150,28 @@ class _CustomerDataState extends State<CustomerData> {
                                                                     utils.makingPhoneCall(ph: phoneList[index].toString());
                                                                   },
                                                                   icon: Icon(Icons.call,color: colorsConst.blueClr,)),
+                                                            ),
+                                                            10.height,
+                                                            SizedBox(
+                                                              width:30,height:30,
+                                                              // color: Colors.yellow,
+                                                              child: IconButton(
+                                                                  onPressed:(){
+
+                                                                    utils.customDialog(
+                                                                        context: context,
+                                                                        isLoading: true,
+                                                                        title: 'Do you want to',
+                                                                        title2: 'Delete The Company?',
+                                                                        roundedLoadingButtonController: custProvider.delctr,
+                                                                        callback: () {
+                                                                      final custProvider = Provider.of<CustomerProvider>(context, listen: false);
+                                                                    custProvider.deleteCompany(context, id: idList[index], comId: data.userId.toString(),
+                                                                    cusId: data.customerId.toString());
+                          }
+                                                                    );
+                                                                    },
+                                                                  icon: Icon(Icons.delete,color: Colors.red,)),
                                                             ),
                                                             10.height
                                                           ],

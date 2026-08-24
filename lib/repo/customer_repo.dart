@@ -202,6 +202,28 @@ class CustomerRepository{
       throw Exception('Failed to work flow');
     }
   }
+
+  Future<Map<String,dynamic>> deleteCompany(Map data) async {
+    try{
+      final request = await http.post(Uri.parse(phpFile),
+          headers: {
+            "Accept": "application/text",
+            "Content-Type": "application/x-www-form-urlencoded"
+          },
+          body: jsonEncode(data),
+          encoding: Encoding.getByName("utf-8"));
+      // print(request.body);
+      // print(request.statusCode);
+      if (request.statusCode == 200) {
+        return json.decode(request.body);
+      } else {
+        return json.decode(request.body);
+      }
+    }catch(e){
+      // print(e);
+      throw Exception('Failed to work flow');
+    }
+  }
   /// Delete Employee
   Future<Map<String,dynamic>> deleteEmployee(Map data) async {
     try{

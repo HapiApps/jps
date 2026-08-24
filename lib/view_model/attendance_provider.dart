@@ -1748,6 +1748,8 @@ void showDatePickerDialog(BuildContext context,List<UserModel>? list) {
       "img": "",
       "status": status,
       "cos_id": localData.storage.read("cos_id"),
+      "version": localData.versionNumber,
+
     };
 
     final response = await attRepo.addAttendance(requestData, _profile);
@@ -1910,6 +1912,7 @@ void showDatePickerDialog(BuildContext context,List<UserModel>? list) {
       "img": "",
       "status": status,
       "cos_id": localData.storage.read("cos_id"),
+
     };
 
     final response = await attRepo.addAttendance(requestData, _profile);

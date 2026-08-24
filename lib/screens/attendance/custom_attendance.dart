@@ -571,16 +571,14 @@ class _CheckAttendanceState extends State<CheckAttendance> {
                                     listen: false,
                                   );
 
-                                  bool isOnLeave =
-                                  leaveProvider.todayLeaveList.any(
-                                        (leave) {
-                                      return leave.userId.toString() ==
-                                          localData.storage
-                                              .read("id")
-                                              .toString();
-                                    },
-                                  );
+                                  String isOnLeaveValue = homeProvider.mainReportList.isEmpty
+                                      ? "0"
+                                      : homeProvider.mainReportList[0]["is_on_leave"].toString() == "null"
+                                      ? "0"
+                                      : homeProvider.mainReportList[0]["is_on_leave"].toString();
 
+                                  bool isOnLeave = isOnLeaveValue == "1";
+                                  print("isOnLeaveValue${isOnLeaveValue}");
                                   if (isOnLeave) {
                                     utils.showWarningToast(
                                       context,
@@ -853,7 +851,7 @@ class _CheckAttendanceState extends State<CheckAttendance> {
                 allowed:" ${ homeProvider.mainReportList.isEmpty ?"0":homeProvider.
                 mainReportList[0]["emp_leave_allowed"].toString()=="null"?"0":
                 homeProvider.mainReportList[0]["emp_leave_allowed"].toString()}",
-
+          // is_on_leave
                 taken: " ${ homeProvider.mainReportList.isEmpty ?"0":homeProvider.
                 mainReportList[0]["emp_leave_taken"].toString()=="null"?"0":
                 homeProvider.mainReportList[0]["emp_leave_taken"].toString()}",

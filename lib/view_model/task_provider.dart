@@ -3172,6 +3172,7 @@ class TaskProvider with ChangeNotifier {
         'task_time': "$taskSTime||$taskETime",
         'action': adTask,
         'cos_id': localData.storage.read("cos_id"),
+        "version": localData.versionNumber,
         "data": jsonString,
       };
       final response =await _taskRepo.addTask(data,customersList);

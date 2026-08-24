@@ -1592,6 +1592,7 @@ void setList(){
             ? nameId
             : localData.storage.read("id"),
         "cos_id": localData.storage.read("cos_id"),
+        "version": localData.versionNumber,
         "session": _session1 == true ? "Morning" : "Afternoon",
       };
 
@@ -1682,16 +1683,22 @@ void setList(){
     notifyListeners();
   }
 
+  String? _loadingLeaveId;
+  String? get loadingLeaveId => _loadingLeaveId;
+
+  String? loadingAction;
   Future<void> approveApply(
       context,
       String leaveId,
       String userId,
       String status,
-      )
-  async {
+      ) async {
+    _loadingLeaveId = leaveId;
+    loadingAction = status == "1" ? "approve" : "reject"; // 👈 track action
+    notifyListeners();
+    notifyListeners();
 
     try {
-
       Map data = {
         "action": approveLeave,
         "platform": localData.storage.read("platform"),
@@ -1707,60 +1714,41 @@ void setList(){
       log(response.toString());
 
       if (response["message"] != null) {
-
-        utils.showSuccessToast(
-            context: context,
-            text: response["message"]);
-
-        /// 🔔 SEND NOTIFICATION TO EMPLOYEE
+        utils.showSuccessToast(context: context, text: response["message"]);
 
         final empProvider =
         Provider.of<EmployeeProvider>(context, listen: false);
-        final home =
-        Provider.of<HomeProvider>(context, listen: false);
+        final home = Provider.of<HomeProvider>(context, listen: false);
 
-        String title = status == "1"
-            ? "Leave Approved ✅"
-            : "Leave Rejected ❌";
-
+        String title = status == "1" ? "Leave Approved ✅" : "Leave Rejected ❌";
         String body = status == "1"
             ? "Your leave request has been approved"
             : "Your leave request has been rejected";
+
         try {
-          await empProvider.sendUserNotification(
-            title,
-            body,
-            userId,   // 👈 employee id
-          );
+          await empProvider.sendUserNotification(title, body, userId);
           getLeaveReport(filter);
-          // home.loadFullDashboard(context);
-        } catch(e){
+        } catch (e) {
           log("Notification failed: $e");
         }
         await getLeaveReport(_filter);
-
-      }
-      else if (response["Failed"] != null) {
-
-        utils.showWarningToast(
-            context,
-            text: response["Failed"].toString());
-
+      } else if (response["Failed"] != null) {
+        utils.showWarningToast(context, text: response["Failed"].toString());
         leaveCtr.reset();
-      }
-      else {
+      } else {
         utils.showErrorToast(context: context);
         leaveCtr.reset();
       }
-
     } catch (e) {
       log(e.toString());
       utils.showErrorToast(context: context);
       leaveCtr.reset();
+    } finally {
+      leaveCtr.reset();
+      _loadingLeaveId = null;
+      loadingAction = null; // 👈 res
+      notifyListeners();
     }
-
-    leaveCtr.reset();
-    notifyListeners();
   }
   // Future<void> leaveApply(context) async {
   //   try {

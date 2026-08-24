@@ -28,23 +28,44 @@ class AttendanceRepository{
     }
   }
   Future<List<AttendanceModel>> getReport(Map data) async {
-    try{
-      final request = await http.post(Uri.parse(phpFile),
-          headers: {
-            "Accept": "application/text",
-            "Content-Type": "application/x-www-form-urlencoded"
-          },
-          body: jsonEncode(data),
-          encoding: Encoding.getByName("utf-8"));
-      print(request.body.toString());
-      if (request.statusCode == 200){
-        List response = json.decode(request.body);
-        return response.map((json) => AttendanceModel.fromJson(json)).toList();
-      } else {
-        throw Exception('Failed to get attendance');
+    try {
+      final request = await http.post(
+        Uri.parse(phpFile),
+        headers: {
+          "Accept": "application/json",
+          "Content-Type": "application/json",
+        },
+        body: jsonEncode(data),
+        encoding: Encoding.getByName("utf-8"),
+      );
+      print("Status Code data : ${data}");
+      print("Status Code : ${request.statusCode}");
+      print("Response Body : ${request.body}");
+
+      final decodedResponse = json.decode(request.body);
+
+      // API no data response
+      if (decodedResponse is Map &&
+          decodedResponse['status_code'] == 400) {
+        print("No attendance data found");
+
+        return [];
       }
-    }catch(e){
-      // print("Printtt $e");
+
+      // Success response
+      if (request.statusCode == 200 && decodedResponse is List) {
+        return decodedResponse
+            .map((json) => AttendanceModel.fromJson(json))
+            .toList();
+      }
+
+      throw Exception(
+        decodedResponse is Map
+            ? decodedResponse['message'] ?? 'Failed to get attendance'
+            : 'Failed to get attendance',
+      );
+    } catch (e) {
+      print("getReport Error : $e");
       throw Exception('Failed to get attendance');
     }
   }

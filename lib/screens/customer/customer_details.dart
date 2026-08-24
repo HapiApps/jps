@@ -30,6 +30,7 @@ class _CustomerDetailsState extends State<CustomerDetails> {
   @override
   void initState() {
     Future.delayed(Duration.zero, () {
+      Provider.of<CustomerProvider>(context, listen: false).getAllCustomers(true);
       Provider.of<CustomerProvider>(context, listen: false).getCustomerDetail(widget.id,false,true);
     });
     super.initState();
@@ -190,9 +191,9 @@ class _CustomerDetailsState extends State<CustomerDetails> {
                                             if(idList.length!=1)
                                             InkWell(
                                               onTap:(){
-                                                if(mainPerson[index]=="1"){
-                                                  utils.showWarningToast(context, text: "Main contact cannot be deleted");
-                                                }else{
+                                                // if(mainPerson[index]=="1"){
+                                                //   utils.showWarningToast(context, text: "Main contact cannot be deleted");
+                                                // }else{
                                                   utils.customDialog(
                                                       context: context,
                                                       isLoading: true,
@@ -203,7 +204,7 @@ class _CustomerDetailsState extends State<CustomerDetails> {
                                                         custProvider.deleteCustomer(context,id:idList[index],cusId: data.userId.toString());
                                                       }
                                                   );
-                                                }
+                                               // }
                                               },
                                               child: Container(
                                                 height:30,

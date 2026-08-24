@@ -1140,25 +1140,25 @@ Future<void> loginOuts(context) async {
       print("✅ lateCountShow : $lateCountShow");
       /* ================= USERS ================= */
 
-      print("===== USERS =====");
-      print(response["allusers"]);
-
-      employeeProvider.setUserData(
-        (response["allusers"] ?? [])
-            .map<UserModel>((e) => UserModel.fromJson(e))
-            .toList(),
-      );
+      // print("===== USERS =====");
+      // print(response["allusers"]);
+      //
+      // employeeProvider.setUserData(
+      //   (response["allusers"] ?? [])
+      //       .map<UserModel>((e) => UserModel.fromJson(e))
+      //       .toList(),
+      // );
 
       /* ================= CUSTOMERS ================= */
 
-      print("===== CUSTOMERS =====");
-      print(response["allcustomers"]);
-
-      customerProvider.setCustomerData(
-        (response["allcustomers"] ?? [])
-            .map<CustomerModel>((e) => CustomerModel.fromJson(e))
-            .toList(),
-      );
+      // print("===== CUSTOMERS =====");
+      // print(response["allcustomers"]);
+      //
+      // customerProvider.setCustomerData(
+      //   (response["allcustomers"] ?? [])
+      //       .map<CustomerModel>((e) => CustomerModel.fromJson(e))
+      //       .toList(),
+      // );
 
       /* ================= NOTIFICATIONS ================= */
 
