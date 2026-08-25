@@ -2109,38 +2109,61 @@ void changeStatus(bool value){
       throw Exception('Failed to work flow');
     }
   }
-  Future<List<LeaveModel>> myLeaves(String st,String en,bool refresh,String id) async {
-    try {
+  Future<List<LeaveModel>> myLeaves(String st, String en, bool refresh, String id) async {
+    print("=== myLeaves() CALLED ===");
+    print("Params -> st: $st, en: $en, refresh: $refresh, id: $id");
 
+    try {
       _isLoading = true;
       notifyListeners();
+      print("myLeaves: _isLoading set to true, listeners notified");
 
-      _levCount1="Full  Day 0\nHalf Day 0";
+      _levCount1 = "Full  Day 0\nHalf Day 0";
+      print("myLeaves: _levCount1 reset to '$_levCount1'");
+
       myLevSearch.clear();
       myLev.clear();
+      print("myLeaves: myLevSearch and myLev cleared");
+
+      final resolvedId = id.isEmpty ? localData.storage.read("id") : id;
+      final resolvedEnDt = en == "" ? st : en;
+      final cosId = localData.storage.read("cos_id");
 
       Map data = {
         "action": getLeaveData,
-        "search_type":"my_leave",
-        "id": id.isEmpty?localData.storage.read("id"):id,
+        "search_type": "my_emp_leave",
+        "id": resolvedId,
         "st_dt": st,
-        "en_dt": en==""?st:en,
-        "cos_id": localData.storage.read("cos_id")
+        "en_dt": resolvedEnDt,
+        "cos_id": cosId
       };
 
+      print("myLeaves: request payload -> $data");
+
       final response = await leaveRepo.getLeave(data);
+      print("myLeaves: response received -> $response");
+      print("myLeaves: response length -> ${response.length}");
 
       myLevSearch = response;
       myLev = response;
+      print("myLeaves: myLevSearch and myLev updated with response");
 
       _isLoading = false;
       notifyListeners();
+      print("myLeaves: _isLoading set to false, listeners notified");
 
+      print("=== myLeaves() SUCCESS, returning ${response.length} items ===");
       return response;
 
-    } catch (e) {
+    } catch (e, stackTrace) {
+      print("myLeaves: EXCEPTION CAUGHT -> $e");
+      print("myLeaves: StackTrace -> $stackTrace");
+
       _isLoading = false;
       notifyListeners();
+      print("myLeaves: _isLoading set to false after error, listeners notified");
+
+      print("=== myLeaves() FAILED, returning empty list ===");
       return [];
     }
   }

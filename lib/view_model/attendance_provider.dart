@@ -1364,8 +1364,8 @@ PickerDateRange? selectedDate;
     _startDate = DateFormat('dd-MM-yyyy').format(stDt);
     _endDate = DateFormat('dd-MM-yyyy').format(stDt);
     if(localData.storage.read("role")!="1"){
-      // getAttendanceReport(id,);
-      // getAbsentAttendanceReport(id);
+     getAttendanceReport(id,);
+      getAbsentAttendanceReport(id);
       Provider.of<LeaveProvider>(context, listen: false).allLeaves(_startDate,_endDate,true,localData.storage.read("role"),localData.storage.read("id"));
     }
     notifyListeners();
@@ -1376,8 +1376,8 @@ PickerDateRange? selectedDate;
     _startDate = DateFormat('dd-MM-yyyy').format(stDt);
     _endDate = DateFormat('dd-MM-yyyy').format(stDt);
     if(localData.storage.read("role")!="1"){
-      // getAttendanceReport(id,);
-      // getAbsentAttendanceReport(id);
+      getAttendanceReport(id,);
+      getAbsentAttendanceReport(id);
       Provider.of<LeaveProvider>(context, listen: false).allLeaves(_startDate,_endDate,true,localData.storage.read("role"),localData.storage.read("id"));
     }
     notifyListeners();
@@ -1389,8 +1389,8 @@ PickerDateRange? selectedDate;
     _startDate = DateFormat('dd-MM-yyyy').format(lastWeekStart);
     _endDate = DateFormat('dd-MM-yyyy').format(lastWeekEnd);
     if(localData.storage.read("role")!="1"){
-      // getAttendanceReport(id,);
-      // getAbsentAttendanceReport(id);
+      getAttendanceReport(id,);
+      getAbsentAttendanceReport(id);
       Provider.of<LeaveProvider>(context, listen: false).allLeaves(_startDate,_endDate,true,localData.storage.read("role"),localData.storage.read("id"));
     }
     notifyListeners();
@@ -1402,8 +1402,8 @@ PickerDateRange? selectedDate;
     _startDate = DateFormat('dd-MM-yyyy').format(lastMonthStart);
     _endDate = DateFormat('dd-MM-yyyy').format(lastMonthEnd);
     if(localData.storage.read("role")!="1"){
-      // getAttendanceReport(id,);
-      // getAbsentAttendanceReport(id);
+      getAttendanceReport(id,);
+      getAbsentAttendanceReport(id);
       Provider.of<LeaveProvider>(context, listen: false).allLeaves(_startDate,_endDate,true,localData.storage.read("role"),localData.storage.read("id"));
     }
     notifyListeners();
@@ -1416,8 +1416,8 @@ PickerDateRange? selectedDate;
     _startDate = DateFormat('dd-MM-yyyy').format(stDt);
     _endDate = DateFormat('dd-MM-yyyy').format(enDt);
     if(localData.storage.read("role")!="1"){
-      // getAttendanceReport(id,);
-      // getAbsentAttendanceReport(id);
+      getAttendanceReport(id,);
+      getAbsentAttendanceReport(id);
       Provider.of<LeaveProvider>(context, listen: false).allLeaves(_startDate,_endDate,true,localData.storage.read("role"),localData.storage.read("id"));
     }
     notifyListeners();
@@ -1429,8 +1429,8 @@ PickerDateRange? selectedDate;
     _startDate = DateFormat('dd-MM-yyyy').format(stDt);
     _endDate = DateFormat('dd-MM-yyyy').format(enDt);
     if(localData.storage.read("role")!="1"){
-      // getAttendanceReport(id,);
-      // getAbsentAttendanceReport(id);
+      getAttendanceReport(id,);
+      getAbsentAttendanceReport(id);
       Provider.of<LeaveProvider>(context, listen: false).allLeaves(_startDate,_endDate,true,localData.storage.read("role"),localData.storage.read("id"));
     }
     notifyListeners();

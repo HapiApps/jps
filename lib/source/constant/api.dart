@@ -2,7 +2,7 @@
 const String domain="https://aci.hrides.in";
 const bool isRelease=true;
 
-/// DEV
+// DEV
 // const String domain="https://thirumald.hapirides.in";
 // const bool isRelease=false;
 

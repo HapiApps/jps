@@ -25,24 +25,44 @@ class InputFormatters{
 
   final List<TextInputFormatter> mobileNumberInput = [
     TextInputFormatter.withFunction((oldValue, newValue) {
-      String text = newValue.text;
+      String newText = newValue.text;
+      String oldDigits = oldValue.text.replaceAll(RegExp(r'\D'), '');
 
-      // Digits மட்டும்
-      text = text.replaceAll(RegExp(r'\D'), '');
+      int cursorPos = newValue.selection.end;
+      if (cursorPos < 0) cursorPos = newText.length;
 
-      // Paste செய்தால் +91 / 91 remove
-      if (text.startsWith('91') && text.length > 10) {
-        text = text.substring(2);
+      // cursor varaikum irukura raw text-la ethana digit irukku nu count pannunga
+      int digitsBeforeCursor = 0;
+      for (int i = 0; i < cursorPos && i < newText.length; i++) {
+        if (RegExp(r'\d').hasMatch(newText[i])) {
+          digitsBeforeCursor++;
+        }
       }
 
-      // 10 digits-க்கு மேல் type/paste செய்தால் first 10 மட்டும்
-      if (text.length > 10) {
-        text = text.substring(0, 10);
+      String digits = newText.replaceAll(RegExp(r'\D'), '');
+
+      // 91 prefix strip
+      if (digits.startsWith('91') && digits.length > 10) {
+        digits = digits.substring(2);
+        digitsBeforeCursor = (digitsBeforeCursor - 2).clamp(0, digits.length);
       }
+
+      // 10 digit-ku mela irundha
+      if (digits.length > 10) {
+        // already 10 digits full ah irundhu, innoru digit mattum extra ah insert pannirundha
+        // (paste illa, typing than) -> old value-ah return pannunga, edhuvum change pannadhu
+        if (oldDigits.length >= 10 && digits.length - oldDigits.length <= 1) {
+          return oldValue;
+        }
+        // idhu paste case (multiple digits ஒரே முறை add aachu) -> first 10 mattum clamp
+        digits = digits.substring(0, 10);
+      }
+
+      int newCursor = digitsBeforeCursor.clamp(0, digits.length);
 
       return TextEditingValue(
-        text: text,
-        selection: TextSelection.collapsed(offset: text.length),
+        text: digits,
+        selection: TextSelection.collapsed(offset: newCursor),
       );
     }),
   ];

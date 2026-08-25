@@ -32,8 +32,8 @@ android {
         applicationId = "com.hapiapps.hapiapps"
         minSdkVersion flutter.minSdkVersion
         targetSdk = 36
-        versionCode 6
-        versionName "6"
+        versionCode 7
+        versionName "7"
         multiDexEnabled true
     }
 
