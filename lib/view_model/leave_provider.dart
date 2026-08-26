@@ -1143,7 +1143,7 @@ void changePage2(){
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                CustomText(text: 'Click and drag to select multiple dates',colors: colorsConst.greyClr,),
+                CustomText(text: ' Double Click to select single dates and drag to select multiple dates',colors: colorsConst.greyClr,),
               ],
             ),
             Row(
