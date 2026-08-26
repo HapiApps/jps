@@ -465,4 +465,30 @@ class TaskRepo {
       throw Exception(e);
     }
   }
+  Future<List> getAdminUsers(Map data) async {
+    try {
+      final request = await http.post(
+        Uri.parse(phpFile),
+        headers: {
+          "Accept": "application/text",
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: jsonEncode(data),
+        encoding: Encoding.getByName("utf-8"),
+      );
+
+      print("Users Request: $data");
+      print("Users Response: ${request.body}");
+
+      if (request.statusCode == 200) {
+        List response = json.decode(request.body);
+        return response;
+      } else {
+        throw Exception("Failed to get users");
+      }
+    } catch (e) {
+      print("Get Users Error: $e");
+      throw Exception("Failed to get users");
+    }
+  }
 }

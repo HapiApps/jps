@@ -95,32 +95,43 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await safeCall('BG:Firebase.initializeApp', () => Firebase.initializeApp());
 
   try {
-    RemoteNotification? notification = message.notification;
-    AndroidNotification? android = notification?.android;
+    // FIX: "message.notification" nu paakama, "message.data" edukkurom.
+    // Backend ippo "data" payload mattum anuppுrathala (notification key
+    // illa), so system automatic-a tray notification kaattadhu.
+    // Idhே function than ONE notification manual-a build pannanum.
+    final data = message.data;
 
-    if (notification != null && android != null) {
-      const AndroidNotificationDetails androidDetails =
-      AndroidNotificationDetails(
-        'JPS',
-        'JPS',
-        importance: Importance.max,
-        priority: Priority.high,
-        playSound: true,
-        enableVibration: true,
-        icon: '@mipmap/ic_launcher',
-      );
+    final String title = data['title'] ?? '';
+    final String body  = data['body'] ?? '';
 
-      const NotificationDetails platformDetails =
-      NotificationDetails(android: androidDetails);
-
-      await flutterLocalNotificationsPlugin.show(
-        notification.hashCode,
-        notification.title,
-        notification.body,
-        platformDetails,
-        payload: jsonEncode(message.data),
-      );
+    if (title.isEmpty && body.isEmpty) {
+      return; // enna kaatta vendiyadhu illa
     }
+
+    const AndroidNotificationDetails androidDetails =
+    AndroidNotificationDetails(
+      'JPS',
+      'JPS',
+      importance: Importance.max,
+      priority: Priority.high,
+      playSound: true,
+      enableVibration: true,
+      icon: '@mipmap/ic_launcher',
+    );
+
+    const NotificationDetails platformDetails =
+    NotificationDetails(android: androidDetails);
+
+    await flutterLocalNotificationsPlugin.show(
+      // notification.hashCode illama, data/purpose_id vechu unique id
+      // pannunga -> notification.hashCode ippo kidaikathu (data-only).
+      (data['purpose_id'] ?? DateTime.now().millisecondsSinceEpoch.toString())
+          .hashCode,
+      title,
+      body,
+      platformDetails,
+      payload: jsonEncode(message.data),
+    );
   } catch (e) {
     log("⚠️ Background notification show failed: $e");
   }
@@ -212,6 +223,9 @@ Future<void> setupLocalNotifications() async {
 /// ******************************
 ///            MAIN
 /// ******************************
+/// ******************************
+///            MAIN
+/// ******************************
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -224,12 +238,65 @@ Future<void> main() async {
     homeScreen = prefs.getBool("homescreen") ?? false;
   });
 
-  // Firebase core init — needs network the first time on some devices
+  // Firebase core init — needs network the first time on some devices.
+  //
+  // IMPORTANT FIX: safeCall() swallows timeouts/errors and returns null
+  // silently. Before this fix, if Firebase.initializeApp() timed out on
+  // a slow first-launch network, main() just continued as if it worked.
+  // Every later screen that touches Firestore/Messaging
+  // (e.g. FirebaseFirestore.instance.collection(...).snapshots() in
+  // HomePage) then crashed with [core/no-app] No Firebase App '[DEFAULT]'
+  // has been created.
+  //
+  // Fix: try once, retry once on failure, and if it still fails, DO NOT
+  // fall through into runApp(MyApp()) — show a blocking retry screen
+  // instead so the user can retry once network is back.
   await safeCall(
     'Firebase.initializeApp',
         () => Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform),
     timeout: const Duration(seconds: 12),
   );
+
+  if (Firebase.apps.isEmpty) {
+    // one retry — covers slow-network first-launch case
+    await safeCall(
+      'Firebase.initializeApp.retry',
+          () => Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform),
+      timeout: const Duration(seconds: 15),
+    );
+  }
+
+  if (Firebase.apps.isEmpty) {
+    // Still failed — don't proceed into HomePage/Firestore calls that
+    // will crash. Show a minimal retry UI instead of a blank crash.
+    runApp(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        home: Scaffold(
+          body: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    "Couldn't connect. Please check your internet and try again.",
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: () => main(),
+                    child: const Text("Retry"),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    return; // stop here — don't fall through to the rest of main()
+  }
 
   if (!kIsWeb) {
     await safeCall('setupLocalNotifications', () => setupLocalNotifications());
@@ -271,7 +338,6 @@ Future<void> main() async {
         final context = navigatorKey.currentContext;
 
         if (context != null) {
-          // 🔔 refresh dashboard/notifications — never let this hang or crash
           await safeCall(
             'HomeProvider.loadDashboard',
                 () => Provider.of<HomeProvider>(context, listen: false)
@@ -287,6 +353,10 @@ Future<void> main() async {
           );
         }
 
+        // NOTE: backend now sends "data" payload only (no "notification"
+        // key) — so message.notification will be null and this falls
+        // through to message.data automatically. Left as-is intentionally
+        // so nothing breaks if backend ever adds "notification" back.
         final title = message.notification?.title ??
             message.data['title'] ??
             'Notification';
@@ -358,7 +428,6 @@ Future<void> main() async {
       } catch (e, st) {
         log("⚠️ onMessage handler failed entirely: $e");
         log("StackTrace: $st");
-        // swallow — never let a bad push payload crash foreground app
       }
     });
 
@@ -367,6 +436,10 @@ Future<void> main() async {
         final taskDate = message.data['task_date'] ??
             DateFormat('dd-MM-yyyy').format(DateTime.now());
 
+        // NOTE: same as above — falls back to message.data if you want
+        // to fully remove dependency on message.notification, switch
+        // these two lines to read from message.data['title'] /
+        // message.data['body'] directly instead.
         final title = message.notification?.title?.toLowerCase() ?? '';
         final body = message.notification?.body?.toLowerCase() ?? '';
 

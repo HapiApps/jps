@@ -20,6 +20,7 @@ import '../../model/customer/customer_model.dart';
 import '../../source/constant/assets_constant.dart';
 import '../../source/constant/colors_constant.dart';
 import '../../source/constant/default_constant.dart';
+import '../../source/constant/local_data.dart';
 import '../../source/styles/decoration.dart';
 import '../../source/utilities/utils.dart';
 import '../../view_model/task_provider.dart';
@@ -48,6 +49,8 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
       taskProvider.taskTitleCont.clear();
       taskProvider.audioList.clear();
       taskProvider.setTodayDate();
+      await taskProvider.getAdminUsers();
+      print("Admin IDs 123 : ${localData.storage.read("admin_ids")}");
       final empProvider = Provider.of<EmployeeProvider>(context, listen: false);
       if(empProvider.activeEmps.isEmpty){
         empProvider.getAllUsers(isRefresh: false);

@@ -3559,98 +3559,280 @@ class TaskProvider with ChangeNotifier {
 
     notifyListeners();
   }
-  Future<void> addTask({context,required String id}) async {
+  Future<void> addTask({
+    context,
+    required String id,
+  }) async {
     try {
       List<Map<String, String>> customersList = [];
 
-// Loop for selected files
+      // --------------------------------------------------
+      // Selected Files
+      // --------------------------------------------------
       for (int i = 0; i < _selectedFiles.length; i++) {
-        // print("////$i");
         customersList.add({
-          "image_$i": _selectedFiles[i]['path'],
+          "image_$i": _selectedFiles[i]['path'].toString(),
         });
       }
 
-// Loop for recorded audio paths
-      for (int i = _selectedFiles.length; i < _selectedFiles.length + audioList.length; i++) {
-        // print("----$i");
+      // --------------------------------------------------
+      // Recorded Audio
+      // --------------------------------------------------
+      for (
+      int i = _selectedFiles.length;
+      i < _selectedFiles.length + audioList.length;
+      i++
+      ) {
         customersList.add({
-          "image_$i": audioList[i - _selectedFiles.length].audioPath, // Adjust index
+          "image_$i":
+          audioList[i - _selectedFiles.length].audioPath.toString(),
         });
       }
 
-// Loop for selected photos
-      for (int i = _selectedFiles.length + audioList.length; i < _selectedFiles.length + audioList.length + selectedPhotos.length; i++) {
-        // print("]]]]$i");
+      // --------------------------------------------------
+      // Selected Photos
+      // --------------------------------------------------
+      for (
+      int i = _selectedFiles.length + audioList.length;
+      i <
+          _selectedFiles.length +
+              audioList.length +
+              selectedPhotos.length;
+      i++
+      ) {
         customersList.add({
-          "image_$i": selectedPhotos[i - (_selectedFiles.length + audioList.length)], // Adjust index
+          "image_$i":
+          selectedPhotos[
+          i - (_selectedFiles.length + audioList.length)]
+              .toString(),
         });
       }
 
+      // --------------------------------------------------
+      // JSON
+      // --------------------------------------------------
       String jsonString = json.encode(customersList);
+
+      // --------------------------------------------------
+      // Task Data
+      // --------------------------------------------------
       Map<String, String> data = {
         'project_name': id,
         'task_title': taskTitleCont.text.trim(),
         'department': departmentCont.text.trim(),
-        'log_file': localData.storage.read("mobile_number"),
+        'log_file':
+        localData.storage.read("mobile_number").toString(),
         'type': _type.toString(),
-        'assigned': assignedId,
-        'level': level,
+        'assigned': assignedId.toString(),
+        'level': level.toString(),
         'status': _status.toString(),
-        'user_id': localData.storage.read("id"),
+        'user_id':
+        localData.storage.read("id").toString(),
         'task_date': taskDt.text.trim(),
         'task_time': "$taskSTime||$taskETime",
         'action': adTask,
-        'cos_id': localData.storage.read("cos_id"),
+        'cos_id':
+        localData.storage.read("cos_id").toString(),
         "data": jsonString,
+        "version": localData.versionNumber.toString(),
       };
-      final response =await _taskRepo.addTask(data,customersList);
+
+      print("====================================");
+      print("ADD TASK DATA");
+      print(data);
+      print("====================================");
+
+      // --------------------------------------------------
+      // Add Task API
+      // --------------------------------------------------
+      final response =
+      await _taskRepo.addTask(data, customersList);
+
       log(response.toString());
-      if (response.toString().contains("200")){
-        utils.showSuccessToast(context: context,text: constValue.successTask,);
+
+      print("ADD TASK RESPONSE: $response");
+
+      if (response.toString().contains("200")) {
+        // ------------------------------------------------
+        // Task Success
+        // ------------------------------------------------
+        utils.showSuccessToast(
+          context: context,
+          text: constValue.successTask,
+        );
+
+        // =================================================
+        // EMPLOYEE NOTIFICATION
+        // =================================================
         try {
-          await Provider.of<EmployeeProvider>(context, listen: false)
-              .sendSomeUserNotification(
-            "${taskTitleCont.text.trim()} by ${localData.storage.read("f_name")}",
-            "${taskTitleCont.text.trim()} || ${taskDt.text.trim()}",
-            _assignedId,"",taskDt.text.trim(),
+          final String assignedEmployeeIds =
+          _assignedId.toString();
+
+          print("====================================");
+          print("EMPLOYEE NOTIFICATION");
+          print("Assigned IDs: $assignedEmployeeIds");
+          print("====================================");
+
+          await Provider.of<EmployeeProvider>(
+            context,
+            listen: false,
+          ).sendSomeUserNotification(
+            "${taskTitleCont.text.trim()} by "
+                "${localData.storage.read("f_name")}",
+            "${taskTitleCont.text.trim()} || "
+                "${taskDt.text.trim()}",
+            assignedEmployeeIds,
+            "",
+            taskDt.text.trim(),
           );
+
+          print("Employee notification sent");
         } catch (e) {
           print("User notification error: $e");
         }
 
-        // admin notification (always run)
+        // =================================================
+        // ADMIN NOTIFICATION
+        // =================================================
         try {
-          // await Provider.of<EmployeeProvider>(context, listen: false)
-          //     .sendAdminNotification(
-          //   "${ taskTitleCont.text.trim()}assigned to $assignedNames.",
-          //   taskTitleCont.text.trim(),
-          //   localData.storage.read("role"),""
-          // );
+          final String currentRole =
+          localData.storage.read("role").toString();
+
+          final String currentUserId =
+          localData.storage.read("id").toString();
+
+          // -----------------------------------------------
+          // Read admin IDs from storage
+          // -----------------------------------------------
+          final dynamic storedAdminIds =
+          localData.storage.read("admin_ids");
+
+          print("====================================");
+          print("ADMIN NOTIFICATION DEBUG");
+          print("Stored Admin IDs: $storedAdminIds");
+          print(
+            "Stored Admin IDs Type: "
+                "${storedAdminIds.runtimeType}",
+          );
+          print("Current Role: $currentRole");
+          print("Current User ID: $currentUserId");
+          print("Assigned Names: $assignedNames");
+          print("====================================");
+
+          // -----------------------------------------------
+          // Convert List -> String
+          // -----------------------------------------------
+          String adminIds = "";
+
+          if (storedAdminIds is List) {
+            adminIds = storedAdminIds
+                .map((e) => e.toString())
+                .where(
+                  (id) => id.isNotEmpty && id != "null",
+            )
+                .join(",");
+          } else if (storedAdminIds != null) {
+            adminIds = storedAdminIds.toString();
+          }
+
+          print("ADMIN IDS FOR API: $adminIds");
+
+          // -----------------------------------------------
+          // Check admin IDs
+          // -----------------------------------------------
+          if (adminIds.isEmpty) {
+            print(
+              "WARNING: Admin IDs are empty. "
+                  "Admin notification will not be sent.",
+            );
+          } else {
+            // ---------------------------------------------
+            // Send Admin Notification
+            // ---------------------------------------------
+            await Provider.of<EmployeeProvider>(
+              context,
+              listen: false,
+            ).sendAdminNotification(
+              "${taskTitleCont.text.trim()} "
+                  "assigned to $assignedNames",
+              taskTitleCont.text.trim(),
+              adminIds,
+              "",
+              currentRole == "1" ? adminIds : "",
+            );
+
+            print("====================================");
+            print("ADMIN NOTIFICATION API CALLED");
+            print("Admin IDs: $adminIds");
+            print("Role: $currentRole");
+            print("====================================");
+          }
         } catch (e) {
           print("Admin notification error: $e");
         }
+
+        // =================================================
+        // Reset
+        // =================================================
         taskCtr.reset();
-        // await FirebaseFirestore.instance.collection('attendance').add({
-        //   'emp_id': localData.storage.read("id"),
-        //   'time': DateTime.now(),
-        //   'status': "",
-        // });
-         getAllTask(true);
-        utils.navigatePage(context, ()=> DashBoard(child: ViewTask(date1: Provider.of<HomeProvider>(context, listen: false).startDate, date2: Provider.of<HomeProvider>(context, listen: false).endDate, type: Provider.of<HomeProvider>(context, listen: false).type)));
-        final homeProvider = Provider.of<HomeProvider>(context, listen: false);
+
+        getAllTask(true);
+
+        // =================================================
+        // Navigate
+        // =================================================
+        utils.navigatePage(
+          context,
+              () => DashBoard(
+            child: ViewTask(
+              date1: Provider.of<HomeProvider>(
+                context,
+                listen: false,
+              ).startDate,
+              date2: Provider.of<HomeProvider>(
+                context,
+                listen: false,
+              ).endDate,
+              type: Provider.of<HomeProvider>(
+                context,
+                listen: false,
+              ).type,
+            ),
+          ),
+        );
+
+        // =================================================
+        // Dashboard Refresh
+        // =================================================
+        final homeProvider =
+        Provider.of<HomeProvider>(
+          context,
+          listen: false,
+        );
+
         homeProvider.checkThisMonth();
         homeProvider.loadFullDashboard(context);
-        // homeProvider.getMainReport(false);
-        // Future.microtask(() => Navigator.pop(context));
-      }else {
-        utils.showErrorToast(context: context);
+      } else {
+        // ------------------------------------------------
+        // API Failed
+        // ------------------------------------------------
+        utils.showErrorToast(
+          context: context,
+        );
+
         taskCtr.reset();
       }
     } catch (e) {
-      utils.showWarningToast(context,text: e.toString());
+      print("ADD TASK ERROR: $e");
+
+      utils.showWarningToast(
+        context,
+        text: e.toString(),
+      );
+
       taskCtr.reset();
     }
+
     notifyListeners();
   }
   Future<void> updateTaskDetail(context,{required String taskId,required String id,required bool isDirect,required List numberList,required String companyName}) async {
@@ -5147,5 +5329,37 @@ class TaskProvider with ChangeNotifier {
     }
     notifyListeners();
   }
+  Future<void> getAdminUsers() async {
+    try {
+      Map data = {
+        "action": getAllData,
+        "search_type": "admin_users",
+        "cos_id": localData.storage.read("cos_id"),
+      };
 
+      final response = await _taskRepo.getAdminUsers(data);
+
+      print("ADMIN RESPONSE: $response");
+      print("ADMIN RESPONSE LENGTH: ${response.length}");
+
+      if (response.isNotEmpty) {
+        print("FIRST ADMIN: ${response.first}");
+        print("FIRST ADMIN ID: ${response.first["id"]}");
+
+        List<String> adminIds = response
+            .map<String>((user) => user["id"].toString())
+            .toList();
+
+        await localData.storage.write("admin_ids", adminIds);
+
+        print("SAVED ADMIN IDS: ${localData.storage.read("admin_ids")}");
+      } else {
+        print("No admin users found");
+      }
+    } catch (e) {
+      print("Get Users Error: $e");
+    }
+
+    notifyListeners();
+  }
   }

@@ -1573,9 +1573,12 @@ void setList(){
   //
   //   return uniqueMap.values.toList();
   // }
+  // Leave workplan notification fixed · DART
+  /// ========================================================
+  /// leaveApply — FIXED
+  /// ========================================================
   Future<void> leaveApply(context) async {
     try {
-
       Map data = {
         "action": applyLeave,
         "search_type": "apply",
@@ -1599,78 +1602,65 @@ void setList(){
       /// ✅ SUCCESS
       if (response["message"] != null &&
           response["message"] == "Leave application successful") {
-        utils.showSuccessToast(
-            context: context, text: "Applied Successfully");
+        utils.showSuccessToast(context: context, text: "Applied Successfully");
+
         /// 🔔 SEND NOTIFICATION TO ADMINS
+        final empProvider = Provider.of<EmployeeProvider>(context, listen: false);
 
-        final empProvider =
-        Provider.of<EmployeeProvider>(context, listen: false);
-
-        String currentUserId =
-        localData.storage.read("id").toString();
-
-        String currentRole =
-        localData.storage.read("role").toString();
+        String currentUserId = localData.storage.read("id").toString();
+        String currentRole = localData.storage.read("role").toString();
 
         String title = "New Leave Request";
-        String body =
-            "${localData.storage.read("f_name")} Requested for leave";
+        String body = "${localData.storage.read("f_name")} Requested for leave";
+
         try {
-          await empProvider.sendAdminNotification(
+          // FIX: "1" hardcode remove pannirukom. Idhu backend-la
+          // WHERE id != ? nu exclude panna use aagும். "1" nu fixed-a
+          // anuppுna, id=1 admin-a EVERY TIME exclude pannிடும் —
+          // adhே than notification varaamல் irundha reason.
+          //
+          // Role 1 (admin) tan leave apply pannாna → avaraye exclude pannanum.
+          // Normal employee leave apply pannாna → yaaraiyum exclude pannaadhu,
+          // ellaa admins-kkum pogaanum.
+          if (currentRole == "1") {
+            await empProvider.sendAdminNotification(
               title,
               body,
               "",
               "",
-              "1"
-          );
-        } catch(e){
+              currentUserId, // exclude self only
+            );
+          } else {
+            await empProvider.sendAdminNotification(
+              title,
+              body,
+              "",
+              "",
+              "", // no exclusion — send to all admins
+            );
+          }
+        } catch (e) {
           log("Notification failed: $e");
         }
-            // if (currentRole == "1") {
-        //   // Role 1 → exclude self
-        //   await empProvider.sendAdminNotification(
-        //     title,
-        //     body,
-        //     "",
-        //     "",
-        //     currentUserId, // exclude self
-        //   );
-        // } else {
-        //   // Normal employee → send to all admins
-        //   await empProvider.sendAdminNotification(
-        //     title,
-        //     body,
-        //     "", // no exclusion
-        //     "",
-        //     "",
-        //   );
-        // }
 
         leaveCtr.reset();
-        if({"1"}.contains(localData.storage.read("role"))){
-                  _selectedIndex=2;
-                  getLeaveReport(_filter);
-                }else{
-                  getLeaveReport(_filter);
-                  Navigator.pop(context);
-                }
-
+        if ({"1"}.contains(localData.storage.read("role"))) {
+          _selectedIndex = 2;
+          getLeaveReport(_filter);
+        } else {
+          getLeaveReport(_filter);
+          Navigator.pop(context);
+        }
       }
 
-      /// ❌ FAILED CASE (Main Fix)
+      /// ❌ FAILED CASE
       else if (response["Failed"] != null) {
-
-        utils.showWarningToast(context,
-            text: response["Failed"].toString());
-
+        utils.showWarningToast(context, text: response["Failed"].toString());
         leaveCtr.reset();
-      }
-
-      else {
+      } else {
         utils.showErrorToast(context: context);
         leaveCtr.reset();
       }
-
     } catch (e) {
       log(e.toString());
       utils.showErrorToast(context: context);
@@ -2109,61 +2099,38 @@ void changeStatus(bool value){
       throw Exception('Failed to work flow');
     }
   }
-  Future<List<LeaveModel>> myLeaves(String st, String en, bool refresh, String id) async {
-    print("=== myLeaves() CALLED ===");
-    print("Params -> st: $st, en: $en, refresh: $refresh, id: $id");
-
+  Future<List<LeaveModel>> myLeaves(String st,String en,bool refresh,String id) async {
     try {
+
       _isLoading = true;
       notifyListeners();
-      print("myLeaves: _isLoading set to true, listeners notified");
 
-      _levCount1 = "Full  Day 0\nHalf Day 0";
-      print("myLeaves: _levCount1 reset to '$_levCount1'");
-
+      _levCount1="Full  Day 0\nHalf Day 0";
       myLevSearch.clear();
       myLev.clear();
-      print("myLeaves: myLevSearch and myLev cleared");
-
-      final resolvedId = id.isEmpty ? localData.storage.read("id") : id;
-      final resolvedEnDt = en == "" ? st : en;
-      final cosId = localData.storage.read("cos_id");
 
       Map data = {
         "action": getLeaveData,
-        "search_type": "my_emp_leave",
-        "id": resolvedId,
+        "search_type":"my_leave",
+        "id": id.isEmpty?localData.storage.read("id"):id,
         "st_dt": st,
-        "en_dt": resolvedEnDt,
-        "cos_id": cosId
+        "en_dt": en==""?st:en,
+        "cos_id": localData.storage.read("cos_id")
       };
 
-      print("myLeaves: request payload -> $data");
-
       final response = await leaveRepo.getLeave(data);
-      print("myLeaves: response received -> $response");
-      print("myLeaves: response length -> ${response.length}");
 
       myLevSearch = response;
       myLev = response;
-      print("myLeaves: myLevSearch and myLev updated with response");
 
       _isLoading = false;
       notifyListeners();
-      print("myLeaves: _isLoading set to false, listeners notified");
 
-      print("=== myLeaves() SUCCESS, returning ${response.length} items ===");
       return response;
 
-    } catch (e, stackTrace) {
-      print("myLeaves: EXCEPTION CAUGHT -> $e");
-      print("myLeaves: StackTrace -> $stackTrace");
-
+    } catch (e) {
       _isLoading = false;
       notifyListeners();
-      print("myLeaves: _isLoading set to false after error, listeners notified");
-
-      print("=== myLeaves() FAILED, returning empty list ===");
       return [];
     }
   }
@@ -2720,6 +2687,9 @@ void changeStatus(bool value){
   List<LeaveAttModel> userAttendanceReport = <LeaveAttModel>[];
 
 
+  // ========================================================
+  /// workPlanSubmit — FIXED
+  /// ========================================================
   Future<void> workPlanSubmit(
       BuildContext context,
       List<WorkPlanModel> workPlans,
@@ -2736,9 +2706,7 @@ void changeStatus(bool value){
           return WorkPlanItem(
             comId: item.companyId,
             cusId: item.selectedCustomers.isNotEmpty
-                ? item.selectedCustomers
-                .map((e) => e["id"].toString())
-                .join(",")
+                ? item.selectedCustomers.map((e) => e["id"].toString()).join(",")
                 : "0",
             value: item.descriptionController.text.trim(),
             status: item.status,
@@ -2758,21 +2726,34 @@ void changeStatus(bool value){
 
       if (response != null && response["success"] == true) {
         utils.showSuccessToast(context: context, text: "Work Plan Submitted");
-         addWorkCtr.reset();
-        final empProvider =
-        Provider.of<EmployeeProvider>(context, listen: false);
+        addWorkCtr.reset();
+
+        final empProvider = Provider.of<EmployeeProvider>(context, listen: false);
+        String currentRole = localData.storage.read("role").toString();
+        String currentUserId = localData.storage.read("id").toString();
 
         String title = "Added by ${localData.storage.read("f_name")}";
         String body = "Daily Work Plan";
 
         try {
-          empProvider.sendAdminNotification(
-            title,
-            body,
-            "",
-            "",
-            "1",
-          );
+          // FIX: same "1" hardcode issue removed here too.
+          if (currentRole == "1") {
+            await empProvider.sendAdminNotification(
+              title,
+              body,
+              "",
+              "",
+              currentUserId, // exclude self only
+            );
+          } else {
+            await empProvider.sendAdminNotification(
+              title,
+              body,
+              "",
+              "",
+              "", // no exclusion — send to all admins
+            );
+          }
         } catch (e) {
           debugPrint("Notification failed: $e");
         }
@@ -2798,4 +2779,5 @@ void changeStatus(bool value){
     addWorkCtr.reset();
     notifyListeners();
   }
+
 }
