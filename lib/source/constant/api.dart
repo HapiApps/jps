@@ -103,8 +103,10 @@ const String insertPayrollSetting="insert_payroll_setting";
 /// NOTIFICATION
 const String roleNotification="role_notification";
 const String userNotification="user_notification";
-const String someUserNotification="some_user_notification";
-const String adminNotification="admin_notification";
+// const String someUserNotification="some_user_notification";
+// const String adminNotification="admin_notification";
+const String someUserNotification="hapi_some_user_notification"; // hapiapps only
+const String adminNotification="hapi_admin_notification";   //hapiapps only
 const String seenNotification="update_read_notification";
 
 
