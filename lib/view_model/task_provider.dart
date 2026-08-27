@@ -3952,65 +3952,65 @@ class TaskProvider with ChangeNotifier {
     }
     return result.toString()=="null"||result.isEmpty ? "0 sec" : result.join(" ");
   }
-  Future<void> insertTaskLogHistory(context,{required String id,required String level}) async {
-    try {
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (BuildContext context) {
-          return AlertDialog(
-            title: Center(
-              child: Column(
-                children: [
-                  const CustomText(
-                    text: "Loading",
-                    colors: Colors.grey,
-                    size: 15,
-                    isBold: true,
-                  ),
-                  10.height,
-                  const CustomText(
-                    text: "Please Wait",
-                    colors: Colors.grey,
-                    size: 15,
-                    isBold: true,
-                  ),
-                  20.height,
-                  LoadingAnimationWidget.staggeredDotsWave(
-                    color: colorsConst.secondary,
-                    size: 25,
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
-      );
-      Map<String, String> data = {
-        'task_id': id,
-        'status': level,
-        'user_id': localData.storage.read("id"),
-        'action': insertTaskLog,
-        'cos_id': localData.storage.read("cos_id"),
-        'log_file': localData.storage.read("mobile_number"),
-      };
-      final response =await _taskRepo.addType(data);
-      print(data.toString());
-      log(response.toString());
-      if (response.toString().contains("200")){
-        utils.showSuccessToast(context: context,text: constValue.updated,);
-        getAllTask(false);
-        Navigator.pop(context);
-      }else {
-        utils.showErrorToast(context: context);
-        Navigator.pop(context);
-      }
-    } catch (e) {
-      utils.showWarningToast(context,text: "Failed",);
-      Navigator.pop(context);
-    }
-    notifyListeners();
-  }
+  // Future<void> insertTaskLogHistory(context,{required String id,required String level}) async {
+  //   try {
+  //     showDialog(
+  //       context: context,
+  //       barrierDismissible: false,
+  //       builder: (BuildContext context) {
+  //         return AlertDialog(
+  //           title: Center(
+  //             child: Column(
+  //               children: [
+  //                 const CustomText(
+  //                   text: "Loading",
+  //                   colors: Colors.grey,
+  //                   size: 15,
+  //                   isBold: true,
+  //                 ),
+  //                 10.height,
+  //                 const CustomText(
+  //                   text: "Please Wait",
+  //                   colors: Colors.grey,
+  //                   size: 15,
+  //                   isBold: true,
+  //                 ),
+  //                 20.height,
+  //                 LoadingAnimationWidget.staggeredDotsWave(
+  //                   color: colorsConst.secondary,
+  //                   size: 25,
+  //                 ),
+  //               ],
+  //             ),
+  //           ),
+  //         );
+  //       },
+  //     );
+  //     Map<String, String> data = {
+  //       'task_id': id,
+  //       'status': level,
+  //       'user_id': localData.storage.read("id"),
+  //       'action': insertTaskLog,
+  //       'cos_id': localData.storage.read("cos_id"),
+  //       'log_file': localData.storage.read("mobile_number"),
+  //     };
+  //     final response =await _taskRepo.addType(data);
+  //     print(data.toString());
+  //     log(response.toString());
+  //     if (response.toString().contains("200")){
+  //       utils.showSuccessToast(context: context,text: constValue.updated,);
+  //       getAllTask(false);
+  //       Navigator.pop(context);
+  //     }else {
+  //       utils.showErrorToast(context: context);
+  //       Navigator.pop(context);
+  //     }
+  //   } catch (e) {
+  //     utils.showWarningToast(context,text: "Failed",);
+  //     Navigator.pop(context);
+  //   }
+  //   notifyListeners();
+  // }
 
   List<CustomerAttendanceModel> _customerAttendanceReport = <CustomerAttendanceModel>[];
   List<CustomerAttendanceModel> get customerAttendanceReport=>_customerAttendanceReport;
@@ -4245,8 +4245,7 @@ class TaskProvider with ChangeNotifier {
   List<TaskData> _filterUserData = <TaskData>[];
   List<TaskData> get filterUserData => _filterUserData;
 
-  Future<void> getAllTask(bool isRefresh,{String? date1, String? date2, String? type})async {
-
+  Future<void> getAllTask(bool isRefresh, {String? date1, String? date2, String? type}) async {
     print("=====  getAllTask START =====");
 
     _checkAtt = "";
@@ -4274,8 +4273,6 @@ class TaskProvider with ChangeNotifier {
       _viewRefresh = false;
     }
 
-
-
     try {
       Map data = {
         "action": taskDatas,
@@ -4289,9 +4286,6 @@ class TaskProvider with ChangeNotifier {
 
       final response = await _taskRepo.getReport(data);
 
-      // print("API Response Type : ${response.runtimeType}");
-      // print("API Response Length : ${response.length}");
-
       if (response.isNotEmpty) {
         print("Response not empty");
 
@@ -4302,16 +4296,31 @@ class TaskProvider with ChangeNotifier {
         print("_allTasks length : ${_allTasks.length}");
 
         for (var i = 0; i < response.length; i++) {
-          // print("Loop index : $i");
           String? dateStr = response[i].taskDate;
-          // print("Task Date String : $dateStr");
+
+          // 👉 TIMER SETUP
+          String id = response[i].id.toString();
+          int totalSeconds = int.tryParse(response[i].totalHours.toString()) ?? 0;
+          String status = response[i].workStatus.toString();
+
+          taskTimers[id] = TaskTimer(
+            accumulatedSeconds: totalSeconds,
+            isRunning: status == "Start",
+            startTime: status == "Start" ? DateTime.now() : null,
+            isCompleted: (status == "Completed" || status == "Complete"),
+          );
+
+          if (status == "Start") {
+            _startUiTicker();
+          }
+          // 👆 TIMER SETUP END
+
           /// 🔴 EMPTY DATE SKIP
           if (dateStr == null || dateStr.isEmpty) {
-            // print("Task date empty - skipping index $i");
             continue;
           }
           DateTime parsedDate = DateFormat('dd-MM-yyyy').parse(dateStr);
-          // print("Parsed Date : $parsedDate");
+
           Appointment app = Appointment(
             startTime: parsedDate,
             endTime: parsedDate,
@@ -4335,19 +4344,18 @@ class TaskProvider with ChangeNotifier {
 
         /// CHECKED TASK
         for (var i = 0; i < response.length; i++) {
-
           if (response[i].isChecked.toString() == "1") {
             _checkAtt = response[i].id.toString();
             _checkAttName = response[i].projectName.toString();
             break;
           }
         }
+
         filterList();
         _viewRefresh = true;
       } else {
         // print("Response EMPTY");
       }
-
     } catch (e) {
       // print("ERROR OCCURRED : $e");
       _allTasks = [];
@@ -5362,4 +5370,120 @@ class TaskProvider with ChangeNotifier {
 
     notifyListeners();
   }
+
+
+  Map<String, TaskTimer> taskTimers = {};
+  Timer? _uiTicker;
+
+  void _startUiTicker() {
+    _uiTicker ??= Timer.periodic(const Duration(seconds: 1), (_) {
+      notifyListeners();
+    });
   }
+
+  void _stopUiTickerIfNoneRunning() {
+    if (!taskTimers.values.any((t) => t.isRunning)) {
+      _uiTicker?.cancel();
+      _uiTicker = null;
+    }
+  }
+
+  int currentSeconds(String id) {
+    final t = taskTimers[id];
+    if (t == null) return 0;
+    int secs = t.accumulatedSeconds;
+    if (t.isRunning && t.startTime != null) {
+      secs += DateTime.now().difference(t.startTime!).inSeconds;
+    }
+    return secs;
+  }
+
+  void _updateTimerOnLog(String id, String level) {
+    taskTimers.putIfAbsent(id, () => TaskTimer());
+    final t = taskTimers[id]!;
+
+    if (level == "Start") {
+      t.startTime = DateTime.now();
+      t.isRunning = true;
+      _startUiTicker();
+    } else if (level == "Hold") {
+      if (t.isRunning && t.startTime != null) {
+        t.accumulatedSeconds += DateTime.now().difference(t.startTime!).inSeconds;
+      }
+      t.isRunning = false;
+      t.startTime = null;
+      _stopUiTickerIfNoneRunning();
+    } else if (level == "Complete") {
+      if (t.isRunning && t.startTime != null) {
+        t.accumulatedSeconds += DateTime.now().difference(t.startTime!).inSeconds;
+      }
+      t.isRunning = false;
+      t.startTime = null;
+      t.isCompleted = true; // 👈 mark completed, so UI knows not to touch it
+      _stopUiTickerIfNoneRunning();
+    }
+  }
+  Future<void> insertTaskLogHistory(context, {required String id, required String level}) async {
+    try {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: Center(
+              child: Column(
+                children: [
+                  const CustomText(text: "Loading", colors: Colors.grey, size: 15, isBold: true),
+                  10.height,
+                  const CustomText(text: "Please Wait", colors: Colors.grey, size: 15, isBold: true),
+                  20.height,
+                  LoadingAnimationWidget.staggeredDotsWave(color: colorsConst.secondary, size: 25),
+                ],
+              ),
+            ),
+          );
+        },
+      );
+      Map<String, String> data = {
+        'task_id': id,
+        'status': level,
+        'user_id': localData.storage.read("id"),
+        'action': insertTaskLog,
+        'cos_id': localData.storage.read("cos_id"),
+        'log_file': localData.storage.read("mobile_number"),
+      };
+      final response = await _taskRepo.addType(data);
+      print(data.toString());
+      log(response.toString());
+
+      if (response.toString().contains("200")) {
+        utils.showSuccessToast(context: context, text: constValue.updated);
+
+        _updateTimerOnLog(id, level); // 👈 timer update HERE
+
+        getAllTask(false);
+        Navigator.pop(context);
+      } else {
+        utils.showErrorToast(context: context);
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      utils.showWarningToast(context, text: "Failed");
+      Navigator.pop(context);
+    }
+    notifyListeners();
+  }
+}
+
+class TaskTimer {
+  DateTime? startTime;
+  int accumulatedSeconds;
+  bool isRunning;
+  bool isCompleted;
+  TaskTimer({
+    this.startTime,
+    this.accumulatedSeconds = 0,
+    this.isRunning = false,
+    this.isCompleted = false,
+  });
+}

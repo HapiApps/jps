@@ -61,19 +61,20 @@ class _DayWorkPlanPageState extends State<DayWorkPlanPage> {
 
   void addNewPlan() {
     if (workPlans.isNotEmpty) {
-      if (workPlans.last.companyName.trim().isEmpty&&workPlans.last.companyId.trim().isEmpty) {
+      if (workPlans.last.companyName.trim().isEmpty &&
+          workPlans.last.companyId.trim().isEmpty) {
         utils.showWarningToast(context, text: "Please select customer");
         return;
-      }else if (workPlans.last.descriptionController.text.trim().isEmpty) {
+      } else if (workPlans.last.descriptionController.text.trim().isEmpty) {
         utils.showWarningToast(context, text: "Please enter description");
         return;
       }
-    }else{
-      setState(() {
-        workPlans.add(WorkPlanModel());
-      });
-      scrollToBottom();
     }
+
+    setState(() {
+      workPlans.add(WorkPlanModel());
+    });
+    scrollToBottom();
   }
 
   bool validateAllPlans() {
@@ -256,36 +257,42 @@ class _DayWorkPlanPageState extends State<DayWorkPlanPage> {
                                 onChanged: (CustomerModel? value) {
                                   if (value == null) return;
 
-                                  item.companyId = value.userId.toString();
-                                  item.companyName =
-                                      value.companyName.toString();
+                                  setState(() {
+                                    item.companyId = value.userId.toString();
+                                    item.companyName =
+                                        value.companyName.toString();
 
-                                  item.selectedCustomers = [];
-                                  item.sendList = [];
+                                    // 🔥 Reset previous customer selection
+                                    // whenever the company changes
+                                    item.selectedCustomers = [];
+                                    item.sendList = [];
 
-                                  var idList =
-                                  value.customerId.toString().split('||');
-                                  var usersList =
-                                  value.firstName.toString().split('||');
-                                  var phoneList = value.phoneNumber
-                                      .toString()
-                                      .split('||');
+                                    var idList = value.customerId
+                                        .toString()
+                                        .split('||');
+                                    var usersList = value.firstName
+                                        .toString()
+                                        .split('||');
+                                    var phoneList = value.phoneNumber
+                                        .toString()
+                                        .split('||');
 
-                                  for (var i = 0; i < usersList.length; i++) {
-                                    item.sendList.add({
-                                      "id": idList[i],
-                                      "name": usersList[i],
-                                      "no": phoneList[i],
-                                    });
-                                  }
+                                    for (var i = 0;
+                                    i < usersList.length;
+                                    i++) {
+                                      item.sendList.add({
+                                        "id": idList[i],
+                                        "name": usersList[i],
+                                        "no": phoneList[i],
+                                      });
+                                    }
 
-                                  if (item.sendList.length == 1) {
-                                    item.selectedCustomers = [
-                                      item.sendList[0]
-                                    ];
-                                  }
-
-                                  setState(() {});
+                                    if (item.sendList.length == 1) {
+                                      item.selectedCustomers = [
+                                        item.sendList[0]
+                                      ];
+                                    }
+                                  });
                                 },
                                 size: mainWidth,
                               ),
@@ -295,6 +302,13 @@ class _DayWorkPlanPageState extends State<DayWorkPlanPage> {
                               /// CUSTOMER DROPDOWN ONLY IF COMPANY SELECTED
                               if (item.companyId.isNotEmpty)
                                 MultiSelectDropdown(
+                                  // 🔥 Key tied to companyId forces Flutter to
+                                  // rebuild this widget fresh whenever the
+                                  // company changes, so old customer
+                                  // selections don't linger in its internal
+                                  // state.
+                                  key: ValueKey(
+                                      '${item.companyId}_${index}'),
                                   hintText: "Customer",
                                   dropText: "name",
                                   list: item.sendList,
@@ -335,11 +349,15 @@ class _DayWorkPlanPageState extends State<DayWorkPlanPage> {
                       children: [
                         /// CANCEL
                         CustomLoadingButton(
-                            callback: (){
+                            callback: () {
                               Future.microtask(() => Navigator.pop(context));
-                            }, isLoading: false,text: "Cancel",
-                            backgroundColor: Colors.white, textColor: colorsConst.primary,radius: 10,
-                            width: kIsWeb?webWidth/2.1:phoneWidth/2.1),
+                            },
+                            isLoading: false,
+                            text: "Cancel",
+                            backgroundColor: Colors.white,
+                            textColor: colorsConst.primary,
+                            radius: 10,
+                            width: kIsWeb ? webWidth / 2.1 : phoneWidth / 2.1),
 
                         const SizedBox(width: 6),
 

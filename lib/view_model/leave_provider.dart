@@ -2312,12 +2312,14 @@ void changeStatus(bool value){
   dynamic get user=>_user;
   String _userName="";
   String get userName=>_userName;
-  var typeList = ["Today","Yesterday","Last 7 Days","Last 30 Days","This Week","This Month","Last 3 months"];
+  var typeList = ["Upcoming Week","Today","Yesterday","Last 7 Days","Last 30 Days","This Week","This Month","Last 3 months"];
   dynamic _typeReport;
   dynamic get typeReport=>_typeReport;
   void changeRrtType(value,String id ,String role,bool? isRefresh){
     _typeReport=value;
-    if(_typeReport=="Today"){
+    if(_typeReport=="Upcoming Week"){
+      upcomingWeek(id,role,isRefresh);
+    }else if(_typeReport=="Today"){
       daily(id,role,isRefresh);
     }else if(_typeReport=="Yesterday"){
       yesterday(id,role,isRefresh);
@@ -2349,6 +2351,20 @@ void changeStatus(bool value){
 
     notifyListeners();
   }
+  void upcomingWeek(String id, String role, bool? isRefresh) {
+    _typeReport = "Upcoming Week";
+
+    DateTime today = DateTime.now();
+
+    stDt = today.add(const Duration(days: 1));   // Tomorrow
+    enDt = today.add(const Duration(days: 7));   // Next 7 days
+
+    _startDate = DateFormat('dd-MM-yyyy').format(stDt);
+    _endDate = DateFormat('dd-MM-yyyy').format(enDt);
+
+    notifyListeners();
+  }
+
   DateTime stDt = DateTime.now();
   DateTime enDt = DateTime.now().add(const Duration(days: 1));
   void dailys(String id ,String role,bool? isRefresh) {
