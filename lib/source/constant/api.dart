@@ -1,10 +1,10 @@
 /// PRODUCTION
-// const String domain="https://aci.hrides.in";
-// const bool isRelease=true;
+const String domain="https://aci.hrides.in";
+const bool isRelease=true;
 
 // DEV
-const String domain="https://thirumald.hapirides.in";
-const bool isRelease=false;
+// const String domain="https://thirumald.hapirides.in";
+// const bool isRelease=false;
 
 const String path="ACI";
 const String scriptFile="script.php";

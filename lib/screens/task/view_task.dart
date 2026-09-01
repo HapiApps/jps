@@ -1434,9 +1434,25 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
         return Row(
           children: [
             CustomLoadingButton(
-              callback: (){
-                taskPvr.insertTaskLogHistory(context,id:id,level:"Start");
-              }, isLoading: false,
+                callback: () async {
+                  // 1. status ah "Completed" nu set pannunga (statusController/statusList mudhalvachu update pannanum)
+                  taskPvr.changeStatusT("Completed");
+                  taskPvr.changeStatus({"id": "3", "value": "Completed"}); // ungaloda statusList structure padi id maathunga
+                  taskPvr.updateChanges(); // isUpdate = true aaganum
+
+                  // 2. history log insert pannunga
+                  await taskPvr.insertTaskLogHistory(context, id: id, level: "Completed");
+
+                  // 3. appuram editTask call pannunga - idhu dhaan actual save
+                  // taskPvr.editTask(
+                  //   context: context,
+                  //   data: data,
+                  //   taskId: id,
+                  //   isDirect: isDirect,
+                  //   coId: coId.toString(),
+                  // );
+                }
+                , isLoading: false,
               backgroundColor: colorsConst.pink, radius: 50, height: 30,width: 70,text: "Start"
               ),
             10.width,

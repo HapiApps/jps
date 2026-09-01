@@ -1505,7 +1505,7 @@ class TaskProvider with ChangeNotifier {
     );
 
     /// =================== TOP TITLE ===================
-    sheet.appendRow(["JPS TASK REPORT DETAILS"]);
+    sheet.appendRow(["${constValue.appName} TASK REPORT DETAILS"]);
     sheet.merge(CellIndex.indexByString("A1"), CellIndex.indexByString("H1"));
     sheet.cell(CellIndex.indexByString("A1")).cellStyle = titleStyle;
 

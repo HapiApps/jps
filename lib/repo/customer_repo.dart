@@ -347,7 +347,7 @@ class CustomerRepository{
           body: jsonEncode(data),
           encoding: Encoding.getByName("utf-8"));
 
-      print(request.body);
+      debugPrint("download response :${request.body}");
       if (request.statusCode == 200){
         List response = json.decode(request.body);
         return response;

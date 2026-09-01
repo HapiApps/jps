@@ -535,7 +535,6 @@ class _CheckAttendanceState extends State<CheckAttendance> {
                               ],
                             ),
                             20.height,
-
                             Container(
                               width: MediaQuery.of(context).size.width * 0.9,
                               height: 35,
@@ -669,99 +668,115 @@ class _CheckAttendanceState extends State<CheckAttendance> {
                           ],
                         ),
                       ),
-                      localData.storage.read("role")=="1"?
-                      InkWell(
-                        onTap:(){
-                          Provider.of<LeaveProvider>(context, listen: false).changeIndex(2);
-
-                          utils.navigatePage(
-                              context,
-                                  ()=>const DashBoard(child: LeaveManagementDashboard())
-                          );
-                        },
-                        child: Container(
-                            height: 90,
-                            width: screenWidth/2.5,
-                            decoration: customDecoration.baseBackgroundDecoration(
-                                color: Colors.white,radius: 10
-                            ),
-                            child: Center(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.center,
-                                mainAxisAlignment: MainAxisAlignment.center,
+                    localData.storage.read("role")=="1"?
+                    Container(
+                        height: 90,
+                        width: screenWidth/2.5,
+                        decoration: customDecoration.baseBackgroundDecoration(
+                            color: Colors.white,radius: 10
+                        ),
+                        child: Center(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Column(
+                                mainAxisAlignment: MainAxisAlignment.start,
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
 
-                                  Column(
-                                    mainAxisAlignment: MainAxisAlignment.start,
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
+                                  /// LEAVE APPLIED -> Tab 1 (Leave Created / Applied)
+                                  GestureDetector(
+                                    onTap: (){
+                                      final leaveProvider = Provider.of<LeaveProvider>(context, listen: false);
+                                      leaveProvider.changeIndex(2);
+                                      leaveProvider.setViewLeaveTab(0);   // 👈 Tab 1
 
-                                      Container(
-                                        width: 130,
-                                        height: 30,
-                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 5),
-                                        decoration: BoxDecoration(
-                                          color: Colors.red.withOpacity(0.12),
-                                          borderRadius: BorderRadius.circular(12),
-                                          border: Border.all(color: Colors.red, width: 1),
-                                        ),
-                                        child: Row(
-                                          children: [
-                                            CustomText(
-                                              text: "Leave Applied: ",
-                                              size: 12,
-                                              colors: Colors.red.shade800,
-                                              isBold: true,
-                                            ),
-                                            const SizedBox(height: 6),
-                                            CustomText(
-                                              text: homeProvider.mainReportList.isEmpty?"":homeProvider.mainReportList[0]["today_apply_leave"].toString(),
-                                              size: 16,
-                                              isBold: true,
-                                              colors: Colors.red.shade900,
-                                            ),
-                                          ],
-                                        ),
+                                      utils.navigatePage(
+                                          context,
+                                              ()=>const DashBoard(child: LeaveManagementDashboard())
+                                      );
+                                    },
+                                    child: Container(
+                                      width: 130,
+                                      height: 30,
+                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 5),
+                                      decoration: BoxDecoration(
+                                        color: Colors.red.withOpacity(0.12),
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(color: Colors.red, width: 1),
                                       ),
-                                      const SizedBox(height:5),
-                                      Container(
-                                        width: 130,  height: 30,
-                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 5),
-                                        decoration: BoxDecoration(
-                                          color: Colors.green.withOpacity(0.12),
-                                          borderRadius: BorderRadius.circular(12),
-                                          border: Border.all(color: Colors.green, width: 1),
-                                        ),
-                                        child: Row(
-                                          children: [
-                                            CustomText(
-                                              text: "On Leave : ",
-                                              size: 12,
-                                              colors: Colors.green.shade800,
-                                              isBold: true,
-                                            ),
-                                            CustomText(
-                                              text:  homeProvider.mainReportList.isEmpty?"0":"${int.parse(
-                                                  homeProvider.mainReportList[0]["fulldayleave_user"].toString()=="null"?"0":
-                                                  homeProvider.mainReportList[0]["fulldayleave_user"].toString())+int.parse(
-                                                  homeProvider.mainReportList[0]["sessionleave_user"].toString() =="null"?"0":
-                                                  homeProvider.mainReportList[0]["sessionleave_user"].toString())}",
-                                              size: 16,
-                                              isBold: true,
-                                              colors: Colors.black,
-                                            ),
-                                          ],
-                                        ),
+                                      child: Row(
+                                        children: [
+                                          CustomText(
+                                            text: "Leave Applied: ",
+                                            size: 12,
+                                            colors: Colors.red.shade800,
+                                            isBold: true,
+                                          ),
+                                          const SizedBox(height: 6),
+                                          CustomText(
+                                            text: homeProvider.mainReportList.isEmpty?"":homeProvider.mainReportList[0]["today_apply_leave"].toString(),
+                                            size: 16,
+                                            isBold: true,
+                                            colors: Colors.red.shade900,
+                                          ),
+                                        ],
                                       ),
-
-                                    ],
+                                    ),
                                   ),
+                                  const SizedBox(height:5),
+
+                                  /// ON LEAVE -> Tab 2 (Employees On Leave)
+                                  GestureDetector(
+                                    onTap: (){
+                                      final leaveProvider = Provider.of<LeaveProvider>(context, listen: false);
+                                      leaveProvider.changeIndex(2);
+                                      leaveProvider.setViewLeaveTab(1);   // 👈 Tab 2
+
+                                      utils.navigatePage(
+                                          context,
+                                              ()=>const DashBoard(child: LeaveManagementDashboard())
+                                      );
+                                    },
+                                    child: Container(
+                                      width: 130,  height: 30,
+                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 5),
+                                      decoration: BoxDecoration(
+                                        color: Colors.green.withOpacity(0.12),
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(color: Colors.green, width: 1),
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          CustomText(
+                                            text: "On Leave : ",
+                                            size: 12,
+                                            colors: Colors.green.shade800,
+                                            isBold: true,
+                                          ),
+                                          CustomText(
+                                            text:  homeProvider.mainReportList.isEmpty?"0":"${int.parse(
+                                                homeProvider.mainReportList[0]["fulldayleave_user"].toString()=="null"?"0":
+                                                homeProvider.mainReportList[0]["fulldayleave_user"].toString())+int.parse(
+                                                homeProvider.mainReportList[0]["sessionleave_user"].toString() =="null"?"0":
+                                                homeProvider.mainReportList[0]["sessionleave_user"].toString())}",
+                                            size: 16,
+                                            isBold: true,
+                                            colors: Colors.black,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+
                                 ],
                               ),
-                            )
-                        ),
-                      ): Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            ],
+                          ),
+                        )
+                    ): Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
 
                           if(localData.storage.read("role")!="1")

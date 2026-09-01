@@ -3689,7 +3689,7 @@ List<Marker> get liveMarker =>_liveMarker;
         )
           ..setAttribute(
               'download',
-              'JPS_Daily Work Plan Report.xlsx')
+              '${constValue.appName}_Daily Work Plan Report.xlsx')
           ..click();
 
       } else {
@@ -3699,7 +3699,7 @@ List<Marker> get liveMarker =>_liveMarker;
                 .path;
 
         final file =
-        File('$path/JPS_Daily Work Plan Report.xlsx');
+        File('$path/${constValue.appName}_Daily Work Plan Report.xlsx');
 
         await file.writeAsBytes(
           bytes,

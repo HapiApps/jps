@@ -563,38 +563,38 @@ class _DashBoardState extends State<DashBoard> {
         ),
 
         /// Daily Work Plan
-        InkWell(
-        onTap: () {
-        Navigator.pop(context);
-
-        utils.navigatePage(
-        context,
-        () => DashBoard(
-        child: VisitReport(
-        date1: homeProvider.startDate,
-        date2: homeProvider.endDate,
-        month: homeProvider.month,
-        type: homeProvider.type,
-        ),
-        ),
-        );
-        },
-        child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-        const Icon(Icons.rate_review,
-        size: 35, color: Colors.green),
-        5.height,
-        const Text(
-        "Daily Work Activity Report",
-        style: TextStyle(
-        fontWeight: FontWeight.bold,
-        fontSize: 12,
-        ),
-        ),
-        ],
-        ),
-        ),
+        // InkWell(
+        // onTap: () {
+        // Navigator.pop(context);
+        //
+        // utils.navigatePage(
+        // context,
+        // () => DashBoard(
+        // child: VisitReport(
+        // date1: homeProvider.startDate,
+        // date2: homeProvider.endDate,
+        // month: homeProvider.month,
+        // type: homeProvider.type,
+        // ),
+        // ),
+        // );
+        // },
+        // child: Column(
+        // mainAxisSize: MainAxisSize.min,
+        // children: [
+        // const Icon(Icons.rate_review,
+        // size: 35, color: Colors.green),
+        // 5.height,
+        // const Text(
+        // "Daily Work Activity Report",
+        // style: TextStyle(
+        // fontWeight: FontWeight.bold,
+        // fontSize: 12,
+        // ),
+        // ),
+        // ],
+        // ),
+        // ),
         ],
         ),
 

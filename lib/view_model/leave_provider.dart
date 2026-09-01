@@ -52,6 +52,11 @@ class LeaveProvider with ChangeNotifier {
   bool _allSelect =false;
   bool isSaving = false;
   List todayLeaveList = [];
+  int viewLeaveTabIndex = 0;
+  void setViewLeaveTab(int index) {
+    viewLeaveTabIndex = index;
+    notifyListeners();
+  }
   void changeValue(dynamic value) {
     _allSelect = value;
     holyDaysList.clear();

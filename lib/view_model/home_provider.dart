@@ -1170,7 +1170,7 @@ Future<void> loginOuts(context) async {
       );
 
 // ✅ now no error
-      attendanceProvider.setMainAttendanceFromDashboard(attendanceList);
+      attendanceProvider.getMainAttendance();
       /* ================= LATE + PERMISSION COUNT (FROM SAME RESPONSE) ================= */
 
       permisCount = 0;

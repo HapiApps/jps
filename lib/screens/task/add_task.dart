@@ -739,11 +739,6 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
                                 backgroundColor: colorsConst.primary,
                                 text: "Save",
                                 callback: ()  {
-                                  // if (companyId=="") {
-                                  //   _myFocusScopeNode.unfocus();
-                                  //   utils.showWarningToast(context,text: "Please Select ${constValue.customerName}");
-                                  //   taskProvider.taskCtr.reset();
-                                  // } else
                                   if (taskProvider.type==null) {
                                     _myFocusScopeNode.unfocus();
                                     utils.showWarningToast(context,text: "Please select a type");

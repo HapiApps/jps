@@ -424,125 +424,129 @@ class AttendanceProvider with ChangeNotifier{
   //   }
   //   notifyListeners();
   // }
-  void setMainAttendanceFromDashboard(List responseAttendance,
-      {bool fromReport = false}) {
 
-    try {
-      if (!fromReport) {
-        _attCheck = false;
-        _mainCheckOut = false;
-        _isPermission = false;
-        _mainAttendance = 0;
-        _totalHrs = "";
-        _permissionStatus = "";
-      }
 
-      String reasonSave = "";
 
-      if (responseAttendance.isNotEmpty) {
-        DateTime now = DateTime.now();
-        String formattedDate = DateFormat('dd-MMM-yyyy').format(now);
-
-        /// CURRENT USER மட்டும்
-        var userData = responseAttendance.firstWhere(
-              (e) =>
-          e["salesman_id"].toString() ==
-              localData.storage.read("id").toString(),
-          orElse: () => null,
-        );
-
-        if (userData != null) {
-          if (formattedDate == userData["date"]) {
-            /// CHECKOUT
-            _mainCheckOut = userData["status"].toString().contains("2");
-
-            /// ATTENDANCE STATUS
-            if (userData["status"].toString() == "1" ||
-                userData["status"].toString() == "1,2") {
-              _mainAttendance = 1;
-            }
-
-            /// IN + OUT
-            if (userData["status"].toString().contains("1,2")) {
-              _inTime = userData["time"].split(",")[0];
-              _outTime = userData["time"].split(",")[1];
-
-              _totalHrs = getTimeDifferenceBetween(_inTime, _outTime);
-            }
-
-            /// OUT + IN
-            else if (userData["status"].toString().contains("2,1")) {
-              _outTime = userData["time"].split(",")[0];
-              _inTime = userData["time"].split(",")[1];
-
-              _totalHrs = getTimeDifferenceBetween(_outTime, _inTime);
-            }
-
-            /// ONLY IN
-            else {
-              if (userData["time"] != null &&
-                  userData["time"].toString().isNotEmpty) {
-                _inTime = userData["time"].split(",")[0];
-              }
-            }
-
-            /// -------------------------
-            /// PERMISSION STATUS
-            /// -------------------------
-
-            String perStatus = userData["per_status"].toString();
-            reasonSave = userData["per_reason"].toString();
-
-            if (!fromReport) {
-              if (perStatus != "null" && perStatus.isNotEmpty) {
-                List splitStatus = perStatus.split(",");
-
-                /// LAST STATUS மட்டும்
-                _permissionStatus = splitStatus.last;
-
-                _isPermission = _permissionStatus == "1";
-              } else {
-                _permissionStatus = "";
-                _isPermission = false;
-              }
-            }
-
-            /// PERMISSION REASON
-            if (!fromReport) {
-              if (reasonSave != "null" && reasonSave.isNotEmpty) {
-                List splitReason = reasonSave.split(",");
-                permissionReason.text = splitReason.last;
-              }
-            }
-
-            /// DEBUG
-            print("permissionStatus = $_permissionStatus");
-            print("isPermission = $_isPermission");
-
-            /// LATE COUNT
-            getLateCount(
-              "${DateTime.now().day.toString().padLeft(2, "0")}-${DateTime.now().month.toString().padLeft(2, "0")}-${DateTime.now().year}",
-              "${DateTime.now().day.toString().padLeft(2, "0")}-${DateTime.now().month.toString().padLeft(2, "0")}-${DateTime.now().year}",
-            );
-          }
-        }
-
-        _attCheck = true;
-      } else {
-        _totalHrs = "";
-        _permissionStatus = "";
-        _attCheck = true;
-      }
-    } catch (e) {
-      print("Attendance Error: $e");
-
-      _totalHrs = "";
-      _permissionStatus = "";
-      _attCheck = true;
-    }
-
-    notifyListeners();
-  }
+  // void setMainAttendanceFromDashboard(List responseAttendance,
+  //     {bool fromReport = false})
+  // {
+  //
+  //   try {
+  //     if (!fromReport) {
+  //       _attCheck = false;
+  //       _mainCheckOut = false;
+  //       _isPermission = false;
+  //       _mainAttendance = 0;
+  //       _totalHrs = "";
+  //       _permissionStatus = "";
+  //     }
+  //
+  //     String reasonSave = "";
+  //
+  //     if (responseAttendance.isNotEmpty) {
+  //       DateTime now = DateTime.now();
+  //       String formattedDate = DateFormat('dd-MMM-yyyy').format(now);
+  //
+  //       /// CURRENT USER மட்டும்
+  //       var userData = responseAttendance.firstWhere(
+  //             (e) =>
+  //         e["salesman_id"].toString() ==
+  //             localData.storage.read("id").toString(),
+  //         orElse: () => null,
+  //       );
+  //
+  //       if (userData != null) {
+  //         if (formattedDate == userData["date"]) {
+  //           /// CHECKOUT
+  //           _mainCheckOut = userData["status"].toString().contains("2");
+  //
+  //           /// ATTENDANCE STATUS
+  //           if (userData["status"].toString() == "1" ||
+  //               userData["status"].toString() == "1,2") {
+  //             _mainAttendance = 1;
+  //           }
+  //
+  //           /// IN + OUT
+  //           if (userData["status"].toString().contains("1,2")) {
+  //             _inTime = userData["time"].split(",")[0];
+  //             _outTime = userData["time"].split(",")[1];
+  //
+  //             _totalHrs = getTimeDifferenceBetween(_inTime, _outTime);
+  //           }
+  //
+  //           /// OUT + IN
+  //           else if (userData["status"].toString().contains("2,1")) {
+  //             _outTime = userData["time"].split(",")[0];
+  //             _inTime = userData["time"].split(",")[1];
+  //
+  //             _totalHrs = getTimeDifferenceBetween(_outTime, _inTime);
+  //           }
+  //
+  //           /// ONLY IN
+  //           else {
+  //             if (userData["time"] != null &&
+  //                 userData["time"].toString().isNotEmpty) {
+  //               _inTime = userData["time"].split(",")[0];
+  //             }
+  //           }
+  //
+  //           /// -------------------------
+  //           /// PERMISSION STATUS
+  //           /// -------------------------
+  //
+  //           String perStatus = userData["per_status"].toString();
+  //           reasonSave = userData["per_reason"].toString();
+  //
+  //           if (!fromReport) {
+  //             if (perStatus != "null" && perStatus.isNotEmpty) {
+  //               List splitStatus = perStatus.split(",");
+  //
+  //               /// LAST STATUS மட்டும்
+  //               _permissionStatus = splitStatus.last;
+  //
+  //               _isPermission = _permissionStatus == "1";
+  //             } else {
+  //               _permissionStatus = "";
+  //               _isPermission = false;
+  //             }
+  //           }
+  //
+  //           /// PERMISSION REASON
+  //           if (!fromReport) {
+  //             if (reasonSave != "null" && reasonSave.isNotEmpty) {
+  //               List splitReason = reasonSave.split(",");
+  //               permissionReason.text = splitReason.last;
+  //             }
+  //           }
+  //
+  //           /// DEBUG
+  //           print("permissionStatus = $_permissionStatus");
+  //           print("isPermission = $_isPermission");
+  //
+  //           /// LATE COUNT
+  //           getLateCount(
+  //             "${DateTime.now().day.toString().padLeft(2, "0")}-${DateTime.now().month.toString().padLeft(2, "0")}-${DateTime.now().year}",
+  //             "${DateTime.now().day.toString().padLeft(2, "0")}-${DateTime.now().month.toString().padLeft(2, "0")}-${DateTime.now().year}",
+  //           );
+  //         }
+  //       }
+  //
+  //       _attCheck = true;
+  //     } else {
+  //       _totalHrs = "";
+  //       _permissionStatus = "";
+  //       _attCheck = true;
+  //     }
+  //   } catch (e) {
+  //     print("Attendance Error: $e");
+  //
+  //     _totalHrs = "";
+  //     _permissionStatus = "";
+  //     _attCheck = true;
+  //   }
+  //
+  //   notifyListeners();
+  // }
   Future<void> getMainAttendance({bool fromReport = false}) async {
     try {
 
