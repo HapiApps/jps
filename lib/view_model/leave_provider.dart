@@ -21,6 +21,7 @@ import '../model/leave/leave_model.dart';
 import '../model/leave/rules_model.dart';
 import '../model/task/work_plan.dart';
 import '../model/user_model.dart';
+import '../repo/ex_api_services.dart';
 import '../screens/common/dashboard.dart';
 import '../screens/common/add_day_work_plan.dart';
 import '../screens/leave_management/add_leave_rules.dart';
@@ -1080,16 +1081,20 @@ void changePage2(){
   String betweenDates="";
   void showDatePickerDialog(BuildContext context) {
     DateTime today = DateTime.now();
-    if(_stDate!=""||_enDate!=""){
+
+    // Allow previous 1 week dates
+    DateTime minDate = today.subtract(const Duration(days: 7));
+
+    if (_stDate != "") {
       DateFormat inputFormat = DateFormat('dd-MM-yyyy');
 
       DateTime start = inputFormat.parse(_stDate);
       DateTime end;
 
-      if (_enDate != "" && _enDate!="") {
+      if (_enDate != "") {
         end = inputFormat.parse(_enDate);
       } else {
-        end = start;   // single-day selection
+        end = start;
       }
 
       if (end.isBefore(start)) {
@@ -1099,48 +1104,72 @@ void changePage2(){
       }
 
       selectedDate = PickerDateRange(start, end);
-    }else{
+    } else {
       selectedDate = PickerDateRange(today, today);
     }
-    notifyListeners();
-    datesBetween = getDatesInRange(selectedDate!.startDate!, selectedDate!.endDate!);
+
+    datesBetween = getDatesInRange(
+      selectedDate!.startDate!,
+      selectedDate!.endDate!,
+    );
 
     DateFormat dateFormat = DateFormat('dd-MM-yyyy');
-    List<String> formattedDates = datesBetween.map((date) => dateFormat.format(date)).toList();
+
+    List<String> formattedDates =
+    datesBetween.map((date) => dateFormat.format(date)).toList();
+
     betweenDates = formattedDates.join(' || ');
 
     _stDate = dateFormat.format(selectedDate!.startDate!);
+
     notifyListeners();
+
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: CustomText(text: '   Select Date',colors: colorsConst.secondary,isBold: true,),
+          title: CustomText(
+            text: '   Select Date',
+            colors: colorsConst.secondary,
+            isBold: true,
+          ),
           content: SizedBox(
-            height: 300, // Adjust height as needed
-            width: 300, // Adjust width as needed
+            height: 300,
+            width: 300,
             child: SfDateRangePicker(
-              minDate: DateTime.now(),
-              initialSelectedRange: selectedDate,   // ✔ REQUIRED
-              onSelectionChanged: (DateRangePickerSelectionChangedArgs args) {
-                selectedDate = args.value;
-                _stDate="";
-                _enDate="";
-                if(selectedDate?.endDate!=null){
-                  _stDate="${selectedDate?.startDate?.day.toString().padLeft(2,"0")}"
-                      "-${selectedDate?.startDate?.month.toString().padLeft(2,"0")}"
-                      "-${selectedDate?.startDate?.year.toString()}";
+              // ⭐ Previous 7 days allowed
+              minDate: minDate,
 
-                  _enDate="${selectedDate?.endDate?.day.toString().padLeft(2,"0")}"
-                      "-${selectedDate?.endDate?.month.toString().padLeft(2,"0")}"
-                      "-${selectedDate?.endDate?.year.toString()}";
-                }else{
-                  _stDate="${selectedDate?.startDate?.day.toString().padLeft(2,"0")}"
-                      "-${selectedDate?.startDate?.month.toString().padLeft(2,"0")}"
-                      "-${selectedDate?.startDate?.year.toString()}";
+              // Today and future dates are also allowed
+              initialSelectedRange: selectedDate,
+
+              onSelectionChanged:
+                  (DateRangePickerSelectionChangedArgs args) {
+                selectedDate = args.value;
+
+                _stDate = "";
+                _enDate = "";
+
+                if (selectedDate?.endDate != null) {
+                  _stDate =
+                  "${selectedDate!.startDate!.day.toString().padLeft(2, "0")}"
+                      "-${selectedDate!.startDate!.month.toString().padLeft(2, "0")}"
+                      "-${selectedDate!.startDate!.year}";
+
+                  _enDate =
+                  "${selectedDate!.endDate!.day.toString().padLeft(2, "0")}"
+                      "-${selectedDate!.endDate!.month.toString().padLeft(2, "0")}"
+                      "-${selectedDate!.endDate!.year}";
+                } else {
+                  _stDate =
+                  "${selectedDate!.startDate!.day.toString().padLeft(2, "0")}"
+                      "-${selectedDate!.startDate!.month.toString().padLeft(2, "0")}"
+                      "-${selectedDate!.startDate!.year}";
                 }
+
                 notifyListeners();
               },
+
               selectionMode: DateRangePickerSelectionMode.range,
             ),
           ),
@@ -1148,32 +1177,51 @@ void changePage2(){
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                CustomText(text: ' Double Click to select single dates and drag to select multiple dates',colors: colorsConst.greyClr,),
+                CustomText(
+                  text:
+                  'Double Click to select single dates and drag to select multiple dates',
+                  colors: colorsConst.greyClr,
+                ),
               ],
             ),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
                 TextButton(
-                  child: const CustomText(text:'Cancel',colors: Colors.grey,isBold: true,),
+                  child: const CustomText(
+                    text: 'Cancel',
+                    colors: Colors.grey,
+                    isBold: true,
+                  ),
                   onPressed: () {
                     Navigator.of(context).pop();
                   },
                 ),
                 TextButton(
-                  child: CustomText(text: 'OK',colors: colorsConst.primary,isBold: true,),
+                  child: CustomText(
+                    text: 'OK',
+                    colors: colorsConst.primary,
+                    isBold: true,
+                  ),
                   onPressed: () {
                     if (selectedDate != null) {
                       datesBetween = getDatesInRange(
                         selectedDate!.startDate!,
-                        selectedDate!.endDate ?? selectedDate!.startDate!,
+                        selectedDate!.endDate ??
+                            selectedDate!.startDate!,
                       );
                     }
+
                     DateFormat dateFormat = DateFormat('dd-MM-yyyy');
 
-                    List<String> formattedDates = datesBetween.map((date) => dateFormat.format(date)).toList();
+                    List<String> formattedDates = datesBetween
+                        .map((date) => dateFormat.format(date))
+                        .toList();
+
                     betweenDates = formattedDates.join(' || ');
+
                     notifyListeners();
+
                     Navigator.of(context).pop();
                   },
                 ),
@@ -1582,7 +1630,7 @@ void setList(){
   /// ========================================================
   /// leaveApply — FIXED
   /// ========================================================
-  Future<void> leaveApply(context) async {
+  Future<void> leaveApply(context, String string) async {
     try {
       Map data = {
         "action": applyLeave,
@@ -2798,6 +2846,124 @@ void changeStatus(bool value){
 
     isSaving = false;
     addWorkCtr.reset();
+    notifyListeners();
+  }
+
+  /// ==========================================
+  /// ✅ PREFILL FORM FOR EDIT MODE
+  /// ==========================================
+  Future<void> iniValuesForEdit(LeaveModel data) async {
+    // Day type (Full / Half)
+    _dayType = data.dayType.toString();
+
+    if (data.dayType.toString() == "0.5") {
+      _session1 = data.session.toString() == "Morning";
+      _session2 = data.session.toString() == "Afternoon";
+    } else {
+      _session1 = false;
+      _session2 = false;
+    }
+
+    // Dates
+    try {
+      final st = DateTime.parse(data.startDate.toString());
+      _stDate = DateFormat('dd-MM-yyyy').format(st);
+    } catch (_) {
+      _stDate = "";
+    }
+
+    if (data.endDate != null && data.endDate.toString().isNotEmpty) {
+      try {
+        final en = DateTime.parse(data.endDate.toString());
+        _enDate = DateFormat('dd-MM-yyyy').format(en);
+      } catch (_) {
+        _enDate = _stDate;
+      }
+    } else {
+      _enDate = _stDate;
+    }
+
+    // ✅ FIX: make sure types list is loaded BEFORE we try to select one
+    if (types.isEmpty) {
+      await getLeaveTypes();
+    }
+
+    // ✅ FIX: match by id OR by name (whichever data.type actually holds)
+    final match = types.firstWhere(
+          (e) =>
+      e["id"].toString() == data.type.toString() ||
+          e["type"].toString() == data.type.toString(),
+      orElse: () => {},
+    );
+
+    _type = match.isNotEmpty ? match["type"].toString() : null;
+
+    // Reason
+    reason.text = data.reason.toString();
+
+    if (localData.storage.read("role") == "1") {
+      _name = data.fName.toString();
+      search.text = data.fName.toString();
+    }
+
+    notifyListeners();
+  }
+  /// ==========================================
+  /// ✅ UPDATE EXISTING LEAVE (called from Update button)
+  /// ==========================================
+  Future<void> updateLeaveDetails(context, String leaveId) async {
+    try {
+      Map data = {
+        "action": applyLeave, // ⚠️ உங்க backend-ல update action name இதுதான்னு confirm பண்ணுங்க (உதா: "editLeave" / "updateLeave")
+        "search_type": "update",
+        "id": leaveId, // ✅ எந்த leave record update ஆகணும்னு identify பண்ண
+        "reason": reason.text.trim(),
+        "day_type": dayType.toString(),
+        "lev_type": type,
+        "start_date": stDate,
+        "end_date": enDate == "" ? stDate : enDate,
+        "platform": localData.storage.read("platform"),
+        "created_by": localData.storage.read("id"),
+        "user_id": localData.storage.read("role") == "1"
+            ? nameId
+            : localData.storage.read("id"),
+        "cos_id": localData.storage.read("cos_id"),
+        "session": _session1 == true ? "Morning" : "Afternoon",
+      };
+
+      final response = await leaveRepo.addEmployee(data);
+      log(response.toString());
+
+      /// ✅ SUCCESS
+      if (response["message"] != null &&
+          (response["message"] == "Leave updated successfully" ||
+              response["message"] == "Leave application successful")) {
+        utils.showSuccessToast(context: context, text: "Leave Updated Successfully");
+
+        leaveCtr.reset();
+        if ({"1"}.contains(localData.storage.read("role"))) {
+          _selectedIndex = 2;
+          getLeaveReport(_filter);
+        } else {
+          getLeaveReport(_filter);
+          Navigator.pop(context);
+        }
+      }
+
+      /// ❌ FAILED CASE
+      else if (response["Failed"] != null) {
+        utils.showWarningToast(context, text: response["Failed"].toString());
+        leaveCtr.reset();
+      } else {
+        utils.showErrorToast(context: context);
+        leaveCtr.reset();
+      }
+    } catch (e) {
+      log(e.toString());
+      utils.showErrorToast(context: context);
+      leaveCtr.reset();
+    }
+    leaveCtr.reset();
     notifyListeners();
   }
 

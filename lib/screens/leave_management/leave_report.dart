@@ -1033,11 +1033,40 @@ class _ViewMyLeavesState extends State<ViewMyLeaves> with SingleTickerProviderSt
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    CustomText(
-                      text: displayDate,
-                      size: 12,
-                      colors: const Color(0xff7E7E7E),
-                      isBold: true,
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        CustomText(
+                          text: displayDate,
+                          size: 12,
+                          colors: const Color(0xff7E7E7E),
+                          isBold: true,
+                        ),
+                        /// ✅ EDIT BUTTON - admin only, pending leaves only
+                        if (localData.storage.read("role") == "1") ...[
+                          5.width,
+                          InkWell(
+                            onTap: () {
+                              _myFocusScopeNode.unfocus();
+                              utils.navigatePage(
+                                context,
+                                    () =>
+                                    ApplyLeave(
+                                      date1: widget.date1,
+                                      date2: widget.date2,
+                                      editData: data, // ✅ prefill with this leave record
+                                    ),
+                              );
+                            },
+                            child: const Icon(
+                              Icons.edit,
+                              size: 16,
+                              color: Color(0xffA80007),
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
                     const SizedBox(height: 5),
                     Container(
