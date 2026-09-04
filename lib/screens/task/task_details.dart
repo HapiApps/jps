@@ -5,6 +5,7 @@ import 'package:master_code/screens/task/task_chat.dart';
 import 'package:master_code/source/extentions/extensions.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:group_button/group_button.dart';
 import 'package:intl/intl.dart';
@@ -26,27 +27,33 @@ import '../common/dashboard.dart';
 import 'edit_task.dart';
 
 class TaskDetails extends StatefulWidget {
-final TaskData data;
-final bool isDirect;
-final String coId;
-final List numberList;
-final int index;
-  const TaskDetails({super.key, required this.data, required this.isDirect, required this.coId, required this.numberList, required this.index});
+  final TaskData data;
+  final bool isDirect;
+  final String coId;
+  final List numberList;
+  final int index;
+  const TaskDetails(
+      {super.key,
+        required this.data,
+        required this.isDirect,
+        required this.coId,
+        required this.numberList,
+        required this.index});
 
   @override
   State<TaskDetails> createState() => _TaskDetailsState();
 }
 
-class _TaskDetailsState extends State<TaskDetails> with SingleTickerProviderStateMixin {
-  String level='';
-  var type="0";
-  var imgC=0;
-  var voiceC=0;
-  var docsList=[];
-  var imgList=[];
-  var voiceList=[];
+class _TaskDetailsState extends State<TaskDetails>
+    with SingleTickerProviderStateMixin {
+  String level = '';
+  var type = "0";
+  var imgC = 0;
+  var voiceC = 0;
+  var docsList = [];
+  var imgList = [];
+  var voiceList = [];
   final AudioPlayer _audioPlayer = AudioPlayer();
-
 
   bool networkPlaying = false;
   final AudioPlayer _listAudioPlayer = AudioPlayer();
@@ -60,7 +67,7 @@ class _TaskDetailsState extends State<TaskDetails> with SingleTickerProviderStat
   Duration currentPosition = Duration.zero;
   Duration networkCurrent = Duration.zero;
   Duration networkTotal = Duration.zero;
-  @override
+
   @override
   void initState() {
     super.initState();
@@ -171,6 +178,16 @@ class _TaskDetailsState extends State<TaskDetails> with SingleTickerProviderStat
       setState(() {});
     });
   }
+
+  @override
+  void dispose() {
+    // ✅ Stop + release both audio players so they don't keep playing or
+    // leaking after this screen is popped.
+    _audioPlayer.dispose();
+    _listAudioPlayer.dispose();
+    super.dispose();
+  }
+
   String formatDateTime(String? date) {
     if (date == null || date.isEmpty) return "";
 
@@ -178,16 +195,12 @@ class _TaskDetailsState extends State<TaskDetails> with SingleTickerProviderStat
 
     return DateFormat('dd-MM-yy h:mm a').format(parsedDate);
   }
-  // String formatTime(Duration d) {
-  //   String twoDigits(int n) => n.toString().padLeft(2, "0");
-  //   final minutes = twoDigits(d.inMinutes.remainder(60));
-  //   final seconds = twoDigits(d.inSeconds.remainder(60));
-  //   return "$minutes:$seconds";
-  // }
+
   String formatTime(Duration d) {
     String twoDigits(int n) => n.toString().padLeft(2, "0");
     return "${twoDigits(d.inMinutes)}:${twoDigits(d.inSeconds.remainder(60))}";
   }
+
   Future<void> playNetworkAudio(String url) async {
     try {
       if (playingUrl == url && networkPlaying) {
@@ -213,10 +226,12 @@ class _TaskDetailsState extends State<TaskDetails> with SingleTickerProviderStat
         });
       }
     } catch (e) {
-      print("Audio play error => $e");
+      debugPrint("Audio play error => $e");
+      if (!mounted) return;
       utils.showWarningToast(context, text: "Audio cannot be played");
     }
   }
+
   Future<void> playAudio(String url) async {
     try {
       if (playingUrl == url && isPlaying) {
@@ -248,7 +263,7 @@ class _TaskDetailsState extends State<TaskDetails> with SingleTickerProviderStat
         }
       });
     } catch (e) {
-      print("Audio error => $e");
+      debugPrint("Audio error => $e");
       if (!mounted) return;
 
       setState(() {
@@ -257,6 +272,7 @@ class _TaskDetailsState extends State<TaskDetails> with SingleTickerProviderStat
       });
     }
   }
+
   void changeLevel() {
     setState(() {
       if (level == "High") {
@@ -266,20 +282,43 @@ class _TaskDetailsState extends State<TaskDetails> with SingleTickerProviderStat
       } else {
         level = "High";
       }
-      Provider.of<TaskProvider >(context, listen: false).updateLevelDetail(context,id: widget.data.id.toString(), level: level);
+      Provider.of<TaskProvider>(context, listen: false).updateLevelDetail(
+          context, id: widget.data.id.toString(), level: level);
     });
   }
+
+  /// ✅ Go back INSTANTLY. The old code did:
+  ///   await taskProvider.getAllTask(...);
+  ///   Navigator.pop(context);
+  /// which meant the screen only closed after the network call finished —
+  /// that's exactly why back felt slow. Now we pop first, and refresh the
+  /// task list in the background without blocking the UI.
+  void _handleBack() {
+    HapticFeedback.lightImpact();
+    final taskProvider = Provider.of<TaskProvider>(context, listen: false);
+
+    Navigator.pop(context);
+
+    // fire-and-forget refresh, doesn't block navigation anymore
+    taskProvider.getAllTask(
+      true,
+      date1: widget.data.taskDate.toString(),
+      date2: widget.data.taskDate.toString(),
+      type: "Assigned",
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    var webWidth=MediaQuery.of(context).size.width * 0.5;
-    var phoneWidth=MediaQuery.of(context).size.width * 0.9;
+    var webWidth = MediaQuery.of(context).size.width * 0.5;
+    var phoneWidth = MediaQuery.of(context).size.width * 0.9;
     String currentStatus = "Assigned";
     final taskProvider = Provider.of<TaskProvider>(context);
 
     currentStatus = taskProvider.selectedStatusValue.toString();
     if (taskProvider.historyDetails.isNotEmpty) {
       currentStatus = taskProvider.historyDetails.last["value"].toString();
-    }// INGATHAAN PODANUM
+    } // INGATHAAN PODANUM
 
     return Consumer<TaskProvider>(builder: (context, taskProvider, _) {
       return Scaffold(
@@ -292,9 +331,13 @@ class _TaskDetailsState extends State<TaskDetails> with SingleTickerProviderStat
           title: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              CustomText(text: widget.data.creator.toString(),size: 15,isBold: true,),
+              CustomText(
+                text: widget.data.creator.toString(),
+                size: 15,
+                isBold: true,
+              ),
               Padding(
-                padding: const EdgeInsets.only(top: 12.0,left: 4),
+                padding: const EdgeInsets.only(top: 12.0, left: 4),
                 child: CustomText(
                   text: "V ${localData.versionNumber}",
                   colors: Colors.grey,
@@ -304,20 +347,8 @@ class _TaskDetailsState extends State<TaskDetails> with SingleTickerProviderStat
             ],
           ),
           leading: IconButton(
-            onPressed: () async {
-
-              await Provider.of<TaskProvider>(
-                context,
-                listen: false,
-              ).getAllTask(
-                true,
-                date1: widget.data.taskDate.toString(), // or your date1
-                date2: widget.data.taskDate.toString(), // or your date2
-                type: "Assigned", // or your type
-              );
-
-              Navigator.pop(context);
-            },
+            // ✅ INSTANT back — pop happens immediately, refresh runs after.
+            onPressed: _handleBack,
             icon: Icon(
               Icons.arrow_back_ios_rounded,
               color: colorsConst.primary,
@@ -325,13 +356,26 @@ class _TaskDetailsState extends State<TaskDetails> with SingleTickerProviderStat
             ),
           ),
           actions: [
-            if(widget.data.statval!="Completed"&&localData.storage.read("role") =="1")
-            IconButton(onPressed: (){
-                // homeProvider.showTaskType(4);
-                // homeProvider.changeTaskList(data: widget.data,isDirect: widget.isDirect,numberList: widget.numberList);
-                utils.navigatePage(context, ()=> DashBoard(child: EditTask(
-                    data: widget.data,isDirect: widget.isDirect,numberList: widget.numberList)));
-          }, icon: SvgPicture.asset(assets.tEdit,width: 20,height: 20,)),
+            if (widget.data.statval != "Completed" &&
+                localData.storage.read("role") == "1")
+              IconButton(
+                  onPressed: () {
+                    HapticFeedback.lightImpact();
+                    // homeProvider.showTaskType(4);
+                    // homeProvider.changeTaskList(data: widget.data,isDirect: widget.isDirect,numberList: widget.numberList);
+                    utils.navigatePage(
+                        context,
+                            () => DashBoard(
+                            child: EditTask(
+                                data: widget.data,
+                                isDirect: widget.isDirect,
+                                numberList: widget.numberList)));
+                  },
+                  icon: SvgPicture.asset(
+                    assets.tEdit,
+                    width: 20,
+                    height: 20,
+                  )),
           ],
         ),
         floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
@@ -340,10 +384,9 @@ class _TaskDetailsState extends State<TaskDetails> with SingleTickerProviderStat
             children: [
               Center(
                 child: Container(
-                    width: kIsWeb?webWidth:phoneWidth,
+                    width: kIsWeb ? webWidth : phoneWidth,
                     decoration: customDecoration.baseBackgroundDecoration(
-                    color: Colors.white,radius: 20
-                  ),
+                        color: Colors.white, radius: 20),
                     child: Padding(
                       padding: const EdgeInsets.all(8.0),
                       child: Column(
@@ -352,20 +395,24 @@ class _TaskDetailsState extends State<TaskDetails> with SingleTickerProviderStat
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-
                               /// TASK TITLE WITH VIEW MORE
                               Expanded(
                                 child: GestureDetector(
                                   onTap: () {
-                                    if (widget.data.taskTitle.toString().length > 15) {
+                                    if (widget.data.taskTitle
+                                        .toString()
+                                        .length >
+                                        15) {
                                       showDialog(
                                         context: context,
                                         builder: (context) => AlertDialog(
                                           title: const Text("Task Title"),
-                                          content: Text(widget.data.taskTitle.toString()),
+                                          content: Text(
+                                              widget.data.taskTitle.toString()),
                                           actions: [
                                             TextButton(
-                                              onPressed: () => Navigator.pop(context),
+                                              onPressed: () =>
+                                                  Navigator.pop(context),
                                               child: const Text("Close"),
                                             )
                                           ],
@@ -378,9 +425,13 @@ class _TaskDetailsState extends State<TaskDetails> with SingleTickerProviderStat
                                     text: TextSpan(
                                       children: [
                                         TextSpan(
-                                          text: widget.data.taskTitle.toString().length > 15
+                                          text: widget.data.taskTitle
+                                              .toString()
+                                              .length >
+                                              15
                                               ? "${widget.data.taskTitle.toString().substring(0, 15)}..."
-                                              : widget.data.taskTitle.toString(),
+                                              : widget.data.taskTitle
+                                              .toString(),
                                           style: const TextStyle(
                                             fontSize: 16,
                                             fontFamily: "Lato",
@@ -388,8 +439,10 @@ class _TaskDetailsState extends State<TaskDetails> with SingleTickerProviderStat
                                             fontWeight: FontWeight.w500,
                                           ),
                                         ),
-
-                                        if (widget.data.taskTitle.toString().length > 15)
+                                        if (widget.data.taskTitle
+                                            .toString()
+                                            .length >
+                                            15)
                                           const TextSpan(
                                             text: " View More",
                                             style: TextStyle(
@@ -408,9 +461,12 @@ class _TaskDetailsState extends State<TaskDetails> with SingleTickerProviderStat
 
                               /// LEVEL TAG
                               GestureDetector(
-                                onTap: localData.storage.read("role") == "1" ? changeLevel : null,
+                                onTap: localData.storage.read("role") == "1"
+                                    ? changeLevel
+                                    : null,
                                 child: Container(
-                                  decoration: customDecoration.baseBackgroundDecoration(
+                                  decoration:
+                                  customDecoration.baseBackgroundDecoration(
                                     color: level == 'High'
                                         ? Colors.red.shade50
                                         : level == 'Immediate'
@@ -448,11 +504,12 @@ class _TaskDetailsState extends State<TaskDetails> with SingleTickerProviderStat
                             ],
                           ),
 
-                          Divider(color: Colors.grey.shade200,),
+                          Divider(
+                            color: Colors.grey.shade200,
+                          ),
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-
                               /// ================= Assigned To =================
                               Expanded(
                                 flex: 2,
@@ -462,23 +519,32 @@ class _TaskDetailsState extends State<TaskDetails> with SingleTickerProviderStat
                                       text: "Assigned To: ",
                                       colors: colorsConst.greyClr,
                                     ),
-
                                     Expanded(
                                       child: GestureDetector(
                                         onTap: () {
-                                          if (widget.data.assignedNames.toString().length > 15) {
+                                          if (widget.data.assignedNames
+                                              .toString()
+                                              .length >
+                                              15) {
                                             showDialog(
                                               context: context,
-                                              builder: (context) => AlertDialog(
-                                                title: const Text("Assigned To"),
-                                                content: Text(widget.data.assignedNames.toString()),
-                                                actions: [
-                                                  TextButton(
-                                                    onPressed: () => Navigator.pop(context),
-                                                    child: const Text("Close"),
-                                                  )
-                                                ],
-                                              ),
+                                              builder: (context) =>
+                                                  AlertDialog(
+                                                    title:
+                                                    const Text("Assigned To"),
+                                                    content: Text(widget.data
+                                                        .assignedNames
+                                                        .toString()),
+                                                    actions: [
+                                                      TextButton(
+                                                        onPressed: () =>
+                                                            Navigator.pop(
+                                                                context),
+                                                        child:
+                                                        const Text("Close"),
+                                                      )
+                                                    ],
+                                                  ),
                                             );
                                           }
                                         },
@@ -487,9 +553,14 @@ class _TaskDetailsState extends State<TaskDetails> with SingleTickerProviderStat
                                           text: TextSpan(
                                             children: [
                                               TextSpan(
-                                                text: widget.data.assignedNames.toString().length > 12
+                                                text: widget.data
+                                                    .assignedNames
+                                                    .toString()
+                                                    .length >
+                                                    12
                                                     ? "${widget.data.assignedNames.toString().substring(0, 12)}.."
-                                                    : widget.data.assignedNames.toString(),
+                                                    : widget.data.assignedNames
+                                                    .toString(),
                                                 style: TextStyle(
                                                   fontSize: 14,
                                                   fontFamily: "Lato",
@@ -497,13 +568,17 @@ class _TaskDetailsState extends State<TaskDetails> with SingleTickerProviderStat
                                                   fontWeight: FontWeight.w500,
                                                 ),
                                               ),
-                                              if (widget.data.assignedNames.toString().length > 15)
+                                              if (widget.data.assignedNames
+                                                  .toString()
+                                                  .length >
+                                                  15)
                                                 const TextSpan(
                                                   text: "",
                                                   style: TextStyle(
                                                     fontSize: 13,
                                                     color: Colors.blue,
-                                                    fontWeight: FontWeight.bold,
+                                                    fontWeight:
+                                                    FontWeight.bold,
                                                   ),
                                                 ),
                                             ],
@@ -515,22 +590,28 @@ class _TaskDetailsState extends State<TaskDetails> with SingleTickerProviderStat
                                 ),
                               ),
 
-
-
                               /// ================= Task Date =================
                               Expanded(
                                 flex: 1,
                                 child: Row(
                                   mainAxisAlignment: MainAxisAlignment.start,
                                   children: [
-                                    CustomText(text: "Date: ", colors: colorsConst.greyClr,size: 12,),
-                                    CustomText(text: widget.data.taskDate.toString()),
+                                    CustomText(
+                                      text: "Date: ",
+                                      colors: colorsConst.greyClr,
+                                      size: 12,
+                                    ),
+                                    CustomText(
+                                        text: widget.data.taskDate.toString()),
                                   ],
                                 ),
                               ),
                             ],
                           ),
-                          Divider(color: Colors.grey.shade200,thickness: 1.2,),
+                          Divider(
+                            color: Colors.grey.shade200,
+                            thickness: 1.2,
+                          ),
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
@@ -538,15 +619,29 @@ class _TaskDetailsState extends State<TaskDetails> with SingleTickerProviderStat
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   SizedBox(
-                                      width: kIsWeb?webWidth/4:phoneWidth/2,
+                                      width:
+                                      kIsWeb ? webWidth / 4 : phoneWidth / 2,
                                       child: Row(
-                                        mainAxisAlignment: MainAxisAlignment.start,
+                                        mainAxisAlignment:
+                                        MainAxisAlignment.start,
                                         children: [
-                                          CustomText(text:"Created: ",colors: colorsConst.greyClr,),
-                                          CustomText(text:widget.data.creator.toString(),colors: Colors.black,isBold: true,),
+                                          CustomText(
+                                            text: "Created: ",
+                                            colors: colorsConst.greyClr,
+                                          ),
+                                          CustomText(
+                                            text: widget.data.creator
+                                                .toString(),
+                                            colors: Colors.black,
+                                            isBold: true,
+                                          ),
                                         ],
                                       )),
-                                  CustomText(text:formatDateTime(widget.data.createdTs.toString()),size: 11,),
+                                  CustomText(
+                                    text: formatDateTime(
+                                        widget.data.createdTs.toString()),
+                                    size: 11,
+                                  ),
                                 ],
                               ),
                               10.height,
@@ -554,49 +649,89 @@ class _TaskDetailsState extends State<TaskDetails> with SingleTickerProviderStat
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   SizedBox(
-                                      width: kIsWeb?webWidth/4:phoneWidth/4,
+                                      width:
+                                      kIsWeb ? webWidth / 4 : phoneWidth / 4,
                                       child: Row(
                                         children: [
-                                          CustomText(text:"Updated: ",colors: colorsConst.greyClr,),
                                           CustomText(
-                                            text: widget.data.updatedByName.toString()=="null"?"-":widget.data.updatedByName.toString(),
-                                            colors:Colors.black,
-                                            size: 13,isBold: true,
+                                            text: "Updated: ",
+                                            colors: colorsConst.greyClr,
+                                          ),
+                                          CustomText(
+                                            text: widget.data.updatedByName
+                                                .toString() ==
+                                                "null"
+                                                ? "-"
+                                                : widget.data.updatedByName
+                                                .toString(),
+                                            colors: Colors.black,
+                                            size: 13,
+                                            isBold: true,
                                           ),
                                         ],
                                       )),
-                                  CustomText(text:formatDateTime(widget.data.updatedTs.toString()),size: 11,),
+                                  CustomText(
+                                    text: formatDateTime(
+                                        widget.data.updatedTs.toString()),
+                                    size: 11,
+                                  ),
                                 ],
                               ),
                             ],
                           ),
-                          Divider(color: Colors.grey.shade200,),
-                          CustomText(text:"Attachments",colors: colorsConst.greyClr,),
+                          Divider(
+                            color: Colors.grey.shade200,
+                          ),
+                          CustomText(
+                            text: "Attachments",
+                            colors: colorsConst.greyClr,
+                          ),
                           5.height,
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               GestureDetector(
-                                onTap: (){
+                                onTap: () {
                                   setState(() {
-                                    type="1";
+                                    type = "1";
                                   });
                                 },
                                 child: Container(
-                                  width: kIsWeb?webWidth/2.5:phoneWidth/2.7,
-                                  decoration: customDecoration.baseBackgroundDecoration(
-                                    color: type=="1"?Colors.white:Color(0xffE5E5E5),radius: 30,
-                                    borderColor: type=="1"?colorsConst.primary:Color(0xffE5E5E5)
-                                  ),
+                                  width: kIsWeb
+                                      ? webWidth / 2.5
+                                      : phoneWidth / 2.7,
+                                  decoration:
+                                  customDecoration.baseBackgroundDecoration(
+                                      color: type == "1"
+                                          ? Colors.white
+                                          : const Color(0xffE5E5E5),
+                                      radius: 30,
+                                      borderColor: type == "1"
+                                          ? colorsConst.primary
+                                          : const Color(0xffE5E5E5)),
                                   child: Padding(
                                     padding: const EdgeInsets.all(8.0),
                                     child: Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                      mainAxisAlignment:
+                                      MainAxisAlignment.spaceEvenly,
                                       children: [
-                                        SvgPicture.asset(type=="1"?assets.img2:assets.img1),
-                                        CustomText(text: "Images",colors: type=="1"?colorsConst.primary:Colors.black,size: 15,),
-                                        CircleAvatar(radius: 10,backgroundColor: colorsConst.primary,
-                                          child: CustomText(text:imgC.toString(),colors: Colors.white,),
+                                        SvgPicture.asset(type == "1"
+                                            ? assets.img2
+                                            : assets.img1),
+                                        CustomText(
+                                          text: "Images",
+                                          colors: type == "1"
+                                              ? colorsConst.primary
+                                              : Colors.black,
+                                          size: 15,
+                                        ),
+                                        CircleAvatar(
+                                          radius: 10,
+                                          backgroundColor: colorsConst.primary,
+                                          child: CustomText(
+                                            text: imgC.toString(),
+                                            colors: Colors.white,
+                                          ),
                                         )
                                       ],
                                     ),
@@ -604,26 +739,46 @@ class _TaskDetailsState extends State<TaskDetails> with SingleTickerProviderStat
                                 ),
                               ),
                               GestureDetector(
-                                onTap: (){
+                                onTap: () {
                                   setState(() {
-                                    type="2";
+                                    type = "2";
                                   });
                                 },
                                 child: Container(
-                                  width: kIsWeb?webWidth/2:phoneWidth/2.3,
-                                  decoration: customDecoration.baseBackgroundDecoration(
-                                      color: type=="2"?Colors.white:Color(0xffE5E5E5),radius: 30,
-                                      borderColor: type=="2"?colorsConst.primary:Color(0xffE5E5E5)
-                                  ),
+                                  width:
+                                  kIsWeb ? webWidth / 2 : phoneWidth / 2.3,
+                                  decoration:
+                                  customDecoration.baseBackgroundDecoration(
+                                      color: type == "2"
+                                          ? Colors.white
+                                          : const Color(0xffE5E5E5),
+                                      radius: 30,
+                                      borderColor: type == "2"
+                                          ? colorsConst.primary
+                                          : const Color(0xffE5E5E5)),
                                   child: Padding(
                                     padding: const EdgeInsets.all(8.0),
                                     child: Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                      mainAxisAlignment:
+                                      MainAxisAlignment.spaceEvenly,
                                       children: [
-                                        SvgPicture.asset(type=="2"?assets.voice1:assets.voice2),
-                                        CustomText(text: "Voice Notes",colors: type=="2"?colorsConst.primary:Colors.black,size: 15,),
-                                        CircleAvatar(radius: 10,backgroundColor: colorsConst.primary,
-                                          child: CustomText(text:voiceC.toString(),colors: Colors.white,),
+                                        SvgPicture.asset(type == "2"
+                                            ? assets.voice1
+                                            : assets.voice2),
+                                        CustomText(
+                                          text: "Voice Notes",
+                                          colors: type == "2"
+                                              ? colorsConst.primary
+                                              : Colors.black,
+                                          size: 15,
+                                        ),
+                                        CircleAvatar(
+                                          radius: 10,
+                                          backgroundColor: colorsConst.primary,
+                                          child: CustomText(
+                                            text: voiceC.toString(),
+                                            colors: Colors.white,
+                                          ),
                                         )
                                       ],
                                     ),
@@ -633,9 +788,10 @@ class _TaskDetailsState extends State<TaskDetails> with SingleTickerProviderStat
                             ],
                           ),
                           10.height,
-                          if(type=="1"&&imgList.isNotEmpty)
-                          GridView.builder(
-                                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                          if (type == "1" && imgList.isNotEmpty)
+                            GridView.builder(
+                                gridDelegate:
+                                const SliverGridDelegateWithFixedCrossAxisCount(
                                   crossAxisCount: 3,
                                   crossAxisSpacing: 50,
                                   mainAxisSpacing: 50,
@@ -644,33 +800,36 @@ class _TaskDetailsState extends State<TaskDetails> with SingleTickerProviderStat
                                 itemCount: imgList.length,
                                 shrinkWrap: true,
                                 physics: const NeverScrollableScrollPhysics(),
-                                itemBuilder: (context,index){
-                                  return  SizedBox(
-                                    width: kIsWeb?webWidth:phoneWidth,
-                                    child: ShowNetWrKImg(img: imgList[index],),
+                                itemBuilder: (context, index) {
+                                  return SizedBox(
+                                    width: kIsWeb ? webWidth : phoneWidth,
+                                    child: ShowNetWrKImg(
+                                      img: imgList[index],
+                                    ),
                                   );
-                                }
-                            ),
-                          if(type=="2"&&voiceList.isNotEmpty)
-                          ListView.builder(
+                                }),
+                          if (type == "2" && voiceList.isNotEmpty)
+                            ListView.builder(
                                 itemCount: voiceList.length,
                                 shrinkWrap: true,
                                 physics: const NeverScrollableScrollPhysics(),
-                                itemBuilder: (context,index){
-                                  return  SizedBox(
-                                    width: kIsWeb?webWidth:phoneWidth,
+                                itemBuilder: (context, index) {
+                                  return SizedBox(
+                                    width: kIsWeb ? webWidth : phoneWidth,
                                     child: AudioTile(
-                                        key: ValueKey(voiceList[index]),audioUrl: '$imageFile?path=${voiceList[index]}'),
+                                        key: ValueKey(voiceList[index]),
+                                        audioUrl:
+                                        '$imageFile?path=${voiceList[index]}'),
                                   );
-                                }
-                            ),
-                          Divider(color: Colors.grey.shade200,),
-
-
+                                }),
+                          Divider(
+                            color: Colors.grey.shade200,
+                          ),
                         ],
                       ),
                     )),
-              ),10.height,
+              ),
+              10.height,
               Center(
                 child: Container(
                   width: kIsWeb ? webWidth : phoneWidth,
@@ -703,11 +862,14 @@ class _TaskDetailsState extends State<TaskDetails> with SingleTickerProviderStat
                               ),
                             ),
                             // if (widget.data.statval != "Completed")
-                            if (taskProvider.historyDetails.isEmpty||taskProvider.historyDetails.last["value"]!= "Completed")
+                            if (taskProvider.historyDetails.isEmpty ||
+                                taskProvider.historyDetails.last["value"] !=
+                                    "Completed")
                               CustomLoadingButton(
                                 callback: () {
                                   if (taskProvider.isUpdate == false) {
-                                    utils.showWarningToast(context, text: "Please make changes");
+                                    utils.showWarningToast(context,
+                                        text: "Please make changes");
                                     taskProvider.taskStatusCtr.reset();
                                   } else {
                                     taskProvider.editTask(
@@ -720,7 +882,7 @@ class _TaskDetailsState extends State<TaskDetails> with SingleTickerProviderStat
                                   }
                                 },
                                 isLoading: true,
-                                text: "save",
+                                text: "Save",
                                 controller: taskProvider.taskStatusCtr,
                                 backgroundColor: colorsConst.primary,
                                 radius: 10,
@@ -736,16 +898,16 @@ class _TaskDetailsState extends State<TaskDetails> with SingleTickerProviderStat
                         Center(
                           child: GroupButton(
                             controller: taskProvider.statusController,
-                            buttons: ["Assigned", "Started", "Completed"],
+                            buttons: const ["Assigned", "Started", "Completed"],
                             options: GroupButtonOptions(
                               spacing: 5,
                               buttonHeight: 30,
                               buttonWidth: 80,
                               borderRadius: BorderRadius.circular(10),
                             ),
-
                             buttonBuilder: (selected, value, context) {
-                              bool disabled = taskProvider.isButtonDisabled(value);
+                              bool disabled =
+                              taskProvider.isButtonDisabled(value);
 
                               return Container(
                                 width: 80,
@@ -758,7 +920,9 @@ class _TaskDetailsState extends State<TaskDetails> with SingleTickerProviderStat
                                       : Colors.white,
                                   borderRadius: BorderRadius.circular(10),
                                   border: Border.all(
-                                    color: disabled ? Colors.grey : taskProvider.getStatusColor(value),
+                                    color: disabled
+                                        ? Colors.grey
+                                        : taskProvider.getStatusColor(value),
                                     width: 1.2,
                                   ),
                                 ),
@@ -772,16 +936,17 @@ class _TaskDetailsState extends State<TaskDetails> with SingleTickerProviderStat
                                         ? Colors.grey.shade600
                                         : selected
                                         ? Colors.white
-                                        : taskProvider.getStatusColor(value),
+                                        : taskProvider
+                                        .getStatusColor(value),
                                   ),
                                 ),
                               );
                             },
-
                             onSelected: (name, index, isSelect) {
                               if (taskProvider.isButtonDisabled(name)) return;
 
-                              final selectedStatus = taskProvider.statusList.firstWhere(
+                              final selectedStatus =
+                              taskProvider.statusList.firstWhere(
                                     (e) => e['value'] == name,
                                 orElse: () => {"id": "0", "value": "Unknown"},
                               );
@@ -795,12 +960,14 @@ class _TaskDetailsState extends State<TaskDetails> with SingleTickerProviderStat
                           ),
                         ),
 
-                        Divider(color: Colors.grey.shade300,thickness: 1.2,),
-
+                        Divider(
+                          color: Colors.grey.shade300,
+                          thickness: 1.2,
+                        ),
 
                         /// ================= HISTORY LIST =================
                         taskProvider.refresh == false
-                            ? Loading()
+                            ? const Loading()
                             : taskProvider.historyDetails.isEmpty
                             ? Center(
                           child: CustomText(
@@ -811,21 +978,36 @@ class _TaskDetailsState extends State<TaskDetails> with SingleTickerProviderStat
                         )
                             : ListView.builder(
                           shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          itemCount: taskProvider.historyDetails.length,
+                          physics:
+                          const NeverScrollableScrollPhysics(),
+                          itemCount:
+                          taskProvider.historyDetails.length,
                           itemBuilder: (context, index) {
-                            final data = taskProvider.historyDetails[index];
+                            final data =
+                            taskProvider.historyDetails[index];
 
                             return Column(
                               children: [
                                 Row(
-                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  crossAxisAlignment:
+                                  CrossAxisAlignment.center,
                                   children: [
                                     /// LEFT STATUS
-                                    SizedBox( width: kIsWeb ? webWidth / 4.5 : phoneWidth / 4.5, child: Text( data["value"].toString(),
-                                      style: TextStyle( fontSize: 12, fontWeight:
-                                      FontWeight.bold, color:
-                                      colorsConst.primary, ), ), ),
+                                    SizedBox(
+                                      width: kIsWeb
+                                          ? webWidth / 4.5
+                                          : phoneWidth / 4.5,
+                                      child: Text(
+                                        data["value"].toString(),
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          fontWeight:
+                                          FontWeight.bold,
+                                          color:
+                                          colorsConst.primary,
+                                        ),
+                                      ),
+                                    ),
 
                                     /// DOT
                                     Container(
@@ -834,7 +1016,9 @@ class _TaskDetailsState extends State<TaskDetails> with SingleTickerProviderStat
                                       decoration: BoxDecoration(
                                         shape: BoxShape.circle,
                                         color: Colors.blue,
-                                        border: Border.all(color: Colors.white, width: 2),
+                                        border: Border.all(
+                                            color: Colors.white,
+                                            width: 2),
                                       ),
                                     ),
 
@@ -846,15 +1030,18 @@ class _TaskDetailsState extends State<TaskDetails> with SingleTickerProviderStat
                                         data["firstname"].toString(),
                                         style: const TextStyle(
                                           fontSize: 14,
-                                          fontWeight: FontWeight.w500,
+                                          fontWeight:
+                                          FontWeight.w500,
                                         ),
                                       ),
                                     ),
 
                                     /// DATE
                                     Text(
-                                      DateFormat("dd-MM-yyyy, hh:mm a")
-                                          .format(DateTime.parse(data["created_ts"])),
+                                      DateFormat(
+                                          "dd-MM-yyyy, hh:mm a")
+                                          .format(DateTime.parse(
+                                          data["created_ts"])),
                                       style: TextStyle(
                                         fontSize: 11,
                                         color: Colors.grey.shade600,
@@ -862,7 +1049,6 @@ class _TaskDetailsState extends State<TaskDetails> with SingleTickerProviderStat
                                     ),
                                   ],
                                 ),
-
                                 Divider(
                                   color: Colors.grey.shade300,
                                   thickness: 1,
@@ -871,8 +1057,6 @@ class _TaskDetailsState extends State<TaskDetails> with SingleTickerProviderStat
                             );
                           },
                         ),
-
-
                       ],
                     ),
                   ),
@@ -912,19 +1096,39 @@ class _TaskDetailsState extends State<TaskDetails> with SingleTickerProviderStat
                             Row(
                               mainAxisAlignment: MainAxisAlignment.end,
                               children: [
-
-                                InkWell(onTap: (){
-                                  utils.navigatePage(context, ()=> DashBoard(child: TaskChat(isVisit:false,
-                                    taskId: widget.data.id.toString(), assignedId: widget.data.assigned.toString(),
-                                    name: widget.data.creator.toString(), assignedName: widget.data.assignedNames.toString(), date1: '', date2: '', type: '',
-                                    index: widget.index,)));
-                                }, child: SvgPicture.asset(assets.tMessage,width: 25,height: 25,))
+                                InkWell(
+                                    onTap: () {
+                                      HapticFeedback.lightImpact();
+                                      utils.navigatePage(
+                                          context,
+                                              () => DashBoard(
+                                              child: TaskChat(
+                                                isVisit: false,
+                                                taskId:
+                                                widget.data.id.toString(),
+                                                assignedId: widget.data.assigned
+                                                    .toString(),
+                                                name: widget.data.creator
+                                                    .toString(),
+                                                assignedName: widget
+                                                    .data.assignedNames
+                                                    .toString(),
+                                                date1: '',
+                                                date2: '',
+                                                type: '',
+                                                index: widget.index,
+                                              )));
+                                    },
+                                    child: SvgPicture.asset(
+                                      assets.tMessage,
+                                      width: 25,
+                                      height: 25,
+                                    ))
                               ],
                             ),
                           ],
                         ),
                         20.height,
-
                         Consumer<CustomerProvider>(
                           builder: (context, chatProvider, _) {
                             if (chatProvider.refresh == false) {
@@ -947,37 +1151,45 @@ class _TaskDetailsState extends State<TaskDetails> with SingleTickerProviderStat
                             int totalCount = chatProvider.customerReport.length;
 
                             /// show only last 5
-                            int startIndex = totalCount > 5 ? totalCount - 5 : 0;
+                            int startIndex =
+                            totalCount > 5 ? totalCount - 5 : 0;
 
-                            List<CustomerReportModel> lastFive =
-                            chatProvider.customerReport
+                            List<CustomerReportModel> lastFive = chatProvider
+                                .customerReport
                                 .sublist(startIndex, totalCount)
                                 .reversed
                                 .toList();
 
                             return Column(
                               children: [
-
                                 /// 🔥 CHAT LIST
                                 ListView.builder(
                                   itemCount: lastFive.length,
                                   shrinkWrap: true,
-                                  physics: const NeverScrollableScrollPhysics(),
+                                  physics:
+                                  const NeverScrollableScrollPhysics(),
                                   itemBuilder: (context, index) {
                                     final msg = lastFive[index];
-                                    String doc = (msg.documents ?? "").toString().trim();
+                                    String doc =
+                                    (msg.documents ?? "").toString().trim();
 
-                                    bool isAudio = doc.toLowerCase().endsWith(".m4a") ||
+                                    bool isAudio = doc
+                                        .toLowerCase()
+                                        .endsWith(".m4a") ||
                                         doc.toLowerCase().endsWith(".mp3") ||
                                         doc.toLowerCase().endsWith(".wav");
 
                                     String audioUrl = "$imageFile?path=$doc";
                                     double sliderValue = 0;
 
-                                    if (playingUrl == audioUrl && totalDuration.inSeconds > 0) {
-                                      sliderValue = currentPosition.inSeconds.toDouble();
-                                      if (sliderValue > totalDuration.inSeconds.toDouble()) {
-                                        sliderValue = totalDuration.inSeconds.toDouble();
+                                    if (playingUrl == audioUrl &&
+                                        totalDuration.inSeconds > 0) {
+                                      sliderValue =
+                                          currentPosition.inSeconds.toDouble();
+                                      if (sliderValue >
+                                          totalDuration.inSeconds.toDouble()) {
+                                        sliderValue =
+                                            totalDuration.inSeconds.toDouble();
                                       }
                                     }
                                     DateTime? createdDate;
@@ -991,6 +1203,7 @@ class _TaskDetailsState extends State<TaskDetails> with SingleTickerProviderStat
 
                                     return InkWell(
                                       onTap: () {
+                                        HapticFeedback.selectionClick();
                                         utils.navigatePage(
                                           context,
                                               () => DashBoard(
@@ -998,13 +1211,17 @@ class _TaskDetailsState extends State<TaskDetails> with SingleTickerProviderStat
                                               isVisit: false,
                                               taskId: widget.data.id.toString(),
                                               assignedId:
-                                              widget.data.assigned.toString(),
-                                              name: widget.data.creator.toString(),
-                                              assignedName: widget.data.assignedNames
+                                              widget.data.assigned
+                                                  .toString(),
+                                              name:
+                                              widget.data.creator.toString(),
+                                              assignedName: widget
+                                                  .data.assignedNames
                                                   .toString(),
                                               date1: '',
                                               date2: '',
-                                              type: '', index: widget.index,
+                                              type: '',
+                                              index: widget.index,
                                             ),
                                           ),
                                         );
@@ -1023,83 +1240,138 @@ class _TaskDetailsState extends State<TaskDetails> with SingleTickerProviderStat
                                                     isAudio
                                                         ? Container(
                                                       height: 50,
-                                                      width: double.infinity,
-                                                      padding: const EdgeInsets.symmetric(horizontal: 8),
-                                                      decoration: BoxDecoration(
-                                                        color: Colors.grey.shade100,
-                                                        borderRadius: BorderRadius.circular(12),
-                                                        border: Border.all(color: Colors.grey.shade300),
+                                                      width:
+                                                      double.infinity,
+                                                      padding:
+                                                      const EdgeInsets
+                                                          .symmetric(
+                                                          horizontal:
+                                                          8),
+                                                      decoration:
+                                                      BoxDecoration(
+                                                        color: Colors
+                                                            .grey.shade100,
+                                                        borderRadius:
+                                                        BorderRadius
+                                                            .circular(
+                                                            12),
+                                                        border: Border.all(
+                                                            color: Colors
+                                                                .grey
+                                                                .shade300),
                                                       ),
                                                       child: Row(
                                                         children: [
-                                                          (isLoadingAudio && loadingUrl == audioUrl)
+                                                          (isLoadingAudio &&
+                                                              loadingUrl ==
+                                                                  audioUrl)
                                                               ? const SizedBox(
-                                                            height: 20,
-                                                            width: 20,
-                                                            child: CircularProgressIndicator(
-                                                              strokeWidth: 2,
-                                                              color: Colors.green,
+                                                            height:
+                                                            20,
+                                                            width:
+                                                            20,
+                                                            child:
+                                                            CircularProgressIndicator(
+                                                              strokeWidth:
+                                                              2,
+                                                              color:
+                                                              Colors.green,
                                                             ),
                                                           )
                                                               : IconButton(
                                                             icon: Icon(
-                                                              (playingUrl == audioUrl && isPlaying)
+                                                              (playingUrl ==
+                                                                  audioUrl &&
+                                                                  isPlaying)
                                                                   ? Icons.pause
                                                                   : Icons.play_arrow,
-                                                              color: Colors.green,
+                                                              color: Colors
+                                                                  .green,
                                                             ),
-                                                            onPressed: () async {
-                                                              await playAudio(audioUrl);
+                                                            onPressed:
+                                                                () async {
+                                                              await playAudio(
+                                                                  audioUrl);
                                                             },
                                                           ),
-
                                                           Expanded(
                                                             child: Slider(
-                                                              activeColor: Colors.green,
-                                                              inactiveColor: Colors.grey.shade600,
-                                                              thumbColor: Colors.green,
-                                                              value: sliderValue,
+                                                              activeColor:
+                                                              Colors
+                                                                  .green,
+                                                              inactiveColor:
+                                                              Colors
+                                                                  .grey
+                                                                  .shade600,
+                                                              thumbColor:
+                                                              Colors
+                                                                  .green,
+                                                              value:
+                                                              sliderValue,
                                                               min: 0,
-                                                              max: (playingUrl == audioUrl && totalDuration.inSeconds > 0)
-                                                                  ? totalDuration.inSeconds.toDouble()
+                                                              max: (playingUrl ==
+                                                                  audioUrl &&
+                                                                  totalDuration
+                                                                      .inSeconds >
+                                                                      0)
+                                                                  ? totalDuration
+                                                                  .inSeconds
+                                                                  .toDouble()
                                                                   : 10,
-                                                              onChanged: (value) async {
-                                                                if (playingUrl == audioUrl) {
-                                                                  await _listAudioPlayer.seek(Duration(seconds: value.toInt()));
+                                                              onChanged:
+                                                                  (value) async {
+                                                                if (playingUrl ==
+                                                                    audioUrl) {
+                                                                  await _listAudioPlayer
+                                                                      .seek(Duration(
+                                                                      seconds: value.toInt()));
                                                                 }
                                                               },
                                                             ),
                                                           ),
-
                                                           Text(
-                                                            (playingUrl == audioUrl && totalDuration.inSeconds > 0)
-                                                                ? "${formatTime(totalDuration)}"
+                                                            (playingUrl ==
+                                                                audioUrl &&
+                                                                totalDuration
+                                                                    .inSeconds >
+                                                                    0)
+                                                                ? formatTime(
+                                                                totalDuration)
                                                                 : "00:00",
-                                                            style: const TextStyle(fontSize: 11),
+                                                            style:
+                                                            const TextStyle(
+                                                                fontSize:
+                                                                11),
                                                           ),
-                                                          const SizedBox(width: 5),
+                                                          const SizedBox(
+                                                              width: 5),
                                                         ],
                                                       ),
                                                     )
                                                         : Text(
-                                                      msg.comments.toString(),
+                                                      msg.comments
+                                                          .toString(),
                                                       maxLines: 1,
-                                                      overflow: TextOverflow.ellipsis,
-                                                      style: const TextStyle(
+                                                      overflow:
+                                                      TextOverflow
+                                                          .ellipsis,
+                                                      style:
+                                                      const TextStyle(
                                                         fontSize: 13,
-                                                        fontWeight: FontWeight.bold,
-                                                        color: Colors.black,
+                                                        fontWeight:
+                                                        FontWeight
+                                                            .bold,
+                                                        color:
+                                                        Colors.black,
                                                       ),
                                                     ),
-
                                                     const SizedBox(height: 3),
-
                                                     Text(
                                                       msg.firstname.toString(),
                                                       style: TextStyle(
                                                         fontSize: 11,
-                                                        color:
-                                                        Colors.grey.shade500,
+                                                        color: Colors
+                                                            .grey.shade500,
                                                         fontWeight:
                                                         FontWeight.bold,
                                                       ),
@@ -1107,9 +1379,7 @@ class _TaskDetailsState extends State<TaskDetails> with SingleTickerProviderStat
                                                   ],
                                                 ),
                                               ),
-
                                               5.width,
-
                                               Text(
                                                 createdDate != null
                                                     ? DateFormat(
@@ -1123,7 +1393,6 @@ class _TaskDetailsState extends State<TaskDetails> with SingleTickerProviderStat
                                               ),
                                             ],
                                           ),
-
                                           Divider(color: Colors.grey.shade300),
                                         ],
                                       ),
@@ -1137,6 +1406,7 @@ class _TaskDetailsState extends State<TaskDetails> with SingleTickerProviderStat
                                     alignment: Alignment.centerRight,
                                     child: InkWell(
                                       onTap: () {
+                                        HapticFeedback.lightImpact();
                                         utils.navigatePage(
                                           context,
                                               () => DashBoard(
@@ -1144,14 +1414,17 @@ class _TaskDetailsState extends State<TaskDetails> with SingleTickerProviderStat
                                               isVisit: false,
                                               taskId: widget.data.id.toString(),
                                               assignedId:
-                                              widget.data.assigned.toString(),
-                                              name: widget.data.creator.toString(),
-                                              assignedName:
-                                              widget.data.assignedNames
+                                              widget.data.assigned
+                                                  .toString(),
+                                              name:
+                                              widget.data.creator.toString(),
+                                              assignedName: widget
+                                                  .data.assignedNames
                                                   .toString(),
                                               date1: '',
                                               date2: '',
-                                              type: '', index: widget.index,
+                                              type: '',
+                                              index: widget.index,
                                             ),
                                           ),
                                         );
@@ -1186,9 +1459,7 @@ class _TaskDetailsState extends State<TaskDetails> with SingleTickerProviderStat
             ],
           ),
         ),
-
       );
     });
-
   }
 }

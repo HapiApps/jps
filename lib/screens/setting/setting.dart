@@ -49,7 +49,7 @@ class Setting extends StatelessWidget {
               },
               ), 
               if(localData.storage.read("role")=="1")
-              DrawerListTile(text: "Task Types",
+              DrawerListTile(text: "Task types",
                 iconData: Icons.category_outlined,
                 callback: (){
                   utils.navigatePage(context, ()=>const DashBoard(child: ViewTaskTypes()));

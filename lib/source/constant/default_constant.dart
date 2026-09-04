@@ -131,13 +131,13 @@ class ConstantValues{
   final String  comArea = "Street Name";
   final String  landmark = "Landmark";
   final String  referredBy = "Referred  By";
-  final String  type = " Visit Type";
+  final String  type = " Task type";
   final String  cusType = " Customer Category";
   final String role = "Role";
   final String comment = "View Full History";
   final String comments = "Comments";
   final String leadStatus = "Lead Categories";
-  final String visitType = "Call Visit Type";
+  final String visitType = "Call Task type";
   final String qStatus = "Quotation Status";
   final String qRequired = "Quotation Required";
   final String status = "Status";

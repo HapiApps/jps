@@ -781,6 +781,10 @@ class _AttendanceReportState extends State<AttendanceReport> {
 
                                   InkWell(
                                     onTap: (){
+                                      // utils.navigatePage(context, ()=> DashBoard(child:
+                                      // EmployeeDetails(id:data.salesmanId.toString(),active:"1",
+                                      //     role:localData.storage.read("roleName"))));
+                                      //
                                       utils.navigatePage(
                                         context,
                                             ()=> DashBoard(
@@ -861,13 +865,14 @@ class _AttendanceReportState extends State<AttendanceReport> {
                                 }
 
                                 String dayOfWeek;
+                                String dateStr = DateFormat('dd MMM yyyy').format(dateTime);
                                 DateTime today = DateTime.now();
                                 if (dateTime.day == today.day && dateTime.month == today.month && dateTime.year == today.year) {
-                                  dayOfWeek = 'Today';
+                                  dayOfWeek = 'Today • $dateStr';
                                 } else if (dateTime.isAfter(today.subtract(const Duration(days: 1))) && dateTime.isBefore(today)) {
-                                  dayOfWeek = 'Yesterday';
+                                  dayOfWeek = 'Yesterday • $dateStr';
                                 } else {
-                                  dayOfWeek = "${dateTime.day}/${dateTime.month}/${dateTime.year}";
+                                  dayOfWeek = dateStr;
                                 }
 
                                 String createdBy = "${dateTime.day}/${dateTime.month}/${dateTime.year}";
@@ -1309,18 +1314,18 @@ class _AttendanceReportState extends State<AttendanceReport> {
         final DateTime now = DateTime.now();
 
         String dayOfWeek;
+        String dateStrLabel = DateFormat('dd MMM yyyy').format(createdDateTime);
 
         if (createdDateTime.year == now.year &&
             createdDateTime.month == now.month &&
             createdDateTime.day == now.day) {
-          dayOfWeek = "Today";
+          dayOfWeek = "Today • $dateStrLabel";
         } else if (createdDateTime.year == now.year &&
             createdDateTime.month == now.month &&
             createdDateTime.day == now.day - 1) {
-          dayOfWeek = "Yesterday";
+          dayOfWeek = "Yesterday • $dateStrLabel";
         } else {
-          dayOfWeek =
-              DateFormat('dd/MM/yyyy').format(createdDateTime);
+          dayOfWeek = DateFormat('dd MMM yyyy').format(createdDateTime);
         }
 
         /// SHOW DATE + TIME
@@ -1581,13 +1586,14 @@ class _AttendanceReportState extends State<AttendanceReport> {
     DateTime now = DateTime.now();
     DateTime today = DateTime(now.year, now.month, now.day);
     DateTime dataDate = DateTime(dateTime.year, dateTime.month, dateTime.day);
+    String dateStr = DateFormat('dd MMM yyyy').format(dateTime);
 
     if (dataDate == today) {
-      return "Today";
+      return "Today • $dateStr";
     } else if (dataDate == today.subtract(const Duration(days: 1))) {
-      return "Yesterday";
+      return "Yesterday • $dateStr";
     } else {
-      return "${dateTime.day}/${dateTime.month}/${dateTime.year}";
+      return dateStr;
     }
   }
   Widget _filterChip(String text) {

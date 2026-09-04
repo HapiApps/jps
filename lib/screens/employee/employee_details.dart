@@ -92,15 +92,19 @@ class _EmployeeDetailsState extends State<EmployeeDetails> {
           appBar: PreferredSize(
             preferredSize: Size(300, 50),
             child: CustomAppbar(text: "Employee Details",
+              // callback: (){
+              //   utils.navigatePage(context, ()=>const DashBoard(child: ViewEmployees()));
+              // },
               callback: (){
-                utils.navigatePage(context, ()=>const DashBoard(child: ViewEmployees()));
-              },),
+                Navigator.pop(context);
+              },
+            ),
           ),
         body: PopScope(
           canPop: false,
           onPopInvoked: (bool didPop) {
             if (!didPop) {
-              utils.navigatePage(context, ()=>const DashBoard(child: ViewEmployees()));
+              Navigator.pop(context);
             }
           },
           child: empProvider.refresh==false?

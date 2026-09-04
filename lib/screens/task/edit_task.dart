@@ -201,15 +201,28 @@ class _EditTaskState extends State<EditTask> with SingleTickerProviderStateMixin
                                   },
                                   width: kIsWeb?webWidth:phoneWidth, dropText: 'value',
                                 ),
-                                CustomTextField(isRequired: true,
+                                CustomTextField(
+                                  isRequired: true,
                                   width: kIsWeb?webWidth:phoneWidth,
-                                  text: "Service Date",
+                                  text: "Task Start Date",
                                   controller: taskProvider.taskDt,
                                   hintText: "DD-MM-YYYY",
                                   readOnly: true,
                                   onTap: () {
                                     _myFocusScopeNode.unfocus();
                                     taskProvider.datePick(context: context,date: taskProvider.taskDt);
+                                  },
+                                ),
+                                CustomTextField(
+                                  isRequired: true,
+                                  width: kIsWeb?webWidth:phoneWidth,
+                                  text: "Task End Date",
+                                  controller: taskProvider.taskEt,
+                                  hintText: "DD-MM-YYYY",
+                                  readOnly: true,
+                                  onTap: () {
+                                    _myFocusScopeNode.unfocus();
+                                    taskProvider.datePick(context: context,date: taskProvider.taskEt);
                                   },
                                 ),
                                 15.height,

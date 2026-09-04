@@ -483,7 +483,7 @@ class _CusAddVisitState extends State<CusAddVisit>
                                 dropText: 'value',
                               ),
 
-                              /// ====================== VISIT TYPE DROPDOWN ======================
+                              /// ====================== Task type DROPDOWN ======================
                               MapDropDown(
                                 callback: () {
                                   closeAllDropdowns();

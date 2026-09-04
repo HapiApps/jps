@@ -281,29 +281,32 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
                                   isOptional: false,
                                   onChanged: (value) {},
                                   width: kIsWeb ? webWidth : phoneWidth),
+                              MapDropDown(
+                                hintText: "Status",
+                                saveValue: taskProvider.status,
+                                list: taskProvider.statusList,
+                                dropText: 'value',
+                                onChanged: (value) {
+                                  taskProvider.changeStatus(value);
+                                },
+                                // width: kIsWeb
+                                //     ? webWidth
+                                //     : MediaQuery.of(context).size.width * 0.42,
+
+                             // ),
+                                  width: kIsWeb ? webWidth : phoneWidth),
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  MapDropDown(
-                                    hintText: "Status",
-                                    saveValue: taskProvider.status,
-                                    list: taskProvider.statusList,
-                                    dropText: 'value',
-                                    onChanged: (value) {
-                                      taskProvider.changeStatus(value);
-                                    },
-                                    width: kIsWeb
-                                        ? webWidth
-                                        : MediaQuery.of(context).size.width * 0.42,
-                                  ),
+
                                   Padding(
                                     padding: const EdgeInsets.only(top: 4.0, left: 4),
                                     child: CustomTextField(
                                       width: kIsWeb
                                           ? webWidth
                                           : MediaQuery.of(context).size.width * 0.42,
-                                      text: "Task Date",
+                                      text: "Task Start Date",
                                       controller: taskProvider.taskDt,
                                       hintText: "DD-MM-YYYY",
                                       readOnly: true,
@@ -311,6 +314,23 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
                                         _myFocusScopeNode.unfocus();
                                         taskProvider.datePick(
                                             context: context, date: taskProvider.taskDt);
+                                      },
+                                    ),
+                                  ),
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 4.0, left: 4),
+                                    child: CustomTextField(
+                                      width: kIsWeb
+                                          ? webWidth
+                                          : MediaQuery.of(context).size.width * 0.42,
+                                      text: "Task End Date",
+                                      controller: taskProvider.taskEt,
+                                      hintText: "DD-MM-YYYY",
+                                      readOnly: true,
+                                      onTap: () {
+                                        _myFocusScopeNode.unfocus();
+                                        taskProvider.datePick(
+                                            context: context, date: taskProvider.taskEt);
                                       },
                                     ),
                                   ),

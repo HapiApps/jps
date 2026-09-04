@@ -125,7 +125,7 @@
 //                   //         children: [
 //                   //           Row(
 //                   //             children: [
-//                   //               CustomText(text :"Visit Type",colors: Colors.grey.shade500,),
+//                   //               CustomText(text :"Task type",colors: Colors.grey.shade500,),
 //                   //               CustomText(text :"*",colors: colorsConst.appRed,size: 18,),
 //                   //             ],
 //                   //           ),25.height,

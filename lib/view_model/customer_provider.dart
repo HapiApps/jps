@@ -593,7 +593,7 @@ Future<void> getCustomerDetail(String id,bool isUpdate,bool isRefresh) async {
       if(data.visitId.toString()!="0"){
         callType= callList.firstWhere(
               (item) =>
-          item["categories"] == "Call Visit Type" &&
+          item["categories"] == "Call Task type" &&
               item["id"] == data.visitId.toString() &&
               item["value"] == data.visitType.toString(),
         );
@@ -2893,7 +2893,7 @@ List<Marker> get liveMarker =>_liveMarker;
     // Build observations only if they have values
     List<String> observationInfo = [];
     if (sanitize(datas.leadStatus).isNotEmpty) observationInfo.add("Lead Status: ${sanitize(datas.leadStatus)}");
-    if (sanitize(datas.visitType).isNotEmpty) observationInfo.add("Visit Type: ${sanitize(datas.visitType)}");
+    if (sanitize(datas.visitType).isNotEmpty) observationInfo.add("Task type: ${sanitize(datas.visitType)}");
     if (sanitize(datas.discussionPoint).isNotEmpty) observationInfo.add("Discussion Points: ${sanitize(datas.discussionPoint)}");
     if (sanitize(datas.points).isNotEmpty) observationInfo.add("Additional Points: ${sanitize(datas.points)}");
 

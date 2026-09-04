@@ -1142,17 +1142,17 @@ Future<void> loginOuts(context) async {
         store += count; // total visits sum
 
         if (count == 0) {
-          inActiveVisit++;   // pending visit type count
+          inActiveVisit++;   // pending Task type count
         } else {
-          activeVisit++;     // ✅ active visit type count (NOT sum)
+          activeVisit++;     // ✅ active Task type count (NOT sum)
         }
       }
 
       _totalV = store.toString();
 
       // print("✅ Total Visits Count : $_totalV");
-      // print("✅ Pending Visit Types : $inActiveVisit");
-      // print("✅ Active Visit Types : $activeVisit");
+      // print("✅ Pending Task types : $inActiveVisit");
+      // print("✅ Active Task types : $activeVisit");
 
       final attendanceProvider = Provider.of<AttendanceProvider>(context, listen: false);
 
@@ -1276,9 +1276,9 @@ Future<void> loginOuts(context) async {
         store += count; // total visits sum
 
         if (count == 0) {
-          inActiveVisit++;   // pending visit type count
+          inActiveVisit++;   // pending Task type count
         } else {
-          activeVisit++;     // ✅ active visit type count (NOT sum)
+          activeVisit++;     // ✅ active Task type count (NOT sum)
         }
       }
       _totalV = store.toString();

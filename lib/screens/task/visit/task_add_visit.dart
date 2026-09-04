@@ -370,7 +370,7 @@
 //                                 // }
 //                                 // else{
 //                                 if(taskProvider.selectType==null){
-//                                   utils.showWarningToast(context, text: "Select a visit type");
+//                                   utils.showWarningToast(context, text: "Select a Task type");
 //                                   custProvider.addCtr.reset();
 //                                 }
 //                                 // else if(custProvider.selectCustomer==null){

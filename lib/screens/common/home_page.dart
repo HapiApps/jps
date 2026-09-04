@@ -891,7 +891,7 @@ class _HomePageState extends State<HomePage> {
                                           title: "Permission",type: "2",
                                           count: homeProvider.mainReportList.isEmpty ?"0":homeProvider.mainReportList[0]["perm_count"].toString()=="null"?"0": homeProvider.mainReportList[0]["perm_count"].toString(),
                                           // count: attPvr.permisCount.toString(),
-                                           bgColor: Colors.purple.shade200,
+                                           bgColor: Colors.purple.shade100,
                                           borderColor:Colors.purple,
                                           imagePath: DashboardAssets.late,
                                         ),
@@ -1278,30 +1278,46 @@ class _HomePageState extends State<HomePage> {
                                         children: [
 
                                           const CustomText(
-                                            "Completed: ",
+                                            "Assigned: ",
+                                            size: 13,
+                                            weight: FontWeight.bold,
+
+                                            color: Color(0xff008443),
+                                          ),
+                                          CustomText(
+                                            "${homeProvider.mainReportList.isEmpty ? "0" : homeProvider.mainReportList[0]["assigned_count"]}",
                                             size: 13,
                                             weight: FontWeight.bold,
                                             color: Color(0xff008443),
                                           ),
-                                          CustomText(
-                                            "${homeProvider.mainReportList.isEmpty ? "0" : homeProvider.mainReportList[0]["complete_count"]}",
-                                            size: 13,
-                                            weight: FontWeight.bold,
-                                            color: const Color(0xff008443),
-                                          ),
                                           const SizedBox(width: 20),
                                           const CustomText(
-                                            "Pending: ",
+                                            "Started: ",
                                             size: 13,
                                             weight: FontWeight.bold,
                                             color: Color(0xffF02433),
                                           ),
                                           CustomText(
-                                            "${homeProvider.mainReportList.isEmpty ? "0" : homeProvider.mainReportList[0]["incomplete_count"]}",
+                                            "${homeProvider.mainReportList.isEmpty ? "0" : homeProvider.mainReportList[0]["started_count"]}",
                                             size: 13,
                                             weight: FontWeight.bold,
                                             color: const Color(0xffF02433),
                                           ),
+                                          const SizedBox(width: 15),
+                                          const CustomText(
+                                            "Completed: ",
+                                            size: 13,
+                                            weight: FontWeight.bold,
+                                            color: Color(0xff0c5be8),
+                                          ),
+                                          CustomText(
+                                            "${homeProvider.mainReportList.isEmpty ? "0" : homeProvider.mainReportList[0]["complete_count"]}",
+                                            size: 13,
+                                            weight: FontWeight.bold,
+                                            color: Color(0xff0c5be8),
+                                          ),
+
+                                          const SizedBox(width: 20),
 
                                         ],
                                       ),
@@ -1367,10 +1383,6 @@ class _HomePageState extends State<HomePage> {
                                         Row(
                                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                           children: [
-
-
-
-
                                             /// IMMEDIATE
                                             Expanded(
                                               child: Container(

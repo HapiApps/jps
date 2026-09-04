@@ -1065,7 +1065,7 @@ class TaskProvider with ChangeNotifier {
           "Task Date",
           "Task Title",
           "Company",
-          "Task Type",
+          "Task type",
           "Assigned",
           "Created By",
           "Status",
@@ -1349,7 +1349,7 @@ class TaskProvider with ChangeNotifier {
         "Task Created Date",
         "Task Title",
         "Company",
-        "Task Type",
+        "Task type",
         "Service Date",
         "Assigned To",
         "Created By",
@@ -1585,7 +1585,7 @@ class TaskProvider with ChangeNotifier {
         "Task Created Date",
         "Task Title",
         "Company",
-        "Task Type",
+        "Task type",
         "Service Date",
         "Assigned To",
         "Created By",
@@ -2425,6 +2425,7 @@ class TaskProvider with ChangeNotifier {
   TextEditingController departmentCont    = TextEditingController();
   TextEditingController projectSearchCont = TextEditingController();
   TextEditingController taskDt = TextEditingController();
+  TextEditingController taskEt = TextEditingController();
   List<TextEditingController> fileNameCont  = <TextEditingController>[];
   // void searchTask(String value){
   //   if(_isFilter==false){
@@ -2664,6 +2665,7 @@ class TaskProvider with ChangeNotifier {
         "${now.year}";
 
     taskDt.text = formattedDate;
+    taskEt.text = formattedDate;
 
     notifyListeners();
   }
@@ -3521,6 +3523,7 @@ class TaskProvider with ChangeNotifier {
     taskTitleCont.text = data.taskTitle.toString();
     _level = data.level.toString();
     taskDt.text = data.taskDate.toString();
+    taskEt.text = data.taskTime.toString().isNotEmpty?data.taskTime.toString():data.taskDate.toString();
     _assignedId = data.assigned.toString();
     _assName = data.assignedNames.toString();
     _cusId = data.companyId.toString();
@@ -3629,7 +3632,7 @@ class TaskProvider with ChangeNotifier {
         'user_id':
         localData.storage.read("id").toString(),
         'task_date': taskDt.text.trim(),
-        'task_time': "$taskSTime||$taskETime",
+        'task_time': "${taskEt.text.trim()}",
         'action': adTask,
         'cos_id':
         localData.storage.read("cos_id").toString(),
@@ -3849,7 +3852,7 @@ class TaskProvider with ChangeNotifier {
         'status': localData.storage.read("status_id"),
         'user_id': localData.storage.read("id"),
         'task_date': taskDt.text.trim(),
-        'task_time': "$taskSTime||$taskETime",
+        'task_time': "${taskEt.text.trim()}",
         'action': updateTask,
         'cos_id': localData.storage.read("cos_id"),
       };

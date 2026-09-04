@@ -289,7 +289,7 @@ var isEditMode=false;
 //               backgroundColor: colorsConst.bacColor,
 //               appBar: const PreferredSize(
 //                 preferredSize: Size(300, 50),
-//                 child: CustomAppbar(text: "Add Task Types"),
+//                 child: CustomAppbar(text: "Add Task types"),
 //               ),
 //               body: Center(
 //                 child: SizedBox(
@@ -376,7 +376,7 @@ var isEditMode=false;
 //               backgroundColor: colorsConst.bacColor,
 //               appBar: const PreferredSize(
 //                 preferredSize: Size(300, 50),
-//                 child: CustomAppbar(text: "Edit Task Types"),
+//                 child: CustomAppbar(text: "Edit Task types"),
 //               ),
 //               body: Center(
 //                 child: SizedBox(

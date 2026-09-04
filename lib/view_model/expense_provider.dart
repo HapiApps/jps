@@ -3847,7 +3847,7 @@ class ExpenseProvider with ChangeNotifier{
   //                       pw.Container(
   //                         alignment: pw.Alignment.center,
   //                         padding: const pw.EdgeInsets.all(4),
-  //                         child: pw.Text('Task Type',
+  //                         child: pw.Text('Task type',
   //                             style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: fontC)),
   //                       ),
   //                       pw.Container(
@@ -4725,7 +4725,7 @@ class ExpenseProvider with ChangeNotifier{
   //                       pw.Container(
   //                         alignment: pw.Alignment.center,
   //                         padding: const pw.EdgeInsets.all(4),
-  //                         child: pw.Text('Task Type',
+  //                         child: pw.Text('Task type',
   //                             style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: fontC)),
   //                       ),
   //                       pw.Container(
@@ -5574,7 +5574,7 @@ class ExpenseProvider with ChangeNotifier{
   //                       pw.Container(
   //                         alignment: pw.Alignment.centerLeft,
   //                         padding: const pw.EdgeInsets.all(4),
-  //                         child: pw.Text('Task Type',
+  //                         child: pw.Text('Task type',
   //                             style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: fontC)),
   //                       ),
   //                       pw.Container(
@@ -6439,7 +6439,7 @@ class ExpenseProvider with ChangeNotifier{
 //                         pw.Container(
 //                           alignment: pw.Alignment.centerLeft,
 //                           padding: const pw.EdgeInsets.all(4),
-//                           child: pw.Text('Task Type',
+//                           child: pw.Text('Task type',
 //                               style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: fontC)),
 //                         ),
 //                         pw.Container(
@@ -7393,7 +7393,7 @@ class ExpenseProvider with ChangeNotifier{
                           color: PdfColor.fromInt(0xFFF6F6F6),
                         ),
                         padding: const pw.EdgeInsets.all(4),
-                        child: pw.Text('Task Type',
+                        child: pw.Text('Task type',
                             style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: fontC)),
                       ),
                       pw.Container(
@@ -8335,7 +8335,7 @@ class ExpenseProvider with ChangeNotifier{
   //     "To Date",
   //     "Customer Name",
   //     "Amount",
-  //     "Task Type",
+  //     "Task type",
   //     "No. of Days",
   //     "Per Day"
   //   ], rowIndex++);
@@ -8727,7 +8727,7 @@ class ExpenseProvider with ChangeNotifier{
       "To Date",
       "Customer Name",
       "Amount",
-      "Task Type",
+      "Task type",
       "No. of Days",
       "Per Day"
     ], rowIndex++);

@@ -35,17 +35,6 @@ class AttendanceDetails extends StatelessWidget {
     var perTimeList=perTime.toString().split(',');
     List chunked = [];
     if(perTime.toString()!="null"&&perTime.toString()!=""){
-      // for (var i = 0; i < perTimeList.length; i += 2) {
-      //   int end = (i + 2 < perTimeList.length) ? i + 2 : perTimeList.length;
-      //   chunked.add({
-      //     "in": perTimeList[i],
-      //     "out": perTimeList[i+1],
-      //     "reason": perReasonList[i],
-      //     "status": perStatusList[i],
-      //     "in_ts": perCreatedTsList[i],
-      //     "out_ts": perCreatedTsList[i+1]
-      //   });
-      // }
       for (var i = 0; i < perTimeList.length; i += 2) {
         String inTime = perTimeList[i];
         String outTime = (i + 1 < perTimeList.length) ? perTimeList[i + 1] : ""; // fallback
@@ -67,8 +56,6 @@ class AttendanceDetails extends StatelessWidget {
     var phoneWidth=MediaQuery.of(context).size.width * 0.95;
     return Column(
       children: [
-        // if(showDate==true)
-        // CustomText(text: "$date\n",colors: Provider.of<HomeProvider>(context, listen: false).primary,),
         if(localData.storage.read("role")!="1"&&showDate==true)
           Padding(
             padding: const EdgeInsets.all(5.0),
@@ -77,22 +64,18 @@ class AttendanceDetails extends StatelessWidget {
               children: [
                 SizedBox(
                     width: kIsWeb?webWidth/4:phoneWidth/4,
-                    // color: Colors.orangeAccent,
                     child: CustomText(text: "Date",colors:colorsConst.greyClr,size: 12,)),
                 5.width,
                 SizedBox(
                   width: kIsWeb?webWidth/5:phoneWidth/5,
-                  // color: Colors.pink,
                   child: const CustomText(text: "In Time",size: 12,),
                 ),5.width,
                 SizedBox(
                   width: kIsWeb?webWidth/5:phoneWidth/5,
-                  // color: Colors.yellow,
                   child: const CustomText(text: "Out Time",size: 12),
                 ),5.width,
                 SizedBox(
                   width: kIsWeb?webWidth/5.2:phoneWidth/5.2,
-                  // color: Colors.blueAccent,
                   child: CustomText(text:"Total Hrs",size: 12,),
                 ),
               ],
@@ -106,7 +89,7 @@ class AttendanceDetails extends StatelessWidget {
               borderColor: Colors.grey.shade200,isShadow: true,shadowColor: Colors.grey.shade200
           ),
           child: Padding(
-            padding: isName==false?const EdgeInsets.fromLTRB(5, 10, 5, 10):localData.storage.read("role") !="1"?const EdgeInsets.fromLTRB(5, 10, 5, 10):const EdgeInsets.all(0.0),
+            padding: isName==false?const EdgeInsets.fromLTRB(5, 4, 5, 4):localData.storage.read("role") !="1"?const EdgeInsets.fromLTRB(5, 10, 5, 10):const EdgeInsets.all(0.0),
             child: Column(
               children: [
                 Row(
@@ -115,15 +98,13 @@ class AttendanceDetails extends StatelessWidget {
                     if(isName==true)
                       if(!kIsWeb&&localData.storage.read("role") =="1")
                         SizedBox(
-                          width: phoneWidth/3.5,
-                          // color: Colors.pink,
+                          width: phoneWidth/3.8,
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               CircleAvatar(
                                   radius: 15,
                                   backgroundColor: Colors.grey.shade400,
-                                  // child: NetworkImg(image: img, width: 50,)
                                   child: SvgPicture.asset(assets.profile)
                               ),5.height,
                               CustomText(text: name,isBold: true,size: 13,),5.height,
@@ -133,61 +114,39 @@ class AttendanceDetails extends StatelessWidget {
                         ),
                     if(isName==true)
                       if(localData.storage.read("role") =="1")
-                      Container(color: colorsConst.litGrey,width: 1,height: 75,),
-                      if(localData.storage.read("role") !="1")
+                        Container(color: colorsConst.litGrey,width: 1,height: 75,),
+                    if(localData.storage.read("role") !="1")
                       SizedBox(
-                        // color: Colors.blueAccent,
                           width: kIsWeb?webWidth/4:phoneWidth/4,
                           child: CustomText(text: date,size: 12,)),
                     if(isName==true)
-                      5.width,
+                      2.width,
                     SizedBox(
                       width: kIsWeb?webWidth/5:phoneWidth/5,
-                      // color: Colors.green,
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           if(localData.storage.read("role") =="1")
                             const CustomText(text: "In Time",colors: Colors.grey,size: 11,),5.height,
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              // CustomText(text: (inTime.toString()=="null").toString(),size: 11,),
-                              CustomText(text: inTime.toString()!="null"?inTime:"-",size: 11,),
-                              GestureDetector(
-                                  onTap: callback,
-                                  child: SvgPicture.asset(assets.map,width: 13,height: 13,)),
-                            ],
-                          ),
+                          CustomText(text: inTime.toString()!="null"?inTime:"-",size: 11,),
                         ],
                       ),
-                    ),5.width,
+                    ),2.width,
                     SizedBox(
                       width: kIsWeb?webWidth/5:phoneWidth/5,
-                      // color: Colors.yellow,
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           if(localData.storage.read("role") =="1")
                             const CustomText(text: "Out Time",colors: Colors.grey,size: 11,),5.height,
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              CustomText(text: outTime.toString(),size: 11),
-                              if(outTime.toString()!="-")
-                                GestureDetector(
-                                    onTap: callback,
-                                    child: SvgPicture.asset(assets.map,width: 13,height: 13)),
-                            ],
-                          ),
+                          CustomText(text: outTime.toString(),size: 11),
                         ],
                       ),
-                    ),5.width,
+                    ),2.width,
                     SizedBox(
                       width: kIsWeb?webWidth/5.2:phoneWidth/5.2,
-                      // color: Colors.blueGrey,
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -195,11 +154,15 @@ class AttendanceDetails extends StatelessWidget {
                           if(localData.storage.read("role") =="1")
                             const CustomText(text: "Total Hrs  ",colors: Colors.grey,size: 11,),
                           if(localData.storage.read("role") =="1")
-                            5.height,
+                            2.height,
                           CustomText(text:outTime.toString()=="-"?"-":timeD,size: 11,),
                         ],
                       ),
-                    )
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.only(right: 4.0),
+                      child: _mapIcon(callback),
+                    ),
                   ],
                 ),
                 if(chunked.isNotEmpty)
@@ -216,7 +179,6 @@ class AttendanceDetails extends StatelessWidget {
                         CustomText(text: "Permission${chunked.length==1?"":"s"}",colors: colorsConst.greyClr,),
                         5.height,
                         SizedBox(
-                          // color: Colors.blueAccent,
                           width: localData.storage.read("role") =="1"?phoneWidth/1:phoneWidth,
                           child: ListView.builder(
                             shrinkWrap: true,
@@ -244,17 +206,14 @@ class AttendanceDetails extends StatelessWidget {
                                     Row(
                                       children: [
                                         SizedBox(
-                                          // color: Colors.pink,
                                           width: kIsWeb?webWidth/3:phoneWidth/3,
                                           child: CustomText(text: "${item['in']} - ${item['out']}",size: 11,isBold: true,),
                                         ),
                                         SizedBox(
-                                          // color: Colors.yellow,
                                           width: kIsWeb?webWidth/5:phoneWidth/5,
                                           child: CustomText(text: item["out"]!=""?timeDifference("${item["in"]},${item["out"]}"):"-",size: 11,isBold: true),
                                         ),
                                         SizedBox(
-                                          // color: Colors.green,
                                           width: kIsWeb?webWidth/3:phoneWidth/2.7,
                                           child: CustomText(text: "${item['reason']}",size: 11,),
                                         ),
@@ -276,14 +235,28 @@ class AttendanceDetails extends StatelessWidget {
       ],
     );
   }
-  // bool isLate(String inTime) {
-  //   final format = DateFormat("hh:mm a");
-  //
-  //   DateTime officeTime = format.parse("09:00 AM");
-  //   DateTime userTime = format.parse(inTime);
-  //
-  //   return userTime.isAfter(officeTime);
-  // }
+
+  /// Common clickable map icon with bigger tap area and ripple effect
+  Widget _mapIcon(VoidCallback onTap) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(2),
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(6),
+        decoration: BoxDecoration(
+          color: colorsConst.primary.withOpacity(0.08),
+          shape: BoxShape.circle,
+        ),
+        child: SvgPicture.asset(
+          assets.map,
+          width: 22,
+          height: 22,
+          colorFilter: ColorFilter.mode(colorsConst.primary, BlendMode.srcIn),
+        ),
+      ),
+    );
+  }
+
   bool isLate(String? inTime) {
     if (inTime == null || inTime.trim().isEmpty) return false;
 
@@ -319,16 +292,6 @@ class AttendanceDetails extends StatelessWidget {
           : "$hours Hrs $minutes Mins";
     }
   }
-  // String timeDifference (String dateTimeString1,String dateTimeString2) {
-  //   DateTime startTime = DateTime.parse(dateTimeString1);
-  //   DateTime endTime = DateTime.parse(dateTimeString2);
-  //
-  //   Duration difference = endTime.difference(startTime);
-  //   print(startTime);
-  //   print(endTime);
-  //   print(difference.inMinutes);
-  //   return difference.inMinutes==0?"${difference.inSeconds} Secs":difference.inHours==0?"${difference.inMinutes} Mins":"${difference.inHours} Hrs";
-  // }
   DateTime parseTime(String time) {
     final now = DateTime.now(); // Get today's date
     final parts = time.split(" ");

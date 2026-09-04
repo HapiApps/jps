@@ -57,7 +57,7 @@ class _ViewTaskTypesState extends State<ViewTaskTypes>{
             backgroundColor: colorsConst.bacColor,
             appBar: PreferredSize(
               preferredSize: const Size(300, 50),
-              child: CustomAppbar(text: "Task Types",
+              child: CustomAppbar(text: "Task types",
                   isButton: true,
                   buttonCallback: (){
                 homeProvider.updateIndex(0);
@@ -75,7 +75,7 @@ class _ViewTaskTypesState extends State<ViewTaskTypes>{
             Column(
               children: [
                 100.height,
-                CustomText(text: "No Task Types Found",
+                CustomText(text: "No Task types Found",
                     colors: colorsConst.greyClr)
               ],
             ) :
@@ -214,7 +214,7 @@ class _AddTypePopupState extends State<AddTypePopup> {
             borderRadius: BorderRadius.circular(15),
           ),
           title: const Text(
-            "Add Task Types",
+            "Add Task types",
             style: TextStyle(fontWeight: FontWeight.bold),
           ),
           content: SizedBox(

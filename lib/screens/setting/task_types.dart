@@ -50,7 +50,7 @@ class _ViewTaskTypesState extends State<ViewTaskTypes>{
             backgroundColor: colorsConst.bacColor,
             appBar: PreferredSize(
               preferredSize: const Size(300, 50),
-              child: CustomAppbar(text: "Task Types",
+              child: CustomAppbar(text: "Task types",
                   isButton: true,
                   buttonCallback: (){
                 homeProvider.updateIndex(0);
@@ -63,7 +63,7 @@ class _ViewTaskTypesState extends State<ViewTaskTypes>{
             Column(
               children: [
                 100.height,
-                CustomText(text: "No Task Types Found",
+                CustomText(text: "No Task types Found",
                     colors: colorsConst.greyClr)
               ],
             ) :
@@ -156,7 +156,7 @@ class _AddTypeState extends State<AddType>{
               backgroundColor: colorsConst.bacColor,
               appBar: const PreferredSize(
                 preferredSize: Size(300, 50),
-                child: CustomAppbar(text: "Add Task Types"),
+                child: CustomAppbar(text: "Add Task types"),
               ),
               body: Center(
                 child: SizedBox(
@@ -243,7 +243,7 @@ class _EditTypeState extends State<EditType>{
               backgroundColor: colorsConst.bacColor,
               appBar: const PreferredSize(
                 preferredSize: Size(300, 50),
-                child: CustomAppbar(text: "Edit Task Types"),
+                child: CustomAppbar(text: "Edit Task types"),
               ),
               body: Center(
                 child: SizedBox(

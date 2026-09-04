@@ -1162,14 +1162,14 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
                       ],
                     ),
                     const SizedBox(height: 5),
-                    /// COMPANY + TASK TYPE
+                    /// COMPANY + Task type
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
 
 
-                        _infoBlock("Task Type", data.type ?? ""),
+                        _infoBlock("Task type", data.type ?? ""),
                         _infoBlock("Task Date", data.taskDate ?? ""),
                       ],
                     ),

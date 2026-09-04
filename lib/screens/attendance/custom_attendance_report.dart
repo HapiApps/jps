@@ -60,29 +60,6 @@ class _CustomAttendanceReportState extends State<CustomAttendanceReport> {
             ),
             body: GestureDetector(
               behavior: HitTestBehavior.opaque,
-              // onHorizontalDragEnd: (details) {
-              //   if (details.primaryVelocity == null) return;
-              //
-              //   // Swipe Left (next month)
-              //   if (details.primaryVelocity! < 0) {
-              //     attProvider.decreaseMonth(widget.userId, "0", false);
-              //   }
-              //
-              //   // Swipe Right (previous month)
-              //   else if (details.primaryVelocity! > 0) {
-              //     attProvider.increaseMonth(widget.userId, "0", false);
-              //   }
-              // },
-              // onTapDown: (TapDownDetails details) {
-              //   final screenWidth = MediaQuery.of(context).size.width;
-              //   double dx = details.globalPosition.dx;
-              //
-              //   if (dx < screenWidth / 2) {
-              //     attProvider.decreaseMonth(widget.userId, "0", false);
-              //   } else {
-              //     attProvider.increaseMonth(widget.userId, "0", false);
-              //   }
-              // },
               child: Center(
                 child: SizedBox(
                   width: kIsWeb?webWidth:phoneWidth,
@@ -90,7 +67,6 @@ class _CustomAttendanceReportState extends State<CustomAttendanceReport> {
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
                         20.height,
-                        // if(attProvider.getUserAttendance.isNotEmpty)
                         CustomText(text: attProvider.monthName,colors: colorsConst.networkColor,isBold: true,),
                         attProvider.refresh == false ?
                         const Padding(
@@ -221,156 +197,117 @@ class _CustomAttendanceReportState extends State<CustomAttendanceReport> {
                                 }
                                 return Padding(
                                   padding: EdgeInsets.fromLTRB(5, 10, 5, index==attProvider.getUserAttendance.length-1?30:0),
-                                  child: GestureDetector(
-                                    // onTap: callback,
-                                    child: Container(
-                                      width: kIsWeb?webWidth:phoneWidth,
-                                      decoration: customDecoration.baseBackgroundDecoration(
-                                          color: Colors.white,
-                                          radius: 5,
-                                          borderColor: Colors.grey.shade200,isShadow: true,shadowColor: Colors.grey.shade200
-                                      ),
-                                      child: Padding(
-                                        padding: const EdgeInsets.fromLTRB(5, 10, 5, 10),
-                                        child: Column(
-                                          children: [
-                                            Row(
-                                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                              children: [
-                                                  SizedBox(
-                                                    // color: Colors.blueAccent,
-                                                      width: kIsWeb?webWidth/4:phoneWidth/4,
-                                                      child: CustomText(text: data.date.toString(),size: 12,)),
-                                                5.width,
-                                                SizedBox(
-                                                  width: kIsWeb?webWidth/5:phoneWidth/5,
-                                                  // color: Colors.green,
-                                                  child: Column(
-                                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                                    children: [
-                                                        const CustomText(text: "In Time",colors: Colors.grey,size: 11,),5.height,
-                                                      Row(
-                                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                                        children: [
-                                                          CustomText(text: inTime,size: 11,),
-                                                          GestureDetector(
-                                                              onTap: () {
-                                                                utils.navigatePage(
-                                                                  context,
-                                                                      () => CheckLocation(
-                                                                    lat1: lat.isNotEmpty ? lat[0] : "",
-                                                                    long1: lng.isNotEmpty ? lng[0] : "",
-                                                                    lat2: lat.length > 1 ? lat[1] : "",
-                                                                    long2: lng.length > 1 ? lng[1] : "",
-                                                                  ),
-                                                                );
-                                                              },
-                                                              child: SvgPicture.asset(assets.map,width: 13,height: 13,)),
-                                                        ],
-                                                      ),
-                                                    ],
-                                                  ),
-                                                ),5.width,
-                                                SizedBox(
-                                                  width: kIsWeb?webWidth/5:phoneWidth/5,
-                                                  // color: Colors.yellow,
-                                                  child: Column(
-                                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                                    children: [
-                                                        const CustomText(text: "Out Time",colors: Colors.grey,size: 11,),5.height,
-                                                      Row(
-                                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                                        children: [
-                                                          CustomText(text: outTime.toString(),size: 11),
-                                                          if(outTime.toString()!="-")
-                                                            GestureDetector(
-                                                              onTap: () {
-                                                                utils.navigatePage(
-                                                                  context,
-                                                                      () => CheckLocation(
-                                                                    lat1: lat.isNotEmpty ? lat[0] : "",
-                                                                    long1: lng.isNotEmpty ? lng[0] : "",
-                                                                    lat2: lat.length > 1 ? lat[1] : "",
-                                                                    long2: lng.length > 1 ? lng[1] : "",
-                                                                  ),
-                                                                );
-                                                              },
-                                                              child: SvgPicture.asset(
-                                                                assets.map,
-                                                                width: 13,
-                                                                height: 13,
-                                                              ),
-                                                            ),
-                                                        ],
-                                                      ),
-                                                    ],
-                                                  ),
-                                                ),5.width,
-                                                SizedBox(
-                                                  width: kIsWeb?webWidth/5.2:phoneWidth/5.2,
-                                                  // color: Colors.blueGrey,
-                                                  child: Column(
-                                                    mainAxisAlignment: MainAxisAlignment.center,
-                                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                                    children: [
-                                                      const CustomText(text: "Total Hrs  ",colors: Colors.grey,size: 11,),
-                                                      5.height,
-                                                      CustomText(text:outTime.toString()=="-"?"-":timeD,size: 11,),
-                                                    ],
-                                                  ),
-                                                )
-                                              ],
-                                            ),
-                                            if(chunked.isNotEmpty)
-                                              Padding(
-                                                padding: EdgeInsets.fromLTRB(2, 5, 2, 5),
+                                  child: Container(
+                                    width: kIsWeb?webWidth:phoneWidth,
+                                    decoration: customDecoration.baseBackgroundDecoration(
+                                        color: Colors.white,
+                                        radius: 5,
+                                        borderColor: Colors.grey.shade200,isShadow: true,shadowColor: Colors.grey.shade200
+                                    ),
+                                    child: Padding(
+                                      padding: const EdgeInsets.fromLTRB(5, 10, 5, 10),
+                                      child: Column(
+                                        children: [
+                                          Row(
+                                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                            children: [
+                                              SizedBox(
+                                                  width: kIsWeb?webWidth/4:phoneWidth/4,
+                                                  child: CustomText(text: data.date.toString(),size: 12,)),
+                                              1.width,
+                                              SizedBox(
+                                                width: kIsWeb?webWidth/5:phoneWidth/5,
                                                 child: Column(
+                                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                                   crossAxisAlignment: CrossAxisAlignment.start,
                                                   children: [
-                                                    Container(
-                                                      width: kIsWeb?webWidth/1:phoneWidth/1,
-                                                      height: 0.2,color: Colors.grey,
-                                                    ),
+                                                    const CustomText(text: "In Time",colors: Colors.grey,size: 11,),5.height,
+                                                    CustomText(text: inTime,size: 11,),
+                                                  ],
+                                                ),
+                                              ),1.width,
+                                              SizedBox(
+                                                width: kIsWeb?webWidth/5:phoneWidth/5,
+                                                child: Column(
+                                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                                  children: [
+                                                    const CustomText(text: "Out Time",colors: Colors.grey,size: 11,),5.height,
+                                                    CustomText(text: outTime.toString(),size: 11),
+                                                  ],
+                                                ),
+                                              ),1.width,
+                                              SizedBox(
+                                                width: kIsWeb?webWidth/5.2:phoneWidth/5.2,
+                                                child: Column(
+                                                  mainAxisAlignment: MainAxisAlignment.center,
+                                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                                  children: [
+                                                    const CustomText(text: "Total Hrs  ",colors: Colors.grey,size: 11,),
                                                     5.height,
-                                                    CustomText(text: "Permission${chunked.length==1?"":"s"}",colors: colorsConst.greyClr,),
-                                                    5.height,
-                                                    ListView.builder(
-                                                      shrinkWrap: true,
-                                                      physics: const NeverScrollableScrollPhysics(),
-                                                      itemCount: chunked.length,
-                                                      itemBuilder: (context, index) {
-                                                        final item = chunked[index];
-                                                        return Padding(
-                                                          padding: const EdgeInsets.fromLTRB(0, 5, 0, 0),
-                                                          child: Row(
-                                                            children: [
-                                                              SizedBox(
-                                                                // color: Colors.pink,
-                                                                width: kIsWeb?webWidth/3:phoneWidth/3,
-                                                                child: CustomText(text: "${item['in']} - ${item['out']}",size: 11,isBold: true,),
-                                                              ),
-                                                              SizedBox(
-                                                                // color: Colors.yellow,
-                                                                width: kIsWeb?webWidth/5:phoneWidth/5,
-                                                                child: CustomText(text: item["out_ts"]!=""?timeDifference(item["in_ts"], item["out_ts"]):"-",size: 11,isBold: true),
-                                                              ),
-                                                              SizedBox(
-                                                                // color: Colors.green,
-                                                                width: kIsWeb?webWidth/3:phoneWidth/2.7,
-                                                                child: CustomText(text: "${item['reason']}",size: 11,),
-                                                              ),
-                                                            ],
-                                                          ),
-                                                        );
-                                                      },
-                                                    ),
+                                                    CustomText(text:outTime.toString()=="-"?"-":timeD,size: 11,),
                                                   ],
                                                 ),
                                               ),
-                                          ],
-                                        ),
+                                              1.width,
+                                              // Map icon now INSIDE the container, at the end of this row
+                                              _mapIcon(() {
+                                                utils.navigatePage(
+                                                  context,
+                                                      () => CheckLocation(
+                                                    lat1: lat.isNotEmpty ? lat[0] : "",
+                                                    long1: lng.isNotEmpty ? lng[0] : "",
+                                                    lat2: lat.length > 1 ? lat[1] : "",
+                                                    long2: lng.length > 1 ? lng[1] : "",
+                                                  ),
+                                                );
+                                              }),
+                                            ],
+                                          ),
+                                          if(chunked.isNotEmpty)
+                                            Padding(
+                                              padding: EdgeInsets.fromLTRB(2, 5, 2, 5),
+                                              child: Column(
+                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                children: [
+                                                  Container(
+                                                    width: kIsWeb?webWidth/1:phoneWidth/1,
+                                                    height: 0.2,color: Colors.grey,
+                                                  ),
+                                                  5.height,
+                                                  CustomText(text: "Permission${chunked.length==1?"":"s"}",colors: colorsConst.greyClr,),
+                                                  5.height,
+                                                  ListView.builder(
+                                                    shrinkWrap: true,
+                                                    physics: const NeverScrollableScrollPhysics(),
+                                                    itemCount: chunked.length,
+                                                    itemBuilder: (context, index) {
+                                                      final item = chunked[index];
+                                                      return Padding(
+                                                        padding: const EdgeInsets.fromLTRB(0, 5, 0, 0),
+                                                        child: Row(
+                                                          children: [
+                                                            SizedBox(
+                                                              width: kIsWeb?webWidth/3:phoneWidth/3,
+                                                              child: CustomText(text: "${item['in']} - ${item['out']}",size: 11,isBold: true,),
+                                                            ),
+                                                            SizedBox(
+                                                              width: kIsWeb?webWidth/5:phoneWidth/5,
+                                                              child: CustomText(text: item["out_ts"]!=""?timeDifference(item["in_ts"], item["out_ts"]):"-",size: 11,isBold: true),
+                                                            ),
+                                                            SizedBox(
+                                                              width: kIsWeb?webWidth/3:phoneWidth/2.7,
+                                                              child: CustomText(text: "${item['reason']}",size: 11,),
+                                                            ),
+                                                          ],
+                                                        ),
+                                                      );
+                                                    },
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                        ],
                                       ),
                                     ),
                                   ),
@@ -387,6 +324,28 @@ class _CustomAttendanceReportState extends State<CustomAttendanceReport> {
       );
     });
   }
+
+  /// Common clickable map icon with bigger tap area and ripple effect
+  Widget _mapIcon(VoidCallback onTap) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(24),
+      onTap: onTap,
+      child: Container(
+
+        decoration: BoxDecoration(
+          color: colorsConst.primary.withOpacity(0.08),
+          shape: BoxShape.circle,
+        ),
+        child: SvgPicture.asset(
+          assets.map,
+          width: 22,
+          height: 22,
+          colorFilter: ColorFilter.mode(colorsConst.primary, BlendMode.srcIn),
+        ),
+      ),
+    );
+  }
+
   String formatCreatedDate(DateTime dateTime) {
     DateTime now = DateTime.now();
     DateTime today = DateTime(now.year, now.month, now.day);
