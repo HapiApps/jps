@@ -3,7 +3,9 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:master_code/source/extentions/extensions.dart';
-import 'package:master_code/source/styles/decoration.dart';
+
+
+import '../source/styles/decoration.dart';
 import 'package:master_code/view_model/home_provider.dart';
 import 'package:provider/provider.dart';
 

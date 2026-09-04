@@ -43,14 +43,18 @@ class CheckAttendance extends StatefulWidget {
 }
 
 class _CheckAttendanceState extends State<CheckAttendance> {
+
   @override
   void initState() {
-    Future.delayed(
-        Duration.zero, () {
-      if (!mounted) return;
-      Provider.of<LocationProvider>(context, listen: false).manageLocation(context,false);
-    });
     super.initState();
+    final locProvider = Provider.of<LocationProvider>(context, listen: false);
+    final attProvider = Provider.of<AttendanceProvider>(context, listen: false);
+    if (attProvider.attCheck == false) {  // only fetch if not already loaded
+      Future.delayed(Duration.zero, () {
+        if (!mounted) return;
+        locProvider.manageLocation(context, false);
+      });
+    }
   }
   void startTracking(BuildContext context,String lat,String lng){
     showDialog(context: context,

@@ -834,7 +834,7 @@ class TaskProvider with ChangeNotifier {
 
       Map data = {
         "action": taskDatas,
-        "search_type": "download_reports",
+        "search_type": "download_reports_work",
         "cos_id": localData.storage.read("cos_id"),
         "role": localData.storage.read("role"),
         "id": localData.storage.read("id"),
@@ -904,7 +904,7 @@ class TaskProvider with ChangeNotifier {
 
       Map data = {
         "action": taskDatas,
-        "search_type": "download_reports",
+        "search_type": "download_reports_work",
         "cos_id": localData.storage.read("cos_id"),
         "role": localData.storage.read("role"),
         "id": localData.storage.read("id"),
@@ -1197,7 +1197,7 @@ class TaskProvider with ChangeNotifier {
 
       Map data = {
         "action": taskDatas,
-        "search_type": "download_reports",
+        "search_type": "download_reports_work",
         "cos_id": localData.storage.read("cos_id"),
         "role": localData.storage.read("role"),
         "id": localData.storage.read("id"),
@@ -2792,13 +2792,13 @@ class TaskProvider with ChangeNotifier {
 
   DateTime get selectedDate => _selectedDate;
 
-  void datePick({required BuildContext context, required TextEditingController date, required bool isPreviousDate}) {
+  void datePick({required BuildContext context, required TextEditingController date}) {
     DateTime dateTime = DateTime.now();
 
     showDatePicker(
       context: context,
       initialDate: dateTime,
-      firstDate: isPreviousDate==true?DateTime(1920):DateTime.now(),
+      firstDate: DateTime(1920),
       lastDate: DateTime(3000),
     ).then((value) {
       if (value != null) {

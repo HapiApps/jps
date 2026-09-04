@@ -209,7 +209,7 @@ class _EditTaskState extends State<EditTask> with SingleTickerProviderStateMixin
                                   readOnly: true,
                                   onTap: () {
                                     _myFocusScopeNode.unfocus();
-                                    taskProvider.datePick(context: context,date: taskProvider.taskDt, isPreviousDate: false);
+                                    taskProvider.datePick(context: context,date: taskProvider.taskDt);
                                   },
                                 ),
                                 15.height,
