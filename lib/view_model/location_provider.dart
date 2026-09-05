@@ -18,7 +18,17 @@ String get longitude=>_longitude;
 
   late StreamSubscription<Position> streamSubscription;
 
-
+  // @override
+  // void onInit() {
+  //   super.onInit();
+  //   requestPermissions();
+  // }
+  //
+  // @override
+  // void onClose() {
+  //   streamSubscription.cancel();
+  //   super.onClose();
+  // }
 
   /// Request permissions and fetch location
   // void requestPermissions() async {
@@ -52,46 +62,67 @@ String get longitude=>_longitude;
   //     log("Error requesting permissions: $e");
   //   }
   // }
-void requestPermissions() async {
-  try {
-    // 1️⃣ Ask LOCATION permission first
-    PermissionStatus locationStatus = await Permission.location.request();
+// void requestPermissions() async {
+//   try {
+//     // 1️⃣ Ask LOCATION permission first
+//     PermissionStatus locationStatus = await Permission.location.request();
+//
+//     if (locationStatus == PermissionStatus.granted) {
+//       _startLocationStream();
+//     }
+//
+//     // 2️⃣ Small delay (VERY IMPORTANT)
+//     await Future.delayed(const Duration(milliseconds: 500));
+//
+//     // 3️⃣ Ask NOTIFICATION permission
+//     await askNotificationPermission();
+//
+//   } catch (e) {
+//     log("Error requesting permissions: $e");
+//   }
+// }
 
-    if (locationStatus == PermissionStatus.granted) {
+// void requestNotificationPermissions() async {
+//   try {
+//     await askNotificationPermission();
+//   } catch (e) {
+//     log("Error requesting permissions: $e");
+//   }
+// }
+
+Future<void> requestPermissions() async {
+  try {
+    // Only request LOCATION here
+    final PermissionStatus locationStatus =
+    await Permission.location.request();
+
+    if (locationStatus.isGranted) {
       _startLocationStream();
+    } else if (locationStatus.isDenied) {
+      log("❌ Location permission denied");
+    } else if (locationStatus.isPermanentlyDenied) {
+      log("❌ Location permission permanently denied");
     }
-
-    // 2️⃣ Small delay (VERY IMPORTANT)
-    await Future.delayed(const Duration(milliseconds: 500));
-
-    // 3️⃣ Ask NOTIFICATION permission
-    await askNotificationPermission();
-
-  } catch (e) {
-    log("Error requesting permissions: $e");
-  }
-}
-void requestNotificationPermissions() async {
-  try {
-    await askNotificationPermission();
-  } catch (e) {
-    log("Error requesting permissions: $e");
+  } catch (e, st) {
+    log("❌ Error requesting location permission: $e");
+    log("$st");
   }
 }
 
-Future<void> askNotificationPermission() async {
-  PermissionStatus status = await Permission.notification.status;
 
-  if (status.isGranted) return; // don't ask again
-
-  PermissionStatus newStatus = await Permission.notification.request();
-
-  if (newStatus.isGranted) {
-    log("Notification permission granted");
-  } else if (newStatus.isPermanentlyDenied) {
-    log("Notification permission permanently denied");
-  }
-}
+// Future<void> askNotificationPermission() async {
+//   PermissionStatus status = await Permission.notification.status;
+//
+//   if (status.isGranted) return; // don't ask again
+//
+//   PermissionStatus newStatus = await Permission.notification.request();
+//
+//   if (newStatus.isGranted) {
+//     log("Notification permission granted");
+//   } else if (newStatus.isPermanentlyDenied) {
+//     log("Notification permission permanently denied");
+//   }
+// }
 
 Future<void> manageLocation(context, bool openSetting) async {
   try {

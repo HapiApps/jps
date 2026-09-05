@@ -60,11 +60,11 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyBB6o5xx6rYomj_TNDbPv8zqpIDWlG2N_c',
-    appId: '1:574438658911:ios:753da57304bee0bfe51cea',
+    appId: '1:574438658911:ios:e6292c7e05699e68e51cea',
     messagingSenderId: '574438658911',
     projectId: 'aci-automation-21bb9',
     storageBucket: 'aci-automation-21bb9.firebasestorage.app',
-    iosBundleId: 'com.hapiapps.jains',
+    iosBundleId: 'com.hapiapps.hapiapps',
   );
 
   static const FirebaseOptions macos = FirebaseOptions(

@@ -57,7 +57,7 @@ class _HomePageState extends State<HomePage> {
   void initState() {
     Future.delayed(Duration.zero, () {
       if (!mounted) return;
-      Provider.of<LocationProvider>(context, listen: false).requestNotificationPermissions();
+      // Provider.of<LocationProvider>(context, listen: false).requestNotificationPermissions();
       final id = localData.storage.read("id");
      // attProvider.attCheck == true;
       Provider.of<AttendanceProvider>(context, listen: false).initDate(id:localData.storage.read("id"),role:localData.storage.read("role"),isRefresh: false,date1: "${DateTime.now().day.toString().padLeft(2,"0")}-${DateTime.now().month.toString().padLeft(2,"0")}-${DateTime.now().year.toString()}",date2: "${DateTime.now().day.toString().padLeft(2,"0")}-${DateTime.now().month.toString().padLeft(2,"0")}-${DateTime.now().year.toString()}");
