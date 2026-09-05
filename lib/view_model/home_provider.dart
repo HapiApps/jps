@@ -885,7 +885,7 @@ Future<void> loginOuts(context) async {
     try {
       Map data = {
         "action": getAllData,
-        "search_type": "work_plan_list",
+        "search_type": "hapi_work_plan_list",
         "user_id": localData.storage.read("id"),
         "role": localData.storage.read("role"),
         "cos_id": localData.storage.read("cos_id"),
@@ -1170,7 +1170,7 @@ Future<void> loginOuts(context) async {
       );
 
 // ✅ now no error
-      attendanceProvider.getMainAttendance();
+    //  attendanceProvider.getMainAttendance();
       /* ================= LATE + PERMISSION COUNT (FROM SAME RESPONSE) ================= */
 
       permisCount = 0;

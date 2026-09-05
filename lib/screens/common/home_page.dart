@@ -59,22 +59,17 @@ class _HomePageState extends State<HomePage> {
       if (!mounted) return;
       Provider.of<LocationProvider>(context, listen: false).requestNotificationPermissions();
       final id = localData.storage.read("id");
-      Provider.of<AttendanceProvider>(context, listen: false).initDate(id:localData.storage.read("id"),role:localData.storage.read("role"),isRefresh: true,date1: "${DateTime.now().day.toString().padLeft(2,"0")}-${DateTime.now().month.toString().padLeft(2,"0")}-${DateTime.now().year.toString()}",date2: "${DateTime.now().day.toString().padLeft(2,"0")}-${DateTime.now().month.toString().padLeft(2,"0")}-${DateTime.now().year.toString()}");
+     // attProvider.attCheck == true;
+      Provider.of<AttendanceProvider>(context, listen: false).initDate(id:localData.storage.read("id"),role:localData.storage.read("role"),isRefresh: false,date1: "${DateTime.now().day.toString().padLeft(2,"0")}-${DateTime.now().month.toString().padLeft(2,"0")}-${DateTime.now().year.toString()}",date2: "${DateTime.now().day.toString().padLeft(2,"0")}-${DateTime.now().month.toString().padLeft(2,"0")}-${DateTime.now().year.toString()}");
       if (id != null && id.toString().isNotEmpty) {
         print("Attendance ID ${id}");
       } else {
         print("Attendance ID missing! Cannot fetch report");
       }
-      // FirebaseFirestore.instance
-      //     .collection('attendance')
-      //     .snapshots()
-      //     .listen((snapshot) {
-      //   // When any new attendance record is added/updated
-      //
-      // });
       final homeProvider = Provider.of<HomeProvider>(context, listen: false);
       homeProvider.checkVersion();
       homeProvider.checkThisMonth();
+
       homeProvider.loadFullDashboard(context);
       homeProvider.changeType(context, homeProvider.type);
       final taskProvider = Provider.of<TaskProvider>(context, listen: false);
@@ -428,8 +423,8 @@ class _HomePageState extends State<HomePage> {
 
                                           " Based on Present Employee: "
                                               "${ homeProvider.mainReportList.isEmpty ?"0":homeProvider.
-                                          mainReportList[0]["presentEmployeesCount"].toString()=="null"?"0":
-                                          homeProvider.mainReportList[0]["presentEmployeesCount"].toString()}",
+                                          mainReportList[0]["presentEmployeesCountHapi"].toString()=="null"?"0":
+                                          homeProvider.mainReportList[0]["presentEmployeesCountHapi"].toString()}",
                                           size: 14,
                                           weight: FontWeight.bold,
                                           color: Colors.grey,
@@ -1316,9 +1311,23 @@ class _HomePageState extends State<HomePage> {
                                             weight: FontWeight.bold,
                                             color: Color(0xff0c5be8),
                                           ),
-
-                                          const SizedBox(width: 20),
-
+                                        ],
+                                      ),
+                                      5.height,
+                                      Row(
+                                        children: [
+                                           CustomText(
+                                            "Overdue: ",
+                                            size: 13,
+                                            weight: FontWeight.bold,
+                                            color: Color(0xff0c5be8),
+                                          ),
+                                          CustomText(
+                                            "${homeProvider.mainReportList.isEmpty ? "0" : homeProvider.mainReportList[0]["overdue_count"]}",
+                                            size: 13,
+                                            weight: FontWeight.bold,
+                                            color: Color(0xff0c5be8),
+                                          ),
                                         ],
                                       ),
                                       5.height,

@@ -588,7 +588,7 @@ class _SplashScreenState extends State<SplashScreen> {
       Provider.of<LocationProvider>(context, listen: false);
       final attendanceProvider =
       Provider.of<AttendanceProvider>(context, listen: false);
-
+      attendanceProvider.getMainAttendance();
       // ✅ Every network/location call below is wrapped —
       // if network is weak or GPS is denied/slow, it just times
       // out silently after a few seconds and the app keeps going.

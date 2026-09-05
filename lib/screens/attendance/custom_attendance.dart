@@ -271,7 +271,8 @@ class _CheckAttendanceState extends State<CheckAttendance> {
 
           print("permissionStatus  ${attProvider.permissionStatus}");
           print("isPermissionActive ${isPermissionActive}");
-          return attProvider.attCheck==false?const Loading():
+          return
+            // attProvider.attCheck==false?const Loading():
           Column(
             children: [
               Container(

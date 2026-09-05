@@ -18,17 +18,7 @@ String get longitude=>_longitude;
 
   late StreamSubscription<Position> streamSubscription;
 
-  // @override
-  // void onInit() {
-  //   super.onInit();
-  //   requestPermissions();
-  // }
-  //
-  // @override
-  // void onClose() {
-  //   streamSubscription.cancel();
-  //   super.onClose();
-  // }
+
 
   /// Request permissions and fetch location
   // void requestPermissions() async {

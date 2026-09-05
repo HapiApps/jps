@@ -120,156 +120,11 @@ class TaskProvider with ChangeNotifier {
       notifyListeners();
     }
   }
-  // void dateFilterList(String date1,String date2) {
-  //   final dateFormat = DateFormat('dd-MM-yyyy');
-  //   final parsedStartDate = dateFormat.parse(date1);
-  //   final parsedEndDate = dateFormat.parse(date2);
-  //
-  //   _filterUserData = _searchAllTasks.where((contact) {
-  //     // Parse contact.taskDate (in dd-MM-yyyy format)
-  //     final taskDate = dateFormat.parse(contact.taskDate.toString());
-  //     final taskDateOnly = DateTime(taskDate.year, taskDate.month, taskDate.day);
-  //
-  //     // Filter by date range
-  //     final isWithinDateRange =
-  //         !taskDateOnly.isBefore(parsedStartDate) && !taskDateOnly.isAfter(parsedEndDate);
-  //
-  //     // Optional filters
-  //     final isTypeMatch = _fType == "" || _fType == contact.type;
-  //     final isEmpMatch = _userName == "" || contact.assignedNames.toString().contains(_userName);
-  //     final isCusMatch = _companyName == "" || contact.projectName == _companyName;
-  //
-  //     // Return if all filters match
-  //     return isWithinDateRange && isTypeMatch && isEmpMatch && isCusMatch;
-  //   }).toList();
-  //   print("(((((((((((((((((.......${_filterUserData.length}");
-  //
-  //   notifyListeners();
-  // }
+
   ///
-  // void filterList() {
-  //   print("*****filter list");
-  //   final dateFormat = DateFormat('dd-MM-yyyy');
-  //   final parsedStartDate = dateFormat.parse(_startDate);
-  //   final parsedEndDate = dateFormat.parse(_endDate);
-  //
-  //   _filterUserData = _searchAllTasks.where((contact) {
-  //     // Parse contact.taskDate (in dd-MM-yyyy format)
-  //     final taskDate = dateFormat.parse(contact.taskDate.toString());
-  //     final taskDateOnly = DateTime(taskDate.year, taskDate.month, taskDate.day);
-  //
-  //     // Filter by date range
-  //     final isWithinDateRange =
-  //         !taskDateOnly.isBefore(parsedStartDate) && !taskDateOnly.isAfter(parsedEndDate);
-  //
-  //     // Optional filters
-  //     final isTypeMatch = _fType == "" || _fType == contact.type;
-  //     final isEmpMatch = _userName == "" || contact.assignedNames.toString().contains(_userName);
-  //     final isCusMatch = _companyName == "" || contact.projectName == _companyName;
-  //
-  //     // Return if all filters match
-  //     return isWithinDateRange && isTypeMatch && isEmpMatch && isCusMatch;
-  //   }).toList();
-  //
-  //   notifyListeners();
-  // }
+
   ///
-  // void filterList() {
-  //   if (_startDate.isEmpty || _endDate.isEmpty) return;
-  //
-  //   final dateFormat = DateFormat('dd-MM-yyyy');
-  //
-  //   DateTime parsedStartDate;
-  //   DateTime parsedEndDate;
-  //
-  //   try {
-  //     parsedStartDate = dateFormat.parse(_startDate);
-  //     parsedEndDate = dateFormat.parse(_endDate);
-  //   } catch (e) {
-  //     return;
-  //   }
-  //
-  //   _filterUserData = _searchAllTasks.where((contact) {
-  //
-  //     /// 🔴 DATE CHECK
-  //     if (contact.taskDate == null || contact.taskDate.toString().isEmpty) {
-  //       return false;
-  //     }
-  //
-  //     DateTime? taskDate;
-  //
-  //     try {
-  //       taskDate = dateFormat.parse(contact.taskDate.toString());
-  //     } catch (e) {
-  //       return false;
-  //     }
-  //
-  //     final taskDateOnly = DateTime(taskDate.year, taskDate.month, taskDate.day);
-  //
-  //     final isWithinDateRange =
-  //         !taskDateOnly.isBefore(parsedStartDate) &&
-  //             !taskDateOnly.isAfter(parsedEndDate);
-  //
-  //     /// 🔴 TYPE
-  //     final isTypeMatch = _fType.isEmpty || _fType == contact.type;
-  //
-  //     /// 🔴 EMPLOYEE
-  //     // final assignedList = (contact.assignedNames ?? "")
-  //     //     .split(',')
-  //     //     .map((e) => e.trim().toLowerCase())
-  //     //     .toList();
-  //     //
-  //     // final isEmpMatch = _assignedNames.isEmpty ||
-  //     //     assignedList.any((name) =>
-  //     //     name.contains(_assignedNames.toLowerCase()) ||
-  //     //         _assignedNames.toLowerCase().contains(name));
-  //
-  //     /// 🔴 EMPLOYEE
-  //     /// 🔴 EMPLOYEE
-  //     final rawAssignedNames = contact.assignedNames ?? "";
-  //
-  //     final assignedList = rawAssignedNames
-  //         .split(',')
-  //         .map((e) => e.trim().toLowerCase())
-  //         .where((e) => e.isNotEmpty)
-  //         .toList();
-  //
-  //     final searchName = _assignedNames.trim().toLowerCase();
-  //
-  //     final matchedNames = assignedList.where((name) {
-  //       return name.contains(searchName) || searchName.contains(name);
-  //     }).toList();
-  //
-  //     print("👤 Raw Assigned Names: '$rawAssignedNames'");
-  //     print("📋 Assigned List: $assignedList");
-  //     print("🔍 Search Name: '$searchName'");
-  //     print("✅ Matched Value: $matchedNames");
-  //
-  //     final isEmpMatch =
-  //         searchName.isEmpty || matchedNames.isNotEmpty;
-  //
-  //     print("🎯 isEmpMatch: $isEmpMatch");
-  //
-  //     /// 🔴 CUSTOMER
-  //     final isCusMatch =
-  //         _companyName.isEmpty || contact.projectName == _companyName;
-  //
-  //     /// ✅ STATUS FILTER
-  //     final taskStatus = (contact.statval ?? "").toString().trim();
-  //     final selectedStatus = _statusIds.toString().trim();
-  //
-  //     final isStatusMatch = selectedStatus.isEmpty || taskStatus == selectedStatus;
-  //
-  //     return isWithinDateRange &&
-  //         isTypeMatch &&
-  //         isEmpMatch &&
-  //         isCusMatch &&
-  //         isStatusMatch;   // ✅ THIS IS IMPORTANT
-  //
-  //   }).toList();
-  //
-  //   if (!_isDisposed) notifyListeners();
-  // }
+
   void filterList() {
     if (_startDate.isEmpty || _endDate.isEmpty) return;
 
@@ -418,34 +273,7 @@ class TaskProvider with ChangeNotifier {
               isCusMatch &&
               isStatusMatch;
 
-      print("""
-==================================================
-👤 ASSIGNED NAME : $rawAssignedNames
-🔍 SEARCH NAME   : $searchName
-📋 ASSIGNED LIST : $assignedList
-✅ MATCHED NAME  : $matchedNames
 
-📅 TASK DATE     : ${contact.taskDate}
-📅 START DATE    : $_startDate
-📅 END DATE      : $_endDate
-📅 DATE MATCH    : $isWithinDateRange
-
-📌 CONTACT TYPE  : $contactType
-📌 SELECTED TYPE : $selectedType
-📌 TYPE MATCH    : $isTypeMatch
-
-🏢 PROJECT NAME  : $contactCompany
-🏢 SELECTED      : $selectedCompany
-🏢 CUSTOMER MATCH: $isCusMatch
-
-📊 TASK STATUS   : '$taskStatus'
-📊 SELECTED      : '$selectedStatus'
-📊 STATUS MATCH  : $isStatusMatch
-
-🎯 EMP MATCH     : $isEmpMatch
-🚀 FINAL MATCH   : $finalMatch
-==================================================
-""");
 
       // ============================================================
       // 🔥 FINAL FILTER
@@ -455,10 +283,7 @@ class TaskProvider with ChangeNotifier {
 
     }).toList();
 
-    print("==============================================");
-    print("📊 TOTAL TASKS   : ${_searchAllTasks.length}");
-    print("📊 FILTERED TASKS: ${_filterUserData.length}");
-    print("==============================================");
+
 
     if (!_isDisposed) {
       notifyListeners();

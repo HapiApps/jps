@@ -54,10 +54,16 @@ class _AttendanceReportState extends State<AttendanceReport> {
       // Provider.of<AttendanceProvider>(context, listen: false).loadAttendanceDashboard(localData.storage.read("id"));
       print(Provider.of<EmployeeProvider>(context, listen: false).userData.length);
       Provider.of<AttendanceProvider>(context, listen: false).initDate(id:localData.storage.read("id"),role:localData.storage.read("role"),isRefresh:true,date1:widget.date1,date2:widget.date2,type:widget.type);
-      Provider.of<HomeProvider>(context, listen: false).loadFullDashboard(context);
+       Provider.of<HomeProvider>(context, listen: false).loadFullDashboard(context);
       //Provider.of<AttendanceProvider>(context, listen: false).getAttendanceReport(localData.storage.read("id"));
       Provider.of<AttendanceProvider>(context, listen: false).getAbsentAttendanceReport(localData.storage.read("id"));
-      Provider.of<LeaveProvider>(context, listen: false).allLeaves(widget.date1,widget.date2,true,localData.storage.read("role"),localData.storage.read("id"));
+    String today = DateFormat('yyyy-MM-dd').format(DateTime.now());
+    //  Provider.of<LeaveProvider>(context, listen: false).allLeaves(widget.date1,widget.date2,true,localData.storage.read("role"),localData.storage.read("id"));
+    Provider.of<LeaveProvider>(context, listen: false).allLeaves(
+      today, today, true,               // 👈 idhum today
+      localData.storage.read("role"),
+      localData.storage.read("id"),
+    );
 
     });
     super.initState();
