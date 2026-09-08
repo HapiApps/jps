@@ -701,12 +701,11 @@ dynamic get grade =>_grade;
       _update = true;
     }
 
-    _grade = value.toString();
-
-    // ✅ SAFE: check type
     if (value is Map) {
+      _grade = value["grade"].toString();
       localData.storage.write("g_id", value["id"].toString());
     } else {
+      _grade = value.toString();
       localData.storage.write("g_id", value.toString());
     }
 
@@ -1997,28 +1996,28 @@ String oldImage5="";
 String oldImage6="";
 String oldImage7="";
 String gradeName="";
-Future<void> getUserDetails({required String id}) async {
-  _swipeIndex=0;
-  _refresh=false;
-  addressId="";
-  gradeName="";
-  _grade=null;
-  _profile="";
-  _aadharPhoto="";
-  _aadharPhoto2="";
-  _panPhoto="";
-  _chequePhoto="";
-  _licensePhoto="";
-  _voterPhoto="";
-  oldImage="";
-  oldImage2="";
-  oldImage3="";
-  oldImage4="";
-  oldImage5="";
-  oldImage6="";
-  oldImage7="";
-  notifyListeners();
-  // try {
+  Future<void> getUserDetails({required String id}) async {
+    _swipeIndex=0;
+    _refresh=false;
+    addressId="";
+    gradeName="";
+    _grade=null;
+    _profile="";
+    _aadharPhoto="";
+    _aadharPhoto2="";
+    _panPhoto="";
+    _chequePhoto="";
+    _licensePhoto="";
+    _voterPhoto="";
+    oldImage="";
+    oldImage2="";
+    oldImage3="";
+    oldImage4="";
+    oldImage5="";
+    oldImage6="";
+    oldImage7="";
+    notifyListeners();
+    // try {
     Map data = {
       "action": getAllData,
       "search_type": "employee_details",
@@ -2030,14 +2029,12 @@ Future<void> getUserDetails({required String id}) async {
     if (response.isNotEmpty) {
       _update = false;
       UserDetail data=response[0];
-      _role = _roleValues.firstWhere(
-            (item) =>
-        item["id"] == data.role.toString(),
-        // orElse: () => {"id": "", "role": ""}, // Provide a valid default map
-      );
+      _role = data.roleName.toString()=="null" ? null : data.roleName.toString();
+
       localData.storage.write("roleId", data.role.toString());
       localData.storage.write("roleName", data.roleName.toString());
-
+      print("Role set to: $_role");
+      print("Role values list: $_roleValues");
       gradeName=data.grade.toString();
       signFirstName.text=data.firstname.toString();
       signLastName.text=data.surname.toString()=="null"?"":data.surname.toString();
@@ -2103,20 +2100,7 @@ Future<void> getUserDetails({required String id}) async {
       _lastCheck=data.lastCheckin.toString();
       _commentCount=data.commentCount.toString();
       print("data.gradeId.toString() : ${data.gradeId.toString()}");
-      if(data.gradeId.toString()!="null"&&data.gradeId.toString()!=""){
-        for(var i=0;i<_gradeValues.length;i++){
-          if(_gradeValues[i]["id"] == data.gradeId.toString()){
-            _grade=_gradeValues[i];
-            break;
-          }
-        }
-        // _grade = _gradeValues.firstWhere(
-        //       (item) => item["id"] == data.gradeId.toString(),
-        //   orElse: () => <String, dynamic>{},
-        // );
-      }else{
-        _grade=null;
-      }
+      _grade = data.grade.toString()=="null" ? null : data.grade.toString();
 
       localData.storage.write("g_id", data.gradeId.toString());
 
@@ -2145,12 +2129,12 @@ Future<void> getUserDetails({required String id}) async {
     } else {
       _refresh=true;
     }
-  // } catch (e) {
-  //   _refresh=true;
-  //   log(e.toString());
-  // }
-  notifyListeners();
-}
+    // } catch (e) {
+    //   _refresh=true;
+    //   log(e.toString());
+    // }
+    notifyListeners();
+  }
 void searchUser(String value){
   if(_filter==false){
     final suggestions=_searchUserData.where(

@@ -2239,6 +2239,57 @@ void changeStatus(bool value){
       return [];
     }
   }
+  Future<List<LeaveModel>> allAttendLeaves(String st, String en, bool refresh,String roleId,String userId) async {
+    try {
+
+      _isLoading = true;
+      notifyListeners();
+
+      myLevSearch.clear();
+      myLev.clear();
+
+      Map data = {
+        "action": getLeaveData,
+        "search_type": "all_leave_attend",
+        "st_dt": st,
+        "en_dt": en,
+        "cos_id": localData.storage.read("cos_id"),
+        "role": roleId !="0"?localData.storage.read("role"):roleId,
+        "id": userId==""?"":userId,
+      };
+
+      final response = await leaveRepo.getLeave(data);
+       print("TODAY LEAVE LIST 33 => ${response}");
+     print("TODAY LEAVE LIST 12 => ${data}");
+      myLev = response;
+      myLevSearch = response;
+
+      DateTime parseDate(String date) {
+        final parts = date.split('-');
+        return DateTime( int.parse(parts[2]),int.parse(parts[1]),int.parse(parts[0]));
+      }
+      DateTime today = DateTime.now();
+      today = DateTime(today.year, today.month, today.day);
+      DateTime stDate = parseDate(st);
+      DateTime enDate = parseDate(en);
+
+      bool isToday = !today.isBefore(stDate) &&!today.isAfter(enDate);
+      if(isToday){
+        todayLeaveList = response;
+      }
+   print("TODAY LEAVE LIST => ${todayLeaveList}");
+       print("MY ID => ${localData.storage.read("id")}");// ✅ store here
+      _isLoading = false;
+      notifyListeners();
+
+      return response;
+
+    } catch (e) {
+      _isLoading = false;
+      notifyListeners();
+      return [];
+    }
+  }
   // all_specific_leave
   Future<List<LeaveModel>> allSpecificLeaves(String st, String en, bool refresh,String roleId,String userId) async {
     try {

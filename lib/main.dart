@@ -1025,34 +1025,34 @@ Future<void> main() async {
   /// FIREBASE
   /// --------------------------------------------------------
 
-  try {
-    if (Firebase.apps.isEmpty) {
-      await Firebase.initializeApp(
-        options:
-        DefaultFirebaseOptions.currentPlatform,
-      );
-    }
-  } catch (e) {
-    log(
-      "⚠️ Firebase first initialization failed: $e",
-    );
-  }
+  // Firebase core init — needs network the first time on some devices.
+  //
+  // IMPORTANT FIX (from 1st file): plain try/catch never times out — if
+  // the network hangs, Firebase.initializeApp() can hang forever and the
+  // splash screen freezes. safeCall() wraps it with an explicit timeout
+  // (12s, then 15s on retry) and catches TimeoutException specifically,
+  // so a slow/dead network fails fast instead of hanging.
+  await safeCall(
+    'Firebase.initializeApp',
+        () => Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    ),
+    timeout: const Duration(seconds: 12),
+  );
 
   /// --------------------------------------------------------
   /// RETRY FIREBASE
   /// --------------------------------------------------------
 
   if (Firebase.apps.isEmpty) {
-    try {
-      await Firebase.initializeApp(
-        options:
-        DefaultFirebaseOptions.currentPlatform,
-      );
-    } catch (e) {
-      log(
-        "⚠️ Firebase retry failed: $e",
-      );
-    }
+    // one retry — covers slow-network first-launch case
+    await safeCall(
+      'Firebase.initializeApp.retry',
+          () => Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      ),
+      timeout: const Duration(seconds: 15),
+    );
   }
 
   /// --------------------------------------------------------
@@ -1379,36 +1379,8 @@ class _SplashScreenState
           listen: false,
         );
         attendanceProvider.getMainAttendance();
-        /// --------------------------------------------------
-        /// VERSION CHECK
-        /// --------------------------------------------------
-
-        await safeCall(
-          'homeProvider.checkVersion',
-              () =>
-              homeProvider.checkVersion(),
-          timeout:
-          const Duration(seconds: 10),
-        );
-
-        if (!mounted) return;
-
-        /// --------------------------------------------------
-        /// NAVIGATION
-        /// --------------------------------------------------
-
-        await checkForUpdates(context);
-
-        /// --------------------------------------------------
-        /// LOCATION
-        /// --------------------------------------------------
-
-        ///
-        /// IMPORTANT:
-        /// requestPermissions() itself must check
-        /// permission before accessing GPS.
-        ///
-
+        await Provider.of<LocationProvider>(context, listen: false).manageLocation(context,false);
+        homeProvider.loadFullDashboard(context);
         unawaited(
           safeCall(
             'locationProvider.requestPermissions',
@@ -1419,10 +1391,6 @@ class _SplashScreenState
             const Duration(seconds: 10),
           ),
         );
-
-        /// --------------------------------------------------
-        /// HOME DATA
-        /// --------------------------------------------------
 
         unawaited(
           safeCall(
@@ -1450,7 +1418,7 @@ class _SplashScreenState
             'homeProvider.loadFullDashboard',
                 () => homeProvider
                 .loadFullDashboard(
-              context,
+              navigatorKey.currentContext ?? context,
             ),
             timeout:
             const Duration(seconds: 12),
@@ -1466,6 +1434,26 @@ class _SplashScreenState
             const Duration(seconds: 10),
           ),
         );
+
+        /// --------------------------------------------------
+        /// VERSION CHECK
+        /// --------------------------------------------------
+
+        await safeCall(
+          'homeProvider.checkVersion',
+              () =>
+              homeProvider.checkVersion(),
+          timeout:
+          const Duration(seconds: 10),
+        );
+
+        if (!mounted) return;
+
+        /// --------------------------------------------------
+        /// NAVIGATION
+        /// --------------------------------------------------
+
+        await checkForUpdates(context);
       },
     );
   }

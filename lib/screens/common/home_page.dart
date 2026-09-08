@@ -54,37 +54,81 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   Timer? _timer;
   @override
+  @override
   void initState() {
-    Future.delayed(Duration.zero, () {
+    super.initState();
+
+    Future.delayed(Duration.zero, () async {
       if (!mounted) return;
-      // Provider.of<LocationProvider>(context, listen: false).requestNotificationPermissions();
+
       final id = localData.storage.read("id");
-     // attProvider.attCheck == true;
-      Provider.of<AttendanceProvider>(context, listen: false).initDate(id:localData.storage.read("id"),role:localData.storage.read("role"),isRefresh: false,date1: "${DateTime.now().day.toString().padLeft(2,"0")}-${DateTime.now().month.toString().padLeft(2,"0")}-${DateTime.now().year.toString()}",date2: "${DateTime.now().day.toString().padLeft(2,"0")}-${DateTime.now().month.toString().padLeft(2,"0")}-${DateTime.now().year.toString()}");
+      final role = localData.storage.read("role");
+
       if (id != null && id.toString().isNotEmpty) {
-        print("Attendance ID ${id}");
+        print("Attendance ID $id");
       } else {
         print("Attendance ID missing! Cannot fetch report");
       }
-      final homeProvider = Provider.of<HomeProvider>(context, listen: false);
-      homeProvider.checkVersion();
-      homeProvider.checkThisMonth();
 
-      homeProvider.loadFullDashboard(context);
-      homeProvider.changeType(context, homeProvider.type);
+      final today =
+          "${DateTime.now().day.toString().padLeft(2, "0")}-"
+          "${DateTime.now().month.toString().padLeft(2, "0")}-"
+          "${DateTime.now().year}";
+
+      final attendanceProvider =
+      Provider.of<AttendanceProvider>(context, listen: false);
+
+      // void method — fire directly, no unawaited()
+      attendanceProvider.initDate(
+        id: id,
+        role: role,
+        isRefresh: false,
+        date1: today,
+        date2: today,
+      );
+     attendanceProvider.getMainAttendance();
+      if (!mounted) return;
+      final homeProvider = Provider.of<HomeProvider>(context, listen: false);
+
+      // --------------------------------------------------------
+      // SEQUENCE MATTERS HERE:
+      // changeType() reads homeProvider.type, and checkThisMonth()
+      // is what actually sets that type. Firing everything in
+      // parallel meant changeType() ran with the OLD/default type
+      // on first load — that's why values looked wrong until you
+      // navigated away and back.
+      // --------------------------------------------------------
+
+      await homeProvider.checkVersion();
+      if (!mounted) return;
+
+       homeProvider.checkThisMonth(); // sets homeProvider.type
+      if (!mounted) return;
+
+      await homeProvider.loadFullDashboard(context);
+      if (!mounted) return;
+
+      homeProvider.changeType(context, homeProvider.type); // now correct
+
+      // --------------------------------------------------------
+      // Independent of the above — safe to fire without blocking.
+      // --------------------------------------------------------
+
       final taskProvider = Provider.of<TaskProvider>(context, listen: false);
       if (taskProvider.statusList.isNotEmpty) {
-        taskProvider.setStatusByName(
-          taskProvider.statusList.first["value"],
-        );
+        taskProvider.setStatusByName(taskProvider.statusList.first["value"]);
       }
-     Provider.of<EmployeeProvider>(context, listen: false).getAllUsers();
-     Provider.of<CustomerProvider>(context, listen: false).getAllCustomers(true);
-        final provider = Provider.of<EmployeeProvider>(context, listen: false);
-         provider.getNotifications();
 
-      });
-    super.initState();
+      final employeeProvider =
+      Provider.of<EmployeeProvider>(context, listen: false);
+
+      unawaited(employeeProvider.getAllUsers());
+      unawaited(
+        Provider.of<CustomerProvider>(context, listen: false)
+            .getAllCustomers(true),
+      );
+      employeeProvider.getNotifications(); // void method — fire directly
+    });
   }
   Widget iconBox({required VoidCallback callBack,required String img,required String text}){
     return InkWell(

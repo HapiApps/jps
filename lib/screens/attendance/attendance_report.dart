@@ -59,7 +59,7 @@ class _AttendanceReportState extends State<AttendanceReport> {
       Provider.of<AttendanceProvider>(context, listen: false).getAbsentAttendanceReport(localData.storage.read("id"));
     String today = DateFormat('yyyy-MM-dd').format(DateTime.now());
     //  Provider.of<LeaveProvider>(context, listen: false).allLeaves(widget.date1,widget.date2,true,localData.storage.read("role"),localData.storage.read("id"));
-    Provider.of<LeaveProvider>(context, listen: false).allLeaves(
+    Provider.of<LeaveProvider>(context, listen: false).allAttendLeaves(
       today, today, true,               // 👈 idhum today
       localData.storage.read("role"),
       localData.storage.read("id"),
