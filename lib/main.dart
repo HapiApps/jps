@@ -97,6 +97,44 @@ Future<T?> safeCall<T>(
 }
 
 /// ==========================================================
+/// GUARANTEED ATTENDANCE LOAD
+/// ==========================================================
+///
+/// getMainAttendance() must NEVER be silently skipped. This wraps it
+/// with retries so a single timeout/network blip doesn't drop it.
+/// Called once, awaited, from SplashScreen.initState().
+Future<void> ensureAttendanceLoaded(
+    AttendanceProvider attendanceProvider, {
+      int maxRetries = 3,
+    }) async {
+  for (int attempt = 1; attempt <= maxRetries; attempt++) {
+    bool succeeded = false;
+
+    await safeCall<void>(
+      'attendanceProvider.getMainAttendance (attempt $attempt)',
+          () async {
+        await attendanceProvider.getMainAttendance();
+        succeeded = true;
+      },
+      timeout: const Duration(seconds: 10),
+    );
+
+    if (succeeded) {
+      log("✅ [Attendance] Loaded successfully on attempt $attempt");
+      return;
+    }
+
+    log("⚠️ [Attendance] Attempt $attempt/$maxRetries failed, retrying...");
+
+    if (attempt < maxRetries) {
+      await Future.delayed(const Duration(seconds: 2));
+    }
+  }
+
+  log("❌ [Attendance] Failed to load after $maxRetries attempts");
+}
+
+/// ==========================================================
 /// LOCAL NOTIFICATION SETUP
 /// ==========================================================
 
@@ -1378,7 +1416,10 @@ class _SplashScreenState
           context,
           listen: false,
         );
-        attendanceProvider.getMainAttendance();
+        /// getMainAttendance() must run and complete every launch —
+        /// no skip, no fire-and-forget. Awaited with retries.
+        await ensureAttendanceLoaded(attendanceProvider);
+
         await Provider.of<LocationProvider>(context, listen: false).manageLocation(context,false);
         homeProvider.loadFullDashboard(context);
         unawaited(
@@ -1422,16 +1463,6 @@ class _SplashScreenState
             ),
             timeout:
             const Duration(seconds: 12),
-          ),
-        );
-
-        unawaited(
-          safeCall(
-            'attendanceProvider.getMainAttendance',
-                () => attendanceProvider
-                .getMainAttendance(),
-            timeout:
-            const Duration(seconds: 10),
           ),
         );
 

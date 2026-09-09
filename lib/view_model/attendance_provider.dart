@@ -1691,7 +1691,8 @@ void showDatePickerDialog(BuildContext context,List<UserModel>? list) {
       String status,
       String? lat,
       String? lng,
-      ) async {
+      )
+  async {
 
     // ✅ Location validation first (API call stop)
     if (lat == null ||
@@ -1780,7 +1781,8 @@ void showDatePickerDialog(BuildContext context,List<UserModel>? list) {
 
       Provider.of<HomeProvider>(context, listen: false)
           .loadFullDashboard(context);
-
+      Provider.of<AttendanceProvider>(context, listen: false)
+          .getMainAttendance();
       Provider.of<AttendanceProvider>(context, listen: false).initDate(
         id: localData.storage.read("id"),
         role: localData.storage.read("role"),
@@ -1947,8 +1949,8 @@ void showDatePickerDialog(BuildContext context,List<UserModel>? list) {
      // Provider.of<HomeProvider>(context, listen: false).getMainReport(false);
       Provider.of<HomeProvider>(context, listen: false).loadFullDashboard(context);
       getAttendanceReport(localData.storage.read("id"));
+      getMainAttendance();
 
-    //  getMainAttendance();
       permissionReason.clear();
       if (localData.storage.read("role") == "1") {
         getLateCount(

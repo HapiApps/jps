@@ -86,7 +86,7 @@ class _HomePageState extends State<HomePage> {
         date1: today,
         date2: today,
       );
-     attendanceProvider.getMainAttendance();
+    // attendanceProvider.getMainAttendance();
       if (!mounted) return;
       final homeProvider = Provider.of<HomeProvider>(context, listen: false);
 

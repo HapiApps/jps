@@ -49,7 +49,7 @@ class _CheckAttendanceState extends State<CheckAttendance> {
     super.initState();
     final locProvider = Provider.of<LocationProvider>(context, listen: false);
     final attProvider = Provider.of<AttendanceProvider>(context, listen: false);
-    // attProvider.getMainAttendance();
+   // attProvider.getMainAttendance();
     if (attProvider.attCheck == false) {  // only fetch if not already loaded
       Future.delayed(Duration.zero, () {
         if (!mounted) return;
