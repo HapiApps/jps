@@ -5,6 +5,7 @@ import 'dart:developer';
 import 'package:animated_splash_screen/animated_splash_screen.dart';
 import 'package:camera/camera.dart';
 import 'package:connectivity_wrapper/connectivity_wrapper.dart';
+import 'package:country_code_picker/country_code_picker.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
@@ -51,30 +52,22 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'component/custom_text.dart';
 import 'firebase_options.dart';
 
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
-final GlobalKey<NavigatorState> navigatorKey =
-GlobalKey<NavigatorState>();
-
-final FlutterLocalNotificationsPlugin
-flutterLocalNotificationsPlugin =
+final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
 FlutterLocalNotificationsPlugin();
 
-const AndroidInitializationSettings
-initializationSettingsAndroid =
-AndroidInitializationSettings(
-  '@mipmap/ic_launcher',
-);
+const AndroidInitializationSettings initializationSettingsAndroid =
+AndroidInitializationSettings('@mipmap/ic_launcher');
 
-const DarwinInitializationSettings
-initializationSettingsIOS =
+const DarwinInitializationSettings initializationSettingsIOS =
 DarwinInitializationSettings(
   requestAlertPermission: false,
   requestBadgePermission: false,
   requestSoundPermission: false,
 );
 
-const InitializationSettings initializationSettings =
-InitializationSettings(
+const InitializationSettings initializationSettings = InitializationSettings(
   android: initializationSettingsAndroid,
   iOS: initializationSettingsIOS,
 );
@@ -99,10 +92,6 @@ Future<T?> safeCall<T>(
 /// ==========================================================
 /// GUARANTEED ATTENDANCE LOAD
 /// ==========================================================
-///
-/// getMainAttendance() must NEVER be silently skipped. This wraps it
-/// with retries so a single timeout/network blip doesn't drop it.
-/// Called once, awaited, from SplashScreen.initState().
 Future<void> ensureAttendanceLoaded(
     AttendanceProvider attendanceProvider, {
       int maxRetries = 3,
@@ -144,8 +133,7 @@ Future<void> setupLocalNotifications() async {
         () async {
       await flutterLocalNotificationsPlugin.initialize(
         initializationSettings,
-        onDidReceiveNotificationResponse:
-            (NotificationResponse response) {
+        onDidReceiveNotificationResponse: (NotificationResponse response) {
           final payload = response.payload;
 
           if (payload == null || payload.isEmpty) {
@@ -156,45 +144,38 @@ Future<void> setupLocalNotifications() async {
             final decoded = jsonDecode(payload);
 
             if (decoded is Map) {
-              final data =
-              Map<String, dynamic>.from(decoded);
-
+              final data = Map<String, dynamic>.from(decoded);
               handleNotificationNavigation(data);
             }
           } catch (e) {
-            log(
-              "⚠️ Notification payload decode failed: $e",
-            );
+            log("⚠️ Notification payload decode failed: $e");
           }
         },
       );
 
-      /// Android channel
-      const AndroidNotificationChannel channel =
-      AndroidNotificationChannel(
+      const AndroidNotificationChannel channel = AndroidNotificationChannel(
         'JPS',
         'JPS',
-        description:
-        'JPS application notifications',
+        description: 'JPS application notifications',
         importance: Importance.max,
       );
 
-      await flutterLocalNotificationsPlugin
-          .resolvePlatformSpecificImplementation<
-          AndroidFlutterLocalNotificationsPlugin>()
-          ?.createNotificationChannel(channel);
+      final AndroidFlutterLocalNotificationsPlugin? androidPlugin =
+      flutterLocalNotificationsPlugin
+          .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
 
-      log(
-        "🔔 Local notifications initialized",
-      );
+      await androidPlugin?.createNotificationChannel(channel);
+
+
+
+      log("🔔 Local notifications initialized");
     },
   );
 }
 
 Future<String?> setupFirebaseMessaging() async {
   try {
-    final FirebaseMessaging messaging =
-        FirebaseMessaging.instance;
+    final FirebaseMessaging messaging = FirebaseMessaging.instance;
 
     await safeCall(
       'FCM.setAutoInitEnabled',
@@ -218,41 +199,20 @@ Future<String?> setupFirebaseMessaging() async {
     );
 
     if (settings == null) {
-      log(
-        "❌ Notification permission request failed",
-      );
+      log("❌ Notification permission request failed");
       return null;
     }
 
-    log(
-      "🔔 Notification authorization: "
-          "${settings.authorizationStatus}",
-    );
+    log("🔔 Notification authorization: ${settings.authorizationStatus}");
 
-    final AuthorizationStatus status =
-        settings.authorizationStatus;
+    final AuthorizationStatus status = settings.authorizationStatus;
     if (status == AuthorizationStatus.denied) {
-      log(
-        "❌ Notification permission denied",
-      );
-      log("==========================================");
-      log("🔔 AUTHORIZATION STATUS");
-      log("authorizationStatus: ${settings.authorizationStatus}");
-      log("alert: ${settings.alert}");
-      log("badge: ${settings.badge}");
-      log("sound: ${settings.sound}");
-      log("announcement: ${settings.announcement}");
-      log("carPlay: ${settings.carPlay}");
-      log("==========================================");
-
+      log("❌ Notification permission denied");
       return null;
     }
 
     if (status == AuthorizationStatus.notDetermined) {
-      log(
-        "⚠️ Notification permission still not determined",
-      );
-
+      log("⚠️ Notification permission still not determined");
       return null;
     }
 
@@ -260,152 +220,81 @@ Future<String?> setupFirebaseMessaging() async {
     /// iOS
     /// ------------------------------------------------------
 
-    if (!kIsWeb &&
-        defaultTargetPlatform ==
-            TargetPlatform.iOS) {
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.iOS) {
       log("🍎 iOS detected");
 
       String? apnsToken;
 
-      for (int attempt = 1;
-      attempt <= 30;
-      attempt++) {
+      for (int attempt = 1; attempt <= 30; attempt++) {
         try {
-          apnsToken =
-          await messaging.getAPNSToken();
+          apnsToken = await messaging.getAPNSToken();
 
-          if (apnsToken != null &&
-              apnsToken.isNotEmpty) {
-            log(
-              "APNS TOKEN: $apnsToken",
-            );
-
+          if (apnsToken != null && apnsToken.isNotEmpty) {
+            log("APNS TOKEN: $apnsToken");
             break;
           }
         } catch (e) {
-          log(
-            "⚠️ APNS token attempt "
-                "$attempt failed: $e",
-          );
+          log("⚠️ APNS token attempt $attempt failed: $e");
         }
 
-        log(
-          "🍎 APNS token not ready. "
-              "Attempt $attempt/30",
-        );
+        log("🍎 APNS token not ready. Attempt $attempt/30");
 
-        await Future.delayed(
-          const Duration(seconds: 1),
-        );
+        await Future.delayed(const Duration(seconds: 1));
       }
 
-      /// ----------------------------------------------
-      /// APNs TOKEN STILL NULL
-      /// ----------------------------------------------
-
-      if (apnsToken == null ||
-          apnsToken.isEmpty) {
-        log(
-          "==========================================",
-        );
-        log(
-          "❌ APNS TOKEN NOT AVAILABLE",
-        );
-        log(
-          "❌ FCM getToken() WILL NOT BE CALLED",
-        );
-        log(
-          "==========================================",
-        );
-
+      if (apnsToken == null || apnsToken.isEmpty) {
+        log("❌ APNS TOKEN NOT AVAILABLE — FCM getToken() WILL NOT BE CALLED");
         return null;
       }
     }
 
-    final String? fcmToken =
-    await safeCall<String?>(
+    final String? fcmToken = await safeCall<String?>(
       'FirebaseMessaging.getToken',
           () => messaging.getToken(),
       timeout: const Duration(seconds: 20),
     );
 
-    if (fcmToken == null ||
-        fcmToken.isEmpty) {
-      log(
-        "❌ FCM TOKEN NOT AVAILABLE",
-      );
-
+    if (fcmToken == null || fcmToken.isEmpty) {
+      log("❌ FCM TOKEN NOT AVAILABLE");
       return null;
     }
 
     FirebaseMessaging.instance.onTokenRefresh.listen(
           (String newToken) {
-        log(
-          "==========================================",
-        );
-        log(
-          "🔄 FCM TOKEN REFRESHED",
-        );
-        log(
-          "🔥 $newToken",
-        );
-        log(
-          "==========================================",
-        );
+        log("🔄 FCM TOKEN REFRESHED: $newToken");
       },
       onError: (error) {
-        log(
-          "⚠️ FCM token refresh error: $error",
-        );
+        log("⚠️ FCM token refresh error: $error");
       },
     );
 
     return fcmToken;
   } catch (e, st) {
-    log(
-      "❌ setupFirebaseMessaging failed: $e",
-    );
-
-    log(
-      "❌ STACK: $st",
-    );
-
+    log("❌ setupFirebaseMessaging failed: $e");
+    log("❌ STACK: $st");
     return null;
   }
 }
 
 @pragma('vm:entry-point')
-Future<void> firebaseMessagingBackgroundHandler(
-    RemoteMessage message,
-    ) async {
+Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   try {
-    await Firebase.initializeApp(
-      options:
-      DefaultFirebaseOptions.currentPlatform,
-    );
+    await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   } catch (e) {
-    log(
-      "⚠️ Background Firebase init: $e",
-    );
+    log("⚠️ Background Firebase init: $e");
   }
 
   try {
-    final Map<String, dynamic> data =
-        message.data;
+    final Map<String, dynamic> data = message.data;
 
-    final String title =
-        data['title']?.toString() ?? '';
-
-    final String body =
-        data['body']?.toString() ?? '';
+    final String title = data['title']?.toString() ?? '';
+    final String body = data['body']?.toString() ?? '';
 
     if (title.isEmpty && body.isEmpty) {
       return;
     }
 
-    const AndroidNotificationDetails
-    androidDetails =
-    AndroidNotificationDetails(
+    const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
       'JPS',
       'JPS',
       importance: Importance.max,
@@ -415,28 +304,21 @@ Future<void> firebaseMessagingBackgroundHandler(
       icon: '@mipmap/ic_launcher',
     );
 
-    const DarwinNotificationDetails
-    iosDetails =
-    DarwinNotificationDetails(
+    const DarwinNotificationDetails iosDetails = DarwinNotificationDetails(
       presentAlert: true,
       presentBadge: true,
       presentSound: true,
     );
 
-    const NotificationDetails
-    platformDetails =
-    NotificationDetails(
+    const NotificationDetails platformDetails = NotificationDetails(
       android: androidDetails,
       iOS: iosDetails,
     );
 
-    final int notificationId =
-        (data['purpose_id'] ??
-            data['task_id'] ??
-            DateTime.now()
-                .millisecondsSinceEpoch
-                .toString())
-            .hashCode;
+    final int notificationId = (data['purpose_id'] ??
+        data['task_id'] ??
+        DateTime.now().millisecondsSinceEpoch.toString())
+        .hashCode;
 
     await flutterLocalNotificationsPlugin.show(
       notificationId,
@@ -446,580 +328,306 @@ Future<void> firebaseMessagingBackgroundHandler(
       payload: jsonEncode(data),
     );
 
-    log(
-      "🔔 Background notification displayed",
-    );
+    log("🔔 Background notification displayed");
   } catch (e, st) {
-    log(
-      "⚠️ Background notification failed: $e",
-    );
-
-    log(
-      "⚠️ STACK: $st",
-    );
+    log("⚠️ Background notification failed: $e");
+    log("⚠️ STACK: $st");
   }
 }
 
-void handleNotificationNavigation(
-    Map<String, dynamic> data,
-    ) {
+void handleNotificationNavigation(Map<String, dynamic> data) {
   try {
-    final String page =
-    (data['title'] ?? '')
-        .toString()
-        .toLowerCase();
+    final String page = (data['title'] ?? '').toString().toLowerCase();
+    final String role = localData.storage.read("role") ?? "";
+    log("PAGE VALUE: $page");
 
-    final String role =
-        localData.storage.read("role") ?? "";
-    log(
-      "PAGE VALUE: $page",
-    );
-
-    final NavigatorState? nav =
-        navigatorKey.currentState;
+    final NavigatorState? nav = navigatorKey.currentState;
 
     if (nav == null) {
-      log(
-        "⚠️ NAVIGATOR NULL",
-      );
-
+      log("⚠️ NAVIGATOR NULL");
       return;
     }
 
-    /// ------------------------------------------------------
-    /// EXPENSE
-    /// ------------------------------------------------------
-
-    if (page.contains(
-        "expenses added to task")) {
-      nav.push(
-        MaterialPageRoute(
-          builder: (_) => DashBoard(
-            child: ViewExpense(
-              tab: false,
-              date1: today(),
-              date2: today(),
-              type: "Today",
-            ),
-          ),
+    if (page.contains("expenses added to task")) {
+      nav.push(MaterialPageRoute(
+        builder: (_) => DashBoard(
+          child: ViewExpense(tab: false, date1: today(), date2: today(), type: "Today"),
         ),
-      );
-
+      ));
       return;
     }
-
-    /// ------------------------------------------------------
-    /// TASK
-    /// ------------------------------------------------------
 
     if (page.contains("task")) {
-      nav.push(
-        MaterialPageRoute(
-          builder: (_) => DashBoard(
-            child: ViewTask(
-              date1: today(),
-              date2: today(),
-              type: "Today",
-            ),
-          ),
+      nav.push(MaterialPageRoute(
+        builder: (_) => DashBoard(
+          child: ViewTask(date1: today(), date2: today(), type: "Today"),
         ),
-      );
-
+      ));
       return;
     }
-
-    /// ------------------------------------------------------
-    /// LEAVE
-    /// ------------------------------------------------------
 
     if (page.contains("leave")) {
-      nav.push(
-        MaterialPageRoute(
-          builder: (_) => DashBoard(
-            child: role == "1"
-                ? LeaveManagementDashboard()
-                : ViewMyLeaves(
-              date1: today(),
-              date2: today(),
-              isDirect: true,
-            ),
-          ),
+      nav.push(MaterialPageRoute(
+        builder: (_) => DashBoard(
+          child: role == "1"
+              ? LeaveManagementDashboard()
+              : ViewMyLeaves(date1: today(), date2: today(), isDirect: true),
         ),
-      );
-
+      ));
       return;
     }
 
-    /// ------------------------------------------------------
-    /// VISIT REPORT
-    /// ------------------------------------------------------
-
-    if (page.contains(
-      "visit report added",
-    ) ||
-        page.contains(
-          "comments added to visit report",
-        )) {
-      nav.push(
-        MaterialPageRoute(
-          builder: (_) => DashBoard(
-            child: VisitReport(
-              date1: today(),
-              date2: today(),
-              month: DateFormat(
-                "MMM yyyy",
-              ).format(
-                DateTime.now(),
-              ),
-              type: "Today",
-            ),
+    if (page.contains("visit report added") ||
+        page.contains("comments added to visit report")) {
+      nav.push(MaterialPageRoute(
+        builder: (_) => DashBoard(
+          child: VisitReport(
+            date1: today(),
+            date2: today(),
+            month: DateFormat("MMM yyyy").format(DateTime.now()),
+            type: "Today",
           ),
         ),
-      );
-
+      ));
       return;
     }
 
-    log(
-      "⚠️ NO MATCH FOUND FOR PAGE: $page",
-    );
+    log("⚠️ NO MATCH FOUND FOR PAGE: $page");
   } catch (e, st) {
-    log(
-      "⚠️ handleNotificationNavigation failed: $e",
-    );
-
-    log(
-      "⚠️ STACK: $st",
-    );
+    log("⚠️ handleNotificationNavigation failed: $e");
+    log("⚠️ STACK: $st");
   }
 }
-
-/// ==========================================================
-/// DATE
-/// ==========================================================
 
 String today() {
   final DateTime now = DateTime.now();
-
   return "${now.day.toString().padLeft(2, '0')}-"
       "${now.month.toString().padLeft(2, '0')}-"
       "${now.year}";
 }
+
+/// ==========================================================
+/// FOREGROUND TASK
+/// ==========================================================
+///
+/// 🔴 IMPORTANT: `FlutterForegroundTask.setTaskHandler(MyTaskHandler())`
+/// must NEVER be called from the main isolate / main() startup flow.
+/// It belongs ONLY inside a top-level callback function that the plugin
+/// invokes when it spawns the background isolate — i.e. the function you
+/// pass to `FlutterForegroundTask.startService(callback: ...)`.
+///
+/// Calling it here (main isolate, at app startup, before any service is
+/// even started) registers nothing useful and leaves the
+/// `flutter_foreground_task/background` channel with no handler when the
+/// native side later calls "start" — that's exactly what produced your
+/// MissingPluginException.
+///
+/// The correct top-level callback (`foregroundTaskCallback`) now lives in
+/// `background_task.dart` next to `MyTaskHandler` — see the note below
+/// this function for what needs to be added there, and where
+/// `startService()` is called.
 
 Future<void> setupForegroundTask() async {
   try {
     FlutterForegroundTask.initCommunicationPort();
 
     FlutterForegroundTask.init(
-      androidNotificationOptions:
-      AndroidNotificationOptions(
+      androidNotificationOptions: AndroidNotificationOptions(
         channelId: 'JPS',
         channelName: 'JPS',
-        channelDescription:
-        'Tracking is on',
-        channelImportance:
-        NotificationChannelImportance.DEFAULT,
-        priority:
-        NotificationPriority.DEFAULT,
+        channelDescription: 'Tracking is on',
+        channelImportance: NotificationChannelImportance.DEFAULT,
+        priority: NotificationPriority.DEFAULT,
       ),
-      iosNotificationOptions:
-      IOSNotificationOptions(),
-      foregroundTaskOptions:
-      ForegroundTaskOptions(
+      iosNotificationOptions: IOSNotificationOptions(),
+      foregroundTaskOptions: ForegroundTaskOptions(
         autoRunOnBoot: false,
         allowWakeLock: true,
         allowWifiLock: true,
-        eventAction:
-        ForegroundTaskEventAction.repeat(
-          5000,
-        ),
+        eventAction: ForegroundTaskEventAction.repeat(5000),
       ),
     );
 
-    FlutterForegroundTask.setTaskHandler(
-      MyTaskHandler(),
-    );
+    // ❌ REMOVED: FlutterForegroundTask.setTaskHandler(MyTaskHandler());
+    // This call does NOT belong here. See note above.
 
-    log(
-      "✅ Foreground task initialized",
-    );
+    log("✅ Foreground task initialized (options set — handler registers on service start)");
   } catch (e, st) {
-    log(
-      "⚠️ Foreground task initialization failed: $e",
-    );
-
-    log(
-      "⚠️ STACK: $st",
-    );
+    log("⚠️ Foreground task initialization failed: $e");
+    log("⚠️ STACK: $st");
   }
 }
 
 void setupForegroundFirebaseMessageListener() {
-  FirebaseMessaging.onMessage.listen(
-        (RemoteMessage message) async {
-      try {
-        log(
-          "${message.data}",
+  FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
+    try {
+      log("${message.data}");
+
+      final BuildContext? context = navigatorKey.currentContext;
+
+      if (context != null) {
+        await safeCall(
+          'HomeProvider.loadDashboard',
+              () => Provider.of<HomeProvider>(context, listen: false).loadDashboard(context),
+          timeout: const Duration(seconds: 10),
         );
-
-        final BuildContext? context =
-            navigatorKey.currentContext;
-
-        if (context != null) {
-          await safeCall(
-            'HomeProvider.loadDashboard',
-                () => Provider.of<HomeProvider>(
-              context,
-              listen: false,
-            ).loadDashboard(context),
-            timeout:
-            const Duration(seconds: 10),
-          );
-
-          await safeCall(
-            'EmployeeProvider.getNotifications',
-                () => Provider.of<EmployeeProvider>(
-              context,
-              listen: false,
-            ).getNotifications(),
-            timeout:
-            const Duration(seconds: 10),
-          );
-        }
-
-        /// --------------------------------------------------
-        /// DATA
-        /// --------------------------------------------------
-
-        final String title =
-            message.notification?.title ??
-                message.data['title'] ??
-                'Notification';
-
-        final String body =
-            message.notification?.body ??
-                message.data['body'] ??
-                '';
-
-        final String name =
-            message.data['name']?.toString() ?? '';
-
-        String messageText = body;
-
-        String taskDate =
-        DateFormat(
-          "dd-MM-yyyy",
-        ).format(
-          DateTime.now(),
-        );
-
-        /// --------------------------------------------------
-        /// BODY SPLIT
-        /// --------------------------------------------------
-
-        if (body.contains("||")) {
-          final List<String> parts =
-          body.split("||");
-
-          messageText =
-              parts.first.trim();
-
-          if (parts.length > 1) {
-            taskDate =
-                parts[1].trim();
-          }
-        }
-
-        /// --------------------------------------------------
-        /// TASK ID
-        /// --------------------------------------------------
-
-        final dynamic taskId =
-            message.data['task_id'] ??
-                message.data['purpose_id'] ??
-                '';
-
-        /// --------------------------------------------------
-        /// GET COMMENTS
-        /// --------------------------------------------------
-
-        if (context != null &&
-            taskId.toString().isNotEmpty) {
-          await safeCall(
-            'CustomerProvider.getTaskMainComments',
-                () async {
-              final CustomerProvider
-              customerProvider =
-              Provider.of<CustomerProvider>(
-                context,
-                listen: false,
-              );
-
-              final TaskProvider
-              taskProvider =
-              Provider.of<TaskProvider>(
-                context,
-                listen: false,
-              );
-
-              await Future.delayed(
-                const Duration(
-                  milliseconds: 500,
-                ),
-              );
-
-              await customerProvider
-                  .getTaskMainComments(
-                taskId,
-              );
-
-              WidgetsBinding.instance
-                  .addPostFrameCallback(
-                    (_) {
-                  try {
-                    taskProvider
-                        .scrollToBottom();
-                  } catch (_) {}
-                },
-              );
-            },
-            timeout:
-            const Duration(seconds: 10),
-          );
-        }
-
-        /// --------------------------------------------------
-        /// SHOW LOCAL NOTIFICATION
-        /// --------------------------------------------------
 
         await safeCall(
-          'show local notification',
-              () async {
-            const AndroidNotificationDetails
-            androidDetails =
-            AndroidNotificationDetails(
-              'JPS',
-              'JPS',
-              importance:
-              Importance.max,
-              priority:
-              Priority.high,
-              playSound: true,
-              enableVibration: true,
-              icon:
-              '@mipmap/ic_launcher',
-            );
-
-            const DarwinNotificationDetails
-            iosDetails =
-            DarwinNotificationDetails(
-              presentAlert: true,
-              presentBadge: true,
-              presentSound: true,
-            );
-
-            const NotificationDetails
-            platformDetails =
-            NotificationDetails(
-              android:
-              androidDetails,
-              iOS: iosDetails,
-            );
-
-            /// ------------------------------------------
-            /// NEW TASK
-            /// ------------------------------------------
-
-            if (title.contains(
-              "A new task has been assigned",
-            )) {
-              await flutterLocalNotificationsPlugin
-                  .show(
-                message.hashCode,
-                messageText,
-                "Created by $name .Task",
-                platformDetails,
-                payload:
-                jsonEncode(
-                  message.data,
-                ),
-              );
-            }
-
-            /// ------------------------------------------
-            /// NORMAL
-            /// ------------------------------------------
-
-            else {
-              await flutterLocalNotificationsPlugin
-                  .show(
-                message.hashCode,
-                messageText,
-                title,
-                platformDetails,
-                payload:
-                jsonEncode(
-                  message.data,
-                ),
-              );
-            }
-          },
-        );
-      } catch (e, st) {
-        log(
-          "⚠️ onMessage failed: $e",
-        );
-
-        log(
-          "⚠️ STACK: $st",
+          'EmployeeProvider.getNotifications',
+              () => Provider.of<EmployeeProvider>(context, listen: false).getNotifications(),
+          timeout: const Duration(seconds: 10),
         );
       }
-    },
-  );
+
+      final String title =
+          message.notification?.title ?? message.data['title'] ?? 'Notification';
+      final String body = message.notification?.body ?? message.data['body'] ?? '';
+      final String name = message.data['name']?.toString() ?? '';
+
+      String messageText = body;
+      String taskDate = DateFormat("dd-MM-yyyy").format(DateTime.now());
+
+      if (body.contains("||")) {
+        final List<String> parts = body.split("||");
+        messageText = parts.first.trim();
+        if (parts.length > 1) {
+          taskDate = parts[1].trim();
+        }
+      }
+
+      final dynamic taskId = message.data['task_id'] ?? message.data['purpose_id'] ?? '';
+
+      if (context != null && taskId.toString().isNotEmpty) {
+        await safeCall(
+          'CustomerProvider.getTaskMainComments',
+              () async {
+            final CustomerProvider customerProvider =
+            Provider.of<CustomerProvider>(context, listen: false);
+            final TaskProvider taskProvider =
+            Provider.of<TaskProvider>(context, listen: false);
+
+            await Future.delayed(const Duration(milliseconds: 500));
+            await customerProvider.getTaskMainComments(taskId);
+
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              try {
+                taskProvider.scrollToBottom();
+              } catch (_) {}
+            });
+          },
+          timeout: const Duration(seconds: 10),
+        );
+      }
+
+      await safeCall('show local notification', () async {
+        const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
+          'JPS',
+          'JPS',
+          importance: Importance.max,
+          priority: Priority.high,
+          playSound: true,
+          enableVibration: true,
+          icon: '@mipmap/ic_launcher',
+        );
+
+        const DarwinNotificationDetails iosDetails = DarwinNotificationDetails(
+          presentAlert: true,
+          presentBadge: true,
+          presentSound: true,
+        );
+
+        const NotificationDetails platformDetails = NotificationDetails(
+          android: androidDetails,
+          iOS: iosDetails,
+        );
+
+        if (title.contains("A new task has been assigned")) {
+          await flutterLocalNotificationsPlugin.show(
+            message.hashCode,
+            messageText,
+            "Created by $name .Task",
+            platformDetails,
+            payload: jsonEncode(message.data),
+          );
+        } else {
+          await flutterLocalNotificationsPlugin.show(
+            message.hashCode,
+            messageText,
+            title,
+            platformDetails,
+            payload: jsonEncode(message.data),
+          );
+        }
+      });
+    } catch (e, st) {
+      log("⚠️ onMessage failed: $e");
+      log("⚠️ STACK: $st");
+    }
+  });
 }
 
-/// ==========================================================
-/// NOTIFICATION OPENED
-/// ==========================================================
-
 void setupNotificationOpenedListener() {
-  FirebaseMessaging.onMessageOpenedApp.listen(
-        (RemoteMessage message) {
-      try {
-        final String taskDate =
-            message.data['task_date'] ??
-                DateFormat(
-                  'dd-MM-yyyy',
-                ).format(
-                  DateTime.now(),
-                );
+  FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
+    try {
+      final String taskDate = message.data['task_date'] ??
+          DateFormat('dd-MM-yyyy').format(DateTime.now());
 
-        final String title =
-        (message.notification?.title ??
-            message.data['title'] ??
-            '')
-            .toString()
-            .toLowerCase();
+      final String title =
+      (message.notification?.title ?? message.data['title'] ?? '').toString().toLowerCase();
+      final String body =
+      (message.notification?.body ?? message.data['body'] ?? '').toString().toLowerCase();
 
-        final String body =
-        (message.notification?.body ??
-            message.data['body'] ??
-            '')
-            .toString()
-            .toLowerCase();
+      final NavigatorState? nav = navigatorKey.currentState;
 
-        final NavigatorState? nav =
-            navigatorKey.currentState;
-
-        if (nav == null) {
-          log(
-            "⚠️ Navigator not ready",
-          );
-
-          return;
-        }
-
-        /// --------------------------------------------------
-        /// TASK
-        /// --------------------------------------------------
-
-        if (title.contains("task")) {
-          nav.push(
-            MaterialPageRoute(
-              builder: (_) => ViewTask(
-                date1: taskDate,
-                date2: taskDate,
-                type: taskDate.isEmpty
-                    ? "today"
-                    : "",
-              ),
-            ),
-          );
-        }
-
-        /// --------------------------------------------------
-        /// DAILY WORK PLAN
-        /// --------------------------------------------------
-
-        if (body.contains(
-          "daily work plan",
-        )) {
-          nav.push(
-            MaterialPageRoute(
-              builder: (_) =>
-                  DailyReportStatusPage(),
-            ),
-          );
-        }
-
-        /// --------------------------------------------------
-        /// LEAVE
-        /// --------------------------------------------------
-
-        if (body.contains(
-          "requested",
-        )) {
-          nav.push(
-            MaterialPageRoute(
-              builder: (_) =>
-                  ViewMyLeaves(),
-            ),
-          );
-        }
-
-        /// --------------------------------------------------
-        /// VISIT REPORT
-        /// --------------------------------------------------
-
-        if (title.contains(
-          "visit report",
-        )) {
-          nav.push(
-            MaterialPageRoute(
-              builder: (_) => VisitReport(
-                date1: today(),
-                date2: today(),
-                month: "",
-                type: "Today",
-              ),
-            ),
-          );
-        }
-
-        /// --------------------------------------------------
-        /// FEEDBACK
-        /// --------------------------------------------------
-
-        if (title.contains(
-          "feedback",
-        )) {
-          nav.push(
-            MaterialPageRoute(
-              builder: (_) => TaskChat(
-                isVisit: false,
-                taskId: '',
-                assignedId: "",
-                assignedName: "",
-                name: '',
-                date1: '',
-                date2: '',
-                type: '',
-                index: -1,
-              ),
-            ),
-          );
-        }
-      } catch (e, st) {
-        log(
-          "⚠️ onMessageOpenedApp failed: $e",
-        );
-
-        log(
-          "⚠️ STACK: $st",
-        );
+      if (nav == null) {
+        log("⚠️ Navigator not ready");
+        return;
       }
-    },
-  );
+
+      if (title.contains("task")) {
+        nav.push(MaterialPageRoute(
+          builder: (_) => ViewTask(
+            date1: taskDate,
+            date2: taskDate,
+            type: taskDate.isEmpty ? "today" : "",
+          ),
+        ));
+      }
+
+      if (body.contains("daily work plan")) {
+        nav.push(MaterialPageRoute(builder: (_) => DailyReportStatusPage()));
+      }
+
+      if (body.contains("requested")) {
+        nav.push(MaterialPageRoute(builder: (_) => ViewMyLeaves()));
+      }
+
+      if (title.contains("visit report")) {
+        nav.push(MaterialPageRoute(
+          builder: (_) => VisitReport(date1: today(), date2: today(), month: "", type: "Today"),
+        ));
+      }
+
+      if (title.contains("feedback")) {
+        nav.push(MaterialPageRoute(
+          builder: (_) => TaskChat(
+            isVisit: false,
+            taskId: '',
+            assignedId: "",
+            assignedName: "",
+            name: '',
+            date1: '',
+            date2: '',
+            type: '',
+            index: -1,
+          ),
+        ));
+      }
+    } catch (e, st) {
+      log("⚠️ onMessageOpenedApp failed: $e");
+      log("⚠️ STACK: $st");
+    }
+  });
 }
 
 /// ==========================================================
@@ -1029,102 +637,57 @@ void setupNotificationOpenedListener() {
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  /// --------------------------------------------------------
-  /// GET STORAGE
-  /// --------------------------------------------------------
-
-  await safeCall(
-    'GetStorage.init',
-        () => GetStorage.init(),
-  );
-
-  /// --------------------------------------------------------
-  /// HOME SCREEN
-  /// --------------------------------------------------------
+  await safeCall('GetStorage.init', () => GetStorage.init());
 
   bool homeScreen = false;
 
-  await safeCall(
-    'SharedPreferences',
-        () async {
-      final SharedPreferences prefs =
-      await SharedPreferences
-          .getInstance();
+  await safeCall('SharedPreferences', () async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    homeScreen = prefs.getBool("homescreen") ?? false;
+  });
 
-      homeScreen =
-          prefs.getBool(
-            "homescreen",
-          ) ??
-              false;
-    },
-  );
-
-  /// --------------------------------------------------------
-  /// FIREBASE
-  /// --------------------------------------------------------
-
-  // Firebase core init — needs network the first time on some devices.
-  //
-  // IMPORTANT FIX (from 1st file): plain try/catch never times out — if
-  // the network hangs, Firebase.initializeApp() can hang forever and the
-  // splash screen freezes. safeCall() wraps it with an explicit timeout
-  // (12s, then 15s on retry) and catches TimeoutException specifically,
-  // so a slow/dead network fails fast instead of hanging.
   await safeCall(
     'Firebase.initializeApp',
-        () => Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
-    ),
+        () => Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform),
     timeout: const Duration(seconds: 12),
   );
 
-  /// --------------------------------------------------------
-  /// RETRY FIREBASE
-  /// --------------------------------------------------------
-
   if (Firebase.apps.isEmpty) {
-    // one retry — covers slow-network first-launch case
     await safeCall(
       'Firebase.initializeApp.retry',
-          () => Firebase.initializeApp(
-        options: DefaultFirebaseOptions.currentPlatform,
-      ),
+          () => Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform),
       timeout: const Duration(seconds: 15),
     );
   }
 
-  /// --------------------------------------------------------
-  /// FIREBASE FAILED
-  /// --------------------------------------------------------
-
   if (Firebase.apps.isEmpty) {
     runApp(
       MaterialApp(
+        navigatorKey: navigatorKey,
+        locale: const Locale('en', 'US'),   // you already have this
+        localizationsDelegates: [
+          // ✅ ADD THIS — forces English country names, ignores device locale
+          CountryLocalizations.getDelegate(enableLocalization: false),
+
+        ],
         debugShowCheckedModeBanner: false,
         home: Scaffold(
           body: Center(
             child: Padding(
-              padding:
-              const EdgeInsets.all(24),
+              padding: const EdgeInsets.all(24),
               child: Column(
-                mainAxisSize:
-                MainAxisSize.min,
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   const Text(
-                    "Couldn't connect to Firebase.\n"
-                        "Please check your internet connection.",
-                    textAlign:
-                    TextAlign.center,
+                    "Couldn't connect to Firebase.\nPlease check your internet connection.",
+                    textAlign: TextAlign.center,
                   ),
-                  const SizedBox(
-                    height: 16,
-                  ),
+                  const SizedBox(height: 16),
                   ElevatedButton(
                     onPressed: () {
                       main();
                     },
-                    child:
-                    const Text("Retry"),
+                    child: const Text("Retry"),
                   ),
                 ],
               ),
@@ -1137,128 +700,66 @@ Future<void> main() async {
     return;
   }
 
-  /// --------------------------------------------------------
-  /// BACKGROUND FCM HANDLER
-  /// --------------------------------------------------------
-
-  FirebaseMessaging.onBackgroundMessage(
-    firebaseMessagingBackgroundHandler,
-  );
+  FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
 
   if (!kIsWeb) {
     await setupLocalNotifications();
 
-    final String? fcmToken =
-    await setupFirebaseMessaging();
+    final String? fcmToken = await setupFirebaseMessaging();
 
     if (fcmToken != null) {
-      log(
-        "🔥 FINAL FCM TOKEN: $fcmToken",
-      );
+      log("🔥 FINAL FCM TOKEN: $fcmToken");
     } else {
-      log(
-        "⚠️ FCM token was not available",
-      );
+      log("⚠️ FCM token was not available");
     }
 
     setupForegroundFirebaseMessageListener();
     setupNotificationOpenedListener();
 
-    await safeCall(
-      'availableCameras',
-          () async {
-        cameras =
-        await availableCameras();
-      },
-    );
+    await safeCall('availableCameras', () async {
+      cameras = await availableCameras();
+    });
 
-    await safeCall(
-      'ForegroundTask.init',
-      setupForegroundTask,
-    );
+    await safeCall('ForegroundTask.init', setupForegroundTask);
 
     RemoteMessage? initialMessage;
 
     await safeCall(
       'FirebaseMessaging.getInitialMessage',
           () async {
-        initialMessage =
-        await FirebaseMessaging.instance
-            .getInitialMessage();
+        initialMessage = await FirebaseMessaging.instance.getInitialMessage();
       },
-      timeout:
-      const Duration(seconds: 10),
+      timeout: const Duration(seconds: 10),
     );
 
     if (initialMessage != null) {
-      log(
-        "🚀 App launched from notification",
-      );
+      log("🚀 App launched from notification");
 
-      WidgetsBinding.instance
-          .addPostFrameCallback(
-            (_) {
-          handleNotificationNavigation(
-            initialMessage!.data,
-          );
-        },
-      );
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        handleNotificationNavigation(initialMessage!.data);
+      });
     }
   }
-
-  /// --------------------------------------------------------
-  /// RUN APP
-  /// --------------------------------------------------------
 
   runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider(
-          create: (_) => HomeProvider(),
-        ),
-        ChangeNotifierProvider(
-          create: (_) => EmployeeProvider(),
-        ),
-        ChangeNotifierProvider(
-          create: (_) => CustomerProvider(),
-        ),
-        ChangeNotifierProvider(
-          create: (_) => AttendanceProvider(),
-        ),
-        ChangeNotifierProvider(
-          create: (_) => LocationProvider(),
-        ),
-        ChangeNotifierProvider(
-          create: (_) => TrackProvider(),
-        ),
-        ChangeNotifierProvider(
-          create: (_) => ReportProvider(),
-        ),
-        ChangeNotifierProvider(
-          create: (_) => ExpenseProvider(),
-        ),
-        ChangeNotifierProvider(
-          create: (_) => TaskProvider(),
-        ),
-        ChangeNotifierProvider(
-          create: (_) => LeaveProvider(),
-        ),
-        ChangeNotifierProvider(
-          create: (_) => PayrollProvider(),
-        ),
-        ChangeNotifierProvider(
-          create: (_) => ProjectProvider(),
-        ),
-        ChangeNotifierProvider(
-          create: (_) => ExpasyProvider(),
-        ),
-        ChangeNotifierProvider(
-          create: (_) => SettingProvider(),
-        ),
+        ChangeNotifierProvider(create: (_) => HomeProvider()),
+        ChangeNotifierProvider(create: (_) => EmployeeProvider()),
+        ChangeNotifierProvider(create: (_) => CustomerProvider()),
+        ChangeNotifierProvider(create: (_) => AttendanceProvider()),
+        ChangeNotifierProvider(create: (_) => LocationProvider()),
+        ChangeNotifierProvider(create: (_) => TrackProvider()),
+        ChangeNotifierProvider(create: (_) => ReportProvider()),
+        ChangeNotifierProvider(create: (_) => ExpenseProvider()),
+        ChangeNotifierProvider(create: (_) => TaskProvider()),
+        ChangeNotifierProvider(create: (_) => LeaveProvider()),
+        ChangeNotifierProvider(create: (_) => PayrollProvider()),
+        ChangeNotifierProvider(create: (_) => ProjectProvider()),
+        ChangeNotifierProvider(create: (_) => ExpasyProvider()),
+        ChangeNotifierProvider(create: (_) => SettingProvider()),
       ],
-      child: MyApp(
-        homeScreen: homeScreen,
-      ),
+      child: MyApp(homeScreen: homeScreen),
     ),
   );
 }
@@ -1270,93 +771,43 @@ Future<void> main() async {
 class MyApp extends StatelessWidget {
   final bool homeScreen;
 
-  const MyApp({
-    super.key,
-    required this.homeScreen,
-  });
+  const MyApp({super.key, required this.homeScreen});
 
   @override
-  Widget build(
-      BuildContext context,
-      ) {
+  Widget build(BuildContext context) {
     return ConnectivityAppWrapper(
       app: MaterialApp(
         navigatorKey: navigatorKey,
-
-        builder: (
-            context,
-            child,
-            ) {
+        builder: (context, child) {
           return ConnectivityWidgetWrapper(
             color: colorsConst.primary,
-            message:
-            "Check Your Internet Connection",
+            message: "Check Your Internet Connection",
             disableInteraction: true,
             child: MediaQuery(
-              data:
-              MediaQuery.of(context)
-                  .copyWith(
-                textScaler:
-                const TextScaler.linear(
-                  1.0,
-                ),
+              data: MediaQuery.of(context).copyWith(
+                textScaler: const TextScaler.linear(1.0),
               ),
               child: child!,
             ),
           );
         },
-
         useInheritedMediaQuery: true,
-
-        locale: const Locale(
-          'en',
-          'US',
-        ),
-
+        locale: const Locale('en', 'US'),
         debugShowCheckedModeBanner: false,
-
         theme: ThemeData(
           useMaterial3: false,
-
-          colorScheme:
-          ColorScheme.fromSeed(
-            seedColor:
-            colorsConst.primary,
-          ),
-
-          primaryColor:
-          colorsConst.primary,
-
-          scrollbarTheme:
-          ScrollbarThemeData(
-            thumbVisibility:
-            WidgetStateProperty.all(
-              true,
-            ),
-            thickness:
-            WidgetStateProperty.all(
-              5,
-            ),
-            thumbColor:
-            WidgetStateProperty.all(
-              colorsConst.primary
-                  .withOpacity(
-                0.5,
-              ),
-            ),
-            radius:
-            const Radius.circular(
-              10,
-            ),
+          colorScheme: ColorScheme.fromSeed(seedColor: colorsConst.primary),
+          primaryColor: colorsConst.primary,
+          scrollbarTheme: ScrollbarThemeData(
+            thumbVisibility: WidgetStateProperty.all(true),
+            thickness: WidgetStateProperty.all(5),
+            thumbColor: WidgetStateProperty.all(colorsConst.primary.withOpacity(0.5)),
+            radius: const Radius.circular(10),
             minThumbLength: 10,
           ),
-
           fontFamily: 'Lato',
         ),
-
-        home: SplashScreen(
-          homeScreen: homeScreen,
-        ),
+        home: SplashScreen(homeScreen: homeScreen),
       ),
     );
   }
@@ -1366,8 +817,7 @@ class MyApp extends StatelessWidget {
 /// SPLASH SCREEN
 /// ==========================================================
 
-class SplashScreen
-    extends StatefulWidget {
+class SplashScreen extends StatefulWidget {
   final bool homeScreen;
 
   const SplashScreen({
@@ -1376,272 +826,239 @@ class SplashScreen
   });
 
   @override
-  State<SplashScreen> createState() =>
-      _SplashScreenState();
+  State<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState
-    extends State<SplashScreen> {
-  dynamic storedVersion;
-  dynamic currentVersion;
-
+class _SplashScreenState extends State<SplashScreen> {
   bool _navigated = false;
 
   @override
   void initState() {
     super.initState();
 
-    Future.delayed(
-      Duration.zero,
-          () async {
-        if (!mounted) return;
-
-        final HomeProvider
-        homeProvider =
-        Provider.of<HomeProvider>(
-          context,
-          listen: false,
-        );
-
-        final LocationProvider
-        locationProvider =
-        Provider.of<LocationProvider>(
-          context,
-          listen: false,
-        );
-
-        final AttendanceProvider
-        attendanceProvider =
-        Provider.of<AttendanceProvider>(
-          context,
-          listen: false,
-        );
-        /// getMainAttendance() must run and complete every launch —
-        /// no skip, no fire-and-forget. Awaited with retries.
-        await ensureAttendanceLoaded(attendanceProvider);
-
-        await Provider.of<LocationProvider>(context, listen: false).manageLocation(context,false);
-        homeProvider.loadFullDashboard(context);
-        unawaited(
-          safeCall(
-            'locationProvider.requestPermissions',
-                () async =>
-                locationProvider
-                    .requestPermissions(),
-            timeout:
-            const Duration(seconds: 10),
-          ),
-        );
-
-        unawaited(
-          safeCall(
-            'homeProvider.initValue',
-                () async =>
-                homeProvider.initValue(),
-            timeout:
-            const Duration(seconds: 10),
-          ),
-        );
-
-        unawaited(
-          safeCall(
-            'homeProvider.checkThisMonth',
-                () async =>
-                homeProvider
-                    .checkThisMonth(),
-            timeout:
-            const Duration(seconds: 10),
-          ),
-        );
-
-        unawaited(
-          safeCall(
-            'homeProvider.loadFullDashboard',
-                () => homeProvider
-                .loadFullDashboard(
-              navigatorKey.currentContext ?? context,
-            ),
-            timeout:
-            const Duration(seconds: 12),
-          ),
-        );
-
-        /// --------------------------------------------------
-        /// VERSION CHECK
-        /// --------------------------------------------------
-
-        await safeCall(
-          'homeProvider.checkVersion',
-              () =>
-              homeProvider.checkVersion(),
-          timeout:
-          const Duration(seconds: 10),
-        );
-
-        if (!mounted) return;
-
-        /// --------------------------------------------------
-        /// NAVIGATION
-        /// --------------------------------------------------
-
-        await checkForUpdates(context);
-      },
-    );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _initializeApp();
+    });
   }
 
-  /// ========================================================
-  /// NAVIGATION
-  /// ========================================================
-
-  Future<void> checkForUpdates(
-      BuildContext context,
-      ) async {
-    if (_navigated || !mounted) {
-      return;
-    }
+  Future<void> _initializeApp() async {
+    if (!mounted || _navigated) return;
 
     try {
-      final SharedPreferences
-      prefs =
-      await SharedPreferences
-          .getInstance();
+      final HomeProvider homeProvider =
+      Provider.of<HomeProvider>(context, listen: false);
 
-      storedVersion =
-          prefs.getString(
-            'appVersion',
-          ) ??
-              "0";
+      final LocationProvider locationProvider =
+      Provider.of<LocationProvider>(context, listen: false);
 
-      currentVersion =
-          localData.versionNumber;
-    } catch (e) {
-      log(
-        "⚠️ Version check failed: $e",
+      final AttendanceProvider attendanceProvider =
+      Provider.of<AttendanceProvider>(context, listen: false);
+
+      // --------------------------------------------------
+      // Attendance
+      // --------------------------------------------------
+
+      await ensureAttendanceLoaded(attendanceProvider);
+
+      if (!mounted) return;
+
+      // --------------------------------------------------
+      // Location
+      // --------------------------------------------------
+
+      await safeCall(
+        'manageLocation',
+            () => locationProvider.manageLocation(context, false),
+        timeout: const Duration(seconds: 15),
       );
 
-      storedVersion = "0";
-      currentVersion = "0";
-    }
+      if (!mounted) return;
 
-    if (!mounted ||
-        _navigated) {
-      return;
+      // --------------------------------------------------
+      // Background initialization
+      // --------------------------------------------------
+
+      unawaited(
+        safeCall(
+          'locationProvider.requestPermissions',
+              () => locationProvider.requestPermissions(),
+          timeout: const Duration(seconds: 10),
+        ),
+      );
+
+      unawaited(
+        safeCall(
+          'homeProvider.initValue',
+              () async => homeProvider.initValue(),
+          timeout: const Duration(seconds: 10),
+        ),
+      );
+
+      unawaited(
+        safeCall(
+          'homeProvider.checkThisMonth',
+              () async => homeProvider.checkThisMonth(),
+          timeout: const Duration(seconds: 10),
+        ),
+      );
+
+      // --------------------------------------------------
+      // Dashboard
+      // --------------------------------------------------
+
+      unawaited(
+        safeCall(
+          'homeProvider.loadFullDashboard',
+              () async {
+            final ctx = navigatorKey.currentContext;
+
+            if (ctx != null) {
+              await homeProvider.loadFullDashboard(ctx);
+            }
+          },
+          timeout: const Duration(seconds: 12),
+        ),
+      );
+
+      // --------------------------------------------------
+      // Version
+      // --------------------------------------------------
+
+      await safeCall(
+        'homeProvider.checkVersion',
+            () => homeProvider.checkVersion(),
+        timeout: const Duration(seconds: 10),
+      );
+
+      if (!mounted) return;
+
+      // --------------------------------------------------
+      // Small delay so splash is visible
+      // --------------------------------------------------
+
+      await Future.delayed(const Duration(milliseconds: 500));
+
+      if (!mounted || _navigated) return;
+
+      // --------------------------------------------------
+      // Navigate
+      // --------------------------------------------------
+
+      await _navigate();
+    } catch (e, st) {
+      log("❌ Splash initialization failed: $e");
+      log("❌ STACK: $st");
+
+      if (!mounted || _navigated) return;
+
+      _navigateToLogin();
     }
+  }
+
+  Future<void> _navigate() async {
+    if (!mounted || _navigated) return;
 
     _navigated = true;
 
     try {
-      if (storedVersion !=
-          currentVersion) {
-        log(
-          "➡️ Version mismatch → Login",
-        );
+      final SharedPreferences prefs =
+      await SharedPreferences.getInstance();
 
-        utils.navigatePage(
-          context,
-              () => const LoginPage(),
-        );
-      } else if (widget.homeScreen) {
-        log(
-          "➡️ HomeScreen → Dashboard",
-        );
+      final String storedVersion =
+          prefs.getString('appVersion') ?? "0";
 
-        utils.navigatePage(
-          context,
-              () => DashBoard(
-            child: HomePage(),
-          ),
-        );
-      } else {
-        log(
-          "➡️ Default → Login",
-        );
+      final String currentVersion =
+      localData.versionNumber.toString();
 
-        utils.navigatePage(
-          context,
-              () => const LoginPage(),
-        );
-      }
-    } catch (e) {
-      log(
-        "⚠️ Navigation failed: $e",
-      );
+      log("📦 Stored version: $storedVersion");
+      log("📦 Current version: $currentVersion");
+      log("🏠 Home screen: ${widget.homeScreen}");
 
-      if (mounted) {
-        Navigator.of(context)
-            .pushReplacement(
+      if (!mounted) return;
+
+      if (storedVersion != currentVersion) {
+        log("➡️ Version mismatch → Login");
+
+        Navigator.of(context).pushReplacement(
           MaterialPageRoute(
-            builder: (_) =>
-            const LoginPage(),
+            builder: (_) => const LoginPage(),
           ),
         );
+
+        return;
       }
+
+      if (widget.homeScreen) {
+        log("➡️ HomeScreen → Dashboard");
+
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (_) => DashBoard(
+              child: HomePage(),
+            ),
+          ),
+        );
+
+        return;
+      }
+
+      log("➡️ Default → Login");
+
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (_) => const LoginPage(),
+        ),
+      );
+    } catch (e, st) {
+      log("❌ Navigation error: $e");
+      log("❌ STACK: $st");
+
+      _navigateToLogin();
     }
   }
 
-  /// ========================================================
-  /// BUILD
-  /// ========================================================
+  void _navigateToLogin() {
+    if (!mounted || _navigated) return;
+
+    _navigated = true;
+
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(
+        builder: (_) => const LoginPage(),
+      ),
+    );
+  }
 
   @override
-  Widget build(
-      BuildContext context,
-      ) {
-    return AnimatedSplashScreen(
-      duration: 300,
-
-      splashIconSize: 800,
-
-      splashTransition:
-      SplashTransition
-          .fadeTransition,
-
-      splash: Container(
-        color: Colors.white,
-
-        width:
-        double.infinity,
-
-        height:
-        double.infinity,
-
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: SizedBox(
+        width: double.infinity,
+        height: double.infinity,
         child: Column(
-          mainAxisAlignment:
-          MainAxisAlignment
-              .spaceBetween,
-
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            100.height,
-
             Image.asset(
               assets.logo,
               width: 100,
               height: 100,
             ),
 
-            20.height,
+            const SizedBox(height: 20),
 
             CustomText(
-              text:
-              "${constValue.comName}\n",
+              text: constValue.comName,
               size: 15,
-              colors:
-              colorsConst.primary,
+              colors: colorsConst.primary,
             ),
+
+            const SizedBox(height: 30),
+
+            const CircularProgressIndicator(),
           ],
         ),
       ),
-
-      nextScreen:
-      storedVersion !=
-          currentVersion
-          ? const LoginPage()
-          : widget.homeScreen
-          ? DashBoard(
-        child:
-        HomePage(),
-      )
-          : const LoginPage(),
     );
   }
 }

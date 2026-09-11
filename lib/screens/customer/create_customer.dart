@@ -1,3 +1,4 @@
+import 'package:country_picker/country_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:master_code/component/custom_checkbox.dart';
@@ -152,11 +153,59 @@ class _CreateCustomerState extends State<CreateCustomer> with TickerProviderStat
                         // inputFormatters: constInputFormatters.addressInput,
                         controller: custProvider.companyName,
                       ),
-                      CustomTextField(
-                        text: "Emergency Name",
-                        width: kIsWeb?webWidth:phoneWidth,
-                        // inputFormatters: constInputFormatters.addressInput,
-                        controller: custProvider.emgName,
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Container(
+                            margin: const EdgeInsets.only(bottom: 14),
+                            child: Material(
+                              color: Colors.transparent,
+                              child: InkWell(
+                                borderRadius: BorderRadius.circular(10),
+                                onTap: () {
+                                  showCountryPicker(
+                                    context: context,
+                                    showPhoneCode: true,
+                                    countryListTheme: CountryListThemeData(
+                                      bottomSheetHeight: MediaQuery.of(context).size.height * 0.7,
+                                    ),
+                                    onSelect: (Country country) {
+                                      custProvider.changeEmgCountryCode("+${country.phoneCode}", country.flagEmoji);
+                                    },
+                                  );
+                                },
+                                child: Container(
+                                  height: 50,
+                                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                                  decoration: BoxDecoration(
+                                    border: Border.all(color: Colors.grey.shade400),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      CustomText(text: custProvider.emgCountryFlag),
+                                      4.width,
+                                      CustomText(text: custProvider.emgCountryCode, colors: Colors.black),
+                                      2.width,
+                                      const Icon(Icons.arrow_drop_down, size: 18, color: Colors.grey),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                          8.width,
+                          Expanded(
+                            child: CustomTextField(
+                              text: "Emergency Number",
+                              width: double.infinity,
+                              inputFormatters: constInputFormatters.mobileNumberInput,
+                              controller: custProvider.emgNo,
+                              keyboardType: TextInputType.number,
+                            ),
+                          ),
+                        ],
                       ),
                       CustomTextField(
                         text: "Emergency Number",

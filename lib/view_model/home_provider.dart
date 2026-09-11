@@ -6,6 +6,10 @@ import 'package:master_code/view_model/attendance_provider.dart';
 import 'package:master_code/view_model/customer_provider.dart';
 import 'package:master_code/view_model/employee_provider.dart';
 import 'package:master_code/view_model/expense_provider.dart';
+import 'package:master_code/view_model/payroll_provider.dart';
+import 'package:master_code/view_model/project_provider.dart';
+import 'package:master_code/view_model/report_provider.dart';
+import 'package:master_code/view_model/setting_provider.dart';
 import 'package:master_code/view_model/task_provider.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -13,6 +17,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import 'package:intl/intl.dart';
+import 'package:master_code/view_model/track_provider.dart';
 import 'package:otp_text_field_v2/otp_field_v2.dart';
 import 'package:provider/provider.dart';
 import 'package:master_code/component/custom_text.dart';
@@ -43,8 +48,11 @@ import '../source/constant/api.dart';
 import '../source/constant/colors_constant.dart';
 import '../source/constant/local_data.dart';
 import '../source/utilities/utils.dart';
+import 'expasy_provider.dart';
 import 'leave_provider.dart';
 import 'package:http/http.dart' as http;
+
+import 'location_provider.dart';
 class HomeProvider with ChangeNotifier{
 final HomeRepository homeRepo = HomeRepository();
 final sidebarController = SidebarXController(selectedIndex: 0, extended: true);
@@ -597,111 +605,119 @@ String get notificationToken =>_notificationToken;
       },
     );
   }
-Future<void> login(context) async {
-  // print("printttt");
-  // log("logggg");
-  //   try {
+// <-- CHANGED: added optional `countryCode` named param (defaults to "+91"
+  // so any other place in the app that still calls login(context) without it
+  // keeps working).
+  Future<void> login(context, {String countryCode = "+91"}) async {
+    // print("printttt");
+    // log("logggg");
+    //   try {
 
-  await getToken();
-  checkPlatform();
-      var id="",brand="",model="",version="";
-      if(kIsWeb){
-        final deviceInfoPlugin = DeviceInfoPlugin();
-        final deviceInfo = await deviceInfoPlugin.deviceInfo;
-        final allInfo = deviceInfo.data;
+    await getToken();
+    checkPlatform();
+    var id="",brand="",model="",version="";
+    if(kIsWeb){
+      final deviceInfoPlugin = DeviceInfoPlugin();
+      final deviceInfo = await deviceInfoPlugin.deviceInfo;
+      final allInfo = deviceInfo.data;
+      id="";
+      brand="";
+      model=allInfo.toString();
+      version="";
+    }else{
+      if (Platform.isIOS) {
+        DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
+        IosDeviceInfo iosInfo = await deviceInfo.iosInfo;
         id="";
-        brand="";
-        model=allInfo.toString();
-        version="";
+        brand=iosInfo.name.toString();
+        model=iosInfo.model.toString();
+        version=iosInfo.systemVersion.toString();
       }else{
-        if (Platform.isIOS) {
-          DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
-          IosDeviceInfo iosInfo = await deviceInfo.iosInfo;
-          id="";
-          brand=iosInfo.name.toString();
-          model=iosInfo.model.toString();
-          version=iosInfo.systemVersion.toString();
-        }else{
-          DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
-          AndroidDeviceInfo androidInfo = await deviceInfo.androidInfo;
-          id=androidInfo.id.toString();
-          brand=androidInfo.brand.toString();
-          model=androidInfo.model.toString();
-          version=androidInfo.version.release.toString();
-        }
+        DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
+        AndroidDeviceInfo androidInfo = await deviceInfo.androidInfo;
+        id=androidInfo.id.toString();
+        brand=androidInfo.brand.toString();
+        model=androidInfo.model.toString();
+        version=androidInfo.version.release.toString();
       }
-      final prefs =await SharedPreferences.getInstance();
-      Map data = {
-        "action": loginUser,
-        "mobile_number": loginNumber.text.trim(),
-        "password": loginPassword.text.trim(),
-        "cos_id":localData.storage.read("cos_id"),
-        'app_version': localData.versionNumber,
-        'device_id': id,
-        'device_brand': brand,
-        'device_model':model,
-        'device_os': version,
-        'token': _notificationToken,
-        'platform': localData.storage.read("platform").toString()
-      };
-      print("body data ${data}");      final response = await homeRepo.loginApi(data);
-      log(response.toString());
-      if(response.toString().contains("No user found")){
-        utils.showWarningToast(context,text: "No user found");
-        loginCtr.reset();
-      }else if(response.toString().contains("Incorrect password")){
-        utils.showWarningToast(context,text: "Incorrect password");
-        loginCtr.reset();
-      }else if(response.toString().contains("Something went wrong")){
-        utils.showWarningToast(context,text: "Something went wrong");
-        loginCtr.reset();
+    }
+    final prefs =await SharedPreferences.getInstance();
+    Map data = {
+      "action": loginUser,
+      // <-- CHANGED: mobile_number now includes the selected country dial code.
+      // If your backend expects the plain 10-digit number instead and the
+      // dial code as its own field, use the commented-out version below.
+      "mobile_number": "$countryCode${loginNumber.text.trim()}",
+      // "mobile_number": loginNumber.text.trim(),
+      // "country_code": countryCode,
+      "password": loginPassword.text.trim(),
+      "cos_id":localData.storage.read("cos_id"),
+      'app_version': localData.versionNumber,
+      'device_id': id,
+      'device_brand': brand,
+      'device_model':model,
+      'device_os': version,
+      'token': _notificationToken,
+      'platform': localData.storage.read("platform").toString()
+    };
+    print("body data ${data}");      final response = await homeRepo.loginApi(data);
+    log(response.toString());
+    if(response.toString().contains("No user found")){
+      utils.showWarningToast(context,text: "No user found");
+      loginCtr.reset();
+    }else if(response.toString().contains("Incorrect password")){
+      utils.showWarningToast(context,text: "Incorrect password");
+      loginCtr.reset();
+    }else if(response.toString().contains("Something went wrong")){
+      utils.showWarningToast(context,text: "Something went wrong");
+      loginCtr.reset();
+    }else{
+      if(response.isNotEmpty){
+        localData.storage.write("f_name",response['firstname']);
+        localData.storage.write("mobile_number",response['mobile_number']);
+        localData.storage.write("id",response['id']);
+        localData.storage.write("role_name",response['role_name']);
+        localData.storage.write("role",response['role']);
+        localData.storage.write("cos_id",response['cos_id']);
+        localData.storage.write("conveyance_amount",response['conveyance_amount'].toString()=="null"||response['conveyance_amount'].toString()==""?"0":response['conveyance_amount'].toString());
+        localData.storage.write("travel_amount",response['travel_amount'].toString()=="null"||response['travel_amount'].toString()==""?"0":response['travel_amount'].toString());
+        localData.storage.write("da_amount",response['da_amount'].toString()=="null"||response['da_amount'].toString()==""?"0":response['da_amount'].toString());
+        prefs.setBool("homescreen", true);
+        prefs.setString("appVersion", localData.versionNumber);
+        if(!kIsWeb){
+          LocalDatabase.initDb();
+          Provider.of<EmployeeProvider>(context, listen: false).getRoles();
+          Provider.of<CustomerProvider>(context, listen: false).getLeadCategory();
+          Provider.of<CustomerProvider>(context, listen: false).getVisitType();
+          Provider.of<CustomerProvider>(context, listen: false).getCmtType();
+
+          Provider.of<TaskProvider>(context, listen: false).getTaskType(false);
+          Provider.of<TaskProvider>(context, listen: false).getTaskStatuses();
+          Provider.of<ExpenseProvider>(context, listen: false).getExpenseType();
+        }
+
+        Provider.of<HomeProvider>(context, listen: false).updateIndex(0);
+        Provider.of<HomeProvider>(context, listen: false).initValue();
+        // Provider.of<HomeProvider>(context, listen: false).roleEmployees();
+        Provider.of<HomeProvider>(context, listen: false).loadFullDashboard(context);
+        // Provider.of<AttendanceProvider>(context, listen: false).getMainAttendance();
+        // getMainReport(false);
+        // getDashboardReport(false);
+        Future.microtask(() {
+          utils.navigatePage(context,()=>const DashBoard(child: HomePage()));
+        });
       }else{
-        if(response.isNotEmpty){
-          localData.storage.write("f_name",response['firstname']);
-          localData.storage.write("mobile_number",response['mobile_number']);
-          localData.storage.write("id",response['id']);
-          localData.storage.write("role_name",response['role_name']);
-          localData.storage.write("role",response['role']);
-          localData.storage.write("cos_id",response['cos_id']);
-          localData.storage.write("conveyance_amount",response['conveyance_amount'].toString()=="null"||response['conveyance_amount'].toString()==""?"0":response['conveyance_amount'].toString());
-          localData.storage.write("travel_amount",response['travel_amount'].toString()=="null"||response['travel_amount'].toString()==""?"0":response['travel_amount'].toString());
-          localData.storage.write("da_amount",response['da_amount'].toString()=="null"||response['da_amount'].toString()==""?"0":response['da_amount'].toString());
-          prefs.setBool("homescreen", true);
-          prefs.setString("appVersion", localData.versionNumber);
-          if(!kIsWeb){
-            LocalDatabase.initDb();
-            Provider.of<EmployeeProvider>(context, listen: false).getRoles();
-            Provider.of<CustomerProvider>(context, listen: false).getLeadCategory();
-            Provider.of<CustomerProvider>(context, listen: false).getVisitType();
-            Provider.of<CustomerProvider>(context, listen: false).getCmtType();
-
-            Provider.of<TaskProvider>(context, listen: false).getTaskType(false);
-            Provider.of<TaskProvider>(context, listen: false).getTaskStatuses();
-            Provider.of<ExpenseProvider>(context, listen: false).getExpenseType();
-          }
-
-          Provider.of<HomeProvider>(context, listen: false).updateIndex(0);
-          Provider.of<HomeProvider>(context, listen: false).initValue();
-          // Provider.of<HomeProvider>(context, listen: false).roleEmployees();
-          Provider.of<HomeProvider>(context, listen: false).loadFullDashboard(context);
-          // Provider.of<AttendanceProvider>(context, listen: false).getMainAttendance();
-          // getMainReport(false);
-          // getDashboardReport(false);
-          Future.microtask(() {
-            utils.navigatePage(context,()=>const DashBoard(child: HomePage()));
-          });
-        }else{
-          utils.showErrorToast(context: context);
-          loginCtr.reset();
-        }
+        utils.showErrorToast(context: context);
+        loginCtr.reset();
       }
+    }
     // } catch (e) {
     //   // print(e.toString());
     //   utils.showErrorToast(context: context);
     //   loginCtr.reset();
     // }
     notifyListeners();
-}
+  }
 Future<void> loginOuts(context) async {
     try {
       Map data = {
@@ -739,6 +755,40 @@ Future<void> loginOuts(context) async {
     }
     notifyListeners();
 }
+
+  Future<void> resetApp(BuildContext context) async {
+    // 1. Clear SharedPreferences
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.clear();
+
+    // 3. Remove all existing routes and recreate Provider tree
+    if (!context.mounted) return;
+
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(
+        builder: (_) => MultiProvider(
+          providers: [
+            ChangeNotifierProvider(create: (_) => AttendanceProvider()),
+            ChangeNotifierProvider(create: (_) => CustomerProvider()),
+            ChangeNotifierProvider(create: (_) => EmployeeProvider()),
+            ChangeNotifierProvider(create: (_) => ExpasyProvider()),
+            ChangeNotifierProvider(create: (_) => ExpenseProvider()),
+            ChangeNotifierProvider(create: (_) => HomeProvider()),
+            ChangeNotifierProvider(create: (_) => LeaveProvider()),
+            ChangeNotifierProvider(create: (_) => LocationProvider()),
+            ChangeNotifierProvider(create: (_) => PayrollProvider()),
+            ChangeNotifierProvider(create: (_) => ProjectProvider()),
+            ChangeNotifierProvider(create: (_) => ReportProvider()),
+            ChangeNotifierProvider(create: (_) => SettingProvider()),
+            ChangeNotifierProvider(create: (_) => TaskProvider()),
+            ChangeNotifierProvider(create: (_) => TrackProvider()),
+          ],
+          child: const LoginPage(),
+        ),
+      ),
+          (route) => false,
+    );
+  }
 // Future<void> updateToken(context) async {
 //     try {
 //       String? token="";

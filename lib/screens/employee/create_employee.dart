@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:country_picker/country_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:master_code/component/custom_loading_button.dart';
@@ -453,32 +454,80 @@ class _CreateEmployeeState extends State<CreateEmployee>with SingleTickerProvide
                                     text: constValue.lastName, controller: empProvider.signLastName,
                                     width: kIsWeb?webWidth:phoneWidth,
                                   ),
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  Column(
                                     children: [
-                                      CustomTextField(text: constValue.phoneNumber2,
-                                        controller: empProvider.signMobileNumber,
-                                        isRequired: true,isLogin: true,
-                                        iconCallBack: (){
-                                          empProvider.isWhatsAppCheck(isUpdate: true);
-                                        },
-                                        onChanged: (value){
-                                          empProvider.isWhatsAppCheck(isUpdate: false);
-                                        },
-                                        iconData: Icons.check_circle,
-                                        iconColor: empProvider.isWhatsApp==true?Colors.green:Colors.grey,
-                                        width: kIsWeb?webWidth/2.1:phoneWidth/2.1,
+                                      Row(
+                                        crossAxisAlignment: CrossAxisAlignment.center,
+                                        children: [
+                                          Container(
+                                            margin: const EdgeInsets.only(bottom: 14),
+                                            child: Material(
+                                              color: Colors.transparent,
+                                              child: InkWell(
+                                                borderRadius: BorderRadius.circular(10),
+                                                onTap: () {
+                                                  showCountryPicker(
+                                                    context: context,
+                                                    showPhoneCode: true,
+                                                    countryListTheme: CountryListThemeData(
+                                                      bottomSheetHeight: MediaQuery.of(context).size.height * 0.7,
+                                                    ),
+                                                    onSelect: (Country country) {
+                                                      setState(() {
+                                                        empProvider.selectedCountryCode = "+${country.phoneCode}";
+                                                        empProvider.selectedCountryFlag = country.flagEmoji;
+                                                      });
+                                                    },
+                                                  );
+                                                },
+                                                child: Container(
+                                                  height: 50,
+                                                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                                                  decoration: BoxDecoration(
+                                                    border: Border.all(color: Colors.grey.shade400),
+                                                    borderRadius: BorderRadius.circular(10),
+                                                  ),
+                                                  child: Row(
+                                                    mainAxisSize: MainAxisSize.min,
+                                                    children: [
+                                                      CustomText(text: empProvider.selectedCountryFlag),
+                                                      4.width,
+                                                      CustomText(text: empProvider.selectedCountryCode, colors: Colors.black),
+                                                      2.width,
+                                                      const Icon(Icons.arrow_drop_down, size: 18, color: Colors.grey),
+                                                    ],
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                          8.width,
+                                          Expanded(
+                                            child: CustomTextField(
+                                              text: constValue.phoneNumber2,
+                                              controller: empProvider.signMobileNumber,
+                                              isRequired: true, isLogin: true,
+                                              iconCallBack: () {
+                                                empProvider.isWhatsAppCheck(isUpdate: true);
+                                              },
+                                              onChanged: (value) {
+                                                empProvider.isWhatsAppCheck(isUpdate: false);
+                                              },
+                                              iconData: Icons.check_circle,
+                                              iconColor: empProvider.isWhatsApp == true ? Colors.green : Colors.grey,
+                                              width: double.infinity,
+                                              keyboardType: TextInputType.number,
+                                              inputFormatters: constInputFormatters.mobileNumberInput,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      CustomTextField(
+                                        text: constValue.whatsappNo,
+                                        controller: empProvider.signWhatsappNumber,
+                                        width: kIsWeb ? webWidth : phoneWidth,
                                         keyboardType: TextInputType.number,
                                         inputFormatters: constInputFormatters.mobileNumberInput,
-                                      ),
-                                      Padding(
-                                        padding: const EdgeInsets.fromLTRB(0, 8, 0, 0),
-                                        child: CustomTextField(text: constValue.whatsappNo,
-                                          controller: empProvider.signWhatsappNumber,
-                                          width: kIsWeb?webWidth/2.1:phoneWidth/2.1,
-                                          keyboardType: TextInputType.number,
-                                          inputFormatters: constInputFormatters.mobileNumberInput,
-                                        ),
                                       ),
                                     ],
                                   ),

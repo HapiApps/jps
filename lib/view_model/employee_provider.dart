@@ -29,7 +29,9 @@ import '../source/utilities/utils.dart';
 
 class EmployeeProvider with ChangeNotifier{
 final EmployeeRepository empRepo = EmployeeRepository();
-
+// <-- ADDED
+String selectedCountryCode = "+91";
+String selectedCountryFlag = "🇮🇳";
 
 int _swipeIndex = 0;
 int get swipeIndex =>_swipeIndex;
@@ -1083,6 +1085,7 @@ Future<void> insertEmployeeDetails(context,String lat,String lng) async {
       "firstname": signFirstName.text.trim(),
       "password": signPassword.text.trim(),
       "mobile_number":signMobileNumber.text.trim(),
+      "c_code":selectedCountryCode.toString().trim(),
       "surname":signLastName.text.trim(),
       "role": localData.storage.read("roleId"),
       "created_by": localData.storage.read("id"),
@@ -1169,65 +1172,77 @@ Future<void> insertEmployeeDetails(context,String lat,String lng) async {
     notifyListeners();
   }
 /// SignUp Employee
-Future<void> signupEmployee(context,String lat,String lng) async {
-  try {
-    Provider.of<HomeProvider>(context, listen: false).checkPlatform();
-    Map<String, String> data = {
-      "action": signUp,
-      "log_file": signMobileNumber.text.trim(),
-      "firstname": signFirstName.text.trim(),
-      "password": signPassword.text.trim(),
-      "mobile_number":signMobileNumber.text.trim(),
-      "surname":signLastName.text.trim(),
-      "role": "1",
-      "created_by": "Signup",
-      "referred_by": signReffered.text.trim(),
-      "email_id": signEmailid.text.trim(),
-      "boss_id": "1",
-      "platform": localData.storage.read("platform").toString(),
-      "door_no": doorNo.text.trim(),
-      "area": comArea.text.trim(),
-      "city": city.text.trim(),
-      "country": country.text.trim(),
-      "state": state.toString(),
-      "pincode": pinCode.text.trim(),
-      "lat": lat,
-      "lng": lng
-    };
-    final response =await empRepo.addEmployee(data,_profile,_profileList,_profileName,_aadharPhoto,_aadharPhotoList,_aadharPhotoName,
-        _aadharPhoto2,_aadharPhotoList2,_aadharPhotoName2,
-        _panPhoto,_panPhotoList,_panPhotoName,
-        _chequePhoto,_chequePhotoList,_chequePhotoName,
-        _licensePhoto,_licensePhotoList,_licensePhotoName,
-        _voterPhoto,_voterPhotoList,_voterPhotoName);
-    log(response.toString());
-    if (response.toString().contains("already exists")){
-      utils.showWarningToast(context,text: "Employee with this Phone Number already exits");
-      signCtr.reset();
-    }else if (response["status_code"]==200){
-      // utils.showSuccessToast(context: context,text: "Signup completed successfully.",);
-      // Future.microtask(() {
-      //   utils.navigatePage(context,()=>const LoginPage());
-      // });
-      Provider.of<HomeProvider>(context, listen: false).loginPassword.text=signPassword.text.trim();
-      Provider.of<HomeProvider>(context, listen: false).loginNumber.text=signMobileNumber.text.trim();
-      Provider.of<HomeProvider>(context, listen: false).login(context);
-      // signCtr.reset();
-    }else if (response.toString().contains("Employee with this Phone Number already exits")){
-      utils.showWarningToast(context,text: "Employee with this Phone Number already exits");
-      signCtr.reset();
-    }
-    else {
+// <-- CHANGED: added optional `countryCode` named param (defaults to "+91"
+  // so any other existing call to signupEmployee(...) without it still compiles).
+  Future<void> signupEmployee(context,String lat,String lng,{String countryCode = "+91"}) async {
+    try {
+      Provider.of<HomeProvider>(context, listen: false).checkPlatform();
+      Map<String, String> data = {
+        "action": signUp,
+        // <-- NOTE: kept as the plain number (no "+") since this looks like
+        // it's used as a filename/folder reference for uploaded documents;
+        // a "+" in a file path can cause issues on some backends/servers.
+        "log_file": signMobileNumber.text.trim(),
+        "firstname": signFirstName.text.trim(),
+        "password": signPassword.text.trim(),
+        // <-- CHANGED: mobile_number now includes the selected country dial code.
+        // If your backend expects the plain 10-digit number instead and the
+        // dial code as its own field, use the commented-out version below.
+        "mobile_number": "$countryCode${signMobileNumber.text.trim()}",
+        // "mobile_number": signMobileNumber.text.trim(),
+        // "country_code": countryCode,
+        "surname":signLastName.text.trim(),
+        "role": "1",
+        "created_by": "Signup",
+        "referred_by": signReffered.text.trim(),
+        "email_id": signEmailid.text.trim(),
+        "boss_id": "1",
+        "platform": localData.storage.read("platform").toString(),
+        "door_no": doorNo.text.trim(),
+        "area": comArea.text.trim(),
+        "city": city.text.trim(),
+        "country": country.text.trim(),
+        "state": state.toString(),
+        "pincode": pinCode.text.trim(),
+        "lat": lat,
+        "lng": lng
+      };
+      final response =await empRepo.addEmployee(data,_profile,_profileList,_profileName,_aadharPhoto,_aadharPhotoList,_aadharPhotoName,
+          _aadharPhoto2,_aadharPhotoList2,_aadharPhotoName2,
+          _panPhoto,_panPhotoList,_panPhotoName,
+          _chequePhoto,_chequePhotoList,_chequePhotoName,
+          _licensePhoto,_licensePhotoList,_licensePhotoName,
+          _voterPhoto,_voterPhotoList,_voterPhotoName);
+      log(response.toString());
+      if (response.toString().contains("already exists")){
+        utils.showWarningToast(context,text: "Employee with this Phone Number already exits");
+        signCtr.reset();
+      }else if (response["status_code"]==200){
+        // utils.showSuccessToast(context: context,text: "Signup completed successfully.",);
+        // Future.microtask(() {
+        //   utils.navigatePage(context,()=>const LoginPage());
+        // });
+        Provider.of<HomeProvider>(context, listen: false).loginPassword.text=signPassword.text.trim();
+        Provider.of<HomeProvider>(context, listen: false).loginNumber.text=signMobileNumber.text.trim();
+        // <-- CHANGED: pass the same country code through to login so the
+        // auto-login after signup uses the matching mobile_number format.
+        Provider.of<HomeProvider>(context, listen: false).login(context,countryCode: countryCode);
+        // signCtr.reset();
+      }else if (response.toString().contains("Employee with this Phone Number already exits")){
+        utils.showWarningToast(context,text: "Employee with this Phone Number already exits");
+        signCtr.reset();
+      }
+      else {
+        utils.showErrorToast(context: context);
+        signCtr.reset();
+      }
+    } catch (e) {
+      log(e.toString());
       utils.showErrorToast(context: context);
       signCtr.reset();
     }
-  } catch (e) {
-    log(e.toString());
-    utils.showErrorToast(context: context);
-    signCtr.reset();
+    notifyListeners();
   }
-  notifyListeners();
-}
 /// update Employee
 Future<void> updatedEmployee(context,String userId,bool isDetailView) async {
   try {

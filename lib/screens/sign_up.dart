@@ -11,6 +11,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:master_code/source/styles/decoration.dart';
 import 'package:master_code/view_model/home_provider.dart';
+import 'package:country_picker/country_picker.dart'; // <-- CHANGED: country_picker package
 import '../../component/custom_appbar.dart';
 import '../../component/custom_dropdown.dart';
 import '../../source/constant/assets_constant.dart';
@@ -29,6 +30,11 @@ class SignUp extends StatefulWidget {
 class _SignUpState extends State<SignUp>{
   final FocusScopeNode _myFocusScopeNode = FocusScopeNode();
 
+  // <-- CHANGED: holds the currently selected dial code, e.g. "+91"
+  String selectedCountryCode = "+91";
+  // <-- ADDED: holds the flag emoji to show next to the code (optional, purely visual)
+  String selectedCountryFlag = "🇮🇳";
+
   @override
   void initState() {
     Future.delayed(Duration.zero, () {
@@ -40,7 +46,7 @@ class _SignUpState extends State<SignUp>{
             double.parse(Provider.of<LocationProvider>(context, listen: false).longitude));
       }
     });
-  super.initState();
+    super.initState();
   }
   @override
   void dispose() {
@@ -86,16 +92,16 @@ class _SignUpState extends State<SignUp>{
                         child: Container(
                           width: 80,height: 80,
                           decoration: customDecoration.baseBackgroundDecoration(
-                            color: Colors.grey,radius: 80,borderColor: colorsConst.primary
+                              color: Colors.grey,radius: 80,borderColor: colorsConst.primary
                           ),
                           child: empProvider.profile==""?CircleAvatar(
-                            radius: 40,
-                            backgroundColor: Colors.grey.shade100,
-                            child: SvgPicture.asset(assets.profile,width: 80,height: 80,)
+                              radius: 40,
+                              backgroundColor: Colors.grey.shade100,
+                              child: SvgPicture.asset(assets.profile,width: 80,height: 80,)
                           ):CircleAvatar(
-                            radius: 40,
-                            backgroundColor: Colors.white,
-                            backgroundImage: FileImage(File(empProvider.profile))
+                              radius: 40,
+                              backgroundColor: Colors.white,
+                              backgroundImage: FileImage(File(empProvider.profile))
                           ),
                         ),
                       ),
@@ -111,13 +117,71 @@ class _SignUpState extends State<SignUp>{
                       ),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          CustomTextField(text: constValue.phoneNumber,
-                            controller: empProvider.signMobileNumber,
-                            isRequired: true,
+                          // <-- CHANGED: phone number field wrapped with a
+                          // tappable country-code box in front of it (opens
+                          // showCountryPicker), still fitting the same
+                          // half-width slot as before.
+                          SizedBox(
                             width: kIsWeb?webWidth/2.1:phoneWidth/2.1,
-                            keyboardType: TextInputType.number,
-                            inputFormatters: constInputFormatters.mobileNumberInput,
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                Container(
+                                  margin: const EdgeInsets.only(bottom: 14),
+                                  child: Material(
+                                    color: Colors.transparent,
+                                    child: InkWell(
+                                      borderRadius: BorderRadius.circular(10),
+                                      onTap: () {
+                                        _myFocusScopeNode.unfocus();
+                                        showCountryPicker(
+                                          context: context,
+                                          showPhoneCode: true,
+                                          countryListTheme: CountryListThemeData(
+                                            bottomSheetHeight: MediaQuery.of(context).size.height * 0.7,
+                                          ),
+                                          onSelect: (Country country) {
+                                            setState(() {
+                                              selectedCountryCode = "+${country.phoneCode}";
+                                              selectedCountryFlag = country.flagEmoji;
+                                            });
+                                          },
+                                        );
+                                      },
+                                      child: Container(
+                                        height: 45,
+                                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                                        decoration: BoxDecoration(
+                                          border: Border.all(color: Colors.grey.shade400),
+                                          borderRadius: BorderRadius.circular(10),
+                                        ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Text(selectedCountryFlag, style: const TextStyle(fontSize: 16)),
+                                            2.width,
+                                            Text(selectedCountryCode, style: const TextStyle(fontSize: 12)),
+                                            const Icon(Icons.arrow_drop_down, size: 16, color: Colors.grey),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                4.width,
+                                Expanded(
+                                  child: CustomTextField(text: constValue.phoneNumber,
+                                    controller: empProvider.signMobileNumber,
+                                    isRequired: true,
+                                    width: double.infinity,
+                                    keyboardType: TextInputType.number,
+                                    inputFormatters: constInputFormatters.mobileNumberInput,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                           CustomTextField(text: constValue.password,
                             controller: empProvider.signPassword,
@@ -169,7 +233,7 @@ class _SignUpState extends State<SignUp>{
                               }
                             },
                             child: Icon(
-                              Icons.location_on_sharp, color: colorsConst.appDarkGreen),
+                                Icons.location_on_sharp, color: colorsConst.appDarkGreen),
                           ),
                         ],
                       ),
@@ -262,14 +326,16 @@ class _SignUpState extends State<SignUp>{
                                 }else {
                                   if(empProvider.signEmailid.text.trim().isEmpty) {
                                     _myFocusScopeNode.unfocus();
-                                    empProvider.signupEmployee(context,locPvr.latitude,locPvr.longitude);
+                                    // <-- CHANGED: pass the selected country code through
+                                    empProvider.signupEmployee(context,locPvr.latitude,locPvr.longitude,countryCode: selectedCountryCode);
                                   }else{
                                     final bool isValid =
                                     RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$')
                                         .hasMatch(empProvider.signEmailid.text.trim());
                                     if(isValid){
                                       _myFocusScopeNode.unfocus();
-                                      empProvider.signupEmployee(context,locPvr.latitude,locPvr.longitude);
+                                      // <-- CHANGED: pass the selected country code through
+                                      empProvider.signupEmployee(context,locPvr.latitude,locPvr.longitude,countryCode: selectedCountryCode);
                                     }else{
                                       utils.showWarningToast(context,
                                           text: "Please check email id");
@@ -294,6 +360,3 @@ class _SignUpState extends State<SignUp>{
     });
   }
 }
-
-
-

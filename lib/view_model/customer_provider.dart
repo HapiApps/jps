@@ -66,7 +66,20 @@ class CustomerProvider with ChangeNotifier{
   String selectCustomerNo = "";
   bool hideEmptyEmployees = false;
   bool isAddCompanyLoading = false;
+  String emgCountryCode = "+91";       // <-- RENAMED
+  String emgCountryFlag = "🇮🇳";       // <-- RENAMED
 
+  void changeCountryCode(int index, String code, String flag) {
+    addCustomer[index].countryCode = code;
+    addCustomer[index].countryFlag = flag;
+    notifyListeners();
+  }
+
+  void changeEmgCountryCode(String code, String flag) {
+    emgCountryCode = code;
+    emgCountryFlag = flag;
+    notifyListeners();
+  }
   void toggleHideEmptyEmployees(bool value) {
     hideEmptyEmployees = value;
     notifyListeners();
@@ -1353,6 +1366,7 @@ Future<void> insertCustomer(context,String lat,String lng) async {
           "name": _addCustomer[i].name.text.trim(),
           "email": _addCustomer[i].email.text.trim(),
           "phone_no": _addCustomer[i].phone.text.trim(),
+          "c_code": _addCustomer[i].countryCode.toString().trim(),
           "whatsapp_no": _addCustomer[i].whatsApp.text.trim(),
           "created_by":localData.storage.read("id"),
           "platform":localData.storage.read("platform").toString(),

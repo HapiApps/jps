@@ -1,3 +1,5 @@
+
+import 'package:country_picker/country_picker.dart';
 import 'package:master_code/view_model/location_provider.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -19,6 +21,7 @@ import '../source/constant/key_constant.dart';
 import '../source/utilities/utils.dart';
 import '../view_model/home_provider.dart';
 import 'forgot_password.dart';
+
 class LoginPage extends StatefulWidget {
   final String? number;
   const LoginPage({super.key, this.number});
@@ -29,19 +32,24 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> {
 
+  // <-- CHANGED: holds the currently selected dial code, e.g. "+91"
+  String selectedCountryCode = "+91";
+  // <-- ADDED: holds the flag emoji to show next to the code (optional, purely visual)
+  String selectedCountryFlag = "🇮🇳";
+
   @override
   void initState() {
     WidgetsBinding.instance.addPostFrameCallback((timeStamp) async {
       Provider.of<HomeProvider>(context, listen: false).getToken();
       // Provider.of<LocationProvider>(context, listen: false).requestNotificationPermissions();
       Provider.of<HomeProvider>(context, listen: false).checkLoginValues(widget.number.toString());
-      await Provider.of<LocationProvider>(context, listen: false).manageLocation(context,false);
+
     });
     super.initState();
   }
   @override
   Widget build(BuildContext context) {
-    var webWidth=MediaQuery.of(context).size.width*0.5; 
+    var webWidth=MediaQuery.of(context).size.width*0.5;
     var phoneWidth=MediaQuery.of(context).size.width*0.83;
     var webHeight=MediaQuery.of(context).size.height*0.3;
     var phoneHeight=MediaQuery.of(context).size.height*0.3;
@@ -87,20 +95,75 @@ class _LoginPageState extends State<LoginPage> {
                     children: [
                       30.height,
                       SvgPicture.asset(assets.login,
-                        width: kIsWeb?webWidth:phoneWidth,
-                        height: kIsWeb?webHeight:phoneHeight),
+                          width: kIsWeb?webWidth:phoneWidth,
+                          height: kIsWeb?webHeight:phoneHeight),
                       20.height,
                       // CustomText(text: constValue.login,colors: Colors.black,size: 20,isBold: true,),
                       20.height,
-                      CustomTextField(
+                      // <-- CHANGED: phone number field is now wrapped in a Row
+                      // with a tappable country-code box (opens showCountryPicker) on the left.
+                      SizedBox(
                         width: kIsWeb?webWidth:phoneWidth,
-                        isRequired: true,
-                        text: "Phone Number",controller: homeProvider.loginNumber,
-                        keyboardType: TextInputType.phone,
-                        inputFormatters: constInputFormatters.mobileNumberInput,
-                        onChanged: (value)  {
-                          homeProvider.remember(false);
-                        },
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Container(
+                              margin: const EdgeInsets.only(bottom: 14), // aligns with CustomTextField's own bottom spacing
+                              child: Material(
+                                color: Colors.transparent,
+                                child: InkWell(
+                                  borderRadius: BorderRadius.circular(10),
+                                  onTap: () {
+                                    showCountryPicker(
+                                      context: context,
+                                      showPhoneCode: true,
+                                      countryListTheme: CountryListThemeData(
+                                        bottomSheetHeight: MediaQuery.of(context).size.height * 0.7,
+                                      ),
+                                      onSelect: (Country country) {
+                                        setState(() {
+                                          selectedCountryCode = "+${country.phoneCode}";
+                                          selectedCountryFlag = country.flagEmoji;
+                                        });
+                                      },
+                                    );
+                                  },
+                                  child: Container(
+                                    height: 50,
+                                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                                    decoration: BoxDecoration(
+                                      border: Border.all(color: Colors.grey.shade400),
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        CustomText(text: selectedCountryFlag),
+                                        4.width,
+                                        CustomText(text: selectedCountryCode, colors: Colors.black),
+                                        2.width,
+                                        const Icon(Icons.arrow_drop_down, size: 18, color: Colors.grey),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            8.width,
+                            Expanded(
+                              child: CustomTextField(
+                                width: double.infinity,
+                                isRequired: true,
+                                text: "Phone Number",controller: homeProvider.loginNumber,
+                                keyboardType: TextInputType.phone,
+                                inputFormatters: constInputFormatters.mobileNumberInput,
+                                onChanged: (value)  {
+                                  homeProvider.remember(false);
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                       CustomTextField(
                         width: kIsWeb?webWidth:phoneWidth,
@@ -136,7 +199,8 @@ class _LoginPageState extends State<LoginPage> {
                             homeProvider.loginCtr.reset();
                           }else {
                             FocusScope.of(context).unfocus();
-                            homeProvider.login(context);
+                            // <-- CHANGED: pass the selected country code to the provider before login
+                            homeProvider.login(context, countryCode: selectedCountryCode);
                           }
                         },
                       ),
@@ -184,7 +248,8 @@ class _LoginPageState extends State<LoginPage> {
                             homeProvider.loginCtr.reset();
                           }else {
                             FocusScope.of(context).unfocus();
-                            homeProvider.login(context);
+                            // <-- CHANGED: pass the selected country code to the provider before login
+                            homeProvider.login(context, countryCode: selectedCountryCode);
                           }
                         },
                         text: constValue.login,controller: homeProvider.loginCtr,
@@ -209,6 +274,3 @@ class _LoginPageState extends State<LoginPage> {
     });
   }
 }
-
-
-

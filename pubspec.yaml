@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 0.0.14+14
+version: 0.0.15+15
 
 environment:
   sdk: ^3.7.2
@@ -29,6 +29,12 @@ environment:
 # versions available, run `flutter pub outdated`.
 dependencies:
   flutter:
+    sdk: flutter
+
+  # ✅ MOVED HERE from dev_dependencies, with the required "sdk: flutter" source.
+  # This is what was missing/misindented and caused the "could not find package
+  # flutter_localizations at https://pub.dev" resolution failure.
+  flutter_localizations:
     sdk: flutter
 
   # The following adds the Cupertino Icons font to your application.
@@ -92,6 +98,8 @@ dependencies:
   skeleton_loader:
   syncfusion_flutter_calendar: ^29.1.41
   syncfusion_flutter_datepicker: ^29.1.41
+  country_code_picker: ^3.4.1
+  country_picker: ^2.0.28
   printing: ^5.13.2
   pdf:
   number_to_words_english:
@@ -100,14 +108,18 @@ dependencies:
   flutter_local_notifications: ^19.2.1
   share_plus: ^10.1.4
   syncfusion_flutter_xlsio:
-#  flutter_localization:
+  #  flutter_localization:
   multi_dropdown: ^3.1.0
   google_fonts:
   timezone:
   syncfusion_flutter_pdfviewer:
   syncfusion_flutter_pdf:
+
 dev_dependencies:
   flutter_launcher_icons:
+  # ❌ REMOVED: flutter_localizations was here before — it belongs in
+  # dependencies (above), not dev_dependencies, since it's used in
+  # production app code (main.dart), not just for testing.
   flutter_test:
     sdk: flutter
 
@@ -135,19 +147,20 @@ flutter:
 
   # To add assets to your application, add an assets section, like this:
   assets:
-     - assets/images/
-     - assets/images/logo/
-     - assets/images/panel/
-     - assets/images/dashboard/
-     - assets/images/emp/
-     - assets/images/cus/
-     - assets/images/report/
-     - assets/images/about/
-     - assets/images/leave/
-     - assets/images/payroll/
-     - assets/images/project/
-     - assets/images/task/
-     - assets/images/expasy/
+    - assets/images/
+    - assets/images/logo/
+    - assets/images/app_logo/
+    - assets/images/panel/
+    - assets/images/dashboard/
+    - assets/images/emp/
+    - assets/images/cus/
+    - assets/images/report/
+    - assets/images/about/
+    - assets/images/leave/
+    - assets/images/payroll/
+    - assets/images/project/
+    - assets/images/task/
+    - assets/images/expasy/
   #   - images/a_dot_burr.jpeg
   #   - images/a_dot_ham.jpeg
 
@@ -163,15 +176,15 @@ flutter:
   # list giving the asset and other descriptors for the font. For
   # example:
   fonts:
-     - family: Lato
-       fonts:
-         - asset: assets/font/Lato-Regular.ttf
-     - family: Roboto
-       fonts:
-         - asset: assets/font/Roboto-Regular.ttf
-     - family: times
-       fonts:
-         - asset: assets/font/times.ttf
+    - family: Lato
+      fonts:
+        - asset: assets/font/Lato-Regular.ttf
+    - family: Roboto
+      fonts:
+        - asset: assets/font/Roboto-Regular.ttf
+    - family: times
+      fonts:
+        - asset: assets/font/times.ttf
   #   - family: Schyler
   #     fonts:
   #       - asset: fonts/Schyler-Regular.ttf
