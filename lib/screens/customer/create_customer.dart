@@ -156,40 +156,43 @@ class _CreateCustomerState extends State<CreateCustomer> with TickerProviderStat
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          Container(
-                            margin: const EdgeInsets.only(bottom: 14),
-                            child: Material(
-                              color: Colors.transparent,
-                              child: InkWell(
-                                borderRadius: BorderRadius.circular(10),
-                                onTap: () {
-                                  showCountryPicker(
-                                    context: context,
-                                    showPhoneCode: true,
-                                    countryListTheme: CountryListThemeData(
-                                      bottomSheetHeight: MediaQuery.of(context).size.height * 0.7,
+                          Padding(
+                            padding: const EdgeInsets.only(top: 16.0),
+                            child: Container(
+                              margin: const EdgeInsets.only(bottom: 14),
+                              child: Material(
+                                color: Colors.transparent,
+                                child: InkWell(
+                                  borderRadius: BorderRadius.circular(10),
+                                  onTap: () {
+                                    showCountryPicker(
+                                      context: context,
+                                      showPhoneCode: true,
+                                      countryListTheme: CountryListThemeData(
+                                        bottomSheetHeight: MediaQuery.of(context).size.height * 0.7,
+                                      ),
+                                      onSelect: (Country country) {
+                                        custProvider.changeEmgCountryCode("+${country.phoneCode}", country.flagEmoji);
+                                      },
+                                    );
+                                  },
+                                  child: Container(
+                                    height: 50,
+                                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                                    decoration: BoxDecoration(
+                                      border: Border.all(color: Colors.grey.shade400),
+                                      borderRadius: BorderRadius.circular(10),
                                     ),
-                                    onSelect: (Country country) {
-                                      custProvider.changeEmgCountryCode("+${country.phoneCode}", country.flagEmoji);
-                                    },
-                                  );
-                                },
-                                child: Container(
-                                  height: 50,
-                                  padding: const EdgeInsets.symmetric(horizontal: 10),
-                                  decoration: BoxDecoration(
-                                    border: Border.all(color: Colors.grey.shade400),
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      CustomText(text: custProvider.emgCountryFlag),
-                                      4.width,
-                                      CustomText(text: custProvider.emgCountryCode, colors: Colors.black),
-                                      2.width,
-                                      const Icon(Icons.arrow_drop_down, size: 18, color: Colors.grey),
-                                    ],
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        CustomText(text: custProvider.emgCountryFlag),
+                                        4.width,
+                                        CustomText(text: custProvider.emgCountryCode, colors: Colors.black),
+                                        2.width,
+                                        const Icon(Icons.arrow_drop_down, size: 18, color: Colors.grey),
+                                      ],
+                                    ),
                                   ),
                                 ),
                               ),
@@ -207,13 +210,13 @@ class _CreateCustomerState extends State<CreateCustomer> with TickerProviderStat
                           ),
                         ],
                       ),
-                      CustomTextField(
-                        text: "Emergency Number",
-                        width: kIsWeb?webWidth:phoneWidth,
-                        inputFormatters: constInputFormatters.mobileNumberInput,
-                        controller: custProvider.emgNo,
-                        keyboardType: TextInputType.number,
-                      ),
+                      // CustomTextField(
+                      //   text: "Emergency Number",
+                      //   width: kIsWeb?webWidth:phoneWidth,
+                      //   inputFormatters: constInputFormatters.mobileNumberInput,
+                      //   controller: custProvider.emgNo,
+                      //   keyboardType: TextInputType.number,
+                      // ),
                       CustomTextField(
                         text: constValue.addressNo,
                         width: kIsWeb?webWidth:phoneWidth,
@@ -307,7 +310,7 @@ class _CreateCustomerState extends State<CreateCustomer> with TickerProviderStat
                                     _myFocusScopeNode.unfocus();
                                     custProvider.changeIndex(1);
                                   } else {
-                                    if (emgNo.isNotEmpty && emgNo.length != 10) {
+                                    if (emgNo.isNotEmpty && emgNo.length<8 || emgNo.length>12) {
                                       utils.showWarningToast(context, text: "Please check emergency number");
                                     } else if (pinCode.isNotEmpty && pinCode.length != 6) {
                                       utils.showWarningToast(context, text: "Please check pincode");
@@ -511,45 +514,84 @@ class _CreateCustomerState extends State<CreateCustomer> with TickerProviderStat
                                     ),
                                   ),
                                   10.height,
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment
-                                        .center,
-                                    children: [
-                                      CustomTextField(
-                                        fieldColor: Colors.grey.shade100,
-                                        text: constValue.phoneNumber,
-                                        isRequired: true,
-                                        controller: custProvider.addCustomer[index].phone,
-                                        inputFormatters: constInputFormatters.mobileNumberInput,
-                                        keyboardType: TextInputType.number,
-                                        width: kIsWeb?webWidth/2.1:phoneWidth/2.1,
-                                        isLogin: true,
-                                        iconData: custProvider.addCustomer[index].isWhatsapp==true?Icons.check_circle:Icons.circle_outlined,
-                                        iconColor: custProvider.addCustomer[index].isWhatsapp==true?colorsConst.appGreen:colorsConst.litGrey,
-                                        onChanged: (value){
-                                          custProvider.changeNumber(index);
-                                        },
-                                        iconCallBack: (){
-                                          custProvider.copyNumber(index);
-                                        },
-                                      ),
-                                      5.width,
-                                      Padding(
-                                        padding: const EdgeInsets.fromLTRB(0, 5, 0, 0),
-                                        child: CustomTextField(
-                                          fieldColor: Colors.grey.shade100,
-                                          text: constValue.mobileNumber,
-                                          controller: custProvider.addCustomer[index].whatsApp,
-                                          keyboardType: TextInputType.number,
-                                          inputFormatters: constInputFormatters.mobileNumberInput,
-                                          width: kIsWeb?webWidth/2.1:phoneWidth/2.1,
-                                          onChanged: (value){
-                                            custProvider.removeCheck(index);
-                                          },
+                                  SizedBox(
+                                    //width: kIsWeb?webWidth/1.1:phoneWidth/1.1,
+                                    child: Row(
+                                      crossAxisAlignment: CrossAxisAlignment.center,
+                                      children: [
+                                        // <-- ADDED: tappable country-code box (opens showCountryPicker)
+                                        Padding(
+                                          padding: const EdgeInsets.only(top: 16.0),
+                                          child: Material(
+                                            color: Colors.transparent,
+                                            child: InkWell(
+                                              borderRadius: BorderRadius.circular(10),
+                                              onTap: () {
+                                                showCountryPicker(
+                                                  context: context,
+                                                  showPhoneCode: true,
+                                                  countryListTheme: CountryListThemeData(
+                                                    bottomSheetHeight: MediaQuery.of(context).size.height * 0.8,
+                                                  ),
+                                                  onSelect: (Country country) {
+                                                    custProvider.changeCountryCode(index, "+${country.phoneCode}", country.flagEmoji);
+                                                  },
+                                                );
+                                              },
+                                              child: Container(
+                                                height: 45,
+                                                padding: const EdgeInsets.symmetric(horizontal: 8),
+                                                decoration: BoxDecoration(
+                                                  color: Colors.grey.shade100,
+                                                  border: Border.all(color: Colors.grey.shade400),
+                                                  borderRadius: BorderRadius.circular(10),
+                                                ),
+                                                child: Row(
+                                                  mainAxisSize: MainAxisSize.min,
+                                                  children: [
+                                                    Text(custProvider.addCustomer[index].countryCode, style: const TextStyle(fontSize: 12)),
+                                                    const Icon(Icons.arrow_drop_down, size: 16, color: Colors.grey),
+                                                  ],
+                                                ),
+                                              ),
+                                            ),
+                                          ),
                                         ),
-                                      ),
+                                        4.width,
+                                        Expanded(
+                                          child: CustomTextField(
+                                            fieldColor: Colors.grey.shade100,
+                                            text: constValue.phoneNumber,
+                                            isRequired: true,
+                                            controller: custProvider.addCustomer[index].phone,
+                                            inputFormatters: constInputFormatters.mobileNumberInput,
+                                            keyboardType: TextInputType.number,
+                                            width: double.infinity,
+                                            isLogin: true,
+                                            iconData: custProvider.addCustomer[index].isWhatsapp==true?Icons.check_circle:Icons.circle_outlined,
+                                            iconColor: custProvider.addCustomer[index].isWhatsapp==true?colorsConst.appGreen:colorsConst.litGrey,
+                                            onChanged: (value){
+                                              custProvider.changeNumber(index);
+                                            },
+                                            iconCallBack: (){
+                                              custProvider.copyNumber(index);
+                                            },
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
 
-                                    ],
+                                  CustomTextField(
+                                    fieldColor: Colors.grey.shade100,
+                                    text: constValue.mobileNumber,
+                                    controller: custProvider.addCustomer[index].whatsApp,
+                                    keyboardType: TextInputType.number,
+                                    inputFormatters: constInputFormatters.mobileNumberInput,
+                                    width: kIsWeb?webWidth/1.02:phoneWidth/1.02,
+                                    onChanged: (value){
+                                      custProvider.removeCheck(index);
+                                    },
                                   ),
                                   CustomTextField(
                                     text: constValue.emailId,
@@ -595,14 +637,13 @@ class _CreateCustomerState extends State<CreateCustomer> with TickerProviderStat
                             CustomLoadingButton(
                               callback: (){
                                 final customer = custProvider.addCustomer.last;
-
                                 if (customer.name.text.trim().isEmpty) {
                                   utils.showWarningToast(context, text: "Please Fill ${constValue.contact} Name");
                                 } else if (customer.phone.text.trim().isEmpty) {
                                   utils.showWarningToast(context, text: "Please Fill ${constValue.contact} ${constValue.phoneNumber}");
-                                } else if (customer.phone.text.trim().length != 10) {
+                                } else if (customer.phone.text.trim().length <8||customer.phone.text.trim().length>12) {
                                   utils.showWarningToast(context, text: "Please Check ${constValue.contact} ${constValue.phoneNumber}");
-                                } else if (customer.whatsApp.text.trim().isNotEmpty && customer.whatsApp.text.trim().length != 10) {
+                                } else if (customer.whatsApp.text.trim().isNotEmpty && customer.whatsApp.text.trim().length <8 ||customer.whatsApp.text.trim().length>12) {
                                   utils.showWarningToast(context, text: "Please Check ${constValue.contact} ${constValue.mobileNumber}");
                                 } else {
                                   if(customer.email.text.trim().isEmpty) {
@@ -710,10 +751,10 @@ class _CreateCustomerState extends State<CreateCustomer> with TickerProviderStat
                                 } else if (customer.phone.text.trim().isEmpty) {
                                   utils.showWarningToast(context, text: "Please Fill ${constValue.contact} ${constValue.phoneNumber}");
                                   custProvider.addCtr.reset();
-                                } else if (customer.phone.text.trim().length != 10) {
+                                } else if (customer.phone.text.trim().length < 8 || customer.phone.text.trim().length > 12) {
                                   utils.showWarningToast(context, text: "Please Check ${constValue.contact} ${constValue.phoneNumber}");
                                   custProvider.addCtr.reset();
-                                } else if (customer.whatsApp.text.trim().isNotEmpty && customer.whatsApp.text.trim().length != 10) {
+                                } else if (customer.whatsApp.text.trim().isNotEmpty && customer.whatsApp.text.trim().length < 8  ||customer.whatsApp.text.trim().length > 12) {
                                   utils.showWarningToast(context, text: "Please Check ${constValue.contact} ${constValue.mobileNumber}");
                                   custProvider.addCtr.reset();
                                 } else {

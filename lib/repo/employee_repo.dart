@@ -73,7 +73,8 @@ class EmployeeRepository{
       String img5,List<int> imgList5,String imgName5,
       String img6,List<int> imgList6,String imgName6,
       String img7,List<int> imgList7,String imgName7,
-      ) async {
+      ) async
+  {
     try{
     // print("img");
     // print(img);

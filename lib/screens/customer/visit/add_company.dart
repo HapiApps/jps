@@ -28,7 +28,7 @@ class _AddCompanyPopupState extends State<AddCompanyPopup> {
   }
 
   bool isValidMobile(String mobile) {
-    return RegExp(r'^[6-9]\d{9}$').hasMatch(mobile);
+    return RegExp(r'^[6-9]\d{7,11}$').hasMatch(mobile);
   }
 
   @override

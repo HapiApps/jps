@@ -32,7 +32,11 @@ final EmployeeRepository empRepo = EmployeeRepository();
 // <-- ADDED
 String selectedCountryCode = "+91";
 String selectedCountryFlag = "🇮🇳";
-
+  void changeSignCountryCode(String code, String flag) {
+    selectedCountryCode = code;
+    selectedCountryFlag = flag;
+    notifyListeners();
+  }
 int _swipeIndex = 0;
 int get swipeIndex =>_swipeIndex;
 void addressCheck(dynamic value){
@@ -1138,12 +1142,15 @@ Future<void> insertEmployeeDetails(context,String lat,String lng) async {
       "lng_perm":"0.0",
       "salary":salary.text,
     };
+    print("SENDING c_code: $selectedCountryCode");
+
     final response =await empRepo.addEmployee(data,_profile,_profileList,_profileName,_aadharPhoto,_aadharPhotoList,_aadharPhotoName,
         _aadharPhoto2,_aadharPhotoList2,_aadharPhotoName2,
         _panPhoto,_panPhotoList,_panPhotoName,
         _chequePhoto,_chequePhotoList,_chequePhotoName,
         _licensePhoto,_licensePhotoList,_licensePhotoName,
         _voterPhoto,_voterPhotoList,_voterPhotoName);
+    print("FULL RESPONSE: ${data.toString()}");
     // print(response.toString());
     if (response.toString().contains("Employee with this Phone Number already exits")){
       utils.showWarningToast(context,text: "Employee with this Phone Number already exits");
@@ -1253,6 +1260,7 @@ Future<void> updatedEmployee(context,String userId,bool isDetailView) async {
       "firstname": signFirstName.text.trim(),
       "mobile_number":signMobileNumber.text.trim(),
       "surname":signLastName.text.trim(),
+      "c_code":selectedCountryCode.toString().trim(),
       "role": localData.storage.read("roleId"),
       "updated_by": localData.storage.read("id"),
       "referred_by": signReffered.text.trim(),

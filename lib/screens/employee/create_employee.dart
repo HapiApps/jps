@@ -108,7 +108,7 @@ class _CreateEmployeeState extends State<CreateEmployee>with SingleTickerProvide
                         } else if (empProvider.signMobileNumber.text.trim().isEmpty) {
                           utils.showWarningToast(context, text: "Please fill mobile number");
                           empProvider.signCtr.reset();
-                        } else if (empProvider.signMobileNumber.text.trim().length != 10) {
+                        }else if(empProvider.signMobileNumber.text.trim().length<8 || empProvider.signMobileNumber.text.trim().length>12){
                           utils.showWarningToast(context, text: "Please check mobile number");
                           empProvider.signCtr.reset();
                         } else if (empProvider.signPassword.text.trim().isEmpty) {
@@ -125,7 +125,7 @@ class _CreateEmployeeState extends State<CreateEmployee>with SingleTickerProvide
                           utils.showWarningToast(context, text: "Please check pincode");
                           empProvider.signCtr.reset();
                         } else if (empProvider.signWhatsappNumber.text.trim().isNotEmpty &&
-                            empProvider.signWhatsappNumber.text.trim().length != 10) {
+                            empProvider.signWhatsappNumber.text.trim().length <8 ||empProvider.signWhatsappNumber.text.trim().length >12) {
                           utils.showWarningToast(context, text: "Please check whatsapp number");
                           empProvider.signCtr.reset();
                         } else {
@@ -459,43 +459,47 @@ class _CreateEmployeeState extends State<CreateEmployee>with SingleTickerProvide
                                       Row(
                                         crossAxisAlignment: CrossAxisAlignment.center,
                                         children: [
-                                          Container(
-                                            margin: const EdgeInsets.only(bottom: 14),
-                                            child: Material(
-                                              color: Colors.transparent,
-                                              child: InkWell(
-                                                borderRadius: BorderRadius.circular(10),
-                                                onTap: () {
-                                                  showCountryPicker(
-                                                    context: context,
-                                                    showPhoneCode: true,
-                                                    countryListTheme: CountryListThemeData(
-                                                      bottomSheetHeight: MediaQuery.of(context).size.height * 0.7,
+                                          Padding(
+                                            padding: const EdgeInsets.only(top: 18.0),
+                                            child: Container(
+                                              margin: const EdgeInsets.only(bottom: 14),
+                                              child: Material(
+                                                color: Colors.transparent,
+                                                child: InkWell(
+                                                  borderRadius: BorderRadius.circular(10),
+                                                  onTap: () {
+                                                    showCountryPicker(
+                                                      context: context,
+                                                      showPhoneCode: true,
+                                                      countryListTheme: CountryListThemeData(
+                                                        bottomSheetHeight: MediaQuery.of(context).size.height * 0.7,
+                                                      ),
+                                                      onSelect: (Country country) {
+                                                        setState(() {
+                                                          empProvider.selectedCountryCode = "+${country.phoneCode}";
+                                                          empProvider.selectedCountryFlag = country.flagEmoji;
+                                                          empProvider.notifyListeners();   // <-- ADD THIS
+                                                        });
+                                                      },
+                                                    );
+                                                  },
+                                                  child: Container(
+                                                    height: 50,
+                                                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                                                    decoration: BoxDecoration(
+                                                      border: Border.all(color: Colors.grey.shade400),
+                                                      borderRadius: BorderRadius.circular(10),
                                                     ),
-                                                    onSelect: (Country country) {
-                                                      setState(() {
-                                                        empProvider.selectedCountryCode = "+${country.phoneCode}";
-                                                        empProvider.selectedCountryFlag = country.flagEmoji;
-                                                      });
-                                                    },
-                                                  );
-                                                },
-                                                child: Container(
-                                                  height: 50,
-                                                  padding: const EdgeInsets.symmetric(horizontal: 10),
-                                                  decoration: BoxDecoration(
-                                                    border: Border.all(color: Colors.grey.shade400),
-                                                    borderRadius: BorderRadius.circular(10),
-                                                  ),
-                                                  child: Row(
-                                                    mainAxisSize: MainAxisSize.min,
-                                                    children: [
-                                                      CustomText(text: empProvider.selectedCountryFlag),
-                                                      4.width,
-                                                      CustomText(text: empProvider.selectedCountryCode, colors: Colors.black),
-                                                      2.width,
-                                                      const Icon(Icons.arrow_drop_down, size: 18, color: Colors.grey),
-                                                    ],
+                                                    child: Row(
+                                                      mainAxisSize: MainAxisSize.min,
+                                                      children: [
+                                                        CustomText(text: empProvider.selectedCountryFlag),
+                                                        4.width,
+                                                        CustomText(text: empProvider.selectedCountryCode, colors: Colors.black),
+                                                        2.width,
+                                                        const Icon(Icons.arrow_drop_down, size: 18, color: Colors.grey),
+                                                      ],
+                                                    ),
                                                   ),
                                                 ),
                                               ),
