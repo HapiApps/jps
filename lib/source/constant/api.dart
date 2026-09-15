@@ -1,10 +1,10 @@
 // /// PRODUCTION
-// const String domain="https://aci.hrides.in";
-// const bool isRelease=true;
+const String domain="https://aci.hrides.in";
+const bool isRelease=true;
 
-// DEV
-const String domain="https://thirumald.hapirides.in";
-const bool isRelease=false;
+// // DEV
+// const String domain="https://thirumald.hapirides.in";
+// const bool isRelease=false;
 
 const String path="ACI";
 const String scriptFile="script.php";
@@ -36,8 +36,8 @@ const String psdOtp="otp";
 const String signUp = "sign_up";
 const String insertUsers = "insert_users";
 const String updateUsers = "update_user";
-const String createEmp = "create_employee";
-const String updateEmp = "update_employee";
+// const String createEmp = "create_employee";
+// const String updateEmp = "update_employee";
 const String empActivity = "emp_activity";
 const String addGrade = "add_grade";
 const String empAttendance ="daily_attendance";

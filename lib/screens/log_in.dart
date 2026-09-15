@@ -188,7 +188,7 @@ class _LoginPageState extends State<LoginPage> {
                           if(homeProvider.loginNumber.text.trim().isEmpty){
                             utils.showWarningToast(context,text: "Please fill phone number");
                             homeProvider.loginCtr.reset();
-                          }else if(homeProvider.loginNumber.text.trim().length!=10){
+                          }else if(homeProvider.loginNumber.text.trim().length<8 || homeProvider.loginNumber.text.trim().length>12 ){
                             utils.showWarningToast(context,text: "Please check phone number");
                             homeProvider.loginCtr.reset();
                           }else if(homeProvider.loginPassword.text.trim().isEmpty){
@@ -218,7 +218,7 @@ class _LoginPageState extends State<LoginPage> {
                                 // homeProvider.verifyUser(context);
                                 if (homeProvider.loginNumber.text.trim().isEmpty) {
                                   utils.showWarningToast(context,text: "Enter Your Mobile Number");
-                                }else if (homeProvider.loginNumber.text.trim().length!=10) {
+                                }else if (homeProvider.loginNumber.text.trim().length<8 ||homeProvider.loginNumber.text.trim().length >12) {
                                   utils.showWarningToast(context,text: "Check Your Mobile Number");
                                   homeProvider.checkCtr.reset();
                                 }else{
@@ -237,7 +237,7 @@ class _LoginPageState extends State<LoginPage> {
                           if(homeProvider.loginNumber.text.trim().isEmpty){
                             utils.showWarningToast(context,text: "Please fill phone number");
                             homeProvider.loginCtr.reset();
-                          }else if(homeProvider.loginNumber.text.trim().length!=10){
+                          }else if(homeProvider.loginNumber.text.trim().length<8 ||homeProvider.loginNumber.text.trim().length >12){
                             utils.showWarningToast(context,text: "Please check phone number");
                             homeProvider.loginCtr.reset();
                           }else if(homeProvider.loginPassword.text.trim().isEmpty){
