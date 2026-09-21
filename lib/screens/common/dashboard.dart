@@ -584,10 +584,10 @@ class _DashBoardState extends State<DashBoard> {
     String role = localData.storage.read("role");
 
     final List<_PanelItem> allItems = [
-      _PanelItem("Home", assets.home, 0, const DashBoard(child: HomePage())),
+      _PanelItem("${constValue.home}", assets.home, 0, const DashBoard(child: HomePage())),
       if (homeProvider.roleAccess.any((f) =>
       f['feature'] == 'Employee Management' && f['name'] == 'View'))
-        _PanelItem("Employee", assets.employees, 1,
+        _PanelItem("${constValue.employee}", assets.employees, 1,
             const DashBoard(child: ViewEmployees())),
       if (homeProvider.roleAccess.any(
               (f) => f['feature'] == 'Customer Management' && f['name'] == 'View'))
@@ -599,12 +599,12 @@ class _DashBoardState extends State<DashBoard> {
             "Expense", assets.expense, 9, const DashBoard(child: ExpensePage())),
       if (homeProvider.roleAccess
           .any((f) => f['feature'] == 'Office Expense' && f['name'] == 'View'))
-        _PanelItem("Office Expense", assets.expense, 15,
+        _PanelItem("${constValue.office}", assets.expense, 15,
             const DashBoard(child: ExpasyScreen())),
       if (homeProvider.roleAccess
           .any((f) => f['feature'] == 'Task Management' && f['name'] == 'View'))
         _PanelItem(
-            "Task",
+            "${constValue.task}",
             assets.report,
             10,
             DashBoard(
@@ -622,7 +622,7 @@ class _DashBoardState extends State<DashBoard> {
           f['feature'] == 'Leave Management' &&
               f['name'] == 'Apply Leave'))
         _PanelItem(
-            "Leave",
+            "${constValue.leave}",
             assets.leave,
             11,
             DashBoard(
@@ -646,7 +646,7 @@ class _DashBoardState extends State<DashBoard> {
           f['name'] == 'Group Attendance'))
         _PanelItem("GrpAtt", assets.grpAtt, 14,
             const DashBoard(child: ProjectAttendance())),
-      _PanelItem("Settings", assets.setting, 7, const DashBoard(child: Setting())),
+      _PanelItem("${constValue.setting}", assets.setting, 7, const DashBoard(child: Setting())),
       if (role != "1")
         _PanelItem("", "", 999, const DashBoard(child: Setting()), isShow: false),
     ];

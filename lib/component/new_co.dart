@@ -13,6 +13,7 @@ class CustomText extends StatelessWidget {
   final TextOverflow? overflow;
   final int? maxLines;
   final bool softWrap;
+  final bool shrink; // NEW: text perusa iruntha auto shrink aagum
 
   const CustomText(
       this.text, {
@@ -24,21 +25,30 @@ class CustomText extends StatelessWidget {
         this.overflow,
         this.maxLines,
         this.softWrap = true,
+        this.shrink = false,
       });
 
   @override
   Widget build(BuildContext context) {
-    return Text(
+    final textWidget = Text(
       text,
       textAlign: align,
-      overflow: overflow,
-      maxLines: maxLines,
-      softWrap: softWrap,
+      overflow: shrink ? null : overflow,
+      maxLines: shrink ? 1 : maxLines,
+      softWrap: shrink ? false : softWrap,
       style: GoogleFonts.lato(
         fontSize: size,
         fontWeight: weight,
         color: color,
       ),
+    );
+
+    if (!shrink) return textWidget;
+
+    return FittedBox(
+      fit: BoxFit.scaleDown,
+      alignment: Alignment.centerLeft,
+      child: textWidget,
     );
   }
 }
@@ -81,8 +91,8 @@ class AttendanceItem extends StatelessWidget {
   final Color bgColor;
   final VoidCallback onClick;
   final Color borderColor;
-  final String imagePath; // PNG path
-  final String? type; // PNG path
+  final String imagePath;
+  final String? type;
 
   const AttendanceItem({
     super.key,
@@ -91,7 +101,8 @@ class AttendanceItem extends StatelessWidget {
     required this.bgColor,
     required this.borderColor,
     required this.imagePath,
-    required this.onClick, this.type="0",
+    required this.onClick,
+    this.type = "0",
   });
 
   @override
@@ -102,20 +113,20 @@ class AttendanceItem extends StatelessWidget {
       child: InkWell(
         onTap: onClick,
         child: Container(
-          // width: 100,
           height: screenWidth * 0.2,
-          // margin: const EdgeInsets.symmetric(horizontal: 4),
-          // padding: const EdgeInsets.all(5),
           decoration: BoxDecoration(
             color: bgColor,
-            borderRadius: type=="1"?BorderRadius.only(
+            borderRadius: type == "1"
+                ? const BorderRadius.only(
               topLeft: Radius.circular(10),
               bottomLeft: Radius.circular(10),
-            ):type=="2"?BorderRadius.only(
+            )
+                : type == "2"
+                ? const BorderRadius.only(
               topRight: Radius.circular(10),
               bottomRight: Radius.circular(10),
-            ):null,
-            // border: Border.all(color: borderColor),
+            )
+                : null,
           ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -126,7 +137,7 @@ class AttendanceItem extends StatelessWidget {
                 weight: FontWeight.w600,
                 color: borderColor,
               ),
-              Divider(
+              const Divider(
                 color: Colors.white,
                 thickness: 1,
               ),
@@ -143,4 +154,3 @@ class AttendanceItem extends StatelessWidget {
     );
   }
 }
-

@@ -318,9 +318,12 @@ class _CheckAttendanceState extends State<CheckAttendance> {
                                         ),
                                       ),
                                       const SizedBox(width: 6),
-                                      const CustomText(
-                                        text:  "Verify",
-                                        size: 13,
+                                      CustomText(
+                                        //text:  "verify",
+                                        text:  "${constValue.verify}",
+
+                                        shrink: true,
+                                        size: 11,
                                         colors: Colors.blue,isBold: true,
                                       ),
                                       5.width,
@@ -351,7 +354,7 @@ class _CheckAttendanceState extends State<CheckAttendance> {
                                                           children: [
                                                             Center(
                                                               child: CustomText(
-                                                                text: "Permission\n",
+                                                                text: "${constValue.permission}\n",
                                                                 colors: Colors.black,
                                                                 size: 15,
                                                                 isBold: true,
@@ -522,13 +525,15 @@ class _CheckAttendanceState extends State<CheckAttendance> {
                                             children: [
                                               Icon(
                                                 Icons.lock_clock,
-                                                size: 16,
+                                                size: 14,
                                                 color: Colors.white,
                                               ),
                                               const SizedBox(width: 6),
-                                              const CustomText(
-                                                text: "Permission",
-                                                size: 12,
+                                              CustomText(
+                                                text: "${constValue.permission}",
+                                                size: 11,
+                                                shrink: true,
+                                                isBold: true,
                                                 colors: Colors.white,
                                               ),
                                             ],
@@ -655,19 +660,18 @@ class _CheckAttendanceState extends State<CheckAttendance> {
                                   }
                                 },
 
-                                child: Text(
-                                  attProvider.mainCheckOut
-                                      ? "Attendance Marked"
+                                child: CustomText(
+                                 text:  attProvider.mainCheckOut
+                                      ? constValue.attendMak
                                       : attProvider.permissionStatus == "1"
-                                      ? "Permission Out"
+                                      ? constValue.perOut
                                       : attProvider.mainAttendance == 0
-                                      ? "Attendance In"
-                                      : "Attendance Out",
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 14,
-                                  ),
+                                      ? constValue.attendIn
+                                      : constValue.attendOut,
+                                  size: 13,
+                                 isBold: true,
+                                  colors: Colors.white,
+                                  shrink: true,
                                 ),
                               ),
                             )
@@ -693,20 +697,20 @@ class _CheckAttendanceState extends State<CheckAttendance> {
 
                                   /// LEAVE APPLIED -> Tab 1 (Leave Created / Applied)
                                   GestureDetector(
-                                    onTap: (){
+                                    onTap: () {
                                       final leaveProvider = Provider.of<LeaveProvider>(context, listen: false);
                                       leaveProvider.changeIndex(2);
-                                      leaveProvider.setViewLeaveTab(0);   // 👈 Tab 1
+                                      leaveProvider.setViewLeaveTab(0);
 
                                       utils.navigatePage(
-                                          context,
-                                              ()=>const DashBoard(child: LeaveManagementDashboard())
+                                        context,
+                                            () => const DashBoard(child: LeaveManagementDashboard()),
                                       );
                                     },
                                     child: Container(
-                                      width: 130,
-                                      height: 30,
-                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 5),
+                                      width: 150,
+                                      height: 32,
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
                                       decoration: BoxDecoration(
                                         color: Colors.red.withOpacity(0.12),
                                         borderRadius: BorderRadius.circular(12),
@@ -714,15 +718,20 @@ class _CheckAttendanceState extends State<CheckAttendance> {
                                       ),
                                       child: Row(
                                         children: [
-                                          CustomText(
-                                            text: "Leave Applied: ",
-                                            size: 12,
-                                            colors: Colors.red.shade800,
-                                            isBold: true,
+                                          Flexible(
+                                            child: CustomText(
+                                              text: "${constValue.leave_Applided}:",
+                                              size: 12,
+                                              colors: Colors.red.shade800,
+                                              isBold: true,
+                                              shrink: true,
+                                            ),
                                           ),
-                                          const SizedBox(height: 6),
+                                          const SizedBox(width: 4),
                                           CustomText(
-                                            text: homeProvider.mainReportList.isEmpty?"":homeProvider.mainReportList[0]["today_apply_leave"].toString(),
+                                            text: homeProvider.mainReportList.isEmpty
+                                                ? ""
+                                                : homeProvider.mainReportList[0]["today_apply_leave"].toString(),
                                             size: 16,
                                             isBold: true,
                                             colors: Colors.red.shade900,
@@ -731,23 +740,24 @@ class _CheckAttendanceState extends State<CheckAttendance> {
                                       ),
                                     ),
                                   ),
-                                  const SizedBox(height:5),
+                                  const SizedBox(height: 5),
 
                                   /// ON LEAVE -> Tab 2 (Employees On Leave)
                                   GestureDetector(
-                                    onTap: (){
+                                    onTap: () {
                                       final leaveProvider = Provider.of<LeaveProvider>(context, listen: false);
                                       leaveProvider.changeIndex(2);
-                                      leaveProvider.setViewLeaveTab(1);   // 👈 Tab 2
+                                      leaveProvider.setViewLeaveTab(1);
 
                                       utils.navigatePage(
-                                          context,
-                                              ()=>const DashBoard(child: LeaveManagementDashboard())
+                                        context,
+                                            () => const DashBoard(child: LeaveManagementDashboard()),
                                       );
                                     },
                                     child: Container(
-                                      width: 130,  height: 30,
-                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 5),
+                                      width: 150,
+                                      height: 32,
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
                                       decoration: BoxDecoration(
                                         color: Colors.green.withOpacity(0.12),
                                         borderRadius: BorderRadius.circular(12),
@@ -755,18 +765,20 @@ class _CheckAttendanceState extends State<CheckAttendance> {
                                       ),
                                       child: Row(
                                         children: [
-                                          CustomText(
-                                            text: "On Leave : ",
-                                            size: 12,
-                                            colors: Colors.green.shade800,
-                                            isBold: true,
+                                          Flexible(
+                                            child: CustomText(
+                                              text: "${constValue.on_Leave}:",
+                                              size: 12,
+                                              colors: Colors.green.shade800,
+                                              isBold: true,
+                                              shrink: true,
+                                            ),
                                           ),
+                                          const SizedBox(width: 4),
                                           CustomText(
-                                            text:  homeProvider.mainReportList.isEmpty?"0":"${int.parse(
-                                                homeProvider.mainReportList[0]["fulldayleave_user"].toString()=="null"?"0":
-                                                homeProvider.mainReportList[0]["fulldayleave_user"].toString())+int.parse(
-                                                homeProvider.mainReportList[0]["sessionleave_user"].toString() =="null"?"0":
-                                                homeProvider.mainReportList[0]["sessionleave_user"].toString())}",
+                                            text: homeProvider.mainReportList.isEmpty
+                                                ? "0"
+                                                : "${int.parse(homeProvider.mainReportList[0]["fulldayleave_user"].toString() == "null" ? "0" : homeProvider.mainReportList[0]["fulldayleave_user"].toString()) + int.parse(homeProvider.mainReportList[0]["sessionleave_user"].toString() == "null" ? "0" : homeProvider.mainReportList[0]["sessionleave_user"].toString())}",
                                             size: 16,
                                             isBold: true,
                                             colors: Colors.black,
@@ -775,7 +787,6 @@ class _CheckAttendanceState extends State<CheckAttendance> {
                                       ),
                                     ),
                                   ),
-
                                 ],
                               ),
                             ],

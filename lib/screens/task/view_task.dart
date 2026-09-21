@@ -128,9 +128,9 @@ class _ViewTaskState extends State<ViewTask> with SingleTickerProviderStateMixin
             child: Scaffold(
               backgroundColor: colorsConst.bacColor,
               appBar: PreferredSize(
-                preferredSize: const Size(300, 50),
+                preferredSize:  Size(300, 50),
                 child: CustomAppbar(
-                  text: "View Tasks",
+                  text: "${constValue.viewTask}",
                   callback: () {
                     _myFocusScopeNode.unfocus();
                     homeProvider.updateIndex(0);

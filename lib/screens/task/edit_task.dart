@@ -61,9 +61,9 @@ class _EditTaskState extends State<EditTask> with SingleTickerProviderStateMixin
             node: _myFocusScopeNode,
             child: Scaffold(
               backgroundColor: colorsConst.bacColor,
-              appBar: const PreferredSize(
+              appBar:  PreferredSize(
                 preferredSize: Size(300, 50),
-                child: CustomAppbar(text: "Edit Task"),
+                child: CustomAppbar(text: "${constValue.editTask}"),
               ),
               body: Center(
                 child: SizedBox(
@@ -80,7 +80,7 @@ class _EditTaskState extends State<EditTask> with SingleTickerProviderStateMixin
                                     20.height,
                                     Row(
                                       children: [
-                                        CustomText(text: "Type"),
+                                        CustomText(text: "${constValue.taskType}"),
                                         CustomText(text: "*",colors: colorsConst.appRed,isBold: true,size: 15,),
                                       ],
                                     ),10.height,
@@ -132,7 +132,7 @@ class _EditTaskState extends State<EditTask> with SingleTickerProviderStateMixin
                                   ],
                                 ),
                                 MaxLineTextField(
-                                  text: "Task Title / Description",isRequired: true,maxLine: 4,
+                                  text: "${constValue.taskTitle}",isRequired: true,maxLine: 4,
                                   controller: taskProvider.taskTitleCont,
                                   width: kIsWeb?webWidth:phoneWidth,
                                   textCapitalization: TextCapitalization.sentences,
@@ -140,7 +140,7 @@ class _EditTaskState extends State<EditTask> with SingleTickerProviderStateMixin
                                 Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const CustomText(text: "Priority Level"),10.height,
+                                     CustomText(text: "${constValue.priority}"),10.height,
                                     Row(
                                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                       children: [
@@ -174,14 +174,14 @@ class _EditTaskState extends State<EditTask> with SingleTickerProviderStateMixin
                                 ),
                                 20.height,
                                 SearchCustomDropdown(
-                                    text: "Assign To",isOptional: false,
+                                    text: "${constValue.assigned}",isOptional: false,
                                     hintText: taskProvider.assignedNames,
                                     // hintText: taskProvider.assName==""||taskProvider.assName=="null"?"Assign To":taskProvider.assName,
                                     valueList: empPvr.activeEmps,
                                     onChanged: (value) {},
                                     width: kIsWeb?webWidth:phoneWidth),
                                 MapDropDown(
-                                  hintText: "Status",
+                                  hintText: "${constValue.status}",
                                   saveValue: taskProvider.status,
                                   list: taskProvider.statusList,
                                   onChanged: (Object? value) {
@@ -204,7 +204,7 @@ class _EditTaskState extends State<EditTask> with SingleTickerProviderStateMixin
                                 CustomTextField(
                                   isRequired: true,
                                   width: kIsWeb?webWidth:phoneWidth,
-                                  text: "Task Start Date",
+                                  text: "${constValue.taskStDate}",
                                   controller: taskProvider.taskDt,
                                   hintText: "DD-MM-YYYY",
                                   readOnly: true,
@@ -216,7 +216,7 @@ class _EditTaskState extends State<EditTask> with SingleTickerProviderStateMixin
                                 CustomTextField(
                                   isRequired: true,
                                   width: kIsWeb?webWidth:phoneWidth,
-                                  text: "Task End Date",
+                                  text: "${constValue.taskEdDate}",
                                   controller: taskProvider.taskEt,
                                   hintText: "DD-MM-YYYY",
                                   readOnly: true,

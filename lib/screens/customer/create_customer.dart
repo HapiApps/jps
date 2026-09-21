@@ -230,7 +230,7 @@ class _CreateCustomerState extends State<CreateCustomer> with TickerProviderStat
                         controller: custProvider.comArea,
                       ),
                       CustomTextField(
-                        text: "Landmark",
+                        text: "${constValue.landmark}",
                         width: kIsWeb?webWidth:phoneWidth,
                         controller: custProvider.landmark,
                       ),
@@ -248,7 +248,7 @@ class _CreateCustomerState extends State<CreateCustomer> with TickerProviderStat
                             CustomDropDown(
                               size: 15,
                               color: Colors.white,
-                              text: "State",
+                              text: "${constValue.state}",
                               saveValue: custProvider.state,
                               valueList: custProvider.stateList,
                               onChanged: (value) {
@@ -280,7 +280,7 @@ class _CreateCustomerState extends State<CreateCustomer> with TickerProviderStat
                       ),
                       CustomDropDown(
                         color: Colors.white,
-                        text: "Select Type",saveValue: custProvider.type,
+                        text: "${constValue.selectType}",saveValue: custProvider.type,
                         valueList: custProvider.cusList,
                         onChanged: (value){
                           custProvider.changeCusType(value);
@@ -415,14 +415,14 @@ class _CreateCustomerState extends State<CreateCustomer> with TickerProviderStat
                                     children: [
                                       CustomTextField(
                                         fieldColor: Colors.grey.shade100,
-                                        text: "Department",
+                                        text: "${constValue.department}",
                                         controller: custProvider.addCustomer[index].department,
                                         width: kIsWeb?webWidth/2.1:phoneWidth/2.1,
                                       ),
                                       5.width,
                                       CustomTextField(
                                         fieldColor: Colors.grey.shade100,
-                                        text: "Designation",
+                                        text: "${constValue.designation }",
                                         controller: custProvider.addCustomer[index].designation,
                                         width: kIsWeb?webWidth/2.1:phoneWidth/2.1,
                                       ),
@@ -435,7 +435,7 @@ class _CreateCustomerState extends State<CreateCustomer> with TickerProviderStat
                                         Row(
                                           crossAxisAlignment: CrossAxisAlignment.start,
                                           children: [
-                                            CustomText(text: "Role",colors: Colors.grey.shade400,),
+                                            CustomText(text: "${constValue.role}",colors: Colors.grey.shade400,),
                                           ],
                                         ),5.height,
                                         kIsWeb?

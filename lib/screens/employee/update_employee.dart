@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
-import 'package:country_picker/country_picker.dart'; // <-- ADDED: country_picker package
+import 'package:country_picker/country_picker.dart';
 import 'package:master_code/view_model/location_provider.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_svg/svg.dart';
@@ -63,15 +63,14 @@ class _UpdatedEmployeeState extends State<UpdatedEmployee> with TickerProviderSt
         node: _myFocusScopeNode,
         child: SafeArea(
           child: Scaffold(
-            appBar: const PreferredSize(
+            appBar:  PreferredSize(
               preferredSize: Size(300, 50),
-              child: CustomAppbar(text: "Update Employee",),
+              child: CustomAppbar(text: constValue.updateEmployee,),
             ),
             backgroundColor: colorsConst.bacColor,
             bottomNavigationBar:Container(
               width:kIsWeb?webWidth:phoneWidth,
               padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
-              // color:Colors.blue,
               child:empProvider.tabController!.index==0?
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -82,7 +81,7 @@ class _UpdatedEmployeeState extends State<UpdatedEmployee> with TickerProviderSt
                           utils.showWarningToast(context, text: "Please fill first name");
                         } else if (empProvider.signMobileNumber.text.trim().isEmpty) {
                           utils.showWarningToast(context, text: "Please fill mobile number");
-                        } else if (empProvider.signMobileNumber.text.trim().length<8 || empProvider.signMobileNumber.text.trim().length>12) { // <-- FIXED: 8-12 digit range
+                        } else if (empProvider.signMobileNumber.text.trim().length<8 || empProvider.signMobileNumber.text.trim().length>12) {
                           utils.showWarningToast(context, text: "Please check mobile number");
                         }else if (empProvider.role == null) {
                           utils.showWarningToast(context, text: "Please select role");
@@ -107,7 +106,7 @@ class _UpdatedEmployeeState extends State<UpdatedEmployee> with TickerProviderSt
                         } else if (empProvider.signMobileNumber.text.trim().isEmpty) {
                           utils.showWarningToast(context, text: "Please fill mobile number");
                           empProvider.signCtr.reset();
-                        } else if (empProvider.signMobileNumber.text.trim().length<8 || empProvider.signMobileNumber.text.trim().length>12) { // <-- FIXED: 8-12 digit range
+                        } else if (empProvider.signMobileNumber.text.trim().length<8 || empProvider.signMobileNumber.text.trim().length>12) {
                           utils.showWarningToast(context, text: "Please check mobile number");
                           empProvider.signCtr.reset();
                         } else if (empProvider.role == null) {
@@ -286,7 +285,7 @@ class _UpdatedEmployeeState extends State<UpdatedEmployee> with TickerProviderSt
                         } else if (empProvider.signMobileNumber.text.trim().isEmpty) {
                           utils.showWarningToast(context, text: "Please fill mobile number");
                           empProvider.signCtr.reset();
-                        } else if (empProvider.signMobileNumber.text.trim().length<8 || empProvider.signMobileNumber.text.trim().length>12) { // <-- FIXED: 8-12 digit range
+                        } else if (empProvider.signMobileNumber.text.trim().length<8 || empProvider.signMobileNumber.text.trim().length>12) {
                           utils.showWarningToast(context, text: "Please check mobile number");
                           empProvider.signCtr.reset();
                         } else if (empProvider.role == null) {
@@ -371,12 +370,12 @@ class _UpdatedEmployeeState extends State<UpdatedEmployee> with TickerProviderSt
                         )
                     ),10.height,
                     CustomText(text:
-                    empProvider.swipeIndex==0||empProvider.swipeIndex==1?"Personal Information\n"
-                        :empProvider.swipeIndex==2?"Permanent Address\n"
-                        :empProvider.swipeIndex==3?"Emergency Contact Information\n"
-                        :empProvider.swipeIndex==4?"Job Information\n"
-                        :empProvider.swipeIndex==5?"Reference\n"
-                        :"KYC\n",
+                    empProvider.swipeIndex==0||empProvider.swipeIndex==1?"${constValue.personalInformationE1}\n"
+                        :empProvider.swipeIndex==2?"${constValue.addressEmpE1}\n"
+                        :empProvider.swipeIndex==3?"${constValue.EmergencyContactE1}\n"
+                        :empProvider.swipeIndex==4?"${constValue.jobInformationE1}\n"
+                        :empProvider.swipeIndex==5?"${constValue.ReferenceE1}\n"
+                        :"${constValue.kyc}\n",
                       colors: Colors.black,size: 15,isBold: true,),
                     Expanded(
                         child: TabBarView(
@@ -446,8 +445,6 @@ class _UpdatedEmployeeState extends State<UpdatedEmployee> with TickerProviderSt
                                       text: constValue.lastName, controller: empProvider.signLastName,
                                       width: kIsWeb?webWidth:phoneWidth,
                                     ),
-                                    // <-- CHANGED: phone number field now has a tappable
-                                    // country-code box in front of it (opens showCountryPicker).
                                     SizedBox(
                                       width: kIsWeb?webWidth/1.02:phoneWidth/1.02,
                                       child: Row(
@@ -554,7 +551,7 @@ class _UpdatedEmployeeState extends State<UpdatedEmployee> with TickerProviderSt
                                           isHint: true,
                                           width: kIsWeb?webWidth/2.1:phoneWidth/2.1,
                                           isRequired: true,
-                                          hintText: "Role",
+                                          hintText: constValue.roles,
                                           list: empProvider.roleValues,
                                           saveValue: empProvider.role??"",
                                           onChanged: (Object? value) {
@@ -575,7 +572,7 @@ class _UpdatedEmployeeState extends State<UpdatedEmployee> with TickerProviderSt
                                           },
                                           isHint: true,
                                           width: kIsWeb?webWidth/2.1:phoneWidth/2.1,
-                                          hintText: "Grade",
+                                          hintText: constValue.grade,
                                           list: empProvider.gradeValues,
                                           saveValue: empProvider.grade??"",
                                           onChanged: (Object? value) {
@@ -593,7 +590,7 @@ class _UpdatedEmployeeState extends State<UpdatedEmployee> with TickerProviderSt
                                           width: kIsWeb?webWidth/2.1:phoneWidth/2.1,
                                         ),
                                         CustomTextField(
-                                          text: "Salary",
+                                          text: constValue.salary,
                                           inputFormatters: constInputFormatters.amtInput,
                                           keyboardType: TextInputType.number,
                                           controller: empProvider.salary,
@@ -633,19 +630,16 @@ class _UpdatedEmployeeState extends State<UpdatedEmployee> with TickerProviderSt
                                     CustomTextField(
                                       text: constValue.addressNo,
                                       width: kIsWeb?webWidth:phoneWidth,
-                                      // inputFormatters: constInputFormatters.addressInput,
                                       controller: empProvider.doorNo,
                                     ),
                                     CustomTextField(
                                       text: constValue.streetAddress,
                                       width: kIsWeb?webWidth:phoneWidth,
-                                      // inputFormatters: constInputFormatters.addressInput,
                                       controller: empProvider.streetName,
                                     ),
                                     CustomTextField(
                                       text: constValue.area,
                                       width: kIsWeb?webWidth:phoneWidth,
-                                      // inputFormatters: constInputFormatters.addressInput,
                                       controller: empProvider.comArea,
                                     ),
                                     SizedBox(
@@ -663,7 +657,7 @@ class _UpdatedEmployeeState extends State<UpdatedEmployee> with TickerProviderSt
                                           CustomDropDown(
                                             size: 15,
                                             color: Colors.white,
-                                            text: "State",
+                                            text: constValue.state,
                                             saveValue: empProvider.state,
                                             valueList: empProvider.stateList,
                                             onChanged: (value) {
@@ -711,7 +705,7 @@ class _UpdatedEmployeeState extends State<UpdatedEmployee> with TickerProviderSt
                                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                       children: [
                                         DocumentContainer(
-                                          text:"Aadhaar Card\n( Front )",
+                                          text: constValue.aadhaarFront,
                                           imageValue:empProvider.aadharPhoto,
                                           netWrk: empProvider.oldImage2,
                                           callback: () {
@@ -728,7 +722,7 @@ class _UpdatedEmployeeState extends State<UpdatedEmployee> with TickerProviderSt
                                           },
                                         ),
                                         DocumentContainer(
-                                          text:"    Aadhaar Card\n( Back Optional )",
+                                          text: constValue.aadhaarBack,
                                           imageValue:empProvider.aadharPhoto2,
                                           netWrk: empProvider.oldImage3,
                                           callback: () {
@@ -745,7 +739,7 @@ class _UpdatedEmployeeState extends State<UpdatedEmployee> with TickerProviderSt
                                           },
                                         ),
                                         DocumentContainer(
-                                          text:"PAN \nCard",
+                                          text: constValue.panCard,
                                           imageValue:empProvider.panPhoto,
                                           netWrk: empProvider.oldImage4,
                                           callback: ()  {
@@ -763,19 +757,19 @@ class _UpdatedEmployeeState extends State<UpdatedEmployee> with TickerProviderSt
                                         ),
                                       ],
                                     ),
-                                    CustomTextField(text: "Aadhaar Number",controller: empProvider.signAadhar,
+                                    CustomTextField(text: constValue.aadhaarNumber,controller: empProvider.signAadhar,
                                       inputFormatters: constInputFormatters.aadharInput,
                                       width: kIsWeb?webWidth:phoneWidth,
                                       keyboardType: TextInputType.number,
                                     ),
-                                    CustomTextField(text: "PAN Number",controller: empProvider.signPan,
+                                    CustomTextField(text: constValue.panNumber,controller: empProvider.signPan,
                                       width: kIsWeb?webWidth:phoneWidth,
                                       textCapitalization: TextCapitalization.characters,
                                       inputFormatters: constInputFormatters.panInput,
                                     ),
                                     CustomDropDown(
                                       color: Colors.grey.shade100,
-                                      text: "House Type",saveValue: empProvider.houseType,valueList: empProvider.houseTypeList,
+                                      text: constValue.houseType,saveValue: empProvider.houseType,valueList: empProvider.houseTypeList,
                                       onChanged: (value) {
                                         empProvider.changeHouseType(value);
                                       },
@@ -783,7 +777,7 @@ class _UpdatedEmployeeState extends State<UpdatedEmployee> with TickerProviderSt
                                     ),
                                     CustomDropDown(
                                       color: Colors.grey.shade100,
-                                      text: "Marital Status",saveValue: empProvider.maritalStatus,valueList: empProvider.maritalList,
+                                      text: constValue.maritalStatus,saveValue: empProvider.maritalStatus,valueList: empProvider.maritalList,
                                       onChanged: (value) {
                                         empProvider.changeMaritalStatus(value);
                                       },
@@ -791,7 +785,7 @@ class _UpdatedEmployeeState extends State<UpdatedEmployee> with TickerProviderSt
                                     ),
                                     CustomDropDown(
                                       color: Colors.grey.shade100,
-                                      text: "Relationship",saveValue: empProvider.relation,valueList: empProvider.relationList,
+                                      text: constValue.relationship,saveValue: empProvider.relation,valueList: empProvider.relationList,
                                       onChanged: (value)  {
                                         empProvider.changeRelation(value);
                                       },
@@ -802,7 +796,7 @@ class _UpdatedEmployeeState extends State<UpdatedEmployee> with TickerProviderSt
                                       children: [
                                         CustomDropDown(
                                           color: colorsConst.primary,
-                                          text: "Full Name",saveValue: empProvider.signSpousePrefix,valueList: empProvider.prefix,
+                                          text: constValue.fullName,saveValue: empProvider.signSpousePrefix,valueList: empProvider.prefix,
                                           onChanged: (value) {
                                             empProvider.changePrefix2(value);
                                           },
@@ -810,7 +804,6 @@ class _UpdatedEmployeeState extends State<UpdatedEmployee> with TickerProviderSt
                                         ),
                                         CustomTextField(text: "",controller: empProvider.signSpFirstname,
                                           width: kIsWeb?webWidth/1.2:phoneWidth/1.35,
-                                          // inputFormatters: constInputFormatters.textInput,
                                           textInputAction: TextInputAction.done,
                                         ),
                                       ],
@@ -826,10 +819,9 @@ class _UpdatedEmployeeState extends State<UpdatedEmployee> with TickerProviderSt
                                       10.height,
                                       Center(
                                         child: SizedBox(
-                                          // color:Colors.yellow,
                                           width: kIsWeb?webWidth:phoneWidth,
                                           child: CustomCheckBox(
-                                            text:"Copy From Present Address?",
+                                            text: constValue.copyPresentAddress,
                                             onChanged: (bool? value) {
                                               empProvider.addressCheck(value);
                                             },
@@ -837,28 +829,28 @@ class _UpdatedEmployeeState extends State<UpdatedEmployee> with TickerProviderSt
                                         ),
                                       ),
                                       10.height,
-                                      CustomTextField(text: "Door No",controller: empProvider.permanentDoNo,
+                                      CustomTextField(text: constValue.doorNo,controller: empProvider.permanentDoNo,
                                         width: kIsWeb?webWidth:phoneWidth,
                                         keyboardType: TextInputType.multiline,
                                       ),
-                                      CustomTextField(text: "Street Name",controller: empProvider.permanentStreet,
+                                      CustomTextField(text: constValue.streetName,controller: empProvider.permanentStreet,
                                         width: kIsWeb?webWidth:phoneWidth,
                                         keyboardType: TextInputType.multiline,
                                       ),
-                                      CustomTextField(text: "Area",controller: empProvider.permanentArea,
+                                      CustomTextField(text: constValue.area,controller: empProvider.permanentArea,
                                         width: kIsWeb?webWidth:phoneWidth,
                                         keyboardType: TextInputType.multiline,
                                       ),
                                       Row(
                                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                         children: [
-                                          CustomTextField(text: "City",controller: empProvider.permanentCity,
+                                          CustomTextField(text: constValue.city,controller: empProvider.permanentCity,
                                             width: kIsWeb?webWidth/2.2:phoneWidth/2.2,
                                           ),
                                           CustomDropDown(
                                             size: 15,
                                             color: Colors.grey.shade100,
-                                            text: "State",saveValue: empProvider.permanentState,valueList: empProvider.stateList,
+                                            text: constValue.state,saveValue: empProvider.permanentState,valueList: empProvider.stateList,
                                             onChanged: (value)  {
                                               empProvider.changeState2(value);
                                             },
@@ -869,11 +861,11 @@ class _UpdatedEmployeeState extends State<UpdatedEmployee> with TickerProviderSt
                                       Row(
                                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                         children: [
-                                          CustomTextField(text: "Country",controller: empProvider.permanentCountry,
+                                          CustomTextField(text: constValue.country,controller: empProvider.permanentCountry,
                                             inputFormatters: constInputFormatters.numTextInput,
                                             width: kIsWeb?webWidth/2.2:phoneWidth/2.2,
                                           ),
-                                          CustomTextField(text: "Pincode",controller: empProvider.permanentPin,
+                                          CustomTextField(text: constValue.pinCode,controller: empProvider.permanentPin,
                                             keyboardType: TextInputType.number,
                                             textInputAction: TextInputAction.done,
                                             inputFormatters: constInputFormatters.pinCodeInput,
@@ -888,15 +880,15 @@ class _UpdatedEmployeeState extends State<UpdatedEmployee> with TickerProviderSt
                                   child:
                                   Column(
                                     children: [
-                                      CustomTextField(text: "Full Name",controller: empProvider.signEmFname,
+                                      CustomTextField(text: constValue.fullName,controller: empProvider.signEmFname,
                                         width: kIsWeb?webWidth:phoneWidth,
                                       ),
-                                      CustomTextField(text: "Phone Number",controller: empProvider.signEmPh,
+                                      CustomTextField(text: constValue.phoneNumber,controller: empProvider.signEmPh,
                                         width: kIsWeb?webWidth:phoneWidth,
                                         keyboardType: TextInputType.phone,
                                         inputFormatters: constInputFormatters.mobileNumberInput,
                                       ),
-                                      CustomTextField(text: "Relation",controller: empProvider.signEmRelation,
+                                      CustomTextField(text: constValue.relation,controller: empProvider.signEmRelation,
                                         width: kIsWeb?webWidth:phoneWidth,
                                         textInputAction: TextInputAction.done,
                                       ),
@@ -907,11 +899,10 @@ class _UpdatedEmployeeState extends State<UpdatedEmployee> with TickerProviderSt
                                   child:
                                   Column(
                                     children: [
-                                      CustomTextField(text: "Last Organization",controller: empProvider.signLastOrganization,
+                                      CustomTextField(text: constValue.lastOrganization,controller: empProvider.signLastOrganization,
                                         width: kIsWeb?webWidth:phoneWidth,
                                       ),
-                                      // CustomTextField(text: "Person name who referred you in Lending Paisa",controller: empProvider.signReffered,
-                                      CustomTextField(text: "Referred By",controller: empProvider.signReffered,
+                                      CustomTextField(text: constValue.referredBy,controller: empProvider.signReffered,
                                         width: kIsWeb?webWidth:phoneWidth,
                                         textInputAction: TextInputAction.done,
                                       ),
@@ -922,18 +913,18 @@ class _UpdatedEmployeeState extends State<UpdatedEmployee> with TickerProviderSt
                                   child:
                                   Column(
                                     children: [
-                                      CustomTextField(text: "Reference 1 Full Name",controller: empProvider.signReFname1,
+                                      CustomTextField(text: constValue.reference1Name,controller: empProvider.signReFname1,
                                         width: kIsWeb?webWidth:phoneWidth,
                                       ),
-                                      CustomTextField(text: "Reference 1 Phone Number",controller: empProvider.signRePh1,
+                                      CustomTextField(text: constValue.reference1Phone,controller: empProvider.signRePh1,
                                         keyboardType: TextInputType.phone,
                                         width: kIsWeb?webWidth:phoneWidth,
                                         inputFormatters: constInputFormatters.mobileNumberInput,
                                       ),
-                                      CustomTextField(text: "Reference 2 Full Name",controller: empProvider.signReFname2,
+                                      CustomTextField(text: constValue.reference2Name,controller: empProvider.signReFname2,
                                         width: kIsWeb?webWidth:phoneWidth,
                                       ),
-                                      CustomTextField(text: "Reference 2 Phone Number",controller: empProvider.signRePh2,
+                                      CustomTextField(text: constValue.reference2Phone,controller: empProvider.signRePh2,
                                         keyboardType: TextInputType.phone,
                                         width: kIsWeb?webWidth:phoneWidth,
                                         inputFormatters: constInputFormatters.mobileNumberInput,
@@ -955,12 +946,21 @@ class _UpdatedEmployeeState extends State<UpdatedEmployee> with TickerProviderSt
                                     ],
                                   ),
                                   5.height,
-                                  const Row(
+                                  // NOTE: "const" removed, constValue getters are not compile-time constants
+                                  Row(
                                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                     children: [
-                                      CustomText(text: "Cheque",colors: Colors.grey,size: 14),
-                                      CustomText(text: kIsWeb?"Voter (Optional)":"Voter\n(Optional)",colors: Colors.grey,size: 14),
-                                      CustomText(text: kIsWeb?"License (Optional)":"License\n(Optional)",colors: Colors.grey,size: 14),
+                                      CustomText(text: constValue.cheque,colors: Colors.grey,size: 14),
+                                      CustomText(
+                                          text: kIsWeb
+                                              ? "${constValue.voter} (${constValue.optional})"
+                                              : "${constValue.voter}\n(${constValue.optional})",
+                                          colors: Colors.grey,size: 14),
+                                      CustomText(
+                                          text: kIsWeb
+                                              ? "${constValue.license} (${constValue.optional})"
+                                              : "${constValue.license}\n(${constValue.optional})",
+                                          colors: Colors.grey,size: 14),
                                     ],
                                   ),
                                   25.height,
@@ -968,7 +968,7 @@ class _UpdatedEmployeeState extends State<UpdatedEmployee> with TickerProviderSt
                                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                     children: [
                                       DocumentContainer(
-                                        text:"Cheque",
+                                        text: constValue.cheque,
                                         imageValue:empProvider.chequePhoto,
                                         netWrk: empProvider.oldImage5,
                                         callback: () {
@@ -985,7 +985,7 @@ class _UpdatedEmployeeState extends State<UpdatedEmployee> with TickerProviderSt
                                         },
                                       ),
                                       DocumentContainer(
-                                        text:"License",
+                                        text: constValue.license,
                                         imageValue:empProvider.licensePhoto,
                                         netWrk: empProvider.oldImage6,
                                         callback: () {
@@ -1002,7 +1002,7 @@ class _UpdatedEmployeeState extends State<UpdatedEmployee> with TickerProviderSt
                                         },
                                       ),
                                       DocumentContainer(
-                                        text:"Voter",
+                                        text: constValue.voter,
                                         imageValue:empProvider.voterPhoto,
                                         netWrk: empProvider.oldImage7,
                                         callback: () {

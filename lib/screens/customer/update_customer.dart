@@ -239,7 +239,7 @@ class _UpdateCustomerState extends State<UpdateCustomer> with TickerProviderStat
                                     },
                                   ),
                                   CustomTextField(
-                                    text: "Landmark",
+                                    text: "${constValue.landmark}",
                                     width: kIsWeb?webWidth:phoneWidth,
                                     controller: custProvider.landmark,
                                     onChanged: (value){
@@ -263,7 +263,7 @@ class _UpdateCustomerState extends State<UpdateCustomer> with TickerProviderStat
                                         CustomDropDown(
                                           size: 15,
                                           color: Colors.white,
-                                          text: "State",saveValue: custProvider.state,valueList: custProvider.stateList,
+                                          text: "${constValue.state}",saveValue: custProvider.state,valueList: custProvider.stateList,
                                           onChanged: (value){
                                             custProvider.changeState(value);
                                           },
@@ -298,7 +298,7 @@ class _UpdateCustomerState extends State<UpdateCustomer> with TickerProviderStat
                                   ),
                                   CustomDropDown(
                                     color: Colors.white,
-                                    text: "Select Type",saveValue: custProvider.type,
+                                    text: "${constValue.selectType}",saveValue: custProvider.type,
                                     valueList: custProvider.cusList,
                                     onChanged: (value){
                                       custProvider.changeCusType(value);
@@ -424,7 +424,7 @@ class _UpdateCustomerState extends State<UpdateCustomer> with TickerProviderStat
                                                     .center,
                                                 children: [
                                                   CustomTextField(
-                                                    text: "Department",
+                                                    text: "${constValue.department}",
                                                     onChanged: (value){
                                                       custProvider.makeChanges();
                                                     },
@@ -433,7 +433,7 @@ class _UpdateCustomerState extends State<UpdateCustomer> with TickerProviderStat
                                                   ),
                                                   5.width,
                                                   CustomTextField(
-                                                    text: "Designation",
+                                                    text: "${constValue.designation}",
                                                     controller: custProvider.addCustomer[index].designation,
                                                     width: kIsWeb?webWidth/2.1:phoneWidth/2.1,
                                                     onChanged: (value){

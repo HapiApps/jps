@@ -117,9 +117,9 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
             node: _myFocusScopeNode,
             child: Scaffold(
               backgroundColor: colorsConst.bacColor,
-              appBar: const PreferredSize(
+              appBar:  PreferredSize(
                 preferredSize: Size(300, 50),
-                child: CustomAppbar(text: "Add Task"),
+                child: CustomAppbar(text: "${constValue.add_Task}"),
               ),
               // ✅ முழு page-ஐயும் loading state-க்கு ஏத்த switch பண்றது
               body: _isLoading
@@ -273,16 +273,16 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
                                 ],
                               ),
                               SearchCustomDropdown(
-                                  text: "Assign To",
+                                  text: "${constValue.assigned}",
                                   hintText: taskProvider.assignedNames.isEmpty
-                                      ? "Assign To"
+                                      ? "${constValue.assigned}"
                                       : taskProvider.assignedNames,
                                   valueList: empPvr.activeEmps,
                                   isOptional: false,
                                   onChanged: (value) {},
                                   width: kIsWeb ? webWidth : phoneWidth),
                               MapDropDown(
-                                hintText: "Status",
+                                hintText: "${constValue.status}",
                                 saveValue: taskProvider.status,
                                 list: taskProvider.statusList,
                                 dropText: 'value',
@@ -306,7 +306,7 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
                                       width: kIsWeb
                                           ? webWidth
                                           : MediaQuery.of(context).size.width * 0.42,
-                                      text: "Task Start Date",
+                                      text: "${constValue.taskStDate}",
                                       controller: taskProvider.taskDt,
                                       hintText: "DD-MM-YYYY",
                                       readOnly: true,
@@ -323,7 +323,7 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
                                       width: kIsWeb
                                           ? webWidth
                                           : MediaQuery.of(context).size.width * 0.42,
-                                      text: "Task End Date",
+                                      text: "${constValue.taskEdDate}",
                                       controller: taskProvider.taskEt,
                                       hintText: "DD-MM-YYYY",
                                       readOnly: true,
@@ -339,7 +339,7 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
                               Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const CustomText(text: "Priority Level"),
+                                   CustomText(text: "${constValue.priority}",),
                                   5.height,
                                   Row(
                                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -375,7 +375,7 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
                               4.height,
                               MaxLineTextField(
                                 width: kIsWeb ? webWidth : phoneWidth,
-                                text: " Task Title / Description",
+                                text: "${constValue.taskTitle}",
                                 isRequired: true,
                                 controller: taskProvider.taskTitleCont,
                                 textCapitalization: TextCapitalization.sentences,
@@ -384,9 +384,9 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
                               if (!kIsWeb)
                                 SizedBox(
                                   width: kIsWeb ? webWidth : phoneWidth,
-                                  child: const Row(
+                                  child:  Row(
                                     crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [CustomText(text: "Notes Attachments")],
+                                    children: [CustomText(text:"${constValue.notes}")],
                                   ),
                                 ),
                               SizedBox(

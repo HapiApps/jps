@@ -382,12 +382,12 @@ class _CreateEmployeeState extends State<CreateEmployee>with SingleTickerProvide
                         )
                     ),10.height,
                     CustomText(text:
-                    empProvider.swipeIndex==0||empProvider.swipeIndex==1?"Personal Information\n"
-                        :empProvider.swipeIndex==2?"Permanent Address\n"
-                        :empProvider.swipeIndex==3?"Emergency Contact Information\n"
-                        :empProvider.swipeIndex==4?"Job Information\n"
-                        :empProvider.swipeIndex==5?"Reference\n"
-                        :"KYC\n",
+                    empProvider.swipeIndex==0||empProvider.swipeIndex==1?"${constValue.personalInformationE1}\n"
+                        :empProvider.swipeIndex==2?"${constValue.addressEmpE1}\n"
+                        :empProvider.swipeIndex==3?"${constValue.EmergencyContactE1}\n"
+                        :empProvider.swipeIndex==4?"${constValue.jobInformationE1}\n"
+                        :empProvider.swipeIndex==5?"${constValue.ReferenceE1}\n"
+                        :"${constValue.kyc}\n",
                       colors: Colors.black,size: 15,isBold: true,),
                     Expanded(
                       child: TabBarView(
@@ -575,13 +575,13 @@ class _CreateEmployeeState extends State<CreateEmployee>with SingleTickerProvide
                                         isHint: true,
                                         width: kIsWeb?webWidth/2.1:phoneWidth/2.1,
                                         isRequired: true,
-                                        hintText: "Role",
+                                        hintText: "${constValue.role}",
                                         list: empProvider.roleValues,
                                         saveValue: empProvider.role,
                                         onChanged: (Object? value) {
                                           empProvider.changeRole(value);
                                         },
-                                        dropText: 'role',),
+                                        dropText:  "role",),
                                       MapDropDown(
                                         isRefresh: empProvider.gradeValues.isEmpty?true:false,
                                         callback: (){
@@ -596,13 +596,13 @@ class _CreateEmployeeState extends State<CreateEmployee>with SingleTickerProvide
                                         },
                                         isHint: true,
                                         width: kIsWeb?webWidth/2.1:phoneWidth/2.1,
-                                        hintText: "Grade",
+                                        hintText:  "${constValue.grades}",
                                         list: empProvider.gradeValues,
                                         saveValue: empProvider.grade,
                                         onChanged: (Object? value) {
                                           empProvider.changeGrade(value,false);
                                         },
-                                        dropText: 'grade',),
+                                        dropText: "grade",),
                                     ],
                                   ),
                                   Row(
@@ -614,7 +614,7 @@ class _CreateEmployeeState extends State<CreateEmployee>with SingleTickerProvide
                                         width: kIsWeb?webWidth/2.1:phoneWidth/2.1,
                                       ),
                                       CustomTextField(
-                                        text: "Salary",
+                                        text: "${constValue.salary}",
                                         inputFormatters: constInputFormatters.amtInput,
                                         keyboardType: TextInputType.number,
                                         controller: empProvider.salary,
@@ -675,7 +675,7 @@ class _CreateEmployeeState extends State<CreateEmployee>with SingleTickerProvide
                                         CustomDropDown(
                                           size: 15,
                                           color: Colors.white,
-                                          text: "State",
+                                          text:  "${constValue.state}",
                                           saveValue: empProvider.state,
                                           valueList: empProvider.stateList,
                                           onChanged: (value) {
@@ -791,7 +791,7 @@ class _CreateEmployeeState extends State<CreateEmployee>with SingleTickerProvide
                                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                     children: [
                                       DocumentContainer(
-                                        text:"Aadhaar Card\n( Front )",
+                                        text:"${constValue.aadhaarFront}",
                                         imageValue:empProvider.aadharPhoto, callback: () {
                                         _myFocusScopeNode.unfocus();
                                         empProvider.signDialog(
@@ -799,14 +799,14 @@ class _CreateEmployeeState extends State<CreateEmployee>with SingleTickerProvide
                                           img: empProvider.aadharPhoto,
                                           imgName: empProvider.aadharPhotoName,
                                           imgList: empProvider.aadharPhotoList,
-                                          docType: "aadhar",
+                                          docType: "${constValue.aadhaarFront}",
                                           onPicked: empProvider.setDocument,
                                           onRemove: empProvider.removeDocument,
                                         );
                                       },
                                       ),
                                       DocumentContainer(
-                                        text:"    Aadhaar Card\n( Back Optional )",
+                                        text:"  ${constValue.aadhaarBack}",
                                         imageValue:empProvider.aadharPhoto2, callback: () {
                                         _myFocusScopeNode.unfocus();
                                         empProvider.signDialog(
@@ -821,7 +821,7 @@ class _CreateEmployeeState extends State<CreateEmployee>with SingleTickerProvide
                                       },
                                       ),
                                       DocumentContainer(
-                                        text:"PAN \nCard",
+                                        text:"${constValue.panNumber}",
                                         imageValue:empProvider.panPhoto,callback: ()  {
                                         _myFocusScopeNode.unfocus();
                                         empProvider.signDialog(
@@ -829,7 +829,7 @@ class _CreateEmployeeState extends State<CreateEmployee>with SingleTickerProvide
                                           img: empProvider.panPhoto,
                                           imgName: empProvider.panPhotoName,
                                           imgList: empProvider.panPhotoList,
-                                          docType: "pan",
+                                          docType: "${constValue.panNumber}",
                                           onPicked: empProvider.setDocument,
                                           onRemove: empProvider.removeDocument,
                                         );
@@ -837,19 +837,19 @@ class _CreateEmployeeState extends State<CreateEmployee>with SingleTickerProvide
                                       ),
                                     ],
                                   ),
-                                  CustomTextField(text: "Aadhaar Number",controller: empProvider.signAadhar,
+                                  CustomTextField(text: "${constValue.aadhaarNumber}",controller: empProvider.signAadhar,
                                     inputFormatters: constInputFormatters.aadharInput,
                                     width: kIsWeb?webWidth:phoneWidth,
                                     keyboardType: TextInputType.number,
                                   ),
-                                  CustomTextField(text: "PAN Number",controller: empProvider.signPan,
+                                  CustomTextField(text:"${constValue.panNumber}",controller: empProvider.signPan,
                                     width: kIsWeb?webWidth:phoneWidth,
                                     textCapitalization: TextCapitalization.characters,
                                     inputFormatters: constInputFormatters.panInput,
                                   ),
                                   CustomDropDown(
                                     color: Colors.grey.shade100,
-                                    text: "House Type",saveValue: empProvider.houseType,valueList: empProvider.houseTypeList,
+                                    text: "${constValue.houseType}",saveValue: empProvider.houseType,valueList: empProvider.houseTypeList,
                                     onChanged: (value) {
                                       empProvider.changeHouseType(value);
                                     },
@@ -857,7 +857,7 @@ class _CreateEmployeeState extends State<CreateEmployee>with SingleTickerProvide
                                   ),
                                   CustomDropDown(
                                     color: Colors.grey.shade100,
-                                    text: "Marital Status",saveValue: empProvider.maritalStatus,valueList: empProvider.maritalList,
+                                    text: "${constValue.maritalStatus}",saveValue: empProvider.maritalStatus,valueList: empProvider.maritalList,
                                     onChanged: (value) {
                                       empProvider.changeMaritalStatus(value);
                                     },
@@ -865,7 +865,7 @@ class _CreateEmployeeState extends State<CreateEmployee>with SingleTickerProvide
                                   ),
                                   CustomDropDown(
                                     color: Colors.grey.shade100,
-                                    text: "Relationship",saveValue: empProvider.relation,valueList: empProvider.relationList,
+                                    text: "${constValue.relationship}",saveValue: empProvider.relation,valueList: empProvider.relationList,
                                     onChanged: (value)  {
                                       empProvider.changeRelation(value);
                                     },
@@ -876,7 +876,7 @@ class _CreateEmployeeState extends State<CreateEmployee>with SingleTickerProvide
                                     children: [
                                       CustomDropDown(
                                         color: colorsConst.primary,
-                                        text: "Full Name",saveValue: empProvider.signSpousePrefix,valueList: empProvider.prefix,
+                                        text: "${constValue.fullName}",saveValue: empProvider.signSpousePrefix,valueList: empProvider.prefix,
                                         onChanged: (value) {
                                           empProvider.changePrefix2(value);
                                         },
@@ -935,7 +935,7 @@ class _CreateEmployeeState extends State<CreateEmployee>with SingleTickerProvide
                                         // color:Colors.yellow,
                                         width: kIsWeb?webWidth:phoneWidth,
                                         child: CustomCheckBox(
-                                          text:"Copy From Present Address?",
+                                          text:"${constValue.copyPresentAddress}",
                                           onChanged: (bool? value) {
                                             empProvider.addressCheck(value);
                                           },
@@ -943,28 +943,28 @@ class _CreateEmployeeState extends State<CreateEmployee>with SingleTickerProvide
                                       ),
                                     ),
                                     10.height,
-                                    CustomTextField(text: "Door No",controller: empProvider.permanentDoNo,
+                                    CustomTextField(text: "${constValue.doorNo}",controller: empProvider.permanentDoNo,
                                       width: kIsWeb?webWidth:phoneWidth,
                                       keyboardType: TextInputType.multiline,
                                     ),
-                                    CustomTextField(text: "Street Name",controller: empProvider.permanentStreet,
+                                    CustomTextField(text: "${constValue.streetName}",controller: empProvider.permanentStreet,
                                       width: kIsWeb?webWidth:phoneWidth,
                                       keyboardType: TextInputType.multiline,
                                     ),
-                                    CustomTextField(text: "Area",controller: empProvider.permanentArea,
+                                    CustomTextField(text: "${constValue.area}",controller: empProvider.permanentArea,
                                       width: kIsWeb?webWidth:phoneWidth,
                                       keyboardType: TextInputType.multiline,
                                     ),
                                     Row(
                                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                       children: [
-                                        CustomTextField(text: "City",controller: empProvider.permanentCity,
+                                        CustomTextField(text: "${constValue.city}",controller: empProvider.permanentCity,
                                           width: kIsWeb?webWidth/2.1:phoneWidth/2.1,
                                         ),
                                         CustomDropDown(
                                           size: 15,
                                           color: Colors.grey.shade100,
-                                          text: "State",saveValue: empProvider.permanentState,valueList: empProvider.stateList,
+                                          text: "${constValue.state}",saveValue: empProvider.permanentState,valueList: empProvider.stateList,
                                           onChanged: (value)  {
                                             empProvider.changeState2(value);
                                           },
@@ -975,11 +975,11 @@ class _CreateEmployeeState extends State<CreateEmployee>with SingleTickerProvide
                                     Row(
                                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                       children: [
-                                        CustomTextField(text: "Country",controller: empProvider.permanentCountry,
+                                        CustomTextField(text: "${constValue.country}",controller: empProvider.permanentCountry,
                                           inputFormatters: constInputFormatters.numTextInput,
                                           width: kIsWeb?webWidth/2.1:phoneWidth/2.1,
                                         ),
-                                        CustomTextField(text: "Pincode",controller: empProvider.permanentPin,
+                                        CustomTextField(text:"${constValue.pincode}",controller: empProvider.permanentPin,
                                           keyboardType: TextInputType.number,
                                           textInputAction: TextInputAction.done,
                                           inputFormatters: constInputFormatters.pinCodeInput,
@@ -1019,15 +1019,15 @@ class _CreateEmployeeState extends State<CreateEmployee>with SingleTickerProvide
                                 child:
                                 Column(
                                   children: [
-                                    CustomTextField(text: "Full Name",controller: empProvider.signEmFname,
+                                    CustomTextField(text: "${constValue.fullName}",controller: empProvider.signEmFname,
                                       width: kIsWeb?webWidth:phoneWidth,
                                     ),
-                                    CustomTextField(text: "Phone Number",controller: empProvider.signEmPh,
+                                    CustomTextField(text: "${constValue.phoneNumber}",controller: empProvider.signEmPh,
                                       width: kIsWeb?webWidth:phoneWidth,
                                       keyboardType: TextInputType.phone,
                                       inputFormatters: constInputFormatters.mobileNumberInput,
                                     ),
-                                    CustomTextField(text: "Relation",controller: empProvider.signEmRelation,
+                                    CustomTextField(text: "${constValue.relation}",controller: empProvider.signEmRelation,
                                       width: kIsWeb?webWidth:phoneWidth,
                                       textInputAction: TextInputAction.done,
                                     ),
@@ -1063,11 +1063,11 @@ class _CreateEmployeeState extends State<CreateEmployee>with SingleTickerProvide
                                 child:
                                 Column(
                                   children: [
-                                    CustomTextField(text: "Last Organization",controller: empProvider.signLastOrganization,
+                                    CustomTextField(text: "${constValue.lastOrganization}",controller: empProvider.signLastOrganization,
                                       width: kIsWeb?webWidth:phoneWidth,
                                     ),
                                     // CustomTextField(text: "Person name who referred you in Lending Paisa",controller: empProvider.signReffered,
-                                    CustomTextField(text: "Referred By",controller: empProvider.signReffered,
+                                    CustomTextField(text: "${constValue.referredBy}",controller: empProvider.signReffered,
                                       width: kIsWeb?webWidth:phoneWidth,
                                       textInputAction: TextInputAction.done,
                                     ),
@@ -1098,18 +1098,18 @@ class _CreateEmployeeState extends State<CreateEmployee>with SingleTickerProvide
                                 child:
                                 Column(
                                   children: [
-                                    CustomTextField(text: "Reference 1 Full Name",controller: empProvider.signReFname1,
+                                    CustomTextField(text: "${constValue.reference1Name}",controller: empProvider.signReFname1,
                                       width: kIsWeb?webWidth:phoneWidth,
                                     ),
-                                    CustomTextField(text: "Reference 1 Phone Number",controller: empProvider.signRePh1,
+                                    CustomTextField(text: "${constValue.reference1Phone}",controller: empProvider.signRePh1,
                                         keyboardType: TextInputType.phone,
                                         width: kIsWeb?webWidth:phoneWidth,
                                         inputFormatters: constInputFormatters.mobileNumberInput,
                                     ),
-                                    CustomTextField(text: "Reference 2 Full Name",controller: empProvider.signReFname2,
+                                    CustomTextField(text: "${constValue.reference2Name}",controller: empProvider.signReFname2,
                                       width: kIsWeb?webWidth:phoneWidth,
                                     ),
-                                    CustomTextField(text: "Reference 2 Phone Number",controller: empProvider.signRePh2,
+                                    CustomTextField(text: "${constValue.reference2Phone}",controller: empProvider.signRePh2,
                                         keyboardType: TextInputType.phone,
                                         width: kIsWeb?webWidth:phoneWidth,
                                         inputFormatters: constInputFormatters.mobileNumberInput,
@@ -1159,12 +1159,12 @@ class _CreateEmployeeState extends State<CreateEmployee>with SingleTickerProvide
                                   ],
                                 ),
                                 5.height,
-                                const Row(
+                                 Row(
                                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
-                                    CustomText(text: "Cheque",colors: Colors.grey,size: 14),
-                                    CustomText(text: kIsWeb?"Voter (Optional)":"Voter\n(Optional)",colors: Colors.grey,size: 14),
-                                    CustomText(text: kIsWeb?"License (Optional)":"License\n(Optional)",colors: Colors.grey,size: 14),
+                                    CustomText(text: "${constValue.cheque}",colors: Colors.grey,size: 14),
+                                    CustomText(text: kIsWeb?"${constValue.voter}${constValue.optional}":"${constValue.voter}\n ${constValue.optional}",colors: Colors.grey,size: 14),
+                                    CustomText(text: kIsWeb?"${constValue.voter}${constValue.optional}":"${constValue.voter}\n ${constValue.optional}",colors: Colors.grey,size: 14),
                                   ],
                                 ),
                                 25.height,
@@ -1172,7 +1172,7 @@ class _CreateEmployeeState extends State<CreateEmployee>with SingleTickerProvide
                                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
                                     DocumentContainer(
-                                      text:"Cheque",
+                                      text:"${constValue.cheque}",
                                       imageValue:empProvider.chequePhoto, callback: () {
                                       _myFocusScopeNode.unfocus();
                                       empProvider.signDialog(
@@ -1180,14 +1180,14 @@ class _CreateEmployeeState extends State<CreateEmployee>with SingleTickerProvide
                                         img: empProvider.chequePhoto,
                                         imgName: empProvider.chequePhotoName,
                                         imgList: empProvider.chequePhotoList,
-                                        docType: "cheque",
+                                        docType: "${constValue.cheque}",
                                         onPicked: empProvider.setDocument,
                                         onRemove: empProvider.removeDocument,
                                       );
                                     },
                                     ),
                                     DocumentContainer(
-                                      text:"License",
+                                      text:"${constValue.license}",
                                       imageValue:empProvider.licensePhoto, callback: () {
                                       _myFocusScopeNode.unfocus();
                                       empProvider.signDialog(
@@ -1195,14 +1195,14 @@ class _CreateEmployeeState extends State<CreateEmployee>with SingleTickerProvide
                                         img: empProvider.licensePhoto,
                                         imgName: empProvider.licensePhotoName,
                                         imgList: empProvider.licensePhotoList,
-                                        docType: "license",
+                                        docType: "${constValue.license}",
                                         onPicked: empProvider.setDocument,
                                         onRemove: empProvider.removeDocument,
                                       );
                                     },
                                     ),
                                     DocumentContainer(
-                                      text:"Voter",
+                                      text:"${constValue.voter}",
                                       imageValue:empProvider.voterPhoto, callback: () {
                                       _myFocusScopeNode.unfocus();
                                       empProvider.signDialog(
@@ -1210,7 +1210,7 @@ class _CreateEmployeeState extends State<CreateEmployee>with SingleTickerProvide
                                         img: empProvider.voterPhoto,
                                         imgName: empProvider.voterPhotoName,
                                         imgList: empProvider.voterPhotoList,
-                                        docType: "voter",
+                                        docType: "${constValue.voter}",
                                         onPicked: empProvider.setDocument,
                                         onRemove: empProvider.removeDocument,
                                       );
