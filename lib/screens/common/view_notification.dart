@@ -77,306 +77,6 @@ class _ViewNotificationState extends State<ViewNotification> with SingleTickerPr
                     : Column(
                   children: [
                     20.height,
-                    // Container(
-                    //   width: kIsWeb?webHeight:phoneHeight,
-                    //   decoration: customDecoration.baseBackgroundDecoration(
-                    //     radius: 30,
-                    //     color: colorsConst.primary,
-                    //   ),
-                    //   child: Row(
-                    //     mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    //     children: [
-                    //       // Container(
-                    //       //   width: kIsWeb?webHeight/1.5:phoneHeight/1.4,
-                    //       //   height: 45,
-                    //       //   decoration: customDecoration.baseBackgroundDecoration(
-                    //       //     radius: 30,
-                    //       //     color: Colors.transparent,
-                    //       //   ),
-                    //       //   child: TextFormField(
-                    //       //     cursorColor: colorsConst.primary,
-                    //       //     onChanged: (value) {
-                    //       //       empProvider.searchName = value;
-                    //       //       empProvider.applyNotificationFilters();
-                    //       //     },
-                    //       //     textInputAction: TextInputAction.done,
-                    //       //     controller: empProvider.search,
-                    //       //     decoration: InputDecoration(
-                    //       //         hintText:"Search Name",
-                    //       //         hintStyle: TextStyle(
-                    //       //             color: colorsConst.primary,
-                    //       //             fontSize: 14
-                    //       //         ),
-                    //       //         fillColor: Colors.white,
-                    //       //         filled: true,
-                    //       //         prefixIcon: Icon(Icons.search,color: Colors.grey,),
-                    //       //         suffixIcon: empProvider.search.text.isNotEmpty?
-                    //       //         GestureDetector(
-                    //       //             onTap: (){
-                    //       //               setState(() {
-                    //       //                 empProvider.searchName = "";
-                    //       //                 empProvider.applyNotificationFilters();
-                    //       //               });
-                    //       //             },
-                    //       //             child: Container(
-                    //       //                 width: 10,height: 10,color: Colors.transparent,
-                    //       //                 child: Padding(
-                    //       //                   padding: const EdgeInsets.all(8.0),
-                    //       //                   child: SvgPicture.asset(assets.cancel2),
-                    //       //                 ))):null,
-                    //       //         border: OutlineInputBorder(
-                    //       //           borderRadius: BorderRadius.circular(30),
-                    //       //           borderSide: BorderSide(color: Colors.grey.shade300),
-                    //       //         ),
-                    //       //
-                    //       //         enabledBorder: OutlineInputBorder(
-                    //       //           borderRadius: BorderRadius.circular(30),
-                    //       //           borderSide: BorderSide(color: Colors.grey.shade300),
-                    //       //         ),
-                    //       //
-                    //       //         focusedBorder: OutlineInputBorder(
-                    //       //           borderRadius: BorderRadius.circular(30),
-                    //       //           borderSide: BorderSide(color: colorsConst.primary, width: 1.5),
-                    //       //         ),
-                    //       //
-                    //       //         errorBorder: OutlineInputBorder(
-                    //       //           borderRadius: BorderRadius.circular(30),
-                    //       //           borderSide: const BorderSide(color: Colors.red),
-                    //       //         ),
-                    //       //
-                    //       //         focusedErrorBorder: OutlineInputBorder(
-                    //       //           borderRadius: BorderRadius.circular(30),
-                    //       //           borderSide: const BorderSide(color: Colors.red, width: 1.5),
-                    //       //         ),
-                    //       //         errorStyle: const TextStyle(
-                    //       //           fontSize: 12.0,
-                    //       //           height: 0.20,
-                    //       //         ),
-                    //       //
-                    //       //         contentPadding:const EdgeInsets.fromLTRB(10, 10, 10, 10)
-                    //       //     ),
-                    //       //   ),
-                    //       // ),
-                    //       InkWell(
-                    //         onTap: (){
-                    //           showDialog(
-                    //             context: context,
-                    //             builder: (context) {
-                    //               return Consumer<EmployeeProvider>(
-                    //                 builder: (context,empProvider, _) {
-                    //                   return AlertDialog(
-                    //                     actions: [
-                    //                       SizedBox(
-                    //                         width: kIsWeb?MediaQuery.of(context).size.width*0.3:MediaQuery.of(context).size.width*0.9,
-                    //                         child: Column(
-                    //                           crossAxisAlignment: CrossAxisAlignment.start,
-                    //                           children: [
-                    //                             20.height,
-                    //                             Row(
-                    //                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    //                               children: [
-                    //                                 70.width,
-                    //                                 const CustomText(
-                    //                                   text: 'Filters',
-                    //                                   colors: Colors.black,
-                    //                                   size: 16,
-                    //                                   isBold: true,
-                    //                                 ),
-                    //                                 30.width,
-                    //                                 InkWell(
-                    //                                   onTap: () {
-                    //                                     Navigator.of(context, rootNavigator: true).pop();
-                    //                                   },
-                    //                                   child: SvgPicture.asset(assets.cancel),
-                    //                                 )
-                    //                               ],
-                    //                             ),
-                    //                             20.height,
-                    //                             Row(
-                    //                               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    //                               children: [
-                    //                                 Column(
-                    //                                   crossAxisAlignment: CrossAxisAlignment.start,
-                    //                                   children: [
-                    //                                     CustomText(
-                    //                                       text: "From Date",
-                    //                                       colors: colorsConst.greyClr,
-                    //                                       size: 12,
-                    //                                     ),
-                    //                                     InkWell(
-                    //                                       onTap: () {
-                    //                                         empProvider.datePick(
-                    //                                           context: context,
-                    //                                           isStartDate: true,
-                    //                                           date: empProvider.startDate,
-                    //                                         );
-                    //                                       },
-                    //                                       child: Container(
-                    //                                         height: 30,
-                    //                                         width:kIsWeb?webWidth/2.5:phoneWidth/2.5,
-                    //                                         decoration: customDecoration.baseBackgroundDecoration(
-                    //                                           color: Colors.white,
-                    //                                           radius: 5,
-                    //                                           borderColor: colorsConst.litGrey,
-                    //                                         ),
-                    //                                         child: Row(
-                    //                                           mainAxisAlignment: MainAxisAlignment.center,
-                    //                                           children: [
-                    //                                             CustomText(text: empProvider.startDate),
-                    //                                             5.width,
-                    //                                             SvgPicture.asset(assets.calendar2),
-                    //                                           ],
-                    //                                         ),
-                    //                                       ),
-                    //                                     )
-                    //                                   ],
-                    //                                 ),
-                    //                                 Column(
-                    //                                   crossAxisAlignment: CrossAxisAlignment.start,
-                    //                                   children: [
-                    //                                     CustomText(
-                    //                                       text: "To Date",
-                    //                                       colors: colorsConst.greyClr,
-                    //                                       size: 12,
-                    //                                     ),
-                    //                                     InkWell(
-                    //                                       onTap: () {
-                    //                                         empProvider.datePick(
-                    //                                           context: context,
-                    //                                           isStartDate: false,
-                    //                                           date: empProvider.endDate,
-                    //                                         );
-                    //                                       },
-                    //                                       child: Container(
-                    //                                         height: 30,
-                    //                                         width:kIsWeb?webWidth/2.5:phoneWidth/2.5,
-                    //                                         decoration: customDecoration.baseBackgroundDecoration(
-                    //                                           color: Colors.white,
-                    //                                           radius: 5,
-                    //                                           borderColor: colorsConst.litGrey,
-                    //                                         ),
-                    //                                         child: Row(
-                    //                                           mainAxisAlignment: MainAxisAlignment.center,
-                    //                                           children: [
-                    //                                             CustomText(text: empProvider.endDate),
-                    //                                             5.width,
-                    //                                             SvgPicture.asset(assets.calendar2),
-                    //                                           ],
-                    //                                         ),
-                    //                                       ),
-                    //                                     )
-                    //                                   ],
-                    //                                 ),
-                    //                               ],
-                    //                             ),
-                    //                             10.height,
-                    //                             Column(
-                    //                               crossAxisAlignment: CrossAxisAlignment.start,
-                    //                               children: [
-                    //                                 CustomText(
-                    //                                   text: "Select Date Range",
-                    //                                   colors: colorsConst.greyClr,
-                    //                                   size: 12,
-                    //                                 ),
-                    //                                 Container(
-                    //                                   height: 30,
-                    //                                   width:kIsWeb?webWidth/1.2:phoneWidth/1.2,
-                    //                                   decoration: customDecoration.baseBackgroundDecoration(
-                    //                                     radius: 5,
-                    //                                     color: Colors.white,
-                    //                                     borderColor: colorsConst.litGrey,
-                    //                                   ),
-                    //                                   child: DropdownButton(
-                    //                                     iconEnabledColor: colorsConst.greyClr,
-                    //                                     isExpanded: true,
-                    //                                     underline: const SizedBox(),
-                    //                                     icon: const Icon(Icons.keyboard_arrow_down_outlined),
-                    //                                     value: empProvider.type,
-                    //                                     onChanged: (value) {
-                    //                                       empProvider.changeType(value);
-                    //                                     },
-                    //                                     items: empProvider.typeList.map((list) {
-                    //                                       return DropdownMenuItem(
-                    //                                         value: list,
-                    //                                         child: CustomText(
-                    //                                           text: "  $list",
-                    //                                           colors: Colors.black,
-                    //                                           isBold: false,
-                    //                                         ),
-                    //                                       );
-                    //                                     }).toList(),
-                    //                                   ),
-                    //                                 ),
-                    //                               ],
-                    //                             ),
-                    //                             10.height,
-                    //                             SizedBox(
-                    //                               width:kIsWeb?webWidth/1.2:phoneWidth/1.2,
-                    //                               child: Row(
-                    //                                 mainAxisAlignment: MainAxisAlignment.start,
-                    //                                 children: [
-                    //                                   CustomText(
-                    //                                     text: "Employee Name",
-                    //                                     colors: colorsConst.greyClr,
-                    //                                   ),
-                    //                                 ],
-                    //                               ),
-                    //                             ),
-                    //                             EmployeeDropdown(
-                    //                               callback: (){
-                    //                               },
-                    //                               text: empProvider.userName==""?"Name":empProvider.userName,
-                    //                               employeeList: empProvider.activeEmps,
-                    //                               onChanged: (UserModel? value) {
-                    //                                 empProvider.selectUser(value!);
-                    //                               },
-                    //                               size: kIsWeb?webHeight:phoneHeight,),
-                    //                             20.height,
-                    //                             Row(
-                    //                               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    //                               children: [
-                    //                                 CustomBtn(
-                    //                                   width: 100,
-                    //                                   text: 'Clear All',
-                    //                                   callback: () {
-                    //                                     empProvider.initFilterValue(true);
-                    //                                     Navigator.of(context, rootNavigator: true).pop();
-                    //                                   },
-                    //                                   bgColor: Colors.grey.shade200,
-                    //                                   textColor: Colors.black,
-                    //                                 ),
-                    //                                 CustomBtn(
-                    //                                   width: 100,
-                    //                                   text: 'Apply Filters',
-                    //                                   callback: () {
-                    //                                     empProvider.initFilterValue(false);
-                    //                                     empProvider.getNotifications();
-                    //                                     // empProvider.filterList();
-                    //                                     Navigator.of(context, rootNavigator: true).pop();
-                    //                                   },
-                    //                                   bgColor: colorsConst.primary,
-                    //                                   textColor: Colors.white,
-                    //                                 ),
-                    //                               ],
-                    //                             ),
-                    //                             20.height,
-                    //                           ],
-                    //                         ),
-                    //                       )
-                    //                     ],
-                    //                   );
-                    //                 },
-                    //               );
-                    //             },
-                    //           );
-                    //         },
-                    //         child: Padding(
-                    //           padding: const EdgeInsets.all(6.0),
-                    //           child: SvgPicture.asset(assets.tFilter,width: 20,height: 20,),
-                    //         ),
-                    //       ),5.width
-                    //     ],
-                    //   ),),
                     if(empProvider.filter==true)
                       10.height,
                     if(empProvider.filter==true)
@@ -417,14 +117,15 @@ class _ViewNotificationState extends State<ViewNotification> with SingleTickerPr
                     )
                         : Expanded(
                       child: ListView.builder(
-                        // itemCount: empProvider.notifyData.length,
-                        // itemBuilder: (context, index) {
-                        //   final employeeData = empProvider.notifyData[index];
                         itemCount: empProvider.filteredNotifyDatas.length,
                         itemBuilder: (context, index) {
                           final employeeData = empProvider.filteredNotifyDatas[index];
-                          DateTime dateTime =
+
+                          // Parse once, reuse everywhere (avoids repeated DateTime.parse in this item)
+                          final DateTime dateTime =
                           DateTime.parse(employeeData["created_ts"]);
+                          final String createdTsFormattedDMY =
+                          DateFormat("dd-MM-yyyy").format(dateTime);
 
                           String sectionTitle = formatCreatedDate(dateTime);
 
@@ -480,8 +181,10 @@ class _ViewNotificationState extends State<ViewNotification> with SingleTickerPr
 
                           final showDateHeader = index == 0 ||
                               createdBy != prevCreatedBy;
-                          String mesBody = empProvider.notifyData[index]["body"] ?? "";
-                          String taskDate = DateFormat("dd-MM-yyyy").format(DateTime.now());
+
+                          // Reuse the already-parsed date instead of parsing empProvider.notifyData[index] again
+                          String mesBody = employeeData["body"] ?? "";
+                          String taskDate = createdTsFormattedDMY;
                           if (mesBody.contains("||")) {
                             final parts = mesBody.split("||");
 
@@ -492,11 +195,91 @@ class _ViewNotificationState extends State<ViewNotification> with SingleTickerPr
                                   DateFormat("dd-MM-yyyy").parseStrict(dateStr),
                                 );
                               } catch (e) {
-                                taskDate = DateFormat("dd-MM-yyyy").format(DateTime.now());
+                                taskDate = createdTsFormattedDMY;
                                 print("Date Parse Error: $e");
                               }
                             }
                           }
+
+                          // Navigation logic pulled out so onTap stays snappy;
+                          // scheduled after the current frame so the tap/ripple
+                          // feedback renders immediately instead of feeling stuck.
+                          void handleNotificationTap() {
+                            WidgetsBinding.instance.addPostFrameCallback((_) {
+                              if (!mounted) return;
+
+                              if (type == "Feedback") {
+                                utils.navigatePage(
+                                  context,
+                                      () => DashBoard(
+                                    child: TaskChat(
+                                      isVisit: false,
+                                      taskId: employeeData["purpose_id"],
+                                      assignedId: "",
+                                      assignedName: "",
+                                      name: createdBy,
+                                      date1: '',
+                                      date2: '',
+                                      type: '',
+                                      index: -1,
+                                    ),
+                                  ),
+                                );
+                              } else if (type == "Visit Report") {
+                                utils.navigatePage(
+                                  context,
+                                      () => DashBoard(
+                                    child: VisitReport(
+                                      date1: createdTsFormattedDMY,
+                                      date2: createdTsFormattedDMY,
+                                      month: "",
+                                      type: "Today",
+                                    ),
+                                  ),
+                                );
+                              } else if (type == "Leave") {
+                                if (localData.storage.read("role") == "1") {
+                                  Provider.of<LeaveProvider>(context, listen: false)
+                                      .changeIndex(2);
+
+                                  utils.navigatePage(
+                                    context,
+                                        () => const DashBoard(
+                                        child: LeaveManagementDashboard()),
+                                  );
+                                } else {
+                                  utils.navigatePage(
+                                    context,
+                                        () => DashBoard(
+                                      child: ViewMyLeaves(
+                                        date1: createdTsFormattedDMY,
+                                        date2: createdTsFormattedDMY,
+                                        isDirect: true,
+                                      ),
+                                    ),
+                                  );
+                                }
+                              } else if (type == "Daily Work Plan") {
+                                utils.navigatePage(
+                                  context,
+                                      () => const DashBoard(
+                                      child: DailyReportStatusPage()),
+                                );
+                              } else {
+                                utils.navigatePage(
+                                  context,
+                                      () => DashBoard(
+                                    child: ViewTask(
+                                      date1: taskDate,
+                                      date2: taskDate,
+                                      type: "Today",
+                                    ),
+                                  ),
+                                );
+                              }
+                            });
+                          }
+
                           return Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -508,167 +291,124 @@ class _ViewNotificationState extends State<ViewNotification> with SingleTickerPr
                                 ),
                                 5.height,
                               ],
-                              GestureDetector(
-                                onTap:(){
-                                  if(type=="Feedback"){
-                                    utils.navigatePage(context, ()=> DashBoard(child: TaskChat(isVisit:false,
-                                        taskId: empProvider.notifyData[index]["purpose_id"], assignedId: "",assignedName: "", name: createdBy, date1: '', date2: '', type: '',
-                                      index: -1,)));
-                                  }
-                                  else if(type=="Visit Report"){
-                                    utils.navigatePage(context, ()=> DashBoard(child: VisitReport(date1: DateFormat("dd-MM-yyyy").format(
-                                        DateTime.parse(empProvider.notifyData[index]["created_ts"])), date2: DateFormat("dd-MM-yyyy").format(
-                                        DateTime.parse(empProvider.notifyData[index]["created_ts"])),
-                                      month: "",type: "Today",)));
-                                  }
-                                  else if(type=="Leave"){
-                                    if(localData.storage.read("role")=="1"){
-                                      Provider.of<LeaveProvider>(context, listen: false).changeIndex(2);
-
-                                      utils.navigatePage(
-                                          context,
-                                              ()=>const DashBoard(child: LeaveManagementDashboard())
-                                      );
-                                    }else{
-                                      utils.navigatePage(context, ()=> DashBoard(child: ViewMyLeaves(date1:DateFormat("dd-MM-yyyy").format(
-                                          DateTime.parse(empProvider.notifyData[index]["created_ts"])),date2:DateFormat("dd-MM-yyyy").format(
-                                          DateTime.parse(empProvider.notifyData[index]["created_ts"])),isDirect: true)));
-                                    }
-                                  }
-                                  else if(type=="Daily Work Plan"){
-                                    utils.navigatePage(context,()=>const DashBoard(child: DailyReportStatusPage()));
-                                  }
-                                  else{
-                                    utils.navigatePage(
-                                      context,
-                                          () => DashBoard(
-                                        child: ViewTask(
-                                          date1: taskDate,
-                                          date2: taskDate,
-                                          type: "Today",
+                              Material(
+                                color: Colors.transparent,
+                                child: InkWell(
+                                  borderRadius: BorderRadius.circular(12),
+                                  onTap: handleNotificationTap,
+                                  child: Container(
+                                    margin: const EdgeInsets.only(bottom: 16),
+                                    padding: const EdgeInsets.all(16),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      borderRadius: BorderRadius.circular(12),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.grey.shade200,
+                                          blurRadius: 6,
+                                          offset: const Offset(0, 3),
                                         ),
-                                      ),
-                                    );
-                                  }
-                                },
-                                child: Container(
-                                  margin: const EdgeInsets.only(bottom: 16),
-                                  padding: const EdgeInsets.all(16),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    borderRadius: BorderRadius.circular(12),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.grey.shade200,
-                                        blurRadius: 6,
-                                        offset: const Offset(0, 3),
-                                      ),
-                                    ],
-                                  ),
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
+                                      ],
+                                    ),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
 
-                                      /// 🔹 Top Row
-                                      Row(
-                                        children: [
+                                        /// 🔹 Top Row
+                                        Row(
+                                          children: [
 
-                                          /// Type chip
-                                          Container(
-                                            padding:
-                                            const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                            decoration: BoxDecoration(
-                                              color: type == "Daily Work Plan"
-                                                  ? Colors.brown.shade50
-                                                  : type == "Task"
-                                                  ? const Color(0xffE8F5E9)
-                                                  : type == "Leave"?Colors.red.shade200
-                                                  : type == "Feedback"?Colors.purple.shade200:
-                                              const Color(0xffE3F2FD),
-                                              borderRadius: BorderRadius.circular(12),
-                                            ),
-                                            child: Text(
-                                              type,
-                                              style: TextStyle(
+                                            /// Type chip
+                                            Container(
+                                              padding:
+                                              const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                              decoration: BoxDecoration(
                                                 color: type == "Daily Work Plan"
-                                                    ? Colors.brown:
-                                                    type == "Task"
-                                                    ? const Color(0xff2E7D32):
-                                                    type == "Leave"?Colors.red:
-                                                    type == "Feedback"?Colors.purple:
-                                                    const Color(0xff1A85DB),
-                                                fontWeight: FontWeight.w600,
-                                                fontSize: 13,
+                                                    ? Colors.brown.shade50
+                                                    : type == "Task"
+                                                    ? const Color(0xffE8F5E9)
+                                                    : type == "Leave"?Colors.red.shade200
+                                                    : type == "Feedback"?Colors.purple.shade200:
+                                                const Color(0xffE3F2FD),
+                                                borderRadius: BorderRadius.circular(12),
+                                              ),
+                                              child: Text(
+                                                type,
+                                                style: TextStyle(
+                                                  color: type == "Daily Work Plan"
+                                                      ? Colors.brown:
+                                                  type == "Task"
+                                                      ? const Color(0xff2E7D32):
+                                                  type == "Leave"?Colors.red:
+                                                  type == "Feedback"?Colors.purple:
+                                                  const Color(0xff1A85DB),
+                                                  fontWeight: FontWeight.w600,
+                                                  fontSize: 13,
+                                                ),
                                               ),
                                             ),
-                                          ),
 
-                                          const Spacer(),
+                                            const Spacer(),
 
-                                          Row(
-                                            children: [
-                                              const Icon(Icons.circle,
-                                                  size: 6, color: Color(0xff7E7E7E)),
-                                              6.width,
-                                              CustomText(
-                                                text: time,
-                                                colors: Colors.grey,
-                                                size: 12,
-                                              ),
-                                            ],
-                                          ),
-                                        ],
-                                      ),
-                                      // 12.height,
-                                      // CustomText(
-                                      //   text: title,
-                                      //   size: 14,
-                                      //   isBold: true,
-                                      // ),
-
-                                      5.height,
-
-                                      /// 🔹 Body
-                                      if(!message.toLowerCase().contains("daily work plan"))
-                                      CustomText(
-                                        text: title.toLowerCase().contains("feedback")&&message==""?"Voice Message":message,isBold: true,
-                                      ),
-                                      if(!message.toLowerCase().contains("daily work plan"))
-                                      5.height,
-
-                                      /// 🔹 Created By
-                                      Row(
-                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          RichText(
-                                            text: TextSpan(
+                                            Row(
                                               children: [
-                                                TextSpan(
-                                                  text: message.toLowerCase().contains("daily work plan")?"Added by ":type=="Feedback"?"Feedback sent by ":type=="Leave"?"Leave Applied  ":"Created by ",
-                                                  style: TextStyle(
-                                                    fontSize: 12,
-                                                    color: Color(0xffA80007),
-                                                  ),
-                                                ),
-                                                TextSpan(
-                                                  text: createdBy=="null"?"Admin":createdBy,
-                                                  style: const TextStyle(
-                                                    fontSize: 14,
-                                                    fontWeight: FontWeight.w600,
-                                                    color: Color(0xffA80007),
-                                                  ),
+                                                const Icon(Icons.circle,
+                                                    size: 6, color: Color(0xff7E7E7E)),
+                                                6.width,
+                                                CustomText(
+                                                  text: time,
+                                                  colors: Colors.grey,
+                                                  size: 12,
                                                 ),
                                               ],
                                             ),
+                                          ],
+                                        ),
+
+                                        5.height,
+
+                                        /// 🔹 Body
+                                        if(!message.toLowerCase().contains("daily work plan"))
+                                          CustomText(
+                                            text: title.toLowerCase().contains("feedback")&&message==""?"Voice Message":message,isBold: true,
                                           ),
-                                          if(type!="Leave")
-                                          SvgPicture.asset(
-                                            assets.tMessage,
-                                            height: 25,width: 25,
-                                          ),
-                                        ],
-                                      ),
-                                    ],
+                                        if(!message.toLowerCase().contains("daily work plan"))
+                                          5.height,
+
+                                        /// 🔹 Created By
+                                        Row(
+                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            RichText(
+                                              text: TextSpan(
+                                                children: [
+                                                  TextSpan(
+                                                    text: message.toLowerCase().contains("daily work plan")?"Added by ":type=="Feedback"?"Feedback sent by ":type=="Leave"?"Leave Applied  ":"Created by ",
+                                                    style: TextStyle(
+                                                      fontSize: 12,
+                                                      color: Color(0xffA80007),
+                                                    ),
+                                                  ),
+                                                  TextSpan(
+                                                    text: createdBy=="null"?"Admin":createdBy,
+                                                    style: const TextStyle(
+                                                      fontSize: 14,
+                                                      fontWeight: FontWeight.w600,
+                                                      color: Color(0xffA80007),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                            if(type!="Leave")
+                                              SvgPicture.asset(
+                                                assets.tMessage,
+                                                height: 25,width: 25,
+                                              ),
+                                          ],
+                                        ),
+                                      ],
+                                    ),
                                   ),
                                 ),
                               ),
@@ -677,74 +417,6 @@ class _ViewNotificationState extends State<ViewNotification> with SingleTickerPr
                                 80.height,
                             ],
                           );
-
-                          // return Column(
-                          //   crossAxisAlignment: CrossAxisAlignment.start,
-                          //   children: [
-                          //     if (showDateHeader)
-                          //       Padding(
-                          //         padding: const EdgeInsets.symmetric(vertical: 5),
-                          //         child: CustomText(
-                          //           text: createdBy,
-                          //           colors: Colors.grey,
-                          //         ),
-                          //       ),
-                          //     Container(
-                          //       width: kIsWeb ? webWidth : phoneWidth,
-                          //       decoration: customDecoration.baseBackgroundDecoration(
-                          //         color: Colors.white,
-                          //         borderColor: Colors.grey.shade200,
-                          //         isShadow: true,
-                          //         shadowColor: Colors.grey.shade200,
-                          //         radius: 5,
-                          //       ),
-                          //       child: Padding(
-                          //         padding: const EdgeInsets.all(10),
-                          //         child: Column(
-                          //           crossAxisAlignment: CrossAxisAlignment.start,
-                          //           children: [
-                          //             Row(
-                          //               mainAxisAlignment:
-                          //               MainAxisAlignment.spaceBetween,
-                          //               children: [
-                          //                 Row(
-                          //                   children: [
-                          //                     CustomText(
-                          //                       text: employeeData["firstname"].toString()=="null"?"":employeeData["firstname"].toString(),
-                          //                       colors: colorsConst.appOrg,
-                          //                     ),
-                          //                     if(employeeData["role"].toString()!="null")
-                          //                     CustomText(
-                          //                       text:
-                          //                       " ( ${employeeData["role"].toString()} )",
-                          //                       colors: Colors.grey,
-                          //                     ),
-                          //                   ],
-                          //                 ),
-                          //                 CustomText(
-                          //                   text: time,
-                          //                   colors: colorsConst.blue2,
-                          //                 ),
-                          //               ],
-                          //             ),
-                          //             10.height,
-                          //             CustomText(
-                          //               text: employeeData["title"].toString(),
-                          //             ),
-                          //             10.height,
-                          //             CustomText(
-                          //               text: employeeData["body"].toString(),
-                          //               colors: colorsConst.greyClr,
-                          //             ),
-                          //           ],
-                          //         ),
-                          //       ),
-                          //     ),
-                          //     10.height,
-                          //     if (index == empProvider.notifyData.length - 1)
-                          //       80.height,
-                          //   ],
-                          // );
                         },
                       ),
                     ),

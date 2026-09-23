@@ -52,12 +52,13 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> {
+class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   Timer? _timer;
-  @override
   @override
   void initState() {
     super.initState();
+
+    WidgetsBinding.instance.addObserver(this); // ✅ இங்க சேர்த்தேன்
 
     Future.delayed(Duration.zero, () async {
       if (!mounted) return;
@@ -79,7 +80,6 @@ class _HomePageState extends State<HomePage> {
       final attendanceProvider =
       Provider.of<AttendanceProvider>(context, listen: false);
 
-      // void method — fire directly, no unawaited()
       attendanceProvider.initDate(
         id: id,
         role: role,
@@ -87,33 +87,16 @@ class _HomePageState extends State<HomePage> {
         date1: today,
         date2: today,
       );
-    // attendanceProvider.getMainAttendance();
-      if (!mounted) return;
+
       final homeProvider = Provider.of<HomeProvider>(context, listen: false);
 
-      // --------------------------------------------------------
-      // SEQUENCE MATTERS HERE:
-      // changeType() reads homeProvider.type, and checkThisMonth()
-      // is what actually sets that type. Firing everything in
-      // parallel meant changeType() ran with the OLD/default type
-      // on first load — that's why values looked wrong until you
-      // navigated away and back.
-      // --------------------------------------------------------
-
-      await homeProvider.checkVersion();
       if (!mounted) return;
-
-       homeProvider.checkThisMonth(); // sets homeProvider.type
-      if (!mounted) return;
-
       await homeProvider.loadFullDashboard(context);
       if (!mounted) return;
+      homeProvider.changeType(context, homeProvider.type);
 
-      homeProvider.changeType(context, homeProvider.type); // now correct
-
-      // --------------------------------------------------------
-      // Independent of the above — safe to fire without blocking.
-      // --------------------------------------------------------
+      // ✅ AUTO REFRESH TIMER START
+      homeProvider.startAutoRefresh(context);
 
       final taskProvider = Provider.of<TaskProvider>(context, listen: false);
       if (taskProvider.statusList.isNotEmpty) {
@@ -124,13 +107,37 @@ class _HomePageState extends State<HomePage> {
       Provider.of<EmployeeProvider>(context, listen: false);
 
       unawaited(employeeProvider.getAllUsers());
-      unawaited(
-        Provider.of<CustomerProvider>(context, listen: false)
-            .getAllCustomers(true),
-      );
-      employeeProvider.getNotifications(); // void method — fire directly
+      unawaited(Provider.of<CustomerProvider>(context, listen: false)
+          .getAllCustomers(true));
+      employeeProvider.getNotifications();
     });
   }
+
+  // ✅ App background/foreground வரும்போது இது call ஆகும்
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+
+    final homeProvider = Provider.of<HomeProvider>(context, listen: false);
+
+    if (state == AppLifecycleState.resumed) {
+      // App foreground-க்கு வந்தால் — dashboard refresh பண்ணலாம்
+      homeProvider.loadFullDashboard(context);
+      homeProvider.startAutoRefresh(context);
+    } else if (state == AppLifecycleState.paused) {
+      // App background-க்கு போனா — timer stop பண்ணி battery/data save பண்ணலாம்
+      homeProvider.stopAutoRefresh();
+    }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this); // ✅ இங்க சேர்த்தேன்
+    _timer?.cancel();
+    Provider.of<HomeProvider>(context, listen: false).stopAutoRefresh();
+    super.dispose();
+  }
+
   Widget iconBox({required VoidCallback callBack,required String img,required String text}){
     return InkWell(
       onTap:callBack,
@@ -214,10 +221,7 @@ class _HomePageState extends State<HomePage> {
     return constValue.night;
   }
   @override
-  void dispose() {
-    _timer?.cancel();
-    super.dispose();
-  }
+
   bool isVerify = false;
   bool isPermission = false;
   DateTime selectedDate = DateTime.now();
@@ -425,7 +429,7 @@ class _HomePageState extends State<HomePage> {
                                 ),
                               ),
                               10.height,
-                              if(homeProvider.roleAccess.any((f) => f['feature'] == 'Attendance Management'&&f['name'] == 'Put Attendance'))
+                             // if(homeProvider.roleAccess.any((f) => f['feature'] == 'Attendance Management'&&f['name'] == 'Put Attendance'))
                               InkWell(
                                 child: const CheckAttendance()),
                               10.height,
@@ -451,7 +455,7 @@ class _HomePageState extends State<HomePage> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     /// LEFT TEXT
-                                    if (homeProvider.roleAccess.any((f) => f['feature'] == 'Daily Work Plan'&&f['name'] == 'View'))
+                                //    if (homeProvider.roleAccess.any((f) => f['feature'] == 'Daily Work Plan'&&f['name'] == 'View'))
                                       Row(
                                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                         crossAxisAlignment: CrossAxisAlignment.center,
@@ -480,7 +484,7 @@ class _HomePageState extends State<HomePage> {
                                                 shrink: true,
 
                                                 weight: FontWeight.bold,
-                                                color: Colors.grey,
+                                                color: Colors.black54,
                                               ),
                                             ),
 
@@ -504,7 +508,7 @@ class _HomePageState extends State<HomePage> {
                                       ),
                                     5.height,
                                     /// SUBMIT BUTTON
-                                    if (homeProvider.roleAccess.any((f) => f['feature'] == 'Daily Work Plan'&&f['name'] == 'View'))
+                                 //   if (homeProvider.roleAccess.any((f) => f['feature'] == 'Daily Work Plan'&&f['name'] == 'View'))
                                     GestureDetector(
                                       onTap: () {
                                         Navigator.push(
@@ -583,7 +587,8 @@ class _HomePageState extends State<HomePage> {
                                         ],
                                       ),
                                     ),
-                                    if (homeProvider.roleAccess.any((f) => f['feature'] == 'Daily Work Plan' && f['name'] == 'Add'))
+                                    10.height,
+                               //     if (homeProvider.roleAccess.any((f) => f['feature'] == 'Daily Work Plan' && f['name'] == 'Add'))
                                       Row(
                                         crossAxisAlignment: CrossAxisAlignment.center,
                                         children: [
@@ -641,7 +646,7 @@ class _HomePageState extends State<HomePage> {
                                                         shrink: true,
                                                      //   shrinkAlignment: Alignment.center,
                                                         color: attPvr.mainAttendance == 0
-                                                            ? Colors.grey
+                                                            ?  Colors.black54
                                                             : const Color(0xff0F8D4B),
                                                       ),
                                                     ),
@@ -738,7 +743,7 @@ class _HomePageState extends State<HomePage> {
                                 ),
                               ),
                               /// ================= ATTENDANCE CARD =================
-                              if(homeProvider.roleAccess.any((f) => f['feature'] == 'Attendance Management'&&f['name'] == 'Report'))
+                             // if(homeProvider.roleAccess.any((f) => f['feature'] == 'Attendance Management'&&f['name'] == 'Report'))
                               Container(
                                 padding: const EdgeInsets.all(5),
                                 decoration: BoxDecoration(
@@ -776,7 +781,8 @@ class _HomePageState extends State<HomePage> {
                                       children: [
                                         CustomText(
                                           "${constValue.attendTotEmp}: ${homeProvider.mainReportList.isEmpty?"":homeProvider.mainReportList[0]["total_user_count"].toString()}",
-                                          color:Color(0xffA2A2A2),
+                                       //   color:Color(0xffA2A2A2),
+                                          color: Colors.black54,
                                           shrink: true,
                                         ),
                                       ],
@@ -879,9 +885,9 @@ class _HomePageState extends State<HomePage> {
                                   ],
                                 ),
                               ),
-                              if(homeProvider.roleAccess.any((f) => f['feature'] == 'Task Management'&&f['name'] == 'Visit Report'))
+                           //   if(homeProvider.roleAccess.any((f) => f['feature'] == 'Task Management'&&f['name'] == 'Visit Report'))
                               10.height,
-                              if(homeProvider.roleAccess.any((f) => f['feature'] == 'Task Management'&&f['name'] == 'Visit Report'))
+                           if(homeProvider.roleAccess.any((f) => f['feature'] == 'Task Management'&&f['name'] == 'Visit Report'))
                               InkWell(
                                 onTap:(){
                                   utils.navigatePage(context, ()=> DashBoard(child: VisitReport(date1: homeProvider.startDate, date2: homeProvider.endDate,month: homeProvider.month,type: homeProvider.type,)));
@@ -1154,9 +1160,9 @@ class _HomePageState extends State<HomePage> {
                                   ),
                                 ),
                               ),
-                              if(homeProvider.roleAccess.any((f) => f['feature'] == 'Task Management'&&f['name'] == 'View'))
+                           //   if(homeProvider.roleAccess.any((f) => f['feature'] == 'Task Management'&&f['name'] == 'View'))
                               10.height,
-                              if(homeProvider.roleAccess.any((f) => f['feature'] == 'Task Management'&&f['name'] == 'View'))
+                          //    if(homeProvider.roleAccess.any((f) => f['feature'] == 'Task Management'&&f['name'] == 'View'))
                               InkWell(
                                 onTap: (){
                                   homeProvider.updateIndex(10);

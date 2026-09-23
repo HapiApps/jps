@@ -32,6 +32,7 @@ import '../component/month_calendar.dart';
 import '../component/panel_button.dart';
 import '../local_database/sqlite.dart';
 import '../model/attendance_model.dart';
+import '../model/home_model.dart';
 import '../model/panel_model.dart';
 import '../model/task/work_details_plan.dart';
 import '../model/user_model.dart';
@@ -1100,6 +1101,34 @@ Future<void> loginOuts(context) async {
       return false;
     }
   }
+
+  Timer? _refreshTimer;
+  BuildContext? _refreshContext; // loadFullDashboard-க்கு context தேவை
+
+  void startAutoRefresh(BuildContext context) {
+    _refreshContext = context;
+    _refreshTimer?.cancel(); // already run ஆகுதுன்னா, முதல்ல cancel பண்ணுங்க
+
+    _refreshTimer = Timer.periodic(const Duration(seconds: 60), (_) {
+      if (_refreshContext != null) {
+        loadFullDashboard(_refreshContext!);
+      }
+    });
+  }
+
+  void stopAutoRefresh() {
+    _refreshTimer?.cancel();
+    _refreshTimer = null;
+  }
+
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    super.dispose();
+  }
+  DashboardModel _dashboard = DashboardModel.empty();
+  DashboardModel get dashboard => _dashboard;
+
   Future<void> loadFullDashboard(BuildContext context) async {
     _refresh = false;
     notifyListeners();
@@ -1116,261 +1145,72 @@ Future<void> loginOuts(context) async {
         "date1": _startDate,
         "date2": _endDate,
       };
-
-      print("===== REQUEST DATA =====");
-      print(data);
-
       final response = await homeRepo.getFullDashboard(data);
 
-      // print("===== FULL API RESPONSE =====");
-      // print(response);
-
       /* ================= MAIN REPORT ================= */
+      var mainReportJson = response["main_report"] ?? {};
+      final mainReportModel = MainReportModel.fromJson(mainReportJson);
 
-      // print("===== MAIN REPORT =====");
-      // print(response["main_report"]);
+      // ✅ old field (UI இதை use பண்றது) - அப்படியே வையுங்க
+      _mainReportList = response["main_report"] == null ? [] : [response["main_report"]];
 
-      // ✅ main_report is Map, so wrap inside list safely
-      _mainReportList =
-      response["main_report"] == null ? [] : [response["main_report"]];
+      localData.storage.write("no_attendance_count", mainReportModel.noAttendanceCount.toString());
+      localData.storage.write("conveyance_amount", mainReportModel.conveyanceAmount);
+      localData.storage.write("travel_amount", mainReportModel.travelAmount);
+      localData.storage.write("da_amount", mainReportModel.daAmount);
 
-      var mainReport = response["main_report"] ?? {};
-
-      _noAttendanceCount =
-          int.tryParse(mainReport["no_attendance_count"].toString()) ?? 0;
-
-      // 🔥 no attendance count store
-      localData.storage.write(
-        "no_attendance_count",
-        mainReport["no_attendance_count"] == null ||
-            mainReport["no_attendance_count"].toString().isEmpty
-            ? "0"
-            : mainReport["no_attendance_count"].toString(),
-      );
-
-      // print("✅ no_attendance_count variable : $_noAttendanceCount");
-      // print("No Attendance Count local : ${mainReport["no_attendance_count"]}");
-
-      localData.storage.write(
-        "conveyance_amount",
-        mainReport["conveyance_amount"] == null ||
-            mainReport["conveyance_amount"].toString().isEmpty
-            ? "0"
-            : mainReport["conveyance_amount"].toString(),
-      );
-
-      localData.storage.write(
-        "travel_amount",
-        mainReport["travel_amount"] == null ||
-            mainReport["travel_amount"].toString().isEmpty
-            ? "0"
-            : mainReport["travel_amount"].toString(),
-      );
-
-      localData.storage.write(
-        "da_amount",
-        mainReport["da_amount"] == null ||
-            mainReport["da_amount"].toString().isEmpty
-            ? "0"
-            : mainReport["da_amount"].toString(),
-      );
-
-      print("Conveyance Amount : ${mainReport["conveyance_amount"]}");
-      print("Travel Amount : ${mainReport["travel_amount"]}");
-      print("DA Amount : ${mainReport["da_amount"]}");
-
-      /* ================= DASHBOARD VISIT ================= */
+      /* ================= VISIT COUNT ================= */
       _visitCount = response["dashboard_report"] ?? [];
 
       int store = 0;
       inActiveVisit = 0;
       activeVisit = 0;
-
       for (var i = 0; i < _visitCount.length; i++) {
         int count = int.tryParse(_visitCount[i]["total_count"].toString()) ?? 0;
-
-        store += count; // total visits sum
-
-        if (count == 0) {
-          inActiveVisit++;   // pending Task type count
-        } else {
-          activeVisit++;     // ✅ active Task type count (NOT sum)
-        }
+        store += count;
+        count == 0 ? inActiveVisit++ : activeVisit++;
       }
-
       _totalV = store.toString();
-
-      // print("✅ Total Visits Count : $_totalV");
-      // print("✅ Pending Task types : $inActiveVisit");
-      // print("✅ Active Task types : $activeVisit");
-
-      final attendanceProvider = Provider.of<AttendanceProvider>(context, listen: false);
 
       /* ================= ATTENDANCE ================= */
-
-      // print("===== ATTENDANCE =====");
-      // print(response["attendance"]);
-
-      final attendanceList = (response["attendance"] ?? []) as List;
-
-      attendanceProvider.setAttendanceData(
-        attendanceList
-            .map<AttendanceModel>((e) => AttendanceModel.fromJson(e))
-            .toList(),
-      );
-
-// ✅ now no error
-    //  attendanceProvider.getMainAttendance();
-      /* ================= LATE + PERMISSION COUNT (FROM SAME RESPONSE) ================= */
-
-      permisCount = 0;
-      lateCountShow = 0;
-
-      for (var i = 0; i < attendanceList.length; i++) {
-        var row = attendanceList[i];
-
-        // Permission Count
-        if (row["per_status"] != null && row["per_status"].toString() != "null") {
-          permisCount++;
-        }
-
-        // Late Count
-        String status = row["status"].toString();
-        String time = row["time"]?.toString() ?? "";
-
-        if (time.isEmpty) continue;
-
-        String inTime = "";
-
-        if (status.contains("1,2")) {
-          inTime = time.split(",")[0];
-        } else if (status.contains("2,1")) {
-          inTime = time.split(",")[1];
-        } else {
-          inTime = time.split(",")[0];
-        }
-
-        if (inTime.isNotEmpty && isLate(inTime)) {
-          lateCountShow++;
-        }
-      }
-      // employeeProvider.setNotifications(response["notifications"] ?? []);
-
-      _refresh = true;
-    } catch (e, stack) {
-      print("===== DASHBOARD ERROR =====");
-      print(e);
-      print(stack);
-      _refresh = true;
-    }
-
-    notifyListeners();
-  }
-  Future<void> loadDashboard(BuildContext context) async {
-    _refresh = false;
-    notifyListeners();
-
-    try {
-      Map data = {
-        "action": home,
-        "id": localData.storage.read("id"),
-        "salesman_id": localData.storage.read("id"),
-        "role": localData.storage.read("role"),
-        "cos_id": localData.storage.read("cos_id"),
-        "st_dt": _startDate,
-        "en_dt": _endDate,
-        "date1": _startDate,
-        "date2": _endDate,
-      };
-
-      print("===== REQUEST DATA =====");
-      print(data);
-
-      final response = await homeRepo.getFullDashboard(data);
-
-      // print("===== FULL API RESPONSE =====");
-      // print(response);
-
-      /* ================= MAIN REPORT ================= */
-
-      // print("===== MAIN REPORT =====");
-      // print(response["main_report"]);
-
-      // ✅ main_report is Map, so wrap inside list safely
-      _mainReportList =
-      response["main_report"] == null ? [] : [response["main_report"]];
-
-      var mainReport = response["main_report"] ?? {};
-
-      _noAttendanceCount =
-          int.tryParse(mainReport["no_attendance_count"].toString()) ?? 0;
-
-      // 🔥 no attendance count store
-      localData.storage.write(
-        "no_attendance_count",
-        mainReport["no_attendance_count"] == null ||
-            mainReport["no_attendance_count"].toString().isEmpty
-            ? "0"
-            : mainReport["no_attendance_count"].toString(),
-      );
-      /* ================= DASHBOARD VISIT ================= */
-      _visitCount = response["dashboard_report"] ?? [];
-
-      int store = 0;
-      inActiveVisit = 0;
-      activeVisit = 0;
-
-      for (var i = 0; i < _visitCount.length; i++) {
-        int count = int.tryParse(_visitCount[i]["total_count"].toString()) ?? 0;
-
-        store += count; // total visits sum
-
-        if (count == 0) {
-          inActiveVisit++;   // pending Task type count
-        } else {
-          activeVisit++;     // ✅ active Task type count (NOT sum)
-        }
-      }
-      _totalV = store.toString();
-
       final attendanceProvider = Provider.of<AttendanceProvider>(context, listen: false);
       final attendanceList = (response["attendance"] ?? []) as List;
       attendanceProvider.setAttendanceData(
-        attendanceList
-            .map<AttendanceModel>((e) => AttendanceModel.fromJson(e))
-            .toList(),
+        attendanceList.map<AttendanceModel>((e) => AttendanceModel.fromJson(e)).toList(),
       );
+
+      /* ================= LATE + PERMISSION ================= */
       permisCount = 0;
       lateCountShow = 0;
-
       for (var i = 0; i < attendanceList.length; i++) {
         var row = attendanceList[i];
-
-        // Permission Count
         if (row["per_status"] != null && row["per_status"].toString() != "null") {
           permisCount++;
         }
-
-        // Late Count
         String status = row["status"].toString();
         String time = row["time"]?.toString() ?? "";
-
         if (time.isEmpty) continue;
 
-        String inTime = "";
+        String inTime = status.contains("1,2")
+            ? time.split(",")[0]
+            : status.contains("2,1")
+            ? time.split(",")[1]
+            : time.split(",")[0];
 
-        if (status.contains("1,2")) {
-          inTime = time.split(",")[0];
-        } else if (status.contains("2,1")) {
-          inTime = time.split(",")[1];
-        } else {
-          inTime = time.split(",")[0];
-        }
-
-        if (inTime.isNotEmpty && isLate(inTime)) {
-          lateCountShow++;
-        }
+        if (inTime.isNotEmpty && isLate(inTime)) lateCountShow++;
       }
+
+      // ✅ NEW model-ஐயும் parallel-ஆ populate பண்ணுங்க (future code-க்கு)
+      _dashboard = DashboardModel(
+        mainReport: mainReportModel,
+        visitCount: _visitCount.map<VisitCountModel>((e) => VisitCountModel.fromJson(e)).toList(),
+        totalVisits: store,
+        activeVisit: activeVisit,
+        inActiveVisit: inActiveVisit,
+        lateCount: lateCountShow,
+        permissionCount: permisCount,
+      );
+
       _refresh = true;
     } catch (e, stack) {
       print("===== DASHBOARD ERROR =====");
@@ -1381,6 +1221,121 @@ Future<void> loginOuts(context) async {
 
     notifyListeners();
   }
+  // Future<void> loadDashboard(BuildContext context) async {
+  //   _refresh = false;
+  //   notifyListeners();
+  //
+  //   try {
+  //     Map data = {
+  //       "action": home,
+  //       "id": localData.storage.read("id"),
+  //       "salesman_id": localData.storage.read("id"),
+  //       "role": localData.storage.read("role"),
+  //       "cos_id": localData.storage.read("cos_id"),
+  //       "st_dt": _startDate,
+  //       "en_dt": _endDate,
+  //       "date1": _startDate,
+  //       "date2": _endDate,
+  //     };
+  //
+  //     print("===== REQUEST DATA =====");
+  //     print(data);
+  //
+  //     final response = await homeRepo.getFullDashboard(data);
+  //
+  //     // print("===== FULL API RESPONSE =====");
+  //     // print(response);
+  //
+  //     /* ================= MAIN REPORT ================= */
+  //
+  //     // print("===== MAIN REPORT =====");
+  //     // print(response["main_report"]);
+  //
+  //     // ✅ main_report is Map, so wrap inside list safely
+  //     _mainReportList =
+  //     response["main_report"] == null ? [] : [response["main_report"]];
+  //
+  //     var mainReport = response["main_report"] ?? {};
+  //
+  //     _noAttendanceCount =
+  //         int.tryParse(mainReport["no_attendance_count"].toString()) ?? 0;
+  //
+  //     // 🔥 no attendance count store
+  //     localData.storage.write(
+  //       "no_attendance_count",
+  //       mainReport["no_attendance_count"] == null ||
+  //           mainReport["no_attendance_count"].toString().isEmpty
+  //           ? "0"
+  //           : mainReport["no_attendance_count"].toString(),
+  //     );
+  //     /* ================= DASHBOARD VISIT ================= */
+  //     _visitCount = response["dashboard_report"] ?? [];
+  //
+  //     int store = 0;
+  //     inActiveVisit = 0;
+  //     activeVisit = 0;
+  //
+  //     for (var i = 0; i < _visitCount.length; i++) {
+  //       int count = int.tryParse(_visitCount[i]["total_count"].toString()) ?? 0;
+  //
+  //       store += count; // total visits sum
+  //
+  //       if (count == 0) {
+  //         inActiveVisit++;   // pending Task type count
+  //       } else {
+  //         activeVisit++;     // ✅ active Task type count (NOT sum)
+  //       }
+  //     }
+  //     _totalV = store.toString();
+  //
+  //     final attendanceProvider = Provider.of<AttendanceProvider>(context, listen: false);
+  //     final attendanceList = (response["attendance"] ?? []) as List;
+  //     attendanceProvider.setAttendanceData(
+  //       attendanceList
+  //           .map<AttendanceModel>((e) => AttendanceModel.fromJson(e))
+  //           .toList(),
+  //     );
+  //     permisCount = 0;
+  //     lateCountShow = 0;
+  //
+  //     for (var i = 0; i < attendanceList.length; i++) {
+  //       var row = attendanceList[i];
+  //
+  //       // Permission Count
+  //       if (row["per_status"] != null && row["per_status"].toString() != "null") {
+  //         permisCount++;
+  //       }
+  //
+  //       // Late Count
+  //       String status = row["status"].toString();
+  //       String time = row["time"]?.toString() ?? "";
+  //
+  //       if (time.isEmpty) continue;
+  //
+  //       String inTime = "";
+  //
+  //       if (status.contains("1,2")) {
+  //         inTime = time.split(",")[0];
+  //       } else if (status.contains("2,1")) {
+  //         inTime = time.split(",")[1];
+  //       } else {
+  //         inTime = time.split(",")[0];
+  //       }
+  //
+  //       if (inTime.isNotEmpty && isLate(inTime)) {
+  //         lateCountShow++;
+  //       }
+  //     }
+  //     _refresh = true;
+  //   } catch (e, stack) {
+  //     print("===== DASHBOARD ERROR =====");
+  //     print(e);
+  //     print(stack);
+  //     _refresh = true;
+  //   }
+  //
+  //   notifyListeners();
+  // }
 
   OtpFieldControllerV2 otpbox = OtpFieldControllerV2();
   String otp='';

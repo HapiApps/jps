@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
+import 'package:master_code/source/constant/default_constant.dart';
 import 'package:master_code/view_model/employee_provider.dart';
 import 'package:provider/provider.dart';
 import '../../source/constant/assets_constant.dart';
@@ -63,7 +64,7 @@ class _LeaveManagementDashboardState extends State<LeaveManagementDashboard> {
                     ? colorsConst.primary
                     : Colors.grey,
               ),
-              label: 'Leaves',
+              label: "${constValue.leavesLabel}"
             ),
             BottomNavigationBarItem(
               icon: SvgPicture.asset(
@@ -74,7 +75,7 @@ class _LeaveManagementDashboardState extends State<LeaveManagementDashboard> {
                     ? colorsConst.primary
                     : Colors.grey,
               ),
-              label: 'Type',
+              label: "${constValue.typeLabel}"
             ),
             BottomNavigationBarItem(
               icon: SvgPicture.asset(
@@ -85,7 +86,7 @@ class _LeaveManagementDashboardState extends State<LeaveManagementDashboard> {
                     ? colorsConst.primary
                     : Colors.grey,
               ),
-              label: 'Report',
+              label: "${constValue.reportLabel}"
             ),
             BottomNavigationBarItem(
               icon: SvgPicture.asset(
@@ -96,7 +97,7 @@ class _LeaveManagementDashboardState extends State<LeaveManagementDashboard> {
                     ? colorsConst.primary
                     : Colors.grey,
               ),
-              label: 'Apply',
+              label: "${constValue.applyLabel}",
             ),
             BottomNavigationBarItem(
               icon: SvgPicture.asset(
@@ -107,7 +108,7 @@ class _LeaveManagementDashboardState extends State<LeaveManagementDashboard> {
                     ? colorsConst.primary
                     : Colors.grey,
               ),
-              label: 'Rules',
+              label: "${constValue.rulesLabel}",
             ),
           ],
         )
@@ -146,7 +147,7 @@ class _LeaveManagementDashboardState extends State<LeaveManagementDashboard> {
                       height: 22,
                       color: Colors.white,
                     ),
-                    label: const Text("Leaves"),
+                    label: Text("${constValue.leavesLabel}"),
                   ),
                   NavigationRailDestination(
                     icon: SvgPicture.asset(
@@ -161,7 +162,7 @@ class _LeaveManagementDashboardState extends State<LeaveManagementDashboard> {
                       height: 22,
                       color: Colors.white,
                     ),
-                    label: const Text("Type"),
+                    label: Text("${constValue.typeLabel}"),
                   ),
                   NavigationRailDestination(
                     icon: SvgPicture.asset(
@@ -176,7 +177,7 @@ class _LeaveManagementDashboardState extends State<LeaveManagementDashboard> {
                       height: 22,
                       color: Colors.white,
                     ),
-                    label: const Text("Report"),
+                    label: Text("${constValue.reportLabel}"),
                   ),
                   NavigationRailDestination(
                     icon: SvgPicture.asset(
@@ -191,7 +192,7 @@ class _LeaveManagementDashboardState extends State<LeaveManagementDashboard> {
                       height: 22,
                       color: Colors.white,
                     ),
-                    label: const Text("Apply"),
+                    label: Text("${constValue.applyLabel}"),
                   ),
                   NavigationRailDestination(
                     icon: SvgPicture.asset(
@@ -206,7 +207,7 @@ class _LeaveManagementDashboardState extends State<LeaveManagementDashboard> {
                       height: 22,
                       color: Colors.white,
                     ),
-                    label: const Text("Rules"),
+                    label:  Text("${constValue.rulesLabel}"),
                   ),
                 ],
               ),

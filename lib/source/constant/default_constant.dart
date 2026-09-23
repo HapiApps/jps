@@ -1,23 +1,27 @@
+import 'package:flutter/cupertino.dart';
+
 /// -----------------------------------------------------------------------
 /// LANGUAGE TOGGLE
 /// -----------------------------------------------------------------------
 /// Set `LanguageManager.isTamil = true` to switch the whole app to Tamil.
 /// Default is `false` -> English.
 /// -----------------------------------------------------------------------
-class LanguageManager {
-  LanguageManager._();
+class LanguageManager extends ChangeNotifier {
+  LanguageManager._internal();
+  static final LanguageManager instance = LanguageManager._internal();
 
   /// true  -> Tamil
-  /// false -> English (default)
-  static bool isTamil = true;
+  /// false -> English
+  bool isTamil = true;
 
-  /// Call this from your language-toggle switch/button.
-  static void setLanguage({required bool tamil}) {
+  void setLanguage({required bool tamil}) {
     isTamil = tamil;
+    notifyListeners();
   }
 
-  static void toggle() {
+  void toggle() {
     isTamil = !isTamil;
+    notifyListeners();
   }
 }
 
@@ -26,7 +30,8 @@ final ConstantValues constValue = ConstantValues._();
 class ConstantValues {
   ConstantValues._();
 
-  bool get _ta => LanguageManager.isTamil;
+  bool get _ta => LanguageManager.instance.isTamil;   // ✅ Fixed
+
 
   final String appName = "Hapi Apps";
 
@@ -84,7 +89,7 @@ class ConstantValues {
   String get lastWrkDay => _ta ? "கடைசி பணி நாள்" : "Last Working Day";
 
   String get applyDate => _ta ? "விண்ணப்பித்த தேதி" : "Applied Date";
-
+  String get addGradeAmountFirst => _ta ? "தொடர வேண்டுமெனில் அமைப்புகளுக்குச் சென்று ஒரு தரம் மற்றும் அதன் தொகையைச் சேர்க்கவும்" : "Please go to Settings to add a grade and its amount before proceeding";
   String get addVisit =>
       _ta
           ? "தினசரி பணி செயல்பாடு அறிக்கை சேர்க்க"
@@ -164,7 +169,7 @@ class ConstantValues {
   String get endDate => _ta ? "முடிவு தேதி" : "End Date";
 
   String get planWork => _ta ? "இன்றைய பணி திட்டம்" : "Today's Work Plan";
-
+  String get planDayWork => _ta ? "நாள் வேலைத் திட்டம்" : "Day Work Plan";
   String get finishedWork =>
       _ta ? "முடிக்கப்பட்ட பணி விவரம்" : "Description Of Finished Work";
 
@@ -247,6 +252,7 @@ class ConstantValues {
   String get updateLine => _ta ? "லைன் புதுப்பிக்க" : "Update Line";
 
   String get createCustomer => _ta ? "வாடிக்கையாளரை சேர்க்க" : "Add Customer";
+  String get emergencyNumber => _ta ? "அவசர எண்" : "Emergency Number";
 
   String get addComment => _ta ? "கருத்து சேர்க்க" : "Add Comment";
 
@@ -480,6 +486,10 @@ class ConstantValues {
   String get Reference => _ta ? "பரிந்துரை" : "Reference";
   String get kyc => _ta ? "கேஒய்சி" : "KYC";
 
+  String get lateAttendanceReport => _ta ? "தாமத வருகை அறிக்கை" : "Late Attendance Report";   // ✅ புதுசா சேர்த்தது
+
+  // String get attendance => _ta ? "வருகை" : "Attendance";
+
 //customer details
   String get totalCustomer => _ta ? "மொத்த வாடிக்கையாளர்கள்" : "Total Customer";
   String get company => _ta ? "நிறுவனம்" : "Company";
@@ -504,13 +514,49 @@ class ConstantValues {
   String get taskTitle => _ta ? "பணி தலைப்பு / விளக்கம்" : "Task Title / Description";
   String get notes => _ta ? "குறிப்புகள் மற்றும் இணைப்புகள்" : "Notes Attachments";
   String get updateEmployee => _ta ? "ஊழியர் விவரங்களை புதுப்பிக்க" : "Update Employee";
+  String get selectTypeTask => _ta ? "வகையை தேர்ந்தெடுக்கவும்" : "Please select a type";
+  String get fillDescription => _ta ? "விளக்கத்தை நிரப்பவும்" : "Please fill description";
+  String get selectAssignedTo => _ta ? "நியமிக்கப்பட்டவரை தேர்ந்தெடுக்கவும்" : "Please select assigned to";
+  String get addVisitReport => _ta ? "வருகை அறிக்கையைச் சேர்க்கவும்" : "Please add visit report";
+  String get noVisitReportFound => _ta ? "வருகை அறிக்கை எதுவும் இல்லை" : "No visit report found";
+  String get addExpenseReport => _ta ? "செலவு அறிக்கையைச் சேர்க்கவும்" : "Please add expense report";
+  String get noExpenseReportFound => _ta ? "செலவு அறிக்கை எதுவும் இல்லை" : "No expense report found";
+  String get selectAssignTo => _ta ? "நியமிக்கப்படுபவரைத் தேர்ந்தெடுக்கவும்" : "Please select assign to";
+  String get selectDate => _ta ? "தேதியைத் தேர்ந்தெடுக்கவும்" : "Please select date";
 
 //leave
   String get leaveReport => _ta ? "விடுப்பு அறிக்கை" : "Leave report";
+  String get Myleave => _ta ? "எனது விடுப்பு" : "My Leave";
   String get addAnnualLeaves => _ta ? "ஆண்டு விடுப்புகளைச் சேர்க்க" : "Add Annual Leaves";
   String get leaveYear => _ta ? "ஆண்டு" : "Year";
   String get leaveType => _ta ? "விடுப்பு வகை" : "Leave Type";
   String get addLeaveType => _ta ? "விடுப்பு வகையைச் சேர்க்க" : "Add Leave Type";
+  String get types => _ta ? "விடுப்பு வகை" : "Type";
+  String get leaveManagementTitle => _ta ? "விடுப்பு மேலாண்மை" : "Leave Management";
+  String get leavesLabel => _ta ? "விடுப்புகள்" : "Leaves";
+  String get typeLabel => _ta ? "வகை" : "Type";
+  String get reportLabel => _ta ? "அறிக்கை" : "Report";
+  String get applyLabel => _ta ? "விண்ணப்பி" : "Apply";
+  String get rulesLabel => _ta ? "விதிகள்" : "Rules";
+
+  // Apply Leave screen
+  String get editLeaveTitle => _ta ? "விடுப்பு திருத்தம்" : "Edit Leave";
+  String get leaveApplicationTitle => _ta ? "விடுப்பு விண்ணப்பம்" : "Leave Application";
+  String get leaveApplyFor => _ta ? "விடுப்பு விண்ணப்பிப்பவர்" : "Leave Apply For";
+  String get fullDay => _ta ? "முழு நாள்" : "Full Day";
+  String get halfDay => _ta ? "அரை நாள்" : "Half Day";
+  String get leaveDate => _ta ? "விடுப்பு தேதி" : "Leave Date";
+  String get toWord => _ta ? " முதல் " : " To ";
+  String get reason => _ta ? "காரணம்" : "Reason";
+  String get cancel => _ta ? "ரத்து செய்" : "Cancel";
+  String get update => _ta ? "புதுப்பி" : "Update";
+  String get apply => _ta ? "விண்ணப்பி" : "Apply";
+  String get selectDayType => _ta ? "நாள் வகையை தேர்ந்தெடுக்கவும்" : "Select Day Type";
+  String get selectLeaveDate => _ta ? "விடுப்பு தேதியை தேர்ந்தெடுக்கவும்" : "Select Leave Date";
+  String get selectLeaveType => _ta ? "விடுப்பு வகையை தேர்ந்தெடுக்கவும்" : "Select Leave Type";
+  String get fillReason => _ta ? "காரணத்தை நிரப்பவும்" : "Please Fill Reason";
+  String get selectUserName => _ta ? "பயனர் பெயரை தேர்ந்தெடுக்கவும்" : "Please Select User Name";
+
 
 //settings
   String get grades => _ta ? "தரங்கள்" : "Grades";
@@ -581,4 +627,123 @@ class ConstantValues {
   String get jobInformationE1 => _ta ? "பணி தகவல்" : "Job Information";
   String get ReferenceE1 => _ta ? "பரிந்துரை" : "Reference";
   String get kycE1 => _ta ? "கேஒய்சி" : "KYC";
+
+  String get selectCustomerMsg => _ta ? "வாடிக்கையாளரைத் தேர்ந்தெடுக்கவும்" : "Please select customer";
+  String get enterDescriptionMsg => _ta ? "விளக்கத்தை உள்ளிடவும்" : "Please enter description";
+
+  // Buttons
+ // String get addMore => _ta ? "மேலும் சேர்க்க" : "Add More";
+  String get save => _ta ? "சேமி" : "Save";
+  String get back => _ta ? "பின் செல்" : "Back";
+  // String get next => _ta ? "அடுத்து" : "Next";
+  // String get cancel => _ta ? "ரத்து செய்" : "Cancel";
+
+// Validation messages
+  String get fillFirstName => _ta ? "பெயரை நிரப்பவும்" : "Please fill first name";
+  String get fillMobileNumber => _ta ? "மொபைல் எண்ணை நிரப்பவும்" : "Please fill mobile number";
+  String get checkMobileNumber => _ta ? "மொபைல் எண்ணை சரிபார்க்கவும்" : "Please check mobile number";
+  String get fillPassword => _ta ? "கடவுச்சொல்லை நிரப்பவும்" : "Please fill password";
+  String get passwordMinLength => _ta ? "கடவுச்சொல் குறைந்தது 8 எழுத்துகள் இருக்க வேண்டும்" : "Password must be at least 8 characters";
+  String get selectRole => _ta ? "பணி பதவியை தேர்ந்தெடுக்கவும்" : "Please select role";
+  String get checkPincode => _ta ? "பின்கோடை சரிபார்க்கவும்" : "Please check pincode";
+  String get checkWhatsappNumber => _ta ? "வாட்ஸ்அப் எண்ணை சரிபார்க்கவும்" : "Please check whatsapp number";
+  String get checkEmail => _ta ? "மின்னஞ்சலை சரிபார்க்கவும்" : "Please check email id";
+  String get checkAadhaar => _ta ? "ஆதார் எண்ணை சரிபார்க்கவும்" : "Please check aadhaar number";
+  String get checkPan => _ta ? "பான் எண்ணை சரிபார்க்கவும்" : "Please check pan number";
+  String get checkPermanentPincode => _ta ? "நிரந்தர முகவரி பின்கோடை சரிபார்க்கவும்" : "Please check permanent address pincode";
+  String get checkPhoneNumber => _ta ? "தொலைபேசி எண்ணை சரிபார்க்கவும்" : "Please check phone number";
+  String get checkRef1Phone => _ta ? "பரிந்துரையாளர் 1 தொலைபேசி எண்ணை சரிபார்க்கவும்" : "Please check reference 1 phone number";
+  String get checkRef2Phone => _ta ? "பரிந்துரையாளர் 2 தொலைபேசி எண்ணை சரிபார்க்கவும்" : "Please check reference 2 phone number";
+  String get fillName => _ta ? "பெயரை நிரப்பவும்" : "Please Fill";
+  String get makeMainQuestion => _ta ? "இதை முக்கியமானதாக்கவா" : "Make this main";
+  String get checkEmailId => _ta ? "மின்னஞ்சலை சரிபார்க்கவும்" : "Please Check Email Id";
+  String get checkEmergencyNumber => _ta ? "அவசர எண்ணை சரிபார்க்கவும்" : "Please check emergency number";
+  String get roleDecisionMaker => _ta ? "முடிவெடுப்பவர்" : "Decision Maker";
+  String get roleSupporter => _ta ? "ஆதரவாளர்" : "Supporter";
+  String get roleInfluencer => _ta ? "தாக்கம் செலுத்துபவர்" : "Influencer";
+  String get roleOther => _ta ? "மற்றவை" : "Other";
+  String get noChangesMade => _ta ? "இதுவரை எந்த மாற்றமும் செய்யப்படவில்லை." : "No changes have been made yet.";
+  String get noDataFound => _ta ? "தரவு எதுவும் கிடைக்கவில்லை" : "No Data Found";
+
+  String get addCompanyCustomerTitle => _ta ? "நிறுவனம் & வாடிக்கையாளரைச் சேர்க்கவும்" : "Add Company & Customer";
+  String get companyNameLabel => _ta ? "நிறுவனத்தின் பெயர்" : "Company Name";
+  String get customerNameLabel => _ta ? "வாடிக்கையாளர் பெயர்" : "Customer Name";
+  String get mobileNumberLabel => _ta ? "மொபைல் எண்" : "Mobile Number";
+  String get enterCompanyName => _ta ? "நிறுவனத்தின் பெயரை உள்ளிடவும்" : "Enter Company Name";
+  String get enterCustomerName => _ta ? "வாடிக்கையாளர் பெயரை உள்ளிடவும்" : "Enter Customer Name";
+  String get enterMobileNumber => _ta ? "மொபைல் எண்ணை உள்ளிடவும்" : "Enter Mobile Number";
+  String get enterValidMobileNumber => _ta ? "சரியான மொபைல் எண்ணை உள்ளிடவும்" : "Enter valid mobile number";
+  String get companyCustomerAdded => _ta ? "நிறுவனம் & வாடிக்கையாளர் சேர்க்கப்பட்டது" : "Company & Customer Added";
+  String get companyAddedNotFound => _ta ? "நிறுவனம் சேர்க்கப்பட்டது ஆனால் கிடைக்கவில்லை" : "Company added but not found";
+  String get alreadyExistsOrFailed => _ta ? "ஏற்கனவே உள்ளது / தோல்வியடைந்தது" : "Already Exists / Failed";
+
+  String get addCustomerTitle => _ta ? "வாடிக்கையாளரைச் சேர்க்கவும்" : "Add Customer";
+  String get companyIdEmpty => _ta ? "நிறுவன ஐடி காலியாக உள்ளது" : "Company ID is empty";
+  String get customerAddedSuccessfully => _ta ? "வாடிக்கையாளர் வெற்றிகரமாக சேர்க்கப்பட்டார்" : "Customer Added Successfully";
+  String get customerAddedIdNotFound => _ta ? "வாடிக்கையாளர் சேர்க்கப்பட்டார் ஆனால் ஐடி கிடைக்கவில்லை" : "Customer added but ID not found in list";
+  String get customerAlreadyExistsOrFailed => _ta ? "வாடிக்கையாளர் ஏற்கனவே உள்ளார் / தோல்வியடைந்தது" : "Customer Already Exists / Failed";
+
+  String get leaveSummary => _ta ? "விடுப்பு சுருக்கம்" : "Leave Summary";
+  String get totalLeaveLabel => _ta ? "மொத்த விடுப்பு : " : "Total Leave : ";
+  String get leaveTakenLabel => _ta ? "எடுத்த விடுப்பு : " : "Leave Taken : ";
+  String get noLeavesAllocated => _ta ? "உங்களுக்கு இதுவரை விடுப்புகள் ஒதுக்கப்படவில்லை." : "No leaves have been allocated to you yet.";
+  String get daysLeftPlanSmart => _ta ? "நாட்கள் மீதமுள்ளன. திட்டமிடுங்கள்!" : "days left. Plan smart!";
+  String get allLeavesUsed => _ta ? "அனைத்து விடுப்புகளும் பயன்படுத்தப்பட்டன. அதற்கேற்ப திட்டமிடுங்கள்." : "All leaves used. Plan accordingly.";
+
+  //grade
+
+  String get gradesExpensePolicy => _ta ? "தரங்கள் & செலவு கொள்கை" : "Grades & Expense Policy";
+  String get amountTab => _ta ? "தொகை" : "Amount";
+  String get noGradesFound => _ta ? "தரங்கள் எதுவும் கிடைக்கவில்லை" : "No Grades Found";
+  String get doYouWantTo => _ta ? "நீங்கள் விரும்புகிறீர்களா" : "Do you want to";
+  String get deleteGradeQ => _ta ? "தரத்தை நீக்க?" : "Delete the grade?";
+  String get addGrades => _ta ? "தரங்களைச் சேர்க்க" : "Add Grades";
+  String get pleaseFillGrade => _ta ? "தரத்தை நிரப்பவும்" : "Please fill grade";
+
+  //task type add
+
+  String get taskTypesTitle => _ta ? "பணி வகைகள்" : "Task types";
+  String get noTaskTypesFound => _ta ? "பணி வகைகள் எதுவும் கிடைக்கவில்லை" : "No Task types Found";
+  String get createdByLabel => _ta ? "உருவாக்கியவர்: " : "Created By: ";
+  String get timeLabel => _ta ? "நேரம்: " : "Time: ";
+  String get sureDeleteMsg => _ta ? "நீக்க விரும்புகிறீர்களா" : "Are you sure you want to delete";
+  String get addTaskTypes => _ta ? "பணி வகைகளைச் சேர்க்க" : "Add Task types";
+  String get pleaseFillType => _ta ? "வகையை நிரப்பவும்" : "Please fill type";
+
+  String get noTaskStatusFound => _ta ? "பணி நிலைகள் எதுவும் கிடைக்கவில்லை" : "No Task Status Found";
+  String get addTaskStatusTitle => _ta ? "பணி நிலையைச் சேர்க்க" : "Add Task Status";
+  String get editTaskStatusTitle => _ta ? "பணி நிலையைத் திருத்து" : "Edit Task Status";
+  String get pleaseFillStatus => _ta ? "நிலையை நிரப்பவும்" : "Please fill status";
+
+  String get noValuesFound => _ta ? "மதிப்புகள் எதுவும் கிடைக்கவில்லை" : "No Values Found";
+  String get viewMode => _ta ? "பார்வை பயன்முறை" : "View Mode";
+  String get editMode => _ta ? "திருத்து பயன்முறை" : "Edit Mode";
+  String get requiredLabel => _ta ? "அவசியம்" : "Required";
+  String get optionalLabel => _ta ? "விருப்பம்" : "Optional";
+  String get deleteLabel => _ta ? "நீக்கு" : "Delete";
+
+  String get manageSettingTitle => _ta ? "அமைப்பை நிர்வகி" : "Manage Setting";
+  String get noActivitiesFound => _ta ? "செயல்பாடுகள் எதுவும் கிடைக்கவில்லை" : "No Activities Found";
+
+  String get sureWantTo => _ta ? "நீங்கள் விரும்புகிறீர்களா" : "Are you sure you want";
+  String get endSessionQ => _ta ? "அமர்வை முடிக்க?" : "to end the session?";
+  String get deleteAccountQ => _ta ? "உங்கள் கணக்கை நீக்க?" : "to delete your account?";
+
+  String get otpTitle => _ta ? "OTP" : "OTP";
+  String get otpVerification => _ta ? "OTP சரிபார்ப்பு" : "OTP Verification";
+  String get enterOtpSentTo => _ta ? "இதற்கு அனுப்பப்பட்ட OTP-ஐ உள்ளிடவும் ........" : "Enter the OTP sent to ........";
+  String get otpSent => _ta ? "OTP அனுப்பப்பட்டது" : "OTP Sent";
+  String get forgotPasswordTitle => _ta ? "கடவுச்சொல் மறந்துவிட்டதா" : "Forgot Password";
+  String get confirmPassword => _ta ? "கடவுச்சொல்லை உறுதிப்படுத்து" : "Confirm Password";
+  String get pleaseFillConfirmPassword => _ta ? "உறுதிப்படுத்தும் கடவுச்சொல்லை நிரப்பவும்" : "Please fill confirm password";
+  String get pleaseCheckPassword => _ta ? "கடவுச்சொல்லை சரிபார்க்கவும்" : "Please check password";
+  String get resetPassword => _ta ? "கடவுச்சொல்லை மீட்டமை" : "RESET PASSWORD";
+
+  String get phoneNumberField => _ta ? "தொலைபேசி எண்" : "Phone Number";
+  String get pleaseFillPhoneNumber => _ta ? "தொலைபேசி எண்ணை நிரப்பவும்" : "Please fill phone number";
+  String get pleaseCheckPhoneNumber2 => _ta ? "தொலைபேசி எண்ணை சரிபார்க்கவும்" : "Please check phone number";
+  String get passwordMinLength6 => _ta ? "கடவுச்சொல் குறைந்தது 6 எழுத்துகள் இருக்க வேண்டும்" : "Password must be 6 characters";
+  String get enterMobileNumberMsg => _ta ? "உங்கள் மொபைல் எண்ணை உள்ளிடவும்" : "Enter Your Mobile Number";
+  String get checkMobileNumberMsg => _ta ? "உங்கள் மொபைல் எண்ணை சரிபார்க்கவும்" : "Check Your Mobile Number";
+  String get exitAppQ => _ta ? "செயலியிலிருந்து வெளியேற விரும்புகிறீர்களா?" : "Do you want to Exit the App?";
 }

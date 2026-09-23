@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../component/custom_loading_button.dart';
 import '../../../source/constant/colors_constant.dart';
+import '../../../source/constant/default_constant.dart';
 import '../../../source/utilities/utils.dart';
 import '../../../view_model/customer_provider.dart';
 
@@ -41,7 +42,7 @@ class _AddCustomerPopupState extends State<AddCustomerPopup> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text("Add Customer"),
+      title: Text("${constValue.addCustomerTitle}"),
       content: SizedBox(
         width: 400,
         child: Column(
@@ -50,9 +51,9 @@ class _AddCustomerPopupState extends State<AddCustomerPopup> {
             TextField(
               controller: nameController,
               textCapitalization: TextCapitalization.words,
-              decoration: const InputDecoration(
-                labelText: "Customer Name",
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: "${constValue.customerNameLabel}",
+                border: const OutlineInputBorder(),
               ),
               onChanged: (value) {
                 String formatted = capitalizeFirstLetter(value);
@@ -69,9 +70,9 @@ class _AddCustomerPopupState extends State<AddCustomerPopup> {
               controller: mobileController,
               keyboardType: TextInputType.phone,
               maxLength: 10,
-              decoration: const InputDecoration(
-                labelText: "Mobile Number",
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: "${constValue.mobileNumberLabel}",
+                border: const OutlineInputBorder(),
                 counterText: "",
               ),
             ),
@@ -81,7 +82,7 @@ class _AddCustomerPopupState extends State<AddCustomerPopup> {
       actions: [
         TextButton(
           onPressed: isLoading ? null : () => Navigator.pop(context),
-          child: const Text("Cancel"),
+          child: Text("${constValue.cancel}"),
         ),
         Consumer<CustomerProvider>(
             builder: (context, provider, child) {
@@ -92,24 +93,24 @@ class _AddCustomerPopupState extends State<AddCustomerPopup> {
                   String mobile = mobileController.text.trim();
 
                   if (name.isEmpty) {
-                    utils.showWarningToast(context,text:  "Enter Customer Name",);
+                    utils.showWarningToast(context,text:  "${constValue.enterCustomerName}",);
                     provider.addcustomerCtr.reset();
                     return;
                   }
                   if (mobile.isEmpty) {
-                    utils.showWarningToast(context,text:  "Enter Mobile Number",);
+                    utils.showWarningToast(context,text:  "${constValue.enterMobileNumber}",);
                     provider.addcustomerCtr.reset();
                     return;
                   }
                   if (!isValidMobile(mobile)) {
-                    utils.showWarningToast(context,text:  "Enter Valid Mobile Number",);
+                    utils.showWarningToast(context,text:  "${constValue.enterValidMobileNumber}",);
                     provider.addcustomerCtr.reset();
                     return;
                   }
 
                   if (widget.companyId.isEmpty) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text("Company ID is empty")),
+                      SnackBar(content: Text("${constValue.companyIdEmpty}")),
                     );
                     return;
                   }
@@ -165,23 +166,23 @@ class _AddCustomerPopupState extends State<AddCustomerPopup> {
                       currentList.add(newCustomer);
 
                       custProvider.setMultiSelectedCustomers(currentList);
-                      utils.showSuccessToast(context: context,text:  "Customer Added Successfully",);
+                      utils.showSuccessToast(context: context,text:  "${constValue.customerAddedSuccessfully}",);
                       custProvider.addcustomerCtr.reset();
                       Navigator.pop(context, newCustomer);
 
                     } else {
-                      utils.showWarningToast(context,text:  "Customer added but ID not found in list",);
+                      utils.showWarningToast(context,text:  "${constValue.customerAddedIdNotFound}",);
                       custProvider.addcustomerCtr.reset();
                     }
 
                   } else {
-                    utils.showWarningToast(context,text:  "Customer Already Exists / Failed",);
+                    utils.showWarningToast(context,text:  "${constValue.customerAlreadyExistsOrFailed}",);
                     custProvider.addcustomerCtr.reset();
                   }
 
                   setState(() => isLoading = false);
                 },
-                text: "Save",
+                text: "${constValue.save}",
                 controller: provider.addcustomerCtr, // if exists
                 isLoading: true,
                 backgroundColor: colorsConst.primary,

@@ -109,15 +109,11 @@ class _EditTaskState extends State<EditTask> with SingleTickerProviderStateMixin
                                     10.height,
                                   ],
                                 ),
-                                // cusPvr.refresh == false?
-                                // const Loading()
-                                //     :
                                 Column(
                                   children: [
                                     Row(
                                       children: [
                                         CustomText(text:constValue.customerName,size:13,isBold: false,),
-                                        // CustomText(text:"*",colors:colorsConst.appRed,size:18,isBold: false,),
                                       ],
                                     ),
                                     CustomerDropdown(hintText:false,
@@ -140,13 +136,13 @@ class _EditTaskState extends State<EditTask> with SingleTickerProviderStateMixin
                                 Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                     CustomText(text: "${constValue.priority}"),10.height,
+                                    CustomText(text: "${constValue.priority}"),10.height,
                                     Row(
                                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                       children: [
                                         CustomRadioButton(
                                             width: MediaQuery.of(context).size.width*0.2,
-                                            text: "Normal",
+                                            text: constValue.normal,
                                             onChanged: (value) {
                                               taskProvider.changeLevel(value.toString());
                                             },
@@ -154,14 +150,14 @@ class _EditTaskState extends State<EditTask> with SingleTickerProviderStateMixin
                                             confirmValue: 'Normal'),
                                         CustomRadioButton(
                                             width: MediaQuery.of(context).size.width*0.2,
-                                            text: "High",
+                                            text: constValue.high,
                                             onChanged: (value) {
                                               taskProvider.changeLevel(value.toString());
                                             },
                                             saveValue: taskProvider.level,
                                             confirmValue: 'High'),
                                         CustomRadioButton(
-                                            text: "Immediate",
+                                            text: constValue.immediate,
                                             width: MediaQuery.of(context).size.width*0.2,
                                             onChanged: (value) {
                                               taskProvider.changeLevel(value.toString());
@@ -176,7 +172,6 @@ class _EditTaskState extends State<EditTask> with SingleTickerProviderStateMixin
                                 SearchCustomDropdown(
                                     text: "${constValue.assigned}",isOptional: false,
                                     hintText: taskProvider.assignedNames,
-                                    // hintText: taskProvider.assName==""||taskProvider.assName=="null"?"Assign To":taskProvider.assName,
                                     valueList: empPvr.activeEmps,
                                     onChanged: (value) {},
                                     width: kIsWeb?webWidth:phoneWidth),
@@ -187,10 +182,10 @@ class _EditTaskState extends State<EditTask> with SingleTickerProviderStateMixin
                                   onChanged: (Object? value) {
                                     if (value.toString().contains("Clsd")||value.toString().contains("Completed")){
                                       if(widget.data.visitReportCount.toString()=="0"){
-                                        utils.showWarningToast(context, text: localData.storage.read("role")!="1"?"Please add visit report":"No visit report found");
+                                        utils.showWarningToast(context, text: localData.storage.read("role")!="1"?"${constValue.addVisitReport}":"${constValue.noVisitReportFound}");
                                         taskProvider.statusController.selectIndex(0); // Unselect
                                       }else if(widget.data.expenseReportCount.toString()=="0"){
-                                        utils.showWarningToast(context, text: localData.storage.read("role")!="1"?"Please add expense report":"No expense report found");
+                                        utils.showWarningToast(context, text: localData.storage.read("role")!="1"?"${constValue.addExpenseReport}":"${constValue.noExpenseReportFound}");
                                         taskProvider.statusController.selectIndex(0); // Unselect
                                       }else{
                                         taskProvider.changeStatus(value);
@@ -226,7 +221,7 @@ class _EditTaskState extends State<EditTask> with SingleTickerProviderStateMixin
                                   },
                                 ),
                                 15.height,
-                              
+
                                 20.height,
                               ],
                             ),
@@ -238,35 +233,30 @@ class _EditTaskState extends State<EditTask> with SingleTickerProviderStateMixin
                             CustomLoadingButton(
                                 callback: (){
                                   Future.microtask(() => Navigator.pop(context));
-                                }, isLoading: false,text: "Cancel",
+                                }, isLoading: false,text: "${constValue.cancel}",
                                 backgroundColor: Colors.white, textColor: colorsConst.primary,radius: 10,
                                 width: kIsWeb?webWidth/2.5:phoneWidth/2.5),
                             CustomLoadingButton(
                                 callback: (){
                                   if (taskProvider.type==null||taskProvider.type=="0") {
                                     _myFocusScopeNode.unfocus();
-                                    utils.showWarningToast(context,text: "Please Select ${constValue.type}");
+                                    utils.showWarningToast(context,text: "${constValue.selectType} ${constValue.type}");
                                     taskProvider.taskCtr.reset();
                                   }
-                                  // else if (taskProvider.cusId==""&&companyId=="") {
-                                  //   _myFocusScopeNode.unfocus();
-                                  //   utils.showWarningToast(context,text: "Please Select ${constValue.customerName}");
-                                  //   taskProvider.taskCtr.reset();
-                                  // }
                                   else if (taskProvider.type==null) {
                                     _myFocusScopeNode.unfocus();
-                                    utils.showWarningToast(context,text: "Please select a type");
+                                    utils.showWarningToast(context,text: "${constValue.selectType}");
                                     taskProvider.taskCtr.reset();
                                   } else if (taskProvider.taskTitleCont.text.isEmpty) {
-                                    utils.showWarningToast(context,text: "Please fill description");
+                                    utils.showWarningToast(context,text: "${constValue.fillDescription}");
                                     taskProvider.taskCtr.reset();
                                   } else if (taskProvider.assignedId==""&&(taskProvider.assName==""||taskProvider.assName=="null")) {
                                     _myFocusScopeNode.unfocus();
-                                    utils.showWarningToast(context,text: "Please select assign to");
+                                    utils.showWarningToast(context,text: "${constValue.selectAssignTo}");
                                     taskProvider.taskCtr.reset();
                                   }  else if (taskProvider.taskDt.text.isEmpty) {
                                     _myFocusScopeNode.unfocus();
-                                    utils.showWarningToast(context,text: "Please select date");
+                                    utils.showWarningToast(context,text: "${constValue.selectDate}");
                                     taskProvider.taskCtr.reset();
                                   } else {
                                     _myFocusScopeNode.unfocus();
@@ -277,7 +267,7 @@ class _EditTaskState extends State<EditTask> with SingleTickerProviderStateMixin
                                     taskProvider.updateTaskDetail(context,taskId: widget.data.id.toString(),id: companyId,
                                         isDirect: widget.isDirect, numberList: widget.numberList, companyName: widget.data.projectName.toString());
                                   }
-                                }, isLoading: true,text: "Save",controller: taskProvider.taskCtr,
+                                }, isLoading: true,text: "${constValue.save}",controller: taskProvider.taskCtr,
                                 backgroundColor: colorsConst.primary,radius: 10,
                                 width: kIsWeb?webWidth/2.5:phoneWidth/2.5),
                           ],

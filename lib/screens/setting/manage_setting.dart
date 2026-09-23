@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:master_code/component/custom_checkbox.dart';
 import 'package:master_code/component/custom_loading_button.dart';
+import 'package:master_code/source/constant/default_constant.dart';
 import 'package:master_code/source/extentions/extensions.dart';
 import 'package:flutter/material.dart';
 import 'package:master_code/source/utilities/utils.dart';
@@ -38,13 +39,13 @@ class _ManageSettingState extends State<ManageSetting> {
   Widget build(BuildContext context) {
     var webWidth=MediaQuery.of(context).size.width * 0.5;
     var phoneWidth=MediaQuery.of(context).size.width * 0.9;
-    return Consumer2<SettingProvider,HomeProvider>(builder: (context,setPvr,homeProvider,_){
+    return Consumer3<SettingProvider,HomeProvider,LanguageManager>(builder: (context,setPvr,homeProvider,langManager,_){
       return SafeArea(
         child: Scaffold(
             backgroundColor: colorsConst.bacColor,
             appBar: PreferredSize(
               preferredSize: const Size(300, 50),
-              child: CustomAppbar(text: "Manage Setting"),
+              child: CustomAppbar(text: constValue.manageSettingTitle),
             ),
             // floatingActionButton: setPvr.featuresList.isNotEmpty?CustomLoadingButton(callback: (){
             //   setPvr.manageSetting(context,localData.storage.read("cos_id"));
@@ -58,7 +59,7 @@ class _ManageSettingState extends State<ManageSetting> {
                   Column(
                     children: [
                       100.height,
-                      CustomText(text: "No Activities Found",
+                      CustomText(text: constValue.noActivitiesFound,
                           colors: colorsConst.greyClr)
                     ],
                   ) :
@@ -125,13 +126,3 @@ class _ManageSettingState extends State<ManageSetting> {
     });
   }
 }
-
-
-
-
-
-
-
-
-
-

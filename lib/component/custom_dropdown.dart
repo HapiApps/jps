@@ -35,7 +35,7 @@ class _CustomDropDownState extends State<CustomDropDown> {
           if(widget.isHint==false)
           Row(
             children: [
-              CustomText(text: widget.text,colors: Colors.grey.shade400,size: 13,isBold:false),
+              CustomText(text: widget.text,colors: Colors.black,size: 13,isBold:false),
               if (widget.isRequired == true)
                 CustomText(text:"*",colors: colorsConst.appRed,size:20,isBold: false,
                 ),
@@ -50,7 +50,7 @@ class _CustomDropDownState extends State<CustomDropDown> {
               iconEnabledColor: Colors.black,
               isExpanded: true,
               icon: const Icon(Icons.keyboard_arrow_down_outlined),
-              hint: widget.isHint==true?CustomText(text: widget.text,colors: Colors.grey):null,
+              hint: widget.isHint==true?CustomText(text: widget.text,colors: Colors.black):null,
               value:widget.saveValue,
               onChanged: widget.onChanged,
               validator: (value) {

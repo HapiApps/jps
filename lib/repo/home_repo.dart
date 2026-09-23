@@ -215,21 +215,26 @@ class HomeRepository{
   Future<Map<String, dynamic>> getFullDashboard(Map data) async {
     try {
       final request = await http.post(
-        Uri.parse(phpFile),   // your php URL
+        Uri.parse(phpFile),
         headers: {
           "Content-Type": "application/json",
         },
         body: jsonEncode(data),
       );
 
+      print("STATUS CODE: ${request.statusCode}");
+      print("RESPONSE BODY: ${request.body}");
+
       if (request.statusCode == 200) {
         return json.decode(request.body);
       } else {
-        throw Exception("Server Error");
+        throw Exception("Server Error: ${request.statusCode} - ${request.body}");
       }
-
-    } catch (e) {
-      throw Exception("API Error");
+    } catch (e, stack) {
+      print("===== getFullDashboard EXCEPTION =====");
+      print("Error: $e");
+      print("Stack: $stack");
+      throw Exception("API Error: $e");  // ✅ real reason இப்போ தெரியும்
     }
   }
 }

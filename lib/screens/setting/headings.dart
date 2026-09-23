@@ -1,6 +1,7 @@
 import 'package:master_code/component/custom_loading.dart';
 import 'package:master_code/component/custom_loading_button.dart';
 import 'package:master_code/component/custom_textfield.dart';
+import 'package:master_code/source/constant/default_constant.dart';
 import 'package:master_code/source/extentions/extensions.dart';
 import 'package:master_code/view_model/home_provider.dart';
 import 'package:master_code/view_model/location_provider.dart';
@@ -32,7 +33,7 @@ class _AppHeadingsState extends State<AppHeadings>{
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-        Provider.of<SettingProvider>(context, listen: false).getHeading();
+      Provider.of<SettingProvider>(context, listen: false).getHeading();
     });
   }
 
@@ -40,13 +41,13 @@ class _AppHeadingsState extends State<AppHeadings>{
   Widget build(BuildContext context) {
     var webWidth=MediaQuery.of(context).size.width * 0.5;
     var phoneWidth=MediaQuery.of(context).size.width * 0.9;
-    return Consumer2<SettingProvider,HomeProvider>(
-        builder: (context, setPvr, homeProvider, _) {
+    return Consumer3<SettingProvider,HomeProvider,LanguageManager>(
+        builder: (context, setPvr, homeProvider,langManager, _) {
           return Scaffold(
             backgroundColor: colorsConst.bacColor,
             appBar: PreferredSize(
               preferredSize: const Size(300, 50),
-              child: CustomAppbar(text: "App Values"),
+              child: CustomAppbar(text: constValue.appValues),
             ),
             body: setPvr.refresh==false?
             const Loading():
@@ -55,7 +56,7 @@ class _AppHeadingsState extends State<AppHeadings>{
               children: [
                 100.height,
                 Center(
-                  child: CustomText(text: "No Values Found",
+                  child: CustomText(text: constValue.noValuesFound,
                       colors: colorsConst.greyClr),
                 )
               ],
@@ -71,7 +72,7 @@ class _AppHeadingsState extends State<AppHeadings>{
                       return Column(
                         children: [
                           if(index==0)
-                          15.height,
+                            15.height,
                           InkWell(
                             onTap: (){
                               utils.navigatePage(context, ()=> DashBoard(child: HeadingValues(name: data["categories"].toString(), id: data["id"].toString())));
@@ -79,7 +80,7 @@ class _AppHeadingsState extends State<AppHeadings>{
                             child: Container(
                               width: kIsWeb?webWidth:phoneWidth,
                               decoration: customDecoration.baseBackgroundDecoration(
-                                color: Colors.white,radius: 1
+                                  color: Colors.white,radius: 1
                               ),
                               child: Padding(
                                 padding: const EdgeInsets.all(10.0),
@@ -115,16 +116,16 @@ class _HeadingValuesState extends State<HeadingValues>{
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-        Provider.of<SettingProvider>(context, listen: false).getAppHeadings(widget.id);
+      Provider.of<SettingProvider>(context, listen: false).getAppHeadings(widget.id);
     });
   }
-var isEditMode=false;
+  var isEditMode=false;
   @override
   Widget build(BuildContext context) {
     var webWidth=MediaQuery.of(context).size.width * 0.5;
     var phoneWidth=MediaQuery.of(context).size.width * 0.9;
-    return Consumer2<SettingProvider,HomeProvider>(
-        builder: (context, setPvr, homeProvider, _) {
+    return Consumer3<SettingProvider,HomeProvider,LanguageManager>(
+        builder: (context, setPvr, homeProvider,langManager, _) {
           return Scaffold(
             backgroundColor: colorsConst.bacColor,
             appBar: PreferredSize(
@@ -138,7 +139,7 @@ var isEditMode=false;
             floatingActionButton: isEditMode?CustomLoadingButton(callback: (){
               setPvr.changeAppValues(context, widget.id, widget.name);
             }, isLoading: true,controller: setPvr.signCtr,
-                backgroundColor: Provider.of<HomeProvider>(context, listen: false).primary, radius: 5, width: 100,text: "Save",):null,
+              backgroundColor: Provider.of<HomeProvider>(context, listen: false).primary, radius: 5, width: 100,text: constValue.save,):null,
             body: PopScope(
               canPop: false,
               onPopInvoked: (bool didPop) {
@@ -153,7 +154,7 @@ var isEditMode=false;
                 children: [
                   100.height,
                   Center(
-                    child: CustomText(text: "No Values Found",
+                    child: CustomText(text: constValue.noValuesFound,
                         colors: colorsConst.greyClr),
                   )
                 ],
@@ -169,7 +170,7 @@ var isEditMode=false;
                         });
                       }, child: Row(
                         children: [
-                          CustomText(text: isEditMode?"View Mode":"Edit Mode",colors: isEditMode?colorsConst.greyClr:colorsConst.blueClr,isBold: true,),5.width,
+                          CustomText(text: isEditMode?constValue.viewMode:constValue.editMode,colors: isEditMode?colorsConst.greyClr:colorsConst.blueClr,isBold: true,),5.width,
                           SvgPicture.asset(assets.edit),
                         ],
                       )),
@@ -184,11 +185,11 @@ var isEditMode=false;
                           return Column(
                             children: [
                               if(index==0)
-                              15.height,
+                                15.height,
                               Container(
                                 width: kIsWeb?webWidth:phoneWidth,
                                 decoration: customDecoration.baseBackgroundDecoration(
-                                  color: Colors.white,radius: 1
+                                    color: Colors.white,radius: 1
                                 ),
                                 child: Row(
                                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -213,17 +214,17 @@ var isEditMode=false;
                                     Row(
                                       children: [
                                         TextButton(
-                                          onPressed:isEditMode?(){
-                                            setState(() {
-                                              if(data.required=="1"){
-                                                data.required="0";
-                                              }else{
-                                                data.required="1";
-                                              }
-                                              print(setPvr.appHeadingList[index].required);
-                                            });
-                                          }:null,
-                                            child: CustomText(text: data.required=="1"?"Required":"Optional",colors: data.required=="1"?Colors.green:Colors.grey,)),
+                                            onPressed:isEditMode?(){
+                                              setState(() {
+                                                if(data.required=="1"){
+                                                  data.required="0";
+                                                }else{
+                                                  data.required="1";
+                                                }
+                                                print(setPvr.appHeadingList[index].required);
+                                              });
+                                            }:null,
+                                            child: CustomText(text: data.required=="1"?constValue.requiredLabel:constValue.optionalLabel,colors: data.required=="1"?Colors.green:Colors.grey,)),
                                         TextButton(
                                             onPressed:isEditMode?(){
                                               setState(() {
@@ -234,7 +235,7 @@ var isEditMode=false;
                                                 }
                                               });
                                             }:null,
-                                            child: CustomText(text: "Delete",colors: data.active=="1"?Colors.red:Colors.grey,)),
+                                            child: CustomText(text: constValue.deleteLabel,colors: data.active=="1"?Colors.red:Colors.grey,)),
                                       ],
                                     ),
                                   ],
@@ -252,7 +253,6 @@ var isEditMode=false;
         });
   }
 }
-
 
 
 // class AddType extends StatefulWidget {

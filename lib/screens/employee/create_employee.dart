@@ -65,220 +65,275 @@ class _CreateEmployeeState extends State<CreateEmployee>with SingleTickerProvide
               preferredSize: const Size(300, 50),
               child: CustomAppbar(text: constValue.createEmployee),
             ),
-            bottomNavigationBar:Container(
-              width:kIsWeb?webWidth:phoneWidth,
-                padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
-                // color:Colors.blue,
-              child:empProvider.tabController!.index==0?
-              Row(
+            bottomNavigationBar: Container(
+              width: kIsWeb ? webWidth : phoneWidth,
+              padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
+              child: empProvider.tabController!.index == 0
+                  ? Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   CustomLoadingButton(
-                      callback: (){
+                      callback: () {
                         if (empProvider.signFirstName.text.trim().isEmpty) {
-                          utils.showWarningToast(context, text: "Please fill first name");
+                          utils.showWarningToast(context, text: "${constValue.fillFirstName}");
                         } else if (empProvider.signMobileNumber.text.trim().isEmpty) {
-                          utils.showWarningToast(context, text: "Please fill mobile number");
+                          utils.showWarningToast(context, text: "${constValue.fillMobileNumber}");
                         } else if (empProvider.signMobileNumber.text.trim().length != 10) {
-                          utils.showWarningToast(context, text: "Please check mobile number");
+                          utils.showWarningToast(context, text: "${constValue.checkMobileNumber}");
                         } else if (empProvider.signPassword.text.trim().isEmpty) {
-                          utils.showWarningToast(context, text: "Please fill password");
+                          utils.showWarningToast(context, text: "${constValue.fillPassword}");
                         } else if (empProvider.signPassword.text.trim().length < 8) {
-                          utils.showWarningToast(context, text: "Password must be at least 8 characters");
+                          utils.showWarningToast(context, text: "${constValue.passwordMinLength}");
                         } else if (empProvider.role == null) {
-                          utils.showWarningToast(context, text: "Please select role");
+                          utils.showWarningToast(context, text: "${constValue.selectRole}");
                         } else if (empProvider.pinCode.text.trim().isNotEmpty &&
                             empProvider.pinCode.text.trim().length != 6) {
-                          utils.showWarningToast(context, text: "Please check pincode");
+                          utils.showWarningToast(context, text: "${constValue.checkPincode}");
                         } else if (empProvider.signWhatsappNumber.text.trim().isNotEmpty &&
                             empProvider.signWhatsappNumber.text.trim().length != 10) {
-                          utils.showWarningToast(context, text: "Please check whatsapp number");
+                          utils.showWarningToast(context, text: "${constValue.checkWhatsappNumber}");
                         } else {
                           _myFocusScopeNode.unfocus();
                           empProvider.tabController?.animateTo(1);
                         }
-                      }, isLoading: false,text: "Add More",
-                      backgroundColor: Colors.white, textColor: colorsConst.primary,radius: 10,
-                      width: kIsWeb?webWidth/2.1:phoneWidth/2.1),
+                      },
+                      isLoading: false,
+                      text: "${constValue.addMore}",
+                      backgroundColor: Colors.white,
+                      textColor: colorsConst.primary,
+                      radius: 10,
+                      width: kIsWeb ? webWidth / 2.1 : phoneWidth / 2.1),
                   CustomLoadingButton(
-                      callback: (){
+                      callback: () {
                         if (empProvider.signFirstName.text.trim().isEmpty) {
-                          utils.showWarningToast(context, text: "Please fill first name");
+                          utils.showWarningToast(context, text: "${constValue.fillFirstName}");
                           empProvider.signCtr.reset();
                         } else if (empProvider.signMobileNumber.text.trim().isEmpty) {
-                          utils.showWarningToast(context, text: "Please fill mobile number");
+                          utils.showWarningToast(context, text: "${constValue.fillMobileNumber}");
                           empProvider.signCtr.reset();
-                        }else if(empProvider.signMobileNumber.text.trim().length<8 || empProvider.signMobileNumber.text.trim().length>12){
-                          utils.showWarningToast(context, text: "Please check mobile number");
+                        } else if (empProvider.signMobileNumber.text.trim().length < 8 ||
+                            empProvider.signMobileNumber.text.trim().length > 12) {
+                          utils.showWarningToast(context, text: "${constValue.checkMobileNumber}");
                           empProvider.signCtr.reset();
                         } else if (empProvider.signPassword.text.trim().isEmpty) {
-                          utils.showWarningToast(context, text: "Please fill password");
+                          utils.showWarningToast(context, text: "${constValue.fillPassword}");
                           empProvider.signCtr.reset();
                         } else if (empProvider.signPassword.text.trim().length < 8) {
-                          utils.showWarningToast(context, text: "Password must be at least 8 characters");
+                          utils.showWarningToast(context, text: "${constValue.passwordMinLength}");
                           empProvider.signCtr.reset();
                         } else if (empProvider.role == null) {
-                          utils.showWarningToast(context, text: "Please select role");
+                          utils.showWarningToast(context, text: "${constValue.selectRole}");
                           empProvider.signCtr.reset();
                         } else if (empProvider.pinCode.text.trim().isNotEmpty &&
                             empProvider.pinCode.text.trim().length != 6) {
-                          utils.showWarningToast(context, text: "Please check pincode");
+                          utils.showWarningToast(context, text: "${constValue.checkPincode}");
                           empProvider.signCtr.reset();
                         } else if (empProvider.signWhatsappNumber.text.trim().isNotEmpty &&
-                            empProvider.signWhatsappNumber.text.trim().length <8 ||empProvider.signWhatsappNumber.text.trim().length >12) {
-                          utils.showWarningToast(context, text: "Please check whatsapp number");
+                            empProvider.signWhatsappNumber.text.trim().length < 8 ||
+                            empProvider.signWhatsappNumber.text.trim().length > 12) {
+                          utils.showWarningToast(context, text: "${constValue.checkWhatsappNumber}");
                           empProvider.signCtr.reset();
                         } else {
                           _myFocusScopeNode.unfocus();
-                          empProvider.insertEmployeeDetails(context, locPvr.latitude, locPvr.longitude);
+                          empProvider.insertEmployeeDetails(
+                              context, locPvr.latitude, locPvr.longitude);
                         }
-                      }, isLoading: true,text: "Save",controller: empProvider.signCtr,
-                      backgroundColor: colorsConst.primary,radius: 10,
-                      width: kIsWeb?webWidth/2.1:phoneWidth/2.1),
+                      },
+                      isLoading: true,
+                      text: "${constValue.save}",
+                      controller: empProvider.signCtr,
+                      backgroundColor: colorsConst.primary,
+                      radius: 10,
+                      width: kIsWeb ? webWidth / 2.1 : phoneWidth / 2.1),
                 ],
               )
-              :empProvider.tabController!.index==1?
-              Row(
+                  : empProvider.tabController!.index == 1
+                  ? Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   CustomLoadingButton(
-                      callback: (){
+                      callback: () {
                         _myFocusScopeNode.unfocus();
                         empProvider.tabController?.animateTo(0);
-                      }, isLoading: false,text: "Back",
-                      backgroundColor: Colors.white, textColor: colorsConst.primary,radius: 10,
-                      width: kIsWeb?webWidth/2.1:phoneWidth/2.1),
+                      },
+                      isLoading: false,
+                      text: "${constValue.back}",
+                      backgroundColor: Colors.white,
+                      textColor: colorsConst.primary,
+                      radius: 10,
+                      width: kIsWeb ? webWidth / 2.1 : phoneWidth / 2.1),
                   CustomLoadingButton(
-                      callback: (){
+                      callback: () {
                         final email = empProvider.signEmailid.text.trim();
                         final aadhar = empProvider.signAadhar.text.trim();
                         final pan = empProvider.signPan.text.trim();
 
                         if (email.isNotEmpty &&
-                            !RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$').hasMatch(email)) {
-                          utils.showWarningToast(context, text: "Please check email id");
+                            !RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$')
+                                .hasMatch(email)) {
+                          utils.showWarningToast(context, text: "${constValue.checkEmail}");
                         } else if (aadhar.isNotEmpty && aadhar.length != 12) {
-                          utils.showWarningToast(context, text: "Please check aadhaar number");
+                          utils.showWarningToast(context, text: "${constValue.checkAadhaar}");
                         } else if (pan.isNotEmpty && pan.length != 10) {
-                          utils.showWarningToast(context, text: "Please check pan number");
+                          utils.showWarningToast(context, text: "${constValue.checkPan}");
                         } else {
                           _myFocusScopeNode.unfocus();
                           empProvider.tabController?.animateTo(2);
                         }
-                      }, isLoading: false,text: "Next",controller: empProvider.signCtr,
-                      backgroundColor: colorsConst.primary,radius: 10,
-                      width: kIsWeb?webWidth/2.1:phoneWidth/2.1),
+                      },
+                      isLoading: false,
+                      text: "${constValue.next}",
+                      controller: empProvider.signCtr,
+                      backgroundColor: colorsConst.primary,
+                      radius: 10,
+                      width: kIsWeb ? webWidth / 2.1 : phoneWidth / 2.1),
                 ],
               )
-              :empProvider.tabController!.index==2?
-              Row(
+                  : empProvider.tabController!.index == 2
+                  ? Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   CustomLoadingButton(
-                      callback: (){
+                      callback: () {
                         _myFocusScopeNode.unfocus();
                         empProvider.tabController?.animateTo(1);
-                      }, isLoading: false,text: "Back",
-                      backgroundColor: Colors.white, textColor: colorsConst.primary,radius: 10,
-                      width: kIsWeb?webWidth/2.1:phoneWidth/2.1),
+                      },
+                      isLoading: false,
+                      text: "${constValue.back}",
+                      backgroundColor: Colors.white,
+                      textColor: colorsConst.primary,
+                      radius: 10,
+                      width: kIsWeb ? webWidth / 2.1 : phoneWidth / 2.1),
                   CustomLoadingButton(
-                      callback: (){
+                      callback: () {
                         if (empProvider.permanentPin.text.trim().isNotEmpty &&
                             empProvider.permanentPin.text.trim().length != 6) {
-                          utils.showWarningToast(context, text: "Please check pincode");
-                        }else {
+                          utils.showWarningToast(context, text: "${constValue.checkPincode}");
+                        } else {
                           _myFocusScopeNode.unfocus();
                           empProvider.tabController?.animateTo(3);
                         }
-                      }, isLoading: false,text: "Next",controller: empProvider.signCtr,
-                      backgroundColor: colorsConst.primary,radius: 10,
-                      width: kIsWeb?webWidth/2.1:phoneWidth/2.1),
+                      },
+                      isLoading: false,
+                      text: "${constValue.next}",
+                      controller: empProvider.signCtr,
+                      backgroundColor: colorsConst.primary,
+                      radius: 10,
+                      width: kIsWeb ? webWidth / 2.1 : phoneWidth / 2.1),
                 ],
               )
-              :empProvider.tabController!.index==3?
-              Row(
+                  : empProvider.tabController!.index == 3
+                  ? Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   CustomLoadingButton(
-                      callback: (){
+                      callback: () {
                         _myFocusScopeNode.unfocus();
                         empProvider.tabController?.animateTo(2);
-                      }, isLoading: false,text: "Back",
-                      backgroundColor: Colors.white, textColor: colorsConst.primary,radius: 10,
-                      width: kIsWeb?webWidth/2.1:phoneWidth/2.1),
+                      },
+                      isLoading: false,
+                      text: "${constValue.back}",
+                      backgroundColor: Colors.white,
+                      textColor: colorsConst.primary,
+                      radius: 10,
+                      width: kIsWeb ? webWidth / 2.1 : phoneWidth / 2.1),
                   CustomLoadingButton(
-                      callback: (){
+                      callback: () {
                         if (empProvider.signEmPh.text.trim().isNotEmpty &&
                             empProvider.signEmPh.text.trim().length != 10) {
-                          utils.showWarningToast(context, text: "Please check phone number");
-                        }else {
+                          utils.showWarningToast(context, text: "${constValue.checkPhoneNumber}");
+                        } else {
                           _myFocusScopeNode.unfocus();
                           empProvider.tabController?.animateTo(4);
                         }
-                      }, isLoading: false,text: "Next",controller: empProvider.signCtr,
-                      backgroundColor: colorsConst.primary,radius: 10,
-                      width: kIsWeb?webWidth/2.1:phoneWidth/2.1),
+                      },
+                      isLoading: false,
+                      text: "${constValue.next}",
+                      controller: empProvider.signCtr,
+                      backgroundColor: colorsConst.primary,
+                      radius: 10,
+                      width: kIsWeb ? webWidth / 2.1 : phoneWidth / 2.1),
                 ],
               )
-              :empProvider.tabController!.index==4?
-              Row(
+                  : empProvider.tabController!.index == 4
+                  ? Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   CustomLoadingButton(
-                      callback: (){
+                      callback: () {
                         _myFocusScopeNode.unfocus();
                         empProvider.tabController?.animateTo(3);
-                      }, isLoading: false,text: "Back",
-                      backgroundColor: Colors.white, textColor: colorsConst.primary,radius: 10,
-                      width: kIsWeb?webWidth/2.1:phoneWidth/2.1),
+                      },
+                      isLoading: false,
+                      text: "${constValue.back}",
+                      backgroundColor: Colors.white,
+                      textColor: colorsConst.primary,
+                      radius: 10,
+                      width: kIsWeb ? webWidth / 2.1 : phoneWidth / 2.1),
                   CustomLoadingButton(
-                      callback: (){
+                      callback: () {
                         _myFocusScopeNode.unfocus();
                         empProvider.tabController?.animateTo(5);
-                      }, isLoading: false,text: "Next",controller: empProvider.signCtr,
-                      backgroundColor: colorsConst.primary,radius: 10,
-                      width: kIsWeb?webWidth/2.1:phoneWidth/2.1),
+                      },
+                      isLoading: false,
+                      text: "${constValue.next}",
+                      controller: empProvider.signCtr,
+                      backgroundColor: colorsConst.primary,
+                      radius: 10,
+                      width: kIsWeb ? webWidth / 2.1 : phoneWidth / 2.1),
                 ],
               )
-              :empProvider.tabController!.index==5?
-              Row(
+                  : empProvider.tabController!.index == 5
+                  ? Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   CustomLoadingButton(
-                      callback: (){
+                      callback: () {
                         _myFocusScopeNode.unfocus();
                         empProvider.tabController?.animateTo(4);
-                      }, isLoading: false,text: "Back",
-                      backgroundColor: Colors.white, textColor: colorsConst.primary,radius: 10,
-                      width: kIsWeb?webWidth/2.1:phoneWidth/2.1),
+                      },
+                      isLoading: false,
+                      text: "${constValue.back}",
+                      backgroundColor: Colors.white,
+                      textColor: colorsConst.primary,
+                      radius: 10,
+                      width: kIsWeb ? webWidth / 2.1 : phoneWidth / 2.1),
                   CustomLoadingButton(
-                      callback: (){
+                      callback: () {
                         if (empProvider.signRePh1.text.trim().isNotEmpty &&
                             empProvider.signRePh1.text.trim().length != 10) {
-                          utils.showWarningToast(context, text: "Please check reference 1 phone number");
-                        }else if (empProvider.signRePh2.text.trim().isNotEmpty &&
+                          utils.showWarningToast(context, text: "${constValue.checkRef1Phone}");
+                        } else if (empProvider.signRePh2.text.trim().isNotEmpty &&
                             empProvider.signRePh2.text.trim().length != 10) {
-                          utils.showWarningToast(context, text: "Please check reference 2 phone number");
-                        }else {
+                          utils.showWarningToast(context, text: "${constValue.checkRef2Phone}");
+                        } else {
                           _myFocusScopeNode.unfocus();
                           empProvider.tabController?.animateTo(6);
                         }
-                      }, isLoading: false,text: "Next",controller: empProvider.signCtr,
-                      backgroundColor: colorsConst.primary,radius: 10,
-                      width: kIsWeb?webWidth/2.1:phoneWidth/2.1),
+                      },
+                      isLoading: false,
+                      text: "${constValue.next}",
+                      controller: empProvider.signCtr,
+                      backgroundColor: colorsConst.primary,
+                      radius: 10,
+                      width: kIsWeb ? webWidth / 2.1 : phoneWidth / 2.1),
                 ],
               )
-              :Row(
+                  : Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   CustomLoadingButton(
-                      callback: (){
+                      callback: () {
                         Future.microtask(() => Navigator.pop(context));
-                      }, isLoading: false,text: "Cancel",
-                      backgroundColor: Colors.white, textColor: colorsConst.primary,radius: 10,
-                      width: kIsWeb?webWidth/2.1:phoneWidth/2.1),
+                      },
+                      isLoading: false,
+                      text: "${constValue.cancel}",
+                      backgroundColor: Colors.white,
+                      textColor: colorsConst.primary,
+                      radius: 10,
+                      width: kIsWeb ? webWidth / 2.1 : phoneWidth / 2.1),
                   CustomLoadingButton(
-                      callback: (){
+                      callback: () {
                         final email = empProvider.signEmailid.text.trim();
                         final aadhar = empProvider.signAadhar.text.trim();
                         final pan = empProvider.signPan.text.trim();
@@ -288,62 +343,68 @@ class _CreateEmployeeState extends State<CreateEmployee>with SingleTickerProvide
                         final signRePh2 = empProvider.signRePh2.text.trim();
 
                         if (empProvider.signFirstName.text.trim().isEmpty) {
-                          utils.showWarningToast(context, text: "Please fill first name");
+                          utils.showWarningToast(context, text: "${constValue.fillFirstName}");
                           empProvider.signCtr.reset();
                         } else if (empProvider.signMobileNumber.text.trim().isEmpty) {
-                          utils.showWarningToast(context, text: "Please fill mobile number");
+                          utils.showWarningToast(context, text: "${constValue.fillMobileNumber}");
                           empProvider.signCtr.reset();
                         } else if (empProvider.signMobileNumber.text.trim().length != 10) {
-                          utils.showWarningToast(context, text: "Please check mobile number");
+                          utils.showWarningToast(context, text: "${constValue.checkMobileNumber}");
                           empProvider.signCtr.reset();
                         } else if (empProvider.signPassword.text.trim().isEmpty) {
-                          utils.showWarningToast(context, text: "Please fill password");
+                          utils.showWarningToast(context, text: "${constValue.fillPassword}");
                           empProvider.signCtr.reset();
                         } else if (empProvider.signPassword.text.trim().length < 8) {
-                          utils.showWarningToast(context, text: "Password must be at least 8 characters");
+                          utils.showWarningToast(context, text: "${constValue.passwordMinLength}");
                           empProvider.signCtr.reset();
                         } else if (empProvider.role == null) {
-                          utils.showWarningToast(context, text: "Please select role");
+                          utils.showWarningToast(context, text: "${constValue.selectRole}");
                           empProvider.signCtr.reset();
                         } else if (empProvider.pinCode.text.trim().isNotEmpty &&
                             empProvider.pinCode.text.trim().length != 6) {
-                          utils.showWarningToast(context, text: "Please check pincode");
+                          utils.showWarningToast(context, text: "${constValue.checkPincode}");
                           empProvider.signCtr.reset();
                         } else if (empProvider.signWhatsappNumber.text.trim().isNotEmpty &&
                             empProvider.signWhatsappNumber.text.trim().length != 10) {
-                          utils.showWarningToast(context, text: "Please check whatsapp number");
+                          utils.showWarningToast(context, text: "${constValue.checkWhatsappNumber}");
                           empProvider.signCtr.reset();
-                        }else if (email.isNotEmpty &&
-                            !RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$').hasMatch(email)) {
-                          utils.showWarningToast(context, text: "Please check email id");
+                        } else if (email.isNotEmpty &&
+                            !RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$')
+                                .hasMatch(email)) {
+                          utils.showWarningToast(context, text: "${constValue.checkEmail}");
                           empProvider.signCtr.reset();
                         } else if (aadhar.isNotEmpty && aadhar.length != 12) {
-                          utils.showWarningToast(context, text: "Please check aadhaar number");
+                          utils.showWarningToast(context, text: "${constValue.checkAadhaar}");
                           empProvider.signCtr.reset();
                         } else if (pan.isNotEmpty && pan.length != 10) {
-                          utils.showWarningToast(context, text: "Please check pan number");
+                          utils.showWarningToast(context, text: "${constValue.checkPan}");
                           empProvider.signCtr.reset();
-                        }else if (permanentPin.isNotEmpty && permanentPin.length != 6) {
-                          utils.showWarningToast(context, text: "Please check permanent address pincode");
+                        } else if (permanentPin.isNotEmpty && permanentPin.length != 6) {
+                          utils.showWarningToast(context, text: "${constValue.checkPermanentPincode}");
                           empProvider.signCtr.reset();
-                        }else if (signEmPh.isNotEmpty && signEmPh.length != 10) {
-                          utils.showWarningToast(context, text: "Please check phone number");
+                        } else if (signEmPh.isNotEmpty && signEmPh.length != 10) {
+                          utils.showWarningToast(context, text: "${constValue.checkPhoneNumber}");
                           empProvider.signCtr.reset();
-                        }else if (signRePh1.isNotEmpty &&signRePh1.length != 10) {
-                          utils.showWarningToast(context, text: "Please check reference 1 phone number");
+                        } else if (signRePh1.isNotEmpty && signRePh1.length != 10) {
+                          utils.showWarningToast(context, text: "${constValue.checkRef1Phone}");
                           empProvider.signCtr.reset();
-                        }else if (signRePh2.isNotEmpty &&signRePh2.length != 10) {
-                          utils.showWarningToast(context, text: "Please check reference 2 phone number");
+                        } else if (signRePh2.isNotEmpty && signRePh2.length != 10) {
+                          utils.showWarningToast(context, text: "${constValue.checkRef2Phone}");
                           empProvider.signCtr.reset();
-                        }else{
+                        } else {
                           _myFocusScopeNode.unfocus();
-                          empProvider.insertEmployeeDetails(context, locPvr.latitude, locPvr.longitude);
+                          empProvider.insertEmployeeDetails(
+                              context, locPvr.latitude, locPvr.longitude);
                         }
-                      }, isLoading: true,text: "Save",controller: empProvider.signCtr,
-                      backgroundColor: colorsConst.primary,radius: 10,
-                      width: kIsWeb?webWidth/2.1:phoneWidth/2.1),
+                      },
+                      isLoading: true,
+                      text: "${constValue.save}",
+                      controller: empProvider.signCtr,
+                      backgroundColor: colorsConst.primary,
+                      radius: 10,
+                      width: kIsWeb ? webWidth / 2.1 : phoneWidth / 2.1),
                 ],
-          ),
+              ),
             ),
             body: Center(
               child: SizedBox(
@@ -1031,31 +1092,7 @@ class _CreateEmployeeState extends State<CreateEmployee>with SingleTickerProvide
                                       width: kIsWeb?webWidth:phoneWidth,
                                       textInputAction: TextInputAction.done,
                                     ),
-                                    // 50.height,
-                                    // Row(
-                                    //   mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    //   children: [
-                                    //     CustomLoadingButton(
-                                    //         callback: (){
-                                    //           _myFocusScopeNode.unfocus();
-                                    //           empProvider.tabController?.animateTo(2);
-                                    //         }, isLoading: false,text: "Back",
-                                    //         backgroundColor: Colors.white, textColor: colorsConst.primary,radius: 10,
-                                    //         width: kIsWeb?webWidth/2.1:phoneWidth/2.1),
-                                    //     CustomLoadingButton(
-                                    //         callback: (){
-                                    //           if (empProvider.signEmPh.text.trim().isNotEmpty &&
-                                    //               empProvider.signEmPh.text.trim().length != 10) {
-                                    //             utils.showWarningToast(context, text: "Please check phone number");
-                                    //           }else {
-                                    //             _myFocusScopeNode.unfocus();
-                                    //             empProvider.tabController?.animateTo(4);
-                                    //           }
-                                    //         }, isLoading: false,text: "Next",controller: empProvider.signCtr,
-                                    //         backgroundColor: colorsConst.primary,radius: 10,
-                                    //         width: kIsWeb?webWidth/2.1:phoneWidth/2.1),
-                                    //   ],
-                                    // ),
+
                                   ],
                                 )
                             ),

@@ -2,6 +2,7 @@ import 'package:intl/intl.dart';
 import 'package:master_code/component/custom_loading.dart';
 import 'package:master_code/component/custom_loading_button.dart';
 import 'package:master_code/component/custom_textfield.dart';
+import 'package:master_code/source/constant/default_constant.dart';
 import 'package:master_code/source/extentions/extensions.dart';
 import 'package:master_code/view_model/home_provider.dart';
 import 'package:master_code/view_model/location_provider.dart';
@@ -50,23 +51,23 @@ class _ViewTaskTypesState extends State<ViewTaskTypes>{
   Widget build(BuildContext context) {
     var webWidth=MediaQuery.of(context).size.width * 0.5;
     var phoneWidth=MediaQuery.of(context).size.width * 0.9;
-    return Consumer3<TaskProvider,HomeProvider,LocationProvider>(
-        builder: (context, taskProvider, homeProvider,locPvr, _) {
+    return Consumer4<TaskProvider,HomeProvider,LocationProvider,LanguageManager>(
+        builder: (context, taskProvider, homeProvider,locPvr,langManager, _) {
           print("....${taskProvider.typeList.length}");
           return Scaffold(
             backgroundColor: colorsConst.bacColor,
             appBar: PreferredSize(
               preferredSize: const Size(300, 50),
-              child: CustomAppbar(text: "Task types",
+              child: CustomAppbar(text: constValue.taskTypesTitle,
                   isButton: true,
                   buttonCallback: (){
-                homeProvider.updateIndex(0);
-                showDialog(
-                  context: context,
-                  barrierDismissible: false,
-                  builder: (context) => const AddTypePopup(),
-                );
-              }
+                    homeProvider.updateIndex(0);
+                    showDialog(
+                      context: context,
+                      barrierDismissible: false,
+                      builder: (context) => const AddTypePopup(),
+                    );
+                  }
               ),
             ),
             body: taskProvider.addRefresh==false?
@@ -75,7 +76,7 @@ class _ViewTaskTypesState extends State<ViewTaskTypes>{
             Column(
               children: [
                 100.height,
-                CustomText(text: "No Task types Found",
+                CustomText(text: constValue.noTaskTypesFound,
                     colors: colorsConst.greyClr)
               ],
             ) :
@@ -92,7 +93,7 @@ class _ViewTaskTypesState extends State<ViewTaskTypes>{
                         children: [
                           20.height,
                           if(index==0)
-                          15.height,
+                            15.height,
                           Container(
                             width: kIsWeb ? webWidth : phoneWidth,
                             decoration: customDecoration.baseBackgroundDecoration(
@@ -109,13 +110,13 @@ class _ViewTaskTypesState extends State<ViewTaskTypes>{
                                         CustomText(
                                           text: data["value"].toString().trim(),
                                           size: 15,
-                                         // fontWeight: FontWeight.w600,
+                                          // fontWeight: FontWeight.w600,
                                         ),
                                         5.height,
                                         Row(
                                           children: [
                                             CustomText(
-                                              text: "Created By: ",
+                                              text: constValue.createdByLabel,
                                               size: 12,
                                               colors: Colors.grey,
                                             ),
@@ -130,7 +131,7 @@ class _ViewTaskTypesState extends State<ViewTaskTypes>{
                                         Row(
                                           children: [
                                             CustomText(
-                                              text: "Time: ",
+                                              text: constValue.timeLabel,
                                               size: 12,
                                               colors: Colors.grey,
                                             ),
@@ -149,7 +150,7 @@ class _ViewTaskTypesState extends State<ViewTaskTypes>{
                                     onPressed: () {
                                       utils.customDialog(
                                           context: context,
-                                          title: "Are you sure you want to delete",
+                                          title: constValue.sureDeleteMsg,
                                           callback: () {
                                             taskProvider.deleteType(context, data["id"].toString());
                                           },
@@ -206,16 +207,16 @@ class _AddTypePopupState extends State<AddTypePopup> {
     var webWidth = MediaQuery.of(context).size.width * 0.4;
     var phoneWidth = MediaQuery.of(context).size.width * 0.9;
 
-    return Consumer<TaskProvider>(builder: (context, taskProvider, _) {
+    return Consumer2<TaskProvider, LanguageManager>(builder: (context, taskProvider,langManager, _) {
       return FocusScope(
         node: _myFocusScopeNode,
         child: AlertDialog(
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(15),
           ),
-          title: const Text(
-            "Add Task types",
-            style: TextStyle(fontWeight: FontWeight.bold),
+          title: Text(
+            constValue.addTaskTypes,
+            style: const TextStyle(fontWeight: FontWeight.bold),
           ),
           content: SizedBox(
             width: kIsWeb ? webWidth : phoneWidth,
@@ -226,7 +227,7 @@ class _AddTypePopupState extends State<AddTypePopup> {
                   width: kIsWeb ? webWidth : phoneWidth,
                   isRequired: true,
                   textInputAction: TextInputAction.done,
-                  text: "Type",
+                  text: constValue.typeLabel,
                   controller: taskProvider.typeCtr,
                 ),
                 const SizedBox(height: 20),
@@ -242,7 +243,7 @@ class _AddTypePopupState extends State<AddTypePopup> {
                     Navigator.pop(context);
                   },
                   isLoading: false,
-                  text: "Cancel",
+                  text: constValue.cancel,
                   backgroundColor: Colors.white,
                   textColor: colorsConst.primary,
                   radius: 10,
@@ -251,7 +252,7 @@ class _AddTypePopupState extends State<AddTypePopup> {
                 CustomLoadingButton(
                   callback: () {
                     if (taskProvider.typeCtr.text.trim().isEmpty) {
-                      utils.showWarningToast(context, text: "Please fill type");
+                      utils.showWarningToast(context, text: constValue.pleaseFillType);
                       taskProvider.taskCtr.reset();
                     } else {
                       _myFocusScopeNode.unfocus();
@@ -259,7 +260,7 @@ class _AddTypePopupState extends State<AddTypePopup> {
                     }
                   },
                   isLoading: true,
-                  text: "Save",
+                  text: constValue.save,
                   controller: taskProvider.taskCtr,
                   backgroundColor: colorsConst.primary,
                   radius: 10,

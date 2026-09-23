@@ -63,10 +63,10 @@ class _DayWorkPlanPageState extends State<DayWorkPlanPage> {
     if (workPlans.isNotEmpty) {
       if (workPlans.last.companyName.trim().isEmpty &&
           workPlans.last.companyId.trim().isEmpty) {
-        utils.showWarningToast(context, text: "Please select customer");
+        utils.showWarningToast(context, text: "${constValue.selectCustomerMsg}");
         return;
       } else if (workPlans.last.descriptionController.text.trim().isEmpty) {
-        utils.showWarningToast(context, text: "Please enter description");
+        utils.showWarningToast(context, text: "${constValue.enterDescriptionMsg}");
         return;
       }
     }
@@ -110,7 +110,7 @@ class _DayWorkPlanPageState extends State<DayWorkPlanPage> {
           appBar: AppBar(
             backgroundColor: colorsConst.bacColor,
             title: Text(
-              "Day Work Plan",
+              "${constValue.planDayWork}",
               style: TextStyle(
                 color: colorsConst.primary,
                 fontSize: 14,
@@ -309,7 +309,7 @@ class _DayWorkPlanPageState extends State<DayWorkPlanPage> {
                                   // state.
                                   key: ValueKey(
                                       '${item.companyId}_${index}'),
-                                  hintText: "Customer",
+                                  hintText: "${constValue.customer}",
                                   dropText: "name",
                                   list: item.sendList,
                                   width: mainWidth,
@@ -326,7 +326,7 @@ class _DayWorkPlanPageState extends State<DayWorkPlanPage> {
                               /// DESCRIPTION
                               MaxLineTextField(
                                 width: mainWidth,
-                                text: "Description",
+                                text: "${constValue.notes}",
                                 controller: item.descriptionController,
                                 maxLine: 2,
                                 isRequired: true,

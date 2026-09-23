@@ -1,5 +1,6 @@
 import 'package:master_code/screens/setting/headings.dart';
 import 'package:master_code/screens/setting/manage_setting.dart';
+import 'package:master_code/source/constant/default_constant.dart';
 import 'package:master_code/source/constant/local_data.dart';
 import 'package:flutter/material.dart';
 import '../../component/animated_drawer.dart';
@@ -26,7 +27,7 @@ class Setting extends StatelessWidget {
         backgroundColor: colorsConst.bacColor,
         appBar: PreferredSize(
           preferredSize: const Size(300, 50),
-          child: CustomAppbar(text: "Settings",callback: (){
+          child: CustomAppbar(text: "${constValue.setting}",callback: (){
             homeProvider.updateIndex(0);
             utils.navigatePage(context, ()=>const DashBoard(child: HomePage()));
           }),
@@ -42,46 +43,46 @@ class Setting extends StatelessWidget {
           child: Column(
             children: [
               if(localData.storage.read("role")=="1")
-              DrawerListTile(text: "Grades",
+              DrawerListTile(text: "${constValue.grades}",
                 image: assets.grade,isImage: true,
                 callback: (){
                   utils.navigatePage(context, ()=>const DashBoard(child: Grades()));
               },
               ), 
               if(localData.storage.read("role")=="1")
-              DrawerListTile(text: "Task types",
+              DrawerListTile(text: "${constValue.taskType}",
                 iconData: Icons.category_outlined,
                 callback: (){
                   utils.navigatePage(context, ()=>const DashBoard(child: ViewTaskTypes()));
                 },
               ),
               if(localData.storage.read("role")=="1")
-              DrawerListTile(text: "Task Status",
+              DrawerListTile(text: "${constValue.taskStatus}",
                 iconData: Icons.category_outlined,
                 callback: (){
                   utils.navigatePage(context, ()=>const DashBoard(child: ViewTaskStatus()));
                 },
               ),
               if(localData.storage.read("role")=="1")
-              DrawerListTile(text: "App Values",
+              DrawerListTile(text: "${constValue.appValues}",
                 iconData: Icons.edit,
                 callback: (){
                   utils.navigatePage(context, ()=>const DashBoard(child: AppHeadings()));
                 },
               ),
               if(localData.storage.read("role")=="1")
-              DrawerListTile(text: "Setting",
+              DrawerListTile(text: "${constValue.setting}",
                 iconData: Icons.settings,
                 callback: (){
                   utils.navigatePage(context, ()=>const DashBoard(child: ManageSetting()));
                 },
               ),
-              DrawerListTile(text: "About Us",iconData: Icons.info_outline,
+              DrawerListTile(text: "${constValue.aboutUs}",iconData: Icons.info_outline,
                 callback: (){
                   utils.navigatePage(context, ()=>const DashBoard(child: DeveloperScreen()));
               },
               ),
-              DrawerListTile(text: "Logout",iconData: Icons.logout,callback: (){
+              DrawerListTile(text: "${constValue.logOut}",iconData: Icons.logout,callback: (){
                 utils.customDialog(
                     context: context,
                     title: "Are you sure you want",
@@ -91,7 +92,7 @@ class Setting extends StatelessWidget {
                     },
                     isLoading: true,roundedLoadingButtonController: homeProvider.loginCtr);
               }),
-              DrawerListTile(text: "Delete Account",iconData: Icons.delete_outlined,callback: (){
+              DrawerListTile(text: "${constValue.deleteAccount}",iconData: Icons.delete_outlined,callback: (){
                 utils.customDialog(
                     context: context,
                     title: "Are you sure you want",

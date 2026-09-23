@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:intl/intl.dart';
+import 'package:master_code/source/constant/default_constant.dart';
 import 'package:master_code/source/extentions/extensions.dart';
 import 'package:master_code/source/utilities/utils.dart';
 import 'package:master_code/view_model/employee_provider.dart';
@@ -100,8 +101,8 @@ class _ViewMyLeavesState extends State<ViewMyLeaves> with SingleTickerProviderSt
             backgroundColor: colorsConst.bacColor,
             appBar: PreferredSize(
               preferredSize: Size(300, 50),
-              child: CustomAppbar(text: localData.storage.read("role") == "1"? "Leave Report"
-                  : "My Leaves",
+              child: CustomAppbar(text: localData.storage.read("role") == "1"? "${constValue.leaveReport}"
+                  : "${constValue.Myleave}",
                 callback: (){
                   if (localData.storage.read("role") == "1"&&widget.isDirect==false) {
                     levProvider.changePage(context);

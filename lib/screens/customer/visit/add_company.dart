@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../../component/custom_loading_button.dart';
 import '../../../model/customer/customer_model.dart';
 import '../../../source/constant/colors_constant.dart';
+import '../../../source/constant/default_constant.dart';
 import '../../../source/constant/key_constant.dart';
 import '../../../source/utilities/utils.dart';
 import '../../../view_model/customer_provider.dart';
@@ -42,7 +43,7 @@ class _AddCompanyPopupState extends State<AddCompanyPopup> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text("Add Company & Customer"),
+      title: Text("${constValue.addCompanyCustomerTitle}"),
       content: SizedBox(
         width: 400,
         child: Column(
@@ -54,9 +55,9 @@ class _AddCompanyPopupState extends State<AddCompanyPopup> {
               controller: companyController,
               inputFormatters: constInputFormatters.addressInput,
               textCapitalization: TextCapitalization.words,
-              decoration: const InputDecoration(
-                labelText: "Company Name",
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: "${constValue.companyNameLabel}",
+                border: const OutlineInputBorder(),
               ),
               onChanged: (value) {
                 String formatted = capitalizeFirstLetter(value);
@@ -75,9 +76,9 @@ class _AddCompanyPopupState extends State<AddCompanyPopup> {
             TextField(
               controller: nameController,
               textCapitalization: TextCapitalization.words,
-              decoration: const InputDecoration(
-                labelText: "Customer Name",
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: "${constValue.customerNameLabel}",
+                border: const OutlineInputBorder(),
               ),
               onChanged: (value) {
                 String formatted = capitalizeFirstLetter(value);
@@ -97,9 +98,9 @@ class _AddCompanyPopupState extends State<AddCompanyPopup> {
               controller: mobileController,
               keyboardType: TextInputType.phone,
               maxLength: 10,
-              decoration: const InputDecoration(
-                labelText: "Mobile Number",
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: "${constValue.mobileNumberLabel}",
+                border: const OutlineInputBorder(),
                 counterText: "",
               ),
             ),
@@ -109,107 +110,107 @@ class _AddCompanyPopupState extends State<AddCompanyPopup> {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child:  Text("Cancel",style: TextStyle(color: colorsConst.primary),),
+          child:  Text("${constValue.cancel}",style: TextStyle(color: colorsConst.primary),),
         ),
         Consumer<CustomerProvider>(
             builder: (context, provider, child) {
-        return CustomLoadingButton(
-        callback: ()
-        async {
-        String companyName = companyController.text.trim();
-        String custName = nameController.text.trim();
-        String mobile = mobileController.text.trim();
-        final custProvider = Provider.of<CustomerProvider>(context, listen: false);
-        if (companyName.isEmpty) {
-          utils.showWarningToast(context,text:  "Enter Company Name",);
-        custProvider.addCompanyCtr.reset();
-        return;
-        }
-        if (custName.isEmpty) {
-          utils.showWarningToast(context,text:  "Enter Customer Name",);
-          custProvider.addCompanyCtr.reset();
-          return;
-        }
-        if (mobile.isEmpty) {
-          utils.showWarningToast(context,text:  "Enter Mobile Number",);
-          custProvider.addCompanyCtr.reset();
-          return;
-        }
-        if (!isValidMobile(mobile)) {
-        utils.showWarningToast(context,text:  "Enter valid mobile number",);
-        custProvider.addCompanyCtr.reset();
-        return;
-        }
+              return CustomLoadingButton(
+                callback: ()
+                async {
+                  String companyName = companyController.text.trim();
+                  String custName = nameController.text.trim();
+                  String mobile = mobileController.text.trim();
+                  final custProvider = Provider.of<CustomerProvider>(context, listen: false);
+                  if (companyName.isEmpty) {
+                    utils.showWarningToast(context,text:  "${constValue.enterCompanyName}",);
+                    custProvider.addCompanyCtr.reset();
+                    return;
+                  }
+                  if (custName.isEmpty) {
+                    utils.showWarningToast(context,text:  "${constValue.enterCustomerName}",);
+                    custProvider.addCompanyCtr.reset();
+                    return;
+                  }
+                  if (mobile.isEmpty) {
+                    utils.showWarningToast(context,text:  "${constValue.enterMobileNumber}",);
+                    custProvider.addCompanyCtr.reset();
+                    return;
+                  }
+                  if (!isValidMobile(mobile)) {
+                    utils.showWarningToast(context,text:  "${constValue.enterValidMobileNumber}",);
+                    custProvider.addCompanyCtr.reset();
+                    return;
+                  }
 
 
 
-        bool success = await custProvider.addCompanyAndCustomerApi(
-        companyName: companyName,
-        customerName: custName,
-        mobileNo: mobile,
-        );
+                  bool success = await custProvider.addCompanyAndCustomerApi(
+                    companyName: companyName,
+                    customerName: custName,
+                    mobileNo: mobile,
+                  );
 
-        if (success) {
-        await custProvider.getAllCustomers(true);
+                  if (success) {
+                    await custProvider.getAllCustomers(true);
 
-        CustomerModel? addedCompany;
+                    CustomerModel? addedCompany;
 
-        for (var item in custProvider.customer) {
-        if (item.companyName.toString().trim().toLowerCase() ==
-        companyName.trim().toLowerCase()) {
-        addedCompany = item;
-        break;
-        }
-        }
+                    for (var item in custProvider.customer) {
+                      if (item.companyName.toString().trim().toLowerCase() ==
+                          companyName.trim().toLowerCase()) {
+                        addedCompany = item;
+                        break;
+                      }
+                    }
 
-        if (addedCompany != null) {
+                    if (addedCompany != null) {
 
-        List<Map<String, dynamic>> tempList = [];
+                      List<Map<String, dynamic>> tempList = [];
 
-        var idList = addedCompany.customerId.toString().split("||");
-        var nameList = addedCompany.firstName.toString().split("||");
-        var phoneList = addedCompany.phoneNumber.toString().split("||");
+                      var idList = addedCompany.customerId.toString().split("||");
+                      var nameList = addedCompany.firstName.toString().split("||");
+                      var phoneList = addedCompany.phoneNumber.toString().split("||");
 
-        for (int i = 0; i < nameList.length; i++) {
-        tempList.add({
-        "id": idList[i],
-        "name": nameList[i],
-        "no": phoneList[i],
-        });
-        }
+                      for (int i = 0; i < nameList.length; i++) {
+                        tempList.add({
+                          "id": idList[i],
+                          "name": nameList[i],
+                          "no": phoneList[i],
+                        });
+                      }
 
-        // ✅ provider values set
-        custProvider.selectedCompanyId = addedCompany.userId.toString();
-        custProvider.selectedCompanyName = addedCompany.companyName.toString();
-        custProvider.setSendList(tempList);
+                      // ✅ provider values set
+                      custProvider.selectedCompanyId = addedCompany.userId.toString();
+                      custProvider.selectedCompanyName = addedCompany.companyName.toString();
+                      custProvider.setSendList(tempList);
 
-        if (tempList.isNotEmpty) {
-        custProvider.setMultiSelectedCustomers([tempList[0]]);
-        }
+                      if (tempList.isNotEmpty) {
+                        custProvider.setMultiSelectedCustomers([tempList[0]]);
+                      }
 
-        custProvider.notifyListeners();
-        utils.showWarningToast(context,text:  "Company & Customer Added",);
-        Navigator.pop(context, addedCompany);
-        custProvider.addCompanyCtr.reset();
-        } else {
-        utils.showWarningToast(context,text:  "Company added but not found",);
-        custProvider.addCompanyCtr.reset();
-        }
+                      custProvider.notifyListeners();
+                      utils.showWarningToast(context,text:  "${constValue.companyCustomerAdded}",);
+                      Navigator.pop(context, addedCompany);
+                      custProvider.addCompanyCtr.reset();
+                    } else {
+                      utils.showWarningToast(context,text:  "${constValue.companyAddedNotFound}",);
+                      custProvider.addCompanyCtr.reset();
+                    }
 
-        } else {
-        utils.showWarningToast(context,text:  "Already Exists / Failed",);
-        custProvider.addCompanyCtr.reset();
-        }
-        },
-        text: "Save",
-        controller: provider.addCompanyCtr, // if exists
-        isLoading: true,
-        backgroundColor: colorsConst.primary,
-        radius: 10,
-        width: kIsWeb ? webWidth / 2.1 : phoneWidth / 2.1,
-        );
-      }
-    ),
+                  } else {
+                    utils.showWarningToast(context,text:  "${constValue.alreadyExistsOrFailed}",);
+                    custProvider.addCompanyCtr.reset();
+                  }
+                },
+                text: "${constValue.save}",
+                controller: provider.addCompanyCtr, // if exists
+                isLoading: true,
+                backgroundColor: colorsConst.primary,
+                radius: 10,
+                width: kIsWeb ? webWidth / 2.1 : phoneWidth / 2.1,
+              );
+            }
+        ),
         // ElevatedButton(
         //   style: ElevatedButton.styleFrom(
         //     backgroundColor: colorsConst.primary, // button color

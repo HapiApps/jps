@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 import 'package:master_code/component/custom_loading.dart';
 import 'package:master_code/component/custom_loading_button.dart';
 import 'package:master_code/screens/common/fullscreen_photo.dart';
+import 'package:master_code/source/constant/default_constant.dart';
 import 'package:master_code/source/extentions/extensions.dart';
 import 'package:master_code/source/styles/decoration.dart';
 import 'package:flutter/material.dart';
@@ -91,7 +92,7 @@ class _EmployeeDetailsState extends State<EmployeeDetails> {
         backgroundColor: colorsConst.bacColor,
           appBar: PreferredSize(
             preferredSize: Size(300, 50),
-            child: CustomAppbar(text: "Employee Details",
+            child: CustomAppbar(text: "${constValue.employeeDetails}",
               // callback: (){
               //   utils.navigatePage(context, ()=>const DashBoard(child: ViewEmployees()));
               // },
@@ -301,7 +302,7 @@ class _EmployeeDetailsState extends State<EmployeeDetails> {
                     ),
                     15.height,
                     const DotLine(),10.height,
-                    const CustomText(text: "Personal Details",isBold: true,size: 17,),10.height,
+                     CustomText(text: "${constValue.personalDetails}",isBold: true,size: 17,),10.height,
                     if(empProvider.signReffered.text!="")
                     AppCustomDataText(title: "Mobile Number", value: empProvider.signMobileNumber.text,img: assets.call,isImg: true),
                     AppCustomDataText(title: "WhatsApp Number", value: empProvider.signWhatsappNumber.text),
@@ -344,19 +345,19 @@ class _EmployeeDetailsState extends State<EmployeeDetails> {
                     ),
                     10.height,
                     const DotLine(),10.height,
-                    const CustomText(text: "Permanent Address",isBold: true,size: 17,),10.height,
+                     CustomText(text: "${constValue.addressEmpE1}",isBold: true,size: 17,),10.height,
                     AppCustomDataText(title: "Address", value: buildAddress2(),img: assets.location,isImg: true),
                     10.height,
                     const DotLine(),10.height,
-                    const CustomText(text: "Emergency Contact Information",isBold: true,size: 17,),10.height,
+                     CustomText(text: "${constValue.EmergencyContactE1}",isBold: true,size: 17,),10.height,
                     AppCustomDataText(title: "Full Name", value: empProvider.signEmFname.text,img: assets.contact,isImg: true),
                     AppCustomDataText(title: "Phone Number", value: empProvider.signEmPh.text,img: assets.call,isImg: true),
                     AppCustomDataText(title: "Relation", value: empProvider.signEmRelation.text),
                     10.height,
                     const DotLine(),10.height,
-                    const CustomText(text: "Job Information",isBold: true,size: 17,),10.height,
-                    AppCustomDataText(title: "Last Organization", value: empProvider.signLastOrganization.text),
-                    AppCustomDataText(title: "Referred By", value: empProvider.signReffered.text,img: assets.contact,isImg: true),
+                     CustomText(text: "${constValue.jobInformation}",isBold: true,size: 17,),10.height,
+                    AppCustomDataText(title: "${constValue.lastOrganization}", value: empProvider.signLastOrganization.text),
+                    AppCustomDataText(title: "${constValue.referredBy}", value: empProvider.signReffered.text,img: assets.contact,isImg: true),
                     10.height,
                     const DotLine(),10.height,
                     const CustomText(text: "Reference",isBold: true,size: 17,),10.height,
@@ -366,7 +367,7 @@ class _EmployeeDetailsState extends State<EmployeeDetails> {
                     AppCustomDataText(title: "Reference 2 No", value: empProvider.signRePh2.text,img: assets.call,isImg: true),
                     10.height,
                     const DotLine(),10.height,
-                    const CustomText(text: "KYC",isBold: true,size: 17,),10.height,
+                     CustomText(text: "${constValue.kyc}",isBold: true,size: 17,),10.height,
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -411,17 +412,17 @@ class _EmployeeDetailsState extends State<EmployeeDetails> {
                       ],
                     ),
                     20.height,
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        CustomLoadingButton(callback: (){
-                          utils.navigatePage(context, ()=> DashBoard(child:
-                          UserAttendanceReport(id:widget.id,name: empProvider.signFirstName.text,active: widget.active,roleName: widget.role)));
-                        }, isLoading: false, backgroundColor: Colors.deepOrange,
-                          radius: 5, width: kIsWeb?webWidth/2.1:phoneWidth/2.1,text: "Attendance",),130.width
-                      ],
-                    ),
-                    20.height,
+                    // Row(
+                    //   mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    //   children: [
+                    //     CustomLoadingButton(callback: (){
+                    //       utils.navigatePage(context, ()=> DashBoard(child:
+                    //       UserAttendanceReport(id:widget.id,name: empProvider.signFirstName.text,active: widget.active,roleName: widget.role)));
+                    //     }, isLoading: false, backgroundColor: Colors.deepOrange,
+                    //       radius: 5, width: kIsWeb?webWidth/2.1:phoneWidth/2.1,text: "Attendance",),130.width
+                    //   ],
+                    // ),
+                    // 20.height,
                   ],
                 ),
               ),

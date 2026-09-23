@@ -2,6 +2,7 @@ import 'package:intl/intl.dart';
 import 'package:master_code/screens/common/home_page.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_svg/svg.dart';
+import 'package:geocoding/geocoding.dart';
 import 'package:master_code/component/custom_dropdown.dart';
 import 'package:master_code/source/constant/colors_constant.dart';
 import 'package:master_code/source/extentions/extensions.dart';
@@ -45,22 +46,23 @@ class AttendanceReport extends StatefulWidget {
 class _AttendanceReportState extends State<AttendanceReport> {
   final FocusScopeNode _myFocusScopeNode = FocusScopeNode();
   late String showType;
+
+  /// ✅ cache so repeated lat,lng pairs aren't re-geocoded
+  final Map<String, String> _areaCache = {};
+
   @override
   void initState() {
     showType = widget.showType;
     check();
     Future.delayed(Duration.zero, () {;
-      if (!mounted) return;
-      // Provider.of<AttendanceProvider>(context, listen: false).loadAttendanceDashboard(localData.storage.read("id"));
-      print(Provider.of<EmployeeProvider>(context, listen: false).userData.length);
-      Provider.of<AttendanceProvider>(context, listen: false).initDate(id:localData.storage.read("id"),role:localData.storage.read("role"),isRefresh:true,date1:widget.date1,date2:widget.date2,type:widget.type);
-       Provider.of<HomeProvider>(context, listen: false).loadFullDashboard(context);
-      //Provider.of<AttendanceProvider>(context, listen: false).getAttendanceReport(localData.storage.read("id"));
-      Provider.of<AttendanceProvider>(context, listen: false).getAbsentAttendanceReport(localData.storage.read("id"));
+    if (!mounted) return;
+    print(Provider.of<EmployeeProvider>(context, listen: false).userData.length);
+    Provider.of<AttendanceProvider>(context, listen: false).initDate(id:localData.storage.read("id"),role:localData.storage.read("role"),isRefresh:true,date1:widget.date1,date2:widget.date2,type:widget.type);
+    Provider.of<HomeProvider>(context, listen: false).loadFullDashboard(context);
+    Provider.of<AttendanceProvider>(context, listen: false).getAbsentAttendanceReport(localData.storage.read("id"));
     String today = DateFormat('yyyy-MM-dd').format(DateTime.now());
-    //  Provider.of<LeaveProvider>(context, listen: false).allLeaves(widget.date1,widget.date2,true,localData.storage.read("role"),localData.storage.read("id"));
     Provider.of<LeaveProvider>(context, listen: false).allAttendLeaves(
-      today, today, true,               // 👈 idhum today
+      today, today, true,
       localData.storage.read("role"),
       localData.storage.read("id"),
     );
@@ -99,6 +101,153 @@ class _AttendanceReportState extends State<AttendanceReport> {
     _myFocusScopeNode.dispose();
     super.dispose();
   }
+
+  /// ✅ reverse-geocodes a lat/lng pair (from backend data) into an area name
+  Future<String> _getAreaName(String lat, String lng) async {
+    try {
+      if (lat.isEmpty || lng.isEmpty) return "-";
+      final String key = "$lat,$lng";
+      if (_areaCache.containsKey(key)) return _areaCache[key]!;
+
+      double? latitude = double.tryParse(lat);
+      double? longitude = double.tryParse(lng);
+      if (latitude == null || longitude == null) return "-";
+
+      List<Placemark> placemarks =
+      await placemarkFromCoordinates(latitude, longitude);
+
+      String result = "-";
+      if (placemarks.isNotEmpty) {
+        Placemark place = placemarks.first;
+        String area = "${place.subLocality ?? ''} ${place.locality ?? ''}".trim();
+        result = area.isNotEmpty ? area : (place.name ?? "-");
+      }
+      _areaCache[key] = result;
+      return result;
+    } catch (e) {
+      return "-";
+    }
+  }
+
+  /// ✅ "check in/out : area1  area2" inline text
+  Widget _buildCheckInOutInline(String lat1, String lng1, String lat2, String lng2) {
+    return FutureBuilder<List<String>>(
+      future: Future.wait([
+        _getAreaName(lat1, lng1),
+        (lat2.isNotEmpty && lng2.isNotEmpty)
+            ? _getAreaName(lat2, lng2)
+            : Future.value(""),
+      ]),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) {
+          return CustomText(text: "check in/out : ...", size: 12, colors: colorsConst.greyClr);
+        }
+        String area1 = snapshot.data![0];
+        String area2 = snapshot.data![1];
+        String combined = area2.isNotEmpty ? "$area1   $area2" : area1;
+        return CustomText(text: "check in/out : $combined", size: 12, colors: colorsConst.greyClr);
+      },
+    );
+  }
+
+  /// ✅ containerized attendance row: avatar/name + In/Out/Total hrs, then role + area line
+  Widget _buildAttendanceRow({
+    required String name,
+    required String role,
+    required String inTime,
+    required String outTime,
+    required String totalHrs,
+    required String lat1,
+    required String lng1,
+    required String lat2,
+    required String lng2,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        width: double.infinity,
+        margin: const EdgeInsets.symmetric(vertical: 6),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: const [
+            BoxShadow(
+              color: Colors.black26,
+              blurRadius: 8,
+              offset: Offset(2, 2),
+            )
+          ],
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  CircleAvatar(
+                    radius: 15,
+                    backgroundColor: Colors.grey.shade300,
+                    child: SvgPicture.asset(assets.profile, width: 16, height: 16),
+                  ),
+                  8.width,
+                  Expanded(
+                    flex: 2,
+                    child: CustomText(text: name, isBold: true, size: 14),
+                  ),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        CustomText(text: "In:", size: 11, colors: colorsConst.greyClr),
+                        CustomText(text: inTime, size: 13),
+                      ],
+                    ),
+                  ),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        CustomText(text: "Out:", size: 11, colors: colorsConst.greyClr),
+                        CustomText(text: outTime, size: 13),
+                      ],
+                    ),
+                  ),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        CustomText(text: "Total hrs", size: 11, colors: colorsConst.greyClr),
+                        CustomText(text: totalHrs, size: 13),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              8.height,
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(width: 38), // aligns under avatar
+                  Expanded(
+                    flex: 2,
+                    child: CustomText(text: role, size: 12, colors: colorsConst.greyClr),
+                  ),
+                  Expanded(
+                    flex: 3,
+                    child: _buildCheckInOutInline(lat1, lng1, lat2, lng2),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     var webWidth=MediaQuery.of(context).size.width * 0.5;
@@ -112,7 +261,7 @@ class _AttendanceReportState extends State<AttendanceReport> {
             backgroundColor: colorsConst.bacColor,
             appBar: PreferredSize(
               preferredSize: const Size(300, 50),
-              child: CustomAppbar(text: showType.toString()=="Absent"?"Absent Report":showType.toString()=="Late"?"Late Attendance Report":"Attendance Report",callback: (){
+              child: CustomAppbar(text: showType.toString()=="Absent"?"Absent Report":showType.toString()=="Late"?"${constValue.lateAttendanceReport}":"${constValue.attReport}",callback: (){
                 homeProvider.updateIndex(0);
                 _myFocusScopeNode.unfocus();
                 utils.navigatePage(context, ()=>const DashBoard(child: HomePage()));
@@ -135,7 +284,7 @@ class _AttendanceReportState extends State<AttendanceReport> {
                       children: [
                         20.height,
                         if(localData.storage.read("role")=="1")
-                        Row(
+                          Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Container(
@@ -159,316 +308,301 @@ class _AttendanceReportState extends State<AttendanceReport> {
                                         onChanged: (value) {
                                           attProvider.searchAttendanceReport(value.toString());
                                           levPvr.searchReport(value.toString());
-                                          },
+                                        },
                                         textInputAction: TextInputAction.done,
                                         controller: attProvider.search,
                                         decoration: InputDecoration(
-                                            hintText:"Search Name or ${constValue.customer}",
-                                            hintStyle: TextStyle(
-                                                color: colorsConst.primary,
-                                                fontSize: 14
-                                            ),
-                                            fillColor: Colors.white,
-                                            filled: true,
-                                            prefixIcon: Icon(Icons.search,color: Colors.grey,),
-                                            suffixIcon: attProvider.search.text.isNotEmpty?
-                                            GestureDetector(
-                                                onTap: (){
-                                                  attProvider.search.clear();
-                                                  attProvider.searchAttendanceReport("");
-                                                  levPvr.searchReport("");
-                                                  },
-                                                child: Container(
-                                                    width: 10,height: 10,color: Colors.transparent,
-                                                    child: Padding(
-                                                      padding: const EdgeInsets.all(8.0),
-                                                      child: SvgPicture.asset(assets.cancel2),
-                                                    ))):null,
-                                            errorStyle: const TextStyle(
-                                              fontSize: 12.0,
-                                              height: 0.20,
-                                            ),
-                                            focusedBorder: OutlineInputBorder(
-                                                borderSide:  BorderSide(color: colorsConst.primary),
-                                                borderRadius: BorderRadius.circular(30)
-                                            ),
-                                            focusedErrorBorder: OutlineInputBorder(
-                                                borderSide: BorderSide(color: colorsConst.primary),
-                                                borderRadius: BorderRadius.circular(30)
-                                            ),
-                                            // errorStyle: const TextStyle(height:0.05,fontSize: 12),
-                                            contentPadding:const EdgeInsets.fromLTRB(10, 10, 10, 10),
-                                            errorBorder: OutlineInputBorder(
-                                                borderSide:  const BorderSide(color: Colors.transparent),
-                                                borderRadius: BorderRadius.circular(30)
-                                            ),
-                                            enabledBorder: OutlineInputBorder(
-                                              // grey.shade300
-                                                borderSide:  BorderSide(color: Colors.grey.shade300),
-                                                borderRadius: BorderRadius.circular(30)
-                                            ),
+                                          hintText:"Search Name or ${constValue.customer}",
+                                          hintStyle: TextStyle(
+                                              color: colorsConst.primary,
+                                              fontSize: 14
+                                          ),
+                                          fillColor: Colors.white,
+                                          filled: true,
+                                          prefixIcon: Icon(Icons.search,color: Colors.grey,),
+                                          suffixIcon: attProvider.search.text.isNotEmpty?
+                                          GestureDetector(
+                                              onTap: (){
+                                                attProvider.search.clear();
+                                                attProvider.searchAttendanceReport("");
+                                                levPvr.searchReport("");
+                                              },
+                                              child: Container(
+                                                  width: 10,height: 10,color: Colors.transparent,
+                                                  child: Padding(
+                                                    padding: const EdgeInsets.all(8.0),
+                                                    child: SvgPicture.asset(assets.cancel2),
+                                                  ))):null,
+                                          errorStyle: const TextStyle(
+                                            fontSize: 12.0,
+                                            height: 0.20,
+                                          ),
+                                          focusedBorder: OutlineInputBorder(
+                                              borderSide:  BorderSide(color: colorsConst.primary),
+                                              borderRadius: BorderRadius.circular(30)
+                                          ),
+                                          focusedErrorBorder: OutlineInputBorder(
+                                              borderSide: BorderSide(color: colorsConst.primary),
+                                              borderRadius: BorderRadius.circular(30)
+                                          ),
+                                          contentPadding:const EdgeInsets.fromLTRB(10, 10, 10, 10),
+                                          errorBorder: OutlineInputBorder(
+                                              borderSide:  const BorderSide(color: Colors.transparent),
+                                              borderRadius: BorderRadius.circular(30)
+                                          ),
+                                          enabledBorder: OutlineInputBorder(
+                                              borderSide:  BorderSide(color: Colors.grey.shade300),
+                                              borderRadius: BorderRadius.circular(30)
+                                          ),
                                         ),
                                       ),
                                     ),
                                     InkWell(
                                       onTap: (){
                                         _myFocusScopeNode.unfocus();
-                                                  showDialog(
-                                                    context: context,
-                                                    builder: (context) {
-                                                      return Consumer<AttendanceProvider>(
-                                                        builder: (context, custProvider, _) {
-                                                          return AlertDialog(
-                                                            actions: [
-                                                              SizedBox(
-                                                                width: kIsWeb?webWidth:phoneWidth,
-                                                                child: Column(
-                                                                  children: [
-                                                                    20.height,
-                                                                    Row(
-                                                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                                                      children: [
-                                                                        70.width,
-                                                                        const CustomText(
-                                                                          text: 'Filters',
-                                                                          colors: Colors.black,
-                                                                          size: 16,
-                                                                          isBold: true,
-                                                                        ),
-                                                                        30.width,
-                                                                        InkWell(
-                                                                          onTap: () {
-                                                                            Navigator.of(context, rootNavigator: true).pop();
-                                                                          },
-                                                                          child: SvgPicture.asset(assets.cancel),
-                                                                        )
-                                                                      ],
-                                                                    ),
-                                                                    20.height,
-                                                                    Row(
-                                                                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                                                                      children: [
-                                                                        Column(
-                                                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                                                          children: [
-                                                                            CustomText(
-                                                                              text: "From Date",
-                                                                              colors: colorsConst.greyClr,
-                                                                              size: 12,
-                                                                            ),
-                                                                            InkWell(
-                                                                              onTap: () {
-                                                                                custProvider.datePick(
-                                                                                  context: context,
-                                                                                  isStartDate: true,
-                                                                                  date: attProvider.startDate,
-                                                                                );
-                                                                              },
-                                                                              child: Container(
-                                                                                height: 30,
-                                                                                width: kIsWeb?webWidth/2.7:phoneWidth/2.7,
-                                                                                decoration: customDecoration.baseBackgroundDecoration(
-                                                                                  color: Colors.white,
-                                                                                  radius: 5,
-                                                                                  borderColor: colorsConst.litGrey,
-                                                                                ),
-                                                                                child: Row(
-                                                                                  mainAxisAlignment: MainAxisAlignment.center,
-                                                                                  children: [
-                                                                                    CustomText(text: custProvider.startDate),
-                                                                                    5.width,
-                                                                                    SvgPicture.asset(assets.calendar2),
-                                                                                  ],
-                                                                                ),
-                                                                              ),
-                                                                            )
-                                                                          ],
-                                                                        ),
-                                                                        Column(
-                                                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                                                          children: [
-                                                                            CustomText(
-                                                                              text: "To Date",
-                                                                              colors: colorsConst.greyClr,
-                                                                              size: 12,
-                                                                            ),
-                                                                            InkWell(
-                                                                              onTap: () {
-                                                                                custProvider.datePick(
-                                                                                  context: context,
-                                                                                  isStartDate: false,
-                                                                                  date: attProvider.endDate,
-                                                                                );
-                                                                              },
-                                                                              child: Container(
-                                                                                height: 30,
-                                                                                width: kIsWeb?webWidth/2.7:phoneWidth/2.7,
-                                                                                decoration: customDecoration.baseBackgroundDecoration(
-                                                                                  color: Colors.white,
-                                                                                  radius: 5,
-                                                                                  borderColor: colorsConst.litGrey,
-                                                                                ),
-                                                                                child: Row(
-                                                                                  mainAxisAlignment: MainAxisAlignment.center,
-                                                                                  children: [
-                                                                                    CustomText(text: custProvider.endDate),
-                                                                                    5.width,
-                                                                                    SvgPicture.asset(assets.calendar2),
-                                                                                  ],
-                                                                                ),
-                                                                              ),
-                                                                            )
-                                                                          ],
-                                                                        ),
-                                                                      ],
-                                                                    ),
-                                                                    10.height,
-                                                                    Row(
-                                                                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                                                                      children: [
-                                                                        Column(
-                                                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                                                          children: [
-                                                                            CustomText(
-                                                                              text: "Employee Name",
-                                                                              colors: colorsConst.greyClr,
-                                                                              size: 12,
-                                                                            ),
-                                                                            EmployeeDropdown(
-                                                                              callback: (){
-                                                                                empProvider.getAllUsers();
-                                                                              },
-                                                                              text: attProvider.userName,
-                                                                              employeeList: empProvider.filterUserData,
-                                                                              onChanged: (UserModel? value) {
-                                                                                attProvider.selectUser(context,value!,widget.empList);
-                                                                              },
-                                                                              size: kIsWeb?webWidth/2.7:phoneWidth/2.7,
-                                                                            ),
-                                                                          ],
-                                                                        ),
-                                                                        Padding(
-                                                                          padding: EdgeInsets.fromLTRB(0, empProvider.filterUserData.isEmpty?20:0, 0, 0),
-                                                                          child: Column(
-                                                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                                                            children: [
-                                                                              CustomText(
-                                                                                text: "Select Date Range",
-                                                                                colors: colorsConst.greyClr,
-                                                                                size: 12,
-                                                                              ),
-                                                                              Container(
-                                                                                height: 40,
-                                                                                width: kIsWeb?webWidth/2.7:phoneWidth/2.7,
-                                                                                decoration: customDecoration.baseBackgroundDecoration(
-                                                                                  radius: 5,
-                                                                                  color: Colors.white,
-                                                                                  borderColor: colorsConst.litGrey,
-                                                                                ),
-                                                                                child: DropdownButton(
-                                                                                  iconEnabledColor: colorsConst.greyClr,
-                                                                                  isExpanded: true,
-                                                                                  underline: const SizedBox(),
-                                                                                  icon: const Icon(Icons.keyboard_arrow_down_outlined),
-                                                                                  value: attProvider.type,
-                                                                                  onChanged: (value) {
-                                                                                    attProvider.changeType(value,localData.storage.read("id"),localData.storage.read("role"),false,widget.empList,context);
-                                                                                  },
-                                                                                  items: attProvider.typeList.map((list) {
-                                                                                    return DropdownMenuItem(
-                                                                                      value: list,
-                                                                                      child: CustomText(
-                                                                                        text: "  $list",
-                                                                                        colors: Colors.black,
-                                                                                        isBold: false,
-                                                                                      ),
-                                                                                    );
-                                                                                  }).toList(),
-                                                                                ),
-                                                                              ),
-                                                                            ],
-                                                                          ),
-                                                                        ),
-                                                                      ],
-                                                                    ),
-                                                                    20.height,
-                                                                    Row(
-                                                                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                                                                      children: [
-                                                                        CustomBtn(
-                                                                          width: 100,
-                                                                          text: 'Clear All',
-                                                                          callback: () {
-                                                                            attProvider.initDate(id:localData.storage.read("id"),role:localData.storage.read("role"),isRefresh: false,date1:widget.date1,date2:widget.date2,type:widget.type);
-                                                                            attProvider.getAttendanceReport(localData.storage.read("id"));
-                                                                            attProvider.getAbsentAttendanceReport(localData.storage.read("id"));
-                                                                            levPvr.changeFilter();
-                                                                            levPvr.allSpecificLeaves(attProvider.startDate,attProvider.endDate,true,localData.storage.read("role"),localData.storage.read("id"));
-                                                                            Navigator.of(context, rootNavigator: true).pop();
-                                                                            },
-                                                                          bgColor: Colors.grey.shade200,
-                                                                          textColor: Colors.black,
-                                                                        ),
-                                                                        CustomBtn(
-                                                                          width: 100,
-                                                                          text: 'Apply Filters',
-                                                                          callback: () {
-
-                                                                            /// 1️⃣ CLEAR SEARCH TEXT
-                                                                            attProvider.search.clear();
-                                                                            levPvr.search2.clear();
-
-                                                                            /// 2️⃣ RESET FILTER
-                                                                            attProvider.changeFilter();
-                                                                            levPvr.changeFilter();
-
-                                                                            /// 3️⃣ FETCH NEW DATA WITH DATE RANGE
-                                                                            attProvider.getAttendanceReport(custProvider.user);
-                                                                            attProvider.getAbsentAttendanceReport(custProvider.user);
-                                                                            print("FILTER DATE : ${attProvider.startDate} to ${attProvider.endDate} ${attProvider.user}");
-                                                                            String role = localData.storage.read("role").toString();
-
-                                                                            if (role == "1") {
-                                                                              if (attProvider.user.isEmpty) {
-                                                                                // ✅ employee select pannala → ALL leave
-                                                                                levPvr.allLeaves(attProvider.startDate, attProvider.endDate, true, role,
-                                                                                    custProvider.user);
-                                                                              } else {
-                                                                                // ✅ employee selected → that employee leave only
-                                                                                levPvr.allLeaves(attProvider.startDate, attProvider.endDate, true, role,
-                                                                                    custProvider.user);
-                                                                                // levPvr.myLeaves(attProvider.startDate, attProvider.endDate, true,
-                                                                                //     attProvider.user);
-                                                                              }
-                                                                            } else {
-                                                                              // Normal user
-                                                                              levPvr.myLeaves(attProvider.startDate, attProvider.endDate, true,
-                                                                                  custProvider.user);
-                                                                            }
-
-                                                                            /// 4️⃣ CLOSE FILTER POPUP
-                                                                            Navigator.of(context, rootNavigator: true).pop();
-                                                                          },
-                                                                          bgColor: colorsConst.primary,
-                                                                          textColor: Colors.white,
-                                                                        )
-                                                                      ],
-                                                                    ),
-                                                                    20.height,
-                                                                  ],
-                                                                ),
+                                        showDialog(
+                                          context: context,
+                                          builder: (context) {
+                                            return Consumer<AttendanceProvider>(
+                                              builder: (context, custProvider, _) {
+                                                return AlertDialog(
+                                                  actions: [
+                                                    SizedBox(
+                                                      width: kIsWeb?webWidth:phoneWidth,
+                                                      child: Column(
+                                                        children: [
+                                                          20.height,
+                                                          Row(
+                                                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                            children: [
+                                                              70.width,
+                                                              const CustomText(
+                                                                text: 'Filters',
+                                                                colors: Colors.black,
+                                                                size: 16,
+                                                                isBold: true,
+                                                              ),
+                                                              30.width,
+                                                              InkWell(
+                                                                onTap: () {
+                                                                  Navigator.of(context, rootNavigator: true).pop();
+                                                                },
+                                                                child: SvgPicture.asset(assets.cancel),
                                                               )
                                                             ],
-                                                          );
-                                                        },
-                                                      );
-                                                    },
-                                                  );
-                                                  // empProvider.filterUserData = empProvider.filterUserData.where((contact){
-                                                  //   DateTime contactDate = DateFormat('yyyy-MM-dd').parse(contact.updatedTs.toString().split(' ')[0]);
-                                                  //   return contactDate.isAfter(startDate) && contactDate.isBefore(currentDate);
-                                                  // }).toList();
-                                                },
+                                                          ),
+                                                          20.height,
+                                                          Row(
+                                                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                                            children: [
+                                                              Column(
+                                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                                children: [
+                                                                  CustomText(
+                                                                    text: "From Date",
+                                                                    colors: colorsConst.greyClr,
+                                                                    size: 12,
+                                                                  ),
+                                                                  InkWell(
+                                                                    onTap: () {
+                                                                      custProvider.datePick(
+                                                                        context: context,
+                                                                        isStartDate: true,
+                                                                        date: attProvider.startDate,
+                                                                      );
+                                                                    },
+                                                                    child: Container(
+                                                                      height: 30,
+                                                                      width: kIsWeb?webWidth/2.7:phoneWidth/2.7,
+                                                                      decoration: customDecoration.baseBackgroundDecoration(
+                                                                        color: Colors.white,
+                                                                        radius: 5,
+                                                                        borderColor: colorsConst.litGrey,
+                                                                      ),
+                                                                      child: Row(
+                                                                        mainAxisAlignment: MainAxisAlignment.center,
+                                                                        children: [
+                                                                          CustomText(text: custProvider.startDate),
+                                                                          5.width,
+                                                                          SvgPicture.asset(assets.calendar2),
+                                                                        ],
+                                                                      ),
+                                                                    ),
+                                                                  )
+                                                                ],
+                                                              ),
+                                                              Column(
+                                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                                children: [
+                                                                  CustomText(
+                                                                    text: "To Date",
+                                                                    colors: colorsConst.greyClr,
+                                                                    size: 12,
+                                                                  ),
+                                                                  InkWell(
+                                                                    onTap: () {
+                                                                      custProvider.datePick(
+                                                                        context: context,
+                                                                        isStartDate: false,
+                                                                        date: attProvider.endDate,
+                                                                      );
+                                                                    },
+                                                                    child: Container(
+                                                                      height: 30,
+                                                                      width: kIsWeb?webWidth/2.7:phoneWidth/2.7,
+                                                                      decoration: customDecoration.baseBackgroundDecoration(
+                                                                        color: Colors.white,
+                                                                        radius: 5,
+                                                                        borderColor: colorsConst.litGrey,
+                                                                      ),
+                                                                      child: Row(
+                                                                        mainAxisAlignment: MainAxisAlignment.center,
+                                                                        children: [
+                                                                          CustomText(text: custProvider.endDate),
+                                                                          5.width,
+                                                                          SvgPicture.asset(assets.calendar2),
+                                                                        ],
+                                                                      ),
+                                                                    ),
+                                                                  )
+                                                                ],
+                                                              ),
+                                                            ],
+                                                          ),
+                                                          10.height,
+                                                          Row(
+                                                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                                            children: [
+                                                              Column(
+                                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                                children: [
+                                                                  CustomText(
+                                                                    text: "Employee Name",
+                                                                    colors: colorsConst.greyClr,
+                                                                    size: 12,
+                                                                  ),
+                                                                  EmployeeDropdown(
+                                                                    callback: (){
+                                                                      empProvider.getAllUsers();
+                                                                    },
+                                                                    text: attProvider.userName,
+                                                                    employeeList: empProvider.filterUserData,
+                                                                    onChanged: (UserModel? value) {
+                                                                      attProvider.selectUser(context,value!,widget.empList);
+                                                                    },
+                                                                    size: kIsWeb?webWidth/2.7:phoneWidth/2.7,
+                                                                  ),
+                                                                ],
+                                                              ),
+                                                              Padding(
+                                                                padding: EdgeInsets.fromLTRB(0, empProvider.filterUserData.isEmpty?20:0, 0, 0),
+                                                                child: Column(
+                                                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                                                  children: [
+                                                                    CustomText(
+                                                                      text: "Select Date Range",
+                                                                      colors: colorsConst.greyClr,
+                                                                      size: 12,
+                                                                    ),
+                                                                    Container(
+                                                                      height: 40,
+                                                                      width: kIsWeb?webWidth/2.7:phoneWidth/2.7,
+                                                                      decoration: customDecoration.baseBackgroundDecoration(
+                                                                        radius: 5,
+                                                                        color: Colors.white,
+                                                                        borderColor: colorsConst.litGrey,
+                                                                      ),
+                                                                      child: DropdownButton(
+                                                                        iconEnabledColor: colorsConst.greyClr,
+                                                                        isExpanded: true,
+                                                                        underline: const SizedBox(),
+                                                                        icon: const Icon(Icons.keyboard_arrow_down_outlined),
+                                                                        value: attProvider.type,
+                                                                        onChanged: (value) {
+                                                                          attProvider.changeType(value,localData.storage.read("id"),localData.storage.read("role"),false,widget.empList,context);
+                                                                        },
+                                                                        items: attProvider.typeList.map((list) {
+                                                                          return DropdownMenuItem(
+                                                                            value: list,
+                                                                            child: CustomText(
+                                                                              text: "  $list",
+                                                                              colors: Colors.black,
+                                                                              isBold: false,
+                                                                            ),
+                                                                          );
+                                                                        }).toList(),
+                                                                      ),
+                                                                    ),
+                                                                  ],
+                                                                ),
+                                                              ),
+                                                            ],
+                                                          ),
+                                                          20.height,
+                                                          Row(
+                                                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                                            children: [
+                                                              CustomBtn(
+                                                                width: 100,
+                                                                text: 'Clear All',
+                                                                callback: () {
+                                                                  attProvider.initDate(id:localData.storage.read("id"),role:localData.storage.read("role"),isRefresh: false,date1:widget.date1,date2:widget.date2,type:widget.type);
+                                                                  attProvider.getAttendanceReport(localData.storage.read("id"));
+                                                                  attProvider.getAbsentAttendanceReport(localData.storage.read("id"));
+                                                                  levPvr.changeFilter();
+                                                                  levPvr.allSpecificLeaves(attProvider.startDate,attProvider.endDate,true,localData.storage.read("role"),localData.storage.read("id"));
+                                                                  Navigator.of(context, rootNavigator: true).pop();
+                                                                },
+                                                                bgColor: Colors.grey.shade200,
+                                                                textColor: Colors.black,
+                                                              ),
+                                                              CustomBtn(
+                                                                width: 100,
+                                                                text: 'Apply Filters',
+                                                                callback: () {
+
+                                                                  attProvider.search.clear();
+                                                                  levPvr.search2.clear();
+
+                                                                  attProvider.changeFilter();
+                                                                  levPvr.changeFilter();
+
+                                                                  attProvider.getAttendanceReport(custProvider.user);
+                                                                  attProvider.getAbsentAttendanceReport(custProvider.user);
+                                                                  print("FILTER DATE : ${attProvider.startDate} to ${attProvider.endDate} ${attProvider.user}");
+                                                                  String role = localData.storage.read("role").toString();
+
+                                                                  if (role == "1") {
+                                                                    if (attProvider.user.isEmpty) {
+                                                                      levPvr.allLeaves(attProvider.startDate, attProvider.endDate, true, role,
+                                                                          custProvider.user);
+                                                                    } else {
+                                                                      levPvr.allLeaves(attProvider.startDate, attProvider.endDate, true, role,
+                                                                          custProvider.user);
+                                                                    }
+                                                                  } else {
+                                                                    levPvr.myLeaves(attProvider.startDate, attProvider.endDate, true,
+                                                                        custProvider.user);
+                                                                  }
+
+                                                                  Navigator.of(context, rootNavigator: true).pop();
+                                                                },
+                                                                bgColor: colorsConst.primary,
+                                                                textColor: Colors.white,
+                                                              )
+                                                            ],
+                                                          ),
+                                                          20.height,
+                                                        ],
+                                                      ),
+                                                    )
+                                                  ],
+                                                );
+                                              },
+                                            );
+                                          },
+                                        );
+                                      },
                                       child: Padding(
                                         padding: const EdgeInsets.all(6.0),
                                         child: SvgPicture.asset(assets.tFilter,width: 20,height: 20,),
@@ -476,37 +610,36 @@ class _AttendanceReportState extends State<AttendanceReport> {
                                     ),5.width
                                   ],
                                 ),),
-                              // if(attProvider.selectedIndex==0)
                               GestureDetector(
-                                  onTap: () async {
-                                    if (isLoading) return;
+                                onTap: () async {
+                                  if (isLoading) return;
 
-                                    setState(() {
-                                      isLoading = true;
-                                    });
+                                  setState(() {
+                                    isLoading = true;
+                                  });
 
-                                    try {
-                                      if (attProvider.userName != "") {
-                                        await excelReports.downloadAttendanceExcelReport(
-                                          context,
-                                          stDate: attProvider.startDate,
-                                          enDate: attProvider.endDate,
-                                        );
-                                      } else {
-                                        await excelReports.downloadAttendanceExcelReport(
-                                          context,
-                                          stDate: attProvider.startDate,//
-                                          enDate: attProvider.endDate,
-                                        );
-                                      }
-                                    } catch (e) {
-                                      print("Download Error: $e");
-                                    } finally {
-                                      setState(() {
-                                        isLoading = false;
-                                      });
+                                  try {
+                                    if (attProvider.userName != "") {
+                                      await excelReports.downloadAttendanceExcelReport(
+                                        context,
+                                        stDate: attProvider.startDate,
+                                        enDate: attProvider.endDate,
+                                      );
+                                    } else {
+                                      await excelReports.downloadAttendanceExcelReport(
+                                        context,
+                                        stDate: attProvider.startDate,
+                                        enDate: attProvider.endDate,
+                                      );
                                     }
-                                  },
+                                  } catch (e) {
+                                    print("Download Error: $e");
+                                  } finally {
+                                    setState(() {
+                                      isLoading = false;
+                                    });
+                                  }
+                                },
                                 child: isLoading
                                     ? SizedBox(
                                   width: 27,
@@ -521,60 +654,60 @@ class _AttendanceReportState extends State<AttendanceReport> {
                             ],
                           ),
                         if(localData.storage.read("role") !="1")
-                        Row(
-                          children: [
-                            SizedBox(
-                              width: 300,
-                              child: CustomDropDown(
+                          Row(
+                            children: [
+                              SizedBox(
+                                width: 300,
+                                child: CustomDropDown(
                                     text: "", valueList: attProvider.typeList,
                                     saveValue: attProvider.type,color: Colors.white,
                                     onChanged: (value){
                                       attProvider.changeType(value,localData.storage.read("id"),localData.storage.read("role"),false,widget.empList,context);
                                     }, width: kIsWeb?webWidth:phoneWidth),
-                            ), 20.width,
-                            GestureDetector(
-                              onTap: () async {
-                                if (isLoading) return;
+                              ), 20.width,
+                              GestureDetector(
+                                onTap: () async {
+                                  if (isLoading) return;
 
-                                setState(() {
-                                  isLoading = true;
-                                });
-
-                                try {
-                                  if (attProvider.userName != "") {
-                                    await excelReports.downloadAttendanceExcelReport(
-                                      context,
-                                      stDate: attProvider.startDate,
-                                      enDate: attProvider.endDate,
-                                    );
-                                  } else {
-                                    await excelReports.downloadAttendanceExcelReport(
-                                      context,
-                                      stDate: attProvider.startDate,
-                                      enDate: attProvider.endDate,
-                                    );
-                                  }
-                                } catch (e) {
-                                  print("Download Error: $e");
-                                } finally {
                                   setState(() {
-                                     isLoading = false;
+                                    isLoading = true;
                                   });
-                                }
-                              },
-                              child: isLoading
-                                  ? SizedBox(
-                                width: 27,
-                                height: 27,
-                                child: CircularProgressIndicator(strokeWidth: 2),
-                              )
-                                  : SvgPicture.asset(
-                                assets.tDownload,
-                                width: 27,
-                                height: 27,
-                              ),),
-                          ],
-                        ),
+
+                                  try {
+                                    if (attProvider.userName != "") {
+                                      await excelReports.downloadAttendanceExcelReport(
+                                        context,
+                                        stDate: attProvider.startDate,
+                                        enDate: attProvider.endDate,
+                                      );
+                                    } else {
+                                      await excelReports.downloadAttendanceExcelReport(
+                                        context,
+                                        stDate: attProvider.startDate,
+                                        enDate: attProvider.endDate,
+                                      );
+                                    }
+                                  } catch (e) {
+                                    print("Download Error: $e");
+                                  } finally {
+                                    setState(() {
+                                      isLoading = false;
+                                    });
+                                  }
+                                },
+                                child: isLoading
+                                    ? SizedBox(
+                                  width: 27,
+                                  height: 27,
+                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                )
+                                    : SvgPicture.asset(
+                                  assets.tDownload,
+                                  width: 27,
+                                  height: 27,
+                                ),),
+                            ],
+                          ),
                         10.height,
                         SizedBox(
                           width: kIsWeb?webWidth:phoneWidth,
@@ -583,7 +716,7 @@ class _AttendanceReportState extends State<AttendanceReport> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               if(attProvider.filter==true)
-                              CustomText(text: "Filter Selected",colors:colorsConst.greyClr,size: 14,),10.height,
+                                CustomText(text: "Filter Selected",colors:colorsConst.greyClr,size: 14,),10.height,
                               Row(
                                 crossAxisAlignment: CrossAxisAlignment.end,
                                 mainAxisAlignment: MainAxisAlignment.end,
@@ -597,26 +730,23 @@ class _AttendanceReportState extends State<AttendanceReport> {
                         ),
                         10.height,
                         if(attProvider.filter==true)
-                        Row(
-                          // spacing: 8,
-                          // runSpacing: 8,
-                          children: [
-                            if (attProvider.startDate != attProvider.endDate)
-                              if (attProvider.startDate.isNotEmpty &&
-                                  attProvider.endDate.isNotEmpty)
-                                _filterChip(
-                                  "${attProvider.startDate} - ${attProvider.endDate}",
-                                ),
+                          Row(
+                            children: [
+                              if (attProvider.startDate != attProvider.endDate)
+                                if (attProvider.startDate.isNotEmpty &&
+                                    attProvider.endDate.isNotEmpty)
+                                  _filterChip(
+                                    "${attProvider.startDate} - ${attProvider.endDate}",
+                                  ),
 
-                          //  if (attProvider.type.isNotEmpty || attProvider.type!="null")
-                            if (attProvider.type.isNotEmpty && attProvider.type!="null")
-                              _filterChip(attProvider.type), // Last 7 days
+                              if (attProvider.type.isNotEmpty && attProvider.type!="null")
+                                _filterChip(attProvider.type),
 
-                            if (attProvider.userName.isNotEmpty)
-                              _filterChip(attProvider.userName),
+                              if (attProvider.userName.isNotEmpty)
+                                _filterChip(attProvider.userName),
 
-                          ],
-                        ),
+                            ],
+                          ),
                         15.height,
                         Padding(
                           padding: const EdgeInsets.only(left: 12.0),
@@ -700,7 +830,7 @@ class _AttendanceReportState extends State<AttendanceReport> {
                           child: Loading(),
                         ):
                         attProvider.selectedIndex==0&&
-                        attProvider.getDailyAttendance.isNotEmpty?
+                            attProvider.getDailyAttendance.isNotEmpty?
                         Flexible(
                           child: ListView.builder(
                             itemCount: attProvider.getDailyAttendance.length,
@@ -727,14 +857,11 @@ class _AttendanceReportState extends State<AttendanceReport> {
                               String outTime = "-";
                               String timeD = "-";
 
-                              // SAFE TIME SPLIT
                               List<String> timeList = (data.time ?? "").split(",");
 
-                              // SAFE LAT LNG
                               List<String> latList = (data.lats ?? "").split(",");
                               List<String> lngList = (data.lngs ?? "").split(",");
 
-                              /// HANDLE TIME SAFELY
                               if (timeList.length > 1) {
 
                                 if (data.status.toString().contains("1,2")) {
@@ -754,7 +881,6 @@ class _AttendanceReportState extends State<AttendanceReport> {
                                 inTime = timeList[0];
                               }
 
-                              /// DATE HEADER LOGIC
                               String timestamp = data.createdTs.toString();
                               List<String> times = timestamp.split(',');
                               DateTime startTime = DateTime.parse(times[0]);
@@ -771,6 +897,17 @@ class _AttendanceReportState extends State<AttendanceReport> {
 
                               final showDateHeader = index == 0 || createdBy != prevCreatedBy;
 
+                              String lat1 = latList.isNotEmpty ? latList[0] : "";
+                              String lng1 = lngList.isNotEmpty ? lngList[0] : "";
+                              String lat2 = "";
+                              String lng2 = "";
+                              if (data.status.toString().contains("2")
+                                  && latList.length > 1
+                                  && lngList.length > 1) {
+                                lat2 = latList[1];
+                                lng2 = lngList[1];
+                              }
+
                               return Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
@@ -785,67 +922,38 @@ class _AttendanceReportState extends State<AttendanceReport> {
                                       ),
                                     ),
 
-                                  InkWell(
-                                    onTap: (){
-                                      // utils.navigatePage(context, ()=> DashBoard(child:
-                                      // EmployeeDetails(id:data.salesmanId.toString(),active:"1",
-                                      //     role:localData.storage.read("roleName"))));
-                                      //
-                                      utils.navigatePage(
-                                        context,
-                                            ()=> DashBoard(
-                                          child: CustomAttendanceReport(
-                                            userId: data.salesmanId.toString(),
-                                            userName: data.firstname.toString(),
-                                          ),
-                                        ),
-                                      );
+                                  /// ✅ containerized attendance row (avatar/name + In/Out/Total hrs + role + area)
+                                  AttendanceDetails(
+                                    showDate: index == 0,
+                                    date: data.date.toString(),
+                                    img: data.image.toString(),
+                                    inTime: inTime,
+                                    outTime: outTime,
+                                    timeD: timeD,
+                                    name: data.firstname.toString(),
+                                    role: data.role.toString(),
+
+                                    /// ✅ passed so AttendanceDetails can show the
+                                    /// check-in / check-out area name under In/Out time
+                                    inLat: lat1,
+                                    inLng: lng1,
+                                    outLat: lat2,
+                                    outLng: lng2,
+
+                                    callback: () {
+                                      utils.navigatePage(context, () => CheckLocation(
+                                        lat1: lat1,
+                                        long1: lng1,
+                                        lat2: lat2,
+                                        long2: lng2,
+                                      ));
                                     },
 
-                                    child: AttendanceDetails(
-
-                                      isName: attProvider.userName!=""?false:true,
-                                      showDate: index==0?true:false,
-                                      date: data.date.toString(),
-                                      img: data.image.toString(),
-                                      inTime: inTime,
-                                      outTime: outTime,
-                                      timeD: timeD,
-                                      name: data.firstname.toString(),
-                                      role: data.role.toString(),
-
-                                      callback: () {
-
-                                        String lat1 = latList.isNotEmpty ? latList[0] : "";
-                                        String lng1 = lngList.isNotEmpty ? lngList[0] : "";
-
-                                        String lat2 = "";
-                                        String lng2 = "";
-
-                                        if (data.status.toString().contains("2")
-                                            && latList.length > 1
-                                            && lngList.length > 1) {
-
-                                          lat2 = latList[1];
-                                          lng2 = lngList[1];
-                                        }
-
-                                        utils.navigatePage(context, ()=>CheckLocation(
-                                          lat1: lat1,
-                                          long1: lng1,
-                                          lat2: lat2,
-                                          long2: lng2,
-                                        ));
-                                      },
-
-                                      perStatus: data.perStatus.toString(),
-                                      perReason: data.perReason.toString(),
-                                      perTime: data.perTime.toString(),
-                                      perCreatedTs: data.perCreatedTs.toString(),
-
-                                    ),
+                                    perStatus: data.perStatus.toString(),
+                                    perReason: data.perReason.toString(),
+                                    perTime: data.perTime.toString(),
+                                    perCreatedTs: data.perCreatedTs.toString(),
                                   ),
-
                                   5.height
                                 ],
                               );
@@ -853,84 +961,84 @@ class _AttendanceReportState extends State<AttendanceReport> {
                           ),
                         ):
                         attProvider.selectedIndex==1&&
-                        attProvider.noAttendanceList.isNotEmpty?
+                            attProvider.noAttendanceList.isNotEmpty?
                         Flexible(
-                            child: ListView.builder(
-                                itemCount: attProvider.noAttendanceList.length,
-                              itemBuilder: (context, index) {
-                                var data = attProvider.noAttendanceList[index];
-                                String? timestamp = data.missingDate?.toString();
+                          child: ListView.builder(
+                            itemCount: attProvider.noAttendanceList.length,
+                            itemBuilder: (context, index) {
+                              var data = attProvider.noAttendanceList[index];
+                              String? timestamp = data.missingDate?.toString();
 
-                                if (timestamp == null || timestamp.isEmpty || timestamp == "null") {
-                                  return const SizedBox.shrink();
-                                }
+                              if (timestamp == null || timestamp.isEmpty || timestamp == "null") {
+                                return const SizedBox.shrink();
+                              }
 
-                                DateTime? dateTime = DateTime.tryParse(timestamp);
-                                if (dateTime == null) {
-                                  return const SizedBox.shrink();
-                                }
+                              DateTime? dateTime = DateTime.tryParse(timestamp);
+                              if (dateTime == null) {
+                                return const SizedBox.shrink();
+                              }
 
-                                String dayOfWeek;
-                                String dateStr = DateFormat('dd MMM yyyy').format(dateTime);
-                                DateTime today = DateTime.now();
-                                if (dateTime.day == today.day && dateTime.month == today.month && dateTime.year == today.year) {
-                                  dayOfWeek = 'Today • $dateStr';
-                                } else if (dateTime.isAfter(today.subtract(const Duration(days: 1))) && dateTime.isBefore(today)) {
-                                  dayOfWeek = 'Yesterday • $dateStr';
-                                } else {
-                                  dayOfWeek = dateStr;
-                                }
+                              String dayOfWeek;
+                              String dateStr = DateFormat('dd MMM yyyy').format(dateTime);
+                              DateTime today = DateTime.now();
+                              if (dateTime.day == today.day && dateTime.month == today.month && dateTime.year == today.year) {
+                                dayOfWeek = 'Today • $dateStr';
+                              } else if (dateTime.isAfter(today.subtract(const Duration(days: 1))) && dateTime.isBefore(today)) {
+                                dayOfWeek = 'Yesterday • $dateStr';
+                              } else {
+                                dayOfWeek = dateStr;
+                              }
 
-                                String createdBy = "${dateTime.day}/${dateTime.month}/${dateTime.year}";
-                                final showDateHeader = index == 0 || createdBy != getCreatedDate(attProvider.noAttendanceList[index - 1]);
+                              String createdBy = "${dateTime.day}/${dateTime.month}/${dateTime.year}";
+                              final showDateHeader = index == 0 || createdBy != getCreatedDate(attProvider.noAttendanceList[index - 1]);
 
-                                return Padding(
-                                  padding: EdgeInsets.fromLTRB(0, 10, 0, index == attProvider.noAttendanceList.length - 1 ? 30 : 0),
-                                  child: Column(
-                                    children: [
-                                      if (showDateHeader)
-                                        CustomText(text: dayOfWeek, colors: Colors.black),
-                                      Card(
-                                        child: Padding(
-                                          padding: const EdgeInsets.all(8.0),
-                                          child: Row(
-                                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                            children: [
-                                              Row(
-                                                children: [
-                                                  if (localData.storage.read("role") == "1")
-                                                    CircleAvatar(
-                                                      radius: 15,
-                                                      backgroundColor: Colors.grey.shade400,
-                                                      child: SvgPicture.asset(assets.profile),
-                                                    ),
-                                                  5.width,
-                                                  Column(
-                                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                                    children: [
-                                                      CustomText(text: data.firstname.toString(), isBold: true),
-
-                                                    ],
+                              return Padding(
+                                padding: EdgeInsets.fromLTRB(0, 10, 0, index == attProvider.noAttendanceList.length - 1 ? 30 : 0),
+                                child: Column(
+                                  children: [
+                                    if (showDateHeader)
+                                      CustomText(text: dayOfWeek, colors: Colors.black),
+                                    Card(
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(8.0),
+                                        child: Row(
+                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            Row(
+                                              children: [
+                                                if (localData.storage.read("role") == "1")
+                                                  CircleAvatar(
+                                                    radius: 15,
+                                                    backgroundColor: Colors.grey.shade400,
+                                                    child: SvgPicture.asset(assets.profile),
                                                   ),
-                                                ],
-                                              ),
-                                              localData.storage.read("role") == "1"
-                                                  ? CustomText(text: data.role.toString(), colors: colorsConst.blueClr)
-                                                  : CustomText(
-                                                text: "${dateTime.day}/${dateTime.month}/${dateTime.year}",
-                                                colors: colorsConst.blueClr,
-                                              ),],
-                                          ),
+                                                5.width,
+                                                Column(
+                                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                                  children: [
+                                                    CustomText(text: data.firstname.toString(), isBold: true),
+
+                                                  ],
+                                                ),
+                                              ],
+                                            ),
+                                            localData.storage.read("role") == "1"
+                                                ? CustomText(text: data.role.toString(), colors: colorsConst.blueClr)
+                                                : CustomText(
+                                              text: "${dateTime.day}/${dateTime.month}/${dateTime.year}",
+                                              colors: colorsConst.blueClr,
+                                            ),],
                                         ),
                                       ),
-                                    ],
-                                  ),
-                                );
-                              },
+                                    ),
+                                  ],
                                 ),
-                          ):
+                              );
+                            },
+                          ),
+                        ):
                         attProvider.selectedIndex==2 &&
-                        attProvider.lateCountShow!=0? Flexible(
+                            attProvider.lateCountShow!=0? Flexible(
                           child: Builder(
                             builder: (context) {
 
@@ -945,7 +1053,6 @@ class _AttendanceReportState extends State<AttendanceReport> {
                                 return bTime.compareTo(aTime);
                               });
 
-                              /// ✅ FIRST FIND IN-TIME FOR EACH RECORD & FILTER ONLY LATE ONES
                               final lateList = sortedData.where((data) {
                                 List<String> timeList = (data.time ?? "").split(",");
                                 String inT = "-";
@@ -963,7 +1070,6 @@ class _AttendanceReportState extends State<AttendanceReport> {
                                 return isLate(inT);
                               }).toList();
 
-                              /// ✅ IF NO LATE RECORD -> SHOW NO DATA FOUND
                               if (lateList.isEmpty) {
                                 return Padding(
                                   padding: const EdgeInsets.fromLTRB(0, 150, 0, 0),
@@ -1016,6 +1122,22 @@ class _AttendanceReportState extends State<AttendanceReport> {
 
                                   final showDateHeader = index == 0 || createdBy != prevCreatedBy;
 
+                                  // ✅ compute lat/lng OUTSIDE the callback so they can be passed
+                                  // into AttendanceDetails (for the area-name display) AND used
+                                  // inside the map-icon tap callback.
+                                  String lat1 = latList.isNotEmpty ? latList[0] : "";
+                                  String lng1 = lngList.isNotEmpty ? lngList[0] : "";
+
+                                  String lat2 = "";
+                                  String lng2 = "";
+
+                                  if (data.status.toString().contains("2") &&
+                                      latList.length > 1 &&
+                                      lngList.length > 1) {
+                                    lat2 = latList[1];
+                                    lng2 = lngList[1];
+                                  }
+
                                   return Padding(
                                     padding: EdgeInsets.fromLTRB(
                                         5, 10, 5, index == lateList.length - 1 ? 30 : 0),
@@ -1043,20 +1165,14 @@ class _AttendanceReportState extends State<AttendanceReport> {
                                           name: data.firstname.toString(),
                                           role: data.role.toString(),
 
+                                          /// ✅ passed so AttendanceDetails can show the
+                                          /// check-in / check-out area name under In/Out time
+                                          inLat: lat1,
+                                          inLng: lng1,
+                                          outLat: lat2,
+                                          outLng: lng2,
+
                                           callback: () {
-                                            String lat1 = latList.isNotEmpty ? latList[0] : "";
-                                            String lng1 = lngList.isNotEmpty ? lngList[0] : "";
-
-                                            String lat2 = "";
-                                            String lng2 = "";
-
-                                            if (data.status.toString().contains("2") &&
-                                                latList.length > 1 &&
-                                                lngList.length > 1) {
-                                              lat2 = latList[1];
-                                              lng2 = lngList[1];
-                                            }
-
                                             utils.navigatePage(context, () => CheckLocation(
                                               lat1: lat1,
                                               long1: lng1,
@@ -1079,201 +1195,183 @@ class _AttendanceReportState extends State<AttendanceReport> {
                           ),
                         ):
                         attProvider.selectedIndex==3&&
-                        levPvr.myLevSearch.isNotEmpty?
+                            levPvr.myLevSearch.isNotEmpty?
                         Flexible(
-                              child: itemBuilder(levPvr.myLevSearch,levPvr)):
-      attProvider.selectedIndex == 4 &&
-          attProvider.permisCount != 0
-      ? Flexible(
-      child: Builder(
-      builder: (context) {
+                            child: itemBuilder(levPvr.myLevSearch,levPvr)):
+                        attProvider.selectedIndex == 4 &&
+                            attProvider.permisCount != 0
+                            ? Flexible(
+                          child: Builder(
+                            builder: (context) {
 
-      /// ✅ FILTER EMPLOYEE (if selected)
-      List<AttendanceModel> filteredList = attProvider.user.isEmpty
-      ? List<AttendanceModel>.from(attProvider.getDailyAttendance)
-          : attProvider.getDailyAttendance
-          .where((e) =>
-      e.salesmanId.toString() ==
-      attProvider.user.toString())
-          .toList();
+                              List<AttendanceModel> filteredList = attProvider.user.isEmpty
+                                  ? List<AttendanceModel>.from(attProvider.getDailyAttendance)
+                                  : attProvider.getDailyAttendance
+                                  .where((e) =>
+                              e.salesmanId.toString() ==
+                                  attProvider.user.toString())
+                                  .toList();
 
-      /// ✅ SORT BY LATEST DATE
-      filteredList.sort((a, b) {
-      DateTime aTime =
-      DateTime.parse(a.createdTs.toString().split(',')[0]);
-      DateTime bTime =
-      DateTime.parse(b.createdTs.toString().split(',')[0]);
-      return bTime.compareTo(aTime);
-      });
+                              filteredList.sort((a, b) {
+                                DateTime aTime =
+                                DateTime.parse(a.createdTs.toString().split(',')[0]);
+                                DateTime bTime =
+                                DateTime.parse(b.createdTs.toString().split(',')[0]);
+                                return bTime.compareTo(aTime);
+                              });
 
-      /// ✅ IF NO DATA AFTER FILTER
-      if (filteredList.isEmpty) {
-      return Padding(
-      padding: const EdgeInsets.fromLTRB(0, 150, 0, 0),
-      child: CustomText(
-      text: constValue.noData,
-      size: 15,
-      ),
-      );
-      }
+                              if (filteredList.isEmpty) {
+                                return Padding(
+                                  padding: const EdgeInsets.fromLTRB(0, 150, 0, 0),
+                                  child: CustomText(
+                                    text: constValue.noData,
+                                    size: 15,
+                                  ),
+                                );
+                              }
 
-      return ListView.builder(
-      itemCount: filteredList.length,
-      itemBuilder: (context, index) {
-      AttendanceModel data = filteredList[index];
+                              return ListView.builder(
+                                itemCount: filteredList.length,
+                                itemBuilder: (context, index) {
+                                  AttendanceModel data = filteredList[index];
 
-      /// ---------------- TIME SAFE LOGIC ----------------
+                                  var inTime = "-";
+                                  var outTime = "-";
+                                  var timeD = "-";
 
-      var inTime = "-";
-      var outTime = "-";
-      var timeD = "-";
+                                  final times = (data.time ?? "").split(",");
 
-      final times = (data.time ?? "").split(",");
+                                  if (data.status.toString().contains("1,2")) {
+                                    inTime = times.isNotEmpty ? times[0].trim() : "-";
+                                    outTime = times.length > 1 ? times[1].trim() : "-";
 
-      if (data.status.toString().contains("1,2")) {
-      inTime = times.isNotEmpty ? times[0].trim() : "-";
-      outTime = times.length > 1 ? times[1].trim() : "-";
+                                    if (inTime != "-" && outTime != "-") {
+                                      timeD = attProvider.timeDifferences(inTime, outTime);
+                                    }
+                                  } else if (data.status.toString().contains("2,1")) {
+                                    inTime = times.length > 1 ? times[1].trim() : "-";
+                                    outTime = times.isNotEmpty ? times[0].trim() : "-";
 
-      if (inTime != "-" && outTime != "-") {
-      timeD = attProvider.timeDifferences(inTime, outTime);
-      }
-      } else if (data.status.toString().contains("2,1")) {
-      inTime = times.length > 1 ? times[1].trim() : "-";
-      outTime = times.isNotEmpty ? times[0].trim() : "-";
+                                    if (inTime != "-" && outTime != "-") {
+                                      timeD = attProvider.timeDifferences(inTime, outTime);
+                                    }
+                                  } else {
+                                    inTime = times.isNotEmpty ? times[0].trim() : "-";
+                                    outTime = "-";
+                                    timeD = "-";
+                                  }
 
-      if (inTime != "-" && outTime != "-") {
-      timeD = attProvider.timeDifferences(inTime, outTime);
-      }
-      } else {
-      inTime = times.isNotEmpty ? times[0].trim() : "-";
-      outTime = "-";
-      timeD = "-";
-      }
+                                  List<String> lat =
+                                      data.lats?.toString().split(",") ?? [];
+                                  List<String> lng =
+                                      data.lngs?.toString().split(",") ?? [];
 
-      /// ---------------- LOCATION SAFE ----------------
+                                  String lat1 = lat.isNotEmpty ? lat[0] : "";
+                                  String lng1 = lng.isNotEmpty ? lng[0] : "";
 
-      List<String> lat =
-      data.lats?.toString().split(",") ?? [];
-      List<String> lng =
-      data.lngs?.toString().split(",") ?? [];
+                                  String lat2 =
+                                  (lat.length > 1 && data.status.toString().contains("2"))
+                                      ? lat[1]
+                                      : "";
 
-      String lat1 = lat.isNotEmpty ? lat[0] : "";
-      String lng1 = lng.isNotEmpty ? lng[0] : "";
+                                  String lng2 =
+                                  (lng.length > 1 && data.status.toString().contains("2"))
+                                      ? lng[1]
+                                      : "";
 
-      String lat2 =
-      (lat.length > 1 && data.status.toString().contains("2"))
-      ? lat[1]
-          : "";
+                                  String timestamp = data.createdTs.toString();
+                                  List<String> createdTimes = timestamp.split(',');
 
-      String lng2 =
-      (lng.length > 1 && data.status.toString().contains("2"))
-      ? lng[1]
-          : "";
+                                  DateTime startTime =
+                                  DateTime.parse(createdTimes[0]).toLocal();
 
-      /// ---------------- DATE HEADER ----------------
+                                  String createdBy = formatCreatedDate(startTime);
 
-      String timestamp = data.createdTs.toString();
-      List<String> createdTimes = timestamp.split(',');
+                                  if (createdBy.trim().isEmpty) {
+                                    createdBy = "Today";
+                                  }
 
-      DateTime startTime =
-      DateTime.parse(createdTimes[0]).toLocal();
+                                  String? prevCreatedBy;
 
-      String createdBy = formatCreatedDate(startTime);
+                                  if (index != 0) {
+                                    String prevTimestamp =
+                                    filteredList[index - 1].createdTs.toString();
 
-// Empty வந்தாலும் Today காட்டும்
-        if (createdBy.trim().isEmpty) {
-          createdBy = "Today";
-        }
+                                    List<String> prevTimes = prevTimestamp.split(',');
 
-        String? prevCreatedBy;
+                                    DateTime prevStart =
+                                    DateTime.parse(prevTimes[0]).toLocal();
 
-        if (index != 0) {
-          String prevTimestamp =
-          filteredList[index - 1].createdTs.toString();
+                                    prevCreatedBy = formatCreatedDate(prevStart);
 
-          List<String> prevTimes = prevTimestamp.split(',');
+                                    if (prevCreatedBy.trim().isEmpty) {
+                                      prevCreatedBy = "Today";
+                                    }
+                                  }
 
-          DateTime prevStart =
-          DateTime.parse(prevTimes[0]).toLocal();
+                                  final bool showDateHeader =
+                                      index == 0 || createdBy != prevCreatedBy;
 
-          prevCreatedBy = formatCreatedDate(prevStart);
+                                  return data.perStatus.toString() != "null"
+                                      ? Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      if (showDateHeader)
+                                        Padding(
+                                          padding: const EdgeInsets.fromLTRB(0, 10, 0, 10),
+                                          child: CustomText(
+                                            text: createdBy,
+                                            colors: colorsConst.greyClr,
+                                            size: 12,
+                                          ),
+                                        ),
 
-          if (prevCreatedBy.trim().isEmpty) {
-            prevCreatedBy = "Today";
-          }
-        }
+                                      /// ✅ containerized attendance row (avatar/name + In/Out/Total hrs + role + area)
+                                      AttendanceDetails(
+                                        showDate: index == 0,
+                                        date: data.date.toString(),
+                                        img: data.image.toString(),
+                                        inTime: inTime,
+                                        outTime: outTime,
+                                        timeD: timeD,
+                                        name: data.firstname.toString(),
+                                        role: data.role.toString(),
 
-        final bool showDateHeader =
-            index == 0 || createdBy != prevCreatedBy;
+                                        /// ✅ passed so AttendanceDetails can show the
+                                        /// check-in / check-out area name under In/Out time
+                                        inLat: lat1,
+                                        inLng: lng1,
+                                        outLat: lat2,
+                                        outLng: lng2,
 
-      /// ---------------- UI ----------------
+                                        callback: () {
+                                          utils.navigatePage(context, () => CheckLocation(
+                                            lat1: lat1,
+                                            long1: lng1,
+                                            lat2: lat2,
+                                            long2: lng2,
+                                          ));
+                                        },
 
-      return data.perStatus.toString() != "null"
-      ? Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        if (showDateHeader)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(0, 10, 0, 10),
-            child: CustomText(
-              text: createdBy,
-              colors: colorsConst.greyClr,
-              size: 12,
-            ),
-          ),
-      InkWell(
-      onTap: () {
-      utils.navigatePage(
-      context,
-      () => DashBoard(
-      child: CustomAttendanceReport(
-      userId: data.salesmanId.toString(),
-      userName: data.firstname.toString(),
-      ),
-      ),
-      );
-      },
-      child: AttendanceDetails(
-      isName: attProvider.userName != "",
-      showDate: index == 0,
-      date: data.date.toString(),
-      img: data.image.toString(),
-      inTime: inTime,
-      outTime: outTime,
-      timeD: timeD,
-      name: data.firstname.toString(),
-      role: data.role.toString(),
-      callback: () {
-      utils.navigatePage(
-      context,
-      () => CheckLocation(
-      lat1: lat1,
-      long1: lng1,
-      lat2: lat2,
-      long2: lng2,
-      ),
-      );
-      },
-      perStatus: data.perStatus.toString(),
-      perReason: data.perReason.toString(),
-      perTime: data.perTime.toString(),
-      perCreatedTs: data.perCreatedTs.toString(),
-      ),
-      ),
+                                        perStatus: data.perStatus.toString(),
+                                        perReason: data.perReason.toString(),
+                                        perTime: data.perTime.toString(),
+                                        perCreatedTs: data.perCreatedTs.toString(),
+                                      ),
 
-      5.height
-      ],
-      )
-          : 0.height;
-      },
-      );
-      },
-      ),
-      )
-          : Padding(
-      padding: const EdgeInsets.fromLTRB(0, 150, 0, 0),
-      child: CustomText(text: constValue.noData, size: 15),
-      ),
+                                      5.height
+                                    ],
+                                  )
+                                      : 0.height;
+                                },
+                              );
+                            },
+                          ),
+                        )
+                            : Padding(
+                          padding: const EdgeInsets.fromLTRB(0, 150, 0, 0),
+                          child: CustomText(text: constValue.noData, size: 15),
+                        ),
                       ]
                   ),
                 ),
@@ -1293,13 +1391,11 @@ class _AttendanceReportState extends State<AttendanceReport> {
     var webWidth = MediaQuery.of(context).size.width * 0.7;
     var phoneWidth = MediaQuery.of(context).size.width * 0.95;
 
-    /// SORT ONCE (NOT INSIDE BUILDER)
     final sortedData = List<LeaveModel>.from(dataList);
     sortedData.sort((a, b) =>
         DateTime.parse(b.startDate.toString())
             .compareTo(DateTime.parse(a.startDate.toString())));
 
-    /// CALCULATE FULL & HALF DAY COUNTS
     final fullDayCount =
         sortedData.where((e) => e.dayType.toString() == "1").length;
 
@@ -1311,9 +1407,6 @@ class _AttendanceReportState extends State<AttendanceReport> {
       itemBuilder: (context, index) {
         final data = sortedData[index];
 
-        /// ----------------------------
-        /// CREATED DATE + TIME
-        /// ----------------------------
         final DateTime createdDateTime =
         DateTime.parse(data.createdTs.toString()).toLocal();
 
@@ -1334,14 +1427,10 @@ class _AttendanceReportState extends State<AttendanceReport> {
           dayOfWeek = DateFormat('dd MMM yyyy').format(createdDateTime);
         }
 
-        /// SHOW DATE + TIME
         final String createdBy =
         DateFormat('dd-MM-yyyy • hh:mm a')
             .format(createdDateTime);
 
-        /// ----------------------------
-        /// START & END DATE FORMAT
-        /// ----------------------------
         final start =
         DateTime.parse(data.startDate.toString());
 
@@ -1366,7 +1455,6 @@ class _AttendanceReportState extends State<AttendanceReport> {
           width: kIsWeb ? webWidth : phoneWidth,
           child: Column(
             children: [
-              /// SUMMARY ONLY ON FIRST ITEM
               if (index == 0) ...[
                 10.height,
                 SizedBox(
@@ -1396,7 +1484,6 @@ class _AttendanceReportState extends State<AttendanceReport> {
                 10.height,
               ],
 
-              /// DATE LABEL (Today / Yesterday / Date)
               SizedBox(
                 width: kIsWeb ? webWidth : phoneWidth,
                 child: Row(
@@ -1413,7 +1500,6 @@ class _AttendanceReportState extends State<AttendanceReport> {
 
               6.height,
 
-              /// MAIN CARD
               Container(
                 width: kIsWeb ? webWidth : phoneWidth,
                 margin:
@@ -1436,7 +1522,6 @@ class _AttendanceReportState extends State<AttendanceReport> {
                     crossAxisAlignment:
                     CrossAxisAlignment.start,
                     children: [
-                      /// TOP ROW
                       Row(
                         mainAxisAlignment:
                         MainAxisAlignment
@@ -1508,7 +1593,6 @@ class _AttendanceReportState extends State<AttendanceReport> {
 
                       8.height,
 
-                      /// REASON
                       Row(
                         children: [
                           const CustomText(
@@ -1531,7 +1615,6 @@ class _AttendanceReportState extends State<AttendanceReport> {
 
                       10.height,
 
-                      /// REQUESTED BY (NOW WITH TIME)
                       Align(
                         alignment:
                         Alignment.centerRight,
@@ -1560,25 +1643,20 @@ class _AttendanceReportState extends State<AttendanceReport> {
     try {
       print("inTime => $inTime");
 
-      /// ❌ null / empty check
       if (inTime == null || inTime.trim().isEmpty || inTime == "null") {
         return false;
       }
 
-      /// 🔹 if multiple time → take first (IN TIME)
       if (inTime.contains(",")) {
         inTime = inTime.split(",")[0].trim();
       }
 
-      /// ❌ still empty
       if (inTime.isEmpty || inTime == "-") return false;
 
       final format = DateFormat("hh:mm a");
 
-      /// ✅ office time (change if needed)
       DateTime officeTime = format.parse("09:00 AM");
 
-      /// ✅ safe parse
       DateTime userTime = format.parse(inTime);
 
       return userTime.isAfter(officeTime);
@@ -1606,7 +1684,6 @@ class _AttendanceReportState extends State<AttendanceReport> {
     return Padding(
       padding: const EdgeInsets.fromLTRB(0, 0, 5, 0),
       child: Container(
-        // padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
           color: Color(0xff353535),
           borderRadius: BorderRadius.circular(5),

@@ -88,7 +88,7 @@ class _UpdateCustomerState extends State<UpdateCustomer> with TickerProviderStat
               child: custProvider.refresh==false?
               const Loading()
                   :custProvider.customerDetailData.isEmpty?
-              const CustomText(text: "No Data Found")
+              CustomText(text: constValue.noDataFound)
                   :Center(
                 child: SizedBox(
                   width: kIsWeb?webWidth:phoneWidth,
@@ -106,7 +106,6 @@ class _UpdateCustomerState extends State<UpdateCustomer> with TickerProviderStat
                                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                     children: [
                                       SizedBox(
-                                        // color: Colors.yellow,
                                         width: kIsWeb?webWidth/1.5:phoneWidth/1.5,
                                         child: Center(
                                           child: CustomText(text: "       ${constValue.customerDetails}",
@@ -143,7 +142,6 @@ class _UpdateCustomerState extends State<UpdateCustomer> with TickerProviderStat
                                   ),
                                   CustomTextField(
                                     text: constValue.companyName,isRequired: true,
-                                    // inputFormatters: constInputFormatters.numTextInput,
                                     controller: custProvider.companyName,
                                     width: kIsWeb?webWidth:phoneWidth,
                                     onChanged: (value){
@@ -151,9 +149,8 @@ class _UpdateCustomerState extends State<UpdateCustomer> with TickerProviderStat
                                     },
                                   ),
                                   CustomTextField(
-                                    text: "Emergency Name",
+                                    text: "${constValue.emergencyNumber}",
                                     width: kIsWeb?webWidth:phoneWidth,
-                                    // inputFormatters: constInputFormatters.numTextInput,
                                     controller: custProvider.emgName,
                                     onChanged: (value){
                                       custProvider.makeChanges();
@@ -208,7 +205,7 @@ class _UpdateCustomerState extends State<UpdateCustomer> with TickerProviderStat
                                       8.width,
                                       Expanded(
                                         child: CustomTextField(
-                                          text: "Emergency Number",
+                                          text: constValue.emergencyNumber,
                                           width: double.infinity,
                                           inputFormatters: constInputFormatters.mobileNumberInput,
                                           controller: custProvider.emgNo,
@@ -222,7 +219,6 @@ class _UpdateCustomerState extends State<UpdateCustomer> with TickerProviderStat
                                   ),
                                   CustomTextField(
                                     text: constValue.addressNo,
-                                    // inputFormatters: constInputFormatters.addressInput,
                                     controller: custProvider.address,
                                     width: kIsWeb?webWidth:phoneWidth,
                                     onChanged: (value){
@@ -231,7 +227,6 @@ class _UpdateCustomerState extends State<UpdateCustomer> with TickerProviderStat
                                   ),
                                   CustomTextField(
                                     text: constValue.comArea,
-                                    // inputFormatters: constInputFormatters.addressInput,
                                     controller: custProvider.comArea,
                                     width: kIsWeb?webWidth:phoneWidth,
                                     onChanged: (value){
@@ -313,13 +308,13 @@ class _UpdateCustomerState extends State<UpdateCustomer> with TickerProviderStat
                                         CustomLoadingButton(
                                             callback: (){
                                               Future.microtask(() => Navigator.pop(context));
-                                            }, isLoading: false,text: "Cancel",
+                                            }, isLoading: false,text: "${constValue.cancel}",
                                             backgroundColor: Colors.white, textColor: colorsConst.primary,radius: 10,
                                             width: kIsWeb?webWidth/2.1:phoneWidth/2.1),
                                         CustomLoadingButton(
                                           callback: (){
                                             if (custProvider.companyName.text.trim().isEmpty) {
-                                              utils.showWarningToast(context, text: "Please Fill ${constValue.customerName}");
+                                              utils.showWarningToast(context, text: "${constValue.fillName} ${constValue.customerName}");
                                             } else {
                                               final emgNo = custProvider.emgNo.text.trim();
                                               final pinCode = custProvider.pinCode.text.trim();
@@ -329,9 +324,9 @@ class _UpdateCustomerState extends State<UpdateCustomer> with TickerProviderStat
                                                 custProvider.changeIndex(1);
                                               } else {
                                                 if (emgNo.isNotEmpty && (emgNo.length < 8 || emgNo.length > 12)) {
-                                                  utils.showWarningToast(context, text: "Please check emergency number");
+                                                  utils.showWarningToast(context, text: "${constValue.checkEmergencyNumber}");
                                                 } else if (pinCode.isNotEmpty && pinCode.length != 6) {
-                                                  utils.showWarningToast(context, text: "Please check pincode");
+                                                  utils.showWarningToast(context, text: "${constValue.checkPincode}");
                                                 } else {
                                                   _myFocusScopeNode.unfocus();
                                                   custProvider.changeIndex(1);
@@ -339,7 +334,7 @@ class _UpdateCustomerState extends State<UpdateCustomer> with TickerProviderStat
                                               }
                                             }
                                           }, isLoading: false, backgroundColor: colorsConst.primary,
-                                          radius: 10, width: kIsWeb?webWidth/2.1:phoneWidth/2.1,text: "Next",),
+                                          radius: 10, width: kIsWeb?webWidth/2.1:phoneWidth/2.1,text: "${constValue.next}",),
                                       ],
                                     ),
                                   ),30.height
@@ -379,7 +374,6 @@ class _UpdateCustomerState extends State<UpdateCustomer> with TickerProviderStat
                                           decoration: customDecoration
                                               .baseBackgroundDecoration(
                                               color: Colors.white,
-                                              // borderColor: colorsConst.litGrey,
                                               radius: 2
                                           ),
                                           child: Column(
@@ -412,8 +406,6 @@ class _UpdateCustomerState extends State<UpdateCustomer> with TickerProviderStat
                                                 onChanged: (value){
                                                   custProvider.makeChanges();
                                                 },
-                                                // inputFormatters: constInputFormatters
-                                                //     .numTextInput,
                                                 controller: custProvider
                                                     .addCustomer[index].name,
                                                 width: kIsWeb?webWidth/1.02:phoneWidth/1.02,
@@ -449,32 +441,32 @@ class _UpdateCustomerState extends State<UpdateCustomer> with TickerProviderStat
                                                     Row(
                                                       crossAxisAlignment: CrossAxisAlignment.start,
                                                       children: [
-                                                        CustomText(text: "Role\n",colors: Colors.grey.shade400,),
+                                                        CustomText(text: "${constValue.role}\n",colors: Colors.grey.shade400,),
                                                       ],
                                                     ),
                                                     kIsWeb?
                                                     Row(
                                                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                                       children: [
-                                                        CustomRadioButton(text: "Decision Maker",
+                                                        CustomRadioButton(text: constValue.roleDecisionMaker,
                                                             width: MediaQuery.of(context).size.width*0.2,
                                                             onChanged: (value){
                                                               custProvider.changeRole("Decision Maker",index);
                                                             },
                                                             saveValue: "Decision Maker", confirmValue: custProvider.addCustomer[index].roleC),
-                                                        CustomRadioButton(text: "Supporter",
+                                                        CustomRadioButton(text: constValue.roleSupporter,
                                                             width: MediaQuery.of(context).size.width*0.2,
                                                             onChanged: (value){
                                                               custProvider.changeRole("Supporter",index);
                                                             },
                                                             saveValue: "Supporter", confirmValue: custProvider.addCustomer[index].roleC),
-                                                        CustomRadioButton(text: "Influencer",
+                                                        CustomRadioButton(text: constValue.roleInfluencer,
                                                             width: MediaQuery.of(context).size.width*0.2,
                                                             onChanged: (value){
                                                               custProvider.changeRole("Influencer",index);
                                                             },
                                                             saveValue: "Influencer", confirmValue: custProvider.addCustomer[index].roleC),
-                                                        CustomRadioButton(text: "Other",
+                                                        CustomRadioButton(text: constValue.roleOther,
                                                             width: MediaQuery.of(context).size.width*0.2,
                                                             onChanged: (value){
                                                               custProvider.changeRole("Other",index);
@@ -483,21 +475,20 @@ class _UpdateCustomerState extends State<UpdateCustomer> with TickerProviderStat
                                                       ],
                                                     ):
                                                     Row(
-                                                      // mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                                       children: [
                                                         SizedBox(
                                                           width: kIsWeb?webWidth/2.1:phoneWidth/2.1,
                                                           child: Column(
                                                             crossAxisAlignment: CrossAxisAlignment.start,
                                                             children: [
-                                                              CustomRadioButton(text: "Decision Maker",
+                                                              CustomRadioButton(text: constValue.roleDecisionMaker,
                                                                   width: MediaQuery.of(context).size.width*0.2,
                                                                   onChanged: (value){
                                                                     custProvider.changeRole("Decision Maker",index);
                                                                   },
                                                                   saveValue: "Decision Maker", confirmValue: custProvider.addCustomer[index].roleC),
                                                               15.height,
-                                                              CustomRadioButton(text: "Supporter",                                                            width: MediaQuery.of(context).size.width*0.2,
+                                                              CustomRadioButton(text: constValue.roleSupporter,                                                            width: MediaQuery.of(context).size.width*0.2,
                                                                   onChanged: (value){
                                                                     custProvider.changeRole("Supporter",index);
                                                                   },
@@ -510,14 +501,14 @@ class _UpdateCustomerState extends State<UpdateCustomer> with TickerProviderStat
                                                           child: Column(
                                                             crossAxisAlignment: CrossAxisAlignment.start,
                                                             children: [
-                                                              CustomRadioButton(text: "Influencer",
+                                                              CustomRadioButton(text: constValue.roleInfluencer,
                                                                   width: MediaQuery.of(context).size.width*0.2,
                                                                   onChanged: (value){
                                                                     custProvider.changeRole("Influencer",index);
                                                                   },
                                                                   saveValue: "Influencer", confirmValue: custProvider.addCustomer[index].roleC),
                                                               15.height,
-                                                              CustomRadioButton(text: "Other",
+                                                              CustomRadioButton(text: constValue.roleOther,
                                                                   width: MediaQuery.of(context).size.width*0.2,
                                                                   onChanged: (value){
                                                                     custProvider.changeRole("Other",index);
@@ -633,22 +624,22 @@ class _UpdateCustomerState extends State<UpdateCustomer> with TickerProviderStat
                                             callback: (){
                                               custProvider.changeIndex(0);
                                               _myFocusScopeNode.unfocus();
-                                            }, isLoading: false,text: "Back",
+                                            }, isLoading: false,text: "${constValue.back}",
                                             backgroundColor: Colors.white, textColor: colorsConst.primary,radius: 10, width: kIsWeb?webWidth/2.1:phoneWidth/2.1),
                                         CustomLoadingButton(
                                           isLoading: false,radius: 10,width: kIsWeb?webWidth/2.1:phoneWidth/2.1,
                                           backgroundColor: colorsConst.primary,
-                                          text: "Next",
+                                          text: "${constValue.next}",
                                           callback: ()  {
                                             final customer = custProvider.addCustomer.last;
                                             if (customer.name.text.trim().isEmpty) {
-                                              utils.showWarningToast(context, text: "Please Fill ${constValue.contact} Name");
+                                              utils.showWarningToast(context, text: "${constValue.fillName} ${constValue.contact}");
                                             } else if (customer.phone.text.trim().isEmpty) {
-                                              utils.showWarningToast(context, text: "Please Fill ${constValue.contact} ${constValue.phoneNumber}");
+                                              utils.showWarningToast(context, text: "${constValue.fillName} ${constValue.contact} ${constValue.phoneNumber}");
                                             } else if (customer.phone.text.trim().length < 8 || customer.phone.text.trim().length > 12) {
-                                              utils.showWarningToast(context, text: "Please Check ${constValue.contact} ${constValue.phoneNumber}");
+                                              utils.showWarningToast(context, text: "${constValue.checkPhoneNumber} ${constValue.contact} ${constValue.phoneNumber}");
                                             } else if (customer.whatsApp.text.trim().isNotEmpty && (customer.whatsApp.text.trim().length < 8 || customer.whatsApp.text.trim().length > 12)) {
-                                              utils.showWarningToast(context, text: "Please Check ${constValue.contact} ${constValue.mobileNumber}");
+                                              utils.showWarningToast(context, text: "${constValue.checkPhoneNumber} ${constValue.contact} ${constValue.mobileNumber}");
                                             } else {
                                               if(customer.email.text.trim().isEmpty) {
                                                 _myFocusScopeNode.unfocus();
@@ -661,7 +652,7 @@ class _UpdateCustomerState extends State<UpdateCustomer> with TickerProviderStat
                                                   _myFocusScopeNode.unfocus();
                                                   custProvider.changeIndex(2);
                                                 }else{
-                                                  utils.showWarningToast(context,text: "Please Check Email Id");
+                                                  utils.showWarningToast(context,text: "${constValue.checkEmail}");
                                                 }
                                               }
                                             }
@@ -753,28 +744,28 @@ class _UpdateCustomerState extends State<UpdateCustomer> with TickerProviderStat
                                             callback: (){
                                               custProvider.changeIndex(1);
                                               _myFocusScopeNode.unfocus();
-                                            }, isLoading: false,text: "Back",
+                                            }, isLoading: false,text: "${constValue.back}",
                                             backgroundColor: Colors.white, textColor: colorsConst.primary,radius: 10, width: kIsWeb?webWidth/2.1:phoneWidth/2.1),
                                         CustomLoadingButton(
                                           isLoading: custProvider.addCustomer.length==1?true:false,radius: 10,width: kIsWeb?webWidth/2.1:phoneWidth/2.1,
                                           backgroundColor: colorsConst.primary,
-                                          text: "Save",
+                                          text: "${constValue.save}",
                                           callback: ()  {
                                             if(custProvider.update==true) {
 
                                               final customer = custProvider.addCustomer.last;
 
                                               if (customer.name.text.trim().isEmpty) {
-                                                utils.showWarningToast(context, text: "Please Fill ${constValue.contact} Name");
+                                                utils.showWarningToast(context, text: "${constValue.fillName} ${constValue.contact}");
                                                 custProvider.addCtr.reset();
                                               } else if (customer.phone.text.trim().isEmpty) {
-                                                utils.showWarningToast(context, text: "Please Fill ${constValue.contact} ${constValue.phoneNumber}");
+                                                utils.showWarningToast(context, text: "${constValue.fillName} ${constValue.contact} ${constValue.phoneNumber}");
                                                 custProvider.addCtr.reset();
                                               } else if (customer.phone.text.trim().length < 8 || customer.phone.text.trim().length > 12) {
-                                                utils.showWarningToast(context, text: "Please Check ${constValue.contact} ${constValue.phoneNumber}");
+                                                utils.showWarningToast(context, text: "${constValue.checkPhoneNumber} ${constValue.contact} ${constValue.phoneNumber}");
                                                 custProvider.addCtr.reset();
                                               } else if (customer.whatsApp.text.trim().isNotEmpty && (customer.whatsApp.text.trim().length < 8 || customer.whatsApp.text.trim().length > 12)) {
-                                                utils.showWarningToast(context, text: "Please Check ${constValue.contact} ${constValue.mobileNumber}");
+                                                utils.showWarningToast(context, text: "${constValue.checkPhoneNumber} ${constValue.contact} ${constValue.mobileNumber}");
                                                 custProvider.addCtr.reset();
                                               } else {
                                                 if(customer.email.text.trim().isEmpty) {
@@ -807,7 +798,7 @@ class _UpdateCustomerState extends State<UpdateCustomer> with TickerProviderStat
                                                                     ),
                                                                     Center(
                                                                       child: CustomText(
-                                                                        text: "Make this ${constValue.contact.toLowerCase()} the main ${constValue.contact.toLowerCase()}?",
+                                                                        text: "${constValue.makeMainQuestion} ${constValue.contact.toLowerCase()} ${constValue.contact.toLowerCase()}?",
                                                                         colors: Colors.black,
                                                                         size: 15,
                                                                         isBold: true,
@@ -856,7 +847,7 @@ class _UpdateCustomerState extends State<UpdateCustomer> with TickerProviderStat
                                                                               borderRadius: BorderRadius.circular(10),
                                                                             ),
                                                                           ),
-                                                                          child: const CustomText(text: "Cancel", size: 15),
+                                                                          child: CustomText(text: "${constValue.cancel}", size: 15),
                                                                         ),
                                                                         CustomLoadingButton(
                                                                           height: 35,
@@ -864,7 +855,7 @@ class _UpdateCustomerState extends State<UpdateCustomer> with TickerProviderStat
                                                                           radius: 10,
                                                                           width: 70,
                                                                           backgroundColor: colorsConst.primary,
-                                                                          text: "Save",
+                                                                          text: "${constValue.save}",
                                                                           callback: () {
                                                                             custProvider.customerList(
                                                                               context,
@@ -924,7 +915,7 @@ class _UpdateCustomerState extends State<UpdateCustomer> with TickerProviderStat
                                                                       ),
                                                                       Center(
                                                                         child: CustomText(
-                                                                          text: "Make this ${constValue.contact.toLowerCase()} the main ${constValue.contact.toLowerCase()}?",
+                                                                          text: "${constValue.makeMainQuestion} ${constValue.contact.toLowerCase()} ${constValue.contact.toLowerCase()}?",
                                                                           colors: Colors.black,
                                                                           size: 15,
                                                                           isBold: true,
@@ -973,7 +964,7 @@ class _UpdateCustomerState extends State<UpdateCustomer> with TickerProviderStat
                                                                                 borderRadius: BorderRadius.circular(10),
                                                                               ),
                                                                             ),
-                                                                            child: const CustomText(text: "Cancel", size: 15),
+                                                                            child: CustomText(text: "${constValue.cancel}", size: 15),
                                                                           ),
                                                                           CustomLoadingButton(
                                                                             height: 35,
@@ -981,7 +972,7 @@ class _UpdateCustomerState extends State<UpdateCustomer> with TickerProviderStat
                                                                             radius: 10,
                                                                             width: 70,
                                                                             backgroundColor: colorsConst.primary,
-                                                                            text: "Save",
+                                                                            text: "${constValue.save}",
                                                                             callback: () {
                                                                               custProvider.customerList(
                                                                                 context,
@@ -1008,13 +999,13 @@ class _UpdateCustomerState extends State<UpdateCustomer> with TickerProviderStat
                                                       custProvider.customerList(context,"2",id:data.userId.toString(),addressId: data.addressId.toString(),locPvr.latitude,locPvr.longitude);
                                                     }
                                                   }else{
-                                                    utils.showWarningToast(context,text: "Please Check Email Id");
+                                                    utils.showWarningToast(context,text: "${constValue.checkEmail}");
                                                     custProvider.addCtr.reset();
                                                   }
                                                 }
                                               }
                                             }else{
-                                              utils.showWarningToast(context,text: "No changes have been made yet.");
+                                              utils.showWarningToast(context,text: "${constValue.noChangesMade}");
                                               custProvider.addCtr.reset();
                                             }
                                           },

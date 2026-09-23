@@ -317,7 +317,7 @@ class _CheckAttendanceState extends State<CheckAttendance> {
                                               : null,
                                         ),
                                       ),
-                                      const SizedBox(width: 6),
+                                      const SizedBox(width: 3),
                                       CustomText(
                                         //text:  "verify",
                                         text:  "${constValue.verify}",
@@ -326,7 +326,7 @@ class _CheckAttendanceState extends State<CheckAttendance> {
                                         size: 11,
                                         colors: Colors.blue,isBold: true,
                                       ),
-                                      5.width,
+                                      3.width,
                                       GestureDetector(
                                         onTap: attProvider.permissionStatus != "1"
                                             ? () {

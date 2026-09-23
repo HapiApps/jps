@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:geocoding/geocoding.dart';
 import 'package:intl/intl.dart';
 import 'package:master_code/source/constant/assets_constant.dart';
 import 'package:master_code/source/constant/colors_constant.dart';
@@ -8,6 +9,9 @@ import 'package:flutter/material.dart';
 import 'package:master_code/source/styles/decoration.dart';
 import '../source/constant/local_data.dart';
 import 'custom_text.dart';
+
+/// simple cache to avoid repeated reverse-geocoding calls for the same lat/lng
+final Map<String, String> _areaCache = {};
 
 class AttendanceDetails extends StatelessWidget {
   final String date;
@@ -24,17 +28,42 @@ class AttendanceDetails extends StatelessWidget {
   final String perReason;
   final String perTime;
   final bool? isName;
-  const AttendanceDetails({super.key, required this.date, required this.inTime, required this.outTime, required this.callback, required this.img,required this.timeD, required this.name, required this.role, this.showDate=false, required this.perStatus,
-    required this.perReason, required this.perTime, required this.perCreatedTs,  this.isName=true});
+  final String? inLat;
+  final String? inLng;
+  final String? outLat;
+  final String? outLng;
+
+  const AttendanceDetails({
+    super.key,
+    required this.date,
+    required this.inTime,
+    required this.outTime,
+    required this.callback,
+    required this.img,
+    required this.timeD,
+    required this.name,
+    required this.role,
+    this.showDate = false,
+    required this.perStatus,
+    required this.perReason,
+    required this.perTime,
+    required this.perCreatedTs,
+    this.isName = true,
+    this.inLat,
+    this.inLng,
+    this.outLat,
+    this.outLng,
+  });
 
   @override
   Widget build(BuildContext context) {
-    var perCreatedTsList=perCreatedTs.toString().split(',');
-    var perStatusList=perStatus.toString().split(',');
-    var perReasonList=perReason.toString().split(',');
-    var perTimeList=perTime.toString().split(',');
+    var perCreatedTsList = perCreatedTs.toString().split(',');
+    var perStatusList = perStatus.toString().split(',');
+    var perReasonList = perReason.toString().split(',');
+    var perTimeList = perTime.toString().split(',');
     List chunked = [];
-    if(perTime.toString()!="null"&&perTime.toString()!=""){
+
+    if (perTime.toString() != "null" && perTime.toString() != "") {
       for (var i = 0; i < perTimeList.length; i += 2) {
         String inTime = perTimeList[i];
         String outTime = (i + 1 < perTimeList.length) ? perTimeList[i + 1] : ""; // fallback
@@ -52,53 +81,58 @@ class AttendanceDetails extends StatelessWidget {
         });
       }
     }
-    var webWidth=MediaQuery.of(context).size.width * 0.5;
-    var phoneWidth=MediaQuery.of(context).size.width * 0.95;
+    var webWidth = MediaQuery.of(context).size.width * 0.5;
+    var phoneWidth = MediaQuery.of(context).size.width * 0.95;
+
     return Column(
       children: [
-        if(localData.storage.read("role")!="1"&&showDate==true)
+        if (localData.storage.read("role") != "1" && showDate == true)
           Padding(
             padding: const EdgeInsets.all(5.0),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 SizedBox(
-                    width: kIsWeb?webWidth/4:phoneWidth/4,
-                    child: CustomText(text: "Date",colors:colorsConst.greyClr,size: 12,)),
+                    width: kIsWeb ? webWidth / 4 : phoneWidth / 4,
+                    child: CustomText(text: "Date", colors: colorsConst.greyClr, size: 12,)),
                 5.width,
                 SizedBox(
-                  width: kIsWeb?webWidth/5:phoneWidth/5,
-                  child: const CustomText(text: "In Time",size: 12,),
-                ),5.width,
+                  width: kIsWeb ? webWidth / 5 : phoneWidth / 5,
+                  child: const CustomText(text: "In Time", size: 12,),
+                ), 5.width,
                 SizedBox(
-                  width: kIsWeb?webWidth/5:phoneWidth/5,
-                  child: const CustomText(text: "Out Time",size: 12),
-                ),5.width,
+                  width: kIsWeb ? webWidth / 5 : phoneWidth / 5,
+                  child: const CustomText(text: "Out Time", size: 12),
+                ), 5.width,
                 SizedBox(
-                  width: kIsWeb?webWidth/5.2:phoneWidth/5.2,
-                  child: CustomText(text:"Total Hrs",size: 12,),
+                  width: kIsWeb ? webWidth / 5.2 : phoneWidth / 5.2,
+                  child: CustomText(text: "Total Hrs", size: 12,),
                 ),
               ],
             ),
           ),
         Container(
-          width: kIsWeb?webWidth:phoneWidth,
+          width: kIsWeb ? webWidth : phoneWidth,
           decoration: customDecoration.baseBackgroundDecoration(
-              color: isLate(inTime)?const Color(0xFFFFF3E0):Colors.white,
+              color: isLate(inTime) ? const Color(0xFFFFF3E0) : Colors.white,
               radius: 5,
-              borderColor: Colors.grey.shade200,isShadow: true,shadowColor: Colors.grey.shade200
+              borderColor: Colors.grey.shade200, isShadow: true, shadowColor: Colors.grey.shade200
           ),
           child: Padding(
-            padding: isName==false?const EdgeInsets.fromLTRB(5, 4, 5, 4):localData.storage.read("role") !="1"?const EdgeInsets.fromLTRB(5, 10, 5, 10):const EdgeInsets.all(0.0),
+            padding: isName == false
+                ? const EdgeInsets.fromLTRB(5, 4, 5, 4)
+                : localData.storage.read("role") != "1"
+                ? const EdgeInsets.fromLTRB(5, 10, 5, 10)
+                : const EdgeInsets.all(0.0),
             child: Column(
               children: [
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    if(isName==true)
-                      if(!kIsWeb&&localData.storage.read("role") =="1")
+                    if (isName == true)
+                      if (!kIsWeb && localData.storage.read("role") == "1")
                         SizedBox(
-                          width: phoneWidth/3.8,
+                          width: phoneWidth / 3.8,
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
@@ -106,56 +140,82 @@ class AttendanceDetails extends StatelessWidget {
                                   radius: 15,
                                   backgroundColor: Colors.grey.shade400,
                                   child: SvgPicture.asset(assets.profile)
-                              ),5.height,
-                              CustomText(text: name,isBold: true,size: 13,),5.height,
-                              CustomText(text: role,colors:colorsConst.blueClr,size: 11,),
+                              ), 5.height,
+                              CustomText(text: name, isBold: true, size: 13,), 5.height,
+                              CustomText(text: role, colors: colorsConst.blueClr, size: 11,),
                             ],
                           ),
                         ),
-                    if(isName==true)
-                      if(localData.storage.read("role") =="1")
-                        Container(color: colorsConst.litGrey,width: 1,height: 75,),
-                    if(localData.storage.read("role") !="1")
+                    if (isName == true)
+                      if (localData.storage.read("role") == "1")
+                        Container(color: colorsConst.litGrey, width: 1, height: 75,),
+                    if (localData.storage.read("role") != "1")
                       SizedBox(
-                          width: kIsWeb?webWidth/4:phoneWidth/4,
-                          child: CustomText(text: date,size: 12,)),
-                    if(isName==true)
+                          width: kIsWeb ? webWidth / 4 : phoneWidth / 4,
+                          child: CustomText(text: date, size: 12,)),
+                    if (isName == true)
                       2.width,
+                    // ---------------- IN TIME ----------------
                     SizedBox(
-                      width: kIsWeb?webWidth/5:phoneWidth/5,
+                      width: kIsWeb ? webWidth / 6 : phoneWidth / 4,
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          if(localData.storage.read("role") =="1")
-                            const CustomText(text: "In Time",colors: Colors.grey,size: 11,),5.height,
-                          CustomText(text: inTime.toString()!="null"?inTime:"-",size: 11,),
+                          if (localData.storage.read("role") == "1")
+                            const CustomText(text: "In Time", colors: Colors.grey, size: 11,),
+                          5.height,
+                          CustomText(text: inTime.toString() != "null" ? inTime : "-", size: 11,),
+                          if (inLat != null && inLng != null && inLat!.isNotEmpty && inLng!.isNotEmpty)
+                            FutureBuilder<String>(
+                              future: _getAreaName(inLat!, inLng!),
+                              builder: (context, snapshot) {
+                                return CustomText(
+                                  text: snapshot.hasData ? snapshot.data! : "...",
+                                  size: 20,
+                                  colors: Colors.black,
+                                );
+                              },
+                            ),
                         ],
                       ),
-                    ),2.width,
+                    ), 2.width,
+                    // ---------------- OUT TIME ----------------
                     SizedBox(
-                      width: kIsWeb?webWidth/5:phoneWidth/5,
+                      width: kIsWeb ? webWidth / 5 : phoneWidth / 5,
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          if(localData.storage.read("role") =="1")
-                            const CustomText(text: "Out Time",colors: Colors.grey,size: 11,),5.height,
-                          CustomText(text: outTime.toString(),size: 11),
+                          if (localData.storage.read("role") == "1")
+                            const CustomText(text: "Out Time", colors: Colors.grey, size: 11,),
+                          5.height,
+                          CustomText(text: outTime.toString(), size: 11),
+                          if (outLat != null && outLng != null && outLat!.isNotEmpty && outLng!.isNotEmpty)
+                            FutureBuilder<String>(
+                              future: _getAreaName(outLat!, outLng!),
+                              builder: (context, snapshot) {
+                                return CustomText(
+                                  text: snapshot.hasData ? snapshot.data! : "...",
+                                  size: 20,
+                                  colors: Colors.black,
+                                );
+                              },
+                            ),
                         ],
                       ),
-                    ),2.width,
+                    ), 2.width,
                     SizedBox(
-                      width: kIsWeb?webWidth/5.2:phoneWidth/5.2,
+                      width: kIsWeb ? webWidth / 5.2 : phoneWidth / 5.2,
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          if(localData.storage.read("role") =="1")
-                            const CustomText(text: "Total Hrs  ",colors: Colors.grey,size: 11,),
-                          if(localData.storage.read("role") =="1")
+                          if (localData.storage.read("role") == "1")
+                            const CustomText(text: "Total Hrs  ", colors: Colors.grey, size: 11,),
+                          if (localData.storage.read("role") == "1")
                             2.height,
-                          CustomText(text:outTime.toString()=="-"?"-":timeD,size: 11,),
+                          CustomText(text: outTime.toString() == "-" ? "-" : timeD, size: 11,),
                         ],
                       ),
                     ),
@@ -165,21 +225,27 @@ class AttendanceDetails extends StatelessWidget {
                     ),
                   ],
                 ),
-                if(chunked.isNotEmpty)
+                if (chunked.isNotEmpty)
                   Padding(
-                    padding: isName==false?const EdgeInsets.fromLTRB(5, 10, 5, 10):EdgeInsets.fromLTRB(localData.storage.read("role") =="1"?10:2, localData.storage.read("role") =="1"?0:5, localData.storage.read("role") =="1"?10:2, 5),
+                    padding: isName == false
+                        ? const EdgeInsets.fromLTRB(5, 10, 5, 10)
+                        : EdgeInsets.fromLTRB(
+                        localData.storage.read("role") == "1" ? 10 : 2,
+                        localData.storage.read("role") == "1" ? 0 : 5,
+                        localData.storage.read("role") == "1" ? 10 : 2,
+                        5),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Container(
-                          width: kIsWeb?webWidth/1:phoneWidth/1,
-                          height: 0.2,color: Colors.grey,
+                          width: kIsWeb ? webWidth / 1 : phoneWidth / 1,
+                          height: 0.2, color: Colors.grey,
                         ),
                         5.height,
-                        CustomText(text: "Permission${chunked.length==1?"":"s"}",colors: colorsConst.greyClr,),
+                        CustomText(text: "Permission${chunked.length == 1 ? "" : "s"}", colors: colorsConst.greyClr,),
                         5.height,
                         SizedBox(
-                          width: localData.storage.read("role") =="1"?phoneWidth/1:phoneWidth,
+                          width: localData.storage.read("role") == "1" ? phoneWidth / 1 : phoneWidth,
                           child: ListView.builder(
                             shrinkWrap: true,
                             physics: const NeverScrollableScrollPhysics(),
@@ -192,10 +258,9 @@ class AttendanceDetails extends StatelessWidget {
                                   mainAxisAlignment: MainAxisAlignment.start,
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-
-                                    if(localData.storage.read("role") == "1" && chunked.isNotEmpty)
+                                    if (localData.storage.read("role") == "1" && chunked.isNotEmpty)
                                       SizedBox(
-                                        width: kIsWeb ? webWidth/4 : phoneWidth/3,
+                                        width: kIsWeb ? webWidth / 4 : phoneWidth / 3,
                                         child: CustomText(
                                           text: name,
                                           size: 11,
@@ -206,16 +271,16 @@ class AttendanceDetails extends StatelessWidget {
                                     Row(
                                       children: [
                                         SizedBox(
-                                          width: kIsWeb?webWidth/3:phoneWidth/3,
-                                          child: CustomText(text: "${item['in']} - ${item['out']}",size: 11,isBold: true,),
+                                          width: kIsWeb ? webWidth / 3 : phoneWidth / 3,
+                                          child: CustomText(text: "${item['in']} - ${item['out']}", size: 11, isBold: true,),
                                         ),
                                         SizedBox(
-                                          width: kIsWeb?webWidth/5:phoneWidth/5,
-                                          child: CustomText(text: item["out"]!=""?timeDifference("${item["in"]},${item["out"]}"):"-",size: 11,isBold: true),
+                                          width: kIsWeb ? webWidth / 5 : phoneWidth / 5,
+                                          child: CustomText(text: item["out"] != "" ? timeDifference("${item["in"]},${item["out"]}") : "-", size: 11, isBold: true),
                                         ),
                                         SizedBox(
-                                          width: kIsWeb?webWidth/3:phoneWidth/2.7,
-                                          child: CustomText(text: "${item['reason']}",size: 11,),
+                                          width: kIsWeb ? webWidth / 3 : phoneWidth / 2.7,
+                                          child: CustomText(text: "${item['reason']}", size: 11,),
                                         ),
                                       ],
                                     ),
@@ -242,15 +307,15 @@ class AttendanceDetails extends StatelessWidget {
       borderRadius: BorderRadius.circular(2),
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.all(6),
+        padding: const EdgeInsets.only(top: 2),   // ✅ 6 → 4
         decoration: BoxDecoration(
           color: colorsConst.primary.withOpacity(0.08),
           shape: BoxShape.circle,
         ),
         child: SvgPicture.asset(
           assets.map,
-          width: 22,
-          height: 22,
+          width: 30,    // ✅ 22 → 15
+          height: 15,   // ✅ 22 → 15
           colorFilter: ColorFilter.mode(colorsConst.primary, BlendMode.srcIn),
         ),
       ),
@@ -270,6 +335,7 @@ class AttendanceDetails extends StatelessWidget {
       return false; // invalid time format
     }
   }
+
   String timeDifference(String timeRange) {
     // Split the two times
     List<String> parts = timeRange.split(',');
@@ -292,6 +358,7 @@ class AttendanceDetails extends StatelessWidget {
           : "$hours Hrs $minutes Mins";
     }
   }
+
   DateTime parseTime(String time) {
     final now = DateTime.now(); // Get today's date
     final parts = time.split(" ");
@@ -308,4 +375,52 @@ class AttendanceDetails extends StatelessWidget {
 
     return DateTime(now.year, now.month, now.day, hour, minute); // Use today's date
   }
+}
+
+/// ✅ reverse-geocodes a lat/lng pair (from backend data) into an area name
+Future<String> _getAreaName(String lat, String lng) async {
+  try {
+    if (lat.isEmpty || lng.isEmpty) return "-";
+    final String key = "$lat,$lng";
+    if (_areaCache.containsKey(key)) return _areaCache[key]!;
+
+    double? latitude = double.tryParse(lat);
+    double? longitude = double.tryParse(lng);
+    if (latitude == null || longitude == null) return "-";
+
+    List<Placemark> placemarks =
+    await placemarkFromCoordinates(latitude, longitude);
+
+    String result = "-";
+    if (placemarks.isNotEmpty) {
+      Placemark place = placemarks.first;
+      String area = "${place.subLocality ?? ''} ${place.locality ?? ''}".trim();
+      result = area.isNotEmpty ? area : (place.name ?? "-");
+    }
+    _areaCache[key] = result;
+    return result;
+  } catch (e) {
+    return "-";
+  }
+}
+
+/// ✅ "check in/out : area1  area2" inline text
+Widget _buildCheckInOutInline(String lat1, String lng1, String lat2, String lng2) {
+  return FutureBuilder<List<String>>(
+    future: Future.wait([
+      _getAreaName(lat1, lng1),
+      (lat2.isNotEmpty && lng2.isNotEmpty)
+          ? _getAreaName(lat2, lng2)
+          : Future.value(""),
+    ]),
+    builder: (context, snapshot) {
+      if (!snapshot.hasData) {
+        return CustomText(text: "check in/out : ...", size: 12, colors: colorsConst.greyClr);
+      }
+      String area1 = snapshot.data![0];
+      String area2 = snapshot.data![1];
+      String combined = area2.isNotEmpty ? "$area1   $area2" : area1;
+      return CustomText(text: "check in/out : $combined", size: 12, colors: colorsConst.greyClr);
+    },
+  );
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../source/constant/default_constant.dart';
 import '../../source/utilities/utils.dart';
 import '../../view_model/leave_provider.dart';
 import '../common/dashboard.dart';
@@ -44,104 +45,107 @@ class LeaveSummaryCard extends StatelessWidget {
                 ()=>const DashBoard(child: LeaveManagementDashboard())
         );
       },
-      child: Container(
-        width: double.infinity,
-        margin: const EdgeInsets.only(bottom: 8),
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(10),
-          boxShadow: const [
-            BoxShadow(
-              color: Colors.black12,
-              blurRadius: 10,
-              spreadRadius: 2,
-            )
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      child: Consumer<LanguageManager>(
+        builder: (context, langManager, _) {
+          return Container(
+            width: double.infinity,
+            margin: const EdgeInsets.only(bottom: 8),
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(10),
+              boxShadow: const [
+                BoxShadow(
+                  color: Colors.black12,
+                  blurRadius: 10,
+                  spreadRadius: 2,
+                )
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                /// TOTAL
-
                 Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      " Leave Summary",
-                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                    /// TOTAL
+                    Row(
+                      children: [
+                        Text(
+                          " ${constValue.leaveSummary}",
+                          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(width: 16),
+                        Text(
+                          constValue.totalLeaveLabel,
+                          style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
+                        ),
+                        Text(
+                          formatDouble(allowedVal),
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.green.shade800,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
                     ),
-                     SizedBox(width: 16),
-                    Text(
-                      "Total Leave : ",
-                      style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
-                    ),
-                    Text(
-                      formatDouble(allowedVal),
-                      style:  TextStyle(
-                        fontSize: 14,
-                        color: Colors.green.shade800,
-                        fontWeight: FontWeight.bold,
-                      ),
+
+                    /// TAKEN
+                    Row(
+                      children: [
+                        Text(
+                          constValue.leaveTakenLabel,
+                          style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
+                        ),
+                        Text(
+                          formatDouble(takenVal),
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.blue.shade800,
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
 
-                /// TAKEN
-                Row(
-                  children: [
-                    Text(
-                      "Leave Taken : ",
-                      style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
+                const SizedBox(height: 4),
+
+                /// STATUS
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: allowedVal == 0
+                        ? Colors.orange.shade50
+                        : remaining > 0
+                        ? Colors.green.shade50
+                        : Colors.red.shade50,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    allowedVal == 0
+                        ? constValue.noLeavesAllocated
+                        : remaining > 0
+                        ? "✨ ${formatDouble(remaining)} ${constValue.daysLeftPlanSmart}"
+                        : constValue.allLeavesUsed,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: allowedVal == 0
+                          ? Colors.orange.shade800
+                          : remaining > 0
+                          ? Colors.green
+                          : Colors.red,
                     ),
-                    Text(
-                      formatDouble(takenVal),
-                      style:  TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.blue.shade800,
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ],
             ),
-
-            const SizedBox(height: 4),
-
-            /// STATUS
-            Container(
-              padding: const EdgeInsets.all(10),
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: allowedVal == 0
-                    ? Colors.orange.shade50
-                    : remaining > 0
-                    ? Colors.green.shade50
-                    : Colors.red.shade50,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                allowedVal == 0
-                    ? "No leaves have been allocated to you yet."
-                    : remaining > 0
-                    ? "✨ ${formatDouble(remaining)} days left. Plan smart!"
-                    : "All leaves used. Plan accordingly.",
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  color: allowedVal == 0
-                      ? Colors.orange.shade800
-                      : remaining > 0
-                      ? Colors.green
-                      : Colors.red,
-                ),
-              ),
-            ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }

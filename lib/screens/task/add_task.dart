@@ -810,7 +810,7 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
                                   Future.microtask(() => Navigator.pop(context));
                                 },
                                 isLoading: false,
-                                text: "Cancel",
+                                text: "${constValue.cancel}",
                                 backgroundColor: Colors.white,
                                 textColor: colorsConst.primary,
                                 radius: 10,
@@ -820,20 +820,20 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
                                 radius: 10,
                                 width: kIsWeb ? webWidth / 2.5 : phoneWidth / 2.5,
                                 backgroundColor: colorsConst.primary,
-                                text: "Save",
+                                text: "${constValue.save}",
                                 callback: () {
                                   if (taskProvider.type == null) {
                                     _myFocusScopeNode.unfocus();
                                     utils.showWarningToast(context,
-                                        text: "Please select a type");
+                                        text: "${constValue.selectTypeTask}");
                                     taskProvider.taskCtr.reset();
                                   } else if (taskProvider.taskTitleCont.text.isEmpty) {
                                     utils.showWarningToast(context,
-                                        text: "Please fill description");
+                                        text: "${constValue.fillDescription}");
                                     taskProvider.taskCtr.reset();
                                   } else if (taskProvider.assignedId == "") {
                                     utils.showWarningToast(context,
-                                        text: "Please select assigned to");
+                                        text: "${constValue.selectAssignedTo}");
                                     taskProvider.taskCtr.reset();
                                   } else {
                                     _myFocusScopeNode.unfocus();

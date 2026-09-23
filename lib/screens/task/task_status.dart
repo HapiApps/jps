@@ -1,6 +1,7 @@
 import 'package:master_code/component/custom_loading.dart';
 import 'package:master_code/component/custom_loading_button.dart';
 import 'package:master_code/component/custom_textfield.dart';
+import 'package:master_code/source/constant/default_constant.dart';
 import 'package:master_code/source/extentions/extensions.dart';
 import 'package:master_code/view_model/home_provider.dart';
 import 'package:master_code/view_model/location_provider.dart';
@@ -43,27 +44,27 @@ class _ViewTaskStatusState extends State<ViewTaskStatus>{
   Widget build(BuildContext context) {
     var webWidth=MediaQuery.of(context).size.width * 0.5;
     var phoneWidth=MediaQuery.of(context).size.width * 0.9;
-    return Consumer3<TaskProvider,HomeProvider,LocationProvider>(
-        builder: (context, taskProvider, homeProvider,locPvr, _) {
+    return Consumer4<TaskProvider,HomeProvider,LocationProvider,LanguageManager>(
+        builder: (context, taskProvider, homeProvider,locPvr,langManager, _) {
           return Scaffold(
             backgroundColor: colorsConst.bacColor,
             appBar: PreferredSize(
               preferredSize: const Size(300, 50),
-              child: CustomAppbar(text: "Task Status",
+              child: CustomAppbar(text: constValue.taskSta,
                   isButton: true,
                   buttonCallback: (){
-                homeProvider.updateIndex(0);
-                utils.navigatePage(context, ()=>const DashBoard(child: AddStatus()));
-              }),
+                    homeProvider.updateIndex(0);
+                    utils.navigatePage(context, ()=>const DashBoard(child: AddStatus()));
+                  }),
             ),
             body: taskProvider.addRefresh==false?
-            Center(child: const Loading()):
+            const Center(child: Loading()):
             taskProvider.statusList.isEmpty?
             Column(
               children: [
                 100.height,
                 Center(
-                  child: CustomText(text: "No Task Status Found",
+                  child: CustomText(text: constValue.noTaskStatusFound,
                       colors: colorsConst.greyClr),
                 )
               ],
@@ -80,11 +81,11 @@ class _ViewTaskStatusState extends State<ViewTaskStatus>{
                       return Column(
                         children: [
                           if(index==0)
-                          15.height,
+                            15.height,
                           Container(
                             width: kIsWeb?webWidth:phoneWidth,
                             decoration: customDecoration.baseBackgroundDecoration(
-                              color: Colors.white,radius: 1
+                                color: Colors.white,radius: 1
                             ),
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -99,7 +100,7 @@ class _ViewTaskStatusState extends State<ViewTaskStatus>{
                                 IconButton(onPressed: (){
                                   utils.customDialog(
                                       context: context,
-                                      title: "Are you sure you want to delete",
+                                      title: constValue.sureDeleteMsg,
                                       callback: (){
                                         taskProvider.deleteStatus(context,data["id"].toString());
                                       },
@@ -149,15 +150,15 @@ class _AddStatusState extends State<AddStatus>{
   Widget build(BuildContext context) {
     var webWidth=MediaQuery.of(context).size.width * 0.5;
     var phoneWidth=MediaQuery.of(context).size.width * 0.9;
-    return Consumer<TaskProvider>(builder: (context,taskProvider,_){
+    return Consumer2<TaskProvider, LanguageManager>(builder: (context,taskProvider,langManager,_){
       return FocusScope(
         node: _myFocusScopeNode,
         child: SafeArea(
           child: Scaffold(
               backgroundColor: colorsConst.bacColor,
-              appBar: const PreferredSize(
-                preferredSize: Size(300, 50),
-                child: CustomAppbar(text: "Add Task Status"),
+              appBar: PreferredSize(
+                preferredSize: const Size(300, 50),
+                child: CustomAppbar(text: constValue.addTaskStatusTitle),
               ),
               body: Center(
                 child: SizedBox(
@@ -171,7 +172,7 @@ class _AddStatusState extends State<AddStatus>{
                           width: kIsWeb?webWidth:phoneWidth,
                           isRequired: true,
                           textInputAction: TextInputAction.done,
-                          text: "Status", controller: taskProvider.typeCtr),
+                          text: constValue.status, controller: taskProvider.typeCtr),
                       100.height,
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -179,19 +180,19 @@ class _AddStatusState extends State<AddStatus>{
                           CustomLoadingButton(
                               callback: (){
                                 Future.microtask(() => Navigator.pop(context));
-                              }, isLoading: false,text: "Cancel",
+                              }, isLoading: false,text: constValue.cancel,
                               backgroundColor: Colors.white, textColor: Provider.of<HomeProvider>(context, listen: false).primary,radius: 10,
                               width: kIsWeb?webWidth/2.2:phoneWidth/2.2),
                           CustomLoadingButton(
                               callback: (){
                                 if (taskProvider.typeCtr.text.trim().isEmpty) {
-                                  utils.showWarningToast(context, text: "Please fill status");
+                                  utils.showWarningToast(context, text: constValue.pleaseFillStatus);
                                   taskProvider.taskCtr.reset();
                                 }else {
                                   _myFocusScopeNode.unfocus();
                                   taskProvider.insertTaskStatus(context);
                                 }
-                              }, isLoading: true,text: "Save",controller: taskProvider.taskCtr,
+                              }, isLoading: true,text: constValue.save,controller: taskProvider.taskCtr,
                               backgroundColor: Provider.of<HomeProvider>(context, listen: false).primary,radius: 10,
                               width: kIsWeb?webWidth/2.2:phoneWidth/2.2),
                         ],
@@ -236,15 +237,15 @@ class _EditStatusState extends State<EditStatus>{
   Widget build(BuildContext context) {
     var webWidth=MediaQuery.of(context).size.width * 0.5;
     var phoneWidth=MediaQuery.of(context).size.width * 0.9;
-    return Consumer<TaskProvider>(builder: (context,taskProvider,_){
+    return Consumer2<TaskProvider, LanguageManager>(builder: (context,taskProvider,langManager,_){
       return FocusScope(
         node: _myFocusScopeNode,
         child: SafeArea(
           child: Scaffold(
               backgroundColor: colorsConst.bacColor,
-              appBar: const PreferredSize(
-                preferredSize: Size(300, 50),
-                child: CustomAppbar(text: "Edit Task Status"),
+              appBar: PreferredSize(
+                preferredSize: const Size(300, 50),
+                child: CustomAppbar(text: constValue.editTaskStatusTitle),
               ),
               body: Center(
                 child: SizedBox(
@@ -258,7 +259,7 @@ class _EditStatusState extends State<EditStatus>{
                           width: kIsWeb?webWidth:phoneWidth,
                           isRequired: true,
                           textInputAction: TextInputAction.done,
-                          text: "Status", controller: taskProvider.typeCtr),
+                          text: constValue.status, controller: taskProvider.typeCtr),
                       100.height,
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -266,19 +267,19 @@ class _EditStatusState extends State<EditStatus>{
                           CustomLoadingButton(
                               callback: (){
                                 Future.microtask(() => Navigator.pop(context));
-                              }, isLoading: false,text: "Cancel",
+                              }, isLoading: false,text: constValue.cancel,
                               backgroundColor: Colors.white, textColor: Provider.of<HomeProvider>(context, listen: false).primary,radius: 10,
                               width: kIsWeb?webWidth/2.2:phoneWidth/2.2),
                           CustomLoadingButton(
                               callback: (){
                                 if (taskProvider.typeCtr.text.trim().isEmpty) {
-                                  utils.showWarningToast(context, text: "Please fill status");
+                                  utils.showWarningToast(context, text: constValue.pleaseFillStatus);
                                   taskProvider.taskCtr.reset();
                                 }else {
                                   _myFocusScopeNode.unfocus();
                                   taskProvider.editTaskStatus(context,widget.id);
                                 }
-                              }, isLoading: true,text: "Save",controller: taskProvider.taskCtr,
+                              }, isLoading: true,text: constValue.save,controller: taskProvider.taskCtr,
                               backgroundColor: Provider.of<HomeProvider>(context, listen: false).primary,radius: 10,
                               width: kIsWeb?webWidth/2.2:phoneWidth/2.2),
                         ],

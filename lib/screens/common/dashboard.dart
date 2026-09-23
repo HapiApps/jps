@@ -144,7 +144,7 @@ class _DashBoardState extends State<DashBoard> {
                         ),
                       ),
                       SizedBox(
-                        width: 100,
+                        width: 150,
                         child: ElevatedButton(
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.red,
@@ -153,8 +153,8 @@ class _DashBoardState extends State<DashBoard> {
                             HapticFeedback.mediumImpact();
                             utils.customDialog(
                               context: context,
-                              title: "Are you sure you want",
-                              title2: "to end the session?",
+                              title: constValue.sureWantTo,
+                              title2: constValue.endSessionQ,
                               callback: () {
                                 homeProvider.loginOuts(context);
                               },
@@ -166,8 +166,9 @@ class _DashBoardState extends State<DashBoard> {
                             children: [
                               Icon(Icons.logout_outlined, color: Colors.white),
                               CustomText(
-                                text: 'Logout',
+                                text: '${constValue.logOut}',
                                 isBold: true,
+                                shrink: true,
                                 colors: Colors.white,
                               ),
                             ],
@@ -350,7 +351,7 @@ class _DashBoardState extends State<DashBoard> {
 
                       10.width,
 
-                      /// Reports Button
+                      /// ✅ Reports Button — dialog நீக்கி, direct navigate + SnackBar
                       Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
@@ -362,178 +363,27 @@ class _DashBoardState extends State<DashBoard> {
                             ),
                             onPressed: () {
                               HapticFeedback.lightImpact();
-                              showDialog(
-                                context: context,
-                                builder: (context) {
-                                  return Consumer2<HomeProvider,
-                                      EmployeeProvider>(
-                                    builder:
-                                        (context, homeProvider, empro, _) {
-                                      return AlertDialog(
-                                        content: SizedBox(
-                                          width: kIsWeb
-                                              ? MediaQuery.of(context)
-                                              .size
-                                              .width *
-                                              0.3
-                                              : MediaQuery.of(context)
-                                              .size
-                                              .width *
-                                              0.9,
-                                          child: Column(
-                                            mainAxisSize: MainAxisSize.min,
-                                            crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                            children: [
-                                              Row(
-                                                mainAxisAlignment:
-                                                MainAxisAlignment.end,
-                                                children: [
-                                                  IconButton(
-                                                    icon: const Icon(
-                                                        Icons.close),
-                                                    onPressed: () {
-                                                      Navigator.pop(
-                                                          context);
-                                                    },
-                                                  ),
-                                                ],
-                                              ),
-                                              const Center(
-                                                child: Text(
-                                                  "Choose a report",
-                                                  style: TextStyle(
-                                                    fontWeight:
-                                                    FontWeight.bold,
-                                                  ),
-                                                ),
-                                              ),
-                                              20.height,
-                                              Row(
-                                                mainAxisAlignment:
-                                                MainAxisAlignment
-                                                    .spaceEvenly,
-                                                children: [
-                                                  /// Attendance Report
-                                                  InkWell(
-                                                    borderRadius:
-                                                    BorderRadius
-                                                        .circular(10),
-                                                    splashColor: Colors
-                                                        .blue
-                                                        .withOpacity(0.25),
-                                                    highlightColor: Colors
-                                                        .blue
-                                                        .withOpacity(0.12),
-                                                    onTap: () {
-                                                      HapticFeedback
-                                                          .lightImpact();
-                                                      homeProvider
-                                                          .updateIndex(4);
-                                                      Navigator.pop(
-                                                          context);
 
-                                                      utils.navigatePage(
-                                                        context,
-                                                            () => DashBoard(
-                                                          child:
-                                                          AttendanceReport(
-                                                            type: homeProvider
-                                                                .type,
-                                                            showType: "0",
-                                                            date1: homeProvider
-                                                                .startDate,
-                                                            date2: homeProvider
-                                                                .endDate,
-                                                            empList:
-                                                            empro.userData,
-                                                          ),
-                                                        ),
-                                                      );
-                                                    },
-                                                    child: Column(
-                                                      mainAxisSize:
-                                                      MainAxisSize.min,
-                                                      children: [
-                                                        const Icon(
-                                                            Icons
-                                                                .assignment_turned_in,
-                                                            size: 35,
-                                                            color: Colors
-                                                                .blue),
-                                                        5.height,
-                                                        const Text(
-                                                          "Attendance",
-                                                          style: TextStyle(
-                                                            fontWeight:
-                                                            FontWeight
-                                                                .bold,
-                                                            fontSize: 12,
-                                                          ),
-                                                        ),
-                                                      ],
-                                                    ),
-                                                  ),
+                              homeProvider.updateIndex(4);
 
-                                                  /// Daily Work Plan
-                                                  // InkWell(
-                                                  // onTap: () {
-                                                  // Navigator.pop(context);
-                                                  //
-                                                  // utils.navigatePage(
-                                                  // context,
-                                                  // () => DashBoard(
-                                                  // child: VisitReport(
-                                                  // date1: homeProvider.startDate,
-                                                  // date2: homeProvider.endDate,
-                                                  // month: homeProvider.month,
-                                                  // type: homeProvider.type,
-                                                  // ),
-                                                  // ),
-                                                  // );
-                                                  // },
-                                                  // child: Column(
-                                                  // mainAxisSize: MainAxisSize.min,
-                                                  // children: [
-                                                  // const Icon(Icons.rate_review,
-                                                  // size: 35, color: Colors.green),
-                                                  // 5.height,
-                                                  // const Text(
-                                                  // "Daily Work Activity Report",
-                                                  // style: TextStyle(
-                                                  // fontWeight: FontWeight.bold,
-                                                  // fontSize: 12,
-                                                  // ),
-                                                  // ),
-                                                  // ],
-                                                  // ),
-                                                  // ),
-                                                ],
-                                              ),
-                                              20.height,
-                                              Center(
-                                                child: TextButton(
-                                                  child: Text(
-                                                    "Cancel",
-                                                    style: TextStyle(
-                                                      color: colorsConst
-                                                          .appRed,
-                                                      fontWeight:
-                                                      FontWeight.bold,
-                                                    ),
-                                                  ),
-                                                  onPressed: () {
-                                                    Navigator.pop(context);
-                                                  },
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      );
-                                    },
-                                  );
-                                },
+                              // ScaffoldMessenger.of(context).showSnackBar(
+                              //   const SnackBar(
+                              //     content: Text("Opening Attendance Report"),
+                              //     duration: Duration(seconds: 1),
+                              //   ),
+                              // );
+
+                              utils.navigatePage(
+                                context,
+                                    () => DashBoard(
+                                  child: AttendanceReport(
+                                    type: homeProvider.type,
+                                    showType: "0",
+                                    date1: homeProvider.startDate,
+                                    date2: homeProvider.endDate,
+                                    empList: empPvr.userData,
+                                  ),
+                                ),
                               );
                             },
                           ),

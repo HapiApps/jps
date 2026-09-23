@@ -1,4 +1,3 @@
-
 import 'package:country_picker/country_picker.dart';
 import 'package:master_code/view_model/location_provider.dart';
 import 'package:flutter/foundation.dart';
@@ -53,7 +52,7 @@ class _LoginPageState extends State<LoginPage> {
     var phoneWidth=MediaQuery.of(context).size.width*0.83;
     var webHeight=MediaQuery.of(context).size.height*0.3;
     var phoneHeight=MediaQuery.of(context).size.height*0.3;
-    return Consumer<HomeProvider>(builder: (context, homeProvider, _) {
+    return Consumer2<HomeProvider, LanguageManager>(builder: (context, homeProvider,langManager, _) {
       final homeProvider = context.read<HomeProvider>();
       return PopScope(
         canPop: false,
@@ -61,7 +60,7 @@ class _LoginPageState extends State<LoginPage> {
           return utils.customDialog(
               context: context,
               callback: (){SystemNavigator.pop();
-              }, title: "Do you want to Exit the App?");
+              }, title: constValue.exitAppQ);
         },
         child: SafeArea(
           child: Scaffold(
@@ -154,7 +153,7 @@ class _LoginPageState extends State<LoginPage> {
                               child: CustomTextField(
                                 width: double.infinity,
                                 isRequired: true,
-                                text: "Phone Number",controller: homeProvider.loginNumber,
+                                text: constValue.phoneNumberField,controller: homeProvider.loginNumber,
                                 keyboardType: TextInputType.phone,
                                 inputFormatters: constInputFormatters.mobileNumberInput,
                                 onChanged: (value)  {
@@ -186,16 +185,16 @@ class _LoginPageState extends State<LoginPage> {
                         onEditingComplete: (){
                           homeProvider.loginCtr.start();
                           if(homeProvider.loginNumber.text.trim().isEmpty){
-                            utils.showWarningToast(context,text: "Please fill phone number");
+                            utils.showWarningToast(context,text: constValue.pleaseFillPhoneNumber);
                             homeProvider.loginCtr.reset();
                           }else if(homeProvider.loginNumber.text.trim().length<8 || homeProvider.loginNumber.text.trim().length>12 ){
-                            utils.showWarningToast(context,text: "Please check phone number");
+                            utils.showWarningToast(context,text: constValue.pleaseCheckPhoneNumber2);
                             homeProvider.loginCtr.reset();
                           }else if(homeProvider.loginPassword.text.trim().isEmpty){
-                            utils.showWarningToast(context,text: "Please fill password");
+                            utils.showWarningToast(context,text: constValue.fillPassword);
                             homeProvider.loginCtr.reset();
                           }else if(homeProvider.loginPassword.text.trim().length<6) {
-                            utils.showWarningToast(context,text: "Password must be 6 characters");
+                            utils.showWarningToast(context,text: constValue.passwordMinLength6);
                             homeProvider.loginCtr.reset();
                           }else {
                             FocusScope.of(context).unfocus();
@@ -217,9 +216,9 @@ class _LoginPageState extends State<LoginPage> {
                               onPressed: () async {
                                 // homeProvider.verifyUser(context);
                                 if (homeProvider.loginNumber.text.trim().isEmpty) {
-                                  utils.showWarningToast(context,text: "Enter Your Mobile Number");
+                                  utils.showWarningToast(context,text: constValue.enterMobileNumberMsg);
                                 }else if (homeProvider.loginNumber.text.trim().length<8 ||homeProvider.loginNumber.text.trim().length >12) {
-                                  utils.showWarningToast(context,text: "Check Your Mobile Number");
+                                  utils.showWarningToast(context,text: constValue.checkMobileNumberMsg);
                                   homeProvider.checkCtr.reset();
                                 }else{
                                   FocusScope.of(context).unfocus();
@@ -235,16 +234,16 @@ class _LoginPageState extends State<LoginPage> {
                         width: kIsWeb?webWidth:phoneWidth,
                         callback: (){
                           if(homeProvider.loginNumber.text.trim().isEmpty){
-                            utils.showWarningToast(context,text: "Please fill phone number");
+                            utils.showWarningToast(context,text: constValue.pleaseFillPhoneNumber);
                             homeProvider.loginCtr.reset();
                           }else if(homeProvider.loginNumber.text.trim().length<8 ||homeProvider.loginNumber.text.trim().length >12){
-                            utils.showWarningToast(context,text: "Please check phone number");
+                            utils.showWarningToast(context,text: constValue.pleaseCheckPhoneNumber2);
                             homeProvider.loginCtr.reset();
                           }else if(homeProvider.loginPassword.text.trim().isEmpty){
-                            utils.showWarningToast(context,text: "Please fill password");
+                            utils.showWarningToast(context,text: constValue.fillPassword);
                             homeProvider.loginCtr.reset();
                           }else if(homeProvider.loginPassword.text.trim().length<6) {
-                            utils.showWarningToast(context,text: "Password must be 6 characters");
+                            utils.showWarningToast(context,text: constValue.passwordMinLength6);
                             homeProvider.loginCtr.reset();
                           }else {
                             FocusScope.of(context).unfocus();

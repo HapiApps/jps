@@ -212,7 +212,7 @@ class _CustomAttendanceReportState extends State<CustomAttendanceReport> {
                                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                             children: [
                                               SizedBox(
-                                                  width: kIsWeb?webWidth/4:phoneWidth/4,
+                                                  width: kIsWeb?webWidth/3:phoneWidth/3,
                                                   child: CustomText(text: data.date.toString(),size: 12,)),
                                               1.width,
                                               SizedBox(
@@ -249,7 +249,7 @@ class _CustomAttendanceReportState extends State<CustomAttendanceReport> {
                                                   ],
                                                 ),
                                               ),
-                                              1.width,
+
                                               // Map icon now INSIDE the container, at the end of this row
                                               _mapIcon(() {
                                                 utils.navigatePage(

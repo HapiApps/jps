@@ -51,7 +51,7 @@ class _UserAttendanceReportState extends State<UserAttendanceReport> {
           backgroundColor: colorsConst.bacColor,
           appBar: PreferredSize(
             preferredSize: const Size(300, 50),
-            child: CustomAppbar(text: "${widget.name} Attendance Report"),
+            child: CustomAppbar(text: "${widget.name} ${constValue.attReport}"),
           ),
           body: Center(
             child: SizedBox(

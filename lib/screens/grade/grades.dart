@@ -13,6 +13,7 @@ import '../../component/custom_loading_button.dart';
 import '../../component/custom_text.dart';
 import '../../source/constant/assets_constant.dart';
 import '../../source/constant/colors_constant.dart';
+import '../../source/constant/default_constant.dart';
 import '../../source/styles/decoration.dart';
 import '../../source/utilities/utils.dart';
 import '../../view_model/employee_provider.dart';
@@ -23,55 +24,59 @@ class Grades extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return DefaultTabController(
-      length: 2,
-      child: Scaffold(
-        appBar: const PreferredSize(
-          preferredSize: Size(300, 50),
-          child: CustomAppbar(text: "Grades & Expense Policy"),
-        ),
-        backgroundColor: colorsConst.bacColor,
-        body: Column(
-          children: [
-            20.height,
-            Container(
-                height: 40,
-                decoration: customDecoration.baseBackgroundDecoration(
-                    color: Colors.transparent,
-                    radius: 10
-                ),
-                child: TabBar(
-                  indicatorSize: TabBarIndicatorSize.label,
-                  indicatorWeight: 0,
-                  indicator: customDecoration.baseBackgroundDecoration(
-                      color: Colors.white,
-                      radius: 5,
-                    borderColor: colorsConst.primary
-                  ),
-                  labelColor: Colors.green,
-                  unselectedLabelColor: Colors.green,
-                  tabs:  const [
-                    Tab(child: SizedBox(
-                      width: 100,height: 80,
-                        child: Center(child: CustomText(text: "Grades"))),
+    return Consumer<LanguageManager>(
+      builder: (context, langManager, _) {
+        return DefaultTabController(
+          length: 2,
+          child: Scaffold(
+            appBar: PreferredSize(
+              preferredSize: const Size(300, 50),
+              child: CustomAppbar(text: constValue.gradesExpensePolicy),
+            ),
+            backgroundColor: colorsConst.bacColor,
+            body: Column(
+              children: [
+                20.height,
+                Container(
+                    height: 40,
+                    decoration: customDecoration.baseBackgroundDecoration(
+                        color: Colors.transparent,
+                        radius: 10
                     ),
-                    Tab(child:SizedBox(
-                        width: 100,height: 80,
-                        child: Center(child: CustomText(text: "Amount")))),
-                  ],
-                )
+                    child: TabBar(
+                      indicatorSize: TabBarIndicatorSize.label,
+                      indicatorWeight: 0,
+                      indicator: customDecoration.baseBackgroundDecoration(
+                          color: Colors.white,
+                          radius: 5,
+                          borderColor: colorsConst.primary
+                      ),
+                      labelColor: Colors.green,
+                      unselectedLabelColor: Colors.green,
+                      tabs: [
+                        Tab(child: SizedBox(
+                            width: 100,height: 80,
+                            child: Center(child: CustomText(text: constValue.grades))),
+                        ),
+                        Tab(child:SizedBox(
+                            width: 100,height: 80,
+                            child: Center(child: CustomText(text: constValue.amountTab)))),
+                      ],
+                    )
+                ),
+                const Expanded(
+                  child: TabBarView(
+                    children: [
+                      EmployeesGrades(),
+                      AllGrade()
+                    ],
+                  ),
+                ),
+              ],
             ),
-            const Expanded(
-              child: TabBarView(
-                children: [
-                  EmployeesGrades(),
-                  AllGrade()
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 }
@@ -101,7 +106,7 @@ class _EmployeesGradesState extends State<EmployeesGrades>{
   Widget build(BuildContext context) {
     var webWidth=MediaQuery.of(context).size.width * 0.5;
     var phoneWidth=MediaQuery.of(context).size.width * 0.9;
-    return Consumer<EmployeeProvider>(builder: (context,empProvider,_){
+    return Consumer2<EmployeeProvider, LanguageManager>(builder: (context,empProvider,langManager,_){
       return SafeArea(
         child: Scaffold(
             backgroundColor: colorsConst.bacColor,
@@ -132,7 +137,7 @@ class _EmployeesGradesState extends State<EmployeesGrades>{
                     Column(
                       children: [
                         100.height,
-                        CustomText(text: "No Grades Found", colors: colorsConst.greyClr)
+                        CustomText(text: constValue.noGradesFound, colors: colorsConst.greyClr)
                       ],
                     ) :
                     Expanded(
@@ -150,8 +155,8 @@ class _EmployeesGradesState extends State<EmployeesGrades>{
                                   utils.customDialog(
                                       context: context,
                                       isLoading: true,
-                                      title: 'Do you want to',
-                                      title2: 'Delete the grade?',
+                                      title: constValue.doYouWantTo,
+                                      title2: constValue.deleteGradeQ,
                                       roundedLoadingButtonController: empProvider.signCtr,
                                       callback: () {
                                         empProvider.deletedGrade(context,id:employeeData["id"].toString());
@@ -199,15 +204,15 @@ class _AddGradeState extends State<AddGrade>{
   Widget build(BuildContext context) {
     var webWidth=MediaQuery.of(context).size.width * 0.5;
     var phoneWidth=MediaQuery.of(context).size.width * 0.9;
-    return Consumer<EmployeeProvider>(builder: (context,empProvider,_){
+    return Consumer2<EmployeeProvider, LanguageManager>(builder: (context,empProvider,langManager,_){
       return FocusScope(
         node: _myFocusScopeNode,
         child: SafeArea(
           child: Scaffold(
               backgroundColor: colorsConst.bacColor,
-              appBar: const PreferredSize(
-                preferredSize: Size(300, 50),
-                child: CustomAppbar(text: "Add Grades"),
+              appBar: PreferredSize(
+                preferredSize: const Size(300, 50),
+                child: CustomAppbar(text: constValue.addGrades),
               ),
               body: Center(
                 child: SizedBox(
@@ -224,27 +229,27 @@ class _AddGradeState extends State<AddGrade>{
                           textInputAction: TextInputAction.done,
                           textCapitalization: TextCapitalization.characters,
                           inputFormatters: constInputFormatters.numTextInput,
-                          text: "Grades", controller: empProvider.gradeCtr),
+                          text: constValue.grades, controller: empProvider.gradeCtr),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           CustomLoadingButton(
                               callback: (){
                                 Future.microtask(() => Navigator.pop(context));
-                              }, isLoading: false,text: "Cancel",
+                              }, isLoading: false,text: constValue.cancel,
                               backgroundColor: Colors.white, textColor: colorsConst.primary,radius: 10,
                               width: kIsWeb?webWidth/2.1:phoneWidth/2.1),
                           CustomLoadingButton(
                               callback: (){
                                 if (empProvider.gradeCtr.text.trim().isEmpty) {
                                   utils.showWarningToast(context,
-                                      text: "Please fill grade");
+                                      text: constValue.pleaseFillGrade);
                                   empProvider.signCtr.reset();
                                 }else {
                                   _myFocusScopeNode.unfocus();
                                   empProvider.addEmpGrade(context);
                                 }
-                              }, isLoading: true,text: "Save",controller: empProvider.signCtr,
+                              }, isLoading: true,text: constValue.save,controller: empProvider.signCtr,
                               backgroundColor: colorsConst.primary,radius: 10,
                               width: kIsWeb?webWidth/2.1:phoneWidth/2.1),
                         ],
@@ -259,13 +264,3 @@ class _AddGradeState extends State<AddGrade>{
     });
   }
 }
-
-
-
-
-
-
-
-
-
-

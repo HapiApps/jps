@@ -201,7 +201,7 @@ class _CreateCustomerState extends State<CreateCustomer> with TickerProviderStat
                           8.width,
                           Expanded(
                             child: CustomTextField(
-                              text: "Emergency Number",
+                              text: "${constValue.emergencyNumber}",
                               width: double.infinity,
                               inputFormatters: constInputFormatters.mobileNumberInput,
                               controller: custProvider.emgNo,
@@ -295,13 +295,13 @@ class _CreateCustomerState extends State<CreateCustomer> with TickerProviderStat
                             CustomLoadingButton(
                                 callback: (){
                                   Future.microtask(() => Navigator.pop(context));
-                                }, isLoading: false,text: "Cancel",
+                                }, isLoading: false,text: "${constValue.cancel}",
                                 backgroundColor: Colors.white, textColor: colorsConst.primary,radius: 10,
                                 width: kIsWeb?webWidth/2.1:phoneWidth/2.1),
                             CustomLoadingButton(
                               callback: (){
                                 if (custProvider.companyName.text.trim().isEmpty) {
-                                  utils.showWarningToast(context, text: "Please fill ${constValue.customerName}");
+                                  utils.showWarningToast(context, text: "${constValue.customer1}${constValue.fillName}");
                                 } else {
                                   final emgNo = custProvider.emgNo.text.trim();
                                   final pinCode = custProvider.pinCode.text.trim();
@@ -311,9 +311,9 @@ class _CreateCustomerState extends State<CreateCustomer> with TickerProviderStat
                                     custProvider.changeIndex(1);
                                   } else {
                                     if (emgNo.isNotEmpty && emgNo.length<8 || emgNo.length>12) {
-                                      utils.showWarningToast(context, text: "Please check emergency number");
+                                      utils.showWarningToast(context, text: "${constValue.checkEmergencyNumber}");
                                     } else if (pinCode.isNotEmpty && pinCode.length != 6) {
-                                      utils.showWarningToast(context, text: "Please check pincode");
+                                      utils.showWarningToast(context, text: "${constValue.checkPincode}");
                                     } else {
                                       _myFocusScopeNode.unfocus();
                                       custProvider.changeIndex(1);
@@ -321,7 +321,7 @@ class _CreateCustomerState extends State<CreateCustomer> with TickerProviderStat
                                   }
                                 }
                               }, isLoading: false, backgroundColor: colorsConst.primary,
-                              radius: 10, width: kIsWeb?webWidth/2.1:phoneWidth/2.1,text: "Next",),
+                              radius: 10, width: kIsWeb?webWidth/2.1:phoneWidth/2.1,text: "${constValue.next}",),
                           ],
                         ),
                       ),
@@ -631,20 +631,20 @@ class _CreateCustomerState extends State<CreateCustomer> with TickerProviderStat
                                 callback: (){
                                   custProvider.changeIndex(0);
                                   _myFocusScopeNode.unfocus();
-                                }, isLoading: false,text: "Back",
+                                }, isLoading: false,text: "${constValue.back}",
                                 backgroundColor: Colors.white, textColor: colorsConst.primary,radius: 10,
                                 width: kIsWeb?webWidth/2.1:phoneWidth/2.1),
                             CustomLoadingButton(
                               callback: (){
                                 final customer = custProvider.addCustomer.last;
                                 if (customer.name.text.trim().isEmpty) {
-                                  utils.showWarningToast(context, text: "Please Fill ${constValue.contact} Name");
+                                  utils.showWarningToast(context, text: "${constValue.fillName} ${constValue.contact} ");
                                 } else if (customer.phone.text.trim().isEmpty) {
-                                  utils.showWarningToast(context, text: "Please Fill ${constValue.contact} ${constValue.phoneNumber}");
+                                  utils.showWarningToast(context, text: "${constValue.contact} ${constValue.phoneNumber}${constValue.fillName} ");
                                 } else if (customer.phone.text.trim().length <8||customer.phone.text.trim().length>12) {
-                                  utils.showWarningToast(context, text: "Please Check ${constValue.contact} ${constValue.phoneNumber}");
+                                  utils.showWarningToast(context, text: "${constValue.checkPhoneNumber}");
                                 } else if (customer.whatsApp.text.trim().isNotEmpty && customer.whatsApp.text.trim().length <8 ||customer.whatsApp.text.trim().length>12) {
-                                  utils.showWarningToast(context, text: "Please Check ${constValue.contact} ${constValue.mobileNumber}");
+                                  utils.showWarningToast(context, text: "${constValue.checkWhatsappNumber} ");
                                 } else {
                                   if(customer.email.text.trim().isEmpty) {
                                     custProvider.changeIndex(2);
@@ -657,12 +657,12 @@ class _CreateCustomerState extends State<CreateCustomer> with TickerProviderStat
                                       _myFocusScopeNode.unfocus();
                                       custProvider.changeIndex(2);
                                     }else{
-                                      utils.showWarningToast(context,text: "Please Check Email Id");
+                                      utils.showWarningToast(context,text: "${constValue.checkWhatsappNumber}");
                                     }
                                   }
                                 }
                               }, isLoading: false, backgroundColor: colorsConst.primary,
-                              radius: 10, width: kIsWeb?webWidth/2.1:phoneWidth/2.1,text: "Next",),
+                              radius: 10, width: kIsWeb?webWidth/2.1:phoneWidth/2.1,text:"${constValue.next}",),
                           ],
                         ),
                       ),
@@ -730,37 +730,48 @@ class _CreateCustomerState extends State<CreateCustomer> with TickerProviderStat
                       ),
                       20.height,
                       SizedBox(
-                        width: kIsWeb?webWidth:phoneWidth,
+                        width: kIsWeb ? webWidth : phoneWidth,
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             CustomLoadingButton(
-                                callback: (){
+                                callback: () {
                                   custProvider.changeIndex(1);
                                   _myFocusScopeNode.unfocus();
-                                }, isLoading: false,text: "Back",
-                                backgroundColor: Colors.white, textColor: colorsConst.primary,radius: 10,
-                                width: kIsWeb?webWidth/2.1:phoneWidth/2.1),
+                                },
+                                isLoading: false,
+                                text: "${constValue.back}",
+                                backgroundColor: Colors.white,
+                                textColor: colorsConst.primary,
+                                radius: 10,
+                                width: kIsWeb ? webWidth / 2.1 : phoneWidth / 2.1),
                             CustomLoadingButton(
-                              callback: (){
+                              callback: () {
                                 final customer = custProvider.addCustomer.last;
 
                                 if (customer.name.text.trim().isEmpty) {
-                                  utils.showWarningToast(context, text: "Please Fill ${constValue.contact} Name");
+                                  utils.showWarningToast(context,
+                                      text: "${constValue.contact} ${constValue.fillName} ");
                                   custProvider.addCtr.reset();
                                 } else if (customer.phone.text.trim().isEmpty) {
-                                  utils.showWarningToast(context, text: "Please Fill ${constValue.contact} ${constValue.phoneNumber}");
+                                  utils.showWarningToast(context,
+                                      text: "${constValue.contact} ${constValue.phoneNumber} ${constValue.fillName} ");
                                   custProvider.addCtr.reset();
-                                } else if (customer.phone.text.trim().length < 8 || customer.phone.text.trim().length > 12) {
-                                  utils.showWarningToast(context, text: "Please Check ${constValue.contact} ${constValue.phoneNumber}");
+                                } else if (customer.phone.text.trim().length < 8 ||
+                                    customer.phone.text.trim().length > 12) {
+                                  utils.showWarningToast(context,
+                                      text: "${constValue.checkPhoneNumber}");
                                   custProvider.addCtr.reset();
-                                } else if (customer.whatsApp.text.trim().isNotEmpty && customer.whatsApp.text.trim().length < 8  ||customer.whatsApp.text.trim().length > 12) {
-                                  utils.showWarningToast(context, text: "Please Check ${constValue.contact} ${constValue.mobileNumber}");
+                                } else if (customer.whatsApp.text.trim().isNotEmpty &&
+                                    customer.whatsApp.text.trim().length < 8 ||
+                                    customer.whatsApp.text.trim().length > 12) {
+                                  utils.showWarningToast(context,
+                                      text: "${constValue.checkPhoneNumber} ");
                                   custProvider.addCtr.reset();
                                 } else {
-                                  if(customer.email.text.trim().isEmpty) {
+                                  if (customer.email.text.trim().isEmpty) {
                                     _myFocusScopeNode.unfocus();
-                                    if(custProvider.addCustomer.length!=1){
+                                    if (custProvider.addCustomer.length != 1) {
                                       showDialog(
                                         context: context,
                                         barrierDismissible: false,
@@ -770,7 +781,7 @@ class _CreateCustomerState extends State<CreateCustomer> with TickerProviderStat
                                             content: StatefulBuilder(
                                               builder: (context, setState) {
                                                 return SizedBox(
-                                                  width: kIsWeb?webWidth/1.5:phoneWidth/1.5,
+                                                  width: kIsWeb ? webWidth / 1.5 : phoneWidth / 1.5,
                                                   child: Column(
                                                     mainAxisSize: MainAxisSize.min,
                                                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -788,7 +799,8 @@ class _CreateCustomerState extends State<CreateCustomer> with TickerProviderStat
                                                       ),
                                                       Center(
                                                         child: CustomText(
-                                                          text: "Make this ${constValue.contact.toLowerCase()} the main ${constValue.contact.toLowerCase()}?",
+                                                          text:
+                                                          "${constValue.makeMainQuestion} ${constValue.contact.toLowerCase()} ${constValue.contact.toLowerCase()}?",
                                                           colors: Colors.black,
                                                           size: 15,
                                                           isBold: true,
@@ -837,7 +849,7 @@ class _CreateCustomerState extends State<CreateCustomer> with TickerProviderStat
                                                                 borderRadius: BorderRadius.circular(10),
                                                               ),
                                                             ),
-                                                            child: const CustomText(text: "Cancel", size: 15),
+                                                            child: CustomText(text: "${constValue.cancel}", size: 15),
                                                           ),
                                                           CustomLoadingButton(
                                                             height: 35,
@@ -845,9 +857,10 @@ class _CreateCustomerState extends State<CreateCustomer> with TickerProviderStat
                                                             radius: 10,
                                                             width: 70,
                                                             backgroundColor: colorsConst.primary,
-                                                            text: "Save",
+                                                            text: "${constValue.save}",
                                                             callback: () {
-                                                              custProvider.customerList(context, "1", locPvr.latitude, locPvr.longitude);
+                                                              custProvider.customerList(
+                                                                  context, "1", locPvr.latitude, locPvr.longitude);
                                                             },
                                                             controller: custProvider.addCtr,
                                                           )
@@ -861,16 +874,15 @@ class _CreateCustomerState extends State<CreateCustomer> with TickerProviderStat
                                           );
                                         },
                                       );
-                                    }else{
-                                      custProvider.customerList(context,"1",locPvr.latitude,locPvr.longitude);
+                                    } else {
+                                      custProvider.customerList(context, "1", locPvr.latitude, locPvr.longitude);
                                     }
-                                  }else{
-                                    final bool isValid =
-                                    RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$')
+                                  } else {
+                                    final bool isValid = RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$')
                                         .hasMatch(customer.email.text.trim());
-                                    if(isValid){
+                                    if (isValid) {
                                       _myFocusScopeNode.unfocus();
-                                      if(custProvider.addCustomer.length!=1){
+                                      if (custProvider.addCustomer.length != 1) {
                                         showDialog(
                                           context: context,
                                           barrierDismissible: false,
@@ -880,7 +892,7 @@ class _CreateCustomerState extends State<CreateCustomer> with TickerProviderStat
                                               content: StatefulBuilder(
                                                 builder: (context, setState) {
                                                   return SizedBox(
-                                                    width: kIsWeb?webWidth/1.5:phoneWidth/1.5,
+                                                    width: kIsWeb ? webWidth / 1.5 : phoneWidth / 1.5,
                                                     child: Column(
                                                       mainAxisSize: MainAxisSize.min,
                                                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -898,7 +910,8 @@ class _CreateCustomerState extends State<CreateCustomer> with TickerProviderStat
                                                         ),
                                                         Center(
                                                           child: CustomText(
-                                                            text: "Make this ${constValue.contact.toLowerCase()} the main ${constValue.contact.toLowerCase()}?",
+                                                            text:
+                                                            "${constValue.makeMainQuestion} ${constValue.contact.toLowerCase()} ${constValue.contact.toLowerCase()}?",
                                                             colors: Colors.black,
                                                             size: 15,
                                                             isBold: true,
@@ -947,7 +960,7 @@ class _CreateCustomerState extends State<CreateCustomer> with TickerProviderStat
                                                                   borderRadius: BorderRadius.circular(10),
                                                                 ),
                                                               ),
-                                                              child: const CustomText(text: "Cancel", size: 15),
+                                                              child: CustomText(text: "${constValue.cancel}", size: 15),
                                                             ),
                                                             CustomLoadingButton(
                                                               height: 35,
@@ -955,9 +968,10 @@ class _CreateCustomerState extends State<CreateCustomer> with TickerProviderStat
                                                               radius: 10,
                                                               width: 70,
                                                               backgroundColor: colorsConst.primary,
-                                                              text: "Save",
+                                                              text: "${constValue.save}",
                                                               callback: () {
-                                                                custProvider.customerList(context, "1", locPvr.latitude, locPvr.longitude);
+                                                                custProvider.customerList(
+                                                                    context, "1", locPvr.latitude, locPvr.longitude);
                                                               },
                                                               controller: custProvider.addCtr,
                                                             )
@@ -971,17 +985,23 @@ class _CreateCustomerState extends State<CreateCustomer> with TickerProviderStat
                                             );
                                           },
                                         );
-                                      }else{
-                                        custProvider.customerList(context,"1",locPvr.latitude,locPvr.longitude);
+                                      } else {
+                                        custProvider.customerList(context, "1", locPvr.latitude, locPvr.longitude);
                                       }
-                                    }else{
-                                      utils.showWarningToast(context,text: "Please Check Email Id");
+                                    } else {
+                                      utils.showWarningToast(context, text: "${constValue.checkEmailId}");
                                       custProvider.addCtr.reset();
                                     }
                                   }
                                 }
-                              }, isLoading: custProvider.addCustomer.length==1?true:false, backgroundColor: colorsConst.primary,
-                              radius: 10, width: kIsWeb?webWidth/2.1:phoneWidth/2.1,text: "Save",controller: custProvider.addCtr,),
+                              },
+                              isLoading: custProvider.addCustomer.length == 1 ? true : false,
+                              backgroundColor: colorsConst.primary,
+                              radius: 10,
+                              width: kIsWeb ? webWidth / 2.1 : phoneWidth / 2.1,
+                              text: "${constValue.save}",
+                              controller: custProvider.addCtr,
+                            ),
                           ],
                         ),
                       ),

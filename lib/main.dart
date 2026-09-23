@@ -468,7 +468,7 @@ void setupForegroundFirebaseMessageListener() {
       if (context != null) {
         await safeCall(
           'HomeProvider.loadDashboard',
-              () => Provider.of<HomeProvider>(context, listen: false).loadDashboard(context),
+              () => Provider.of<HomeProvider>(context, listen: false).loadFullDashboard(context),
           timeout: const Duration(seconds: 10),
         );
 
@@ -758,6 +758,7 @@ Future<void> main() async {
         ChangeNotifierProvider(create: (_) => ProjectProvider()),
         ChangeNotifierProvider(create: (_) => ExpasyProvider()),
         ChangeNotifierProvider(create: (_) => SettingProvider()),
+        ChangeNotifierProvider(create: (_) => LanguageManager.instance),
       ],
       child: MyApp(homeScreen: homeScreen),
     ),
@@ -775,40 +776,44 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ConnectivityAppWrapper(
-      app: MaterialApp(
-        navigatorKey: navigatorKey,
-        builder: (context, child) {
-          return ConnectivityWidgetWrapper(
-            color: colorsConst.primary,
-            message: "Check Your Internet Connection",
-            disableInteraction: true,
-            child: MediaQuery(
-              data: MediaQuery.of(context).copyWith(
-                textScaler: const TextScaler.linear(1.0),
+    return Consumer<LanguageManager>(   // ✅ சேர்த்தேன்
+      builder: (context, langManager, _) {
+        return ConnectivityAppWrapper(
+          app: MaterialApp(
+            navigatorKey: navigatorKey,
+            builder: (context, child) {
+              return ConnectivityWidgetWrapper(
+                color: colorsConst.primary,
+                message: "Check Your Internet Connection",
+                disableInteraction: true,
+                child: MediaQuery(
+                  data: MediaQuery.of(context).copyWith(
+                    textScaler: const TextScaler.linear(1.0),
+                  ),
+                  child: child!,
+                ),
+              );
+            },
+            useInheritedMediaQuery: true,
+            locale: const Locale('en', 'US'),
+            debugShowCheckedModeBanner: false,
+            theme: ThemeData(
+              useMaterial3: false,
+              colorScheme: ColorScheme.fromSeed(seedColor: colorsConst.primary),
+              primaryColor: colorsConst.primary,
+              scrollbarTheme: ScrollbarThemeData(
+                thumbVisibility: WidgetStateProperty.all(true),
+                thickness: WidgetStateProperty.all(5),
+                thumbColor: WidgetStateProperty.all(colorsConst.primary.withOpacity(0.5)),
+                radius: const Radius.circular(10),
+                minThumbLength: 10,
               ),
-              child: child!,
+              fontFamily: 'Lato',
             ),
-          );
-        },
-        useInheritedMediaQuery: true,
-        locale: const Locale('en', 'US'),
-        debugShowCheckedModeBanner: false,
-        theme: ThemeData(
-          useMaterial3: false,
-          colorScheme: ColorScheme.fromSeed(seedColor: colorsConst.primary),
-          primaryColor: colorsConst.primary,
-          scrollbarTheme: ScrollbarThemeData(
-            thumbVisibility: WidgetStateProperty.all(true),
-            thickness: WidgetStateProperty.all(5),
-            thumbColor: WidgetStateProperty.all(colorsConst.primary.withOpacity(0.5)),
-            radius: const Radius.circular(10),
-            minThumbLength: 10,
+            home: SplashScreen(homeScreen: homeScreen),
           ),
-          fontFamily: 'Lato',
-        ),
-        home: SplashScreen(homeScreen: homeScreen),
-      ),
+        );
+      },
     );
   }
 }
