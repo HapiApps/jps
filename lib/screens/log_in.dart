@@ -204,7 +204,7 @@ class _LoginPageState extends State<LoginPage> {
                         },
                       ),
                       Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        mainAxisAlignment: MainAxisAlignment.start,
                         children: [
                           CustomCheckBox(
                             text: constValue.remember,
@@ -212,6 +212,13 @@ class _LoginPageState extends State<LoginPage> {
                               homeProvider.remember(true);
                             },
                             saveValue: homeProvider.rememberMe,),
+
+                        ],
+                      ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+
                           TextButton(
                               onPressed: () async {
                                 // homeProvider.verifyUser(context);

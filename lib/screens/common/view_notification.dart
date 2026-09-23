@@ -11,6 +11,7 @@ import '../../component/custom_loading.dart';
 import '../../component/custom_text.dart';
 import '../../source/constant/assets_constant.dart';
 import '../../source/constant/colors_constant.dart';
+import '../../source/constant/default_constant.dart';
 import '../../source/utilities/utils.dart';
 import '../../view_model/employee_provider.dart';
 import '../../view_model/leave_provider.dart';
@@ -66,7 +67,7 @@ class _ViewNotificationState extends State<ViewNotification> with SingleTickerPr
             backgroundColor: colorsConst.bacColor,
             appBar:  PreferredSize(
               preferredSize: Size(300, 50),
-              child: CustomAppbar(text: "View Notifications",buttonCallback: (){ Navigator.pop(context, true);}),
+              child: CustomAppbar(text: "${constValue.viewNotifications}",buttonCallback: (){ Navigator.pop(context, true);}),
 
             ),
             body: Center(
