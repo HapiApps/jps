@@ -2970,51 +2970,29 @@ class TaskProvider with ChangeNotifier {
   //   notifyListeners();
   // }
   Future<void> stopRecording() async {
-
     if (!_isRecording) return;
 
     try {
-
-      final path =
-      await _record.stop();
+      final path = await _record.stop();
 
       timer?.cancel();
-
-      _isRecording =
-      false;
+      _isRecording = false;
 
       if (path != null) {
-
-        audioList.insert(
+        _recordedAudioPaths.insert(
           0,
-
           AddAudioModel(
-
-            audioPath:
-            path,
-
-            time:
-            DateTime.now()
-                .toString(),
-
-            second:
-            recordingDuration.toDouble(),
-
-            duration:
-            Duration(
-              seconds:
-              recordingDuration,
-            ),
+            audioPath: path,
+            time: DateTime.now().toString(),
+            second: recordingDuration.toDouble(),
+            duration: Duration(seconds: recordingDuration),
           ),
         );
 
-        _recordingDuration =
-        0;
+        _recordingDuration = 0;
       }
-
     } catch (e) {
-
-      log("$e");
+      log("Stop Recording Error: $e");
     }
 
     notifyListeners();
@@ -3058,61 +3036,66 @@ class TaskProvider with ChangeNotifier {
   //     }
   //   }
   // }
-  Future<void> playAudio(String audioPath, int index) async {
-    if (audioPath.isNotEmpty) {
 
-      // Reset all to false
+
+  StreamSubscription? _durationSub;
+  StreamSubscription? _positionSub;
+  StreamSubscription? _completeSub;
+  Future<void> playAudio(String audioPath, int index) async {
+    if (audioPath.isEmpty) return;
+
+    try {
+      // Reset all play states
       for (var i = 0; i < _recordedAudioPaths.length; i++) {
         _recordedAudioPaths[i].play = false;
       }
+
+      // ✅ Properly cancel OLD subscriptions before creating new ones
+      await _durationSub?.cancel();
+      await _positionSub?.cancel();
+      await _completeSub?.cancel();
+
+      await audioPlayer.stop();
 
       _isPlaying = true;
       _recordedAudioPaths[index].play = true;
       notifyListeners();
 
-      // Remove old subscriptions
-      audioPlayer.onDurationChanged.listen(null);
-      audioPlayer.onPositionChanged.listen(null);
-      audioPlayer.onPlayerComplete.listen(null);
-
-      audioPlayer.onDurationChanged.listen((durationV) {
+      _durationSub = audioPlayer.onDurationChanged.listen((durationV) {
         _recordedAudioPaths[index].duration = durationV;
         notifyListeners();
       });
 
-      audioPlayer.onPositionChanged.listen((positionV) {
+      _positionSub = audioPlayer.onPositionChanged.listen((positionV) {
         _recordedAudioPaths[index].position = positionV;
         notifyListeners();
       });
 
-      audioPlayer.onPlayerComplete.listen((event) {
+      _completeSub = audioPlayer.onPlayerComplete.listen((event) {
         _isPlaying = false;
         _recordedAudioPaths[index].position = Duration.zero;
         _recordedAudioPaths[index].play = false;
         notifyListeners();
       });
 
-      try {
+      await audioPlayer.play(DeviceFileSource(audioPath));
 
-        /// 🔥 START FROM 0
-        await audioPlayer.seek(Duration.zero);
-
-        await audioPlayer.play(DeviceFileSource(audioPath));
-
-      } catch (e) {
-        _isPlaying = false;
-        _recordedAudioPaths[index].play = false;
-        notifyListeners();
-      }
+    } catch (e) {
+      _isPlaying = false;
+      _recordedAudioPaths[index].play = false;
+      log("Play Audio Error: $e");
+      notifyListeners();
     }
   }
-
   Future<void> stopAudio() async {
-    await audioPlayer.pause();
-    _isPlaying = false;
-    notifyListeners();
+    try {
+      await audioPlayer.pause();
+      _isPlaying = false;
+      notifyListeners();
+    } catch (e) {
+      log("Stop Audio Error: $e");
+    }
   }
-
   Future<void> loadAudioDuration(String url) async {
     try {
       await audioPlayer.setSourceUrl(url);

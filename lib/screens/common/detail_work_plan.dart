@@ -339,6 +339,7 @@ class _DailyReportStatusPageState extends State<DailyReportStatusPage>
   @override
   void dispose() {
     tabController.dispose();
+
     super.dispose();
   }
 

@@ -42,6 +42,7 @@ class _CustomAttendanceReportState extends State<CustomAttendanceReport> {
   @override
   void dispose() {
     _myFocusScopeNode.dispose();
+
     super.dispose();
   }
   @override

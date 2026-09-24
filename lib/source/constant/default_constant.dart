@@ -297,7 +297,7 @@ class ConstantValues {
 
   String get cusType => _ta ? " வாடிக்கையாளர் வகை" : " Customer Category";
 
-  String get role => _ta ? "பொறுப்பு" : "Role";
+  String get role => _ta ? "பணி பதவி" : "Role";
 
   String get comment => _ta ? "முழு வரலாற்றைக் காண" : "View Full History";
 
@@ -496,7 +496,7 @@ class ConstantValues {
   String get customerNames => _ta ? "வாடிக்கையாளர் பெயர்" : "Customer Name";
   String get department => _ta ? "துறை" : "Department";
   String get designation => _ta ? "பதவி" : "Designation";
-  String get roles => _ta ? "பொறுப்பு" : "Role";
+  String get roles => _ta ? "பணி பதவி" : "Role";
   String get selectType => _ta ? "வகையைத் தேர்ந்தெடுக்கவும்" : "Select Type";
 
 // task details

@@ -276,7 +276,7 @@ class _ApplyLeaveState extends State<ApplyLeave> {
                                       _myFocusScopeNode.unfocus();
                                     },
                                     isLoading: false,
-                                    text: "Cancel",
+                                    text: "${constValue.cancel}",
                                     backgroundColor: Colors.white,
                                     textColor: colorsConst.primary,
                                     radius: 10,
@@ -336,7 +336,7 @@ class _ApplyLeaveState extends State<ApplyLeave> {
                                     }
                                   },
                                   controller: levProvider.leaveCtr,
-                                  text: isEditMode ? "Update" : "Apply",
+                                  text: isEditMode ? "${constValue.update}" : "${constValue.apply}",
                                   backgroundColor: colorsConst.primary,
                                   radius: 10,
                                 ),

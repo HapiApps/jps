@@ -200,7 +200,7 @@ class _DashBoardState extends State<DashBoard> {
               title: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  /// ARUU Logo
+
                   Row(
                     mainAxisAlignment: MainAxisAlignment.start,
                     children: [
@@ -443,10 +443,10 @@ class _DashBoardState extends State<DashBoard> {
               (f) => f['feature'] == 'Customer Management' && f['name'] == 'View'))
         _PanelItem(constValue.customer, assets.customer, 2,
             const DashBoard(child: ViewCustomer())),
-      if (homeProvider.roleAccess
-          .any((f) => f['feature'] == 'Expense' && f['name'] == 'View'))
-        _PanelItem(
-            "Expense", assets.expense, 9, const DashBoard(child: ExpensePage())),
+      // if (homeProvider.roleAccess
+      //     .any((f) => f['feature'] == 'Expense' && f['name'] == 'View'))
+      //   _PanelItem(
+      //       "Expense", assets.expense, 9, const DashBoard(child: ExpensePage())),
       if (homeProvider.roleAccess
           .any((f) => f['feature'] == 'Office Expense' && f['name'] == 'View'))
         _PanelItem("${constValue.office}", assets.expense, 15,
@@ -483,10 +483,10 @@ class _DashBoardState extends State<DashBoard> {
                   date2: homeProvider.endDate,
                   isDirect: true,
                 ))),
-      if (homeProvider.roleAccess
-          .any((f) => f['feature'] == 'Payroll Management' && f['name'] == 'View'))
-        _PanelItem("Payroll", assets.payroll, 12,
-            const DashBoard(child: PayrollDashboard())),
+      // if (homeProvider.roleAccess
+      //     .any((f) => f['feature'] == 'Payroll Management' && f['name'] == 'View'))
+      //   _PanelItem("Payroll", assets.payroll, 12,
+      //       const DashBoard(child: PayrollDashboard())),
       if (homeProvider.roleAccess
           .any((f) => f['feature'] == 'Project Management' && f['name'] == 'View'))
         _PanelItem(constValue.project, assets.project, 13,

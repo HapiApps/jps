@@ -41,10 +41,12 @@ class _DayWorkPlanPageState extends State<DayWorkPlanPage> {
   @override
   void dispose() {
     _scrollController.dispose();
+
     for (var item in workPlans) {
       item.descriptionController.dispose();
     }
     super.dispose();
+
   }
 
   void scrollToBottom() {

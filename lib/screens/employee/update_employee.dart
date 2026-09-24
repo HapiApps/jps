@@ -506,6 +506,25 @@ class _UpdatedEmployeeState extends State<UpdatedEmployee> with TickerProviderSt
                                       text: constValue.lastName, controller: empProvider.signLastName,
                                       width: kIsWeb?webWidth:phoneWidth,
                                     ),
+                                    Column(
+                                      children: [
+                                        Row(
+                                          children: [
+                                            CustomText(
+                                              text: "${constValue.phoneNumber}",
+                                              size: 13,
+                                              isBold: false,
+                                            ),
+                                            CustomText(
+                                              text: "*",
+                                              colors: colorsConst.appRed,
+                                              size: 20,
+                                              isBold: false,
+                                            ),
+                                          ],
+                                        ),
+                                      ],
+                                    ),
                                     SizedBox(
                                       width: kIsWeb?webWidth/1.02:phoneWidth/1.02,
                                       child: Row(
@@ -552,9 +571,10 @@ class _UpdatedEmployeeState extends State<UpdatedEmployee> with TickerProviderSt
                                           ),
                                           4.width,
                                           Expanded(
-                                            child: CustomTextField(text: constValue.phoneNumber2,
+                                            child: CustomTextField(text: "",
                                               controller: empProvider.signMobileNumber,
-                                              isRequired: true,isLogin: true,
+                                             // isRequired: true,
+                                              isLogin: true,
                                               iconCallBack: (){
                                                 empProvider.isWhatsAppCheck(isUpdate: true);
                                               },

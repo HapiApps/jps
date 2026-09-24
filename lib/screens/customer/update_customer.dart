@@ -148,15 +148,27 @@ class _UpdateCustomerState extends State<UpdateCustomer> with TickerProviderStat
                                       custProvider.makeChanges();
                                     },
                                   ),
-                                  CustomTextField(
-                                    text: "${constValue.emergencyNumber}",
-                                    width: kIsWeb?webWidth:phoneWidth,
-                                    controller: custProvider.emgName,
-                                    onChanged: (value){
-                                      custProvider.makeChanges();
-                                    },
+                                  Column(
+                                    children: [
+                                      Row(
+                                        children: [
+                                          CustomText(
+                                            text: "${constValue.phoneNumber}",
+                                            size: 13,
+                                            isBold: false,
+                                          ),
+                                          CustomText(
+                                            text: "*",
+                                            colors: colorsConst.appRed,
+                                            size: 20,
+                                            isBold: false,
+                                          ),
+                                        ],
+                                      ),
+                                    ],
                                   ),
                                   // ---- Emergency Number with country code (same pattern as CreateCustomer) ----
+
                                   Row(
                                     crossAxisAlignment: CrossAxisAlignment.center,
                                     children: [
@@ -524,6 +536,25 @@ class _UpdateCustomerState extends State<UpdateCustomer> with TickerProviderStat
                                               ),
                                               20.height,
                                               // ---- Phone number with country code (same pattern as CreateCustomer) ----
+                                              Column(
+                                                children: [
+                                                  Row(
+                                                    children: [
+                                                      CustomText(
+                                                        text: "${constValue.phoneNumber}",
+                                                        size: 13,
+                                                        isBold: false,
+                                                      ),
+                                                      CustomText(
+                                                        text: "*",
+                                                        colors: colorsConst.appRed,
+                                                        size: 20,
+                                                        isBold: false,
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ],
+                                              ),
                                               SizedBox(
                                                 child: Row(
                                                   crossAxisAlignment: CrossAxisAlignment.center,
@@ -568,7 +599,8 @@ class _UpdateCustomerState extends State<UpdateCustomer> with TickerProviderStat
                                                     4.width,
                                                     Expanded(
                                                       child: CustomTextField(
-                                                        text: constValue.phoneNumber,isRequired: true,
+                                                        text: "",
+                                                        // isRequired: true,
                                                         controller: custProvider.addCustomer[index].phone,
                                                         inputFormatters: constInputFormatters.mobileNumberInput,
                                                         keyboardType: TextInputType.number,

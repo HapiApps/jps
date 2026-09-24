@@ -518,10 +518,29 @@ class _CreateEmployeeState extends State<CreateEmployee>with SingleTickerProvide
                                   Column(
                                     children: [
                                       Row(
+                                        children: [
+                                          CustomText(
+                                            text: "${constValue.phoneNumber}",
+                                            size: 13,
+                                            isBold: false,
+                                          ),
+                                          CustomText(
+                                            text: "*",
+                                            colors: colorsConst.appRed,
+                                            size: 20,
+                                            isBold: false,
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                  Column(
+                                    children: [
+                                      Row(
                                         crossAxisAlignment: CrossAxisAlignment.center,
                                         children: [
                                           Padding(
-                                            padding: const EdgeInsets.only(top: 18.0),
+                                            padding: const EdgeInsets.only(top: 12.0),
                                             child: Container(
                                               margin: const EdgeInsets.only(bottom: 14),
                                               child: Material(
@@ -569,9 +588,10 @@ class _CreateEmployeeState extends State<CreateEmployee>with SingleTickerProvide
                                           8.width,
                                           Expanded(
                                             child: CustomTextField(
-                                              text: constValue.phoneNumber2,
+                                              text: "",
                                               controller: empProvider.signMobileNumber,
-                                              isRequired: true, isLogin: true,
+                                             // isRequired: true,
+                                              isLogin: true,
                                               iconCallBack: () {
                                                 empProvider.isWhatsAppCheck(isUpdate: true);
                                               },

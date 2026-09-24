@@ -75,7 +75,10 @@ class LeaveSummaryCard extends StatelessWidget {
                           " ${constValue.leaveSummary}",
                           style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
                         ),
-                        const SizedBox(width: 16),
+                      ],
+                    ),
+                    Row(
+                      children: [
                         Text(
                           constValue.totalLeaveLabel,
                           style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
@@ -90,7 +93,6 @@ class LeaveSummaryCard extends StatelessWidget {
                         ),
                       ],
                     ),
-
                     /// TAKEN
                     Row(
                       children: [

@@ -1104,23 +1104,114 @@ Future<void> loginOuts(context) async {
   }
 
   Timer? _refreshTimer;
-  BuildContext? _refreshContext; // loadFullDashboard-க்கு context தேவை
+  BuildContext? _refreshContext;
 
+  int _timerTickCount = 0;
+
+  bool _isHomePageActive = false;
+
+  bool get isHomePageActive => _isHomePageActive;
+  bool _isDashboardLoading = false;
+  int _loadCallCount = 0;
+  int _loadCompleteCount = 0;
+
+
+  void setHomePageActive(bool value, [BuildContext? context]) {
+    _isHomePageActive = value;
+
+    if (value && context != null) {
+      _refreshContext = context;
+    }
+
+    if (!value) {
+      stopAutoRefresh();
+      _refreshContext = null;
+    }
+
+    print("🏠 HomePage Active = $_isHomePageActive");
+  }
   void startAutoRefresh(BuildContext context) {
-    _refreshContext = context;
-    _refreshTimer?.cancel(); // already run ஆகுதுன்னா, முதல்ல cancel பண்ணுங்க
+    if (!_isHomePageActive) {
+      print(
+        "⛔ Timer NOT STARTED — HomePage inactive",
+      );
+      return;
+    }
 
-    _refreshTimer = Timer.periodic(const Duration(seconds: 60), (_) {
-      if (_refreshContext != null) {
-        loadFullDashboard(_refreshContext!);
-      }
-    });
+    if (!context.mounted) {
+      print(
+        "⛔ Timer NOT STARTED — context invalid",
+      );
+      return;
+    }
+
+    _refreshContext = context;
+
+    _refreshTimer?.cancel();
+
+    _timerTickCount = 0;
+
+    print(
+      "⏱️ Timer STARTED — HomePage only",
+    );
+
+    _refreshTimer = Timer.periodic(
+      const Duration(seconds: 60),
+          (_) async {
+        if (!_isHomePageActive) {
+          print(
+            "⛔ Timer stopped — HomePage inactive",
+          );
+
+          stopAutoRefresh();
+          return;
+        }
+
+        if (_refreshContext == null ||
+            !_refreshContext!.mounted) {
+          print(
+            "⛔ Timer stopped — context invalid",
+          );
+
+          stopAutoRefresh();
+          return;
+        }
+
+        if (_isDashboardLoading) {
+          print(
+            "⏭️ Timer tick skipped — "
+                "dashboard already loading",
+          );
+
+          return;
+        }
+
+        _timerTickCount++;
+
+        print(
+          "⏱️ Timer TICK #$_timerTickCount — "
+              "calling loadFullDashboard()",
+        );
+
+        await loadFullDashboard(
+          _refreshContext!,
+        );
+      },
+    );
   }
 
   void stopAutoRefresh() {
+    print(
+      "⏹️ Timer STOPPED — "
+          "total ticks: $_timerTickCount",
+    );
+
     _refreshTimer?.cancel();
     _refreshTimer = null;
+    _refreshContext = null;
   }
+
+
 
   @override
   void dispose() {
@@ -1130,12 +1221,73 @@ Future<void> loginOuts(context) async {
   DashboardModel _dashboard = DashboardModel.empty();
   DashboardModel get dashboard => _dashboard;
 
+
+
   Future<void> loadFullDashboard(BuildContext context) async {
+    _loadCallCount++;
+
+    final int thisCallId = _loadCallCount;
+    final DateTime callStartTime = DateTime.now();
+
+    print(
+      "🚀🚀🚀 loadFullDashboard() CALLED — "
+          "Call ID: #$thisCallId at $callStartTime 🚀🚀🚀",
+    );
+
+    // ============================================================
+    // HOME PAGE ACTIVE CHECK
+    // ============================================================
+
+    if (!_isHomePageActive) {
+      print(
+        "⛔ Call #$thisCallId BLOCKED — "
+            "HomePage is not active",
+      );
+      return;
+    }
+
+    // ============================================================
+    // CONTEXT CHECK
+    // ============================================================
+
+    if (!context.mounted) {
+      print(
+        "⛔ Call #$thisCallId BLOCKED — "
+            "Context is not mounted",
+      );
+      return;
+    }
+
+    // ============================================================
+    // PREVENT DUPLICATE / OVERLAPPING API CALL
+    // ============================================================
+
+    if (_isDashboardLoading) {
+      print(
+        "⏭️ Call #$thisCallId SKIPPED — "
+            "Previous loadFullDashboard() is still running",
+      );
+
+      return;
+    }
+
+    _isDashboardLoading = true;
+
+    print(
+      "🔒 _isDashboardLoading = true "
+          "(Call #$thisCallId)",
+    );
+
     _refresh = false;
+
     notifyListeners();
 
     try {
-      Map data = {
+      // ============================================================
+      // API DATA
+      // ============================================================
+
+      final Map<String, dynamic> data = {
         "action": home,
         "id": localData.storage.read("id"),
         "salesman_id": localData.storage.read("id"),
@@ -1146,65 +1298,193 @@ Future<void> loginOuts(context) async {
         "date1": _startDate,
         "date2": _endDate,
       };
-      final response = await homeRepo.getFullDashboard(data);
 
-      /* ================= MAIN REPORT ================= */
-      var mainReportJson = response["main_report"] ?? {};
-      final mainReportModel = MainReportModel.fromJson(mainReportJson);
-
-      // ✅ old field (UI இதை use பண்றது) - அப்படியே வையுங்க
-      _mainReportList = response["main_report"] == null ? [] : [response["main_report"]];
-
-      localData.storage.write("no_attendance_count", mainReportModel.noAttendanceCount.toString());
-      localData.storage.write("conveyance_amount", mainReportModel.conveyanceAmount);
-      localData.storage.write("travel_amount", mainReportModel.travelAmount);
-      localData.storage.write("da_amount", mainReportModel.daAmount);
-
-      /* ================= VISIT COUNT ================= */
-      _visitCount = response["dashboard_report"] ?? [];
-
-      int store = 0;
-      inActiveVisit = 0;
-      activeVisit = 0;
-      for (var i = 0; i < _visitCount.length; i++) {
-        int count = int.tryParse(_visitCount[i]["total_count"].toString()) ?? 0;
-        store += count;
-        count == 0 ? inActiveVisit++ : activeVisit++;
-      }
-      _totalV = store.toString();
-
-      /* ================= ATTENDANCE ================= */
-      final attendanceProvider = Provider.of<AttendanceProvider>(context, listen: false);
-      final attendanceList = (response["attendance"] ?? []) as List;
-      attendanceProvider.setAttendanceData(
-        attendanceList.map<AttendanceModel>((e) => AttendanceModel.fromJson(e)).toList(),
+      print(
+        "📤 Call #$thisCallId — "
+            "Sending API request...",
       );
 
-      /* ================= LATE + PERMISSION ================= */
-      permisCount = 0;
-      lateCountShow = 0;
-      for (var i = 0; i < attendanceList.length; i++) {
-        var row = attendanceList[i];
-        if (row["per_status"] != null && row["per_status"].toString() != "null") {
-          permisCount++;
-        }
-        String status = row["status"].toString();
-        String time = row["time"]?.toString() ?? "";
-        if (time.isEmpty) continue;
+      final response =
+      await homeRepo.getFullDashboard(data);
 
-        String inTime = status.contains("1,2")
-            ? time.split(",")[0]
-            : status.contains("2,1")
-            ? time.split(",")[1]
-            : time.split(",")[0];
+      print(
+        "📥 Call #$thisCallId — "
+            "API response received",
+      );
 
-        if (inTime.isNotEmpty && isLate(inTime)) lateCountShow++;
+      // ============================================================
+      // CHECK HOME PAGE AFTER API RESPONSE
+      // ============================================================
+
+      if (!_isHomePageActive) {
+        print(
+          "⛔ Call #$thisCallId — "
+              "HomePage became inactive while API was running",
+        );
+
+        return;
       }
 
-      // ✅ NEW model-ஐயும் parallel-ஆ populate பண்ணுங்க (future code-க்கு)
+      if (!context.mounted) {
+        print(
+          "⛔ Call #$thisCallId — "
+              "Context became invalid after API response",
+        );
+
+        return;
+      }
+
+      // ============================================================
+      // MAIN REPORT
+      // ============================================================
+
+      final mainReportJson =
+          response["main_report"] ?? {};
+
+      final mainReportModel =
+      MainReportModel.fromJson(mainReportJson);
+
+      _mainReportList =
+      response["main_report"] == null
+          ? []
+          : [response["main_report"]];
+
+      localData.storage.write(
+        "no_attendance_count",
+        mainReportModel.noAttendanceCount.toString(),
+      );
+
+      localData.storage.write(
+        "conveyance_amount",
+        mainReportModel.conveyanceAmount,
+      );
+
+      localData.storage.write(
+        "travel_amount",
+        mainReportModel.travelAmount,
+      );
+
+      localData.storage.write(
+        "da_amount",
+        mainReportModel.daAmount,
+      );
+
+      // ============================================================
+      // VISIT COUNT
+      // ============================================================
+
+      _visitCount =
+          response["dashboard_report"] ?? [];
+
+      int store = 0;
+
+      inActiveVisit = 0;
+      activeVisit = 0;
+
+      for (var i = 0; i < _visitCount.length; i++) {
+        final int count =
+            int.tryParse(
+              _visitCount[i]["total_count"]
+                  .toString(),
+            ) ??
+                0;
+
+        store += count;
+
+        if (count == 0) {
+          inActiveVisit++;
+        } else {
+          activeVisit++;
+        }
+      }
+
+      _totalV = store.toString();
+
+      // ============================================================
+      // ATTENDANCE
+      // ============================================================
+
+      final attendanceList =
+      (response["attendance"] ?? []) as List;
+
+      final attendanceProvider =
+      Provider.of<AttendanceProvider>(
+        context,
+        listen: false,
+      );
+
+      attendanceProvider.setAttendanceData(
+        attendanceList
+            .map<AttendanceModel>(
+              (e) => AttendanceModel.fromJson(e),
+        )
+            .toList(),
+      );
+
+      // ============================================================
+      // LATE + PERMISSION
+      // ============================================================
+
+      permisCount = 0;
+      lateCountShow = 0;
+
+      for (var i = 0;
+      i < attendanceList.length;
+      i++) {
+        final row = attendanceList[i];
+
+        // Permission count
+        if (row["per_status"] != null &&
+            row["per_status"].toString() != "null") {
+          permisCount++;
+        }
+
+        final String status =
+            row["status"]?.toString() ?? "";
+
+        final String time =
+            row["time"]?.toString() ?? "";
+
+        if (time.isEmpty) {
+          continue;
+        }
+
+        final List<String> timeParts =
+        time.split(",");
+
+        String inTime = "";
+
+        if (status.contains("1,2")) {
+          if (timeParts.isNotEmpty) {
+            inTime = timeParts[0];
+          }
+        } else if (status.contains("2,1")) {
+          if (timeParts.length > 1) {
+            inTime = timeParts[1];
+          }
+        } else {
+          if (timeParts.isNotEmpty) {
+            inTime = timeParts[0];
+          }
+        }
+
+        if (inTime.isNotEmpty &&
+            isLate(inTime)) {
+          lateCountShow++;
+        }
+      }
+
+      // ============================================================
+      // DASHBOARD MODEL
+      // ============================================================
+
       _dashboard = DashboardModel(
         mainReport: mainReportModel,
-        visitCount: _visitCount.map<VisitCountModel>((e) => VisitCountModel.fromJson(e)).toList(),
+        visitCount: _visitCount
+            .map<VisitCountModel>(
+              (e) => VisitCountModel.fromJson(e),
+        )
+            .toList(),
         totalVisits: store,
         activeVisit: activeVisit,
         inActiveVisit: inActiveVisit,
@@ -1213,14 +1493,50 @@ Future<void> loginOuts(context) async {
       );
 
       _refresh = true;
+
+      print(
+        "📊 Call #$thisCallId — "
+            "Dashboard data updated successfully",
+      );
     } catch (e, stack) {
-      print("===== DASHBOARD ERROR =====");
+      print(
+        "===== DASHBOARD ERROR "
+            "(Call #$thisCallId) =====",
+      );
+
       print(e);
       print(stack);
-      _refresh = true;
-    }
 
-    notifyListeners();
+      _refresh = true;
+    } finally {
+      // ============================================================
+      // ALWAYS RESET LOADING
+      // ============================================================
+
+      _isDashboardLoading = false;
+
+      _loadCompleteCount++;
+
+      final Duration elapsed =
+      DateTime.now().difference(callStartTime);
+
+      print(
+        "✅✅✅ loadFullDashboard() COMPLETED — "
+            "Call #$thisCallId took "
+            "${elapsed.inMilliseconds}ms | "
+            "Total completed: "
+            "$_loadCompleteCount ✅✅✅",
+      );
+
+      print(
+        "🔓 _isDashboardLoading = false "
+            "(Call #$thisCallId)",
+      );
+
+      if (_isHomePageActive) {
+        notifyListeners();
+      }
+    }
   }
   // Future<void> loadDashboard(BuildContext context) async {
   //   _refresh = false;

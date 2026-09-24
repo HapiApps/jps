@@ -99,6 +99,7 @@ class _AttendanceReportState extends State<AttendanceReport> {
   @override
   void dispose() {
     _myFocusScopeNode.dispose();
+   Provider.of<HomeProvider>(context, listen: false).stopAutoRefresh();
     super.dispose();
   }
 

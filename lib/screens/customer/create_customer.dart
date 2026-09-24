@@ -153,6 +153,25 @@ class _CreateCustomerState extends State<CreateCustomer> with TickerProviderStat
                         // inputFormatters: constInputFormatters.addressInput,
                         controller: custProvider.companyName,
                       ),
+                      Column(
+                        children: [
+                          Row(
+                            children: [
+                              CustomText(
+                                text: "${constValue.emergencyNumber}",
+                                size: 13,
+                                isBold: false,
+                              ),
+                              CustomText(
+                                text: "*",
+                                colors: colorsConst.appRed,
+                                size: 20,
+                                isBold: false,
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
@@ -201,7 +220,7 @@ class _CreateCustomerState extends State<CreateCustomer> with TickerProviderStat
                           8.width,
                           Expanded(
                             child: CustomTextField(
-                              text: "${constValue.emergencyNumber}",
+                              text: "",
                               width: double.infinity,
                               inputFormatters: constInputFormatters.mobileNumberInput,
                               controller: custProvider.emgNo,
@@ -514,6 +533,25 @@ class _CreateCustomerState extends State<CreateCustomer> with TickerProviderStat
                                     ),
                                   ),
                                   10.height,
+                                  Column(
+                                    children: [
+                                      Row(
+                                        children: [
+                                          CustomText(
+                                            text: "${constValue.phoneNumber}",
+                                            size: 13,
+                                            isBold: false,
+                                          ),
+                                          CustomText(
+                                            text: "*",
+                                            colors: colorsConst.appRed,
+                                            size: 20,
+                                            isBold: false,
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
                                   SizedBox(
                                     //width: kIsWeb?webWidth/1.1:phoneWidth/1.1,
                                     child: Row(
@@ -561,8 +599,8 @@ class _CreateCustomerState extends State<CreateCustomer> with TickerProviderStat
                                         Expanded(
                                           child: CustomTextField(
                                             fieldColor: Colors.grey.shade100,
-                                            text: constValue.phoneNumber,
-                                            isRequired: true,
+                                            text:"",
+                                          //  isRequired: true,
                                             controller: custProvider.addCustomer[index].phone,
                                             inputFormatters: constInputFormatters.mobileNumberInput,
                                             keyboardType: TextInputType.number,

@@ -101,59 +101,86 @@ class _LoginPageState extends State<LoginPage> {
                       20.height,
                       // <-- CHANGED: phone number field is now wrapped in a Row
                       // with a tappable country-code box (opens showCountryPicker) on the left.
+                      // ✅ FIX: Country code box now has a "Code *" label above it,
+                      // matching the style of the Phone Number / Password labels.
+                      Column(
+                        children: [
+                          Row(
+                            children: [
+                               CustomText(
+                                text: "${constValue.phoneNumber}",
+                                size: 13,
+                                isBold: false,
+                              ),
+                              CustomText(
+                                text: "*",
+                                colors: colorsConst.appRed,
+                                size: 20,
+                                isBold: false,
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
                       SizedBox(
                         width: kIsWeb?webWidth:phoneWidth,
                         child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.end,
                           children: [
-                            Container(
-                              margin: const EdgeInsets.only(bottom: 14), // aligns with CustomTextField's own bottom spacing
-                              child: Material(
-                                color: Colors.transparent,
-                                child: InkWell(
-                                  borderRadius: BorderRadius.circular(10),
-                                  onTap: () {
-                                    showCountryPicker(
-                                      context: context,
-                                      showPhoneCode: true,
-                                      countryListTheme: CountryListThemeData(
-                                        bottomSheetHeight: MediaQuery.of(context).size.height * 0.7,
-                                      ),
-                                      onSelect: (Country country) {
-                                        setState(() {
-                                          selectedCountryCode = "+${country.phoneCode}";
-                                          selectedCountryFlag = country.flagEmoji;
-                                        });
-                                      },
-                                    );
-                                  },
-                                  child: Container(
-                                    height: 50,
-                                    padding: const EdgeInsets.symmetric(horizontal: 10),
-                                    decoration: BoxDecoration(
-                                      border: Border.all(color: Colors.grey.shade400),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+
+                                Container(
+                                  margin: const EdgeInsets.only(bottom: 14),
+                                  child: Material(
+                                    color: Colors.transparent,
+                                    child: InkWell(
                                       borderRadius: BorderRadius.circular(10),
-                                    ),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        CustomText(text: selectedCountryFlag),
-                                        4.width,
-                                        CustomText(text: selectedCountryCode, colors: Colors.black),
-                                        2.width,
-                                        const Icon(Icons.arrow_drop_down, size: 18, color: Colors.grey),
-                                      ],
+                                      onTap: () {
+                                        showCountryPicker(
+                                          context: context,
+                                          showPhoneCode: true,
+                                          countryListTheme: CountryListThemeData(
+                                            bottomSheetHeight: MediaQuery.of(context).size.height * 0.7,
+                                          ),
+                                          onSelect: (Country country) {
+                                            setState(() {
+                                              selectedCountryCode = "+${country.phoneCode}";
+                                              selectedCountryFlag = country.flagEmoji;
+                                            });
+                                          },
+                                        );
+                                      },
+                                      child: Container(
+                                        height: 45,
+                                        padding: const EdgeInsets.symmetric(horizontal: 10),
+                                        decoration: BoxDecoration(
+                                          border: Border.all(color: Colors.grey.shade400),
+                                          borderRadius: BorderRadius.circular(10),
+                                        ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            CustomText(text: selectedCountryFlag),
+                                            4.width,
+                                            CustomText(text: selectedCountryCode, colors: Colors.black),
+                                            2.width,
+                                            const Icon(Icons.arrow_drop_down, size: 18, color: Colors.grey),
+                                          ],
+                                        ),
+                                      ),
                                     ),
                                   ),
                                 ),
-                              ),
+                              ],
                             ),
                             8.width,
                             Expanded(
                               child: CustomTextField(
                                 width: double.infinity,
-                                isRequired: true,
-                                text: constValue.phoneNumberField,controller: homeProvider.loginNumber,
+                                //isRequired: true,
+                                text: "",controller: homeProvider.loginNumber,
                                 keyboardType: TextInputType.phone,
                                 inputFormatters: constInputFormatters.mobileNumberInput,
                                 onChanged: (value)  {
