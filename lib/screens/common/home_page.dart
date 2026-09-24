@@ -1265,7 +1265,12 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                                           ),
                                           const SizedBox(width: 2),
                                           CustomText(
-                                            "${homeProvider.mainReportList.isEmpty ? "0" : homeProvider.mainReportList[0]["assigned_count"]}",
+                                            homeProvider.mainReportList.isEmpty
+                                                ? "0"
+                                                : homeProvider.mainReportList[0]["assigned_count"] == null ||
+                                                homeProvider.mainReportList[0]["assigned_count"].toString() == "null"
+                                                ? "0"
+                                                : homeProvider.mainReportList[0]["assigned_count"].toString(),
                                             size: 13,
                                             weight: FontWeight.bold,
                                             color: const Color(0xff008443),
@@ -1282,12 +1287,16 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                                           ),
                                           const SizedBox(width: 2),
                                           CustomText(
-                                            "${homeProvider.mainReportList.isEmpty ? "0" : homeProvider.mainReportList[0]["started_count"]}",
+                                            homeProvider.mainReportList.isEmpty
+                                                ? "0"
+                                                : homeProvider.mainReportList[0]["started_count"] == null ||
+                                                homeProvider.mainReportList[0]["started_count"].toString() == "null"
+                                                ? "0"
+                                                : homeProvider.mainReportList[0]["started_count"].toString(),
                                             size: 13,
                                             weight: FontWeight.bold,
                                             color: const Color(0xffF02433),
                                           ),
-
                                         ],
                                       ),
                                       5.height,
@@ -1304,7 +1313,12 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                                           ),
                                           const SizedBox(width: 2),
                                           CustomText(
-                                            "${homeProvider.mainReportList.isEmpty ? "0" : homeProvider.mainReportList[0]["overdue_count"]}",
+                                            homeProvider.mainReportList.isEmpty
+                                                ? "0"
+                                                : homeProvider.mainReportList[0]["overdue_count"] == null ||
+                                                homeProvider.mainReportList[0]["overdue_count"].toString() == "null"
+                                                ? "0"
+                                                : homeProvider.mainReportList[0]["overdue_count"].toString(),
                                             size: 13,
                                             weight: FontWeight.bold,
                                             color: const Color(0xff0c5be8),
@@ -1321,7 +1335,12 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                                           ),
                                           const SizedBox(width: 2),
                                           CustomText(
-                                            "${homeProvider.mainReportList.isEmpty ? "0" : homeProvider.mainReportList[0]["complete_count"]}",
+                                            homeProvider.mainReportList.isEmpty
+                                                ? "0"
+                                                : homeProvider.mainReportList[0]["complete_count"] == null ||
+                                                homeProvider.mainReportList[0]["complete_count"].toString() == "null"
+                                                ? "0"
+                                                : homeProvider.mainReportList[0]["complete_count"].toString(),
                                             size: 13,
                                             weight: FontWeight.bold,
                                             color: const Color(0xff0c5be8),
@@ -1388,7 +1407,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                                       //   ],
                                       // ),
 
-                                      //  if(taskPendingCount!=0)
+                                       if(taskPendingCount!=0)
                                         Row(
                                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                           children: [

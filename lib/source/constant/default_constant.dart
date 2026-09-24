@@ -747,4 +747,7 @@ class ConstantValues {
   String get checkMobileNumberMsg => _ta ? "உங்கள் மொபைல் எண்ணை சரிபார்க்கவும்" : "Check Your Mobile Number";
   String get exitAppQ => _ta ? "செயலியிலிருந்து வெளியேற விரும்புகிறீர்களா?" : "Do you want to Exit the App?";
   String get viewNotifications => _ta ? "அறிவிப்புகளைக் காண" : "View Notifications";
+  String get noUserFound => _ta ? "பயனர் கிடைக்கவில்லை" : "No user found";
+  String get incorrectPassword => _ta ? "தவறான கடவுச்சொல்" : "Incorrect password";
+  String get somethingWentWrong => _ta ? "ஏதோ தவறு நடந்தது" : "Something went wrong";
 }

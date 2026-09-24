@@ -47,6 +47,7 @@ import '../screens/report_dashboard/report_dashboard.dart';
 import '../screens/track/live_location.dart';
 import '../source/constant/api.dart';
 import '../source/constant/colors_constant.dart';
+import '../source/constant/default_constant.dart';
 import '../source/constant/local_data.dart';
 import '../source/utilities/utils.dart';
 import 'expasy_provider.dart';
@@ -664,15 +665,15 @@ String get notificationToken =>_notificationToken;
     print("body data ${data}");      final response = await homeRepo.loginApi(data);
     log(response.toString());
     if(response.toString().contains("No user found")){
-      utils.showWarningToast(context,text: "No user found");
+      utils.showWarningToast(context,text: constValue.noUserFound);
       loginCtr.reset();
     }else if(response.toString().contains("Incorrect password")){
-      utils.showWarningToast(context,text: "Incorrect password");
+      utils.showWarningToast(context,text: constValue.incorrectPassword);
       loginCtr.reset();
     }else if(response.toString().contains("Something went wrong")){
-      utils.showWarningToast(context,text: "Something went wrong");
-      loginCtr.reset();
-    }else{
+      utils.showWarningToast(context,text: constValue.somethingWentWrong);
+      loginCtr.reset();}
+    else{
       if(response.isNotEmpty){
         localData.storage.write("f_name",response['firstname']);
         localData.storage.write("mobile_number",response['mobile_number']);
