@@ -805,9 +805,6 @@ class _CheckAttendanceState extends State<CheckAttendance> {
                                 15.height,
                                 GestureDetector(
                                   onTap: () async {
-                                    /// ✅ FIX: request background location permission
-                                    /// before starting tracking, so it keeps working
-                                    /// after the app is minimized.
                                     if (localData.storage.read("Track") == true) {
                                       stopTracking(context);
                                     } else {

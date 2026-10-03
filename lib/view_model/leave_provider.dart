@@ -2965,9 +2965,9 @@ void changeStatus(bool value){
   Future<void> updateLeaveDetails(context, String leaveId) async {
     try {
       Map data = {
-        "action": applyLeave, // ⚠️ உங்க backend-ல update action name இதுதான்னு confirm பண்ணுங்க (உதா: "editLeave" / "updateLeave")
+        "action": applyLeave, // ⚠️ உங்க backend-ல update action name இதுதான்னு confirm பண்ணுங்க
         "search_type": "update",
-        "id": leaveId, // ✅ எந்த leave record update ஆகணும்னு identify பண்ண
+        "id": leaveId,
         "reason": reason.text.trim(),
         "day_type": dayType.toString(),
         "lev_type": type,
@@ -2992,13 +2992,25 @@ void changeStatus(bool value){
         utils.showSuccessToast(context: context, text: "Leave Updated Successfully");
 
         leaveCtr.reset();
-        if ({"1"}.contains(localData.storage.read("role"))) {
+
+        /// ✅ refresh the leave list BEFORE navigating so the report page shows latest data
+        getLeaveReport(_filter);
+
+        /// ✅ Always go to Leave Report page after update — don't stay on this screen
+        if (localData.storage.read("role") == "1") {
           _selectedIndex = 2;
-          getLeaveReport(_filter);
-        } else {
-          getLeaveReport(_filter);
-          Navigator.pop(context);
         }
+
+        utils.navigatePage(
+          context,
+              () => DashBoard(
+            child: ViewMyLeaves(
+              date1: startDate,
+              date2: endDate,
+              isDirect: true,
+            ),
+          ),
+        );
       }
 
       /// ❌ FAILED CASE

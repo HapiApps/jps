@@ -589,6 +589,10 @@ class _ViewMyLeavesState extends State<ViewMyLeaves> with SingleTickerProviderSt
                             startDate = DateTime(startDate.year,startDate.month, startDate.day);
                             endDate = DateTime(endDate.year,endDate.month,endDate.day);
                             onLeaveToday = levProvider.myLevSearch.where((e) {
+                              /// ✅ only APPROVED leaves count as "On Leave"
+                              if (e.status.toString() != "1") {
+                                return false;
+                              }
                               DateTime? leaveStart = parseLeaveDate(e.startDate?.toString());
                               DateTime? leaveEnd = parseLeaveDate(e.endDate?.toString());
                               if (leaveStart == null || leaveEnd == null) {
@@ -895,6 +899,29 @@ class _ViewMyLeavesState extends State<ViewMyLeaves> with SingleTickerProviderSt
           );
         });
   }
+
+  /// ✅ NEW HELPER — small "label : value" row used inside the info box
+  Widget infoRow(String label, String value, {Color? valueColor}) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        CustomText(
+          text: "$label : ",
+          size: 11,
+          colors: const Color(0xff7E7E7E),
+        ),
+        Expanded(
+          child: CustomText(
+            text: value,
+            size: 12,
+            isBold: true,
+            colors: valueColor ?? const Color(0xff393636),
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget leaveCard(
       LeaveModel data, {
         bool showButtons = false,
@@ -996,7 +1023,7 @@ class _ViewMyLeavesState extends State<ViewMyLeaves> with SingleTickerProviderSt
     }
 
     return Container(
-      margin: const EdgeInsets.symmetric(vertical: 8),
+      margin: const EdgeInsets.symmetric(vertical: 6),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
@@ -1008,7 +1035,7 @@ class _ViewMyLeavesState extends State<ViewMyLeaves> with SingleTickerProviderSt
         ],
       ),
       child: Padding(
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.all(8),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -1034,17 +1061,38 @@ class _ViewMyLeavesState extends State<ViewMyLeaves> with SingleTickerProviderSt
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
+                    // Row(
+                    //   mainAxisSize: MainAxisSize.min,
+                    //   crossAxisAlignment: CrossAxisAlignment.center,
+                    //   children: [
+                    //     CustomText(
+                    //       text: displayDate,
+                    //       size: 12,
+                    //       colors: const Color(0xff7E7E7E),
+                    //       isBold: true,
+                    //     ),
+                    //     /// ✅ EDIT BUTTON - admin only, pending leaves only
+                    //
+                    //   ],
+                    // ),
+                    const SizedBox(height: 5),
                     Row(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        CustomText(
-                          text: displayDate,
-                          size: 12,
-                          colors: const Color(0xff7E7E7E),
-                          isBold: true,
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 5),
+                          decoration: BoxDecoration(
+                            color:Colors.blue,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: CustomText(
+                            text:
+                            "${data.type} : ${data.dayType == "0.5" ? "Half / ${data.session}" : "Full Day"}",
+                            size: 11,
+                            colors: Colors.white,
+                            isBold: true,
+                          ),
                         ),
-                        /// ✅ EDIT BUTTON - admin only, pending leaves only
                         if (localData.storage.read("role") == "1") ...[
                           5.width,
                           InkWell(
@@ -1068,22 +1116,6 @@ class _ViewMyLeavesState extends State<ViewMyLeaves> with SingleTickerProviderSt
                           ),
                         ],
                       ],
-                    ),
-                    const SizedBox(height: 5),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 5),
-                      decoration: BoxDecoration(
-                        color:Colors.blue,
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: CustomText(
-                        text:
-                        "${data.type} : ${data.dayType == "0.5" ? "Half / ${data.session}" : "Full Day"}",
-                        size: 11,
-                        colors: Colors.white,
-                        isBold: true,
-                      ),
                     ),
                   ],
                 ),
@@ -1112,35 +1144,141 @@ class _ViewMyLeavesState extends State<ViewMyLeaves> with SingleTickerProviderSt
 
             const SizedBox(height: 8),
 
-            Row(
-              children: [
-                const CustomText(
-                  text: " Requested on: ",
-                  size: 13,
-                  isBold: true,
-                ),
-                Expanded(
-                  child: CustomText(
-                    text: createdBy,
-                    size: 13,
-                    colors: const Color(0xff393636),
-                  ),
-                ),
-                const CustomText(
-                  text: " Days: ",
-                  size: 13,
-                  isBold: true,
-                ),
-                CustomText(
-                  text: "$leaveDays Day${leaveDays > 1 ? 's' : ''}",
-                  size: 12,
-                  colors: Colors.black54,
-                  isBold: true,
-                ),
-              ],
-            ),
+            /// ✅ "Employee On Leave" tab ONLY (showCancelOnly == true) —
+            /// Leave For row + clean info box (Requested / Approved / Rejected)
+            if (showCancelOnly) ...[
 
-            10.height,
+              /// LEAVE FOR (Date Range) - simple & clear
+              Row(
+                children: [
+                  const CustomText(
+                    text: " Leave For : ",
+                    size: 13,
+                    isBold: true,
+                  ),
+                  Expanded(
+                    child: CustomText(
+                      text: displayDate,
+                      size: 13,
+                      colors: const Color(0xff7E7E7E),
+                      isBold: true,
+                    ),
+                  ),
+                  CustomText(
+                    text: "$leaveDaysText Day${leaveDays > 1 ? 's' : ''}",
+                    size: 12,
+                    colors: Colors.black54,
+                    isBold: true,
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 6),
+
+              /// CLEAN INFO BOX — Requested / Approved / Rejected details (compact)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                decoration: BoxDecoration(
+                  color: const Color(0xffF7F7F7),
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: Colors.grey.shade300),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+
+                    /// Requested On
+                    infoRow("Requested on", createdBy),
+
+                    /// Approved / Rejected By + On — combined in one line
+                    if (data.status == "1" || data.status == "2") ...[
+                      4.height,
+                      Divider(height: 1, color: Colors.grey.shade300),
+                      4.height,
+                      infoRow(
+                        data.status == "1" ? "Approved by" : "Rejected by",
+                        "${data.updater} on ${DateFormat('dd-MM-yyyy hh:mma').format(updatedDateTime)}",
+                        valueColor: data.status == "1"
+                            ? Colors.green.shade700
+                            : Colors.red.shade700,
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+
+              8.height,
+            ] else ...[
+              /// ✅ ORIGINAL LAYOUT — used by "Leave Created" tab
+              /// (Applied / Approved / Rejected sub-tabs, showButtons == true)
+              Row(
+                children: [
+                  const CustomText(
+                    text: " Requested on: ",
+                    size: 13,
+                    isBold: true,
+                  ),
+                  Expanded(
+                    child: CustomText(
+                      text: createdBy,
+                      size: 13,
+                      colors: const Color(0xff393636),
+                    ),
+                  ),
+                  const CustomText(
+                    text: " Days: ",
+                    size: 13,
+                    isBold: true,
+                  ),
+                  CustomText(
+                    text: "$leaveDaysText Day${leaveDays > 1 ? 's' : ''}",
+                    size: 12,
+                    colors: Colors.black54,
+                    isBold: true,
+                  ),
+                ],
+              ),
+
+              10.height,
+
+              if (data.status == "1" || data.status == "2") ...[
+                Row(
+                  children: [
+                    CustomText(
+                      text: data.status == "1" ? " Approved by : " : " Rejected by : ",
+                      size: 13,
+                      isBold: true,
+                    ),
+                    Expanded(
+                      child: CustomText(
+                        text: "${data.updater.toString()} on ${updatedBy}",
+                        size: 13,
+                        colors: const Color(0xff393636),
+                      ),
+                    ),
+                  ],
+                ),
+                10.height,
+                // Row(
+                //   children: [
+                //     CustomText(
+                //       text: data.status == "1" ? " Approved on: " : " Rejected on: ",
+                //       size: 13,
+                //       isBold: true,
+                //     ),
+                //     Expanded(
+                //       child: CustomText(
+                //         text: updatedBy,
+                //         size: 13,
+                //         colors: const Color(0xff393636),
+                //       ),
+                //     ),
+                //   ],
+                // ),
+                // 10.height,
+              ],
+            ],
 
             // ✅ SHOW SUMMARY ONLY IF FILTER NOT APPLIED
             if (showSummary) ...[
@@ -1185,46 +1323,6 @@ class _ViewMyLeavesState extends State<ViewMyLeaves> with SingleTickerProviderSt
                 ),
               ],
               10.height,
-            ],
-
-            if (data.status == "1" || data.status == "2") ...[
-              Row(
-                children: [
-                  CustomText(
-                    text: data.status == "1"
-                        ? " Approved by : "
-                        : " Rejected by : ",
-                    size: 13,
-                    isBold: true,
-                  ),
-                  Expanded(
-                    child: CustomText(
-                      text: data.updater.toString(),
-                      size: 13,
-                      colors: const Color(0xff393636),
-                    ),
-                  ),
-                ],
-              ),
-              10.height,
-              Row(
-                children: [
-                  CustomText(
-                    text: data.status == "1"
-                        ? " Approved on: "
-                        : " Rejected on: ",
-                    size: 13,
-                    isBold: true,
-                  ),
-                  Expanded(
-                    child: CustomText(
-                      text: updatedBy,
-                      size: 13,
-                      colors: const Color(0xff393636),
-                    ),
-                  ),
-                ],
-              ),
             ],
 
             /// Cancel Only Button

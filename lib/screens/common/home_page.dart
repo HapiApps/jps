@@ -53,15 +53,11 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
-  Timer? _timer;
   static int _initStateCallCount = 0;
-  int _timerTickCount = 0;
-
 
   HomeProvider? _homeProvider;
 
   bool _isHomePageActive = false;
-
   bool _isInitialLoading = false;
 
   @override
@@ -71,50 +67,37 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     _initStateCallCount++;
 
     print(
-      "🟢🟢🟢 initState() CALLED — "
-          "Total times: $_initStateCallCount 🟢🟢🟢",
+      "🟢 HomePage initState() — "
+          "Call #$_initStateCallCount",
     );
 
     print(
-      "🟢 HomePage instance hashCode: ${this.hashCode}",
+      "🟢 HomePage hashCode: ${this.hashCode}",
     );
-
-    // ------------------------------------------------------------
-    // HOME PAGE ACTIVE
-    // ------------------------------------------------------------
 
     _isHomePageActive = true;
 
-    WidgetsBinding.instance.addObserver(this);
-
-    // ------------------------------------------------------------
-    // LOAD HOME DATA
-    // ------------------------------------------------------------
-
     Future.delayed(Duration.zero, () async {
-      if (!mounted || !_isHomePageActive) {
-        return;
-      }
+      if (!mounted || !_isHomePageActive) return;
+
+      // =========================================================
+      // BASIC DATA
+      // =========================================================
 
       final id = localData.storage.read("id");
       final role = localData.storage.read("role");
 
-      if (id != null && id.toString().isNotEmpty) {
-        print("Attendance ID $id");
-      } else {
-        print(
-          "Attendance ID missing! Cannot fetch report",
-        );
-      }
+      print("👤 ID: $id");
+      print("👤 Role: $role");
 
       final today =
           "${DateTime.now().day.toString().padLeft(2, "0")}-"
           "${DateTime.now().month.toString().padLeft(2, "0")}-"
           "${DateTime.now().year}";
 
-      // ----------------------------------------------------------
+      // =========================================================
       // ATTENDANCE
-      // ----------------------------------------------------------
+      // =========================================================
 
       final attendanceProvider =
       Provider.of<AttendanceProvider>(
@@ -130,9 +113,9 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
         date2: today,
       );
 
-      // ----------------------------------------------------------
+      // =========================================================
       // HOME PROVIDER
-      // ----------------------------------------------------------
+      // =========================================================
 
       final homeProvider =
       Provider.of<HomeProvider>(
@@ -142,26 +125,24 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
 
       _homeProvider = homeProvider;
 
-      // Tell provider that HomePage is currently active
+      // VERY IMPORTANT
+      // loadFullDashboard() has HomePage active check
       homeProvider.setHomePageActive(
         true,
         context,
       );
 
-      if (!mounted || !_isHomePageActive) {
-        return;
-      }
+      if (!mounted || !_isHomePageActive) return;
 
-      // ----------------------------------------------------------
-      // LOAD DASHBOARD
-      // ----------------------------------------------------------
+      // =========================================================
+      // FIRST LOAD DASHBOARD COMPLETELY
+      // =========================================================
 
       if (!_isInitialLoading) {
         _isInitialLoading = true;
 
         print(
-          "🔵 loadFullDashboard() CALLING — "
-              "initState call #$_initStateCallCount",
+          "🔵🔵🔵 DASHBOARD LOAD STARTED 🔵🔵🔵",
         );
 
         await homeProvider.loadFullDashboard(
@@ -169,46 +150,26 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
         );
 
         print(
-          "🔵 loadFullDashboard() COMPLETED — "
-              "initState call #$_initStateCallCount",
+          "🟢🟢🟢 DASHBOARD LOAD COMPLETED 🟢🟢🟢",
         );
 
         _isInitialLoading = false;
       }
 
-      if (!mounted || !_isHomePageActive) {
-        return;
-      }
+      if (!mounted || !_isHomePageActive) return;
 
-      // ----------------------------------------------------------
-      // CHANGE TYPE
-      // ----------------------------------------------------------
+      // =========================================================
+      // CHANGE TYPE AFTER DASHBOARD
+      // =========================================================
 
       homeProvider.changeType(
         context,
         homeProvider.type,
       );
 
-      // ----------------------------------------------------------
-      // START AUTO REFRESH
-      // ----------------------------------------------------------
-
-      if (!mounted || !_isHomePageActive) {
-        return;
-      }
-
-      print(
-        "🟠 startAutoRefresh() CALLING — "
-            "initState call #$_initStateCallCount",
-      );
-
-      homeProvider.startAutoRefresh(
-        context,
-      );
-
-      // ----------------------------------------------------------
-      // TASK PROVIDER
-      // ----------------------------------------------------------
+      // =========================================================
+      // NOW LOAD OTHER DATA
+      // =========================================================
 
       final taskProvider =
       Provider.of<TaskProvider>(
@@ -222,199 +183,134 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
         );
       }
 
-      // ----------------------------------------------------------
-      // EMPLOYEE PROVIDER
-      // ----------------------------------------------------------
-
       final employeeProvider =
       Provider.of<EmployeeProvider>(
         context,
         listen: false,
       );
 
-      unawaited(
-        employeeProvider.getAllUsers(),
-      );
+      await employeeProvider.getAllUsers();
 
-      // ----------------------------------------------------------
-      // CUSTOMER PROVIDER
-      // ----------------------------------------------------------
+      if (!mounted || !_isHomePageActive) return;
 
-      final customerProvider =
-      Provider.of<CustomerProvider>(
+      await Provider.of<CustomerProvider>(
         context,
         listen: false,
+      ).getAllCustomers(true);
+
+      if (!mounted || !_isHomePageActive) return;
+
+      await employeeProvider.getNotifications();
+
+      print(
+        "✅✅✅ ALL HOMEPAGE DATA LOADED ✅✅✅",
       );
-
-      unawaited(
-        customerProvider.getAllCustomers(true),
-      );
-
-      // ----------------------------------------------------------
-      // NOTIFICATIONS
-      // ----------------------------------------------------------
-
-      employeeProvider.getNotifications();
     });
   }
-  @override
-  void didChangeAppLifecycleState(
-      AppLifecycleState state,
-      ) {
-    super.didChangeAppLifecycleState(state);
-
-    if (!mounted) {
-      return;
-    }
-
-    if (!_isHomePageActive) {
-      print(
-        "⛔ Lifecycle ignored — "
-            "HomePage is not active",
-      );
-      return;
-    }
-
-    final homeProvider =
-    Provider.of<HomeProvider>(
-      context,
-      listen: false,
-    );
-
-    // ------------------------------------------------------------
-    // APP RESUMED
-    // ------------------------------------------------------------
-
-    if (state == AppLifecycleState.resumed) {
-      print(
-        "🟢 HomePage RESUMED",
-      );
-
-      if (!_isHomePageActive) {
-        return;
-      }
-
-      // Make sure provider knows HomePage is active
-      homeProvider.setHomePageActive(
-        true,
-        context,
-      );
-
-      // Don't call dashboard again if another request is running.
-      // HomeProvider itself will block duplicate calls.
-      print(
-        "🔵 HomePage resumed → "
-            "loading dashboard",
-      );
-
-      unawaited(
-        homeProvider.loadFullDashboard(
-          context,
-        ),
-      );
-
-      // Restart timer only for HomePage
-      print(
-        "🟠 HomePage resumed → "
-            "starting auto refresh",
-      );
-
-      homeProvider.startAutoRefresh(
-        context,
-      );
-    }
-
-    // ------------------------------------------------------------
-    // APP PAUSED
-    // ------------------------------------------------------------
-
-    else if (state == AppLifecycleState.paused) {
-      print(
-        "🟠 HomePage PAUSED",
-      );
-
-      homeProvider.stopAutoRefresh();
-    }
-
-    // ------------------------------------------------------------
-    // APP INACTIVE
-    // ------------------------------------------------------------
-
-    else if (state == AppLifecycleState.inactive) {
-      print(
-        "🟡 HomePage INACTIVE",
-      );
-
-      homeProvider.stopAutoRefresh();
-    }
-
-    // ------------------------------------------------------------
-    // APP DETACHED
-    // ------------------------------------------------------------
-
-    else if (state == AppLifecycleState.detached) {
-      print(
-        "🔴 HomePage DETACHED",
-      );
-
-      homeProvider.stopAutoRefresh();
-    }
-  }
-@override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-
-    if (!mounted) {
-      return;
-    }
-
-    _homeProvider =
-        Provider.of<HomeProvider>(
-          context,
-          listen: false,
-        );
-  }
-  @override
-  void dispose() {
-    print(
-      "🔴🔴🔴 dispose() CALLED — "
-          "HomePage instance hashCode: "
-          "${this.hashCode} 🔴🔴🔴",
-    );
-
-    // ------------------------------------------------------------
-    // MARK HOMEPAGE INACTIVE
-    // ------------------------------------------------------------
-
-    _isHomePageActive = false;
-
-    _isInitialLoading = false;
-
-    // ------------------------------------------------------------
-    // REMOVE LIFECYCLE OBSERVER
-    // ------------------------------------------------------------
-
-    WidgetsBinding.instance.removeObserver(this);
-
-    // ------------------------------------------------------------
-    // LOCAL TIMER
-    // ------------------------------------------------------------
-
-    _timer?.cancel();
-    _timer = null;
-
-    // ------------------------------------------------------------
-    // HOME PROVIDER TIMER
-    // ------------------------------------------------------------
-
-    _homeProvider?.setHomePageActive(false);
-
-    _homeProvider?.stopAutoRefresh();
-
-    _homeProvider = null;
-
-    super.dispose();
-  }
+  // @override
+  // void initState() {
+  //   super.initState();
+  //
+  //   WidgetsBinding.instance.addObserver(this); // ✅ இங்க சேர்த்தேன்
+  //
+  //   Future.delayed(Duration.zero, () async {
+  //     if (!mounted) return;
+  //
+  //     final id = localData.storage.read("id");
+  //     final role = localData.storage.read("role");
+  //
+  //     if (id != null && id.toString().isNotEmpty) {
+  //       print("Attendance ID $id");
+  //     } else {
+  //       print("Attendance ID missing! Cannot fetch report");
+  //     }
+  //
+  //     final today =
+  //         "${DateTime.now().day.toString().padLeft(2, "0")}-"
+  //         "${DateTime.now().month.toString().padLeft(2, "0")}-"
+  //         "${DateTime.now().year}";
+  //
+  //     // ----------------------------------------------------------
+  //     // ATTENDANCE
+  //     // ----------------------------------------------------------
+  //
+  //     final attendanceProvider =
+  //     Provider.of<AttendanceProvider>(context, listen: false);
+  //
+  //     attendanceProvider.initDate(
+  //       id: id,
+  //       role: role,
+  //       isRefresh: false,
+  //       date1: today,
+  //       date2: today,
+  //     );
+  //
+  //     final homeProvider = Provider.of<HomeProvider>(context, listen: false);
+  //
+  //     if (!mounted) return;
+  //     await homeProvider.loadFullDashboard(context);
+  //     if (!mounted) return;
+  //     homeProvider.changeType(context, homeProvider.type);
+  //
+  //     // ✅ AUTO REFRESH TIMER START
+  //     //homeProvider.startAutoRefresh(context);
+  //
+  //     final taskProvider = Provider.of<TaskProvider>(context, listen: false);
+  //     if (taskProvider.statusList.isNotEmpty) {
+  //       taskProvider.setStatusByName(taskProvider.statusList.first["value"]);
+  //     }
+  //
+  //     // ----------------------------------------------------------
+  //     // EMPLOYEE PROVIDER
+  //     // ----------------------------------------------------------
+  //
+  //     final employeeProvider =
+  //     Provider.of<EmployeeProvider>(context, listen: false);
+  //
+  //     unawaited(employeeProvider.getAllUsers());
+  //     unawaited(Provider.of<CustomerProvider>(context, listen: false)
+  //         .getAllCustomers(true));
+  //     employeeProvider.getNotifications();
+  //   });
+  // }
+  //
+  // // ✅ App background/foreground வரும்போது இது call ஆகும்
+  // @override
+  // void didChangeAppLifecycleState(AppLifecycleState state) {
+  //   super.didChangeAppLifecycleState(state);
+  //
+  //   final homeProvider = Provider.of<HomeProvider>(context, listen: false);
+  //
+  //   // ------------------------------------------------------------
+  //   // APP RESUMED
+  //   // ------------------------------------------------------------
+  //   if (state == AppLifecycleState.resumed) {
+  //     // App foreground-க்கு வந்தால் — dashboard refresh பண்ணலாம்
+  //     homeProvider.loadFullDashboard(context);
+  //    // homeProvider.startAutoRefresh(context);
+  //   } else if (state == AppLifecycleState.paused) {
+  //     // App background-க்கு போனா — timer stop பண்ணி battery/data save பண்ணலாம்
+  //     homeProvider.stopAutoRefresh();
+  //   }
+  // }
+  //
+  // @override
+  // void didChangeDependencies() {
+  //   super.didChangeDependencies();
+  //
+  //   if (!mounted) {
+  //     return;
+  //   }
+  //
+  // }
+  //
+  // @override
+  // void dispose() {
+  //   WidgetsBinding.instance.removeObserver(this); // ✅ இங்க சேர்த்தேன்
+  //   _timer?.cancel();
+  //   Provider.of<HomeProvider>(context, listen: false).stopAutoRefresh();
+  //   super.dispose();
+  // }
 
   Widget iconBox({required VoidCallback callBack,required String img,required String text}){
     return InkWell(

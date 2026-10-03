@@ -636,7 +636,7 @@ void setupNotificationOpenedListener() {
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
+  await LanguageManager.instance.loadSavedLanguage();
   await safeCall('GetStorage.init', () => GetStorage.init());
 
   bool homeScreen = false;

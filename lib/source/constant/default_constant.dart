@@ -1,27 +1,53 @@
 import 'package:flutter/cupertino.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// -----------------------------------------------------------------------
 /// LANGUAGE TOGGLE
 /// -----------------------------------------------------------------------
-/// Set `LanguageManager.isTamil = true` to switch the whole app to Tamil.
-/// Default is `false` -> English.
+/// Default is English (`isTamil = false`).
+/// User's choice is persisted in SharedPreferences under `_prefKey`.
 /// -----------------------------------------------------------------------
 class LanguageManager extends ChangeNotifier {
   LanguageManager._internal();
   static final LanguageManager instance = LanguageManager._internal();
 
+  static const String _prefKey = "is_tamil";
+
   /// true  -> Tamil
   /// false -> English
-  bool isTamil = true;
+  bool isTamil = false; // ✅ Default English
 
-  void setLanguage({required bool tamil}) {
-    isTamil = tamil;
+  bool _isLoaded = false;
+  bool get isLoaded => _isLoaded;
+
+  /// Call this ONCE at app startup (e.g. in main() before runApp,
+  /// or in a splash screen) to load the saved language.
+  Future<void> loadSavedLanguage() async {
+    final prefs = await SharedPreferences.getInstance();
+
+    // If key doesn't exist yet (first app launch), keep default = false (English)
+    isTamil = prefs.getBool(_prefKey) ?? false;
+
+    _isLoaded = true;
     notifyListeners();
   }
 
-  void toggle() {
+  /// Set language explicitly and persist it
+  Future<void> setLanguage({required bool tamil}) async {
+    isTamil = tamil;
+    notifyListeners();
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_prefKey, tamil);
+  }
+
+  /// Toggle language and persist it
+  Future<void> toggle() async {
     isTamil = !isTamil;
     notifyListeners();
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_prefKey, isTamil);
   }
 }
 
@@ -664,6 +690,8 @@ class ConstantValues {
   String get roleOther => _ta ? "மற்றவை" : "Other";
   String get noChangesMade => _ta ? "இதுவரை எந்த மாற்றமும் செய்யப்படவில்லை." : "No changes have been made yet.";
   String get noDataFound => _ta ? "தரவு எதுவும் கிடைக்கவில்லை" : "No Data Found";
+  // String get checckRef2Phone => _ta ? "பரிந்துரையாளர் 2 தொலைபேசி எண்ணை சரிபார்க்கவும்" : "Please check reference 2 phone number";
+  String get pleaseSelectLeadStatus => _ta ? "லீட் நிலையைத் தேர்ந்தெடுக்கவும்" : "Please select lead status";
 
   String get addCompanyCustomerTitle => _ta ? "நிறுவனம் & வாடிக்கையாளரைச் சேர்க்கவும்" : "Add Company & Customer";
   String get companyNameLabel => _ta ? "நிறுவனத்தின் பெயர்" : "Company Name";

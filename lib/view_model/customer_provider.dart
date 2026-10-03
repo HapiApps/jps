@@ -1197,6 +1197,9 @@ int get listItem=>_listItem;
     }else if(_addCustomer.last.whatsApp.text.trim().isNotEmpty&&_addCustomer.last.whatsApp.text.trim().length<8 ||_addCustomer.last.whatsApp.text.trim().length>12){
       utils.showWarningToast(context,text: "Please check customer whatsApp number",);
       addCtr.reset();
+    }else if(leadType == null || leadType?['id'] == null){          // 👈 புது LEAD STATUS CHECK
+      utils.showWarningToast(context,text: constValue.pleaseSelectLeadStatus);
+      addCtr.reset();
     }else if(_addCustomer.last.email.text.trim().isNotEmpty){
       final email = _addCustomer.last.email.text.trim();
       final bool isValid =

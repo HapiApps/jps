@@ -716,6 +716,7 @@ class _CreateCustomerState extends State<CreateCustomer> with TickerProviderStat
                             custProvider.getLeadCategory();
                           }
                         },
+                        isRequired: true,
                         isRefresh: custProvider.leadCategoryList.isEmpty?true:false,
                         width: kIsWeb?webWidth:phoneWidth,
                         hintText: constValue.leadStatus,
@@ -805,6 +806,11 @@ class _CreateCustomerState extends State<CreateCustomer> with TickerProviderStat
                                     customer.whatsApp.text.trim().length > 12) {
                                   utils.showWarningToast(context,
                                       text: "${constValue.checkPhoneNumber} ");
+                                  custProvider.addCtr.reset();
+                                } else if (custProvider.leadType == null ||
+                                    custProvider.leadType?['id'] == null) {
+                                  utils.showWarningToast(context,
+                                      text: "${constValue.pleaseSelectLeadStatus}");
                                   custProvider.addCtr.reset();
                                 } else {
                                   if (customer.email.text.trim().isEmpty) {
