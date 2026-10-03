@@ -1,3 +1,4 @@
+import 'package:master_code/screens/task/wages_work_report.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:master_code/component/custom_loading.dart';
 import 'package:master_code/model/task/task_data_model.dart';
@@ -153,7 +154,7 @@ class _TaskDetailsState extends State<TaskDetails>
 
       await customerProvider.getComments(widget.data.id.toString());
       await customerProvider.getTaskComments(widget.data.id.toString());
-
+      await Provider.of<TaskProvider>(context, listen: false).getWages();
       docsList = (widget.data.documents.toString() == "null" ||
           widget.data.documents.toString().isEmpty)
           ? []
@@ -300,12 +301,12 @@ class _TaskDetailsState extends State<TaskDetails>
     Navigator.pop(context);
 
     // fire-and-forget refresh, doesn't block navigation anymore
-    taskProvider.getAllTask(
-      true,
-      date1: widget.data.taskDate.toString(),
-      date2: widget.data.taskDate.toString(),
-      type: "Assigned",
-    );
+    // taskProvider.getAllTask(
+    //   true,
+    //   date1: widget.data.taskDate.toString(),
+    //   date2: widget.data.taskDate.toString(),
+    //   type: "Assigned",
+    // );
   }
 
   @override
@@ -1119,11 +1120,11 @@ class _TaskDetailsState extends State<TaskDetails>
                                                 index: widget.index,
                                               )));
                                     },
-                                    child: SvgPicture.asset(
-                                      assets.tMessage,
-                                      width: 25,
-                                      height: 25,
-                                    ))
+                                    child: Icon(
+                    Icons.message_outlined,
+                    size: 20,
+                    color:Colors.green,
+                  ),)
                               ],
                             ),
                           ],
@@ -1451,6 +1452,16 @@ class _TaskDetailsState extends State<TaskDetails>
                         ),
                       ],
                     ),
+                  ),
+                ),
+              ),
+
+              20.height,
+              Center(
+                child: SizedBox(
+                  width: kIsWeb ? webWidth : phoneWidth,
+                  child: WagesWorkReportSection(
+                    taskId: widget.data.id.toString(),
                   ),
                 ),
               ),

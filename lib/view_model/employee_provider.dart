@@ -23,7 +23,7 @@ import '../screens/employee/employee_details.dart';
 import '../source/constant/api.dart';
 import '../source/constant/assets_constant.dart';
 import '../source/constant/colors_constant.dart';
-import '../source/constant/default_constant.dart';
+import '../source/constant/language_model.dart';
 import '../source/constant/local_data.dart';
 import '../source/utilities/utils.dart';
 
@@ -2019,6 +2019,16 @@ String oldImage5="";
 String oldImage6="";
 String oldImage7="";
 String gradeName="";
+  // list la id match panni, id illa name return pannum
+  String? _pickFromList(List list, String id, String nameKey, {bool returnId = true}) {
+    for (final r in list) {
+      if (r['id'].toString() == id) {
+        return returnId ? r['id'].toString() : r[nameKey].toString();
+      }
+    }
+    return null;
+  }
+
   Future<void> getUserDetails({required String id}) async {
     _swipeIndex=0;
     _refresh=false;
@@ -2052,13 +2062,28 @@ String gradeName="";
     if (response.isNotEmpty) {
       _update = false;
       UserDetail data=response[0];
-      _role = data.roleName.toString()=="null" ? null : data.roleName.toString();
+
+      // ---------- ROLE ----------
+      if (_roleValues.isEmpty) {
+        await refreshRoles();
+      }
+      _role = _pickFromList(_roleValues, data.role.toString(), 'role', returnId: true);
+      print("Role set to: $_role");
+      // --------------------------
+
+      // ---------- GRADE ----------
+      if (_gradeValues.isEmpty) {
+        await getGrades(false);
+      }
+      print("Grade values list: $_gradeValues");
+      _grade = _pickFromList(_gradeValues, data.gradeId.toString(), 'grade', returnId: true);
+      gradeName = _pickFromList(_gradeValues, data.gradeId.toString(), 'grade', returnId: false) ?? "";
+      localData.storage.write("g_id", data.gradeId.toString());
+      print("Grade set to: $_grade");
+      // ---------------------------
 
       localData.storage.write("roleId", data.role.toString());
       localData.storage.write("roleName", data.roleName.toString());
-      print("Role set to: $_role");
-      print("Role values list: $_roleValues");
-      gradeName=data.grade.toString();
       signFirstName.text=data.firstname.toString();
       signLastName.text=data.surname.toString()=="null"?"":data.surname.toString();
       signMiddleName.text=data.middleName.toString()=="null"?"":data.middleName.toString();
@@ -2123,10 +2148,6 @@ String gradeName="";
       _lastCheck=data.lastCheckin.toString();
       _commentCount=data.commentCount.toString();
       print("data.gradeId.toString() : ${data.gradeId.toString()}");
-      _grade = data.grade.toString()=="null" ? null : data.grade.toString();
-
-      localData.storage.write("g_id", data.gradeId.toString());
-
 
       permanentDoNo.text=data.permanentAddressLine1.toString()=="null"?"":data.permanentAddressLine1.toString();
       permanentStreet.text=data.permanentAddressLine2.toString()=="null"?"":data.permanentAddressLine2.toString();

@@ -47,7 +47,7 @@ import '../screens/report_dashboard/report_dashboard.dart';
 import '../screens/track/live_location.dart';
 import '../source/constant/api.dart';
 import '../source/constant/colors_constant.dart';
-import '../source/constant/default_constant.dart';
+import '../source/constant/language_model.dart';
 import '../source/constant/local_data.dart';
 import '../source/utilities/utils.dart';
 import 'expasy_provider.dart';
@@ -720,7 +720,7 @@ String get notificationToken =>_notificationToken;
     // }
     notifyListeners();
   }
-Future<void> loginOuts(context) async {
+  Future<void> loginOuts(context) async {
     try {
       Map data = {
         "action": logOut,
@@ -732,6 +732,12 @@ Future<void> loginOuts(context) async {
       if(response.isNotEmpty){
         final prefs =await SharedPreferences.getInstance();
         prefs.setBool("homescreen", false);
+
+        // (b) navigate-ku munnadiye providers-a eduthuduvom
+        final attendanceProvider = Provider.of<AttendanceProvider>(context, listen: false);
+        final leaveProvider = Provider.of<LeaveProvider>(context, listen: false);
+        final taskProvider = Provider.of<TaskProvider>(context, listen: false);
+
         localData.storage.remove("firstname");
         loginNumber.clear();
         loginPassword.clear();
@@ -745,7 +751,24 @@ Future<void> loginOuts(context) async {
           localData.storage.write("T_Shift", "");
           localData.storage.write("TrackUnitName", "null");
         }
+
+        // (c) login-la write panna user keys remove
+        for (final key in const [
+          "f_name", "mobile_number", "id", "role_name", "role",
+          "conveyance_amount", "travel_amount", "da_amount",
+          "no_attendance_count", "leave_emp_name",
+        ]) {
+          localData.storage.remove(key);
+        }
+
         utils.navigatePage(context,()=>const LoginPage());
+
+        // (c) ella provider data-vum clear
+        attendanceProvider.resetOnLogout();
+        leaveProvider.resetOnLogout();
+        taskProvider.resetOnLogout();
+        resetOnLogout();
+
         loginCtr.reset();
       }else{
         utils.showErrorToast(context: context);
@@ -756,7 +779,7 @@ Future<void> loginOuts(context) async {
       loginCtr.reset();
     }
     notifyListeners();
-}
+  }
 
   Future<void> resetApp(BuildContext context) async {
     // 1. Clear SharedPreferences
@@ -937,7 +960,8 @@ Future<void> loginOuts(context) async {
     try {
       Map data = {
         "action": getAllData,
-        "search_type": "hapi_work_plan_list",
+        "search_type": "work_plan_list",
+        // "search_type": "hapi_work_plan_list",
         "user_id": localData.storage.read("id"),
         "role": localData.storage.read("role"),
         "cos_id": localData.storage.read("cos_id"),
@@ -2180,6 +2204,65 @@ Future<void> deleteUseAccount(context) async {
       _settingFeatures=[];
       _refresh=true;
     }
+    notifyListeners();
+  }
+
+  void resetOnLogout() {
+    final now = DateTime.now();
+
+    stopAutoRefresh();
+    _isHomePageActive = false;
+    _isDashboardLoading = false;
+    _loadCallCount = 0;
+    _loadCompleteCount = 0;
+    _timerTickCount = 0;
+
+    _isOpen = false;
+    _selectedIndex = 0;
+    _empType = 0;
+    _cusType = 0;
+    _mainType = 0;
+    _expType = 0;
+    _taskType = 0;
+    try {
+      sidebarController.selectIndex(0);
+    } catch (_) {}
+
+    _isEyeOpen = true;
+    _isEyeOpen2 = true;
+    loginNumber.clear();
+    loginPassword.clear();
+    forgotPassword1.clear();
+    forgotPassword2.clear();
+    otp = '';
+    sentOtp = '';
+    _notificationToken = "";
+
+    _refresh = true;
+    _vRefresh = true;
+    _noAttendanceCount = 0;
+    _mainReportList = [];
+    _visitCount = [];
+    _totalV = "0";
+    activeVisit = 0;
+    inActiveVisit = 0;
+    permisCount = 0;
+    lateCountShow = 0;
+    _dashboard = DashboardModel.empty();
+    _roleEmp = [];
+    workPlanList = [];
+    workPlanRefresh = false;
+    _roleAccess = [];
+    _allItems = [];
+    _panelButtons = [];
+
+    selectedDate = null;
+    datesBetween = [];
+    betweenDates = "";
+    _date = DateFormat('MMM d, yyyy').format(now);
+    _time = DateFormat('hh:mm a').format(now);
+    initValue();
+
     notifyListeners();
   }
 }

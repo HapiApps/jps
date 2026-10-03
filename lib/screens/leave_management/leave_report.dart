@@ -2,7 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:intl/intl.dart';
-import 'package:master_code/source/constant/default_constant.dart';
+import 'package:master_code/source/constant/language_model.dart';
 import 'package:master_code/source/extentions/extensions.dart';
 import 'package:master_code/source/utilities/utils.dart';
 import 'package:master_code/view_model/employee_provider.dart';
@@ -444,10 +444,10 @@ class _ViewMyLeavesState extends State<ViewMyLeaves> with SingleTickerProviderSt
                             },
                             child: Padding(
                               padding: const EdgeInsets.all(8.0),
-                              child: SvgPicture.asset(
-                                assets.tFilter,
-                                width: 20,
-                                height: 20,
+                              child:  Icon(
+                                Icons.filter_alt,
+                                size: 27,
+                                color: Colors.white,
                               ),
                             ),
                           ),
@@ -1212,8 +1212,12 @@ class _ViewMyLeavesState extends State<ViewMyLeaves> with SingleTickerProviderSt
             ] else ...[
               /// ✅ ORIGINAL LAYOUT — used by "Leave Created" tab
               /// (Applied / Approved / Rejected sub-tabs, showButtons == true)
+              Row( children: [ const CustomText( text: " Leave For: ", size: 13, isBold: true, ),
+                Expanded( child: CustomText( text: displayDate, size: 13, colors: const Color(0xff393636), ), ), ], ),
+              10.height,
               Row(
                 children: [
+
                   const CustomText(
                     text: " Requested on: ",
                     size: 13,

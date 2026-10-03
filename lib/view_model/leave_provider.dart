@@ -3029,5 +3029,139 @@ void changeStatus(bool value){
     leaveCtr.reset();
     notifyListeners();
   }
+  void resetOnLogout() {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final todayStr =
+        "${now.day.toString().padLeft(2, "0")}-${now.month.toString().padLeft(2, "0")}-${now.year}";
+    final monthName = DateFormat('MMMM').format(now);
 
+    _type = null;
+    _dayType = null;
+    _name = null;
+    _typeId = "";
+    _nameId = "";
+    _stDate = "";
+    _enDate = "";
+    _year = "";
+    _report = "Daily";
+    _typeReport = null;
+    _user = null;
+    _userName = "";
+    _startDate = "";
+    _endDate = "";
+    _filterDate = "";
+    _d1 = "";
+    _d2 = "";
+    _date1 = todayStr;
+    _date2 = todayStr;
+    _showDate3 = "";
+    _showDate4 = "";
+    _showDate5 = "";
+    _showDate6 = "";
+    _showDate7 = "";
+    _showDate8 = "";
+
+    isFilterApplied = false;
+    _filter = false;
+    _getLeave = false;
+    _allSelect = false;
+    isSaving = false;
+    _isChanged = false;
+    _isLeave = true;
+    _refresh = true;
+    _isLoading = false;
+    _isLoading2 = false;
+    _isLoading3 = false;
+    _isLoading4 = false;
+    _settingPage = false;
+    _addType = false;
+    _getTypes = true;
+    _session1 = true;
+    _session2 = false;
+    _allSunday = false;
+    _allSaturday = false;
+    _saturday1 = false;
+    _saturday2 = false;
+    _saturday3 = false;
+    _saturday4 = false;
+    _saturday5 = false;
+    _saturday6 = false;
+
+    _selectedIndex = 0;
+    viewLeaveTabIndex = 0;
+    _filterTasks = 0;
+    total = 0;
+    _thisMonthLeave = "0";
+    totalLeaveDays = "0";
+    _defaultMonth = now.month;
+    _levCount1 = "Full  Day 0\nHalf Day 0";
+    _levCount2 = "Full  Day 0\nHalf Day 0";
+    _levCount3 = "Full  Day 0\nHalf Day 0";
+    _levCount4 = "Full  Day 0\nHalf Day 0";
+
+    todayLeaveList = [];
+    _rulesList = [];
+    _leavesRules = <RulesModel>[];
+    _getDailyAttendance = <AttendanceModel>[];
+    sundays = [];
+    saturdays = [];
+    customSaturdays1 = [];
+    customSaturdays2 = [];
+    customSaturdays3 = [];
+    customSaturdays4 = [];
+    customSaturdays5 = [];
+    allLeavesList = [];
+    holyDaysList = [];
+    searchFutureHolidays = <Holiday>[];
+    futureHolidays = <Holiday>[];
+    _fixedLeaves = <HolyDaysModel>[];
+    fixedMonthLeaves = <HolyDaysModel>[];
+    userAttendanceReport = <LeaveAttModel>[];
+    myLev = <LeaveModel>[];
+    myLev2 = <LeaveModel>[];
+    myLev3 = <LeaveModel>[];
+    myLev4 = <LeaveModel>[];
+    myLevSearch = <LeaveModel>[];
+    myLev2Search = <LeaveModel>[];
+    myLev3Search = <LeaveModel>[];
+    myLev4Search = <LeaveModel>[];
+    types = [];
+    _mainContents = [];
+    datesBetween = [];
+    betweenDates = "";
+    selectedDate = null;
+
+    selected = today;
+    lastDate = null;
+    end = null;
+    yearr = null;
+    start = null;
+    stDt = now;
+    enDt = now.add(const Duration(days: 1));
+    customDate1 = now;
+    customDate2 = now.add(const Duration(days: 1));
+    dateTime1 = now;
+    dateTime2 = now;
+    date3 = now;
+    date4 = now;
+    dateRange = DateTimeRange(start: today, end: now);
+    lastRange = DateTime(now.year, DateTime.december, 31);
+    _calenderSelectedDate = now;
+    month = monthName;
+    dMonth = monthName;
+    levMonthD1 = monthName;
+    levMonthD2 = monthName;
+
+    try {
+      dataSource.appointments?.clear();
+    } catch (_) {}
+
+    search.clear();
+    search2.clear();
+    reason.clear();
+    noOfWorkingDay.clear();
+
+    notifyListeners();
+  }
 }

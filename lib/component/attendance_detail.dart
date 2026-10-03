@@ -8,6 +8,7 @@ import 'package:master_code/source/extentions/lib_extensions.dart';
 import 'package:flutter/material.dart';
 import 'package:master_code/source/styles/decoration.dart';
 import '../source/constant/local_data.dart';
+import '../source/extentions/int_extensions.dart';
 import 'custom_text.dart';
 
 /// simple cache to avoid repeated reverse-geocoding calls for the same lat/lng

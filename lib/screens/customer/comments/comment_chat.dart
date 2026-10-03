@@ -8,7 +8,7 @@ import '../../../component/custom_loading.dart';
 import '../../../component/custom_text.dart';
 import '../../../model/customer/customer_report_model.dart';
 import '../../../source/constant/colors_constant.dart';
-import '../../../source/constant/default_constant.dart';
+import '../../../source/constant/language_model.dart';
 import '../../../source/constant/local_data.dart';
 import '../../../source/styles/styles.dart';
 import '../../../source/utilities/utils.dart';

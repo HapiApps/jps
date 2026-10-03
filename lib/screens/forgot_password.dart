@@ -12,8 +12,9 @@ import '../component/custom_textfield.dart';
 import '../source/constant/api.dart';
 import '../source/constant/assets_constant.dart';
 import '../source/constant/colors_constant.dart';
-import '../source/constant/default_constant.dart';
+import '../source/constant/language_model.dart';
 import '../source/constant/key_constant.dart';
+import '../source/constant/language_model.dart';
 import '../source/utilities/utils.dart';
 
 class Otp extends StatefulWidget {

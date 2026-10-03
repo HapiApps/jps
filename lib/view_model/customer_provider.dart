@@ -44,7 +44,7 @@ import '../screens/common/fullscreen_photo.dart';
 import '../source/constant/api.dart';
 import '../source/constant/assets_constant.dart';
 import '../source/constant/colors_constant.dart';
-import '../source/constant/default_constant.dart';
+import '../source/constant/language_model.dart';
 import '../source/constant/local_data.dart';
 import '../source/utilities/utils.dart';
 import 'dart:ui' as ui;
@@ -5010,7 +5010,8 @@ print("customer all is${localData.storage.read("c_ids")}");
     required String companyName,
     required String customerName,
     required String mobileNo,
-  }) async {
+  })
+  async {
 
     Map<String, dynamic> data = {
       "action": editPopCompany,

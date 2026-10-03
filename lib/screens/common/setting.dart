@@ -8,7 +8,8 @@ import '../../component/custom_appbar.dart';
 import '../../component/panel_button.dart';
 import '../../source/constant/assets_constant.dart';
 import '../../source/constant/colors_constant.dart';
-import '../../source/constant/default_constant.dart';
+import '../../source/constant/language_model.dart';
+import '../../source/constant/language_model.dart';
 import '../../source/utilities/utils.dart';
 import '../../view_model/employee_provider.dart';
 import '../../view_model/home_provider.dart';
@@ -73,34 +74,37 @@ class _SettingState extends State<Setting> {
                         20.height,
 
                         // ✅ TAMIL / ENGLISH SWITCH TOGGLE
-                        Container(
-                          margin: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 4),
-                          padding: const EdgeInsets.symmetric(horizontal: 12),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: Colors.grey.shade300),
-                          ),
-                          child: SwitchListTile(
-                            contentPadding: EdgeInsets.zero,
-                            title: Text(
-                              langManager.isTamil ? "மொழி" : "Language",
-                              style: const TextStyle(
-                                  fontSize: 15, fontWeight: FontWeight.w500),
-                            ),
-                            subtitle: Text(
-                              langManager.isTamil ? "தமிழ்" : "English",
-                              style: const TextStyle(
-                                  fontSize: 13, color: Colors.grey),
-                            ),
-                            secondary: const Icon(Icons.language),
-                            value: langManager.isTamil, // ON = தமிழ், OFF = English
-                            onChanged: (bool isTamilOn) {
-                              langManager.setLanguage(tamil: isTamilOn);
-                            },
-                          ),
-                        ),
+                        // Container(
+                        //   margin: const EdgeInsets.symmetric(
+                        //       horizontal: 16, vertical: 4),
+                        //   padding: const EdgeInsets.symmetric(horizontal: 12),
+                        //   decoration: BoxDecoration(
+                        //     color: Colors.white,
+                        //     borderRadius: BorderRadius.circular(10),
+                        //     border: Border.all(color: Colors.grey.shade300),
+                        //   ),
+                        //   child: SwitchListTile(
+                        //     contentPadding: EdgeInsets.zero,
+                        //     title: Text(
+                        //       langManager.isTamil ? "மொழி" : "Language",
+                        //       style: const TextStyle(
+                        //           fontSize: 15, fontWeight: FontWeight.w500),
+                        //     ),
+                        //     subtitle: Text(
+                        //       langManager.isTamil ? "தமிழ்" : "English",
+                        //       style: const TextStyle(
+                        //           fontSize: 13, color: Colors.grey),
+                        //     ),
+                        //     secondary: const Icon(Icons.language),
+                        //     value: langManager.isTamil, // ON = தமிழ், OFF = English
+                        //     onChanged: (bool isTamilOn) {
+                        //       // ✅ setLanguage ippo async function,
+                        //       // aana onChanged sync-a irukanum, so
+                        //       // "fire and forget" style-la call pannunga
+                        //       langManager.setLanguage(tamil: isTamilOn);
+                        //     },
+                        //   ),
+                        // ),
 
                         10.height,
 

@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../../source/constant/default_constant.dart';
+import '../../source/constant/language_model.dart';
+import '../../source/constant/language_model.dart';
 import '../../source/utilities/utils.dart';
 import '../../view_model/leave_provider.dart';
 import '../common/dashboard.dart';
@@ -77,36 +78,40 @@ class LeaveSummaryCard extends StatelessWidget {
                         ),
                       ],
                     ),
-                    Row(
+                    Column(
                       children: [
-                        Text(
-                          constValue.totalLeaveLabel,
-                          style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
+                        Row(
+                          children: [
+                            Text(
+                              constValue.totalLeaveLabel,
+                              style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
+                            ),
+                            Text(
+                              formatDouble(allowedVal),
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.green.shade800,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
                         ),
-                        Text(
-                          formatDouble(allowedVal),
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.green.shade800,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                    /// TAKEN
-                    Row(
-                      children: [
-                        Text(
-                          constValue.leaveTakenLabel,
-                          style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
-                        ),
-                        Text(
-                          formatDouble(takenVal),
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.blue.shade800,
-                          ),
+                        /// TAKEN
+                        Row(
+                          children: [
+                            Text(
+                              constValue.leaveTakenLabel,
+                              style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
+                            ),
+                            Text(
+                              formatDouble(takenVal),
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.blue.shade800,
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),

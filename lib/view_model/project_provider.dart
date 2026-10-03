@@ -17,7 +17,7 @@ import '../repo/project_repo.dart';
 import '../screens/common/camera.dart';
 import '../source/constant/api.dart';
 import '../source/constant/colors_constant.dart';
-import '../source/constant/default_constant.dart';
+import '../source/constant/language_model.dart';
 import '../source/constant/local_data.dart';
 import '../source/utilities/utils.dart';
 

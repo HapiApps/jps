@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:master_code/source/constant/default_constant.dart';
+import 'package:master_code/source/constant/language_model.dart';
 import 'package:provider/provider.dart';
 
 import '../../component/custom_appbar.dart';

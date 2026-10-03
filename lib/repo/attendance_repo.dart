@@ -128,5 +128,55 @@ class AttendanceRepository{
       throw Exception('Failed to work flow');
     }
   }
+  /// Offline wages + attendance upload (action: insert_offline_wages)
+  /// Success na true, illana false
+  Future<bool> insertOfflineWages(Map<String, dynamic> body) async {
+    try {
+      final response = await http
+          .post(
+        Uri.parse(taskScript),
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+        },
+        body: jsonEncode(body),
+      )
+          .timeout(const Duration(seconds: 30));
 
+      log('BODY ....${jsonEncode(body)}');
+      log('RESULT ....${response.body}');
+
+      if (response.statusCode != 200) return false;
+
+      final decoded = json.decode(response.body);
+
+      if (decoded is Map) {
+        final statusCode = decoded["status_code"]?.toString();
+        if (statusCode == "200") {
+          return true;
+        }
+
+        final status = decoded["status"]?.toString().toLowerCase();
+        if (status == "200" ||
+            status == "success" ||
+            status == "1" ||
+            status == "true") {
+          return true;
+        }
+
+        final success = decoded["success"]?.toString().toLowerCase();
+        if (success == "success" ||
+            success == "1" ||
+            success == "true" ||
+            success == "200") {
+          return true;
+        }
+      }
+
+      return false;
+    } catch (e) {
+      log("insertOfflineWages ERROR: $e");
+      return false;
+    }
+  }
 }

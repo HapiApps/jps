@@ -119,9 +119,9 @@ class Assets{
   final String edit2= "assets/images/payroll/edit.svg";
   final String payroll2= "assets/images/payroll/payroll2.svg";
 
-  final String tDownload= "assets/images/task/download.svg";
+  final String tDownload= "assets/images/task/down.svg";
   final String tEdit= "assets/images/task/Edit.svg";
-  final String tFilter= "assets/images/task/Filter.svg";
+  final String tFilter= "assets/images/task/filter1.svg";
   final String tMessage= "assets/images/task/message.svg";
   final String img1= "assets/images/task/img1.svg";
   final String img2= "assets/images/task/img2.svg";
@@ -131,7 +131,7 @@ class Assets{
   final String rep2= "assets/images/task/rep2.svg";
 
   final String loc= "assets/images/task/loc.svg";
-  final String not= "assets/images/task/not.svg";
+  final String not= "assets/images/task/not1.svg";
   final String sett= "assets/images/task/sett.svg";
 
   /// Expasy

@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
-import 'package:master_code/source/constant/default_constant.dart';
+import 'package:master_code/source/constant/language_model.dart';
 import 'package:master_code/view_model/employee_provider.dart';
 import 'package:provider/provider.dart';
 import '../../source/constant/assets_constant.dart';

@@ -22,7 +22,8 @@ import '../../model/attendance_model.dart';
 import '../../model/leave/leave_model.dart';
 import '../../model/user_model.dart';
 import '../../source/constant/assets_constant.dart';
-import '../../source/constant/default_constant.dart';
+import '../../source/constant/language_model.dart';
+import '../../source/constant/language_model.dart';
 import '../../source/constant/local_data.dart';
 import '../../source/styles/decoration.dart';
 import '../../view_model/attendance_provider.dart';
@@ -606,7 +607,11 @@ class _AttendanceReportState extends State<AttendanceReport> {
                                       },
                                       child: Padding(
                                         padding: const EdgeInsets.all(6.0),
-                                        child: SvgPicture.asset(assets.tFilter,width: 20,height: 20,),
+                                        child: Icon(
+                                        Icons.filter_alt,
+                                        size: 27,
+                                        color: Colors.white,
+                                      ),
                                       ),
                                     ),5.width
                                   ],
@@ -647,10 +652,10 @@ class _AttendanceReportState extends State<AttendanceReport> {
                                   height: 27,
                                   child: CircularProgressIndicator(strokeWidth: 2),
                                 )
-                                    : SvgPicture.asset(
-                                  assets.tDownload,
-                                  width: 27,
-                                  height: 27,
+                                    : Icon(
+                                  Icons.download_rounded,
+                                  size: 27,
+                                  color: Colors.red,
                                 ),),
                             ],
                           ),
@@ -702,10 +707,10 @@ class _AttendanceReportState extends State<AttendanceReport> {
                                   height: 27,
                                   child: CircularProgressIndicator(strokeWidth: 2),
                                 )
-                                    : SvgPicture.asset(
-                                  assets.tDownload,
-                                  width: 27,
-                                  height: 27,
+                                    : Icon(
+                                  Icons.download_rounded,
+                                  size: 27,
+                                  color: Colors.red,
                                 ),),
                             ],
                           ),

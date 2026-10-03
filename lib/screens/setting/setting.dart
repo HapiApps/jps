@@ -1,6 +1,6 @@
 import 'package:master_code/screens/setting/headings.dart';
 import 'package:master_code/screens/setting/manage_setting.dart';
-import 'package:master_code/source/constant/default_constant.dart';
+import 'package:master_code/source/constant/language_model.dart';
 import 'package:master_code/source/constant/local_data.dart';
 import 'package:flutter/material.dart';
 import '../../component/animated_drawer.dart';

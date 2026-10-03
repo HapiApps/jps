@@ -30,7 +30,7 @@ import '../../model/customer/customer_model.dart';
 import '../../model/task/task_data_model.dart';
 import '../../source/constant/assets_constant.dart';
 import '../../source/constant/colors_constant.dart';
-import '../../source/constant/default_constant.dart';
+import '../../source/constant/language_model.dart';
 import '../../source/constant/local_data.dart';
 import '../../source/styles/decoration.dart';
 import '../../source/utilities/utils.dart';
@@ -38,6 +38,7 @@ import '../../view_model/task_provider.dart';
 import '../common/dashboard.dart';
 import '../common/home_page.dart';
 import '../expense/create_expense.dart';
+import 'add_wages_work_details.dart';
 
 
 class ViewTask extends StatefulWidget {
@@ -100,7 +101,7 @@ class _ViewTaskState extends State<ViewTask> with SingleTickerProviderStateMixin
       );
       taskProvider.dataSource = _getDataSource();
       taskProvider.getTaskUsers();
-      taskProvider.getAllTask(
+      taskProvider.getAllIncompleteTask(
         true,
         date1: widget.date1,
         date2: widget.date2,
@@ -136,7 +137,7 @@ class _ViewTaskState extends State<ViewTask> with SingleTickerProviderStateMixin
                     homeProvider.updateIndex(0);
                     utils.navigatePage(context, () => const DashBoard(child: HomePage()));
                   },
-                isButton: homeProvider.roleAccess.any((f) => f['feature'] == 'Task Management'&&f['name'] == 'Create')? true : false, // ✅ FIX: was missing
+                  //   isButton: homeProvider.roleAccess.any((f) => f['feature'] == 'Task Management'&&f['name'] == 'Create')? true : false, // ✅ FIX: was missing
                   isLoading: taskProvider.isAddTaskLoading, // ✅ FIX: was hardcoded `true`
                   buttonCallback: () async {
                     if (taskProvider.isAddTaskLoading) return; // 🔒 double-tap block
@@ -180,7 +181,7 @@ class _ViewTaskState extends State<ViewTask> with SingleTickerProviderStateMixin
                       children: [
                         20.height,
                         Container(
-                          height: 50,
+                            height: 50,
                             decoration: customDecoration.baseBackgroundDecoration(
                               color: Colors.white,
                               radius: 30,
@@ -249,7 +250,7 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
       final taskProvider = Provider.of<TaskProvider>(context, listen: false);
       taskProvider.initFilterValue(true,date1:widget.date1,date2:widget.date2,type:widget.type);
       taskProvider.dataSource = _getDataSource();
-      taskProvider.getAllTask(true,date1:widget.date1,date2:widget.date2,type:widget.type);
+      taskProvider.getAllIncompleteTask(true,date1:widget.date1,date2:widget.date2,type:widget.type);
       if(localData.storage.read("role")=="1"){
         taskProvider.getTaskUsers();
       }
@@ -670,7 +671,11 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
                               },
                               child: Padding(
                                 padding: const EdgeInsets.all(6.0),
-                                child: SvgPicture.asset(assets.tFilter,width: 20,height: 20,),
+                                child:  Icon(
+                                  Icons.filter_alt,
+                                  size: 27,
+                                  color: Colors.white,
+                                ),
                               ),
                             ),
                             5.width
@@ -680,57 +685,57 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
                         mainAxisAlignment: MainAxisAlignment.end,
                         children: [
                           // downloadAllOnlyEmpTask
-                      localData.storage.read("role").toString() == "1"
-                          ? InkWell(
-                        onTap: () async {
-                          taskProvider.downloadAllTask(context); // Admin full report
-                        },
-                        borderRadius: BorderRadius.circular(12),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            SvgPicture.asset(
-                              assets.tDownload,
-                              width: 20,
-                              height: 20,
+                          localData.storage.read("role").toString() == "1"
+                              ? InkWell(
+                            onTap: () async {
+                              taskProvider.downloadAllOnlyEmpTask(context); // Admin full report
+                            },
+                            borderRadius: BorderRadius.circular(12),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.download_rounded,
+                                  size: 27,
+                                  color: Colors.red,
+                                ),
+                                const SizedBox(height: 5),
+                                const Text(
+                                  "Task",
+                                  style: TextStyle(
+                                    color: Colors.black,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12,
+                                  ),
+                                )
+                              ],
                             ),
-                            const SizedBox(height: 5),
-                            const Text(
-                              "Task",
-                              style: TextStyle(
-                                color: Colors.black,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 12,
-                              ),
-                            )
-                          ],
-                        ),
-                      )
-                          : InkWell(
-                        onTap: () async {
-                          taskProvider.downloadAllOnlyEmpTask(context); // Employee only assigned
-                        },
-                        borderRadius: BorderRadius.circular(12),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            SvgPicture.asset(
-                              assets.tDownload,
-                              width: 20,
-                              height: 20,
+                          )
+                              : InkWell(
+                            onTap: () async {
+                              taskProvider.downloadAllOnlyEmpTask(context); // Employee only assigned
+                            },
+                            borderRadius: BorderRadius.circular(12),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.download_rounded,
+                                  size: 27,
+                                  color: Colors.red,
+                                ),
+                                const SizedBox(height: 5),
+                                const Text(
+                                  "Task",
+                                  style: TextStyle(
+                                    color: Colors.black,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12,
+                                  ),
+                                )
+                              ],
                             ),
-                            const SizedBox(height: 5),
-                            const Text(
-                              "Task",
-                              style: TextStyle(
-                                color: Colors.black,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 12,
-                              ),
-                            )
-                          ],
-                        ),
-                      ),
+                          ),
                           const SizedBox(width: 8),
                           InkWell(
                             onTap: () async {
@@ -740,11 +745,10 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
                             child: Column(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                SvgPicture.asset(
-                                  assets.tDownload,
-                                  width: 20,
-                                  height: 20,
-
+                                Icon(
+                                  Icons.download_rounded,
+                                  size: 27,
+                                  color: Colors.red,
                                 ),
                                 const SizedBox(width: 8),
                                 const Text(
@@ -805,25 +809,25 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
                             //   ),
                             // ),
 
-                            Text(
-                              "Total Tasks : ${taskProvider.filterUserData.length}",
-                              style: const TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.black54,
+                              Text(
+                                "Total Tasks : ${taskProvider.filterUserData.length}",
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.black54,
+                                ),
                               ),
-                            ),
                           ],
                         ),
                         6.height,
                         if(taskProvider.isFilter==true)
 
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
 
-                          ],
-                        ),
+                            ],
+                          ),
                       ],
                     ),
                   ),
@@ -1007,11 +1011,35 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     /// TITLE
+                    // Row(
+                    //   crossAxisAlignment: CrossAxisAlignment.start,
+                    //   children: [
+                    //     SizedBox(
+                    //       width: kIsWeb ? webWidth / 1.2 : phoneWidth / 1.2,
+                    //       child: ExpandableText(
+                    //         text: data.taskTitle ?? "",
+                    //         trimLines: 2,
+                    //         fontSize: 14,
+                    //         isBold: true,
+                    //       ),
+                    //     ),
+                    //     if(localData.storage.read("role") =="1")
+                    //     Column(
+                    //       children: [
+                    //         InkWell(onTap: (){
+                    //           utils.navigatePage(context, ()=> DashBoard(child: EditTask(
+                    //               data: data,isDirect: false,numberList: [])));
+                    //         }, child: SvgPicture.asset(assets.tEdit,width: 20,height: 20,)),
+                    //         const SizedBox(height: 12),
+                    //
+                    //       ],
+                    //     )
+                    //   ],
+                    // ),
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        SizedBox(
-                          width: kIsWeb ? webWidth / 1.2 : phoneWidth / 1.2,
+                        Expanded(
                           child: ExpandableText(
                             text: data.taskTitle ?? "",
                             trimLines: 2,
@@ -1019,20 +1047,37 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
                             isBold: true,
                           ),
                         ),
-                        if(localData.storage.read("role") =="1")
-                        Column(
-                          children: [
-                            InkWell(onTap: (){
-                              utils.navigatePage(context, ()=> DashBoard(child: EditTask(
-                                  data: data,isDirect: false,numberList: [])));
-                            }, child: SvgPicture.asset(assets.tEdit,width: 20,height: 20,)),
-                            const SizedBox(height: 12),
+                        const SizedBox(width: 6),
 
-                          ],
-                        )
+                        WagesAddWorkDetails(
+                          taskId: data.id.toString(),
+                        ),
+
+                        const SizedBox(width: 6),
+
+                        InkWell(
+                          onTap: () {
+                            utils.navigatePage(
+                              context,
+                                  () => DashBoard(
+                                child: EditTask(
+                                  data: data,
+                                  isDirect: false,
+                                  numberList: [],
+                                ),
+                              ),
+                            );
+                          },
+                          child: const Icon(
+                            Icons.edit,
+                            size: 20,
+                            color: Colors.red,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
                       ],
                     ),
-
+                    5.height,
                     /// ASSIGNED USERS
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1041,52 +1086,52 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
                         RichText(
                           text: TextSpan(
                             children: [
-                            TextSpan(
-                            text: displayName,
-                            style: const TextStyle(
-                              color: Color(0xff007AAE),
-                              fontSize: 15,
-                            ),
-                            recognizer: TapGestureRecognizer()
-                              ..onTap = () {
-                                showDialog(
-                                  context: context,
-                                  builder: (context) {
-                                    return AlertDialog(
-                                      title: const Text("Assigned User"),
-                                      content: Text(fullName),
-                                      actions: [
-                                        TextButton(
-                                          onPressed: () => Navigator.pop(context),
-                                          child: const Text("Close"),
-                                        ),
-                                      ],
+                              TextSpan(
+                                text: displayName,
+                                style: const TextStyle(
+                                  color: Color(0xff007AAE),
+                                  fontSize: 15,
+                                ),
+                                recognizer: TapGestureRecognizer()
+                                  ..onTap = () {
+                                    showDialog(
+                                      context: context,
+                                      builder: (context) {
+                                        return AlertDialog(
+                                          title: const Text("Assigned User"),
+                                          content: Text(fullName),
+                                          actions: [
+                                            TextButton(
+                                              onPressed: () => Navigator.pop(context),
+                                              child: const Text("Close"),
+                                            ),
+                                          ],
+                                        );
+                                      },
                                     );
                                   },
-                                );
-                              },
+                              ),
+
+                              if (formatAssignedNames(data.assignedNames).contains('+'))
+                                TextSpan(
+                                  text:
+                                  " +${formatAssignedNames(data.assignedNames).split('+').last.trim()}",
+                                  style: const TextStyle(
+                                    color: Color(0xff007AAE),
+                                    fontSize: 11,
+                                  ),
+                                ),
+
+                              if (formatAssignedNames(data.assignedNames).contains('+'))
+                                const TextSpan(
+                                  text: " oths",
+                                  style: TextStyle(
+                                    color: Color(0xff007AAE),
+                                    fontSize: 11,
+                                  ),
+                                ),
+                            ],
                           ),
-
-                            if (formatAssignedNames(data.assignedNames).contains('+'))
-                        TextSpan(
-                        text:
-                        " +${formatAssignedNames(data.assignedNames).split('+').last.trim()}",
-                        style: const TextStyle(
-                        color: Color(0xff007AAE),
-                        fontSize: 11,
-                        ),
-                        ),
-
-                        if (formatAssignedNames(data.assignedNames).contains('+'))
-                        const TextSpan(
-                        text: " others",
-                        style: TextStyle(
-                        color: Color(0xff007AAE),
-                        fontSize: 11,
-                        ),
-                        ),
-                        ],
-                        ),
                         ),
 
                         Padding(
@@ -1108,7 +1153,7 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
                                 2.width,
                                 Container(
                                   padding: const EdgeInsets.symmetric(
-                                      horizontal: 14, vertical: 6),
+                                      horizontal: 7, vertical: 3),
                                   decoration: BoxDecoration(
                                     color: priorityBg,
                                     borderRadius: BorderRadius.circular(20),
@@ -1138,30 +1183,30 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
                       _infoBlock("Company", data.projectName ?? ""),
                     const SizedBox(height: 5),
                     if(data.name.toString()!="null"&&data.name.toString()!="")
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            CustomText(text: "Customer",size: 12,colors: const Color(0xff7E7E7E),isBold: true,),
-                            CustomText(text: data.name??'',size: 14,isBold: true,),
-                          ],
-                        ),
-                        Row(
-                          children: [
-                            CustomText(text: data.phoneNo??'',size: 14,),5.width,
-                            GestureDetector(
-                              onTap: (){
-                                utils.makingPhoneCall(ph:data.phoneNo.toString());
-                              },
-                              child: Icon(Icons.call,color: Colors.blue,),
-                            )
-                          ],
-                        )
-                      ],
-                    ),
-                    const SizedBox(height: 5),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              CustomText(text: "Customer",size: 12,colors: const Color(0xff7E7E7E),isBold: true,),
+                              CustomText(text: data.name??'',size: 14,isBold: true,),
+                            ],
+                          ),
+                          Row(
+                            children: [
+                              CustomText(text: data.phoneNo??'',size: 14,),5.width,
+                              GestureDetector(
+                                onTap: (){
+                                  utils.makingPhoneCall(ph:data.phoneNo.toString());
+                                },
+                                child: Icon(Icons.call,color: Colors.blue,),
+                              )
+                            ],
+                          )
+                        ],
+                      ),
+                    //   const SizedBox(height: 5),
                     /// COMPANY + Task type
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1173,84 +1218,84 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
                         _infoBlock("Task Date", data.taskDate ?? ""),
                       ],
                     ),
-                    if(homeProvider.roleAccess.any((f) => f['feature'] == 'Task Management'&&f['name'] == 'Expense'))
-                      Row(
+                    // Ftaskif(homeProvider.roleAccess.any((f) => f['feature'] == 'Task Management'&&f['name'] == 'Expense'))
+                    Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        TextButton(
-                            onPressed: (){
-                              _myFocusScopeNode.unfocus();
-                              utils.navigatePage(context, ()=> DashBoard(child: CreateExpense(taskId: data.id.toString(),data: data,coId: "",numberList: const [],
-                                  companyName: data.projectName??'', type: data.type.toString(), desc: data.taskTitle.toString(),
-                                  date: data.taskDate.toString())));
-                            },
-                            child: CustomText(text: "Add Expense",colors: colorsConst.blueClr,)),
-                        TextButton(
-                            onPressed: (){
-                              _myFocusScopeNode.unfocus();
-                              utils.navigatePage(context, ()=>DashBoard(child:
-                              TaskReport(taskId: data.id.toString(),coId: data.companyId.toString(),numberList: const [], isTask: true,
-                                coName: data.projectName.toString(),description: data.taskTitle.toString(),type: data.type.toString(),
-                                callback: () {
-                                  Future.microtask(() => Navigator.pop(context));
-                                }, index: 0,
-                              )));
-                            },
-                            child: CustomText(text: "View Report",colors: colorsConst.appDarkGreen,)),
+                        // TextButton(
+                        //     onPressed: (){
+                        //       _myFocusScopeNode.unfocus();
+                        //       utils.navigatePage(context, ()=> DashBoard(child: CreateExpense(taskId: data.id.toString(),data: data,coId: "",numberList: const [],
+                        //           companyName: data.projectName??'', type: data.type.toString(), desc: data.taskTitle.toString(),
+                        //           date: data.taskDate.toString())));
+                        //     },
+                        //     child: CustomText(text: "Add Expense",colors: colorsConst.blueClr,)),
+                        // TextButton(
+                        //     onPressed: (){
+                        //       _myFocusScopeNode.unfocus();
+                        //       utils.navigatePage(context, ()=>DashBoard(child:
+                        //       TaskReport(taskId: data.id.toString(),coId: data.companyId.toString(),numberList: const [], isTask: true,
+                        //         coName: data.projectName.toString(),description: data.taskTitle.toString(),type: data.type.toString(),
+                        //         callback: () {
+                        //           Future.microtask(() => Navigator.pop(context));
+                        //         }, index: 0,
+                        //       )));
+                        //     },
+                        //     child: CustomText(text: "View Report",colors: colorsConst.appDarkGreen,)),
                       ],
                     ),
                     const Divider(thickness: 2,),
                     // "employee_status":"Hariharan##Complete##30-07-2026 13:13:00||Santhiya##Complete##30-07-2026 12:57:13","employee_hours":"Hariharan##00:02:07||Santhiya##00:29:53"
-                    localData.storage.read("role")=="1"&&data.employeeStatus!=''?
-                    SizedBox(
-                      width:kIsWeb?MediaQuery.of(context).size.width*0.5:MediaQuery.of(context).size.width*0.83,
-                      child: ListView.builder(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          itemCount:statusList.length,
-                          itemBuilder: (context,index){
-                            return Padding(
-                              padding: const EdgeInsets.fromLTRB(0, 5, 0, 0),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Row(
-                                    children: [
-                                      Icon(Icons.person_outline_sharp,color: Colors.grey,size: 20,),
-                                      Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          CustomText(text: statusList[index].split("##")[0],isBold: true,colors: colorsConst.pink2),
-                                          Row(
-                                            children: [
-                                              CustomText(text: statusList[index].split("##")[1]),
-                                            ],
-                                          ),
-                                        ],
-                                      ),
-                                    ],
-                                  ),
-                                  CustomText(text: "Working Time : ${hoursList[index]==""?"0 sec":taskPvr.formatHours(hoursList[index].split("##")[1])}"),
-                                ],
-                              ),
-                            );
-                          }),
-                    ):
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Row(
-                          children: [
-                            CustomText(text: "Status : "),
-                            CustomText(text: "${data.workStatus}",isBold: true,colors: colorsConst.orange,),
-                          ],
-                        ),
-                        CustomText(text: "Total Hours : ${data.totalHours.toString()=="null"?"0 Sec":taskPvr.formatHours(data.totalHours.toString())}"),
-                      ],
-                    ),5.height,
-                    if(data.statval!="Completed")
-                    taskButton(taskPvr,data.id.toString(),data.workStatus.toString()),
-                    const Divider(thickness: 2,),
+                    // localData.storage.read("role")=="1"&&data.employeeStatus!=''?
+                    // SizedBox(
+                    //   width:kIsWeb?MediaQuery.of(context).size.width*0.5:MediaQuery.of(context).size.width*0.83,
+                    //   child: ListView.builder(
+                    //       shrinkWrap: true,
+                    //       physics: const NeverScrollableScrollPhysics(),
+                    //       itemCount:statusList.length,
+                    //       itemBuilder: (context,index){
+                    //         return Padding(
+                    //           padding: const EdgeInsets.fromLTRB(0, 5, 0, 0),
+                    //           child: Row(
+                    //             mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    //             children: [
+                    //               Row(
+                    //                 children: [
+                    //                   Icon(Icons.person_outline_sharp,color: Colors.grey,size: 20,),
+                    //                   Column(
+                    //                     crossAxisAlignment: CrossAxisAlignment.start,
+                    //                     children: [
+                    //                       CustomText(text: statusList[index].split("##")[0],isBold: true,colors: colorsConst.pink2),
+                    //                       Row(
+                    //                         children: [
+                    //                           CustomText(text: statusList[index].split("##")[1]),
+                    //                         ],
+                    //                       ),
+                    //                     ],
+                    //                   ),
+                    //                 ],
+                    //               ),
+                    //               CustomText(text: "Working Time : ${hoursList[index]==""?"0 sec":taskPvr.formatHours(hoursList[index].split("##")[1])}"),
+                    //             ],
+                    //           ),
+                    //         );
+                    //       }),
+                    // ):
+                    // Row(
+                    //   mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    //   children: [
+                    //     Row(
+                    //       children: [
+                    //         CustomText(text: "Status : "),
+                    //         CustomText(text: "${data.workStatus}",isBold: true,colors: colorsConst.orange,),
+                    //       ],
+                    //     ),
+                    //     CustomText(text: "Total Hours : ${data.totalHours.toString()=="null"?"0 Sec":taskPvr.formatHours(data.totalHours.toString())}"),
+                    //   ],
+                    // ),5.height,
+                    // if(data.statval!="Completed")
+                    // taskButton(taskPvr,data.id.toString(),data.workStatus.toString()),
+                    // const Divider(thickness: 2,),
                     /// DATE + CREATED BY
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1408,10 +1453,10 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
                               ).getAllTask(false);
                             }
                           },
-                          child: SvgPicture.asset(
-                            assets.tMessage,
-                            width: 20,
-                            height: 20,
+                          child: Icon(
+                            Icons.message_outlined,
+                            size: 20,
+                            color:Colors.green,
                           ),
                         ),
                       ],
@@ -1453,8 +1498,8 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
                   // );
                 }
                 , isLoading: false,
-              backgroundColor: colorsConst.pink, radius: 50, height: 30,width: 70,text: "Start"
-              ),
+                backgroundColor: colorsConst.pink, radius: 50, height: 30,width: 70,text: "Start"
+            ),
             10.width,
             CustomLoadingButton(
                 callback: (){
@@ -1468,11 +1513,11 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
         return Row(
           children: [
             CustomLoadingButton(
-              callback: (){
-                taskPvr.insertTaskLogHistory(context,id:id,level:"Start");
-              }, isLoading: false,
-              backgroundColor: colorsConst.pink, radius: 50, height: 30,width: 70,text: "Start"
-              ),
+                callback: (){
+                  taskPvr.insertTaskLogHistory(context,id:id,level:"Start");
+                }, isLoading: false,
+                backgroundColor: colorsConst.pink, radius: 50, height: 30,width: 70,text: "Start"
+            ),
             10.width,
             CustomLoadingButton(
                 callback: (){
@@ -1486,16 +1531,16 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
         return Row(
           children: [
             CustomLoadingButton(
-                callback: (){
-                  taskPvr.insertTaskLogHistory(context,id:id,level:"Hold");
-                }, isLoading: false,
-                backgroundColor: Colors.blue, radius: 50, height: 30,width: 70,text: "Hold",),
+              callback: (){
+                taskPvr.insertTaskLogHistory(context,id:id,level:"Hold");
+              }, isLoading: false,
+              backgroundColor: Colors.blue, radius: 50, height: 30,width: 70,text: "Hold",),
             10.width,
             CustomLoadingButton(
-              callback: (){
-                taskPvr.insertTaskLogHistory(context,id:id,level:"Complete");
-              }, isLoading: false,
-              backgroundColor: Colors.green, radius: 50, height: 30, width: 100,text: "Complete"
+                callback: (){
+                  taskPvr.insertTaskLogHistory(context,id:id,level:"Complete");
+                }, isLoading: false,
+                backgroundColor: Colors.green, radius: 50, height: 30, width: 100,text: "Complete"
             ),
           ],
         );
@@ -1567,9 +1612,9 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
           TextSpan(
             text: "$title\n",
             style: GoogleFonts.lato(
-              fontSize: 12,
-              color: const Color(0xff7E7E7E),
-              fontWeight: FontWeight.bold
+                fontSize: 12,
+                color: const Color(0xff7E7E7E),
+                fontWeight: FontWeight.bold
             ),
           ),
           TextSpan(
@@ -1714,15 +1759,53 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
                                   children: [
                                     CustomText(text: data.projectName.toString()=="null"?"":data.projectName.toString(),isBold: true,),
                                     if(data.projectName.toString()!="null")
-                                    CustomText(text: " - ",isBold: true),
+                                      CustomText(text: " - ",isBold: true),
                                     CustomText(text: data.type.toString().trim(),isBold: true),
                                   ],
                                 ),
-                                if(localData.storage.read("role") =="1")
-                                  IconButton(icon: SvgPicture.asset(assets.tEdit,width: 20,height: 20,),onPressed: (){
-                                  utils.navigatePage(context, ()=> DashBoard(child: EditTask(
-                                      data: data,isDirect:true, numberList: const [])));
-                                },)
+                                /// TITLE
+                                Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Expanded(
+                                      child: ExpandableText(
+                                        text: data.taskTitle ?? "",
+                                        trimLines: 2,
+                                        fontSize: 14,
+                                        isBold: true,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    WagesAddWorkDetails(
+                                      taskId: data.id.toString(),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    InkWell(
+                                      onTap: () {
+                                        utils.navigatePage(
+                                          context,
+                                              () => DashBoard(
+                                            child: EditTask(
+                                              data: data,
+                                              isDirect: false,
+                                              numberList: [],
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                      child: const Icon(
+                                        Icons.edit,
+                                        size: 20,
+                                        color: Colors.red,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                // if(localData.storage.read("role") =="1")
+                                //   IconButton(icon: SvgPicture.asset(assets.tEdit,width: 20,height: 20,),onPressed: (){
+                                //   utils.navigatePage(context, ()=> DashBoard(child: EditTask(
+                                //       data: data,isDirect:true, numberList: const [])));
+                                // },)
                               ],
                             ),
                             Row(
@@ -1771,31 +1854,31 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
                       child: CustomText(text: "${data.statval==""?"-":data.statval}",colors: Colors.white,),
                     ),
                   ),
-                Row(
-                  children: [
-                    Container(
-                        decoration: customDecoration.baseBackgroundDecoration(
-                            color: data.level=='High'?Colors.red.shade50:data.level=='Immediate'?Colors.orange.shade50:Colors.pink.shade50,
-                            radius: 10
-                        ),
-                        child: Padding(
-                      padding: const EdgeInsets.all(5.0),
-                      child: Row(
-                        children: [
-                          Icon(Icons.circle,color: data.level=='High'?Colors.red:data.level=='Immediate'?Colors.orange:Colors.pink,size: 10,),5.width,
-                          CustomText(text: "${data.level}",colors: data.level=='High'?Colors.red:data.level=='Immediate'?Colors.orange:Colors.pink),
-                        ],
-                      ),
-                    )),
-                    Icon(Icons.add),
-                    IconButton(onPressed: (){
-                      utils.navigatePage(context, ()=> DashBoard(child: TaskChat(isVisit:false,
+                  Row(
+                    children: [
+                      Container(
+                          decoration: customDecoration.baseBackgroundDecoration(
+                              color: data.level=='High'?Colors.red.shade50:data.level=='Immediate'?Colors.orange.shade50:Colors.pink.shade50,
+                              radius: 10
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.all(5.0),
+                            child: Row(
+                              children: [
+                                Icon(Icons.circle,color: data.level=='High'?Colors.red:data.level=='Immediate'?Colors.orange:Colors.pink,size: 10,),5.width,
+                                CustomText(text: "${data.level}",colors: data.level=='High'?Colors.red:data.level=='Immediate'?Colors.orange:Colors.pink),
+                              ],
+                            ),
+                          )),
+                      Icon(Icons.add),
+                      IconButton(onPressed: (){
+                        utils.navigatePage(context, ()=> DashBoard(child: TaskChat(isVisit:false,
                           taskId: data.id.toString(), assignedId: data.assigned.toString(),
-                        name: data.creator.toString(), assignedName: data.assignedNames.toString(), date1: widget.date1
-                        , date2: widget.date2, type: widget.type, index: index,)));
-                    }, icon: SvgPicture.asset(assets.tMessage,width: 10,height: 10,)),
-                  ],
-                ),
+                          name: data.creator.toString(), assignedName: data.assignedNames.toString(), date1: widget.date1
+                          , date2: widget.date2, type: widget.type, index: index,)));
+                      }, icon: SvgPicture.asset(assets.tMessage,width: 10,height: 10,)),
+                    ],
+                  ),
                 ],
               ),
             ),
@@ -1817,6 +1900,219 @@ class _DataSource extends CalendarDataSource {
     appointments = source;
   }
 }
+
+// Expanded(
+//   child: ListView.builder(
+//       itemCount: taskProvider.filterUserData.length,
+//       itemBuilder: (context, index) {
+//         final sortedData = taskProvider.filterUserData;
+//         final data = sortedData[index];
+//         var createdBy = "";
+//         String timestamp = data.createdTs.toString();
+//         DateTime dateTime = DateTime.parse(timestamp);
+//         String dayOfWeek = DateFormat('EEEE').format(dateTime);
+//         DateTime today = DateTime.now();
+//         if (dateTime.day == today.day && dateTime.month == today.month && dateTime.year == today.year) {
+//           dayOfWeek = 'Today';
+//         } else if (dateTime.isAfter(today.subtract(const Duration(days: 1))) &&
+//             dateTime.isBefore(today)) {
+//           dayOfWeek = 'Yesterday';
+//         } else {
+//           dayOfWeek = "${dateTime.day}/${dateTime.month}/${dateTime.year}";
+//         }
+//         createdBy = "${dateTime.day}/${dateTime.month}/${dateTime.year}";
+//         final showDateHeader = index == 0 || createdBy != getCreatedDate(sortedData[index - 1]);
+//         return InkWell(
+//           onTap: (){
+//             _myFocusScopeNode.unfocus();
+//             Provider.of<HomeProvider >(context, listen: false).panelClose();
+//             utils.navigatePage(context, ()=>DashBoard(child: TaskDetails(
+//                 data:data,isDirect:true,coId: "0", numberList: const [])));
+//           },
+//           child: Column(
+//             children: [
+//               if (showDateHeader)
+//                 CustomText(
+//                     text: dayOfWeek,
+//                     colors: colorsConst.greyClr
+//                 ),
+//               taskProvider.statusId==""?
+//               detail(
+//                   width: kIsWeb?webHeight:phoneHeight,
+//                   data: data, callBack: () async {
+//                 _myFocusScopeNode.unfocus();
+//                 if(locPvr.latitude!=""&&locPvr.longitude!=""){
+//                   if(taskProvider.checkAtt==""){
+//                     taskProvider.signDialog(context: context,
+//                       img: taskProvider.profile,
+//                       onTap:(newImg){
+//                         taskProvider.profilePick(newImg);
+//                         taskProvider.taskAttDirect(
+//                             context,
+//                             status:data.isChecked.toString()=="null"||data.isChecked.toString()=="2"?"1":"2",
+//                             taskId: data.id.toString(),
+//                             lat:locPvr.latitude,
+//                             lng:locPvr.longitude);
+//                       },
+//                     );
+//                   }
+//                   else if(taskProvider.checkAtt==data.id.toString()){
+//                     taskProvider.signDialog(context: context,
+//                       img: taskProvider.profile,
+//                       onTap:(newImg){
+//                         taskProvider.profilePick(newImg);
+//                         taskProvider.taskAttDirect(
+//                             context,
+//                             status:data.isChecked.toString()=="null"||data.isChecked.toString()=="2"?"1":"2",
+//                             taskId: data.id.toString(),
+//                             lat:locPvr.latitude,
+//                             lng:locPvr.longitude);
+//                       },
+//                     );
+//                   }else{
+//                     utils.showWarningToast(context, text: "Please check out previous ${taskProvider.checkAttName} task");
+//                   }
+//                 }else{
+//                   utils.showWarningToast(context, text: "Check your location accuracy.");
+//                   await locPvr.manageLocation(context, true);
+//                 }
+//               })
+//                   :taskProvider.statusId!=""&&taskProvider.statusId==data.statval?
+//               detail(
+//                   width: kIsWeb?webHeight:phoneHeight,
+//                   data: data, callBack: () async {
+//                 _myFocusScopeNode.unfocus();
+//                 if(locPvr.latitude!=""&&locPvr.longitude!=""){
+//                   if(taskProvider.checkAtt==""){
+//                     taskProvider.signDialog(context: context,
+//                       img: taskProvider.profile,
+//                       onTap:(newImg){
+//                         taskProvider.profilePick(newImg);
+//                         taskProvider.taskAttDirect(
+//                             context,
+//                             status:data.isChecked.toString()=="null"||data.isChecked.toString()=="2"?"1":"2",
+//                             taskId: data.id.toString(),
+//                             lat:locPvr.latitude,
+//                             lng:locPvr.longitude);
+//                       },
+//                     );
+//                   }
+//                   else if(taskProvider.checkAtt==data.id.toString()){
+//                     taskProvider.signDialog(context: context,
+//                       img: taskProvider.profile,
+//                       onTap:(newImg){
+//                         taskProvider.profilePick(newImg);
+//                         taskProvider.taskAttDirect(
+//                             context,
+//                             status:data.isChecked.toString()=="null"||data.isChecked.toString()=="2"?"1":"2",
+//                             taskId: data.id.toString(),
+//                             lat:locPvr.latitude,
+//                             lng:locPvr.longitude);
+//                       },
+//                     );
+//                   }else{
+//                     utils.showWarningToast(context, text: "Please check out previous ${taskProvider.checkAttName} task");
+//                   }
+//                 }else{
+//                   utils.showWarningToast(context, text: "Check your location accuracy.");
+//                   await locPvr.manageLocation(context, true);
+//                 }
+//               }):const SizedBox.shrink(),
+//               if(index==taskProvider.filterUserData.length-1)
+//                 50.height
+//             ],
+//           ),
+//         );
+//         // :0.width;
+//       }),
+// ),
+// const Padding(
+//   padding: EdgeInsets.fromLTRB(0, 0, 0, 5),
+//   child: DotLine(),
+// ),
+// Padding(
+//   padding: const EdgeInsets.fromLTRB(kIsWeb?10:5, 0, 5, 0),
+//   child: Row(
+//     mainAxisAlignment: MainAxisAlignment.spaceBetween,
+//     children: [
+//       if(data.assignedNames.toString()!="null")
+//         SizedBox(
+//           // color:Colors.pinkAccent,
+//             width: kIsWeb?MediaQuery.of(context).size.width*0.3:MediaQuery.of(context).size.width*0.6,
+//             child: CustomText(text: data.assignedNames.toString())),
+//       if((localData.storage.read("role")=="1"&&data.assignedNames.toString().contains(localData.storage.read("f_name"))||localData.storage.read("role")!="1")&&(!kIsWeb&&!data.statval.toString().contains("ompleted")))
+//         SizedBox(
+//           width:MediaQuery.of(context).size.width*0.3,
+//           height: 30,
+//           child: ElevatedButton(
+//             style: ElevatedButton.styleFrom(
+//                 backgroundColor: data.isChecked.toString()=="null"?colorsConst.litGrey
+//                     :data.isChecked.toString()=="2"?colorsConst.litGrey:colorsConst.appGreen,
+//                 shape: const StadiumBorder()
+//             ),
+//             onPressed: callBack,
+//             child: Row(
+//               mainAxisAlignment: MainAxisAlignment.center,
+//               children: [
+//                 Icon(Icons.location_on_outlined,color: data.isChecked.toString()=="null"?Colors.black: data.isChecked.toString()=="2"?Colors.black: Colors.white,size: 15,),
+//                 CustomText(text: data.isChecked.toString()=="null"?"Check In":data.isChecked.toString()=="1"?"Check Out":"Check In",
+//                   colors: data.isChecked.toString()=="null"?Colors.black:data.isChecked.toString()=="2"?Colors.black: Colors.white,isBold: true,),
+//               ],
+//             ),
+//           ),
+//         ),
+//       // if(data.statval.toString().contains("ompleted")||kIsWeb)
+//       //   TextButton(
+//       //       onPressed: (){
+//       //         _myFocusScopeNode.unfocus();
+//       //         utils.navigatePage(context, ()=>DashBoard(child:
+//       //         TaskReport(taskId: data.id.toString(),coId: data.companyId.toString(),numberList: const [], isTask: true,
+//       //           coName: data.projectName.toString(),description: data.taskTitle.toString(),type: data.type.toString(),
+//       //           callback: () {
+//       //             Future.microtask(() => Navigator.pop(context));
+//       //           }, index: 0,
+//       //         )));
+//       //       },
+//       //       child: CustomText(text: "View Report",colors: colorsConst.appDarkGreen,)),
+//     ],
+//   ),
+// ),
+// if(!kIsWeb)
+//   Row(
+//     mainAxisAlignment: MainAxisAlignment.spaceBetween,
+//     children: [
+//       TextButton(
+//           onPressed: (){
+//             _myFocusScopeNode.unfocus();
+//             utils.navigatePage(context, ()=> DashBoard(child: CreateExpense(taskId: data.id.toString(),data: data,coId: "",numberList: const [], companyName: data.projectName.toString(), type: data.type.toString(), desc: data.taskTitle.toString(),
+//                 date: data.taskDate.toString())));
+//           },
+//           child: CustomText(text: "Add Expense",colors: colorsConst.blueClr,)),
+//       TextButton(
+//           onPressed: (){
+//             _myFocusScopeNode.unfocus();
+//             utils.navigatePage(context, ()=> DashBoard(child:
+//             AddVisit(taskId:data.id.toString(),companyId: data.companyId.toString(),companyName: data.projectName.toString(),
+//                 numberList: const [],isDirect: true, type: data.type.toString(), desc: data.taskTitle.toString())));
+//           },
+//           child: CustomText(text: "Add Visit Report",colors: colorsConst.bankColor,)),
+//       TextButton(
+//           onPressed: (){
+//             _myFocusScopeNode.unfocus();
+//             // homeProvider.showTaskType(5);
+//             // homeProvider.changeTaskList(taskId: data.id.toString(),coId: data.companyId.toString(),numberList: [],isDirect: true);
+//
+//             utils.navigatePage(context, ()=>DashBoard(child:
+//             TaskReport(taskId: data.id.toString(),coId: data.companyId.toString(),numberList: const [], isTask: true,
+//               coName: data.projectName.toString(),description: data.taskTitle.toString(),type: data.type.toString(),
+//               callback: () {
+//                 Future.microtask(() => Navigator.pop(context));
+//               }, index: 0,
+//             )));
+//           },
+//           child: CustomText(text: "View Report",colors: colorsConst.appDarkGreen,)),
+//     ],
+//   ),
 
 // Expanded(
 //   child: ListView.builder(

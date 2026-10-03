@@ -18,7 +18,7 @@ import '../../component/custom_loading.dart';
 import '../../component/custom_text.dart';
 import '../../source/constant/assets_constant.dart';
 import '../../source/constant/colors_constant.dart';
-import '../../source/constant/default_constant.dart';
+import '../../source/constant/language_model.dart';
 import '../../source/styles/decoration.dart';
 import '../../view_model/location_provider.dart';
 import '../common/dashboard.dart';

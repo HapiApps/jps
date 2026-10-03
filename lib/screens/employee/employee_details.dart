@@ -7,7 +7,7 @@ import 'package:intl/intl.dart';
 import 'package:master_code/component/custom_loading.dart';
 import 'package:master_code/component/custom_loading_button.dart';
 import 'package:master_code/screens/common/fullscreen_photo.dart';
-import 'package:master_code/source/constant/default_constant.dart';
+import 'package:master_code/source/constant/language_model.dart';
 import 'package:master_code/source/extentions/extensions.dart';
 import 'package:master_code/source/styles/decoration.dart';
 import 'package:flutter/material.dart';

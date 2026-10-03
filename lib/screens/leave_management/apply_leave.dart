@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:master_code/component/custom_checkbox.dart';
 import 'package:master_code/component/map_dropdown.dart';
-import 'package:master_code/source/constant/default_constant.dart';
+import 'package:master_code/source/constant/language_model.dart';
 import 'package:master_code/source/extentions/extensions.dart';
 import 'package:master_code/source/styles/decoration.dart';
 import 'package:provider/provider.dart';
@@ -178,7 +178,7 @@ class _ApplyLeaveState extends State<ApplyLeave> {
                               list2: empProvider.activeEmps,
                               color: Colors.white,
                               width: kIsWeb ? webWidth : phoneWidth,
-                              hintText: "${constValue.name}",
+                              hintText: "${constValue.empName}",
                               saveValue: levProvider.name,
                               onChanged: (Object? value) {
                                 levProvider.selectUser(value);

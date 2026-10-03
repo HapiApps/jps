@@ -18,7 +18,8 @@ import '../../component/animated_button.dart';
 import '../../model/leave/leave_model.dart';
 import '../../source/constant/assets_constant.dart';
 import '../../source/constant/colors_constant.dart';
-import '../../source/constant/default_constant.dart';
+import '../../source/constant/language_model.dart';
+import '../../source/constant/language_model.dart';
 import '../../source/constant/local_data.dart';
 import '../../source/utilities/utils.dart';
 import '../../component/custom_text.dart';
@@ -44,13 +45,14 @@ class CheckAttendance extends StatefulWidget {
 
 class _CheckAttendanceState extends State<CheckAttendance> {
 
+
   @override
   void initState() {
     super.initState();
     final locProvider = Provider.of<LocationProvider>(context, listen: false);
     final attProvider = Provider.of<AttendanceProvider>(context, listen: false);
-   // attProvider.getMainAttendance();
-    if (attProvider.attCheck == false) {  // only fetch if not already loaded
+
+    if (attProvider.attCheck == false) {
       Future.delayed(Duration.zero, () {
         if (!mounted) return;
         locProvider.manageLocation(context, false);

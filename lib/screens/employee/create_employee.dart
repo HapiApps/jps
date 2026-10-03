@@ -19,7 +19,7 @@ import '../../component/custom_text.dart';
 import '../../component/document_container.dart';
 import '../../component/map_dropdown.dart';
 import '../../source/constant/assets_constant.dart';
-import '../../source/constant/default_constant.dart';
+import '../../source/constant/language_model.dart';
 import '../../source/utilities/utils.dart';
 import '../../view_model/employee_provider.dart';
 import '../../view_model/location_provider.dart';

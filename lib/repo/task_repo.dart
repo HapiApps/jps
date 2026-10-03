@@ -491,4 +491,50 @@ class TaskRepo {
       throw Exception("Failed to get users");
     }
   }
+
+  Future<String> addWages(Map<String, String> data) async {
+    try {
+      var uri = Uri.parse(taskScript); // wages script separate na inga maathunga
+
+      final response = await http.post(
+        uri,
+        body: jsonEncode(data),
+      );
+
+      return response.body;
+    } catch (e) {
+      throw Exception('Failed to add wages');
+    }
+  }
+  Future<String> getWages(Map<String, String> data) async {
+    try {
+      var uri = Uri.parse(taskScript); // wages script separate na inga maathunga
+
+      final response = await http.post(
+        uri,
+        body: jsonEncode(data),
+      );
+
+      return response.body;
+    } catch (e) {
+      throw Exception('Failed to select wages');
+    }
+  }
+  Future<String> addWorkDetails(Map<String, String> data) async {
+    try {
+      final response = await http.post(Uri.parse(taskScript), body: jsonEncode(data));
+      return response.body;
+    } catch (e) {
+      throw Exception('Failed to add work details');
+    }
+  }
+
+  Future<String> getWorkDetails(Map<String, String> data) async {
+    try {
+      final response = await http.post(Uri.parse(taskScript), body: jsonEncode(data));
+      return response.body;
+    } catch (e) {
+      throw Exception('Failed to get work details');
+    }
+  }
 }

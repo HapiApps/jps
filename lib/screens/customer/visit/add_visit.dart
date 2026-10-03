@@ -15,7 +15,7 @@ import '../../../component/maxline_textfield.dart';
 import '../../../component/search_drop_down.dart';
 import '../../../model/customer/customer_model.dart';
 import '../../../source/constant/colors_constant.dart';
-import '../../../source/constant/default_constant.dart';
+import '../../../source/constant/language_model.dart';
 import '../../../source/styles/decoration.dart';
 import '../../../source/utilities/utils.dart';
 import '../../../view_model/task_provider.dart';
@@ -335,34 +335,34 @@ class _CusAddVisitState extends State<CusAddVisit>
                                 ),
 
                               /// ====================== CUSTOMER TYPE ======================
-                              MapDropDown(
-                                isRefresh: taskProvider.cusTypeList.isEmpty,
-                                callback: () {
-                                  closeAllDropdowns();
-                                  if (!kIsWeb) {
-                                    taskProvider.refreshCusType();
-                                  } else {
-                                    taskProvider.getAllCusTypes();
-                                  }
-                                },
-                                width: kIsWeb ? webWidth : phoneWidth,
-                                hintText: constValue.cusType,
-                                list: taskProvider.cusTypeList,
-                                saveValue: taskProvider.selectType != null
-                                    ? taskProvider.selectType['id']
-                                    : null,
-                                onChanged: (value) {
-                                  closeAllDropdowns();
-
-                                  final selected =
-                                  taskProvider.cusTypeList.firstWhere(
-                                        (e) => e['id'] == value,
-                                  );
-
-                                  taskProvider.changeCusType(selected);
-                                },
-                                dropText: 'value',
-                              ),
+                              // MapDropDown(
+                              //   isRefresh: taskProvider.cusTypeList.isEmpty,
+                              //   callback: () {
+                              //     closeAllDropdowns();
+                              //     if (!kIsWeb) {
+                              //       taskProvider.refreshCusType();
+                              //     } else {
+                              //       taskProvider.getAllCusTypes();
+                              //     }
+                              //   },
+                              //   width: kIsWeb ? webWidth : phoneWidth,
+                              //   hintText: constValue.cusType,
+                              //   list: taskProvider.cusTypeList,
+                              //   saveValue: taskProvider.selectType != null
+                              //       ? taskProvider.selectType['id']
+                              //       : null,
+                              //   onChanged: (value) {
+                              //     closeAllDropdowns();
+                              //
+                              //     final selected =
+                              //     taskProvider.cusTypeList.firstWhere(
+                              //           (e) => e['id'] == value,
+                              //     );
+                              //
+                              //     taskProvider.changeCusType(selected);
+                              //   },
+                              //   dropText: 'value',
+                              // ),
 
                               /// ====================== CUSTOMER MULTI SELECT ======================
                               Consumer<CustomerProvider>(

@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:master_code/component/custom_checkbox.dart';
 import 'package:master_code/component/custom_loading_button.dart';
-import 'package:master_code/source/constant/default_constant.dart';
+import 'package:master_code/source/constant/language_model.dart';
 import 'package:master_code/source/extentions/extensions.dart';
 import 'package:flutter/material.dart';
 import 'package:master_code/source/utilities/utils.dart';
@@ -13,6 +13,7 @@ import '../../component/custom_loading.dart';
 import '../../component/custom_text.dart';
 import '../../model/setting/features_model.dart';
 import '../../source/constant/colors_constant.dart';
+import '../../source/constant/language_model.dart';
 import '../../source/constant/local_data.dart';
 import 'manage_roles.dart';
 

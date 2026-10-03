@@ -204,12 +204,23 @@ class DTaskModel {
   final List<String> docsType1;
   final List<String> docsType2;
   final List<String> docsType3;
-  // 🔥 NEW - Comments
+
+  // 🔥 Comments
   final String commentsFull;
   final List<String> commentsList;
+
   final String? totalHours;
   final String? employeeHours;
   final String? employeeStatus;
+
+  // 🔥 NEW - Wages
+  final String? wagesWorkersCount;
+  final String? wagesWorkers;
+  final String? wagesAddedBy;
+  final String? wagesDescription;
+  final String? wagesHours;
+  final String? wagesAmount;
+
   DTaskModel({
     required this.taskTitle,
     required this.taskDate,
@@ -240,11 +251,26 @@ class DTaskModel {
     required this.docsType1,
     required this.docsType2,
     required this.docsType3,
-    /// 🔥 NEW
     required this.commentsFull,
-    required this.commentsList,this.totalHours,
-    this.employeeHours,this.employeeStatus,
+    required this.commentsList,
+    this.totalHours,
+    this.employeeHours,
+    this.employeeStatus,
+    // 🔥 NEW - Wages
+    this.wagesWorkersCount,
+    this.wagesWorkers,
+    this.wagesAddedBy,
+    this.wagesDescription,
+    this.wagesHours,
+    this.wagesAmount,
   });
+
+  /// null / "" / "null" -> null
+  static String? _nullIfEmpty(dynamic v) {
+    if (v == null) return null;
+    final s = v.toString().trim();
+    return (s.isEmpty || s == "null") ? null : s;
+  }
 
   factory DTaskModel.fromJson(Map<String, dynamic> json) {
     List<String> parseList(dynamic val, {String separator = '||'}) {
@@ -266,6 +292,15 @@ class DTaskModel {
       totalHours: json['total_hours'],
       employeeStatus: json['employee_status'],
       employeeHours: json['employee_hours'],
+
+      // 🔥 NEW - Wages
+      wagesWorkersCount: _nullIfEmpty(json['wages_workers_count']),
+      wagesWorkers: _nullIfEmpty(json['wages_workers']),
+      wagesAddedBy: _nullIfEmpty(json['wages_added_by']),
+      wagesDescription: _nullIfEmpty(json['wages_description']),
+      wagesHours: _nullIfEmpty(json['wages_hours']),
+      wagesAmount: _nullIfEmpty(json['wages_amount']),
+
       taskDate: json['task_date'] ?? '',
       taskTitle: json['task_title'] ?? '',
       projectName: json['company_name'] ?? '',
@@ -281,10 +316,10 @@ class DTaskModel {
       cvActionTakens: json['cvaction_taken'].toString(),
 
       checkInTs: json['check_in_ts'].toString(),
-
       checkOutTs: json['check_out_ts'].toString(),
       isCheckedOut: json['is_checked_out'].toString(),
-      /// 🔥 NEW
+
+      /// 🔥 Comments
       commentsFull: commentsFull,
       commentsList: commentsList,
 
@@ -313,6 +348,15 @@ class DTaskModel {
       'employee_status': employeeStatus,
       'employee_hours': employeeHours,
       'total_hours': totalHours,
+
+      // 🔥 NEW - Wages
+      'wages_workers_count': wagesWorkersCount,
+      'wages_workers': wagesWorkers,
+      'wages_added_by': wagesAddedBy,
+      'wages_description': wagesDescription,
+      'wages_hours': wagesHours,
+      'wages_amount': wagesAmount,
+
       'task_date': taskDate,
       'taskTitle': taskTitle,
       'projectName': projectName,
@@ -339,15 +383,12 @@ class DTaskModel {
       'travelDetails': joinList(travelDetails, separator: '###'),
       'daDetails': joinList(daDetails, separator: '###'),
       'convDetails': joinList(convDetails, separator: '###'),
-      // 'docsType1': joinList(docsType1, separator: '###'),
-      // 'docsType2': joinList(docsType2, separator: '###'),
-      // 'docsType3': joinList(docsType3, separator: '###'),
       'docs_type1': joinList(docsType1, separator: '###'),
       'docs_type2': joinList(docsType2, separator: '###'),
       'docs_type3': joinList(docsType3, separator: '###'),
-      /// 🔥 NEW
-      'comments_full': commentsFull,
 
+      /// 🔥 Comments
+      'comments_full': commentsFull,
     };
   }
 

@@ -8,7 +8,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:master_code/model/add_expense_model.dart';
-import 'package:master_code/source/constant/default_constant.dart';
+import 'package:master_code/source/constant/language_model.dart';
 import 'package:master_code/source/extentions/extensions.dart';
 import 'package:master_code/source/utilities/utils.dart';
 import 'package:master_code/view_model/employee_provider.dart';

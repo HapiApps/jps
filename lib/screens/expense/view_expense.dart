@@ -1,5 +1,5 @@
 import 'package:flutter_svg/svg.dart';
-import 'package:master_code/source/constant/default_constant.dart';
+import 'package:master_code/source/constant/language_model.dart';
 import 'package:master_code/view_model/expense_provider.dart';
 import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart';
@@ -332,7 +332,11 @@ class _ViewExpenseState extends State<ViewExpense> with SingleTickerProviderStat
                               ),
                               child: Padding(
                                 padding: const EdgeInsets.all(6.0),
-                                child: SvgPicture.asset(assets.tFilter,width: 15,height: 15,),
+                                child:  Icon(
+                                  Icons.filter_alt,
+                                  size: 27,
+                                  color: Colors.white,
+                                ),
                               ),
                             ),
                           ),

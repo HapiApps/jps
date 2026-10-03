@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:developer';
 import 'package:master_code/view_model/home_provider.dart';
 import 'package:flutter/material.dart';
@@ -17,6 +18,7 @@ import '../model/leave/leave_model.dart';
 import '../model/user_model.dart';
 import '../repo/attendance_repo.dart';
 import '../repo/employee_repo.dart';
+import '../screens/attendance/offline_attendance.dart';
 import '../screens/common/camera.dart';
 import '../source/constant/api.dart';
 import '../source/constant/local_data.dart';
@@ -702,14 +704,13 @@ class AttendanceProvider with ChangeNotifier{
       }
 
     } catch (e) {
-
       print("Attendance Error: $e");
-
       _totalHrs = "";
       _permissionStatus = "";
       _attCheck = true;
-
     }
+
+    if (!fromReport) applyPendingState(); // ✅ ithu mattum puthu line
 
     notifyListeners();
   }
@@ -1686,6 +1687,362 @@ void showDatePickerDialog(BuildContext context,List<UserModel>? list) {
     _profile = imgData;
     notifyListeners();
   }
+  // Future putDailyAttendance(
+  //     BuildContext context,
+  //     String status,
+  //     String? lat,
+  //     String? lng,
+  //     )
+  // async {
+  //
+  //   // ✅ Location validation first (API call stop)
+  //   if (lat == null ||
+  //       lng == null ||
+  //       lat.isEmpty ||
+  //       lng.isEmpty ||
+  //       lat == "0.0" ||
+  //       lng == "0.0") {
+  //     utils.showWarningToast(
+  //       context,
+  //       text: "Location not available. Please enable GPS and try again.",
+  //     );
+  //     return;
+  //   }
+  //
+  //   showDialog(
+  //     context: context,
+  //     barrierDismissible: false,
+  //     builder: (BuildContext context) {
+  //       return AlertDialog(
+  //         title: Center(
+  //           child: Column(
+  //             children: [
+  //               const CustomText(
+  //                 text: "Attendance Marking",
+  //                 colors: Colors.grey,
+  //                 size: 15,
+  //                 isBold: true,
+  //               ),
+  //               10.height,
+  //               const CustomText(
+  //                 text: "Please Wait",
+  //                 colors: Colors.grey,
+  //                 size: 15,
+  //                 isBold: true,
+  //               ),
+  //               20.height,
+  //               LoadingAnimationWidget.staggeredDotsWave(
+  //                 color: colorsConst.secondary,
+  //                 size: 25,
+  //               ),
+  //             ],
+  //           ),
+  //         ),
+  //       );
+  //     },
+  //   );
+  //
+  //   Map<String, String> requestData = {
+  //     "action": empAttendance,
+  //     "log_file": localData.storage.read("mobile_number"),
+  //     "salesman_id": localData.storage.read("id"),
+  //     "lat": lat,
+  //     "lng": lng,
+  //     "img": "",
+  //     "status": status,
+  //     "cos_id": localData.storage.read("cos_id"),
+  //   };
+  //
+  //   final response = await attRepo.addAttendance(requestData, _profile);
+  //   log(response.toString());
+  //
+  //   if (response.isNotEmpty) {
+  //     log("Success");
+  //
+  //     if (Navigator.canPop(context)) {
+  //       Navigator.pop(context);
+  //     }
+  //
+  //     if (status == "1") {
+  //     //   await FirebaseFirestore.instance.collection('attendance').add({
+  //     //     'emp_id': localData.storage.read("id"),
+  //     //     'time': DateTime.now(),
+  //     //     'status': status,
+  //     //   });
+  //      }
+  //
+  //     if (context.mounted) {
+  //       utils.showSuccessToast(
+  //         text: status == "1"
+  //             ? "Check In Successfully"
+  //             : "Check Out Successfully",
+  //         context: context,
+  //       );
+  //     }
+  //
+  //     Provider.of<HomeProvider>(context, listen: false)
+  //         .loadFullDashboard(context);
+  //     Provider.of<AttendanceProvider>(context, listen: false)
+  //         .getMainAttendance();
+  //     Provider.of<AttendanceProvider>(context, listen: false).initDate(
+  //       id: localData.storage.read("id"),
+  //       role: localData.storage.read("role"),
+  //       isRefresh: true,
+  //       date1:
+  //       "${DateTime.now().day.toString().padLeft(2, "0")}-${DateTime.now().month.toString().padLeft(2, "0")}-${DateTime.now().year}",
+  //       date2:
+  //       "${DateTime.now().day.toString().padLeft(2, "0")}-${DateTime.now().month.toString().padLeft(2, "0")}-${DateTime.now().year}",
+  //     );
+  //
+  //     Provider.of<AttendanceProvider>(context, listen: false)
+  //         .getAttendanceReport(localData.storage.read("id"));
+  //   } else {
+  //     log("Failed");
+  //     utils.showErrorToast(context: context);
+  //
+  //     if (Navigator.canPop(context)) {
+  //       Navigator.pop(context);
+  //     }
+  //   }
+  // }
+
+  // =====================================================================
+// AttendanceProvider-kulla paste pannanum (class-kulla).
+//
+// 1) Pazhaya `putDailyAttendance` function-a DELETE pannu.
+// 2) Ithula irukkura ellaa functions-um class-kulla podu.
+// 3) File mela imports:
+//      import 'dart:developer';
+//      import '../source/utilities/offline_attendance_service.dart'; // un path-ku match pannu
+// =====================================================================
+
+  // =====================================================================
+// Un AttendanceProvider-la `bool _syncing = false;` mudhal
+// `_sendOfflineWages` varai irukkura block-a FULL-a ithai vachu replace pannu.
+// (getMainAttendance-a thodaadha)
+//
+// Imports mela irukkanum:
+//   import 'dart:convert';
+//   import 'dart:developer';
+//   import '../source/utilities/offline_attendance_service.dart';
+// =====================================================================
+
+  bool _syncing = false;
+  bool get isSyncing => _syncing;
+
+  /// 1️⃣ Pure API call. Dialog/toast illa. Online + sync rendukkum use aagum.
+  Future<bool> _sendAttendance({
+    required String status,
+    required String lat,
+    required String lng,
+    String? markedAt, // offline-la poduna time: "2026-09-29 10:15:30"
+    String? empId, // offline entry-oda emp id
+  }) async {
+    try {
+      Map<String, String> requestData = {
+        "action": empAttendance,
+        "log_file": localData.storage.read("mobile_number"),
+        "salesman_id": empId ?? localData.storage.read("id"),
+        "lat": lat,
+        "lng": lng,
+        "img": "",
+        "status": status,
+        "cos_id": localData.storage.read("cos_id"),
+      };
+
+      // Offline entry na actual time + emp_id anuppu
+      if (markedAt != null) {
+        requestData["emp_id"] = empId ?? localData.storage.read("id").toString();
+        requestData["is_offline"] = "1";
+
+        if (status == "1") {
+          requestData["check_in"] = markedAt;
+        } else {
+          requestData["check_out"] = markedAt;
+        }
+      }
+
+      final response = await attRepo.addAttendance(requestData, _profile);
+      log(response.toString());
+      return response.isNotEmpty;
+    } catch (e) {
+      log("sendAttendance error: $e");
+      return false;
+    }
+  }
+
+  /// 2️⃣ Wages + attendance JSON-a server-ku anuppu
+  // item -> Map illa List<Map> rendume accept pannum
+  Future<bool> _sendOfflineWages(dynamic input) async {
+    try {
+      List<Map<String, dynamic>> toList(dynamic raw) {
+        if (raw is Map) {
+          return raw.isEmpty ? [] : [Map<String, dynamic>.from(raw)];
+        }
+        if (raw is List) {
+          return raw
+              .whereType<Map>()
+              .where((e) => e.isNotEmpty)
+              .map((e) => Map<String, dynamic>.from(e))
+              .toList();
+        }
+        return [];
+      }
+
+      String pick(dynamic primary, dynamic fallback, [String def = ""]) {
+        final x = primary?.toString() ?? "";
+        if (x.isNotEmpty) return x;
+        final y = fallback?.toString() ?? "";
+        return y.isNotEmpty ? y : def;
+      }
+
+      String fullDateTime(String v, String markedAt) {
+        if (v.isEmpty) return "";
+        if (v.contains("-")) return v;
+        final t = v.split(":").length == 2 ? "$v:00" : v;
+        return "${markedAt.substring(0, 10)} $t";
+      }
+
+      final String userId = localData.storage.read("id")?.toString() ?? "";
+      final String cosId = localData.storage.read("cos_id")?.toString() ?? "";
+
+      // input Map-a irundhalum List-a irundhalum -> items list
+      final List<Map<String, dynamic>> items = toList(input);
+
+      final List<Map<String, dynamic>> attendanceRows = [];
+      final List<Map<String, dynamic>> wagesRows = [];
+
+      for (final item in items) {
+        final wList = toList(item["wagesData"]);
+        final aList = toList(item["attendanceData"]);
+        if (wList.isEmpty && aList.isEmpty) continue;
+
+        final String defaultMarkedAt = pick(
+          item["markedAt"],
+          null,
+          DateTime.now().toString().substring(0, 19),
+        );
+
+        // ---- Attendance ----
+        for (int i = 0; i < aList.length; i++) {
+          final a = aList[i];
+          final w = i < wList.length ? wList[i] : <String, dynamic>{};
+
+          final String markedAt = pick(a["markedAt"], defaultMarkedAt);
+
+          String status = pick(a["status"], w["status"]);
+          if (status.isEmpty || status == "0") status = "1";
+
+          final String rawIn = pick(a["check_in"], w["check_in"]);
+          final String rawOut = pick(a["check_out"], w["check_out"]);
+
+          attendanceRows.add({
+            "emp_id": pick(a["emp_id"], item["emp_id"]),
+            "user_id": userId,
+            "check_in": status == "1"
+                ? fullDateTime(rawIn.isEmpty ? markedAt : rawIn, markedAt)
+                : "",
+            "check_out": status == "2"
+                ? fullDateTime(rawOut.isEmpty ? markedAt : rawOut, markedAt)
+                : "",
+            "status": status,
+            "lat": pick(a["lat"], item["lat"]),
+            "lng": pick(a["lng"], item["lng"]),
+          });
+        }
+
+        // ---- Wages ----
+        for (final w in wList) {
+          wagesRows.add({
+            "wage_emp_id": w["wage_emp_id"]?.toString() ?? "",
+            "task_id": w["task_id"]?.toString() ?? "",
+            "wages_description": w["wages_description"]?.toString() ?? "",
+            "check_in": w["check_in"]?.toString() ?? "",
+            "check_out": w["check_out"]?.toString() ?? "",
+            "status": pick(w["status"], null, "1"),
+            "lat": pick(w["lat"], item["lat"]),
+            "lng": pick(w["lng"], item["lng"]),
+          });
+        }
+      }
+
+      if (attendanceRows.isEmpty && wagesRows.isEmpty) {
+        log("sendOfflineWages: empty entry, skipping");
+        return true; // empty entry-a delete panna true
+      }
+
+      final Map<String, dynamic> body = {
+        "action": "insert_offline_wages",
+        "cos_id": cosId,
+        "user_id": userId,
+        if (attendanceRows.isNotEmpty) "attendanceData": attendanceRows,
+        if (wagesRows.isNotEmpty) "wagesData": wagesRows,
+      };
+
+      log("wages request: ${jsonEncode(body)}");
+
+      final ok = await attRepo.insertOfflineWages(body);
+      log("wages sync: $ok");
+      return ok;
+    } catch (e) {
+      log("sendOfflineWages error: $e");
+      return false;
+    }
+  }
+  void _refreshAfterAttendance(BuildContext context) {
+    final now = DateTime.now();
+    final today =
+        "${now.day.toString().padLeft(2, "0")}-${now.month.toString().padLeft(2, "0")}-${now.year}";
+
+    Provider.of<HomeProvider>(context, listen: false).loadFullDashboard(context);
+    getMainAttendance();
+    initDate(
+      id: localData.storage.read("id"),
+      role: localData.storage.read("role"),
+      isRefresh: true,
+      date1: today,
+      date2: today,
+    );
+    getAttendanceReport(localData.storage.read("id"));
+  }
+
+  /// 4️⃣ Offline-la save
+  Future<void> saveOffline(
+      BuildContext context,
+      String kind,
+      String status,
+      String lat,
+      String lng, {
+        String? reason,
+      }) async {
+    await OfflineAttendanceService.add(
+      kind: kind,
+      status: status,
+      lat: lat,
+      lng: lng,
+      reason: reason,
+    );
+
+    // UI-a local-a maathu, appo thaan button text/color maarum
+    if (kind == "attendance") {
+      if (status == "1") {
+        _mainAttendance = 1;
+      } else {
+        _mainAttendance = 1;
+        _mainCheckOut = true;
+      }
+    }
+    notifyListeners();
+
+    if (context.mounted) {
+      utils.showSuccessToast(
+        context: context,
+        text: "No internet. Saved offline, will sync later.",
+      );
+    }
+  }
+
+  /// 5️⃣ Main function (button click-la ithu thaan call aagum)
   Future putDailyAttendance(
       BuildContext context,
       String status,
@@ -1693,8 +2050,7 @@ void showDatePickerDialog(BuildContext context,List<UserModel>? list) {
       String? lng,
       )
   async {
-
-    // ✅ Location validation first (API call stop)
+    // Location validation
     if (lat == null ||
         lng == null ||
         lat.isEmpty ||
@@ -1708,6 +2064,19 @@ void showDatePickerDialog(BuildContext context,List<UserModel>? list) {
       return;
     }
 
+    // Net illana offline save
+    final online = await OfflineAttendanceService.isOnline();
+    if (!online) {
+      await saveOffline(context, "attendance", status, lat, lng);
+      return;
+    }
+
+    // Pending irundha muthala athai sync pannu (order maaraama irukka)
+    if (OfflineAttendanceService.hasPending) {
+      await syncPending(context);
+    }
+    if (!context.mounted) return;
+
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -1717,23 +2086,19 @@ void showDatePickerDialog(BuildContext context,List<UserModel>? list) {
             child: Column(
               children: [
                 const CustomText(
-                  text: "Attendance Marking",
-                  colors: Colors.grey,
-                  size: 15,
-                  isBold: true,
-                ),
+                    text: "Attendance Marking",
+                    colors: Colors.grey,
+                    size: 15,
+                    isBold: true),
                 10.height,
                 const CustomText(
-                  text: "Please Wait",
-                  colors: Colors.grey,
-                  size: 15,
-                  isBold: true,
-                ),
+                    text: "Please Wait",
+                    colors: Colors.grey,
+                    size: 15,
+                    isBold: true),
                 20.height,
                 LoadingAnimationWidget.staggeredDotsWave(
-                  color: colorsConst.secondary,
-                  size: 25,
-                ),
+                    color: colorsConst.secondary, size: 25),
               ],
             ),
           ),
@@ -1741,66 +2106,145 @@ void showDatePickerDialog(BuildContext context,List<UserModel>? list) {
       },
     );
 
-    Map<String, String> requestData = {
-      "action": empAttendance,
-      "log_file": localData.storage.read("mobile_number"),
-      "salesman_id": localData.storage.read("id"),
-      "lat": lat,
-      "lng": lng,
-      "img": "",
-      "status": status,
-      "cos_id": localData.storage.read("cos_id"),
-    };
+    final ok = await _sendAttendance(status: status, lat: lat, lng: lng);
 
-    final response = await attRepo.addAttendance(requestData, _profile);
-    log(response.toString());
+    if (context.mounted && Navigator.canPop(context)) {
+      Navigator.pop(context);
+    }
+    if (!context.mounted) return;
 
-    if (response.isNotEmpty) {
-      log("Success");
-
-      if (Navigator.canPop(context)) {
-        Navigator.pop(context);
-      }
-
-      if (status == "1") {
-      //   await FirebaseFirestore.instance.collection('attendance').add({
-      //     'emp_id': localData.storage.read("id"),
-      //     'time': DateTime.now(),
-      //     'status': status,
-      //   });
-       }
-
-      if (context.mounted) {
-        utils.showSuccessToast(
-          text: status == "1"
-              ? "Check In Successfully"
-              : "Check Out Successfully",
-          context: context,
-        );
-      }
-
-      Provider.of<HomeProvider>(context, listen: false)
-          .loadFullDashboard(context);
-      Provider.of<AttendanceProvider>(context, listen: false)
-          .getMainAttendance();
-      Provider.of<AttendanceProvider>(context, listen: false).initDate(
-        id: localData.storage.read("id"),
-        role: localData.storage.read("role"),
-        isRefresh: true,
-        date1:
-        "${DateTime.now().day.toString().padLeft(2, "0")}-${DateTime.now().month.toString().padLeft(2, "0")}-${DateTime.now().year}",
-        date2:
-        "${DateTime.now().day.toString().padLeft(2, "0")}-${DateTime.now().month.toString().padLeft(2, "0")}-${DateTime.now().year}",
+    if (ok) {
+      utils.showSuccessToast(
+        text: status == "1" ? "Check In Successfully" : "Check Out Successfully",
+        context: context,
       );
-
-      Provider.of<AttendanceProvider>(context, listen: false)
-          .getAttendanceReport(localData.storage.read("id"));
+      _refreshAfterAttendance(context);
     } else {
-      log("Failed");
       utils.showErrorToast(context: context);
+    }
+  }
+  Future<void> syncPending(BuildContext context, {bool manual = false}) async {
+    if (_syncing) return;
 
-      if (Navigator.canPop(context)) {
-        Navigator.pop(context);
+    if (!OfflineAttendanceService.hasPending) {
+      if (manual && context.mounted) {
+        utils.showWarningToast(context, text: "No pending data");
+      }
+      return;
+    }
+
+    if (!await OfflineAttendanceService.isOnline()) {
+      if (manual && context.mounted) {
+        utils.showWarningToast(context, text: "No internet. Try again later.");
+      }
+      return;
+    }
+
+    _syncing = true;
+    notifyListeners();
+
+    int synced = 0;
+    bool failed = false;
+
+    try {
+      // 1) Attendance / permission
+      for (final item in OfflineAttendanceService.getAll()) {
+        final kind = item["kind"]?.toString();
+        bool ok;
+
+        if (kind == "attendance") {
+          ok = await _sendOfflineAttendance(item);
+        }  else if (kind == "wages") {
+          ok = await _sendOfflineWages(item);
+        } else {
+          continue;
+        }
+
+        if (ok) {
+          await OfflineAttendanceService.remove(item["id"].toString());
+          synced++;
+        } else {
+          failed = true;
+          break;
+        }
+      }
+
+      // 2) Wages (thani list)
+      if (!failed) {
+        for (final item in OfflineAttendanceService.getAllWages()) {
+          final ok = await _sendOfflineWages(item);
+          if (ok) {
+            await OfflineAttendanceService.removeWage(item["id"].toString());
+            synced++;
+          } else {
+            failed = true;
+            break;
+          }
+        }
+      }
+    } finally {
+      _syncing = false;
+      OfflineAttendanceService.refreshCount();
+      notifyListeners();
+    }
+
+    if (!context.mounted) return;
+
+    if (synced > 0) {
+      utils.showSuccessToast(
+        context: context,
+        text: "$synced offline entries synced",
+      );
+      _refreshAfterAttendance(context);
+    }
+    if (failed) {
+      utils.showErrorToast(context: context);
+    }
+  }
+  Future<bool> _sendOfflineAttendance(Map<String, dynamic> item) {
+    final status = item["status"]?.toString() ?? "1";
+    final markedAt = item["markedAt"]?.toString() ?? "";
+
+    return _sendOfflineWages({
+      "emp_id": item["emp_id"],
+      "lat": item["lat"],
+      "lng": item["lng"],
+      "markedAt": markedAt,
+      "attendanceData": {
+        "emp_id": item["emp_id"],
+        "check_in": status == "1" ? markedAt : "",
+        "check_out": status == "2" ? markedAt : "",
+        "status": status,
+        "lat": item["lat"],
+        "lng": item["lng"],
+      },
+    });
+  }
+// `saveWages` maara vendaam. Adhu already:
+//   online  -> _sendOfflineWages(item) (direct API)
+//   offline -> OfflineAttendanceService.addWages(...) (ippo thani "pending_wages" list-la save aagum)
+// Rendu vazhikkum orey _sendOfflineWages use aagurathaala backend-ku same JSON pogum.
+
+  /// 7️⃣ App restart-ku aprom offline state-a UI-la thirumba podu.
+  /// getMainAttendance()-la `if (!fromReport) applyPendingState();` call irukkanum.
+  void applyPendingState() {
+    final myId = localData.storage.read("id").toString();
+    final today = DateTime.now().toString().substring(0, 10);
+
+    final pending = OfflineAttendanceService.getAll()
+        .where((e) =>
+    e["kind"] == "attendance" &&
+        e["emp_id"] == myId &&
+        e["markedAt"].toString().startsWith(today))
+        .toList();
+    if (pending.isEmpty) return;
+
+    for (final e in pending) {
+      if (e["status"] == "1") {
+        _mainAttendance = 1;
+      } else if (e["status"] == "2") {
+        _mainAttendance = 1;
+        _mainCheckOut = true;
       }
     }
   }
@@ -1967,5 +2411,76 @@ void showDatePickerDialog(BuildContext context,List<UserModel>? list) {
 
     }
   }
+  void resetOnLogout() {
+    final now = DateTime.now();
 
+    _mainCheckOut = false;
+    _decrease = false;
+    _increase = false;
+    _isSelfie = false;
+    _isPermission = false;
+    _permissionStatus = "";
+    _check = false;
+    _attCheck = false;
+    _refresh = false;
+    _filter = false;
+    asc = false;
+
+    _mainAttendance = 0;
+    _inTime = "";
+    _outTime = "-";
+    _totalHrs = "";
+    _totalHrs2 = "";
+
+    _lateCount = 0;
+    permisCount = 0;
+    lateCountShow = 0;
+    _isWorkDone = 0;
+    workDoneDate = null;
+    lastRefreshed = "";
+
+    _noAttendanceList = [];
+    _noAttendanceList2 = [];
+    leave = [];
+    attendanceList = [];
+    weekList = [];
+    monthList = [];
+    _userData = [];
+    _getDailyAttendance = <AttendanceModel>[];
+    _getUserAttendance = <AttendanceModel>[];
+    _searchGetDailyAttendance = <AttendanceModel>[];
+    _missingDateList = [];
+    datesBetween = [];
+
+    _user = null;
+    _userName = "";
+    _type = null;
+    _grpType = null;
+    _report = "Daily";
+    selectedIndex = 0;
+    selectedDate = null;
+    betweenDates = "";
+    _startDate = "";
+    _endDate = "";
+    stDt = now;
+    enDt = now.add(const Duration(days: 1));
+    _monthName = DateFormat('MMMM yyyy').format(now);
+    _month = DateFormat('MMMM').format(now);
+    _showDate3 = "";
+    _showDate4 = "";
+    _showDate5 = "";
+    _showDate6 = "";
+    _start = null;
+    _end = null;
+    year = null;
+    lastDate = null;
+    reason = null;
+
+    _profile = "";
+
+    search.clear();
+    permissionReason.clear();
+
+    notifyListeners();
+  }
 }

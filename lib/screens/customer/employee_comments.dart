@@ -8,7 +8,7 @@ import '../../component/custom_appbar.dart';
 import '../../component/custom_loading.dart';
 import '../../component/dotted_border.dart';
 import '../../model/customer/customer_report_model.dart';
-import '../../source/constant/default_constant.dart';
+import '../../source/constant/language_model.dart';
 import '../../source/styles/decoration.dart';
 import '../../view_model/customer_provider.dart';
 

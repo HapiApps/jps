@@ -12,7 +12,7 @@ import '../../component/custom_loading.dart';
 import '../../component/custom_text.dart';
 import '../../component/map_dropdown.dart';
 import '../../source/constant/colors_constant.dart';
-import '../../source/constant/default_constant.dart';
+import '../../source/constant/language_model.dart';
 import '../../source/styles/decoration.dart';
 import '../../source/utilities/utils.dart';
 import '../../view_model/employee_provider.dart';
@@ -163,17 +163,16 @@ class _ViewEmployeesState extends State<ViewEmployees>
                                             color: Colors.white,
                                             borderRadius: BorderRadius.circular(30),
                                           ),
-                                          child: TextField(
+                                          child:TextField(
                                             controller: empProvider.search,
+                                            style: const TextStyle(color: Colors.black, fontSize: 16),
+                                            cursorColor: Colors.black,
                                             decoration: const InputDecoration(
                                               hintText: "Search Name or No",
-                                              prefixIcon: Icon(
-                                                Icons.search,
-                                                color: Colors.grey,
-                                              ),
+                                              hintStyle: TextStyle(color: Colors.grey),
+                                              prefixIcon: Icon(Icons.search, color: Colors.grey),
                                               border: InputBorder.none,
-                                              contentPadding:
-                                              EdgeInsets.symmetric(vertical: 15),
+                                              contentPadding: EdgeInsets.symmetric(vertical: 15),
                                             ),
                                             onChanged: (value) {
                                               empProvider.searchUser(value);

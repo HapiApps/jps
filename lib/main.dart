@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'dart:developer';
 
 import 'package:animated_splash_screen/animated_splash_screen.dart';
+import 'package:master_code/screens/attendance/offline_attendance.dart';
+import 'package:master_code/source/constant/language_model.dart';
 import 'package:camera/camera.dart';
 import 'package:connectivity_wrapper/connectivity_wrapper.dart';
 import 'package:country_code_picker/country_code_picker.dart';
@@ -28,7 +30,7 @@ import 'package:master_code/screens/task/view_task.dart';
 import 'package:master_code/screens/track/background_task.dart';
 import 'package:master_code/source/constant/assets_constant.dart';
 import 'package:master_code/source/constant/colors_constant.dart';
-import 'package:master_code/source/constant/default_constant.dart';
+import 'package:master_code/source/constant/language_model.dart';
 import 'package:master_code/source/constant/local_data.dart';
 import 'package:master_code/source/extentions/extensions.dart';
 import 'package:master_code/source/utilities/utils.dart';
@@ -48,6 +50,8 @@ import 'package:master_code/view_model/task_provider.dart';
 import 'package:master_code/view_model/track_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+// ✅ NEW: offline check-kku (un path-ku match pannu)
 
 import 'component/custom_text.dart';
 import 'firebase_options.dart';
@@ -96,6 +100,10 @@ Future<void> ensureAttendanceLoaded(
     AttendanceProvider attendanceProvider, {
       int maxRetries = 3,
     }) async {
+  // ✅ NEW: Net illana retry pannaadha, oru vaati mattum try pannu
+  final online = await OfflineAttendanceService.isOnline();
+  if (!online) maxRetries = 1;
+
   for (int attempt = 1; attempt <= maxRetries; attempt++) {
     bool succeeded = false;
 
@@ -165,8 +173,6 @@ Future<void> setupLocalNotifications() async {
           .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
 
       await androidPlugin?.createNotificationChannel(channel);
-
-
 
       log("🔔 Local notifications initialized");
     },
@@ -415,17 +421,6 @@ String today() {
 /// It belongs ONLY inside a top-level callback function that the plugin
 /// invokes when it spawns the background isolate — i.e. the function you
 /// pass to `FlutterForegroundTask.startService(callback: ...)`.
-///
-/// Calling it here (main isolate, at app startup, before any service is
-/// even started) registers nothing useful and leaves the
-/// `flutter_foreground_task/background` channel with no handler when the
-/// native side later calls "start" — that's exactly what produced your
-/// MissingPluginException.
-///
-/// The correct top-level callback (`foregroundTaskCallback`) now lives in
-/// `background_task.dart` next to `MyTaskHandler` — see the note below
-/// this function for what needs to be added there, and where
-/// `startService()` is called.
 
 Future<void> setupForegroundTask() async {
   try {
@@ -664,11 +659,9 @@ Future<void> main() async {
     runApp(
       MaterialApp(
         navigatorKey: navigatorKey,
-        locale: const Locale('en', 'US'),   // you already have this
+        locale: const Locale('en', 'US'),
         localizationsDelegates: [
-          // ✅ ADD THIS — forces English country names, ignores device locale
           CountryLocalizations.getDelegate(enableLocalization: false),
-
         ],
         debugShowCheckedModeBanner: false,
         home: Scaffold(
@@ -776,7 +769,7 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<LanguageManager>(   // ✅ சேர்த்தேன்
+    return Consumer<LanguageManager>(
       builder: (context, langManager, _) {
         return ConnectivityAppWrapper(
           app: MaterialApp(
@@ -784,8 +777,8 @@ class MyApp extends StatelessWidget {
             builder: (context, child) {
               return ConnectivityWidgetWrapper(
                 color: colorsConst.primary,
-                message: "Check Your Internet Connection",
-                disableInteraction: true,
+                message: "No internet. Attendance will be saved offline",
+                disableInteraction: false, // ✅ true-va irundhadhu, false-a maathinen
                 child: MediaQuery(
                   data: MediaQuery.of(context).copyWith(
                     textScaler: const TextScaler.linear(1.0),

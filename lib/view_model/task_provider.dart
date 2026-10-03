@@ -18,6 +18,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:record/record.dart';
 import 'package:rounded_loading_button_plus/rounded_loading_button.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
 import 'package:video_player/video_player.dart';
 import '../component/custom_text.dart';
@@ -30,12 +31,13 @@ import '../model/task/task_details_model.dart';
 import '../model/user_model.dart';
 import '../repo/task_repo.dart';
 import '../model/task/task_chart_model.dart';
+import '../screens/attendance/offline_attendance.dart';
 import '../screens/common/camera.dart';
 import '../screens/common/dashboard.dart';
 import '../screens/task/view_task.dart';
 import '../source/constant/api.dart';
 import '../source/constant/colors_constant.dart';
-import '../source/constant/default_constant.dart';
+import '../source/constant/language_model.dart';
 import '../source/constant/local_data.dart';
 import 'employee_provider.dart';
 import 'home_provider.dart';
@@ -84,6 +86,7 @@ class TaskProvider with ChangeNotifier {
   }
 
   bool isAddTaskLoading = false;
+  bool _incompleteMode = false;
   GroupButtonController statusController = GroupButtonController();
   bool _isFilter=false;
   bool get isFilter=>_isFilter;
@@ -130,6 +133,9 @@ class TaskProvider with ChangeNotifier {
 
     final dateFormat = DateFormat('dd-MM-yyyy');
 
+    // Incomplete screen la user date filter apply pannala na date check venaam
+    final bool applyDate = !(_incompleteMode && _isFilter != true);
+
     DateTime parsedStartDate;
     DateTime parsedEndDate;
 
@@ -137,87 +143,50 @@ class TaskProvider with ChangeNotifier {
       final startDate = dateFormat.parse(_startDate);
       final endDate = dateFormat.parse(_endDate);
 
-      // Date மட்டும் compare பண்ண time remove
-      parsedStartDate = DateTime(
-        startDate.year,
-        startDate.month,
-        startDate.day,
-      );
-
-      parsedEndDate = DateTime(
-        endDate.year,
-        endDate.month,
-        endDate.day,
-      );
+      parsedStartDate = DateTime(startDate.year, startDate.month, startDate.day);
+      parsedEndDate = DateTime(endDate.year, endDate.month, endDate.day);
     } catch (e) {
-      print("❌ Start/End Date Parse Error: $e");
+      print("Start/End Date Parse Error: $e");
       return;
     }
 
     _filterUserData = _searchAllTasks.where((contact) {
+      // ---------------- DATE CHECK ----------------
+      bool isWithinDateRange = true;
 
-      // ============================================================
-      // 🔴 DATE CHECK
-      // ============================================================
+      if (applyDate) {
+        if (contact.taskDate == null ||
+            contact.taskDate.toString().trim().isEmpty) {
+          return false;
+        }
 
-      if (contact.taskDate == null ||
-          contact.taskDate.toString().trim().isEmpty) {
-        print("❌ Task Date Empty");
-        return false;
+        DateTime taskDate;
+        try {
+          taskDate = dateFormat.parse(contact.taskDate.toString().trim());
+        } catch (e) {
+          return false;
+        }
+
+        final taskDateOnly = DateTime(taskDate.year, taskDate.month, taskDate.day);
+
+        isWithinDateRange = !taskDateOnly.isBefore(parsedStartDate) &&
+            !taskDateOnly.isAfter(parsedEndDate);
       }
 
-      DateTime taskDate;
+      // ---------------- TYPE CHECK ----------------
+      final selectedType = _fType.toString().trim().toLowerCase();
+      final contactType = (contact.type ?? "").toString().trim().toLowerCase();
+      final isTypeMatch = selectedType.isEmpty || selectedType == contactType;
 
-      try {
-        taskDate = dateFormat.parse(
-          contact.taskDate.toString().trim(),
-        );
-      } catch (e) {
-        print(
-          "❌ Task Date Parse Error: ${contact.taskDate} | Error: $e",
-        );
-        return false;
-      }
-
-      final taskDateOnly = DateTime(
-        taskDate.year,
-        taskDate.month,
-        taskDate.day,
-      );
-
-      final isWithinDateRange =
-          !taskDateOnly.isBefore(parsedStartDate) &&
-              !taskDateOnly.isAfter(parsedEndDate);
-
-      // ============================================================
-      // 🔴 TYPE CHECK
-      // ============================================================
-
-      final selectedType =
-      _fType.toString().trim().toLowerCase();
-
-      final contactType =
-      (contact.type ?? "").toString().trim().toLowerCase();
-
-      final isTypeMatch =
-          selectedType.isEmpty ||
-              selectedType == contactType;
-
-      // ============================================================
-      // 🔴 EMPLOYEE CHECK
-      // ============================================================
-
-      final rawAssignedNames =
-      (contact.assignedNames ?? "").toString();
-
+      // ---------------- EMPLOYEE CHECK ----------------
+      final rawAssignedNames = (contact.assignedNames ?? "").toString();
       final assignedList = rawAssignedNames
           .split(',')
           .map((e) => e.trim().toLowerCase())
           .where((e) => e.isNotEmpty)
           .toList();
 
-      final searchName =
-      _assignedNames.trim().toLowerCase();
+      final searchName = _assignedNames.trim().toLowerCase();
 
       final matchedNames = assignedList.where((name) {
         return name == searchName ||
@@ -225,65 +194,27 @@ class TaskProvider with ChangeNotifier {
             searchName.contains(name);
       }).toList();
 
-      final isEmpMatch =
-          searchName.isEmpty ||
-              matchedNames.isNotEmpty;
+      final isEmpMatch = searchName.isEmpty || matchedNames.isNotEmpty;
 
-      // ============================================================
-      // 🔴 CUSTOMER CHECK
-      // ============================================================
-
-      final selectedCompany =
-      _companyName.toString().trim().toLowerCase();
-
+      // ---------------- CUSTOMER CHECK ----------------
+      final selectedCompany = _companyName.toString().trim().toLowerCase();
       final contactCompany =
-      (contact.projectName ?? "")
-          .toString()
-          .trim()
-          .toLowerCase();
-
+      (contact.projectName ?? "").toString().trim().toLowerCase();
       final isCusMatch =
-          selectedCompany.isEmpty ||
-              selectedCompany == contactCompany;
+          selectedCompany.isEmpty || selectedCompany == contactCompany;
 
-      // ============================================================
-      // 🔴 STATUS CHECK
-      // ============================================================
-
-      final taskStatus =
-      (contact.statval ?? "")
-          .toString()
-          .trim();
-
-      final selectedStatus =
-      _statusIds.toString().trim();
-
+      // ---------------- STATUS CHECK ----------------
+      final taskStatus = (contact.statval ?? "").toString().trim();
+      final selectedStatus = _statusIds.toString().trim();
       final isStatusMatch =
-          selectedStatus.isEmpty ||
-              taskStatus == selectedStatus;
+          selectedStatus.isEmpty || taskStatus == selectedStatus;
 
-      // ============================================================
-      // 🔍 DEBUG
-      // ============================================================
-
-      final finalMatch =
-          isWithinDateRange &&
-              isTypeMatch &&
-              isEmpMatch &&
-              isCusMatch &&
-              isStatusMatch;
-
-
-
-      // ============================================================
-      // 🔥 FINAL FILTER
-      // ============================================================
-
-      return finalMatch;
-
+      return isWithinDateRange &&
+          isTypeMatch &&
+          isEmpMatch &&
+          isCusMatch &&
+          isStatusMatch;
     }).toList();
-
-
 
     if (!_isDisposed) {
       notifyListeners();
@@ -659,7 +590,7 @@ class TaskProvider with ChangeNotifier {
 
       Map data = {
         "action": taskDatas,
-        "search_type": "download_reports_work",
+        "search_type": "download_task_reports",
         "cos_id": localData.storage.read("cos_id"),
         "role": localData.storage.read("role"),
         "id": localData.storage.read("id"),
@@ -1290,6 +1221,9 @@ class TaskProvider with ChangeNotifier {
     await OpenFile.open(filePath);
   }
 
+// Un provider-la irukkura exportTaskOnlyEmployeeWiseExcel function-ku badhila idhai paste pannu.
+// Imports (already un file-la irukkum): excel, path_provider, open_file, dart:io
+
   Future<void> exportTaskOnlyEmployeeWiseExcel({
     required List<DTaskModel> taskList,
     required String fromDate,
@@ -1297,8 +1231,16 @@ class TaskProvider with ChangeNotifier {
     required String role,
     String? userName, // 👈 employee login name
   }) async {
+    print("### EXPORT CALLED ### tasks=${taskList.length} role=$role user=$userName");
+
     var excel = Excel.createExcel();
     Sheet sheet = excel["Sheet1"];
+
+    /// null / empty na blank
+    String clean(String? v) =>
+        (v == null || v.trim().isEmpty || v.trim() == "null") ? "" : v.trim();
+
+    bool hasWages(DTaskModel t) => clean(t.wagesWorkers).isNotEmpty;
 
     /// =================== STYLES ===================
     CellStyle titleStyle = CellStyle(
@@ -1311,6 +1253,14 @@ class TaskProvider with ChangeNotifier {
     CellStyle headerStyle = CellStyle(
       bold: true,
       backgroundColorHex: "#FFFF00",
+      fontColorHex: "#000000",
+      horizontalAlign: HorizontalAlign.Center,
+      verticalAlign: VerticalAlign.Center,
+    );
+
+    CellStyle wagesHeaderStyle = CellStyle(
+      bold: true,
+      backgroundColorHex: "#C6EFCE",
       fontColorHex: "#000000",
       horizontalAlign: HorizontalAlign.Center,
       verticalAlign: VerticalAlign.Center,
@@ -1329,25 +1279,43 @@ class TaskProvider with ChangeNotifier {
       verticalAlign: VerticalAlign.Center,
     );
 
-    /// =================== TOP TITLE ===================
-    sheet.appendRow(["${constValue.appName} TASK REPORT DETAILS"]);
-    sheet.merge(CellIndex.indexByString("A1"), CellIndex.indexByString("H1"));
-    sheet.cell(CellIndex.indexByString("A1")).cellStyle = titleStyle;
-
-    sheet.appendRow([""]);
+    /// =================== REMOVE DUPLICATE ROWS ===================
+    /// Backend join (expense x attendance x visit) naala same task
+    /// pala thadava varum. Excel-la kaattura values same irundha oru thadava mattum.
+    final Set<String> seen = {};
+    final List<DTaskModel> uniqueTasks = [];
+    for (final t in taskList) {
+      final key = [
+        t.taskDate,
+        t.taskTitle,
+        t.projectName,
+        t.type,
+        t.assignedNames,
+        t.creator,
+        t.status,
+        clean(t.wagesWorkers),
+        clean(t.wagesAddedBy),
+        clean(t.wagesDescription),
+        clean(t.wagesHours),
+        clean(t.wagesAmount),
+      ].join("|");
+      if (seen.add(key)) uniqueTasks.add(t);
+    }
+    print("AFTER DEDUPE: ${uniqueTasks.length} (from ${taskList.length})");
+    print("TASKS WITH WAGES: ${uniqueTasks.where(hasWages).length}");
 
     /// =================== FILTER LIST ===================
     List<DTaskModel> filteredTasks = [];
 
-    if (role == "1") {
+    if (role.toString().trim() == "1") {
       /// ✅ Admin = all tasks
-      filteredTasks = taskList;
+      filteredTasks = uniqueTasks;
     } else {
       /// ✅ Employee = only assigned tasks for that user
       String filter = (userName ?? "").trim().toLowerCase();
 
-      filteredTasks = taskList.where((task) {
-        String assignedNames = (task.assignedNames ?? "").trim();
+      filteredTasks = uniqueTasks.where((task) {
+        String assignedNames = task.assignedNames.trim();
         if (assignedNames.isEmpty) return false;
 
         List<String> empList = assignedNames.split(",");
@@ -1356,11 +1324,24 @@ class TaskProvider with ChangeNotifier {
       }).toList();
     }
 
+    /// =================== WAGES COLUMNS NEEDED? ===================
+    final bool anyWages = filteredTasks.any(hasWages);
+    final int totalCols = anyWages ? 13 : 8;
+    final String lastCol = anyWages ? "M" : "H";
+    print("AFTER FILTER: ${filteredTasks.length} | anyWages=$anyWages");
+
+    /// =================== TOP TITLE ===================
+    sheet.appendRow(["${constValue.appName} TASK REPORT DETAILS"]);
+    sheet.merge(CellIndex.indexByString("A1"), CellIndex.indexByString("${lastCol}1"));
+    sheet.cell(CellIndex.indexByString("A1")).cellStyle = titleStyle;
+
+    sheet.appendRow([""]);
+
     /// =================== GROUP BY EMPLOYEE ===================
     Map<String, List<DTaskModel>> groupedTasks = {};
 
     for (var task in filteredTasks) {
-      String names = task.assignedNames ?? "Unknown";
+      String names = task.assignedNames.isEmpty ? "Unknown" : task.assignedNames;
       List<String> empList = names.split(",");
 
       for (var emp in empList) {
@@ -1368,7 +1349,7 @@ class TaskProvider with ChangeNotifier {
         if (empName.isEmpty) empName = "Unknown";
 
         /// Employee role na only login user name group la add pannum
-        if (role != "1") {
+        if (role.toString().trim() != "1") {
           if (empName.toLowerCase() != (userName ?? "").trim().toLowerCase()) {
             continue;
           }
@@ -1388,7 +1369,11 @@ class TaskProvider with ChangeNotifier {
 
     /// =================== LOOP EMPLOYEE WISE ===================
     groupedTasks.forEach((empName, tasks) {
+      /// wages irukkura tasks mela, appuram date padi
       tasks.sort((a, b) {
+        final wa = hasWages(a) ? 0 : 1;
+        final wb = hasWages(b) ? 0 : 1;
+        if (wa != wb) return wa.compareTo(wb);
         DateTime da = parseDate(a.taskDate);
         DateTime db = parseDate(b.taskDate);
         return da.compareTo(db);
@@ -1398,7 +1383,7 @@ class TaskProvider with ChangeNotifier {
 
       sheet.merge(
         CellIndex.indexByString("A${rowIndex + 1}"),
-        CellIndex.indexByString("H${rowIndex + 1}"),
+        CellIndex.indexByString("$lastCol${rowIndex + 1}"),
       );
 
       sheet.cell(CellIndex.indexByString("A${rowIndex + 1}")).cellStyle =
@@ -1415,32 +1400,48 @@ class TaskProvider with ChangeNotifier {
         "Assigned To",
         "Created By",
         "Status",
+        if (anyWages) ...[
+          "Wages Workers",
+          "Wages Added By",
+          "Work Description",
+          "Wages Hours",
+          "Wages Amount (₹)",
+        ],
       ]);
 
-      for (int col = 0; col < 8; col++) {
+      for (int col = 0; col < totalCols; col++) {
         sheet
             .cell(CellIndex.indexByColumnRow(columnIndex: col, rowIndex: rowIndex))
-            .cellStyle = headerStyle;
+            .cellStyle = col >= 8 ? wagesHeaderStyle : headerStyle;
       }
 
       rowIndex++;
 
       for (var task in tasks) {
+        final bool w = hasWages(task);
+
         sheet.appendRow([
-          task.taskDate ?? "-",
-          task.taskTitle ?? "-",
-          task.projectName ?? "-",
-          task.type ?? "-",
-          task.taskDate ?? "-",
-          task.assignedNames ?? "-",
-          task.creator ?? "-",
-          task.status ?? "-",
+          task.taskDate.isEmpty ? "-" : task.taskDate,
+          task.taskTitle.isEmpty ? "-" : task.taskTitle,
+          task.projectName.isEmpty ? "-" : task.projectName,
+          task.type.isEmpty ? "-" : task.type,
+          task.taskDate.isEmpty ? "-" : task.taskDate,
+          task.assignedNames.isEmpty ? "-" : task.assignedNames,
+          task.creator.isEmpty ? "-" : task.creator,
+          task.status.isEmpty ? "-" : task.status,
+          if (anyWages) ...[
+            // wages illana blank
+            w ? clean(task.wagesWorkers) : "",
+            w ? clean(task.wagesAddedBy) : "",
+            w ? clean(task.wagesDescription) : "",
+            w ? clean(task.wagesHours) : "",
+            w ? clean(task.wagesAmount) : "",
+          ],
         ]);
 
-        for (int col = 0; col < 8; col++) {
+        for (int col = 0; col < totalCols; col++) {
           sheet
-              .cell(CellIndex.indexByColumnRow(
-              columnIndex: col, rowIndex: rowIndex))
+              .cell(CellIndex.indexByColumnRow(columnIndex: col, rowIndex: rowIndex))
               .cellStyle = normalStyle;
         }
 
@@ -1460,11 +1461,18 @@ class TaskProvider with ChangeNotifier {
     sheet.setColWidth(5, 30);
     sheet.setColWidth(6, 18);
     sheet.setColWidth(7, 15);
+    if (anyWages) {
+      sheet.setColWidth(8, 45);
+      sheet.setColWidth(9, 20);
+      sheet.setColWidth(10, 45);
+      sheet.setColWidth(11, 14);
+      sheet.setColWidth(12, 18);
+    }
 
     /// =================== SAVE FILE ===================
     final dir = await getApplicationDocumentsDirectory();
 
-    String fileName = role == "1"
+    String fileName = role.toString().trim() == "1"
         ? "All_Employee_Task_Report_($fromDate to $toDate).xlsx"
         : "${userName}_Task_Report_($fromDate to $toDate).xlsx";
 
@@ -3373,7 +3381,8 @@ class TaskProvider with ChangeNotifier {
   Future<void> addTask({
     context,
     required String id,
-  }) async {
+  })
+  async {
     try {
       List<Map<String, String>> customersList = [];
 
@@ -3937,6 +3946,7 @@ class TaskProvider with ChangeNotifier {
       //   "mobile": localData.storage.read("mobile_number"),
       //   'cos_id': localData.storage.read("cos_id")
       // };
+
       final response =await _taskRepo.updateTaskStatusApi(taskId: taskId, status: localData.storage.read("status_id"));
       print(response.toString());
       if (response.toString().contains("200")){
@@ -4058,7 +4068,7 @@ class TaskProvider with ChangeNotifier {
 
   Future<void> getAllTask(bool isRefresh, {String? date1, String? date2, String? type}) async {
     print("=====  getAllTask START =====");
-
+    _incompleteMode = false;
     _checkAtt = "";
     _checkAttName = "";
 
@@ -4183,7 +4193,148 @@ class TaskProvider with ChangeNotifier {
 
     notifyListeners();
   }
+  Future<void> getAllIncompleteTask(bool isRefresh, {String? date1, String? date2, String? type}) async {
+    _incompleteMode = true; // date filter skip panna
 
+    _checkAtt = "";
+    _checkAttName = "";
+
+    if (isRefresh == true) {
+      _filter = "1";
+      statusId = "";
+      matched = 0;
+      _filterDate = "";
+      _filterTasks = 0;
+      _status = null;
+
+      search.clear();
+      search2.clear();
+
+      _allTasks.clear();
+      _searchAllTasks.clear();
+      _filterUserData.clear();
+
+      dataSource.appointments!.clear();
+
+      _viewRefresh = false;
+    }
+
+    try {
+      Map data = {
+        "action": taskDatas,
+        "search_type": "all_incomplete_tasks",
+        "cos_id": localData.storage.read("cos_id"),
+        "role": localData.storage.read("role"),
+        "id": localData.storage.read("id"),
+      };
+
+      // ---------- OFFLINE SAVE LOGIC START ----------
+      final cacheKey = "incomplete_${data['cos_id']}_${data['id']}_${data['role']}";
+      List<TaskData> response = [];
+
+      // 1. Net irundha server la irundhu edu, phone la save pannu
+      try {
+        response = await _taskRepo.getReport(data);
+        if (response.isNotEmpty) {
+          localData.storage.write(
+            cacheKey,
+            jsonEncode(response.map((e) => e.toJson()).toList()),
+          );
+        }
+      } catch (e) {
+        print("Server error (offline?): $e");
+      }
+
+      // 2. Net illa / response empty na, save panna data edu
+      if (response.isEmpty) {
+        final saved = localData.storage.read(cacheKey);
+        if (saved != null) {
+          response = (jsonDecode(saved) as List)
+              .map((e) => TaskData.fromJson(Map<String, dynamic>.from(e)))
+              .toList();
+        }
+      }
+      // ---------- OFFLINE SAVE LOGIC END ----------
+
+      if (response.isNotEmpty) {
+        _allTasks = response;
+        _searchAllTasks = response;
+        _filterUserData = response;
+
+        for (var i = 0; i < response.length; i++) {
+          String? dateStr = response[i].taskDate;
+
+          // TIMER SETUP
+          String id = response[i].id.toString();
+          int totalSeconds = int.tryParse(response[i].totalHours.toString()) ?? 0;
+          String status = response[i].workStatus.toString();
+
+          taskTimers[id] = TaskTimer(
+            accumulatedSeconds: totalSeconds,
+            isRunning: status == "Start",
+            startTime: status == "Start" ? DateTime.now() : null,
+            isCompleted: (status == "Completed" || status == "Complete"),
+          );
+
+          if (status == "Start") {
+            _startUiTicker();
+          }
+
+          // EMPTY DATE SKIP
+          if (dateStr == null || dateStr.isEmpty) {
+            continue;
+          }
+          DateTime parsedDate = DateFormat('dd-MM-yyyy').parse(dateStr);
+
+          Appointment app = Appointment(
+            startTime: parsedDate,
+            endTime: parsedDate,
+            subject: response[i].statval.toString(),
+            color: colorsConst.red2,
+          );
+
+          dataSource.appointments!.add(app);
+
+          dataSource.notifyListeners(
+            CalendarDataSourceAction.add,
+            <Appointment>[app],
+          );
+
+          // THIS MONTH CHECK
+          if (utils.returnPadLeft(defaultMonth.toString()) ==
+              utils.returnPadLeft(parsedDate.month.toString())) {
+            _thisMonthLeave = "1";
+          }
+        }
+
+        // CHECKED TASK
+        for (var i = 0; i < response.length; i++) {
+          if (response[i].isChecked.toString() == "1") {
+            _checkAtt = response[i].id.toString();
+            _checkAttName = response[i].projectName.toString();
+            break;
+          }
+        }
+
+        filterList();
+        _viewRefresh = true;
+      } else {
+        // Server um empty, cache um illa -> loading nikkaama irukka
+        _viewRefresh = true;
+      }
+    } catch (e) {
+      _allTasks = [];
+      _searchAllTasks = [];
+      _filterUserData = [];
+
+      _checkAtt = "";
+      _checkAttName = "";
+
+      _viewRefresh = true;
+    }
+
+    notifyListeners();
+  }
   List<TaskData> _userAllTasks = <TaskData>[];
   List<TaskData> get userAllTasks => _userAllTasks;
   Future<void> getUserTasks(String id,String date1,String date2) async {
@@ -5284,6 +5435,916 @@ class TaskProvider with ChangeNotifier {
     }
     notifyListeners();
   }
+
+  void resetOnLogout() {
+    final now = DateTime.now();
+
+    // timers / streams / audio
+    timer?.cancel();
+    timer = null;
+    _uiTicker?.cancel();
+    _uiTicker = null;
+    _durationSub?.cancel();
+    _durationSub = null;
+    _positionSub?.cancel();
+    _positionSub = null;
+    _completeSub?.cancel();
+    _completeSub = null;
+    audioPlayer.stop().catchError((_) {});
+    player.stop().catchError((_) {});
+    if (_isRecording) {
+      _record.stop().catchError((_) => null);
+      record.stop().catchError((_) => null);
+    }
+    taskTimers.clear();
+
+    // filter / date
+    _isFilter = false;
+    _startDate = "";
+    _endDate = "";
+    _stDate = "";
+    _enDate = "";
+    lStatus = "";
+    _companyName = "";
+    _fType = "";
+    _filterType = null;
+    selectedDate2 = null;
+    datesBetween = [];
+    betweenDates = "";
+    stDt = now;
+    enDt = now.add(const Duration(days: 1));
+    _user = null;
+    _userName = "";
+    _year = "";
+    total = 0;
+    _defaultMonth = now.month;
+    _thisMonthLeave = "0";
+    _filterTasks = 0;
+    _fixedLeaves = <HolyDaysModel>[];
+    _filterDate = "";
+    _statusT = null;
+    _filter = "1";
+    statusId = "";
+    _statusIds = "";
+    matched = 0;
+
+    // add / edit task form
+    _signPrefix = "Mr";
+    _assignedId = "";
+    _assName = "";
+    _assignedNames = "";
+    _cusId = "";
+    _cusName = "";
+    _title = null;
+    _department = null;
+    _type = null;
+    _status = null;
+    _isUpdate = false;
+    _level = "Normal";
+    _taskSDate = "";
+    _taskEDate = "";
+    _taskSTime = "";
+    _taskETime = "";
+    _changeTaskStatus = "";
+    _selectedFiles = [];
+    _selectedPhotos = [];
+    _assignList = [];
+    for (final item in _assignItems) {
+      item['selected'] = false;
+    }
+    fileNameCont = <TextEditingController>[];
+    _selectType = null;
+    _selectType1 = null;
+    typeId = null;
+    typeName = null;
+    isAddTaskLoading = false;
+
+    // audio / video
+    _audioPath = null;
+    _currentlyPlayingPath = null;
+    _isRecording = false;
+    _isPlaying = true;
+    _isVedioPlaying = false;
+    _recordingDuration = 0;
+    _recordingTime = "";
+    _position = Duration.zero;
+    _duration = null;
+    currentIndex = -1;
+    audioList = [];
+    _recordedAudioPaths = [];
+    _videos.clear();
+
+    // loading flags
+    _isLoading = false;
+    _isProjectLoading = false;
+    _isDepartmentLoading = false;
+    _isTaskLoading = false;
+    _isError = false;
+    _refresh = true;
+    _viewRefresh = true;
+    _addRefresh = true;
+    _isDashboardLoading = false;
+    _selectedDate = now;
+
+    // lists / data
+    _projectDropList = [];
+    _departmentList = [];
+    _taskDetailsList = [];
+    _userNameList = [];
+    _allTasks = <TaskData>[];
+    _searchAllTasks = <TaskData>[];
+    _filteredBeforeSearch = [];
+    _filterUserData = <TaskData>[];
+    _userAllTasks = <TaskData>[];
+    assignEmployees = [];
+    historyDetails = [];
+    _customerAttendanceReport = <CustomerAttendanceModel>[];
+    typeList = [];
+    customerList = [];
+    cusTypeList = [];
+    statusList = [];
+
+    // dashboard counts
+    _totalCount = "";
+    _pendingCount = "";
+    _completedCount = "";
+    _overdueCount = "";
+    _pendingCountPer = 0.0;
+    _completedCountPer = 0.0;
+    _overdueCountPer = 0.0;
+
+    // status buttons
+    isAssignedDisabled = false;
+    isStartedDisabled = false;
+    isCompletedDisabled = false;
+    selectedStatusValue = "Assigned";
+    currentStatus = "Assigned";
+
+    // misc
+    _profile = "";
+    _checkAtt = "";
+    _checkAttName = "";
+    try {
+      dataSource.appointments?.clear();
+    } catch (_) {}
+
+    // text controllers
+    search.clear();
+    search2.clear();
+    taskTitleCont.clear();
+    projectNameCont.clear();
+    departmentCont.clear();
+    projectSearchCont.clear();
+    taskDt.clear();
+    taskEt.clear();
+    typeCtr.clear();
+
+    notifyListeners();
+  }
+  bool isWagesLoading = false;
+
+  static const String _offlineWorkersKey =
+      "offline_wages_workers";
+
+  static const String _offlineWorkKey =
+      "offline_wages_work";
+
+  bool _isWagesSuccess(String response) {
+    try {
+      final d = json.decode(response);
+
+      if (d is Map) {
+        final v = (
+            d['status'] ??
+                d['code'] ??
+                d['success'] ??
+                d['result'] ??
+                ''
+        ).toString().toLowerCase();
+
+        return v == '200' ||
+            v == 'success' ||
+            v == 'true' ||
+            v == '1';
+      }
+    } catch (_) {}
+
+    return response.contains("200");
+  }
+
+
+
+  bool isWagesSyncing = false;
+
+  Future<List<Map<String, dynamic>>> _getOfflineWorkers() async {
+    final prefs = await SharedPreferences.getInstance();
+    final value = prefs.getString(_offlineWorkersKey);
+
+    if (value == null || value.isEmpty) {
+      return [];
+    }
+
+    try {
+      final decoded = jsonDecode(value);
+
+      if (decoded is List) {
+        return decoded
+            .map((e) => Map<String, dynamic>.from(e))
+            .toList();
+      }
+    } catch (e) {
+      print("GET OFFLINE WORKERS ERROR: $e");
+    }
+
+    return [];
+  }
+
+  Future<void> _saveOfflineWorkers(
+      List<Map<String, dynamic>> workers,
+      )
+  async {
+    final prefs = await SharedPreferences.getInstance();
+
+    await prefs.setString(
+      _offlineWorkersKey,
+      jsonEncode(workers),
+    );
+  }
+
+  Future<List<Map<String, dynamic>>> _getOfflineWork() async {
+    final prefs = await SharedPreferences.getInstance();
+    final value = prefs.getString(_offlineWorkKey);
+
+    if (value == null || value.isEmpty) {
+      return [];
+    }
+
+    try {
+      final decoded = jsonDecode(value);
+
+      if (decoded is List) {
+        return decoded
+            .map((e) => Map<String, dynamic>.from(e))
+            .toList();
+      }
+    } catch (e) {
+      print("GET OFFLINE WORK ERROR: $e");
+    }
+
+    return [];
+  }
+
+  Future<void> _saveOfflineWork(
+      List<Map<String, dynamic>> workList,
+      ) async {
+    final prefs = await SharedPreferences.getInstance();
+
+    await prefs.setString(
+      _offlineWorkKey,
+      jsonEncode(workList),
+    );
+  }
+
+  Future<int> getPendingWagesCount() async {
+    try {
+      final list = await _getOfflineWork();
+
+      return list
+          .where(
+            (item) =>
+        item["sync_status"]?.toString() == "pending",
+      )
+          .length;
+    } catch (e) {
+      print("PENDING WAGES COUNT ERROR: $e");
+      return 0;
+    }
+  }
+
+  Future<bool> hasPendingWages() async {
+    final count = await getPendingWagesCount();
+    return count > 0;
+  }
+
+
+
+
+// ---------- ADD WORKER ----------
+  Future<bool> addWages({
+    required BuildContext context,
+    required String empName,
+    required String empContact,
+    required String rate,
+  })
+  async {
+    bool success = false;
+
+    try {
+      isWagesLoading = true;
+      notifyListeners();
+
+      final data = {
+        'created_by':
+        localData.storage.read("id").toString(),
+        'cos_id':
+        localData.storage.read("cos_id").toString(),
+        'emp_name': empName.trim(),
+        'emp_contact': empContact.trim(),
+        'rate': rate.trim(),
+        'action': 'insert_wages',
+      };
+
+      print(
+        "ADD WAGES DATA: $data",
+      );
+
+      final response =
+      await _taskRepo.addWages(data);
+
+      print(
+        "ADD WAGES RESPONSE: $response",
+      );
+
+      if (_isWagesSuccess(
+        response.toString(),
+      )) {
+        utils.showSuccessToast(
+          context: context,
+          text: "Worker added successfully",
+        );
+
+        success = true;
+      } else {
+        utils.showErrorToast(
+          context: context,
+        );
+      }
+    } catch (e) {
+      print(
+        "ADD WAGES ERROR: $e",
+      );
+
+      utils.showWarningToast(
+        context,
+        text: e.toString(),
+      );
+    }
+
+    isWagesLoading = false;
+    notifyListeners();
+
+    return success;
+  }
+// ---------- FETCH ALL WORKERS ----------
+  Future<List<Map<String, dynamic>>> getWages() async {
+    try {
+      final data = {
+        'cos_id':
+        localData.storage.read("cos_id").toString(),
+        'user_id':
+        localData.storage.read("id").toString(),
+        'action': 'select_wages',
+      };
+
+      print(
+        "SELECT WAGES DATA: $data",
+      );
+
+      final response =
+      await _taskRepo.getWages(data);
+
+      print(
+        "SELECT WAGES RESPONSE: $response",
+      );
+
+      final decoded =
+      json.decode(response);
+
+      List raw = [];
+
+      if (decoded is List) {
+        raw = decoded;
+      } else if (decoded is Map) {
+        for (final key in [
+          'data',
+          'result',
+          'wages',
+          'list',
+        ]) {
+          if (decoded[key] is List) {
+            raw = decoded[key];
+            break;
+          }
+        }
+      }
+
+      final workers = raw
+          .map(
+            (e) =>
+        Map<String, dynamic>.from(e),
+      )
+          .toList();
+
+      if (workers.isNotEmpty) {
+        await _saveOfflineWorkers(
+          workers,
+        );
+      }
+
+      return workers;
+    } catch (e) {
+      print(
+        "SELECT WAGES ERROR: $e",
+      );
+
+      final localWorkers =
+      await _getOfflineWorkers();
+
+      print(
+        "OFFLINE WORKERS LOADED: ${localWorkers.length}",
+      );
+
+      return localWorkers;
+    }
+  }
+// ---------- Status: local pending mudhalla, apparam server ----------
+  Future<String> getWagesStatus({
+    required String taskId,
+    required String wageEmpId,
+  }) async {
+    final local = await getOfflineWagesStatus(
+      taskId: taskId,
+      wageEmpId: wageEmpId,
+    );
+    if (local.isNotEmpty) return local;
+
+    try {
+      final response = await checkWagesEntry(
+        taskId: taskId,
+        wageEmpId: wageEmpId,
+      );
+
+      if (response.isEmpty) return "";
+
+      final decoded = json.decode(response);
+
+      if (decoded is Map) {
+        final data = decoded['data'];
+        if (data is List && data.isNotEmpty && data[0] is Map) {
+          final value = data[0]['status'];
+          if (value != null) return value.toString();
+        }
+      }
+    } catch (e) {
+      print("ONLINE WAGES STATUS ERROR: $e");
+    }
+
+    return "";
+  }
+  Future<String> checkWagesEntry({
+    required String taskId,
+    required String wageEmpId,
+  }) async {
+    try {
+      final data = {
+        'created_by':
+        localData.storage.read("id").toString(),
+        'user_id':
+        localData.storage.read("id").toString(),
+        'cos_id':
+        localData.storage.read("cos_id").toString(),
+        'task_id': taskId,
+        'wage_emp_id': wageEmpId,
+        'action': 'chk_wages_entry',
+      };
+
+      print(
+        "CHECK WAGES DATA: $data",
+      );
+
+      final response =
+      await _taskRepo.getWorkDetails(
+        data,
+      );
+
+      print(
+        "CHECK WAGES RESPONSE: $response",
+      );
+
+      return response;
+    } catch (e) {
+      print(
+        "CHECK WAGES ERROR: $e",
+      );
+
+      return '';
+    }
+  }
+// ---------- Offline save (ippo OfflineAttendanceService la) ----------
+  Future<bool> saveOfflineWagesWork({
+    required String taskId,
+    required String empId,
+    required String empName,
+    required String empContact,
+    required String rate,
+    required String description,
+    required String status,
+    required String checkIn,
+    required String checkOut,
+    required String lat,
+    required String lng,
+  }) async {
+    try {
+      await OfflineAttendanceService.addWages(
+        wagesData: {
+          "wage_emp_id": empId,
+          "task_id": taskId,
+          "wages_description": description,
+          "check_in": checkIn,
+          "check_out": checkOut,
+          "status": status,
+        },
+        lat: lat,
+        lng: lng,
+        status: status,
+        includeAttendance: false, // wages mattum, attendance illa
+      );
+
+      notifyListeners();
+      print("OFFLINE WAGES SAVED (status $status)");
+      return true;
+    } catch (e) {
+      print("SAVE OFFLINE WAGES ERROR: $e");
+      return false;
+    }
+  }
+
+  // ---------- Check-in ----------
+  Future<bool> saveWagesCheckIn({
+    required BuildContext context,
+    required String taskId,
+    required String empId,
+    required String empName,
+    required String empContact,
+    required String rate,
+    required String description,
+    required String checkIn,
+    required String lat,
+    required String lng,
+  }) async {
+    Future<bool> saveLocal() async {
+      final ok = await saveOfflineWagesWork(
+        taskId: taskId,
+        empId: empId,
+        empName: empName,
+        empContact: empContact,
+        rate: rate,
+        description: description,
+        status: "1",
+        checkIn: checkIn,
+        checkOut: "",
+        lat: lat,
+        lng: lng,
+      );
+      if (ok && context.mounted) {
+        utils.showWarningToast(context, text: "Saved offline. It will sync later.");
+      }
+      return ok;
+    }
+
+    // Internet illana direct-a offline save (error toast varaadhu)
+    if (!await OfflineAttendanceService.isOnline()) {
+      return saveLocal();
+    }
+
+    try {
+      final success = await addWorkDetails(
+        context: context,
+        taskId: taskId,
+        empId: empId,
+        description: description,
+        status: "1",
+        lat: lat,
+        lng: lng,
+        checkIn: checkIn,
+        checkOut: "",
+      );
+      if (success) return true;
+    } catch (e) {
+      print("SAVE WAGES CHECK IN ERROR: $e");
+    }
+
+    return saveLocal();
+  }
+
+  Future<bool> saveWagesCheckOut({
+    required BuildContext context,
+    required String taskId,
+    required String empId,
+    required String checkOut,
+    required String lat,
+    required String lng,
+  }) async {
+    Future<bool> saveLocal() async {
+      // 1) Pending check-in irundha adhulaye check-out serkkum
+      bool ok = await updateOfflineWagesCheckOut(
+        taskId: taskId,
+        empId: empId,
+        checkOut: checkOut,
+        lat: lat,
+        lng: lng,
+      );
+
+      // 2) Check-in already server-la irundha, check-out mattum pending
+      if (!ok) {
+        ok = await saveOfflineWagesWork(
+          taskId: taskId,
+          empId: empId,
+          empName: "",
+          empContact: "",
+          rate: "",
+          description: "",
+          status: "2",
+          checkIn: "",
+          checkOut: checkOut,
+          lat: lat,
+          lng: lng,
+        );
+      }
+
+      if (ok && context.mounted) {
+        utils.showWarningToast(
+          context,
+          text: "Check out saved offline. It will sync later.",
+        );
+      }
+      return ok;
+    }
+
+    if (!await OfflineAttendanceService.isOnline()) {
+      return saveLocal();
+    }
+
+    try {
+      final data = {
+        'cos_id': localData.storage.read("cos_id").toString(),
+        'user_id': localData.storage.read("id").toString(),
+        'created_by': localData.storage.read("id").toString(),
+        'wage_emp_id': empId,
+        'task_id': taskId,
+        'check_out': checkOut,
+        'lat': lat,
+        'lng': lng,
+        'status': '2',
+        'action': 'update_wages_work_details',
+      };
+
+      final response = await _taskRepo.addWorkDetails(data);
+      print("UPDATE WAGES CHECK OUT RESPONSE: $response");
+
+      if (_isWagesSuccess(response.toString())) {
+        if (context.mounted) {
+          utils.showSuccessToast(
+            context: context,
+            text: "Work completed successfully",
+          );
+        }
+        return true;
+      }
+    } catch (e) {
+      print("ONLINE CHECK OUT ERROR: $e");
+    }
+
+    return saveLocal();
+  }
+  Future<bool> updateOfflineWagesCheckOut({
+    required String taskId,
+    required String empId,
+    required String checkOut,
+    required String lat,
+    required String lng,
+  }) async {
+    try {
+      final ok = await OfflineAttendanceService.updateWagesCheckOut(
+        taskId: taskId,
+        empId: empId,
+        checkOut: checkOut,
+        lat: lat,
+        lng: lng,
+      );
+      if (ok) notifyListeners();
+      return ok;
+    } catch (e) {
+      print("UPDATE OFFLINE CHECKOUT ERROR: $e");
+      return false;
+    }
+  }
+
+  Future<String> getOfflineWagesStatus({
+    required String taskId,
+    required String wageEmpId,
+  })
+  async {
+    try {
+      final workList = await _getOfflineWork();
+
+      final records = workList.where(
+            (item) =>
+        item["task_id"]?.toString() == taskId &&
+            item["wage_emp_id"]?.toString() == wageEmpId &&
+            item["sync_status"]?.toString() == "pending",
+      ).toList();
+
+      if (records.isEmpty) {
+        return "";
+      }
+
+      records.sort(
+            (a, b) => (a["created_at"] ?? "")
+            .toString()
+            .compareTo(
+          (b["created_at"] ?? "").toString(),
+        ),
+      );
+
+      return records.last["status"]?.toString() ?? "";
+    } catch (e) {
+      print("OFFLINE STATUS ERROR: $e");
+      return "";
+    }
+  }
+
+  Future<bool> addWorkDetails({
+    required BuildContext context,
+    required String taskId,
+    required String empId,
+    required String description,
+    required String status,
+    required String lat,
+    required String lng,
+    String checkIn = '',
+    String checkOut = '',
+  }) async {
+    bool success = false;
+
+    try {
+      final data = {
+        'cos_id': localData.storage.read("cos_id").toString(),
+        'user_id': localData.storage.read("id").toString(),
+        'created_by': localData.storage.read("id").toString(),
+        'wage_emp_id': empId,
+        'task_id': taskId,
+        'work_description': description.trim(),
+        'check_in': checkIn,
+        'check_out': checkOut,
+        'lat': lat,
+        'lng': lng,
+        'status': status,
+        'action': 'insert_wages_work_details',
+      };
+
+      print("ADD WORK DATA: $data");
+
+      final response = await _taskRepo.addWorkDetails(data);
+
+      print("ADD WORK RESPONSE: $response");
+
+      if (_isWagesSuccess(response.toString())) {
+        utils.showSuccessToast(
+          context: context,
+          text: "Work details added successfully",
+        );
+
+        success = true;
+      } else {
+        utils.showErrorToast(context: context);
+      }
+    } catch (e) {
+      print("ADD WORK ERROR: $e");
+    }
+
+    return success;
+  }
+
+  Future<List<Map<String, dynamic>>> getWorkDetails({
+    required String taskId,
+  }) async {
+    List<Map<String, dynamic>> onlineData = [];
+
+    try {
+      final data = {
+        'task_id': taskId,
+        'cos_id':
+        localData.storage.read("cos_id").toString(),
+        'user_id':
+        localData.storage.read("id").toString(),
+        'action':
+        'select_wages_work_details',
+      };
+
+      print(
+        "SELECT WORK DATA: $data",
+      );
+
+      final response =
+      await _taskRepo.getWorkDetails(
+        data,
+      );
+
+      print(
+        "SELECT WORK RESPONSE: $response",
+      );
+
+      final decoded =
+      json.decode(response);
+
+      List raw = [];
+
+      if (decoded is List) {
+        raw = decoded;
+      } else if (decoded is Map) {
+        for (final key in [
+          'data',
+          'result',
+          'work',
+          'list',
+        ]) {
+          if (decoded[key] is List) {
+            raw = decoded[key];
+            break;
+          }
+        }
+      }
+
+      onlineData = raw
+          .map(
+            (e) =>
+        Map<String, dynamic>.from(e),
+      )
+          .toList();
+    } catch (e) {
+      print(
+        "ONLINE WORK DETAILS ERROR: $e",
+      );
+    }
+
+    final localList =
+    await _getOfflineWork();
+
+    final localDataForTask =
+    localList.where(
+          (item) =>
+      item["task_id"]?.toString() ==
+          taskId &&
+          item["sync_status"]?.toString() ==
+              "pending",
+    ).map(
+          (item) {
+        return {
+          "wage_emp_id":
+          item["wage_emp_id"],
+          "task_id":
+          item["task_id"],
+          "emp_name":
+          item["emp_name"],
+          "emp_contact":
+          item["emp_contact"],
+          "rate":
+          item["rate"],
+          "work_description":
+          item["work_description"],
+          "check_in":
+          item["check_in"],
+          "check_out":
+          item["check_out"],
+          "status":
+          item["status"],
+          "lat":
+          item["lat"],
+          "lng":
+          item["lng"],
+          "created_at":
+          item["created_at"],
+        };
+      },
+    ).toList();
+
+    print(
+      "ONLINE WORK COUNT: ${onlineData.length}",
+    );
+
+    print(
+      "LOCAL PENDING WORK COUNT: ${localDataForTask.length}",
+    );
+
+    final result = [
+      ...onlineData,
+      ...localDataForTask,
+    ];
+
+    return result;
+  }
+
 }
 
 class TaskTimer {

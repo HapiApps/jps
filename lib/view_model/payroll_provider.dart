@@ -16,7 +16,7 @@ import '../screens/payroll/payroll_calculation.dart';
 import '../screens/payroll/payroll_details.dart';
 import '../screens/payroll/payroll_settings.dart';
 import '../source/constant/api.dart';
-import '../source/constant/default_constant.dart';
+import '../source/constant/language_model.dart';
 import '../source/constant/local_data.dart';
 import '../source/utilities/utils.dart';
 
