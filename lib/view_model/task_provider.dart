@@ -2895,41 +2895,122 @@ class TaskProvider with ChangeNotifier {
   //   }
   //   notifyListeners();
   // }
+  // Future<void> startRecording() async {
+  //
+  //   try {
+  //
+  //     if (_isRecording) return;
+  //
+  //     _recordingDuration = 0;
+  //
+  //     final dir =
+  //     await getApplicationDocumentsDirectory();
+  //
+  //     final path =
+  //         "${dir.path}/audio_${DateTime.now().millisecondsSinceEpoch}.m4a";
+  //
+  //     final permission =
+  //     await _record.hasPermission();
+  //
+  //     if (!permission) {
+  //       return;
+  //     }
+  //
+  //     await _record.start(
+  //
+  //       const RecordConfig(
+  //
+  //         encoder:
+  //         AudioEncoder.aacLc,
+  //
+  //         sampleRate:
+  //         44100,
+  //
+  //         bitRate:
+  //         128000,
+  //       ),
+  //
+  //       path: path,
+  //     );
+  //
+  //     _isRecording = true;
+  //
+  //     timer?.cancel();
+  //
+  //     timer = Timer.periodic(
+  //       const Duration(
+  //         seconds: 1,
+  //       ),
+  //           (_) {
+  //
+  //         _recordingDuration++;
+  //
+  //         notifyListeners();
+  //       },
+  //     );
+  //
+  //   } catch (e) {
+  //
+  //     debugPrint(
+  //       "Record Error $e",
+  //     );
+  //   }
+  //
+  //   notifyListeners();
+  // }  /// Stop Recording
+  //
+  // Future<void> stopRecording() async {
+  //   if (!_isRecording) return;
+  //
+  //   try {
+  //     final path = await _record.stop();
+  //
+  //     timer?.cancel();
+  //     _isRecording = false;
+  //
+  //     if (path != null) {
+  //       _recordedAudioPaths.insert(
+  //         0,
+  //         AddAudioModel(
+  //           audioPath: path,
+  //           time: DateTime.now().toString(),
+  //           second: recordingDuration.toDouble(),
+  //           duration: Duration(seconds: recordingDuration),
+  //         ),
+  //       );
+  //
+  //       _recordingDuration = 0;
+  //     }
+  //   } catch (e) {
+  //     log("Stop Recording Error: $e");
+  //   }
+  //
+  //   notifyListeners();
+  // }
   Future<void> startRecording() async {
-
     try {
-
       if (_isRecording) return;
 
       _recordingDuration = 0;
 
-      final dir =
-      await getApplicationDocumentsDirectory();
+      final dir = await getApplicationDocumentsDirectory();
 
       final path =
           "${dir.path}/audio_${DateTime.now().millisecondsSinceEpoch}.m4a";
 
-      final permission =
-      await _record.hasPermission();
+      final permission = await _record.hasPermission();
 
       if (!permission) {
+        debugPrint("Microphone permission denied");
         return;
       }
 
       await _record.start(
-
         const RecordConfig(
-
-          encoder:
-          AudioEncoder.aacLc,
-
-          sampleRate:
-          44100,
-
-          bitRate:
-          128000,
+          encoder: AudioEncoder.aacLc,
+          sampleRate: 44100,
+          bitRate: 128000,
         ),
-
         path: path,
       );
 
@@ -2938,45 +3019,24 @@ class TaskProvider with ChangeNotifier {
       timer?.cancel();
 
       timer = Timer.periodic(
-        const Duration(
-          seconds: 1,
-        ),
+        const Duration(seconds: 1),
             (_) {
-
-          _recordingDuration++;
-
-          notifyListeners();
+          if (_isRecording) {
+            _recordingDuration++;
+            notifyListeners();
+          }
         },
       );
 
+      notifyListeners();
     } catch (e) {
-
-      debugPrint(
-        "Record Error $e",
-      );
+      debugPrint("Record Error: $e");
+      _isRecording = false;
+      timer?.cancel();
+      notifyListeners();
     }
+  }
 
-    notifyListeners();
-  }  /// Stop Recording
-
-  /// Stop Recording
-  // Future<void> stopRecording() async {
-  //   try {
-  //     final path = await _record.stop();
-  //     if (path != null) {
-  //       _isRecording = false;
-  //       _recordedAudioPaths
-  //           .add(AddAudioModel(audioPath: path, second: _recordingDuration));
-  //       await Future.delayed(Duration(seconds: 1));
-  //       loadAudioDuration(path);
-  //     }
-  //     timer?.cancel();
-  //     // print("_recordedAudioPaths: ${_recordedAudioPaths.last.second}");
-  //   } catch (e) {
-  //     // print("Error in stopRecording: $e");
-  //   }
-  //   notifyListeners();
-  // }
   Future<void> stopRecording() async {
     if (!_isRecording) return;
 
@@ -2984,28 +3044,43 @@ class TaskProvider with ChangeNotifier {
       final path = await _record.stop();
 
       timer?.cancel();
+      timer = null;
+
       _isRecording = false;
 
-      if (path != null) {
-        _recordedAudioPaths.insert(
-          0,
-          AddAudioModel(
-            audioPath: path,
-            time: DateTime.now().toString(),
-            second: recordingDuration.toDouble(),
-            duration: Duration(seconds: recordingDuration),
-          ),
-        );
+      if (path != null && path.isNotEmpty) {
+        final audioFile = File(path);
 
-        _recordingDuration = 0;
+        if (await audioFile.exists()) {
+          _recordedAudioPaths.insert(
+            0,
+            AddAudioModel(
+              audioPath: path,
+              time: DateTime.now().toString(),
+              second: recordingDuration.toDouble(),
+              duration: Duration(seconds: recordingDuration),
+            ),
+          );
+
+          debugPrint("Recorded Audio Path: $path");
+          debugPrint(
+            "Recorded Audio Count: ${_recordedAudioPaths.length}",
+          );
+        } else {
+          debugPrint("Audio file does not exist: $path");
+        }
       }
+
+      _recordingDuration = 0;
     } catch (e) {
-      log("Stop Recording Error: $e");
+      debugPrint("Stop Recording Error: $e");
+      _isRecording = false;
+      timer?.cancel();
+      timer = null;
     }
 
     notifyListeners();
   }
-
   void removeAudio(int index) {
     _recordedAudioPaths.removeAt(index);
     notifyListeners();
@@ -3381,62 +3456,83 @@ class TaskProvider with ChangeNotifier {
   Future<void> addTask({
     context,
     required String id,
-  })
-  async {
+  }) async {
     try {
       List<Map<String, String>> customersList = [];
+
+      print("====================================");
+      print("ADD TASK FILE DEBUG");
+      print("Selected Files: ${_selectedFiles.length}");
+      print("Recorded Audio: ${_recordedAudioPaths.length}");
+      print("Selected Photos: ${selectedPhotos.length}");
+      print("====================================");
 
       // --------------------------------------------------
       // Selected Files
       // --------------------------------------------------
       for (int i = 0; i < _selectedFiles.length; i++) {
+        final filePath = _selectedFiles[i]['path'].toString();
+
         customersList.add({
-          "image_$i": _selectedFiles[i]['path'].toString(),
+          "image_$i": filePath,
         });
+
+        print("FILE $i => $filePath");
       }
 
       // --------------------------------------------------
       // Recorded Audio
       // --------------------------------------------------
-      for (
-      int i = _selectedFiles.length;
-      i < _selectedFiles.length + audioList.length;
-      i++
-      ) {
+      for (int i = 0; i < _recordedAudioPaths.length; i++) {
+        final int index = _selectedFiles.length + i;
+
+        final String audioPath =
+        _recordedAudioPaths[i].audioPath.toString();
+
         customersList.add({
-          "image_$i":
-          audioList[i - _selectedFiles.length].audioPath.toString(),
+          "image_$index": audioPath,
         });
+
+        print("AUDIO $index => $audioPath");
       }
 
       // --------------------------------------------------
       // Selected Photos
       // --------------------------------------------------
-      for (
-      int i = _selectedFiles.length + audioList.length;
-      i <
-          _selectedFiles.length +
-              audioList.length +
-              selectedPhotos.length;
-      i++
-      ) {
+      for (int i = 0; i < selectedPhotos.length; i++) {
+        final int index =
+            _selectedFiles.length +
+                _recordedAudioPaths.length +
+                i;
+
+        final String photoPath =
+        selectedPhotos[i].toString();
+
         customersList.add({
-          "image_$i":
-          selectedPhotos[
-          i - (_selectedFiles.length + audioList.length)]
-              .toString(),
+          "image_$index": photoPath,
         });
+
+        print("PHOTO $index => $photoPath");
       }
 
       // --------------------------------------------------
       // JSON
       // --------------------------------------------------
-      String jsonString = json.encode(customersList);
+      final String jsonString = json.encode(customersList);
+
+      print("====================================");
+      print("CUSTOMERS LIST");
+      print(customersList);
+      print("====================================");
+
+      print("JSON DATA");
+      print(jsonString);
+      print("====================================");
 
       // --------------------------------------------------
       // Task Data
       // --------------------------------------------------
-      Map<String, String> data = {
+      final Map<String, String> data = {
         'project_name': id,
         'task_title': taskTitleCont.text.trim(),
         'department': departmentCont.text.trim(),
@@ -3449,12 +3545,13 @@ class TaskProvider with ChangeNotifier {
         'user_id':
         localData.storage.read("id").toString(),
         'task_date': taskDt.text.trim(),
-        'task_time': "${taskEt.text.trim()}",
+        'task_time': taskEt.text.trim(),
         'action': adTask,
         'cos_id':
         localData.storage.read("cos_id").toString(),
-        "data": jsonString,
-        "version": localData.versionNumber.toString(),
+        'data': jsonString,
+        'version':
+        localData.versionNumber.toString(),
       };
 
       print("====================================");
@@ -3470,7 +3567,10 @@ class TaskProvider with ChangeNotifier {
 
       log(response.toString());
 
-      print("ADD TASK RESPONSE: $response");
+      print("====================================");
+      print("ADD TASK RESPONSE");
+      print(response);
+      print("====================================");
 
       if (response.toString().contains("200")) {
         // ------------------------------------------------
@@ -3521,9 +3621,6 @@ class TaskProvider with ChangeNotifier {
           final String currentUserId =
           localData.storage.read("id").toString();
 
-          // -----------------------------------------------
-          // Read admin IDs from storage
-          // -----------------------------------------------
           final dynamic storedAdminIds =
           localData.storage.read("admin_ids");
 
@@ -3539,9 +3636,6 @@ class TaskProvider with ChangeNotifier {
           print("Assigned Names: $assignedNames");
           print("====================================");
 
-          // -----------------------------------------------
-          // Convert List -> String
-          // -----------------------------------------------
           String adminIds = "";
 
           if (storedAdminIds is List) {
@@ -3557,18 +3651,12 @@ class TaskProvider with ChangeNotifier {
 
           print("ADMIN IDS FOR API: $adminIds");
 
-          // -----------------------------------------------
-          // Check admin IDs
-          // -----------------------------------------------
           if (adminIds.isEmpty) {
             print(
               "WARNING: Admin IDs are empty. "
                   "Admin notification will not be sent.",
             );
           } else {
-            // ---------------------------------------------
-            // Send Admin Notification
-            // ---------------------------------------------
             await Provider.of<EmployeeProvider>(
               context,
               listen: false,
@@ -3643,7 +3731,10 @@ class TaskProvider with ChangeNotifier {
         taskCtr.reset();
       }
     } catch (e) {
-      print("ADD TASK ERROR: $e");
+      print("====================================");
+      print("ADD TASK ERROR");
+      print(e);
+      print("====================================");
 
       utils.showWarningToast(
         context,

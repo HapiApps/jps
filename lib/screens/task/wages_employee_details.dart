@@ -4,11 +4,6 @@ import 'package:provider/provider.dart';
 import '../../source/constant/colors_constant.dart';
 import '../../view_model/task_provider.dart';
 
-/// Put this file in: lib/screens/task/wages_worker_details.dart
-///
-/// Open it with:
-///   Navigator.push(context,
-///       MaterialPageRoute(builder: (_) => const WagesWorkerDetailsPage()));
 class WagesWorkerDetailsPage extends StatefulWidget {
   const WagesWorkerDetailsPage({super.key});
 
@@ -35,23 +30,30 @@ class _WagesWorkerDetailsPageState extends State<WagesWorkerDetailsPage> {
   }
 
   // ---------------- FETCH ALL WORKERS (backend) ----------------
-  Future<void> _loadWorkers() async {
-    setState(() => _loading = true);
-    final list =
-    await Provider.of<TaskProvider>(context, listen: false).getWages();
-    if (!mounted) return;
-    setState(() {
-      _workers
-        ..clear()
-        ..addAll(list.map((m) => _Worker(
-          (m['id'] ?? '').toString(),
-          (m['emp_name'] ?? m['name'] ?? '').toString(),
-          (m['emp_contact'] ?? m['contact'] ?? '').toString(),
-          double.tryParse((m['rate'] ?? m['salary'] ?? '0').toString()) ??
-              0,
-        )));
-      _loading = false;
-    });
+  // pull = true na RefreshIndicator-oda own loader use aagum
+  Future<void> _loadWorkers({bool pull = false}) async {
+    if (!pull) setState(() => _loading = true);
+    try {
+      final list =
+      await Provider.of<TaskProvider>(context, listen: false).getWages();
+      if (!mounted) return;
+      setState(() {
+        _workers
+          ..clear()
+          ..addAll(list.map((m) => _Worker(
+            (m['id'] ?? '').toString(),
+            (m['emp_name'] ?? m['name'] ?? '').toString(),
+            (m['emp_contact'] ?? m['contact'] ?? '').toString(),
+            double.tryParse(
+                (m['rate'] ?? m['salary'] ?? '0').toString()) ??
+                0,
+          )));
+      });
+    } catch (e) {
+      debugPrint("Load workers error: $e");
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
   }
 
   // ---------------- ADD WORKER (backend) ----------------
@@ -60,6 +62,7 @@ class _WagesWorkerDetailsPageState extends State<WagesWorkerDetailsPage> {
     final phone = TextEditingController();
     final salary = TextEditingController();
     final key = GlobalKey<FormState>();
+    bool saving = false;
 
     showModalBottomSheet(
       context: context,
@@ -110,34 +113,56 @@ class _WagesWorkerDetailsPageState extends State<WagesWorkerDetailsPage> {
                     validator: (v) =>
                     (v == null || v.isEmpty) ? "Enter salary" : null),
                 const SizedBox(height: 18),
-                SizedBox(
-                  width: double.infinity,
-                  height: 44,
-                  child: ElevatedButton(
-                    onPressed: () async {
-                      if (!key.currentState!.validate()) return;
+                StatefulBuilder(
+                  builder: (c, setSheet) => SizedBox(
+                    width: double.infinity,
+                    height: 44,
+                    child: ElevatedButton(
+                      onPressed: saving
+                          ? null
+                          : () async {
+                        if (!key.currentState!.validate()) return;
 
-                      final ok =
-                      await Provider.of<TaskProvider>(context, listen: false)
-                          .addWages(
-                        context: context,
-                        empName: name.text,
-                        empContact: phone.text,
-                        rate: salary.text,
-                      );
+                        setSheet(() => saving = true);
+                        bool ok = false;
+                        try {
+                          ok = await Provider.of<TaskProvider>(context,
+                              listen: false)
+                              .addWages(
+                            context: context,
+                            empName: name.text,
+                            empContact: phone.text,
+                            rate: salary.text,
+                          );
+                        } catch (e) {
+                          debugPrint("Add worker error: $e");
+                        }
 
-                      if (ok) {
-                        if (ctx.mounted) Navigator.pop(ctx);
-                        _loadWorkers(); // refresh list from backend
-                      }
-                    },
-                    style: ElevatedButton.styleFrom(
-                        backgroundColor: colorsConst.primary,
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12))),
-                    child: const Text("Save Worker",
-                        style: TextStyle(
-                            color: Colors.white, fontWeight: FontWeight.bold)),
+                        if (ok) {
+                          if (ctx.mounted) Navigator.pop(ctx);
+                          _loadWorkers(); // loader + refresh list
+                        } else if (ctx.mounted) {
+                          setSheet(() => saving = false);
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                          backgroundColor: colorsConst.primary,
+                          disabledBackgroundColor:
+                          colorsConst.primary.withOpacity(0.6),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12))),
+                      child: saving
+                          ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2.5, color: Colors.white),
+                      )
+                          : const Text("Save Worker",
+                          style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold)),
+                    ),
                   ),
                 ),
               ],
@@ -264,10 +289,10 @@ class _WagesWorkerDetailsPageState extends State<WagesWorkerDetailsPage> {
         title: const Text("Wages Workers",
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
       ),
-      body: _loading && _workers.isEmpty
-          ? const Center(child: CircularProgressIndicator())
+      body: _loading
+          ? Center(child: CircularProgressIndicator(color: primary))
           : RefreshIndicator(
-        onRefresh: _loadWorkers,
+        onRefresh: () => _loadWorkers(pull: true),
         child: ListView(
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.all(16),

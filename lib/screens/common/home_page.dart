@@ -1757,7 +1757,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                                               ),
                                             ),
                                             2.width,
-                                            /// HIGH
+                                            /// HIGHF
                                             Expanded(
                                               child: Container(
                                                 padding: const EdgeInsets.symmetric(vertical: 6),

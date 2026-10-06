@@ -1,8 +1,13 @@
+import 'dart:io';
+
 import 'package:master_code/source/constant/colors_constant.dart';
 import 'package:master_code/source/styles/decoration.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
+import 'package:http/http.dart' as http;
+import 'package:path_provider/path_provider.dart';
+
 import '../screens/common/fullscreen_photo.dart';
 import '../screens/common/pdf_view.dart';
 import '../source/constant/api.dart';
@@ -11,7 +16,11 @@ import 'custom_loading.dart';
 
 class AudioTile extends StatefulWidget {
   final String audioUrl;
-  const AudioTile({super.key, required this.audioUrl});
+
+  const AudioTile({
+    super.key,
+    required this.audioUrl,
+  });
 
   @override
   State<AudioTile> createState() => _AudioTileState();
@@ -19,475 +28,303 @@ class AudioTile extends StatefulWidget {
 
 class GlobalAudioPlayer {
   static final AudioPlayer _player = AudioPlayer();
+
   static AudioPlayer get player => _player;
 }
 
-
-// class _AudioTileState extends State<AudioTile> {
-//   static _AudioTileState? currentlyPlayingTile;
-//
-//   final AudioPlayer _player = GlobalAudioPlayer.player;
-//   bool _isPlaying = false;
-//   bool _isLoading = false;
-//
-//   @override
-//   void dispose() {
-//     if (currentlyPlayingTile == this) {
-//       currentlyPlayingTile = null;
-//     }
-//     super.dispose();
-//   }
-//
-//   void _togglePlayPause() async {
-//     if (_isPlaying) {
-//       await _player.pause();
-//       setState(() {
-//         _isPlaying = false;
-//         currentlyPlayingTile = null;
-//       });
-//     } else {
-//       setState(() {
-//         _isLoading = true;
-//       });
-//
-//       // Stop previously playing tile
-//       if (currentlyPlayingTile != null && currentlyPlayingTile != this) {
-//         await _player.stop();
-//         currentlyPlayingTile!._setNotPlaying();
-//       }
-//
-//       try {
-//         await _player.play(UrlSource(widget.audioUrl));
-//         setState(() {
-//           _isPlaying = true;
-//           currentlyPlayingTile = this;
-//         });
-//
-//         _player.onPlayerComplete.listen((event) {
-//           if (mounted) {
-//             setState(() {
-//               _isPlaying = false;
-//               currentlyPlayingTile = null;
-//             });
-//           }
-//         });
-//       } catch (e) {
-//         debugPrint("Audio play error: $e");
-//       } finally {
-//         if (mounted) {
-//           setState(() {
-//             _isLoading = false;
-//           });
-//         }
-//       }
-//     }
-//   }
-//
-//   void _setNotPlaying() {
-//     if (mounted) {
-//       setState(() {
-//         _isPlaying = false;
-//       });
-//     }
-//   }
-//
-//   @override
-//   Widget build(BuildContext context) {
-//     return Container(
-//       decoration: customDecoration.baseBackgroundDecoration(
-//         color: Colors.white,
-//         radius: 10,
-//         borderColor: colorsConst.litGrey,
-//       ),
-//       padding: const EdgeInsets.all(8),
-//       child: InkWell(
-//         onTap: _togglePlayPause,
-//         child: _isLoading
-//             ? const Loading()
-//             : Icon(
-//           _isPlaying ? Icons.pause : Icons.play_arrow_outlined,
-//           color: _isPlaying ? colorsConst.greyClr : colorsConst.primary,
-//           size: 30,
-//         ),
-//       ),
-//     );
-//   }
-// }
-///
-// class _AudioTileState extends State<AudioTile> {
-//   static _AudioTileState? currentlyPlayingTile;
-//
-//   final AudioPlayer _player = GlobalAudioPlayer.player;
-//
-//   bool _isPlaying = false;
-//   bool _isLoading = false;
-//
-//   Duration _duration = Duration.zero;
-//   Duration _position = Duration.zero;
-//
-//   @override
-//   void initState() {
-//     super.initState();
-//
-//     _player.onDurationChanged.listen((d) {
-//       if (mounted) setState(() => _duration = d);
-//     });
-//
-//     _player.onPositionChanged.listen((p) {
-//       if (mounted) setState(() => _position = p);
-//     });
-//
-//     _player.onPlayerComplete.listen((event) {
-//       if (mounted) {
-//         setState(() {
-//           _isPlaying = false;
-//           _position = Duration.zero;
-//           currentlyPlayingTile = null;
-//         });
-//       }
-//     });
-//   }
-//
-//   String formatTime(Duration d) {
-//     String two(int n) => n.toString().padLeft(2, '0');
-//     return "${two(d.inMinutes)}:${two(d.inSeconds % 60)}";
-//   }
-//
-//   void _togglePlayPause() async {
-//     if (_isPlaying) {
-//       await _player.pause();
-//       setState(() => _isPlaying = false);
-//       currentlyPlayingTile = null;
-//     } else {
-//       setState(() => _isLoading = true);
-//
-//       if (currentlyPlayingTile != null && currentlyPlayingTile != this) {
-//         await _player.stop();
-//         currentlyPlayingTile!._setNotPlaying();
-//       }
-//
-//       await _player.play(UrlSource(widget.audioUrl));
-//
-//       setState(() {
-//         _isPlaying = true;
-//         currentlyPlayingTile = this;
-//         _isLoading = false;
-//       });
-//     }
-//   }
-//
-//   void _setNotPlaying() {
-//     if (mounted) setState(() => _isPlaying = false);
-//   }
-//
-//   @override
-//   Widget build(BuildContext context) {
-//     return Row(
-//       children: [
-//         // play button
-//         InkWell(
-//           onTap: _togglePlayPause,
-//           child: _isLoading
-//               ? Padding(
-//                 padding: const EdgeInsets.all(5.0),
-//                 child: CircularProgressIndicator(strokeWidth: 2,),
-//               )
-//               : Icon(
-//             _isPlaying ? Icons.pause : Icons.play_arrow,
-//             size: 32,
-//           ),
-//         ),
-//         // progress animation
-//         Container(
-//           width: 100,
-//           child: Slider(
-//             value: _position.inSeconds.toDouble(),
-//             max: _duration.inSeconds.toDouble() == 0
-//                 ? 1
-//                 : _duration.inSeconds.toDouble(),
-//             onChanged: (value) async {
-//               final pos = Duration(seconds: value.toInt());
-//               await _player.seek(pos);
-//             },
-//           ),
-//         ),
-//
-//         // seconds text
-//         Text(
-//           formatTime(_position),
-//           style: TextStyle(fontSize: 12),
-//         )
-//       ],
-//     );
-//   }
-// }
-///
-
-// class _AudioTileState extends State<AudioTile> {
-//   static _AudioTileState? currentlyPlayingTile;
-//
-//   final AudioPlayer _player = GlobalAudioPlayer.player;
-//
-//   bool _isPlaying = false;
-//   bool _isLoading = false;
-//   bool _isAudioLoaded = false;
-//
-//   Duration _duration = Duration.zero;
-//   Duration _position = Duration.zero;
-//
-//   @override
-//   void initState() {
-//     super.initState();
-//
-//     _loadAudio(); // 👈 duration first load
-//
-//     _player.onDurationChanged.listen((d) {
-//       if (mounted) setState(() => _duration = d);
-//     });
-//
-//     _player.onPositionChanged.listen((p) {
-//       if (mounted) setState(() => _position = p);
-//     });
-//
-//     _player.onPlayerComplete.listen((event) {
-//       if (mounted) {
-//         setState(() {
-//           _isPlaying = false;
-//           _position = Duration.zero;
-//           currentlyPlayingTile = null;
-//         });
-//       }
-//     });
-//   }
-//
-//   /// ✅ Load audio first → get duration
-//   Future<void> _loadAudio() async {
-//     try {
-//       setState(() => _isLoading = true);
-//
-//       await _player.setSourceUrl(widget.audioUrl);
-//
-//       final d = await _player.getDuration();
-//       if (d != null && mounted) {
-//         _duration = d;
-//       }
-//
-//       if (mounted) {
-//         setState(() {
-//           _isAudioLoaded = true;
-//           _isLoading = false;
-//         });
-//       }
-//     } catch (e) {
-//       setState(() => _isLoading = false);
-//       print("Audio load error: $e");
-//     }
-//   }
-//
-//   /// time format (mm:ss)
-//   String formatTime(Duration d) {
-//     String two(int n) => n.toString().padLeft(2, '0');
-//     return "${two(d.inMinutes)}:${two(d.inSeconds % 60)}";
-//   }
-//
-//   /// play / pause
-//   void _togglePlayPause() async {
-//     if (_isPlaying) {
-//       await _player.pause();
-//       setState(() => _isPlaying = false);
-//       currentlyPlayingTile = null;
-//     } else {
-//       setState(() => _isLoading = true);
-//
-//       /// stop other tile
-//       if (currentlyPlayingTile != null && currentlyPlayingTile != this) {
-//         await _player.stop();
-//         currentlyPlayingTile!._setNotPlaying();
-//       }
-//
-//       /// always reload audio before play (IMPORTANT FIX)
-//       await _player.setSourceUrl(widget.audioUrl);
-//
-//       await _player.resume();
-//
-//       setState(() {
-//         _isPlaying = true;
-//         _isLoading = false;
-//         currentlyPlayingTile = this;
-//       });
-//     }
-//   }
-//   void _setNotPlaying() {
-//     if (mounted) setState(() => _isPlaying = false);
-//   }
-//
-//   @override
-//   Widget build(BuildContext context) {
-//     return Row(
-//       children: [
-//         /// ▶ play button
-//         InkWell(
-//           onTap: _togglePlayPause,
-//           child: _isLoading
-//               ? const Padding(
-//             padding: EdgeInsets.all(5),
-//             child: SizedBox(
-//               height: 20,
-//               width: 20,
-//               child: CircularProgressIndicator(strokeWidth: 2),
-//             ),
-//           )
-//               : Icon(
-//             _isPlaying ? Icons.pause : Icons.play_arrow,
-//             size: 32,
-//           ),
-//         ),
-//
-//         /// slider
-//         SizedBox(
-//           width: 100,
-//           child: Slider(
-//             value: _position.inSeconds.toDouble(),
-//             max: _duration.inSeconds == 0
-//                 ? 1
-//                 : _duration.inSeconds.toDouble(),
-//             onChanged: (value) async {
-//               final pos = Duration(seconds: value.toInt());
-//               await _player.seek(pos);
-//             },
-//           ),
-//         ),
-//
-//         /// seconds text
-//         Text(
-//           _isPlaying
-//               ? formatTime(_position) // playing time
-//               : formatTime(_duration), // total duration first
-//           style: const TextStyle(fontSize: 12),
-//         ),
-//       ],
-//     );
-//   }
-// }
-///
-
-
-
 class _AudioTileState extends State<AudioTile> {
-  /// only one tile play at a time
   static _AudioTileState? currentlyPlayingTile;
 
-  late AudioPlayer _player;
+  late final AudioPlayer _player;
 
   bool _isPlaying = false;
   bool _isLoading = false;
-  bool _isAudioLoaded = false;
 
   Duration _duration = Duration.zero;
   Duration _position = Duration.zero;
+
+  String? _localAudioPath;
 
   @override
   void initState() {
     super.initState();
 
-    /// each tile own player (IMPORTANT)
     _player = AudioPlayer();
 
-    /// listeners
-    _player.onDurationChanged.listen((d) {
-      if (mounted) setState(() => _duration = d);
+    _player.onDurationChanged.listen((duration) {
+      if (!mounted) return;
+
+      setState(() {
+        _duration = duration;
+      });
     });
 
-    _player.onPositionChanged.listen((p) {
-      if (mounted) setState(() => _position = p);
+    _player.onPositionChanged.listen((position) {
+      if (!mounted) return;
+
+      setState(() {
+        _position = position;
+      });
     });
 
-    _player.onPlayerComplete.listen((event) {
-      if (mounted) {
+    _player.onPlayerStateChanged.listen((state) {
+      if (!mounted) return;
+
+      if (state == PlayerState.playing) {
+        setState(() {
+          _isPlaying = true;
+          _isLoading = false;
+        });
+      } else if (state == PlayerState.paused) {
         setState(() {
           _isPlaying = false;
-          _position = Duration.zero;
-          currentlyPlayingTile = null;
+          _isLoading = false;
         });
+      } else if (state == PlayerState.stopped) {
+        setState(() {
+          _isPlaying = false;
+          _isLoading = false;
+          _position = Duration.zero;
+        });
+
+        if (currentlyPlayingTile == this) {
+          currentlyPlayingTile = null;
+        }
+      } else if (state == PlayerState.completed) {
+        setState(() {
+          _isPlaying = false;
+          _isLoading = false;
+          _position = Duration.zero;
+        });
+
+        if (currentlyPlayingTile == this) {
+          currentlyPlayingTile = null;
+        }
       }
     });
 
-    /// load audio → get duration first
-    _loadAudio();
+    _player.onPlayerComplete.listen((event) {
+      if (!mounted) return;
+
+      setState(() {
+        _isPlaying = false;
+        _isLoading = false;
+        _position = Duration.zero;
+      });
+
+      if (currentlyPlayingTile == this) {
+        currentlyPlayingTile = null;
+      }
+    });
   }
 
-  /// load audio and fetch duration
-  Future<void> _loadAudio() async {
+  String formatTime(Duration duration) {
+    final minutes = duration.inMinutes.toString().padLeft(2, '0');
+
+    final seconds =
+    (duration.inSeconds % 60).toString().padLeft(2, '0');
+
+    return "$minutes:$seconds";
+  }
+
+  Future<String> _downloadAudio() async {
+    if (_localAudioPath != null) {
+      final file = File(_localAudioPath!);
+
+      if (await file.exists()) {
+        return _localAudioPath!;
+      }
+    }
+
+    final Directory tempDir = await getTemporaryDirectory();
+
+    final String fileName =
+        'audio_${DateTime.now().millisecondsSinceEpoch}.m4a';
+
+    final String filePath =
+        '${tempDir.path}/$fileName';
+
+    final Uri uri = Uri.parse(widget.audioUrl);
+
+    debugPrint("Downloading audio: ${widget.audioUrl}");
+
+    final response = await http.get(
+      uri,
+      headers: {
+        'Accept': 'audio/mp4,audio/*,*/*',
+      },
+    );
+
+    debugPrint(
+      "Audio download status: ${response.statusCode}",
+    );
+
+    debugPrint(
+      "Audio content type: ${response.headers['content-type']}",
+    );
+
+    debugPrint(
+      "Audio bytes: ${response.bodyBytes.length}",
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception(
+        'Audio download failed: ${response.statusCode}',
+      );
+    }
+
+    if (response.bodyBytes.isEmpty) {
+      throw Exception('Downloaded audio is empty');
+    }
+
+    final File file = File(filePath);
+
+    await file.writeAsBytes(
+      response.bodyBytes,
+      flush: true,
+    );
+
+    final bool exists = await file.exists();
+
+    if (!exists) {
+      throw Exception('Audio file could not be saved');
+    }
+
+    final int fileSize = await file.length();
+
+    if (fileSize == 0) {
+      throw Exception('Saved audio file is empty');
+    }
+
+    _localAudioPath = filePath;
+
+    debugPrint(
+      "Audio saved: $filePath",
+    );
+
+    debugPrint(
+      "Local audio size: $fileSize",
+    );
+
+    return filePath;
+  }
+
+  Future<void> _togglePlayPause() async {
+    if (_isLoading) return;
+
     try {
-      setState(() => _isLoading = true);
+      if (_isPlaying) {
+        await _player.pause();
 
-      await _player.setSourceUrl(widget.audioUrl);
+        if (mounted) {
+          setState(() {
+            _isPlaying = false;
+          });
+        }
 
-      final d = await _player.getDuration();
-      if (d != null) _duration = d;
+        return;
+      }
+
+      if (currentlyPlayingTile != null &&
+          currentlyPlayingTile != this) {
+        await currentlyPlayingTile!._stopPlayer();
+      }
 
       if (mounted) {
         setState(() {
-          _isAudioLoaded = true;
+          _isLoading = true;
+        });
+      }
+
+      debugPrint(
+        "Audio URL: ${widget.audioUrl}",
+      );
+
+      final String localPath = await _downloadAudio();
+
+      debugPrint(
+        "Playing local audio: $localPath",
+      );
+
+      await _player.stop();
+
+      await _player.setSource(
+        DeviceFileSource(localPath),
+      );
+
+      await _player.resume();
+
+      currentlyPlayingTile = this;
+
+      if (mounted) {
+        setState(() {
+          _isPlaying = true;
           _isLoading = false;
         });
       }
     } catch (e) {
-      setState(() => _isLoading = false);
-      debugPrint("Audio load error: $e");
-    }
-  }
+      debugPrint(
+        "Audio play error: $e",
+      );
 
-  /// mm:ss format
-  String formatTime(Duration d) {
-    String two(int n) => n.toString().padLeft(2, '0');
-    return "${two(d.inMinutes)}:${two(d.inSeconds % 60)}";
-  }
-
-  /// play / pause
-  void _togglePlayPause() async {
-    if (!_isAudioLoaded) return;
-
-    if (_isPlaying) {
-      await _player.pause();
-      setState(() => _isPlaying = false);
       currentlyPlayingTile = null;
-    } else {
-      setState(() => _isLoading = true);
 
-      /// stop other playing tile
-      if (currentlyPlayingTile != null && currentlyPlayingTile != this) {
-        await currentlyPlayingTile!._player.stop();
-        currentlyPlayingTile!._setNotPlaying();
+      if (mounted) {
+        setState(() {
+          _isPlaying = false;
+          _isLoading = false;
+          _position = Duration.zero;
+        });
+
+        utils.showErrorToast(
+          context: context,
+        );
       }
-
-      /// reload source before play (important)
-      await _player.setSourceUrl(widget.audioUrl);
-      await _player.resume();
-
-      setState(() {
-        _isPlaying = true;
-        _isLoading = false;
-        currentlyPlayingTile = this;
-      });
     }
   }
 
-  void _setNotPlaying() {
-    if (mounted) setState(() => _isPlaying = false);
+  Future<void> _stopPlayer() async {
+    try {
+      await _player.stop();
+
+      if (mounted) {
+        setState(() {
+          _isPlaying = false;
+          _isLoading = false;
+          _position = Duration.zero;
+        });
+      }
+    } catch (e) {
+      debugPrint(
+        "Audio stop error: $e",
+      );
+    }
   }
 
   @override
   void dispose() {
-    _player.dispose(); // very important
+    if (currentlyPlayingTile == this) {
+      currentlyPlayingTile = null;
+    }
+
+    _player.dispose();
+
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final int maxSeconds = _duration.inSeconds;
+
+    final double currentSeconds = _position.inSeconds
+        .clamp(
+      0,
+      maxSeconds > 0 ? maxSeconds : 1,
+    )
+        .toDouble();
+
     return Row(
       children: [
-        /// ▶ play button
         InkWell(
           onTap: _togglePlayPause,
           child: _isLoading
@@ -496,36 +333,44 @@ class _AudioTileState extends State<AudioTile> {
             child: SizedBox(
               height: 20,
               width: 20,
-              child: CircularProgressIndicator(strokeWidth: 2),
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+              ),
             ),
           )
               : Icon(
-            _isPlaying ? Icons.pause : Icons.play_arrow,
+            _isPlaying
+                ? Icons.pause
+                : Icons.play_arrow,
             size: 32,
+            color: colorsConst.primary,
           ),
         ),
-        /// progress slider
         SizedBox(
           width: 100,
           child: Slider(
-            value: _position.inSeconds
-                .clamp(0, _duration.inSeconds)
-                .toDouble(),
-            max: _duration.inSeconds == 0
-                ? 1
-                : _duration.inSeconds.toDouble(),
-            onChanged: (value) async {
-              final pos = Duration(seconds: value.toInt());
-              await _player.seek(pos);
+            value: currentSeconds,
+            max: maxSeconds > 0
+                ? maxSeconds.toDouble()
+                : 1,
+            onChanged: _duration == Duration.zero
+                ? null
+                : (value) async {
+              final Duration position = Duration(
+                seconds: value.toInt(),
+              );
+
+              await _player.seek(position);
             },
           ),
         ),
-        /// time text
         Text(
           _isPlaying
-              ? formatTime(_position) // running time
-              : formatTime(_duration), // total duration first
-          style: const TextStyle(fontSize: 12),
+              ? formatTime(_position)
+              : formatTime(_duration),
+          style: const TextStyle(
+            fontSize: 12,
+          ),
         ),
       ],
     );
@@ -534,7 +379,11 @@ class _AudioTileState extends State<AudioTile> {
 
 class ShowNetWrKImg extends StatefulWidget {
   final String img;
-  const ShowNetWrKImg({super.key, required this.img});
+
+  const ShowNetWrKImg({
+    super.key,
+    required this.img,
+  });
 
   @override
   State<ShowNetWrKImg> createState() => _ShowNetWrKImgState();
@@ -544,13 +393,23 @@ class _ShowNetWrKImgState extends State<ShowNetWrKImg> {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: (){
-        utils.navigatePage(context, ()=>FullScreen(image: widget.img, isNetwork: true));
+      onTap: () {
+        utils.navigatePage(
+          context,
+              () => FullScreen(
+            image: widget.img,
+            isNetwork: true,
+          ),
+        );
       },
       child: CachedNetworkImage(
-          imageUrl: '$imageFile?path=${widget.img}',
-          fit: BoxFit.cover,
-          imageBuilder: (context, imageProvider) => Container(
+        imageUrl: '$imageFile?path=${widget.img}',
+        fit: BoxFit.cover,
+        imageBuilder: (
+            context,
+            imageProvider,
+            ) {
+          return Container(
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(10),
               image: DecorationImage(
@@ -558,18 +417,39 @@ class _ShowNetWrKImgState extends State<ShowNetWrKImg> {
                 fit: BoxFit.cover,
               ),
             ),
-          ),
-          errorWidget: (context, url, error) => Icon(Icons.error,color: colorsConst.litGrey,size: 20,),
-          placeholder: (context, url) => const Loading(size: 10,)),
+          );
+        },
+        errorWidget: (
+            context,
+            url,
+            error,
+            ) {
+          return Icon(
+            Icons.error,
+            color: colorsConst.litGrey,
+            size: 20,
+          );
+        },
+        placeholder: (
+            context,
+            url,
+            ) {
+          return const Loading(
+            size: 10,
+          );
+        },
+      ),
     );
   }
 }
 
-
-
 class ShowNetWrKPdf extends StatefulWidget {
   final String img;
-  const ShowNetWrKPdf({super.key, required this.img});
+
+  const ShowNetWrKPdf({
+    super.key,
+    required this.img,
+  });
 
   @override
   State<ShowNetWrKPdf> createState() => _ShowNetWrKPdfState();
@@ -579,7 +459,7 @@ class _ShowNetWrKPdfState extends State<ShowNetWrKPdf> {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: (){
+      onTap: () {
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -590,13 +470,19 @@ class _ShowNetWrKPdfState extends State<ShowNetWrKPdf> {
         );
       },
       child: Container(
-          width: 70,height:70,
-          decoration: customDecoration.baseBackgroundDecoration(
-              color: Colors.white,borderColor: Colors.grey.shade200,radius: 10
-          ),
-          child: Icon(Icons.picture_as_pdf_outlined,color: colorsConst.primary,size: 30,)
+        width: 70,
+        height: 70,
+        decoration: customDecoration.baseBackgroundDecoration(
+          color: Colors.white,
+          borderColor: Colors.grey.shade200,
+          radius: 10,
+        ),
+        child: Icon(
+          Icons.picture_as_pdf_outlined,
+          color: colorsConst.primary,
+          size: 30,
+        ),
       ),
     );
   }
 }
-

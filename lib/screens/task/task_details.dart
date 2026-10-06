@@ -1,3 +1,4 @@
+import 'dart:developer';
 import 'package:master_code/screens/task/wages_work_report.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:master_code/component/custom_loading.dart';
@@ -104,6 +105,11 @@ class _TaskDetailsState extends State<TaskDetails>
       if (!mounted) return;
       setState(() {
         isPlaying = state == PlayerState.playing;
+        // play start aanadhum loading spinner nikkum
+        if (state == PlayerState.playing) {
+          isLoadingAudio = false;
+          loadingUrl = null;
+        }
       });
     });
 
@@ -152,6 +158,15 @@ class _TaskDetailsState extends State<TaskDetails>
       await expenseProvider.getAllExpense();
       await taskProvider.getStatusHistory(widget.data.id.toString());
 
+      // ✅ History load aanadhukku apram, latest status-ah provider-ku sync pannum
+      // (idhu illa na provider pazhaiya status-la (Assigned) stuck aagidum)
+      final latest = _latestHistoryStatus(taskProvider);
+      if (latest != null) {
+        taskProvider.lStatus = latest;
+        taskProvider.setStatus(latest);
+        taskProvider.setStatusByName(latest);
+      }
+
       await customerProvider.getComments(widget.data.id.toString());
       await customerProvider.getTaskComments(widget.data.id.toString());
       await Provider.of<TaskProvider>(context, listen: false).getWages();
@@ -166,7 +181,7 @@ class _TaskDetailsState extends State<TaskDetails>
       imgC = 0;
 
       for (var i = 0; i < docsList.length; i++) {
-        if (docsList[i].toString().toLowerCase().endsWith(".m4a")) {
+        if (_isAudioFile(docsList[i].toString())) {
           voiceList.add(docsList[i]);
           voiceC++;
         } else {
@@ -175,6 +190,8 @@ class _TaskDetailsState extends State<TaskDetails>
         }
       }
 
+      log("TASK ${widget.data.id} DOCS => $docsList | voiceList: $voiceList | imgList: $imgList");
+
       if (!mounted) return;
       setState(() {});
     });
@@ -182,11 +199,37 @@ class _TaskDetailsState extends State<TaskDetails>
 
   @override
   void dispose() {
-    // ✅ Stop + release both audio players so they don't keep playing or
+    // Stop + release both audio players so they don't keep playing or
     // leaking after this screen is popped.
     _audioPlayer.dispose();
     _listAudioPlayer.dispose();
     super.dispose();
+  }
+
+  /// ✅ History-la irukkura LATEST status (created_ts vachi, list position vachi illa)
+  String? _latestHistoryStatus(TaskProvider p) {
+    if (p.historyDetails.isEmpty) return null;
+    dynamic latest;
+    DateTime? latestTime;
+    for (final h in p.historyDetails) {
+      final t = DateTime.tryParse(h["created_ts"].toString());
+      if (latest == null ||
+          (t != null && (latestTime == null || t.isAfter(latestTime)))) {
+        latest = h;
+        latestTime = t;
+      }
+    }
+    return latest?["value"]?.toString();
+  }
+
+  /// Voice note file-ah nu check pannum (case-insensitive, query string irundhaalum)
+  bool _isAudioFile(String path) {
+    final p = path.toLowerCase().split('?').first.trim();
+    const exts = [
+      '.m4a', '.mp3', '.wav', '.aac', '.ogg', '.opus',
+      '.amr', '.3gp', '.caf', '.webm'
+    ];
+    return exts.any((e) => p.endsWith(e));
   }
 
   String formatDateTime(String? date) {
@@ -235,10 +278,21 @@ class _TaskDetailsState extends State<TaskDetails>
 
   Future<void> playAudio(String url) async {
     try {
+      // same audio playing -> pause
       if (playingUrl == url && isPlaying) {
         await _listAudioPlayer.pause();
         return;
       }
+
+      // same audio paused -> resume
+      if (playingUrl == url &&
+          !isPlaying &&
+          currentPosition > Duration.zero) {
+        await _listAudioPlayer.resume();
+        return;
+      }
+
+      log("Playing audio => $url");
 
       setState(() {
         playingUrl = url;
@@ -249,11 +303,10 @@ class _TaskDetailsState extends State<TaskDetails>
       });
 
       await _listAudioPlayer.stop();
-
-      /// 🔥 give timeout fallback
       await _listAudioPlayer.play(UrlSource(url));
 
-      Future.delayed(const Duration(seconds: 3), () {
+      // 8 sec-la play start aagala na, loader nikkum + error toast
+      Future.delayed(const Duration(seconds: 8), () {
         if (!mounted) return;
 
         if (isLoadingAudio && loadingUrl == url) {
@@ -261,6 +314,9 @@ class _TaskDetailsState extends State<TaskDetails>
             isLoadingAudio = false;
             loadingUrl = null;
           });
+          if (!isPlaying) {
+            utils.showWarningToast(context, text: "Audio cannot be played");
+          }
         }
       });
     } catch (e) {
@@ -271,6 +327,7 @@ class _TaskDetailsState extends State<TaskDetails>
         isLoadingAudio = false;
         loadingUrl = null;
       });
+      utils.showWarningToast(context, text: "Audio cannot be played");
     }
   }
 
@@ -284,29 +341,35 @@ class _TaskDetailsState extends State<TaskDetails>
         level = "High";
       }
       Provider.of<TaskProvider>(context, listen: false).updateLevelDetail(
-          context, id: widget.data.id.toString(), level: level);
+          context,
+          id: widget.data.id.toString(),
+          level: level);
     });
   }
 
-  /// ✅ Go back INSTANTLY. The old code did:
-  ///   await taskProvider.getAllTask(...);
-  ///   Navigator.pop(context);
-  /// which meant the screen only closed after the network call finished —
-  /// that's exactly why back felt slow. Now we pop first, and refresh the
-  /// task list in the background without blocking the UI.
+  /// Go back INSTANTLY (pop first, no waiting for network call).
   void _handleBack() {
     HapticFeedback.lightImpact();
-    final taskProvider = Provider.of<TaskProvider>(context, listen: false);
-
     Navigator.pop(context);
+  }
 
-    // fire-and-forget refresh, doesn't block navigation anymore
-    // taskProvider.getAllTask(
-    //   true,
-    //   date1: widget.data.taskDate.toString(),
-    //   date2: widget.data.taskDate.toString(),
-    //   type: "Assigned",
-    // );
+  void _openTaskChat() {
+    utils.navigatePage(
+      context,
+          () => DashBoard(
+        child: TaskChat(
+          isVisit: false,
+          taskId: widget.data.id.toString(),
+          assignedId: widget.data.assigned.toString(),
+          name: widget.data.creator.toString(),
+          assignedName: widget.data.assignedNames.toString(),
+          date1: '',
+          date2: '',
+          type: '',
+          index: widget.index,
+        ),
+      ),
+    );
   }
 
   @override
@@ -316,10 +379,12 @@ class _TaskDetailsState extends State<TaskDetails>
     String currentStatus = "Assigned";
     final taskProvider = Provider.of<TaskProvider>(context);
 
+    // ✅ FIX: history-la irukkura LATEST status (.last use panna koodadhu)
     currentStatus = taskProvider.selectedStatusValue.toString();
-    if (taskProvider.historyDetails.isNotEmpty) {
-      currentStatus = taskProvider.historyDetails.last["value"].toString();
-    } // INGATHAAN PODANUM
+    final latestStatus = _latestHistoryStatus(taskProvider);
+    if (latestStatus != null) {
+      currentStatus = latestStatus;
+    }
 
     return Consumer<TaskProvider>(builder: (context, taskProvider, _) {
       return Scaffold(
@@ -348,7 +413,7 @@ class _TaskDetailsState extends State<TaskDetails>
             ],
           ),
           leading: IconButton(
-            // ✅ INSTANT back — pop happens immediately, refresh runs after.
+            // INSTANT back
             onPressed: _handleBack,
             icon: Icon(
               Icons.arrow_back_ios_rounded,
@@ -362,8 +427,6 @@ class _TaskDetailsState extends State<TaskDetails>
               IconButton(
                   onPressed: () {
                     HapticFeedback.lightImpact();
-                    // homeProvider.showTaskType(4);
-                    // homeProvider.changeTaskList(data: widget.data,isDirect: widget.isDirect,numberList: widget.numberList);
                     utils.navigatePage(
                         context,
                             () => DashBoard(
@@ -533,16 +596,14 @@ class _TaskDetailsState extends State<TaskDetails>
                                                   AlertDialog(
                                                     title:
                                                     const Text("Assigned To"),
-                                                    content: Text(widget.data
-                                                        .assignedNames
+                                                    content: Text(widget
+                                                        .data.assignedNames
                                                         .toString()),
                                                     actions: [
                                                       TextButton(
                                                         onPressed: () =>
-                                                            Navigator.pop(
-                                                                context),
-                                                        child:
-                                                        const Text("Close"),
+                                                            Navigator.pop(context),
+                                                        child: const Text("Close"),
                                                       )
                                                     ],
                                                   ),
@@ -554,8 +615,7 @@ class _TaskDetailsState extends State<TaskDetails>
                                           text: TextSpan(
                                             children: [
                                               TextSpan(
-                                                text: widget.data
-                                                    .assignedNames
+                                                text: widget.data.assignedNames
                                                     .toString()
                                                     .length >
                                                     12
@@ -569,19 +629,6 @@ class _TaskDetailsState extends State<TaskDetails>
                                                   fontWeight: FontWeight.w500,
                                                 ),
                                               ),
-                                              if (widget.data.assignedNames
-                                                  .toString()
-                                                  .length >
-                                                  15)
-                                                const TextSpan(
-                                                  text: "",
-                                                  style: TextStyle(
-                                                    fontSize: 13,
-                                                    color: Colors.blue,
-                                                    fontWeight:
-                                                    FontWeight.bold,
-                                                  ),
-                                                ),
                                             ],
                                           ),
                                         ),
@@ -631,8 +678,8 @@ class _TaskDetailsState extends State<TaskDetails>
                                             colors: colorsConst.greyClr,
                                           ),
                                           CustomText(
-                                            text: widget.data.creator
-                                                .toString(),
+                                            text:
+                                            widget.data.creator.toString(),
                                             colors: Colors.black,
                                             isBold: true,
                                           ),
@@ -862,10 +909,8 @@ class _TaskDetailsState extends State<TaskDetails>
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
-                            // if (widget.data.statval != "Completed")
-                            if (taskProvider.historyDetails.isEmpty ||
-                                taskProvider.historyDetails.last["value"] !=
-                                    "Completed")
+                            // ✅ FIX: latest status Completed illana mattum Save show aagum
+                            if (currentStatus != "Completed")
                               CustomLoadingButton(
                                 callback: () {
                                   if (taskProvider.isUpdate == false) {
@@ -937,8 +982,7 @@ class _TaskDetailsState extends State<TaskDetails>
                                         ? Colors.grey.shade600
                                         : selected
                                         ? Colors.white
-                                        : taskProvider
-                                        .getStatusColor(value),
+                                        : taskProvider.getStatusColor(value),
                                   ),
                                 ),
                               );
@@ -952,7 +996,12 @@ class _TaskDetailsState extends State<TaskDetails>
                                 orElse: () => {"id": "0", "value": "Unknown"},
                               );
 
-                              taskProvider.changeStatusT(selectedStatus['value']);
+                              // Debug: "Unknown" vandha statusList value match aagala
+                              debugPrint(
+                                  "Selected: $name -> ${selectedStatus['value']} (id: ${selectedStatus['id']})");
+
+                              taskProvider
+                                  .changeStatusT(selectedStatus['value']);
                               taskProvider.changeStatus(selectedStatus);
                               taskProvider.updateChanges();
 
@@ -1002,10 +1051,8 @@ class _TaskDetailsState extends State<TaskDetails>
                                         data["value"].toString(),
                                         style: TextStyle(
                                           fontSize: 12,
-                                          fontWeight:
-                                          FontWeight.bold,
-                                          color:
-                                          colorsConst.primary,
+                                          fontWeight: FontWeight.bold,
+                                          color: colorsConst.primary,
                                         ),
                                       ),
                                     ),
@@ -1031,16 +1078,14 @@ class _TaskDetailsState extends State<TaskDetails>
                                         data["firstname"].toString(),
                                         style: const TextStyle(
                                           fontSize: 14,
-                                          fontWeight:
-                                          FontWeight.w500,
+                                          fontWeight: FontWeight.w500,
                                         ),
                                       ),
                                     ),
 
                                     /// DATE
                                     Text(
-                                      DateFormat(
-                                          "dd-MM-yyyy, hh:mm a")
+                                      DateFormat("dd-MM-yyyy, hh:mm a")
                                           .format(DateTime.parse(
                                           data["created_ts"])),
                                       style: TextStyle(
@@ -1085,6 +1130,7 @@ class _TaskDetailsState extends State<TaskDetails>
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             const Text(
                               "Recent Comments",
@@ -1093,39 +1139,16 @@ class _TaskDetailsState extends State<TaskDetails>
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
-                            130.width,
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.end,
-                              children: [
-                                InkWell(
-                                    onTap: () {
-                                      HapticFeedback.lightImpact();
-                                      utils.navigatePage(
-                                          context,
-                                              () => DashBoard(
-                                              child: TaskChat(
-                                                isVisit: false,
-                                                taskId:
-                                                widget.data.id.toString(),
-                                                assignedId: widget.data.assigned
-                                                    .toString(),
-                                                name: widget.data.creator
-                                                    .toString(),
-                                                assignedName: widget
-                                                    .data.assignedNames
-                                                    .toString(),
-                                                date1: '',
-                                                date2: '',
-                                                type: '',
-                                                index: widget.index,
-                                              )));
-                                    },
-                                    child: Icon(
-                    Icons.message_outlined,
-                    size: 20,
-                    color:Colors.green,
-                  ),)
-                              ],
+                            InkWell(
+                              onTap: () {
+                                HapticFeedback.lightImpact();
+                                _openTaskChat();
+                              },
+                              child: const Icon(
+                                Icons.message_outlined,
+                                size: 20,
+                                color: Colors.green,
+                              ),
                             ),
                           ],
                         ),
@@ -1163,24 +1186,32 @@ class _TaskDetailsState extends State<TaskDetails>
 
                             return Column(
                               children: [
-                                /// 🔥 CHAT LIST
+                                /// CHAT LIST
                                 ListView.builder(
                                   itemCount: lastFive.length,
                                   shrinkWrap: true,
-                                  physics:
-                                  const NeverScrollableScrollPhysics(),
+                                  physics: const NeverScrollableScrollPhysics(),
                                   itemBuilder: (context, index) {
                                     final msg = lastFive[index];
                                     String doc =
                                     (msg.documents ?? "").toString().trim();
+                                    if (doc == "null") doc = "";
 
-                                    bool isAudio = doc
-                                        .toLowerCase()
-                                        .endsWith(".m4a") ||
-                                        doc.toLowerCase().endsWith(".mp3") ||
-                                        doc.toLowerCase().endsWith(".wav");
+                                    // multiple docs irundhaalum first voice file-ah edukkum
+                                    final docParts = doc
+                                        .split('||')
+                                        .map((e) => e.trim())
+                                        .where((e) => e.isNotEmpty)
+                                        .toList();
+                                    final String audioDoc = docParts
+                                        .firstWhere(_isAudioFile,
+                                        orElse: () => "");
 
-                                    String audioUrl = "$imageFile?path=$doc";
+                                    bool isAudio = audioDoc.isNotEmpty;
+
+                                    String audioUrl =
+                                        "$imageFile?path=$audioDoc";
+                                    log("CHAT => doc: '$doc' | audioDoc: '$audioDoc' | isAudio: $isAudio | url: $audioUrl");
                                     double sliderValue = 0;
 
                                     if (playingUrl == audioUrl &&
@@ -1196,8 +1227,8 @@ class _TaskDetailsState extends State<TaskDetails>
                                     DateTime? createdDate;
 
                                     try {
-                                      createdDate =
-                                          DateTime.parse(msg.createdTs.toString());
+                                      createdDate = DateTime.parse(
+                                          msg.createdTs.toString());
                                     } catch (e) {
                                       createdDate = null;
                                     }
@@ -1205,27 +1236,7 @@ class _TaskDetailsState extends State<TaskDetails>
                                     return InkWell(
                                       onTap: () {
                                         HapticFeedback.selectionClick();
-                                        utils.navigatePage(
-                                          context,
-                                              () => DashBoard(
-                                            child: TaskChat(
-                                              isVisit: false,
-                                              taskId: widget.data.id.toString(),
-                                              assignedId:
-                                              widget.data.assigned
-                                                  .toString(),
-                                              name:
-                                              widget.data.creator.toString(),
-                                              assignedName: widget
-                                                  .data.assignedNames
-                                                  .toString(),
-                                              date1: '',
-                                              date2: '',
-                                              type: '',
-                                              index: widget.index,
-                                            ),
-                                          ),
-                                        );
+                                        _openTaskChat();
                                       },
                                       child: Column(
                                         children: [
@@ -1280,17 +1291,18 @@ class _TaskDetailsState extends State<TaskDetails>
                                                             ),
                                                           )
                                                               : IconButton(
-                                                            icon: Icon(
-                                                              (playingUrl ==
-                                                                  audioUrl &&
+                                                            icon:
+                                                            Icon(
+                                                              (playingUrl == audioUrl &&
                                                                   isPlaying)
                                                                   ? Icons.pause
                                                                   : Icons.play_arrow,
-                                                              color: Colors
-                                                                  .green,
+                                                              color:
+                                                              Colors.green,
                                                             ),
                                                             onPressed:
                                                                 () async {
+                                                              log("PLAY TAPPED: $audioUrl");
                                                               await playAudio(
                                                                   audioUrl);
                                                             },
@@ -1312,8 +1324,7 @@ class _TaskDetailsState extends State<TaskDetails>
                                                               min: 0,
                                                               max: (playingUrl ==
                                                                   audioUrl &&
-                                                                  totalDuration
-                                                                      .inSeconds >
+                                                                  totalDuration.inSeconds >
                                                                       0)
                                                                   ? totalDuration
                                                                   .inSeconds
@@ -1323,9 +1334,9 @@ class _TaskDetailsState extends State<TaskDetails>
                                                                   (value) async {
                                                                 if (playingUrl ==
                                                                     audioUrl) {
-                                                                  await _listAudioPlayer
-                                                                      .seek(Duration(
-                                                                      seconds: value.toInt()));
+                                                                  await _listAudioPlayer.seek(Duration(
+                                                                      seconds:
+                                                                      value.toInt()));
                                                                 }
                                                               },
                                                             ),
@@ -1333,14 +1344,12 @@ class _TaskDetailsState extends State<TaskDetails>
                                                           Text(
                                                             (playingUrl ==
                                                                 audioUrl &&
-                                                                totalDuration
-                                                                    .inSeconds >
+                                                                totalDuration.inSeconds >
                                                                     0)
                                                                 ? formatTime(
                                                                 totalDuration)
                                                                 : "00:00",
-                                                            style:
-                                                            const TextStyle(
+                                                            style: const TextStyle(
                                                                 fontSize:
                                                                 11),
                                                           ),
@@ -1350,7 +1359,15 @@ class _TaskDetailsState extends State<TaskDetails>
                                                       ),
                                                     )
                                                         : Text(
-                                                      msg.comments
+                                                      (msg.comments.toString() == "null" ||
+                                                          msg.comments
+                                                              .toString()
+                                                              .trim()
+                                                              .isEmpty)
+                                                          ? (doc.isNotEmpty
+                                                          ? "📎 Attachment"
+                                                          : "")
+                                                          : msg.comments
                                                           .toString(),
                                                       maxLines: 1,
                                                       overflow:
@@ -1401,34 +1418,14 @@ class _TaskDetailsState extends State<TaskDetails>
                                   },
                                 ),
 
-                                /// 🔥 VIEW MORE
+                                /// VIEW MORE
                                 if (totalCount > 5)
                                   Align(
                                     alignment: Alignment.centerRight,
                                     child: InkWell(
                                       onTap: () {
                                         HapticFeedback.lightImpact();
-                                        utils.navigatePage(
-                                          context,
-                                              () => DashBoard(
-                                            child: TaskChat(
-                                              isVisit: false,
-                                              taskId: widget.data.id.toString(),
-                                              assignedId:
-                                              widget.data.assigned
-                                                  .toString(),
-                                              name:
-                                              widget.data.creator.toString(),
-                                              assignedName: widget
-                                                  .data.assignedNames
-                                                  .toString(),
-                                              date1: '',
-                                              date2: '',
-                                              type: '',
-                                              index: widget.index,
-                                            ),
-                                          ),
-                                        );
+                                        _openTaskChat();
                                       },
                                       child: Padding(
                                         padding: const EdgeInsets.only(
@@ -1465,7 +1462,6 @@ class _TaskDetailsState extends State<TaskDetails>
                   ),
                 ),
               ),
-              // const DotLine(),
               140.height,
             ],
           ),

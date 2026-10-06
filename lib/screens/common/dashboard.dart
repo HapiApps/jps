@@ -654,7 +654,7 @@ class _DashBoardState extends State<DashBoard> {
       if (localData.storage.read("role") == "1")
       _PanelItem("${constValue.employee}", assets.employees, 1,
           const DashBoard(child: ViewEmployees())),
-      _PanelItem("Wages Employee", assets.employees, 16,
+      _PanelItem(constValue.wages, assets.employees, 16,
           const DashBoard(child: WagesWorkerDetailsPage())),
       // if (homeProvider.roleAccess.any(
       //         (f) => f['feature'] == 'Customer Management' && f['name'] == 'View'))

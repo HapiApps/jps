@@ -341,6 +341,7 @@ class ConstantValues {
   String get customers => _t("Customers", "வாடிக்கையாளர்கள்", "ग्राहक");
 
   String get customer => _t("Customer", "வாடிக்கையாளர்", "ग्राहक");
+  String get wages => _t("Wages Employee", "தினக்கூலி ஊழியர்", "दैनिक वेतन कर्मचारी");
 
   String get customer1 =>
       _t("   Customer", "   வாடிக்கையாளர்", "   ग्राहक");
