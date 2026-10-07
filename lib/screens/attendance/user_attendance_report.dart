@@ -1,18 +1,18 @@
-import 'package:master_code/component/custom_dropdown.dart';
-import 'package:master_code/model/user_model.dart';
-import 'package:master_code/source/constant/colors_constant.dart';
-import 'package:master_code/source/extentions/extensions.dart';
+import '../../component/custom_dropdown.dart';
+import '../../source/constant/colors_constant.dart';
+import '../../source/extentions/extensions.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:master_code/source/utilities/utils.dart';
+import '../../source/utilities/utils.dart';
 import 'package:provider/provider.dart';
-import 'package:master_code/view_model/home_provider.dart';
+import '../../view_model/home_provider.dart';
 import '../../component/attendance_detail.dart';
 import '../../component/custom_appbar.dart';
 import '../../component/custom_loading.dart';
 import '../../component/custom_text.dart';
 import '../../model/attendance_model.dart';
-import '../../source/constant/default_constant.dart';
+import '../../source/constant/language_model.dart';
+import '../../source/constant/language_model.dart';
 import '../../view_model/attendance_provider.dart';
 import '../../view_model/employee_provider.dart';
 import '../common/check_location.dart';
@@ -52,7 +52,7 @@ class _UserAttendanceReportState extends State<UserAttendanceReport> {
           backgroundColor: colorsConst.bacColor,
           appBar: PreferredSize(
             preferredSize: const Size(300, 50),
-            child: CustomAppbar(text: "${widget.name} Attendance Report"),
+            child: CustomAppbar(text: "${widget.name} ${constValue.attReport}"),
           ),
           body: Center(
             child: SizedBox(

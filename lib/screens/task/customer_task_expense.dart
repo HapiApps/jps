@@ -1,8 +1,8 @@
-import 'package:master_code/source/utilities/utils.dart';
-import 'package:master_code/view_model/expense_provider.dart';
+import '../../source/utilities/utils.dart';
+import '../../view_model/expense_provider.dart';
 import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart';
-import 'package:master_code/source/extentions/extensions.dart';
+import '../../source/extentions/extensions.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../component/custom_appbar.dart';

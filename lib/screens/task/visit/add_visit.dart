@@ -1,13 +1,13 @@
-// import 'package:master_code/component/custom_loading_button.dart';
-// import 'package:master_code/screens/customer/visit_report/visits_report.dart';
-// import 'package:master_code/view_model/home_provider.dart';
-// import 'package:master_code/view_model/location_provider.dart';
+// import '../../component/custom_loading_button.dart';
+// import '../../screens/customer/visit_report/visits_report.dart';
+// import '../../view_model/home_provider.dart';
+// import '../../view_model/location_provider.dart';
 // import 'package:flutter/foundation.dart';
 // import 'package:flutter/material.dart';
-// import 'package:master_code/view_model/task_provider.dart';
+// import '../../view_model/task_provider.dart';
 // import 'package:provider/provider.dart';
-// import 'package:master_code/source/extentions/extensions.dart';
-// import 'package:master_code/view_model/customer_provider.dart';
+// import '../../source/extentions/extensions.dart';
+// import '../../view_model/customer_provider.dart';
 // import '../../../component/custom_appbar.dart';
 // import '../../../component/custom_text.dart';
 // import '../../../component/custom_textfield.dart';
@@ -15,7 +15,7 @@
 // import '../../../component/maxline_textfield.dart';
 // import '../../../model/customer/customer_model.dart';
 // import '../../../source/constant/colors_constant.dart';
-// import '../../../source/constant/default_constant.dart';
+// import '../../../source/constant/language_model.dart';
 // import '../../../source/constant/local_data.dart';
 // import '../../../source/styles/decoration.dart';
 // import '../../../source/utilities/utils.dart';
@@ -138,7 +138,7 @@
 //                   // CustomLoadingButton(
 //                   //     callback: ()  {
 //                   //       if(custProvider.selectType==null){
-//                   //         utils.showWarningToast(context, text: "Select a visit type");
+//                   //         utils.showWarningToast(context, text: "Select a Task type");
 //                   //         custProvider.addCtr.reset();
 //                   //       }else if(custProvider.selectCustomer==null){
 //                   //         utils.showWarningToast(context, text: "Select a ${constValue.contactName}");
@@ -560,7 +560,7 @@
 //                           CustomLoadingButton(
 //                               callback: ()  {
 //                                 if(custProvider.selectType==null){
-//                                   utils.showWarningToast(context, text: "Select a visit type");
+//                                   utils.showWarningToast(context, text: "Select a Task type");
 //                                   custProvider.addCtr.reset();
 //                                 }else if(sendList.map((e) => e["name"].toString()).toList().isEmpty){
 //                                   utils.showWarningToast(context, text: "Select a ${constValue.contactName}");

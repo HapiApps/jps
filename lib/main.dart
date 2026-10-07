@@ -1,523 +1,62 @@
-// import 'dart:developer';
-// import 'package:firebase_analytics/firebase_analytics.dart';
-// import 'package:master_code/screens/common/home_page.dart';
-// import 'package:master_code/source/utilities/utils.dart';
-// import 'package:master_code/view_model/expense_provider.dart';
-// import 'package:master_code/view_model/leave_provider.dart';
-// import 'package:master_code/view_model/payroll_provider.dart';
-// import 'package:master_code/view_model/project_provider.dart';
-// import 'package:master_code/view_model/task_provider.dart';
-// import 'package:animated_splash_screen/animated_splash_screen.dart';
-// import 'package:camera/camera.dart';
-// import 'package:connectivity_wrapper/connectivity_wrapper.dart';
-// import 'package:firebase_core/firebase_core.dart';
-// import 'package:firebase_messaging/firebase_messaging.dart';
-// import 'package:flutter/foundation.dart';
-// import 'package:flutter_foreground_task/flutter_foreground_task.dart';
-// import 'package:master_code/screens/common/camera.dart';
-// import 'package:master_code/screens/common/dashboard.dart';
-// import 'package:master_code/screens/log_in.dart';
-// import 'package:master_code/source/constant/assets_constant.dart';
-// import 'package:master_code/source/constant/colors_constant.dart';
-// import 'package:master_code/source/constant/default_constant.dart';
-// import 'package:flutter/material.dart';
-// import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-// import 'package:get_storage/get_storage.dart';
-// import 'package:master_code/source/constant/local_data.dart';
-// import 'package:master_code/source/extentions/extensions.dart';
-// import 'package:master_code/view_model/attendance_provider.dart';
-// import 'package:master_code/view_model/customer_provider.dart';
-// import 'package:master_code/view_model/employee_provider.dart';
-// import 'package:master_code/view_model/home_provider.dart';
-// import 'package:master_code/view_model/location_provider.dart';
-// import 'package:provider/provider.dart';
-// import 'package:master_code/view_model/report_provider.dart';
-// import 'package:master_code/view_model/track_provider.dart';
-// import 'package:shared_preferences/shared_preferences.dart';
-// import 'component/custom_text.dart';
-// import 'firebase_options.dart';
-// // final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
-// // FlutterLocalNotificationsPlugin();
-// //
-// // @pragma('vm:entry-point')
-// // Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-// //   if (Firebase.apps.isNotEmpty) {
-// //     log("FIREBASE INITIALIZED Error***********");
-// //   }else{
-// //     log("FIREBASE INITIALIZED***********");
-// //     await Firebase.initializeApp();
-// //   }
-// //   log("Handling a background message: ${message.messageId}");
-// //   log('Got a message whilst in the foreground!');
-// //   log('Message data:Message data: ${message.data}');
-// //   if (message.notification != null) {
-// //     // testController.notificationCount.value++;
-// //       const AndroidInitializationSettings initializationSettingsAndroid = AndroidInitializationSettings('@mipmap/ic_launcher');
-// //       const DarwinInitializationSettings iosInitializationSetting =
-// //       DarwinInitializationSettings (
-// //         requestSoundPermission: true,
-// //         requestBadgePermission: true,
-// //         requestAlertPermission: true,
-// //       );
-// //
-// //       DarwinNotificationDetails iosNotificationDetails = const DarwinNotificationDetails();
-// //       const InitializationSettings initializationSettings = InitializationSettings(android: initializationSettingsAndroid,iOS: iosInitializationSetting);
-// //       await flutterLocalNotificationsPlugin.initialize(initializationSettings);
-// //       const AndroidNotificationDetails androidPlatformChannelSpecifics =
-// //       AndroidNotificationDetails(
-// //         'JPS',
-// //         'JPS',
-// //         importance: Importance.max,
-// //         priority: Priority.high,
-// //         playSound: true,
-// //         showProgress: true,
-// //         showWhen: false,
-// //         enableVibration: true,
-// //         icon: '@mipmap/ic_launcher',
-// //         enableLights: true,
-// //         // sound: RawResourceAndroidNotificationSound('new_level.mp3'), // specify your sound here
-// //         largeIcon: DrawableResourceAndroidBitmap("@mipmap/ic_launcher"),
-// //         styleInformation: MediaStyleInformation(
-// //           htmlFormatContent: true,
-// //           htmlFormatTitle: true,
-// //         ),
-// //       );
-// //       NotificationDetails platformChannelSpecifics =
-// //       NotificationDetails(android: androidPlatformChannelSpecifics,iOS: iosNotificationDetails);
-// //       await FirebaseMessaging.instance.setForegroundNotificationPresentationOptions(
-// //         alert: true,
-// //         badge: true,
-// //         sound: true,
-// //       );
-// //       RemoteNotification? notification = message.notification;
-// //       AndroidNotification? android = message.notification?.android;
-// //       if (notification != null && android != null) {
-// //         flutterLocalNotificationsPlugin.show(
-// //             notification.hashCode,
-// //             notification.title,
-// //             notification.body,
-// //             platformChannelSpecifics,
-// //         );
-// //       }
-// //   }
-// // }
-// //
-// // Future<void> main() async {
-// //   WidgetsFlutterBinding.ensureInitialized();
-// //   await GetStorage.init();
-// //   final prefs =await SharedPreferences.getInstance();
-// //   final homeScreen= prefs.getBool("homescreen")??false;
-// //   if(!kIsWeb){
-// //     await Firebase.initializeApp(
-// //         options: DefaultFirebaseOptions.currentPlatform
-// //     );
-// //     // ✅ Now it’s safe to use Firebase Analytics
-// //     try {
-// //       final analytics = FirebaseAnalytics.instance;
-// //       await analytics.logAppOpen();
-// //       print("Firebase Analytics initialized successfully");
-// //     } catch (e) {
-// //       print("Firebase Analytics init error: $e");
-// //     }
-// //     cameras = await availableCameras();
-// //     FlutterForegroundTask.initCommunicationPort();
-// //     FlutterForegroundTask.init(
-// //       androidNotificationOptions: AndroidNotificationOptions(
-// //         channelId: constValue.appName,
-// //         channelName: constValue.appName,
-// //         channelDescription: 'Tracking is on',
-// //         channelImportance: NotificationChannelImportance.DEFAULT,
-// //         priority: NotificationPriority.DEFAULT,
-// //       ),
-// //       iosNotificationOptions: const IOSNotificationOptions(),
-// //       foregroundTaskOptions: ForegroundTaskOptions(
-// //         autoRunOnBoot: true,
-// //         allowWakeLock: true,
-// //         allowWifiLock: true,
-// //         eventAction: ForegroundTaskEventAction.repeat(5000),
-// //       ),
-// //     );
-// //     FlutterForegroundTask.setTaskHandler(MyTaskHandler());
-// //
-// //     FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
-// //       log('Got a message whilst in the foreground!');
-// //       log('Message data: ${message.data}');
-// //
-// //       final title = message.notification?.title ?? message.data['title'] ?? 'Notification';
-// //       final body = message.notification?.body ?? message.data['body'] ?? '';
-// //
-// //       if (title.isNotEmpty || body.isNotEmpty) {
-// //         const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
-// //           'JPS',
-// //           'JPS',
-// //           importance: Importance.max,
-// //           priority: Priority.high,
-// //           playSound: true,
-// //           enableVibration: true,
-// //           icon: '@mipmap/ic_launcher',
-// //         );
-// //
-// //         const NotificationDetails platformDetails = NotificationDetails(android: androidDetails);
-// //
-// //         await flutterLocalNotificationsPlugin.show(
-// //           message.hashCode,
-// //           title,
-// //           body,
-// //           platformDetails,
-// //         );
-// //       }
-// //     });
-// //
-// //
-// //     FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
-// //   }
-// //   runApp(MultiProvider(providers: [
-// //     ChangeNotifierProvider(create: (_) => HomeProvider()),
-// //     ChangeNotifierProvider(create: (_) => EmployeeProvider()),
-// //     ChangeNotifierProvider(create: (_) => CustomerProvider()),
-// //     ChangeNotifierProvider(create: (_) => AttendanceProvider()),
-// //     ChangeNotifierProvider(create: (_) => LocationProvider()),
-// //     ChangeNotifierProvider(create: (_) => TrackProvider()),
-// //     ChangeNotifierProvider(create: (_) => ReportProvider()),
-// //     ChangeNotifierProvider(create: (_) => ExpenseProvider()),
-// //     ChangeNotifierProvider(create: (_) => TaskProvider()),
-// //     ChangeNotifierProvider(create: (_) => LeaveProvider()),
-// //     ChangeNotifierProvider(create: (_) => PayrollProvider()),
-// //     ChangeNotifierProvider(create: (_) => ProjectProvider()),
-// //   ], child: MyApp(homeScreen: homeScreen,)));
-// // }
-//
-// final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
-// FlutterLocalNotificationsPlugin();
-//
-// /// ******************************
-// ///  BACKGROUND FIREBASE HANDLER
-// /// ******************************
-// @pragma('vm:entry-point')
-// Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-//   await Firebase.initializeApp();
-//
-//   print("Background Message: ${message.messageId}");
-//   print("Background Message Data: ${message.data}");
-//
-//   RemoteNotification? notification = message.notification;
-//   AndroidNotification? android = notification?.android;
-//
-//   // 👉 Background handler should show notification ONLY when app is in background.
-//   if (notification != null && android != null) {
-//     const AndroidNotificationDetails androidDetails =
-//     AndroidNotificationDetails(
-//       'JPS',
-//       'JPS',
-//       importance: Importance.max,
-//       priority: Priority.high,
-//       playSound: true,
-//       enableVibration: true,
-//       icon: '@mipmap/ic_launcher',
-//     );
-//
-//     const NotificationDetails platformDetails =
-//     NotificationDetails(android: androidDetails);
-//
-//     await flutterLocalNotificationsPlugin.show(
-//       notification.hashCode,
-//       notification.title,
-//       notification.body,
-//       platformDetails,
-//     );
-//   }
-// }
-//
-// /// ******************************
-// ///            MAIN
-// /// ******************************
-// Future<void> main() async {
-//   WidgetsFlutterBinding.ensureInitialized();
-//   await GetStorage.init();
-//   final prefs = await SharedPreferences.getInstance();
-//   final homeScreen = prefs.getBool("homescreen") ?? false;
-//
-//   if (!kIsWeb) {
-//     await Firebase.initializeApp(
-//         options: DefaultFirebaseOptions.currentPlatform);
-//
-//     cameras = await availableCameras();
-//
-//     /// Foreground Task Setup
-//     FlutterForegroundTask.initCommunicationPort();
-//     FlutterForegroundTask.init(
-//       androidNotificationOptions: AndroidNotificationOptions(
-//         channelId: 'JPS',
-//         channelName: 'JPS',
-//         channelDescription: 'Tracking is on',
-//         channelImportance: NotificationChannelImportance.DEFAULT,
-//         priority: NotificationPriority.DEFAULT,
-//       ),
-//       iosNotificationOptions: IOSNotificationOptions(),
-//       foregroundTaskOptions: ForegroundTaskOptions(
-//         autoRunOnBoot: true,
-//         allowWakeLock: true,
-//         allowWifiLock: true,
-//         eventAction: ForegroundTaskEventAction.repeat(5000),
-//       ),
-//     );
-//     FlutterForegroundTask.setTaskHandler(MyTaskHandler());
-//
-//     /// *********** NOTIFICATION INITIALIZATION ***********
-//     const AndroidInitializationSettings initializationSettingsAndroid =
-//     AndroidInitializationSettings('@mipmap/ic_launcher');
-//
-//     const DarwinInitializationSettings iosInitializationSettings =
-//     DarwinInitializationSettings();
-//
-//     const InitializationSettings initializationSettings =
-//     InitializationSettings(
-//         android: initializationSettingsAndroid,
-//         iOS: iosInitializationSettings);
-//
-//     await flutterLocalNotificationsPlugin.initialize(initializationSettings);
-//
-//     /// ******************************
-//     ///     FOREGROUND MESSAGE
-//     /// ******************************
-//     FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
-//       print("FOREGROUND Message: ${message.data}");
-//
-//       final title =
-//           message.notification?.title ?? message.data['title'] ?? 'Notification';
-//       final body = message.notification?.body ?? message.data['body'] ?? '';
-//
-//       const AndroidNotificationDetails androidDetails =
-//       AndroidNotificationDetails(
-//         'JPS',
-//         'JPS',
-//         importance: Importance.max,
-//         priority: Priority.high,
-//         playSound: true,
-//         enableVibration: true,
-//         icon: '@mipmap/ic_launcher',
-//       );
-//
-//       const NotificationDetails platformDetails =
-//       NotificationDetails(android: androidDetails);
-//
-//       await flutterLocalNotificationsPlugin.show(
-//         message.hashCode,
-//         title,
-//         body,
-//         platformDetails,
-//       );
-//     });
-//
-//     /// BACKGROUND HANDLER
-//     FirebaseMessaging.onBackgroundMessage(
-//         _firebaseMessagingBackgroundHandler);
-//   }
-//
-//   runApp(
-//     MultiProvider(
-//       providers: [
-//         ChangeNotifierProvider(create: (_) => HomeProvider()),
-//         ChangeNotifierProvider(create: (_) => EmployeeProvider()),
-//         ChangeNotifierProvider(create: (_) => CustomerProvider()),
-//         ChangeNotifierProvider(create: (_) => AttendanceProvider()),
-//         ChangeNotifierProvider(create: (_) => LocationProvider()),
-//         ChangeNotifierProvider(create: (_) => TrackProvider()),
-//         ChangeNotifierProvider(create: (_) => ReportProvider()),
-//         ChangeNotifierProvider(create: (_) => ExpenseProvider()),
-//         ChangeNotifierProvider(create: (_) => TaskProvider()),
-//         ChangeNotifierProvider(create: (_) => LeaveProvider()),
-//         ChangeNotifierProvider(create: (_) => PayrollProvider()),
-//         ChangeNotifierProvider(create: (_) => ProjectProvider()),
-//       ],
-//       child: MyApp(homeScreen: homeScreen),
-//     ),
-//   );
-// }
-//
-// class MyApp extends StatelessWidget {
-//   final bool homeScreen;
-//   const MyApp({super.key,required this.homeScreen});
-//   @override
-//   Widget build(BuildContext context){
-//     return ConnectivityAppWrapper(
-//       app: MaterialApp(
-//           builder: (context, child){
-//             return ConnectivityWidgetWrapper(
-//                 color: colorsConst.primary,
-//                 message: "Check Your Internet Connection",
-//                 disableInteraction: true,
-//                 child:  MediaQuery(
-//                   data: MediaQuery.of(context).copyWith(textScaler: const TextScaler.linear(1.0)),
-//                   child: child!,
-//                 )
-//             );
-//           },
-//           useInheritedMediaQuery: true,
-//           locale: const Locale('en','US'),
-//           supportedLocales: const [
-//             Locale('en', 'GB'), // இங்கிலாந்து locale-ஐ ஆதரிக்கிறது
-//             Locale('en', 'US'),
-//             // ... மற்ற மொழிகள்
-//           ],
-//           debugShowCheckedModeBanner: false,
-//           theme: ThemeData(
-//             useMaterial3: false,
-//             colorScheme: ColorScheme.fromSeed(seedColor: colorsConst.primary),
-//             primaryColor: colorsConst.primary,
-//             scrollbarTheme: ScrollbarThemeData(
-//               thumbVisibility: WidgetStateProperty.all(true),
-//               thickness: WidgetStateProperty.all(5),
-//               thumbColor: WidgetStateProperty.all(colorsConst.primary.withOpacity(0.5)),
-//               radius: const Radius.circular(10),
-//               minThumbLength: 10,
-//             ),
-//             fontFamily: 'Lato',
-//           ),
-//           home:SplashScreen(homeScreen: homeScreen,)
-//       ),
-//     );
-//   }
-// }
-// class SplashScreen extends StatefulWidget {
-//   final bool homeScreen;
-//   const SplashScreen({super.key, required this.homeScreen});
-//
-//   @override
-//   State<SplashScreen> createState() => _SplashScreenState();
-// }
-//
-// class _SplashScreenState extends State<SplashScreen> {
-//   dynamic storedVersion;
-//   dynamic currentVersion;
-//   // @override
-//   // void initState() {
-//     // checkForUpdates(context);
-//     // Future.delayed(Duration.zero, () {
-//     //   Provider.of<HomeProvider>(context, listen: false).checkVersion();
-//     //   Provider.of<LocationProvider>(context, listen: false).requestPermissions();
-//     //   Provider.of<HomeProvider>(context, listen: false).initValue();
-//     //   Provider.of<HomeProvider>(context, listen: false).roleEmployees();
-//     //   Provider.of<AttendanceProvider>(context, listen: false).getMainAttendance();
-//     // });
-//
-//   //   super.initState();
-//   // }
-//   @override
-//   void initState() {
-//     super.initState();
-//     checkForUpdates(context); // runs immediately
-//
-//     Future.delayed(Duration.zero, () {
-//       if (!mounted) return;
-//
-//       final homeProvider = Provider.of<HomeProvider>(context, listen: false);
-//       final locationProvider = Provider.of<LocationProvider>(context, listen: false);
-//       final attendanceProvider = Provider.of<AttendanceProvider>(context, listen: false);
-//
-//       homeProvider.checkVersion();
-//       locationProvider.requestPermissions();
-//       homeProvider.initValue();
-//       // homeProvider.roleEmployees();
-//       attendanceProvider.getMainAttendance();
-//       homeProvider.getMainReport(true);
-//       homeProvider.getDashboardReport(true);
-//     });
-//   }
-//
-//   checkForUpdates(context) async {
-//     SharedPreferences prefs = await SharedPreferences.getInstance();
-//     storedVersion = prefs.getString('appVersion') ?? "0";
-//     currentVersion = localData.versionNumber;
-//     if (storedVersion != currentVersion) {
-//       print("1 ${storedVersion != currentVersion}");
-//       utils.navigatePage(context, ()=>const LoginPage());
-//     } else if(widget.homeScreen){
-//       print("2 ${storedVersion != currentVersion}");
-//       utils.navigatePage(context, ()=>const DashBoard(child: HomePage(),));
-//     }else {
-//       print("3 ${storedVersion != currentVersion}");
-//       utils.navigatePage(context, ()=>const LoginPage());
-//     }
-//   }
-//   @override
-//   Widget build(BuildContext context) {
-//     return AnimatedSplashScreen(
-//       duration: 300,
-//       splashIconSize: 800,
-//       splashTransition: SplashTransition.fadeTransition,
-//       splash:Container(
-//         color: Colors.white,
-//         width: double.infinity,
-//         height: double.infinity,
-//         child: Column(
-//           mainAxisAlignment: MainAxisAlignment.spaceBetween,
-//           children: [
-//             100.height,
-//             Image.asset(
-//               assets.logo,
-//               width: 100,
-//               height: 100,
-//             ),
-//             20.height,
-//             CustomText(text: constValue.appName,colors: colorsConst.primary,size: 20,isBold: true,),
-//             CustomText(text:"${constValue.comName}\n",size: 15,colors: colorsConst.primary,),
-//           ],
-//         ),
-//       ),
-//       nextScreen: storedVersion != currentVersion?const LoginPage():widget.homeScreen?const DashBoard(child: HomePage()):const LoginPage(),
-//       // nextScreen: const DashBoard(),
-//     );
-//   }
-// }
-//
-//
-
+import 'dart:async';
 import 'dart:convert';
-import 'package:intl/intl.dart';
-import 'package:master_code/screens/common/home_page.dart';
-import 'package:master_code/screens/customer/visit_report/visits_report.dart';
-import 'package:master_code/screens/expense/view_expense.dart';
-import 'package:master_code/screens/leave_management/leave_dashboard.dart';
-import 'package:master_code/screens/leave_management/leave_report.dart';
-import 'package:master_code/screens/task/view_task.dart';
-import 'package:master_code/screens/track/background_task.dart';
-import 'package:master_code/source/utilities/utils.dart';
-import 'package:master_code/view_model/expense_provider.dart';
-import 'package:master_code/view_model/leave_provider.dart';
-import 'package:master_code/view_model/payroll_provider.dart';
-import 'package:master_code/view_model/project_provider.dart';
-import 'package:master_code/view_model/task_provider.dart';
+import 'dart:developer';
+
 import 'package:animated_splash_screen/animated_splash_screen.dart';
+import 'package:country_code_picker/country_code_picker.dart';
+import '../../screens/attendance/offline_attendance.dart';
+import '../../source/constant/language_model.dart';
 import 'package:camera/camera.dart';
 import 'package:connectivity_wrapper/connectivity_wrapper.dart';
+
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter_foreground_task/flutter_foreground_task.dart';
-import 'package:master_code/screens/common/camera.dart';
-import 'package:master_code/screens/common/dashboard.dart';
-import 'package:master_code/screens/log_in.dart';
-import 'package:master_code/source/constant/assets_constant.dart';
-import 'package:master_code/source/constant/colors_constant.dart';
-import 'package:master_code/source/constant/default_constant.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:get_storage/get_storage.dart';
-import 'package:master_code/source/constant/local_data.dart';
-import 'package:master_code/source/extentions/extensions.dart';
-import 'package:master_code/view_model/attendance_provider.dart';
-import 'package:master_code/view_model/customer_provider.dart';
-import 'package:master_code/view_model/employee_provider.dart';
-import 'package:master_code/view_model/home_provider.dart';
-import 'package:master_code/view_model/location_provider.dart';
+import 'package:intl/intl.dart';
+import '../../screens/common/camera.dart';
+import '../../screens/common/dashboard.dart';
+import '../../screens/common/detail_work_plan.dart';
+import '../../screens/common/home_page.dart';
+import '../../screens/customer/visit_report/visits_report.dart';
+import '../../screens/expense/view_expense.dart';
+import '../../screens/leave_management/leave_dashboard.dart';
+import '../../screens/leave_management/leave_report.dart';
+import '../../screens/log_in.dart';
+import '../../screens/task/task_chat.dart';
+import '../../screens/task/view_task.dart';
+import '../../screens/track/background_task.dart';
+import '../../source/constant/assets_constant.dart';
+import '../../source/constant/colors_constant.dart';
+import '../../source/constant/language_model.dart';
+import '../../source/constant/local_data.dart';
+import '../../source/extentions/extensions.dart';
+import '../../source/utilities/utils.dart';
+import '../../view_model/attendance_provider.dart';
+import '../../view_model/customer_provider.dart';
+import '../../view_model/employee_provider.dart';
+import '../../view_model/expasy_provider.dart';
+import '../../view_model/expense_provider.dart';
+import '../../view_model/home_provider.dart';
+import '../../view_model/leave_provider.dart';
+import '../../view_model/location_provider.dart';
+import '../../view_model/payroll_provider.dart';
+import '../../view_model/project_provider.dart';
+import '../../view_model/report_provider.dart';
+import '../../view_model/setting_provider.dart';
+import '../../view_model/task_provider.dart';
+import '../../view_model/track_provider.dart';
 import 'package:provider/provider.dart';
-import 'package:master_code/view_model/report_provider.dart';
-import 'package:master_code/view_model/track_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:url_launcher/url_launcher.dart';
+
+// ✅ NEW: offline check-kku (un path-ku match pannu)
+
 import 'component/custom_text.dart';
 import 'firebase_options.dart';
+
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
@@ -527,27 +66,242 @@ const AndroidInitializationSettings initializationSettingsAndroid =
 AndroidInitializationSettings('@mipmap/ic_launcher');
 
 const DarwinInitializationSettings initializationSettingsIOS =
-DarwinInitializationSettings();
+DarwinInitializationSettings(
+  requestAlertPermission: false,
+  requestBadgePermission: false,
+  requestSoundPermission: false,
+);
 
 const InitializationSettings initializationSettings = InitializationSettings(
   android: initializationSettingsAndroid,
   iOS: initializationSettingsIOS,
 );
-/// ******************************
-///  BACKGROUND FIREBASE HANDLER
-/// ******************************
+
+Future<T?> safeCall<T>(
+    String tag,
+    Future<T> Function() action, {
+      Duration timeout = const Duration(seconds: 8),
+    }) async {
+  try {
+    return await action().timeout(timeout);
+  } on TimeoutException {
+    log("⏱️ [$tag] TIMED OUT");
+    return null;
+  } catch (e, st) {
+    log("⚠️ [$tag] FAILED: $e");
+    log("⚠️ [$tag] STACK: $st");
+    return null;
+  }
+}
+
+/// ==========================================================
+/// GUARANTEED ATTENDANCE LOAD
+/// ==========================================================
+Future<void> ensureAttendanceLoaded(
+    AttendanceProvider attendanceProvider, {
+      int maxRetries = 3,
+    }) async {
+  // ✅ NEW: Net illana retry pannaadha, oru vaati mattum try pannu
+  final online = await OfflineAttendanceService.isOnline();
+  if (!online) maxRetries = 1;
+
+  for (int attempt = 1; attempt <= maxRetries; attempt++) {
+    bool succeeded = false;
+
+    await safeCall<void>(
+      'attendanceProvider.getMainAttendance (attempt $attempt)',
+          () async {
+        await attendanceProvider.getMainAttendance();
+        succeeded = true;
+      },
+      timeout: const Duration(seconds: 10),
+    );
+
+    if (succeeded) {
+      log("✅ [Attendance] Loaded successfully on attempt $attempt");
+      return;
+    }
+
+    log("⚠️ [Attendance] Attempt $attempt/$maxRetries failed, retrying...");
+
+    if (attempt < maxRetries) {
+      await Future.delayed(const Duration(seconds: 2));
+    }
+  }
+
+  log("❌ [Attendance] Failed to load after $maxRetries attempts");
+}
+
+/// ==========================================================
+/// LOCAL NOTIFICATION SETUP
+/// ==========================================================
+
+Future<void> setupLocalNotifications() async {
+  await safeCall(
+    'setupLocalNotifications',
+        () async {
+      await flutterLocalNotificationsPlugin.initialize(
+        initializationSettings,
+        onDidReceiveNotificationResponse: (NotificationResponse response) {
+          final payload = response.payload;
+
+          if (payload == null || payload.isEmpty) {
+            return;
+          }
+
+          try {
+            final decoded = jsonDecode(payload);
+
+            if (decoded is Map) {
+              final data = Map<String, dynamic>.from(decoded);
+              handleNotificationNavigation(data);
+            }
+          } catch (e) {
+            log("⚠️ Notification payload decode failed: $e");
+          }
+        },
+      );
+
+      const AndroidNotificationChannel channel = AndroidNotificationChannel(
+        'JPS',
+        'JPS',
+        description: 'JPS application notifications',
+        importance: Importance.max,
+      );
+
+      final AndroidFlutterLocalNotificationsPlugin? androidPlugin =
+      flutterLocalNotificationsPlugin
+          .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+
+      await androidPlugin?.createNotificationChannel(channel);
+
+      log("🔔 Local notifications initialized");
+    },
+  );
+}
+
+Future<String?> setupFirebaseMessaging() async {
+  try {
+    final FirebaseMessaging messaging = FirebaseMessaging.instance;
+
+    await safeCall(
+      'FCM.setAutoInitEnabled',
+          () => messaging.setAutoInitEnabled(true),
+      timeout: const Duration(seconds: 10),
+    );
+
+    final NotificationSettings? settings =
+    await safeCall<NotificationSettings>(
+      'FCM.requestPermission',
+          () => messaging.requestPermission(
+        alert: true,
+        badge: true,
+        sound: true,
+        announcement: false,
+        carPlay: false,
+        criticalAlert: false,
+        provisional: false,
+      ),
+      timeout: const Duration(seconds: 20),
+    );
+
+    if (settings == null) {
+      log("❌ Notification permission request failed");
+      return null;
+    }
+
+    log("🔔 Notification authorization: ${settings.authorizationStatus}");
+
+    final AuthorizationStatus status = settings.authorizationStatus;
+    if (status == AuthorizationStatus.denied) {
+      log("❌ Notification permission denied");
+      return null;
+    }
+
+    if (status == AuthorizationStatus.notDetermined) {
+      log("⚠️ Notification permission still not determined");
+      return null;
+    }
+
+    /// ------------------------------------------------------
+    /// iOS
+    /// ------------------------------------------------------
+
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.iOS) {
+      log("🍎 iOS detected");
+
+      String? apnsToken;
+
+      for (int attempt = 1; attempt <= 30; attempt++) {
+        try {
+          apnsToken = await messaging.getAPNSToken();
+
+          if (apnsToken != null && apnsToken.isNotEmpty) {
+            log("APNS TOKEN: $apnsToken");
+            break;
+          }
+        } catch (e) {
+          log("⚠️ APNS token attempt $attempt failed: $e");
+        }
+
+        log("🍎 APNS token not ready. Attempt $attempt/30");
+
+        await Future.delayed(const Duration(seconds: 1));
+      }
+
+      if (apnsToken == null || apnsToken.isEmpty) {
+        log("❌ APNS TOKEN NOT AVAILABLE — FCM getToken() WILL NOT BE CALLED");
+        return null;
+      }
+    }
+
+    final String? fcmToken = await safeCall<String?>(
+      'FirebaseMessaging.getToken',
+          () => messaging.getToken(),
+      timeout: const Duration(seconds: 20),
+    );
+
+    if (fcmToken == null || fcmToken.isEmpty) {
+      log("❌ FCM TOKEN NOT AVAILABLE");
+      return null;
+    }
+
+    FirebaseMessaging.instance.onTokenRefresh.listen(
+          (String newToken) {
+        log("🔄 FCM TOKEN REFRESHED: $newToken");
+      },
+      onError: (error) {
+        log("⚠️ FCM token refresh error: $error");
+      },
+    );
+
+    return fcmToken;
+  } catch (e, st) {
+    log("❌ setupFirebaseMessaging failed: $e");
+    log("❌ STACK: $st");
+    return null;
+  }
+}
 
 @pragma('vm:entry-point')
+Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  try {
+    await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  } catch (e) {
+    log("⚠️ Background Firebase init: $e");
+  }
 
-Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  await Firebase.initializeApp();
+  try {
+    final Map<String, dynamic> data = message.data;
 
-  RemoteNotification? notification = message.notification;
-  AndroidNotification? android = notification?.android;
+    final String title = data['title']?.toString() ?? '';
+    final String body = data['body']?.toString() ?? '';
 
-  if (notification != null && android != null) {
-    const AndroidNotificationDetails androidDetails =
-    AndroidNotificationDetails(
+    if (title.isEmpty && body.isEmpty) {
+      return;
+    }
+
+    const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
       'JPS',
       'JPS',
       importance: Importance.max,
@@ -557,91 +311,82 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
       icon: '@mipmap/ic_launcher',
     );
 
-    const NotificationDetails platformDetails =
-    NotificationDetails(android: androidDetails);
+    const DarwinNotificationDetails iosDetails = DarwinNotificationDetails(
+      presentAlert: true,
+      presentBadge: true,
+      presentSound: true,
+    );
+
+    const NotificationDetails platformDetails = NotificationDetails(
+      android: androidDetails,
+      iOS: iosDetails,
+    );
+
+    final int notificationId = (data['purpose_id'] ??
+        data['task_id'] ??
+        DateTime.now().millisecondsSinceEpoch.toString())
+        .hashCode;
 
     await flutterLocalNotificationsPlugin.show(
-      notification.hashCode,
-      notification.title,
-      notification.body,
+      notificationId,
+      title,
+      body,
       platformDetails,
-      payload: jsonEncode(message.data),
+      payload: jsonEncode(data),
     );
+
+    log("🔔 Background notification displayed");
+  } catch (e, st) {
+    log("⚠️ Background notification failed: $e");
+    log("⚠️ STACK: $st");
   }
 }
 
 void handleNotificationNavigation(Map<String, dynamic> data) {
-  final page = data['title'].toString().toLowerCase();
-  String role = localData.storage.read("role");
+  try {
+    final String page = (data['title'] ?? '').toString().toLowerCase();
+    final String role = localData.storage.read("role") ?? "";
+    log("PAGE VALUE: $page");
 
-  print("========= NOTIFICATION CLICKED =========");
-  print("PAGE VALUE: $page");
+    final NavigatorState? nav = navigatorKey.currentState;
 
-  final nav = navigatorKey.currentState;
-  if (nav == null) {
-    print("NAVIGATOR NULL");
-    return;
-  }
+    if (nav == null) {
+      log("⚠️ NAVIGATOR NULL");
+      return;
+    }
 
-  // ➤ Expenses Added
-  if (page.toString().contains("Expenses added to task")) {
-    print("MATCHED: Expenses added to task");
-
-    nav.push(
-      MaterialPageRoute(
+    if (page.contains("expenses added to task")) {
+      nav.push(MaterialPageRoute(
         builder: (_) => DashBoard(
-          child: ViewExpense(
-            tab: false,
-            date1: today(),
-            date2: today(),
-            type: "Today",
-          ),
+          child: ViewExpense(tab: false, date1: today(), date2: today(), type: "Today"),
         ),
-      ),
-    );
-  }
+      ));
+      return;
+    }
 
-  // ➤ New Task
-  else if (page.toString().contains("task")||page.toString().contains("new task")) {
-    print("MATCHED: New Task");
-
-    nav.push(
-      MaterialPageRoute(
+    if (page.contains("task")) {
+      nav.push(MaterialPageRoute(
         builder: (_) => DashBoard(
-          child: ViewTask(
-            date1: today(),
-            date2: today(),
-            type: "Today",
-          ),
+          child: ViewTask(date1: today(), date2: today(), type: "Today"),
         ),
-      ),
-    );
-  }
+      ));
+      return;
+    }
 
-  // ➤ Leave
-  else if (page.toString().contains('Leave')) {
-    print("MATCHED: Leave");
-
-    nav.push(
-      MaterialPageRoute(
+    if (page.contains("leave")) {
+      nav.push(MaterialPageRoute(
         builder: (_) => DashBoard(
           child: role == "1"
               ? LeaveManagementDashboard()
-              : ViewMyLeaves(
-            date1: today(),
-            date2: today(), isDirect: true,
-          ),
+              : ViewMyLeaves(date1: today(), date2: today(), isDirect: true),
         ),
-      ),
-    );
-  }
+      ));
+      return;
+    }
 
-  // ➤ Visit Report Added
-  else if (page.toString().contains('Visit report added')) {
-    print("MATCHED: Visit report added");
-
-    nav.push(
-      MaterialPageRoute(
+    if (page.contains("visit report added") ||
+        page.contains("comments added to visit report")) {
+      nav.push(MaterialPageRoute(
         builder: (_) => DashBoard(
           child: VisitReport(
             date1: today(),
@@ -650,94 +395,38 @@ void handleNotificationNavigation(Map<String, dynamic> data) {
             type: "Today",
           ),
         ),
-      ),
-    );
-  }
+      ));
+      return;
+    }
 
-  // ➤ Comments Added to Visit Report
-  else if (page.toString().contains('Comments added to visit report')) {
-    print("MATCHED: Comments added to visit report");
-
-    nav.push(
-      MaterialPageRoute(
-        builder: (_) => DashBoard(
-          child: VisitReport(
-            date1: today(),
-            date2: today(),
-            month: DateFormat("MMM yyyy").format(DateTime.now()),
-            type: "Today",
-          ),
-        ),
-      ),
-    );
-  }
-
-  // ➤ No Match
-  else {
-    print("NO MATCH FOUND FOR PAGE: $page");
+    log("⚠️ NO MATCH FOUND FOR PAGE: $page");
+  } catch (e, st) {
+    log("⚠️ handleNotificationNavigation failed: $e");
+    log("⚠️ STACK: $st");
   }
 }
 
 String today() {
-  final now = DateTime.now();
+  final DateTime now = DateTime.now();
   return "${now.day.toString().padLeft(2, '0')}-"
       "${now.month.toString().padLeft(2, '0')}-"
       "${now.year}";
 }
-// main-க்கு வெளியே சேர்க்கவும்
-Future<void> setupLocalNotifications() async {
-  const AndroidInitializationSettings initializationSettingsAndroid =
-  AndroidInitializationSettings('@mipmap/ic_launcher');
 
-  const DarwinInitializationSettings iosInitializationSettings =
-  DarwinInitializationSettings();
+/// ==========================================================
+/// FOREGROUND TASK
+/// ==========================================================
+///
+/// 🔴 IMPORTANT: `FlutterForegroundTask.setTaskHandler(MyTaskHandler())`
+/// must NEVER be called from the main isolate / main() startup flow.
+/// It belongs ONLY inside a top-level callback function that the plugin
+/// invokes when it spawns the background isolate — i.e. the function you
+/// pass to `FlutterForegroundTask.startService(callback: ...)`.
 
-  const InitializationSettings initializationSettings =
-  InitializationSettings(
-      android: initializationSettingsAndroid,
-      iOS: iosInitializationSettings);
-
-  // ✅ ஒருமுறை மட்டுமே initialize செய்யவும், கிளிக் ஈவென்ட்டை இங்கே கையாளவும்.
-  await flutterLocalNotificationsPlugin.initialize(
-    initializationSettings,
-    onDidReceiveNotificationResponse: (NotificationResponse response) {
-      if (response.payload == null) return;
-
-      // நோட்டிஃபிகேஷன் கிளிக் செய்யப்பட்டால் மட்டுமே இந்த print வரும்
-      print("NOTIFICATION CLICKED CALLBACK FIRED");
-
-      try {
-        final data = jsonDecode(response.payload!);
-        // நோட்டிஃபிகேஷன் கிளிக் செய்யப்பட்டால் மட்டுமே Navigation தொடங்கும்
-        handleNotificationNavigation(data);
-      } catch (e) {
-        print("Error decoding payload: $e");
-      }
-    },
-  );
-}
-/// ******************************
-///            MAIN (CORRECTED)
-/// ******************************
-Future<void> main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  await GetStorage.init();
-  final prefs = await SharedPreferences.getInstance();
-  final homeScreen = prefs.getBool("homescreen") ?? false;
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
-  if (!kIsWeb) {
-    await Firebase.initializeApp(
-        options: DefaultFirebaseOptions.currentPlatform);
-
-    // --- ✅ 1. நோட்டிஃபிகேஷன் INITIALIZE-ஐ இங்கு ஒருமுறை மட்டும் அழைக்கவும் ---
-    await setupLocalNotifications();
-
-    cameras = await availableCameras();
-
-    // ... (Foreground Task Setup - இதில் எந்த மாற்றமும் இல்லை) ...
+Future<void> setupForegroundTask() async {
+  try {
     FlutterForegroundTask.initCommunicationPort();
+
     FlutterForegroundTask.init(
       androidNotificationOptions: AndroidNotificationOptions(
         channelId: 'JPS',
@@ -748,143 +437,302 @@ Future<void> main() async {
       ),
       iosNotificationOptions: IOSNotificationOptions(),
       foregroundTaskOptions: ForegroundTaskOptions(
-        autoRunOnBoot: true,
+        autoRunOnBoot: false,
         allowWakeLock: true,
         allowWifiLock: true,
         eventAction: ForegroundTaskEventAction.repeat(5000),
       ),
     );
-    FlutterForegroundTask.setTaskHandler(MyTaskHandler());
 
+    // ❌ REMOVED: FlutterForegroundTask.setTaskHandler(MyTaskHandler());
+    // This call does NOT belong here. See note above.
 
-    /// ******************************
-    ///     FOREGROUND MESSAGE
-    /// ******************************
-    FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
-      print("FOREGROUND Message: ${message.data}");
+    log("✅ Foreground task initialized (options set — handler registers on service start)");
+  } catch (e, st) {
+    log("⚠️ Foreground task initialization failed: $e");
+    log("⚠️ STACK: $st");
+  }
+}
 
-      final context = navigatorKey.currentContext;
+void setupForegroundFirebaseMessageListener() {
+  FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
+    try {
+      log("${message.data}");
 
-      // 🔔 notification list refresh
-
+      final BuildContext? context = navigatorKey.currentContext;
 
       if (context != null) {
+        await safeCall(
+          'HomeProvider.loadDashboard',
+              () => Provider.of<HomeProvider>(context, listen: false).loadFullDashboard(context),
+          timeout: const Duration(seconds: 10),
+        );
 
-        Provider.of<HomeProvider>(
-          context,
-          listen: false,
-        ).loadFullDashboard(context);
-
-        Provider.of<EmployeeProvider>(
-          context,
-          listen: false,
-        ).getNotifications();
+        await safeCall(
+          'EmployeeProvider.getNotifications',
+              () => Provider.of<EmployeeProvider>(context, listen: false).getNotifications(),
+          timeout: const Duration(seconds: 10),
+        );
       }
 
-      // ✅ SAFE DATA READ
-      final title =
+      final String title =
           message.notification?.title ?? message.data['title'] ?? 'Notification';
-
-      final body =
-          message.notification?.body ?? message.data['body'] ?? '';
-
-      final name = message.data['name'] ?? '';
+      final String body = message.notification?.body ?? message.data['body'] ?? '';
+      final String name = message.data['name']?.toString() ?? '';
 
       String messageText = body;
       String taskDate = DateFormat("dd-MM-yyyy").format(DateTime.now());
 
       if (body.contains("||")) {
-        final parts = body.split("||");
-
-        messageText = parts[0].trim();
-
+        final List<String> parts = body.split("||");
+        messageText = parts.first.trim();
         if (parts.length > 1) {
           taskDate = parts[1].trim();
         }
       }
 
-      print("Message : $messageText");
-      print("Task Date : $taskDate");
-      // 🔥 முக்கியம் (both keys support)
-      final taskId =
-          message.data['task_id'] ?? message.data['purpose_id'] ?? "";
+      final dynamic taskId = message.data['task_id'] ?? message.data['purpose_id'] ?? '';
 
-      print("CHAT TASK ID => $taskId");
-      print("FULL DATA => ${message.data}");
-      // ✅ CHAT AUTO REFRESH
-      if (context != null && taskId.isNotEmpty) {
-        final customerProvider =
-        Provider.of<CustomerProvider>(context, listen: false);
-        final taskProvider =
-        Provider.of<TaskProvider>(context, listen: false);
+      if (context != null && taskId.toString().isNotEmpty) {
+        await safeCall(
+          'CustomerProvider.getTaskMainComments',
+              () async {
+            final CustomerProvider customerProvider =
+            Provider.of<CustomerProvider>(context, listen: false);
+            final TaskProvider taskProvider =
+            Provider.of<TaskProvider>(context, listen: false);
 
-          await Future.delayed(const Duration(milliseconds: 500));
+            await Future.delayed(const Duration(milliseconds: 500));
+            await customerProvider.getTaskMainComments(taskId);
 
-          await customerProvider.getTaskMainComments(taskId);
-
-          // scroll bottom
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            taskProvider.scrollToBottom();
-          });
-
-      }
-
-      /// 🔔 LOCAL NOTIFICATION
-      const AndroidNotificationDetails androidDetails =
-      AndroidNotificationDetails(
-        'JPS',
-        'JPS',
-        importance: Importance.max,
-        priority: Priority.high,
-        playSound: true,
-        enableVibration: true,
-        icon: '@mipmap/ic_launcher',
-      );
-
-      const NotificationDetails platformDetails =
-      NotificationDetails(android: androidDetails);
-
-      if (title.toString().contains("A new task has been assigned")) {
-        await flutterLocalNotificationsPlugin.show(
-          message.hashCode,
-          messageText,
-          "Created by $name .Task",
-          platformDetails,
-          payload: jsonEncode(message.data),
-        );
-      } else {
-        await flutterLocalNotificationsPlugin.show(
-          message.hashCode,
-          messageText                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        ,
-          title,
-          platformDetails,
-          payload: jsonEncode(message.data),
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              try {
+                taskProvider.scrollToBottom();
+              } catch (_) {}
+            });
+          },
+          timeout: const Duration(seconds: 10),
         );
       }
+
+      await safeCall('show local notification', () async {
+        const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
+          'JPS',
+          'JPS',
+          importance: Importance.max,
+          priority: Priority.high,
+          playSound: true,
+          enableVibration: true,
+          icon: '@mipmap/ic_launcher',
+        );
+
+        const DarwinNotificationDetails iosDetails = DarwinNotificationDetails(
+          presentAlert: true,
+          presentBadge: true,
+          presentSound: true,
+        );
+
+        const NotificationDetails platformDetails = NotificationDetails(
+          android: androidDetails,
+          iOS: iosDetails,
+        );
+
+        if (title.contains("A new task has been assigned")) {
+          await flutterLocalNotificationsPlugin.show(
+            message.hashCode,
+            messageText,
+            "Created by $name .Task",
+            platformDetails,
+            payload: jsonEncode(message.data),
+          );
+        } else {
+          await flutterLocalNotificationsPlugin.show(
+            message.hashCode,
+            messageText,
+            title,
+            platformDetails,
+            payload: jsonEncode(message.data),
+          );
+        }
+      });
+    } catch (e, st) {
+      log("⚠️ onMessage failed: $e");
+      log("⚠️ STACK: $st");
     }
-    );
+  });
+}
 
-    FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
-
-      final taskDate = message.data['task_date'] ??
+void setupNotificationOpenedListener() {
+  FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
+    try {
+      final String taskDate = message.data['task_date'] ??
           DateFormat('dd-MM-yyyy').format(DateTime.now());
 
-      if (message.notification?.title?.toLowerCase().contains("task") ?? false) {
+      final String title =
+      (message.notification?.title ?? message.data['title'] ?? '').toString().toLowerCase();
+      final String body =
+      (message.notification?.body ?? message.data['body'] ?? '').toString().toLowerCase();
 
-        navigatorKey.currentState?.push(
-          MaterialPageRoute(
-            builder: (_) => ViewTask(
-              date1: taskDate,
-              date2: taskDate,
-              type: taskDate==""?"today":"",
+      final NavigatorState? nav = navigatorKey.currentState;
+
+      if (nav == null) {
+        log("⚠️ Navigator not ready");
+        return;
+      }
+
+      if (title.contains("task")) {
+        nav.push(MaterialPageRoute(
+          builder: (_) => ViewTask(
+            date1: taskDate,
+            date2: taskDate,
+            type: taskDate.isEmpty ? "today" : "",
+          ),
+        ));
+      }
+
+      if (body.contains("daily work plan")) {
+        nav.push(MaterialPageRoute(builder: (_) => DailyReportStatusPage()));
+      }
+
+      if (body.contains("requested")) {
+        nav.push(MaterialPageRoute(builder: (_) => ViewMyLeaves()));
+      }
+
+      if (title.contains("visit report")) {
+        nav.push(MaterialPageRoute(
+          builder: (_) => VisitReport(date1: today(), date2: today(), month: "", type: "Today"),
+        ));
+      }
+
+      if (title.contains("feedback")) {
+        nav.push(MaterialPageRoute(
+          builder: (_) => TaskChat(
+            isVisit: false,
+            taskId: '',
+            assignedId: "",
+            assignedName: "",
+            name: '',
+            date1: '',
+            date2: '',
+            type: '',
+            index: -1,
+          ),
+        ));
+      }
+    } catch (e, st) {
+      log("⚠️ onMessageOpenedApp failed: $e");
+      log("⚠️ STACK: $st");
+    }
+  });
+}
+
+/// ==========================================================
+/// MAIN
+/// ==========================================================
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await LanguageManager.instance.loadSavedLanguage();
+  await safeCall('GetStorage.init', () => GetStorage.init());
+
+  bool homeScreen = false;
+
+  await safeCall('SharedPreferences', () async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    homeScreen = prefs.getBool("homescreen") ?? false;
+  });
+
+  await safeCall(
+    'Firebase.initializeApp',
+        () => Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform),
+    timeout: const Duration(seconds: 12),
+  );
+
+  if (Firebase.apps.isEmpty) {
+    await safeCall(
+      'Firebase.initializeApp.retry',
+          () => Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform),
+      timeout: const Duration(seconds: 15),
+    );
+  }
+
+  if (Firebase.apps.isEmpty) {
+    runApp(
+      MaterialApp(
+        navigatorKey: navigatorKey,
+        locale: const Locale('en', 'US'),
+        localizationsDelegates: [
+          CountryLocalizations.getDelegate(enableLocalization: false),
+        ],
+        debugShowCheckedModeBanner: false,
+        home: Scaffold(
+          body: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    "Couldn't connect to Firebase.\nPlease check your internet connection.",
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: () {
+                      main();
+                    },
+                    child: const Text("Retry"),
+                  ),
+                ],
+              ),
             ),
           ),
-        );
-      }
+        ),
+      ),
+    );
+
+    return;
+  }
+
+  FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+
+  if (!kIsWeb) {
+    await setupLocalNotifications();
+
+    final String? fcmToken = await setupFirebaseMessaging();
+
+    if (fcmToken != null) {
+      log("🔥 FINAL FCM TOKEN: $fcmToken");
+    } else {
+      log("⚠️ FCM token was not available");
+    }
+
+    setupForegroundFirebaseMessageListener();
+    setupNotificationOpenedListener();
+
+    await safeCall('availableCameras', () async {
+      cameras = await availableCameras();
     });
-    /// BACKGROUND HANDLER
-    FirebaseMessaging.onBackgroundMessage(
-        _firebaseMessagingBackgroundHandler);
+
+    await safeCall('ForegroundTask.init', setupForegroundTask);
+
+    RemoteMessage? initialMessage;
+
+    await safeCall(
+      'FirebaseMessaging.getInitialMessage',
+          () async {
+        initialMessage = await FirebaseMessaging.instance.getInitialMessage();
+      },
+      timeout: const Duration(seconds: 10),
+    );
+
+    if (initialMessage != null) {
+      log("🚀 App launched from notification");
+
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        handleNotificationNavigation(initialMessage!.data);
+      });
+    }
   }
 
   runApp(
@@ -902,140 +750,314 @@ Future<void> main() async {
         ChangeNotifierProvider(create: (_) => LeaveProvider()),
         ChangeNotifierProvider(create: (_) => PayrollProvider()),
         ChangeNotifierProvider(create: (_) => ProjectProvider()),
+        ChangeNotifierProvider(create: (_) => ExpasyProvider()),
+        ChangeNotifierProvider(create: (_) => SettingProvider()),
+        ChangeNotifierProvider(create: (_) => LanguageManager.instance),
       ],
       child: MyApp(homeScreen: homeScreen),
     ),
   );
 }
 
+/// ==========================================================
+/// MY APP
+/// ==========================================================
+
 class MyApp extends StatelessWidget {
   final bool homeScreen;
-  const MyApp({super.key,required this.homeScreen});
+
+  const MyApp({super.key, required this.homeScreen});
+
   @override
-  Widget build(BuildContext context){
-    return ConnectivityAppWrapper(
-      app: MaterialApp(
-          navigatorKey: navigatorKey,
-          builder: (context, child){
-            return ConnectivityWidgetWrapper(
+  Widget build(BuildContext context) {
+    return Consumer<LanguageManager>(
+      builder: (context, langManager, _) {
+        return ConnectivityAppWrapper(
+          app: MaterialApp(
+            navigatorKey: navigatorKey,
+            builder: (context, child) {
+              return ConnectivityWidgetWrapper(
                 color: colorsConst.primary,
-                message: "Check Your Internet Connection",
-                disableInteraction: true,
-                child:  MediaQuery(
-                  data: MediaQuery.of(context).copyWith(textScaler: const TextScaler.linear(1.0)),
+                message: "No internet. Attendance will be saved offline",
+                disableInteraction: false, // ✅ true-va irundhadhu, false-a maathinen
+                child: MediaQuery(
+                  data: MediaQuery.of(context).copyWith(
+                    textScaler: const TextScaler.linear(1.0),
+                  ),
                   child: child!,
-                )
-            );
-          },
-          useInheritedMediaQuery: true,
-          locale: const Locale('en','US'),
-          debugShowCheckedModeBanner: false,
-          theme: ThemeData(
-            useMaterial3: false,
-            colorScheme: ColorScheme.fromSeed(seedColor: colorsConst.primary),
-            primaryColor: colorsConst.primary,
-            scrollbarTheme: ScrollbarThemeData(
-              thumbVisibility: WidgetStateProperty.all(true),
-              thickness: WidgetStateProperty.all(5),
-              thumbColor: WidgetStateProperty.all(colorsConst.primary.withOpacity(0.5)),
-              radius: const Radius.circular(10),
-              minThumbLength: 10,
+                ),
+              );
+            },
+            useInheritedMediaQuery: true,
+            locale: const Locale('en', 'US'),
+            debugShowCheckedModeBanner: false,
+            theme: ThemeData(
+              useMaterial3: false,
+              colorScheme: ColorScheme.fromSeed(seedColor: colorsConst.primary),
+              primaryColor: colorsConst.primary,
+              scrollbarTheme: ScrollbarThemeData(
+                thumbVisibility: WidgetStateProperty.all(true),
+                thickness: WidgetStateProperty.all(5),
+                thumbColor: WidgetStateProperty.all(colorsConst.primary.withOpacity(0.5)),
+                radius: const Radius.circular(10),
+                minThumbLength: 10,
+              ),
+              fontFamily: 'Lato',
             ),
-            fontFamily: 'Lato',
+            home: SplashScreen(homeScreen: homeScreen),
           ),
-          home:SplashScreen(homeScreen: homeScreen,)
-      ),
+        );
+      },
     );
   }
 }
+
+/// ==========================================================
+/// SPLASH SCREEN
+/// ==========================================================
+
 class SplashScreen extends StatefulWidget {
   final bool homeScreen;
-  const SplashScreen({super.key, required this.homeScreen});
+
+  const SplashScreen({
+    super.key,
+    required this.homeScreen,
+  });
 
   @override
   State<SplashScreen> createState() => _SplashScreenState();
 }
 
 class _SplashScreenState extends State<SplashScreen> {
-  dynamic storedVersion;
-  dynamic currentVersion;
-  // @override
-  // void initState() {
-  // checkForUpdates(context);
-  // Future.delayed(Duration.zero, () {
-  //   Provider.of<HomeProvider>(context, listen: false).checkVersion();
-  //   Provider.of<LocationProvider>(context, listen: false).requestPermissions();
-  //   Provider.of<HomeProvider>(context, listen: false).initValue();
-  //   Provider.of<HomeProvider>(context, listen: false).roleEmployees();
-  //   Provider.of<AttendanceProvider>(context, listen: false).getMainAttendance();
-  //   Provider.of<HomeProvider>(context, listen: false).getMainReport(true);
-  //   Provider.of<HomeProvider>(context, listen: false).getDashboardReport(true);
-  // });
+  bool _navigated = false;
 
-  //   super.initState();
-  // }
   @override
   void initState() {
     super.initState();
 
-    Future.delayed(Duration.zero, () {
-      if (!mounted) return;
-
-      final homeProvider = Provider.of<HomeProvider>(context, listen: false);
-      final locationProvider = Provider.of<LocationProvider>(context, listen: false);
-      final attendanceProvider = Provider.of<AttendanceProvider>(context, listen: false);
-      homeProvider.checkVersion();
-      checkForUpdates(context); // runs immediately
-      locationProvider.requestPermissions();
-      homeProvider.initValue();
-      homeProvider.checkThisMonth();
-      homeProvider.loadFullDashboard(context);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _initializeApp();
     });
   }
 
-  checkForUpdates(context) async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    storedVersion = prefs.getString('appVersion') ?? "0";
-    currentVersion = localData.versionNumber;
-    if (storedVersion != currentVersion) {
-      print("1 currentVersion${storedVersion != currentVersion}");
-      utils.navigatePage(context, ()=>const LoginPage());
-    } else if(widget.homeScreen){
-      print("2 currentVersion${storedVersion != currentVersion}");
-      utils.navigatePage(context, ()=> DashBoard(child: HomePage(),));
-    }else {
-      print("3 currentVersion ${storedVersion != currentVersion}");
-      utils.navigatePage(context, ()=>const LoginPage());
+  Future<void> _initializeApp() async {
+    if (!mounted || _navigated) return;
+
+    try {
+      final HomeProvider homeProvider =
+      Provider.of<HomeProvider>(context, listen: false);
+
+      final LocationProvider locationProvider =
+      Provider.of<LocationProvider>(context, listen: false);
+
+      final AttendanceProvider attendanceProvider =
+      Provider.of<AttendanceProvider>(context, listen: false);
+
+      // --------------------------------------------------
+      // Attendance
+      // --------------------------------------------------
+
+      await ensureAttendanceLoaded(attendanceProvider);
+
+      if (!mounted) return;
+
+      // --------------------------------------------------
+      // Location
+      // --------------------------------------------------
+
+      await safeCall(
+        'manageLocation',
+            () => locationProvider.manageLocation(context, false),
+        timeout: const Duration(seconds: 15),
+      );
+
+      if (!mounted) return;
+
+      // --------------------------------------------------
+      // Background initialization
+      // --------------------------------------------------
+
+      unawaited(
+        safeCall(
+          'locationProvider.requestPermissions',
+              () => locationProvider.requestPermissions(),
+          timeout: const Duration(seconds: 10),
+        ),
+      );
+
+      unawaited(
+        safeCall(
+          'homeProvider.initValue',
+              () async => homeProvider.initValue(),
+          timeout: const Duration(seconds: 10),
+        ),
+      );
+
+      unawaited(
+        safeCall(
+          'homeProvider.checkThisMonth',
+              () async => homeProvider.checkThisMonth(),
+          timeout: const Duration(seconds: 10),
+        ),
+      );
+
+      // --------------------------------------------------
+      // Dashboard
+      // --------------------------------------------------
+
+      unawaited(
+        safeCall(
+          'homeProvider.loadFullDashboard',
+              () async {
+            final ctx = navigatorKey.currentContext;
+
+            if (ctx != null) {
+              await homeProvider.loadFullDashboard(ctx);
+            }
+          },
+          timeout: const Duration(seconds: 12),
+        ),
+      );
+
+      // --------------------------------------------------
+      // Version
+      // --------------------------------------------------
+
+      await safeCall(
+        'homeProvider.checkVersion',
+            () => homeProvider.checkVersion(),
+        timeout: const Duration(seconds: 10),
+      );
+
+      if (!mounted) return;
+
+      // --------------------------------------------------
+      // Small delay so splash is visible
+      // --------------------------------------------------
+
+      await Future.delayed(const Duration(milliseconds: 500));
+
+      if (!mounted || _navigated) return;
+
+      // --------------------------------------------------
+      // Navigate
+      // --------------------------------------------------
+
+      await _navigate();
+    } catch (e, st) {
+      log("❌ Splash initialization failed: $e");
+      log("❌ STACK: $st");
+
+      if (!mounted || _navigated) return;
+
+      _navigateToLogin();
     }
+  }
+
+  Future<void> _navigate() async {
+    if (!mounted || _navigated) return;
+
+    _navigated = true;
+
+    try {
+      final SharedPreferences prefs =
+      await SharedPreferences.getInstance();
+
+      final String storedVersion =
+          prefs.getString('appVersion') ?? "0";
+
+      final String currentVersion =
+      localData.versionNumber.toString();
+
+      log("📦 Stored version: $storedVersion");
+      log("📦 Current version: $currentVersion");
+      log("🏠 Home screen: ${widget.homeScreen}");
+
+      if (!mounted) return;
+
+      if (storedVersion != currentVersion) {
+        log("➡️ Version mismatch → Login");
+
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (_) => const LoginPage(),
+          ),
+        );
+
+        return;
+      }
+
+      if (widget.homeScreen) {
+        log("➡️ HomeScreen → Dashboard");
+
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (_) => DashBoard(
+              child: HomePage(),
+            ),
+          ),
+        );
+
+        return;
+      }
+
+      log("➡️ Default → Login");
+
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (_) => const LoginPage(),
+        ),
+      );
+    } catch (e, st) {
+      log("❌ Navigation error: $e");
+      log("❌ STACK: $st");
+
+      _navigateToLogin();
+    }
+  }
+
+  void _navigateToLogin() {
+    if (!mounted || _navigated) return;
+
+    _navigated = true;
+
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(
+        builder: (_) => const LoginPage(),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedSplashScreen(
-      duration: 300,
-      splashIconSize: 800,
-      splashTransition: SplashTransition.fadeTransition,
-      splash:Container(
-        color: Colors.white,
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: SizedBox(
         width: double.infinity,
         height: double.infinity,
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            100.height,
             Image.asset(
               assets.logo,
               width: 100,
               height: 100,
             ),
-            20.height,
-            // CustomText(text: Provider.of<HomeProvider>(context, listen: false).appComponent[0]["app_name"],colors: colorsConst.primary,size: 20,isBold: true,),
-            CustomText(text:"${constValue.comName}\n",size: 15,colors: colorsConst.primary,),
+
+            const SizedBox(height: 20),
+
+            CustomText(
+              text: constValue.comName,
+              size: 15,
+              colors: colorsConst.primary,
+            ),
+
+            const SizedBox(height: 30),
+
+            const CircularProgressIndicator(),
           ],
         ),
       ),
-      nextScreen: storedVersion != currentVersion?const LoginPage():widget.homeScreen?const DashBoard(child: HomePage()):const LoginPage(),
-      // nextScreen: const DashBoard(),
     );
   }
 }

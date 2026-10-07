@@ -1,8 +1,10 @@
-import 'package:master_code/source/constant/colors_constant.dart';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:master_code/source/extentions/extensions.dart';
+
 import 'package:flutter_svg/flutter_svg.dart';
+import '../source/constant/colors_constant.dart';
+import '../source/extentions/int_extensions.dart';
 import 'custom_text.dart';
 
 class DrawerListTile extends StatelessWidget {

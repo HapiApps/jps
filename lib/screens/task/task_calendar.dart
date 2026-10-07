@@ -1,19 +1,17 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
-import 'package:master_code/screens/task/task_chat.dart';
-import 'package:master_code/screens/task/task_details.dart';
-import 'package:master_code/source/extentions/extensions.dart';
+import '../../screens/task/task_chat.dart';
+import '../../screens/task/task_details.dart';
+import '../../source/extentions/extensions.dart';
 import 'package:intl/intl.dart';
-import 'package:provider/provider.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
 import '../../component/custom_loading.dart';
 import '../../component/custom_text.dart';
-import '../../component/custom_textfield.dart';
 import '../../model/task/task_data_model.dart';
 import '../../source/constant/assets_constant.dart';
 import '../../source/constant/colors_constant.dart';
-import '../../source/constant/default_constant.dart';
+import '../../source/constant/language_model.dart';
 import '../../source/styles/decoration.dart';
 import '../../source/utilities/utils.dart';
 import '../../view_model/task_provider.dart';
@@ -432,7 +430,7 @@ class CalendarAppointment extends State<TaskCalendar> {
                                   kIsWeb
                                       ? webWidth
                                       : phoneWidth,
-                                  data);
+                                  data,index);
                             }
 
                             return const SizedBox();
@@ -463,7 +461,7 @@ class CalendarAppointment extends State<TaskCalendar> {
         date1.day == date2.day;
   }
 
-  Widget dataList(double width, TaskData data) {
+  Widget dataList(double width, TaskData data, int index) {
     return GestureDetector(
       onTap: () {
         utils.navigatePage(
@@ -473,7 +471,7 @@ class CalendarAppointment extends State<TaskCalendar> {
               data: data,
               isDirect: true,
               coId: "0",
-              numberList: const [],
+              numberList: const [], index: index,
             ),
           ),
         );
@@ -595,7 +593,7 @@ class CalendarAppointment extends State<TaskCalendar> {
                                   assignedName: data.assignedNames.toString(),
                                   date1: '',
                                   date2: '',
-                                  type: '',
+                                  type: '', index: index,
                                 ),
                               );
                             },

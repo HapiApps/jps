@@ -43,8 +43,8 @@ class TaskRepo {
           },
           body: jsonEncode(data),
           encoding: Encoding.getByName("utf-8"));
-      // print(data);
-      // print(request.body);
+      print(data);
+      print(request.body);
       if (request.statusCode == 200) {
         return json.decode(request.body);
       } else {
@@ -463,6 +463,78 @@ class TaskRepo {
     } catch (e) {
       log("Error task count : $e");
       throw Exception(e);
+    }
+  }
+  Future<List> getAdminUsers(Map data) async {
+    try {
+      final request = await http.post(
+        Uri.parse(phpFile),
+        headers: {
+          "Accept": "application/text",
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: jsonEncode(data),
+        encoding: Encoding.getByName("utf-8"),
+      );
+
+      print("Users Request: $data");
+      print("Users Response: ${request.body}");
+
+      if (request.statusCode == 200) {
+        List response = json.decode(request.body);
+        return response;
+      } else {
+        throw Exception("Failed to get users");
+      }
+    } catch (e) {
+      print("Get Users Error: $e");
+      throw Exception("Failed to get users");
+    }
+  }
+
+  Future<String> addWages(Map<String, String> data) async {
+    try {
+      var uri = Uri.parse(taskScript); // wages script separate na inga maathunga
+
+      final response = await http.post(
+        uri,
+        body: jsonEncode(data),
+      );
+
+      return response.body;
+    } catch (e) {
+      throw Exception('Failed to add wages');
+    }
+  }
+  Future<String> getWages(Map<String, String> data) async {
+    try {
+      var uri = Uri.parse(taskScript); // wages script separate na inga maathunga
+
+      final response = await http.post(
+        uri,
+        body: jsonEncode(data),
+      );
+
+      return response.body;
+    } catch (e) {
+      throw Exception('Failed to select wages');
+    }
+  }
+  Future<String> addWorkDetails(Map<String, String> data) async {
+    try {
+      final response = await http.post(Uri.parse(taskScript), body: jsonEncode(data));
+      return response.body;
+    } catch (e) {
+      throw Exception('Failed to add work details');
+    }
+  }
+
+  Future<String> getWorkDetails(Map<String, String> data) async {
+    try {
+      final response = await http.post(Uri.parse(taskScript), body: jsonEncode(data));
+      return response.body;
+    } catch (e) {
+      throw Exception('Failed to get work details');
     }
   }
 }

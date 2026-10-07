@@ -1,6 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:master_code/source/extentions/extensions.dart';
+import '../../source/extentions/extensions.dart';
 
 class ExpandableText extends StatefulWidget {
   final String text;

@@ -1,20 +1,18 @@
 import 'dart:convert';
 import 'dart:developer';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:http/http.dart'as http;
 import 'package:flutter/material.dart';
 import 'package:group_button/group_button.dart';
 import 'package:intl/intl.dart';
-import 'package:master_code/repo/attendance_repo.dart';
-import 'package:master_code/repo/leave_repo.dart';
-import 'package:master_code/screens/leave_management/leave_dashboard.dart';
-import 'package:master_code/source/constant/local_data.dart';
+import '../../repo/attendance_repo.dart';
+import '../../repo/leave_repo.dart';
+import '../../screens/leave_management/leave_dashboard.dart';
+import '../../source/constant/local_data.dart';
 import 'package:provider/provider.dart';
 import 'package:rounded_loading_button_plus/rounded_loading_button.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
 import 'package:syncfusion_flutter_datepicker/datepicker.dart';
 import '../component/custom_text.dart';
-import '../component/month_calender.dart';
 import '../model/attendance_model.dart';
 import '../model/leave/attendance_model.dart';
 import '../model/leave/holiday.dart';
@@ -23,6 +21,7 @@ import '../model/leave/leave_model.dart';
 import '../model/leave/rules_model.dart';
 import '../model/task/work_plan.dart';
 import '../model/user_model.dart';
+import '../repo/ex_api_services.dart';
 import '../screens/common/dashboard.dart';
 import '../screens/common/add_day_work_plan.dart';
 import '../screens/leave_management/add_leave_rules.dart';
@@ -54,6 +53,11 @@ class LeaveProvider with ChangeNotifier {
   bool _allSelect =false;
   bool isSaving = false;
   List todayLeaveList = [];
+  int viewLeaveTabIndex = 0;
+  void setViewLeaveTab(int index) {
+    viewLeaveTabIndex = index;
+    notifyListeners();
+  }
   void changeValue(dynamic value) {
     _allSelect = value;
     holyDaysList.clear();
@@ -1077,16 +1081,20 @@ void changePage2(){
   String betweenDates="";
   void showDatePickerDialog(BuildContext context) {
     DateTime today = DateTime.now();
-    if(_stDate!=""||_enDate!=""){
+
+    // Allow previous 1 week dates
+    DateTime minDate = today.subtract(const Duration(days: 7));
+
+    if (_stDate != "") {
       DateFormat inputFormat = DateFormat('dd-MM-yyyy');
 
       DateTime start = inputFormat.parse(_stDate);
       DateTime end;
 
-      if (_enDate != "" && _enDate!="") {
+      if (_enDate != "") {
         end = inputFormat.parse(_enDate);
       } else {
-        end = start;   // single-day selection
+        end = start;
       }
 
       if (end.isBefore(start)) {
@@ -1096,48 +1104,72 @@ void changePage2(){
       }
 
       selectedDate = PickerDateRange(start, end);
-    }else{
+    } else {
       selectedDate = PickerDateRange(today, today);
     }
-    notifyListeners();
-    datesBetween = getDatesInRange(selectedDate!.startDate!, selectedDate!.endDate!);
+
+    datesBetween = getDatesInRange(
+      selectedDate!.startDate!,
+      selectedDate!.endDate!,
+    );
 
     DateFormat dateFormat = DateFormat('dd-MM-yyyy');
-    List<String> formattedDates = datesBetween.map((date) => dateFormat.format(date)).toList();
+
+    List<String> formattedDates =
+    datesBetween.map((date) => dateFormat.format(date)).toList();
+
     betweenDates = formattedDates.join(' || ');
 
     _stDate = dateFormat.format(selectedDate!.startDate!);
+
     notifyListeners();
+
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: CustomText(text: '   Select Date',colors: colorsConst.secondary,isBold: true,),
+          title: CustomText(
+            text: '   Select Date',
+            colors: colorsConst.secondary,
+            isBold: true,
+          ),
           content: SizedBox(
-            height: 300, // Adjust height as needed
-            width: 300, // Adjust width as needed
+            height: 300,
+            width: 300,
             child: SfDateRangePicker(
-              minDate: DateTime.now(),
-              initialSelectedRange: selectedDate,   // ✔ REQUIRED
-              onSelectionChanged: (DateRangePickerSelectionChangedArgs args) {
-                selectedDate = args.value;
-                _stDate="";
-                _enDate="";
-                if(selectedDate?.endDate!=null){
-                  _stDate="${selectedDate?.startDate?.day.toString().padLeft(2,"0")}"
-                      "-${selectedDate?.startDate?.month.toString().padLeft(2,"0")}"
-                      "-${selectedDate?.startDate?.year.toString()}";
+              // ⭐ Previous 7 days allowed
+              minDate: minDate,
 
-                  _enDate="${selectedDate?.endDate?.day.toString().padLeft(2,"0")}"
-                      "-${selectedDate?.endDate?.month.toString().padLeft(2,"0")}"
-                      "-${selectedDate?.endDate?.year.toString()}";
-                }else{
-                  _stDate="${selectedDate?.startDate?.day.toString().padLeft(2,"0")}"
-                      "-${selectedDate?.startDate?.month.toString().padLeft(2,"0")}"
-                      "-${selectedDate?.startDate?.year.toString()}";
+              // Today and future dates are also allowed
+              initialSelectedRange: selectedDate,
+
+              onSelectionChanged:
+                  (DateRangePickerSelectionChangedArgs args) {
+                selectedDate = args.value;
+
+                _stDate = "";
+                _enDate = "";
+
+                if (selectedDate?.endDate != null) {
+                  _stDate =
+                  "${selectedDate!.startDate!.day.toString().padLeft(2, "0")}"
+                      "-${selectedDate!.startDate!.month.toString().padLeft(2, "0")}"
+                      "-${selectedDate!.startDate!.year}";
+
+                  _enDate =
+                  "${selectedDate!.endDate!.day.toString().padLeft(2, "0")}"
+                      "-${selectedDate!.endDate!.month.toString().padLeft(2, "0")}"
+                      "-${selectedDate!.endDate!.year}";
+                } else {
+                  _stDate =
+                  "${selectedDate!.startDate!.day.toString().padLeft(2, "0")}"
+                      "-${selectedDate!.startDate!.month.toString().padLeft(2, "0")}"
+                      "-${selectedDate!.startDate!.year}";
                 }
+
                 notifyListeners();
               },
+
               selectionMode: DateRangePickerSelectionMode.range,
             ),
           ),
@@ -1145,32 +1177,51 @@ void changePage2(){
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                CustomText(text: 'Click and drag to select multiple dates',colors: colorsConst.greyClr,),
+                CustomText(
+                  text:
+                  'Double Click to select single dates and drag to select multiple dates',
+                  colors: colorsConst.greyClr,
+                ),
               ],
             ),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
                 TextButton(
-                  child: const CustomText(text:'Cancel',colors: Colors.grey,isBold: true,),
+                  child: const CustomText(
+                    text: 'Cancel',
+                    colors: Colors.grey,
+                    isBold: true,
+                  ),
                   onPressed: () {
                     Navigator.of(context).pop();
                   },
                 ),
                 TextButton(
-                  child: CustomText(text: 'OK',colors: colorsConst.primary,isBold: true,),
+                  child: CustomText(
+                    text: 'OK',
+                    colors: colorsConst.primary,
+                    isBold: true,
+                  ),
                   onPressed: () {
                     if (selectedDate != null) {
                       datesBetween = getDatesInRange(
                         selectedDate!.startDate!,
-                        selectedDate!.endDate ?? selectedDate!.startDate!,
+                        selectedDate!.endDate ??
+                            selectedDate!.startDate!,
                       );
                     }
+
                     DateFormat dateFormat = DateFormat('dd-MM-yyyy');
 
-                    List<String> formattedDates = datesBetween.map((date) => dateFormat.format(date)).toList();
+                    List<String> formattedDates = datesBetween
+                        .map((date) => dateFormat.format(date))
+                        .toList();
+
                     betweenDates = formattedDates.join(' || ');
+
                     notifyListeners();
+
                     Navigator.of(context).pop();
                   },
                 ),
@@ -1575,9 +1626,12 @@ void setList(){
   //
   //   return uniqueMap.values.toList();
   // }
-  Future<void> leaveApply(context) async {
+  // Leave workplan notification fixed · DART
+  /// ========================================================
+  /// leaveApply — FIXED
+  /// ========================================================
+  Future<void> leaveApply(context, String string) async {
     try {
-
       Map data = {
         "action": applyLeave,
         "search_type": "apply",
@@ -1592,7 +1646,6 @@ void setList(){
             ? nameId
             : localData.storage.read("id"),
         "cos_id": localData.storage.read("cos_id"),
-        "version": localData.versionNumber,
         "session": _session1 == true ? "Morning" : "Afternoon",
       };
 
@@ -1602,78 +1655,65 @@ void setList(){
       /// ✅ SUCCESS
       if (response["message"] != null &&
           response["message"] == "Leave application successful") {
-        utils.showSuccessToast(
-            context: context, text: "Applied Successfully");
+        utils.showSuccessToast(context: context, text: "Applied Successfully");
+
         /// 🔔 SEND NOTIFICATION TO ADMINS
+        final empProvider = Provider.of<EmployeeProvider>(context, listen: false);
 
-        final empProvider =
-        Provider.of<EmployeeProvider>(context, listen: false);
-
-        String currentUserId =
-        localData.storage.read("id").toString();
-
-        String currentRole =
-        localData.storage.read("role").toString();
+        String currentUserId = localData.storage.read("id").toString();
+        String currentRole = localData.storage.read("role").toString();
 
         String title = "New Leave Request";
-        String body =
-            "${localData.storage.read("f_name")} Requested for leave";
+        String body = "${localData.storage.read("f_name")} Requested for leave";
+
         try {
-          await empProvider.sendAdminNotification(
+          // FIX: "1" hardcode remove pannirukom. Idhu backend-la
+          // WHERE id != ? nu exclude panna use aagும். "1" nu fixed-a
+          // anuppுna, id=1 admin-a EVERY TIME exclude pannிடும் —
+          // adhே than notification varaamல் irundha reason.
+          //
+          // Role 1 (admin) tan leave apply pannாna → avaraye exclude pannanum.
+          // Normal employee leave apply pannாna → yaaraiyum exclude pannaadhu,
+          // ellaa admins-kkum pogaanum.
+          if (currentRole == "1") {
+            await empProvider.sendAdminNotification(
               title,
               body,
               "",
               "",
-              "1"
-          );
-        } catch(e){
+              currentUserId, // exclude self only
+            );
+          } else {
+            await empProvider.sendAdminNotification(
+              title,
+              body,
+              "",
+              "",
+              "", // no exclusion — send to all admins
+            );
+          }
+        } catch (e) {
           log("Notification failed: $e");
         }
-            // if (currentRole == "1") {
-        //   // Role 1 → exclude self
-        //   await empProvider.sendAdminNotification(
-        //     title,
-        //     body,
-        //     "",
-        //     "",
-        //     currentUserId, // exclude self
-        //   );
-        // } else {
-        //   // Normal employee → send to all admins
-        //   await empProvider.sendAdminNotification(
-        //     title,
-        //     body,
-        //     "", // no exclusion
-        //     "",
-        //     "",
-        //   );
-        // }
 
         leaveCtr.reset();
-        if({"1"}.contains(localData.storage.read("role"))){
-                  _selectedIndex=2;
-                  getLeaveReport(_filter);
-                }else{
-                  getLeaveReport(_filter);
-                  Navigator.pop(context);
-                }
-
+        if ({"1"}.contains(localData.storage.read("role"))) {
+          _selectedIndex = 2;
+          getLeaveReport(_filter);
+        } else {
+          getLeaveReport(_filter);
+          Navigator.pop(context);
+        }
       }
 
-      /// ❌ FAILED CASE (Main Fix)
+      /// ❌ FAILED CASE
       else if (response["Failed"] != null) {
-
-        utils.showWarningToast(context,
-            text: response["Failed"].toString());
-
+        utils.showWarningToast(context, text: response["Failed"].toString());
         leaveCtr.reset();
-      }
-
-      else {
+      } else {
         utils.showErrorToast(context: context);
         leaveCtr.reset();
       }
-
     } catch (e) {
       log(e.toString());
       utils.showErrorToast(context: context);
@@ -1683,22 +1723,16 @@ void setList(){
     notifyListeners();
   }
 
-  String? _loadingLeaveId;
-  String? get loadingLeaveId => _loadingLeaveId;
-
-  String? loadingAction;
   Future<void> approveApply(
       context,
       String leaveId,
       String userId,
       String status,
-      ) async {
-    _loadingLeaveId = leaveId;
-    loadingAction = status == "1" ? "approve" : "reject"; // 👈 track action
-    notifyListeners();
-    notifyListeners();
+      )
+  async {
 
     try {
+
       Map data = {
         "action": approveLeave,
         "platform": localData.storage.read("platform"),
@@ -1714,41 +1748,60 @@ void setList(){
       log(response.toString());
 
       if (response["message"] != null) {
-        utils.showSuccessToast(context: context, text: response["message"]);
+
+        utils.showSuccessToast(
+            context: context,
+            text: response["message"]);
+
+        /// 🔔 SEND NOTIFICATION TO EMPLOYEE
 
         final empProvider =
         Provider.of<EmployeeProvider>(context, listen: false);
-        final home = Provider.of<HomeProvider>(context, listen: false);
+        final home =
+        Provider.of<HomeProvider>(context, listen: false);
 
-        String title = status == "1" ? "Leave Approved ✅" : "Leave Rejected ❌";
+        String title = status == "1"
+            ? "Leave Approved ✅"
+            : "Leave Rejected ❌";
+
         String body = status == "1"
             ? "Your leave request has been approved"
             : "Your leave request has been rejected";
-
         try {
-          await empProvider.sendUserNotification(title, body, userId);
+          await empProvider.sendUserNotification(
+            title,
+            body,
+            userId,   // 👈 employee id
+          );
           getLeaveReport(filter);
-        } catch (e) {
+          // home.loadFullDashboard(context);
+        } catch(e){
           log("Notification failed: $e");
         }
         await getLeaveReport(_filter);
-      } else if (response["Failed"] != null) {
-        utils.showWarningToast(context, text: response["Failed"].toString());
+
+      }
+      else if (response["Failed"] != null) {
+
+        utils.showWarningToast(
+            context,
+            text: response["Failed"].toString());
+
         leaveCtr.reset();
-      } else {
+      }
+      else {
         utils.showErrorToast(context: context);
         leaveCtr.reset();
       }
+
     } catch (e) {
       log(e.toString());
       utils.showErrorToast(context: context);
       leaveCtr.reset();
-    } finally {
-      leaveCtr.reset();
-      _loadingLeaveId = null;
-      loadingAction = null; // 👈 res
-      notifyListeners();
     }
+
+    leaveCtr.reset();
+    notifyListeners();
   }
   // Future<void> leaveApply(context) async {
   //   try {
@@ -2155,11 +2208,77 @@ void changeStatus(bool value){
       };
 
       final response = await leaveRepo.getLeave(data);
-
+       print("TODAY LEAVE LIST 33 => ${response}");
+     print("TODAY LEAVE LIST 12 => ${data}");
       myLev = response;
       myLevSearch = response;
-      todayLeaveList = response;
 
+      DateTime parseDate(String date) {
+        final parts = date.split('-');
+        return DateTime( int.parse(parts[2]),int.parse(parts[1]),int.parse(parts[0]));
+      }
+      DateTime today = DateTime.now();
+      today = DateTime(today.year, today.month, today.day);
+      DateTime stDate = parseDate(st);
+      DateTime enDate = parseDate(en);
+
+      bool isToday = !today.isBefore(stDate) &&!today.isAfter(enDate);
+      if(isToday){
+        todayLeaveList = response;
+      }
+   print("TODAY LEAVE LIST => ${todayLeaveList}");
+       print("MY ID => ${localData.storage.read("id")}");// ✅ store here
+      _isLoading = false;
+      notifyListeners();
+
+      return response;
+
+    } catch (e) {
+      _isLoading = false;
+      notifyListeners();
+      return [];
+    }
+  }
+  Future<List<LeaveModel>> allAttendLeaves(String st, String en, bool refresh,String roleId,String userId) async {
+    try {
+
+      _isLoading = true;
+      notifyListeners();
+
+      myLevSearch.clear();
+      myLev.clear();
+
+      Map data = {
+        "action": getLeaveData,
+        "search_type": "all_leave_attend",
+        "st_dt": st,
+        "en_dt": en,
+        "cos_id": localData.storage.read("cos_id"),
+        "role": roleId !="0"?localData.storage.read("role"):roleId,
+        "id": userId==""?"":userId,
+      };
+
+      final response = await leaveRepo.getLeave(data);
+       print("TODAY LEAVE LIST 33 => ${response}");
+     print("TODAY LEAVE LIST 12 => ${data}");
+      myLev = response;
+      myLevSearch = response;
+
+      DateTime parseDate(String date) {
+        final parts = date.split('-');
+        return DateTime( int.parse(parts[2]),int.parse(parts[1]),int.parse(parts[0]));
+      }
+      DateTime today = DateTime.now();
+      today = DateTime(today.year, today.month, today.day);
+      DateTime stDate = parseDate(st);
+      DateTime enDate = parseDate(en);
+
+      bool isToday = !today.isBefore(stDate) &&!today.isAfter(enDate);
+      if(isToday){
+        todayLeaveList = response;
+      }
+   print("TODAY LEAVE LIST => ${todayLeaveList}");
+       print("MY ID => ${localData.storage.read("id")}");// ✅ store here
       _isLoading = false;
       notifyListeners();
 
@@ -2192,7 +2311,8 @@ void changeStatus(bool value){
       };
 
       final response = await leaveRepo.getLeave(data);
-
+      // print("TODAY LEAVE LIST 33 => ${response}");
+      // print("TODAY LEAVE LIST 12 => ${data}");
       myLev = response;
       myLevSearch = response;
       DateTime parseDate(String date) {
@@ -2208,7 +2328,8 @@ void changeStatus(bool value){
       if(isToday){
         todayLeaveList = response;
       }
-
+      // print("TODAY LEAVE LIST => ${todayLeaveList}");
+      // print("MY ID => ${localData.storage.read("id")}");// ✅ store here
       _isLoading = false;
       notifyListeners();
 
@@ -2295,12 +2416,14 @@ void changeStatus(bool value){
   dynamic get user=>_user;
   String _userName="";
   String get userName=>_userName;
-  var typeList = ["Today","Yesterday","Last 7 Days","Last 30 Days","This Week","This Month","Last 3 months"];
+  var typeList = ["Upcoming Week","Today","Yesterday","Last 7 Days","Last 30 Days","This Week","This Month","Last 3 months"];
   dynamic _typeReport;
   dynamic get typeReport=>_typeReport;
   void changeRrtType(value,String id ,String role,bool? isRefresh){
     _typeReport=value;
-    if(_typeReport=="Today"){
+    if(_typeReport=="Upcoming Week"){
+      upcomingWeek(id,role,isRefresh);
+    }else if(_typeReport=="Today"){
       daily(id,role,isRefresh);
     }else if(_typeReport=="Yesterday"){
       yesterday(id,role,isRefresh);
@@ -2332,6 +2455,20 @@ void changeStatus(bool value){
 
     notifyListeners();
   }
+  void upcomingWeek(String id, String role, bool? isRefresh) {
+    _typeReport = "Upcoming Week";
+
+    DateTime today = DateTime.now();
+
+    stDt = today.add(const Duration(days: 1));   // Tomorrow
+    enDt = today.add(const Duration(days: 7));   // Next 7 days
+
+    _startDate = DateFormat('dd-MM-yyyy').format(stDt);
+    _endDate = DateFormat('dd-MM-yyyy').format(enDt);
+
+    notifyListeners();
+  }
+
   DateTime stDt = DateTime.now();
   DateTime enDt = DateTime.now().add(const Duration(days: 1));
   void dailys(String id ,String role,bool? isRefresh) {
@@ -2670,6 +2807,9 @@ void changeStatus(bool value){
   List<LeaveAttModel> userAttendanceReport = <LeaveAttModel>[];
 
 
+  // ========================================================
+  /// workPlanSubmit — FIXED
+  /// ========================================================
   Future<void> workPlanSubmit(
       BuildContext context,
       List<WorkPlanModel> workPlans,
@@ -2686,9 +2826,7 @@ void changeStatus(bool value){
           return WorkPlanItem(
             comId: item.companyId,
             cusId: item.selectedCustomers.isNotEmpty
-                ? item.selectedCustomers
-                .map((e) => e["id"].toString())
-                .join(",")
+                ? item.selectedCustomers.map((e) => e["id"].toString()).join(",")
                 : "0",
             value: item.descriptionController.text.trim(),
             status: item.status,
@@ -2708,27 +2846,40 @@ void changeStatus(bool value){
 
       if (response != null && response["success"] == true) {
         utils.showSuccessToast(context: context, text: "Work Plan Submitted");
-         addWorkCtr.reset();
-        final empProvider =
-        Provider.of<EmployeeProvider>(context, listen: false);
+        addWorkCtr.reset();
+
+        final empProvider = Provider.of<EmployeeProvider>(context, listen: false);
+        String currentRole = localData.storage.read("role").toString();
+        String currentUserId = localData.storage.read("id").toString();
 
         String title = "Added by ${localData.storage.read("f_name")}";
         String body = "Daily Work Plan";
 
         try {
-          await empProvider.sendAdminNotification(
-            title,
-            body,
-            "",
-            "",
-            "1",
-          );
+          // FIX: same "1" hardcode issue removed here too.
+          if (currentRole == "1") {
+            await empProvider.sendAdminNotification(
+              title,
+              body,
+              "",
+              "",
+              currentUserId, // exclude self only
+            );
+          } else {
+            await empProvider.sendAdminNotification(
+              title,
+              body,
+              "",
+              "",
+              "", // no exclusion — send to all admins
+            );
+          }
         } catch (e) {
           debugPrint("Notification failed: $e");
         }
 
         final homeProvider = Provider.of<HomeProvider>(context, listen: false);
-        await homeProvider.loadFullDashboard(context);
+        homeProvider.loadFullDashboard(context);
 
         Navigator.pop(context, true);
       } else {
@@ -2746,6 +2897,271 @@ void changeStatus(bool value){
 
     isSaving = false;
     addWorkCtr.reset();
+    notifyListeners();
+  }
+
+  /// ==========================================
+  /// ✅ PREFILL FORM FOR EDIT MODE
+  /// ==========================================
+  Future<void> iniValuesForEdit(LeaveModel data) async {
+    // Day type (Full / Half)
+    _dayType = data.dayType.toString();
+
+    if (data.dayType.toString() == "0.5") {
+      _session1 = data.session.toString() == "Morning";
+      _session2 = data.session.toString() == "Afternoon";
+    } else {
+      _session1 = false;
+      _session2 = false;
+    }
+
+    // Dates
+    try {
+      final st = DateTime.parse(data.startDate.toString());
+      _stDate = DateFormat('dd-MM-yyyy').format(st);
+    } catch (_) {
+      _stDate = "";
+    }
+
+    if (data.endDate != null && data.endDate.toString().isNotEmpty) {
+      try {
+        final en = DateTime.parse(data.endDate.toString());
+        _enDate = DateFormat('dd-MM-yyyy').format(en);
+      } catch (_) {
+        _enDate = _stDate;
+      }
+    } else {
+      _enDate = _stDate;
+    }
+
+    // ✅ FIX: make sure types list is loaded BEFORE we try to select one
+    if (types.isEmpty) {
+      await getLeaveTypes();
+    }
+
+    // ✅ FIX: match by id OR by name (whichever data.type actually holds)
+    final match = types.firstWhere(
+          (e) =>
+      e["id"].toString() == data.type.toString() ||
+          e["type"].toString() == data.type.toString(),
+      orElse: () => {},
+    );
+
+    _type = match.isNotEmpty ? match["type"].toString() : null;
+
+    // Reason
+    reason.text = data.reason.toString();
+
+    if (localData.storage.read("role") == "1") {
+      _name = data.fName.toString();
+      search.text = data.fName.toString();
+    }
+
+    notifyListeners();
+  }
+  /// ==========================================
+  /// ✅ UPDATE EXISTING LEAVE (called from Update button)
+  /// ==========================================
+  Future<void> updateLeaveDetails(context, String leaveId) async {
+    try {
+      Map data = {
+        "action": applyLeave, // ⚠️ உங்க backend-ல update action name இதுதான்னு confirm பண்ணுங்க
+        "search_type": "update",
+        "id": leaveId,
+        "reason": reason.text.trim(),
+        "day_type": dayType.toString(),
+        "lev_type": type,
+        "start_date": stDate,
+        "end_date": enDate == "" ? stDate : enDate,
+        "platform": localData.storage.read("platform"),
+        "created_by": localData.storage.read("id"),
+        "user_id": localData.storage.read("role") == "1"
+            ? nameId
+            : localData.storage.read("id"),
+        "cos_id": localData.storage.read("cos_id"),
+        "session": _session1 == true ? "Morning" : "Afternoon",
+      };
+
+      final response = await leaveRepo.addEmployee(data);
+      log(response.toString());
+
+      /// ✅ SUCCESS
+      if (response["message"] != null &&
+          (response["message"] == "Leave updated successfully" ||
+              response["message"] == "Leave application successful")) {
+        utils.showSuccessToast(context: context, text: "Leave Updated Successfully");
+
+        leaveCtr.reset();
+
+        /// ✅ refresh the leave list BEFORE navigating so the report page shows latest data
+        getLeaveReport(_filter);
+
+        /// ✅ Always go to Leave Report page after update — don't stay on this screen
+        if (localData.storage.read("role") == "1") {
+          _selectedIndex = 2;
+        }
+
+        utils.navigatePage(
+          context,
+              () => DashBoard(
+            child: ViewMyLeaves(
+              date1: startDate,
+              date2: endDate,
+              isDirect: true,
+            ),
+          ),
+        );
+      }
+
+      /// ❌ FAILED CASE
+      else if (response["Failed"] != null) {
+        utils.showWarningToast(context, text: response["Failed"].toString());
+        leaveCtr.reset();
+      } else {
+        utils.showErrorToast(context: context);
+        leaveCtr.reset();
+      }
+    } catch (e) {
+      log(e.toString());
+      utils.showErrorToast(context: context);
+      leaveCtr.reset();
+    }
+    leaveCtr.reset();
+    notifyListeners();
+  }
+  void resetOnLogout() {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final todayStr =
+        "${now.day.toString().padLeft(2, "0")}-${now.month.toString().padLeft(2, "0")}-${now.year}";
+    final monthName = DateFormat('MMMM').format(now);
+
+    _type = null;
+    _dayType = null;
+    _name = null;
+    _typeId = "";
+    _nameId = "";
+    _stDate = "";
+    _enDate = "";
+    _year = "";
+    _report = "Daily";
+    _typeReport = null;
+    _user = null;
+    _userName = "";
+    _startDate = "";
+    _endDate = "";
+    _filterDate = "";
+    _d1 = "";
+    _d2 = "";
+    _date1 = todayStr;
+    _date2 = todayStr;
+    _showDate3 = "";
+    _showDate4 = "";
+    _showDate5 = "";
+    _showDate6 = "";
+    _showDate7 = "";
+    _showDate8 = "";
+
+    isFilterApplied = false;
+    _filter = false;
+    _getLeave = false;
+    _allSelect = false;
+    isSaving = false;
+    _isChanged = false;
+    _isLeave = true;
+    _refresh = true;
+    _isLoading = false;
+    _isLoading2 = false;
+    _isLoading3 = false;
+    _isLoading4 = false;
+    _settingPage = false;
+    _addType = false;
+    _getTypes = true;
+    _session1 = true;
+    _session2 = false;
+    _allSunday = false;
+    _allSaturday = false;
+    _saturday1 = false;
+    _saturday2 = false;
+    _saturday3 = false;
+    _saturday4 = false;
+    _saturday5 = false;
+    _saturday6 = false;
+
+    _selectedIndex = 0;
+    viewLeaveTabIndex = 0;
+    _filterTasks = 0;
+    total = 0;
+    _thisMonthLeave = "0";
+    totalLeaveDays = "0";
+    _defaultMonth = now.month;
+    _levCount1 = "Full  Day 0\nHalf Day 0";
+    _levCount2 = "Full  Day 0\nHalf Day 0";
+    _levCount3 = "Full  Day 0\nHalf Day 0";
+    _levCount4 = "Full  Day 0\nHalf Day 0";
+
+    todayLeaveList = [];
+    _rulesList = [];
+    _leavesRules = <RulesModel>[];
+    _getDailyAttendance = <AttendanceModel>[];
+    sundays = [];
+    saturdays = [];
+    customSaturdays1 = [];
+    customSaturdays2 = [];
+    customSaturdays3 = [];
+    customSaturdays4 = [];
+    customSaturdays5 = [];
+    allLeavesList = [];
+    holyDaysList = [];
+    searchFutureHolidays = <Holiday>[];
+    futureHolidays = <Holiday>[];
+    _fixedLeaves = <HolyDaysModel>[];
+    fixedMonthLeaves = <HolyDaysModel>[];
+    userAttendanceReport = <LeaveAttModel>[];
+    myLev = <LeaveModel>[];
+    myLev2 = <LeaveModel>[];
+    myLev3 = <LeaveModel>[];
+    myLev4 = <LeaveModel>[];
+    myLevSearch = <LeaveModel>[];
+    myLev2Search = <LeaveModel>[];
+    myLev3Search = <LeaveModel>[];
+    myLev4Search = <LeaveModel>[];
+    types = [];
+    _mainContents = [];
+    datesBetween = [];
+    betweenDates = "";
+    selectedDate = null;
+
+    selected = today;
+    lastDate = null;
+    end = null;
+    yearr = null;
+    start = null;
+    stDt = now;
+    enDt = now.add(const Duration(days: 1));
+    customDate1 = now;
+    customDate2 = now.add(const Duration(days: 1));
+    dateTime1 = now;
+    dateTime2 = now;
+    date3 = now;
+    date4 = now;
+    dateRange = DateTimeRange(start: today, end: now);
+    lastRange = DateTime(now.year, DateTime.december, 31);
+    _calenderSelectedDate = now;
+    month = monthName;
+    dMonth = monthName;
+    levMonthD1 = monthName;
+    levMonthD2 = monthName;
+
+    try {
+      dataSource.appointments?.clear();
+    } catch (_) {}
+
+    search.clear();
+    search2.clear();
+    reason.clear();
+    noOfWorkingDay.clear();
+
     notifyListeners();
   }
 }

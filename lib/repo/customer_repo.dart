@@ -2,9 +2,9 @@ import 'dart:convert';
 import 'dart:developer';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart'as http;
-import 'package:master_code/model/customer/customer_attendance_model.dart';
-import 'package:master_code/model/customer/customer_model.dart';
-import 'package:master_code/source/constant/api.dart';
+import '../../model/customer/customer_attendance_model.dart';
+import '../../model/customer/customer_model.dart';
+import '../../source/constant/api.dart';
 import '../model/customer/customer_report_model.dart';
 import '../model/track/track_model.dart';
 
@@ -202,28 +202,6 @@ class CustomerRepository{
       throw Exception('Failed to work flow');
     }
   }
-
-  Future<Map<String,dynamic>> deleteCompany(Map data) async {
-    try{
-      final request = await http.post(Uri.parse(phpFile),
-          headers: {
-            "Accept": "application/text",
-            "Content-Type": "application/x-www-form-urlencoded"
-          },
-          body: jsonEncode(data),
-          encoding: Encoding.getByName("utf-8"));
-      // print(request.body);
-      // print(request.statusCode);
-      if (request.statusCode == 200) {
-        return json.decode(request.body);
-      } else {
-        return json.decode(request.body);
-      }
-    }catch(e){
-      // print(e);
-      throw Exception('Failed to work flow');
-    }
-  }
   /// Delete Employee
   Future<Map<String,dynamic>> deleteEmployee(Map data) async {
     try{
@@ -369,7 +347,7 @@ class CustomerRepository{
           body: jsonEncode(data),
           encoding: Encoding.getByName("utf-8"));
 
-      print(request.body);
+      debugPrint("download response :${request.body}");
       if (request.statusCode == 200){
         List response = json.decode(request.body);
         return response;

@@ -3,20 +3,18 @@ import 'dart:io';
 import 'package:excel/excel.dart';
 import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart';
-import 'package:master_code/model/leave/leave_model.dart';
-import 'package:master_code/source/constant/default_constant.dart';
-import 'package:master_code/source/utilities/utils.dart';
+import '../../source/constant/language_model.dart';
+import '../../source/utilities/utils.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:open_file/open_file.dart';
 import '../../model/attendance_model.dart';
 import 'package:syncfusion_flutter_xlsio/xlsio.dart' hide Column, Row, CellStyle;
 import 'package:universal_html/html.dart' show AnchorElement;
 import 'package:flutter/foundation.dart' show kIsWeb;
-
 import '../../repo/customer_repo.dart';
 import '../constant/api.dart';
+import '../constant/language_model.dart';
 import '../constant/local_data.dart';
-// import 'dart:html' as html;  // Only used in web
 
 final ExcelReports excelReports = ExcelReports._();
 
@@ -233,6 +231,7 @@ class ExcelReports {
         "st_dt": stDate,
         "en_dt": enDate,
       };
+      print("respinse download${data}");
       final response = await custRepo.getDashboardReport(data);
       if (response.isNotEmpty) {
         exportAttendanceSingleSheetExcel(
@@ -256,7 +255,8 @@ class ExcelReports {
         required List leaveList,
         required String startDate,
         required String endDate,
-      }) async {
+      })
+  async {
     try {
       var excel = Excel.createExcel();
       excel.delete('Sheet1');
@@ -300,6 +300,39 @@ class ExcelReports {
         return "${h}h ${m}m";
       }
 
+      /// ================= WEEKEND HELPER (Sunday + 3rd Saturday) =================
+      /// Returns: {"isWeekend": bool, "label": String}
+      Map<String, dynamic> getWeekendInfo(String? dateStr) {
+        try {
+          if (dateStr == null || dateStr.isEmpty) {
+            return {"isWeekend": false, "label": ""};
+          }
+          DateTime parsedDate = DateTime.parse(dateStr);
+
+          if (parsedDate.weekday == DateTime.sunday) {
+            return {"isWeekend": true, "label": "Sunday"};
+          }
+
+          if (parsedDate.weekday == DateTime.saturday) {
+            int saturdayCount = 0;
+            for (int day = 1; day <= parsedDate.day; day++) {
+              DateTime tempDate =
+              DateTime(parsedDate.year, parsedDate.month, day);
+              if (tempDate.weekday == DateTime.saturday) {
+                saturdayCount++;
+              }
+            }
+            if (saturdayCount == 3) {
+              return {"isWeekend": true, "label": "3rd Saturday"};
+            }
+          }
+
+          return {"isWeekend": false, "label": ""};
+        } catch (e) {
+          return {"isWeekend": false, "label": ""};
+        }
+      }
+
       /// ================= HEADER STYLE =================
       CellStyle headerStyle = CellStyle(
         bold: true,
@@ -330,6 +363,24 @@ class ExcelReports {
         verticalAlign: VerticalAlign.Center,
       );
 
+      /// ⭐ Week-off row style (clear green highlight so it stands out)
+      CellStyle weekOffStyle = CellStyle(
+        bold: true,
+        backgroundColorHex: "#C6EFCE",
+        fontColorHex: "#006100",
+        horizontalAlign: HorizontalAlign.Center,
+        verticalAlign: VerticalAlign.Center,
+      );
+
+      /// ⭐ Applied-leave row style (yellow highlight)
+      CellStyle leaveStyle = CellStyle(
+        bold: true,
+        backgroundColorHex: "#FFEB9C",
+        fontColorHex: "#9C6500",
+        horizontalAlign: HorizontalAlign.Center,
+        verticalAlign: VerticalAlign.Center,
+      );
+
       /// ================= GROUP EMPLOYEE WISE =================
       Set<String> employeeSet = {};
       Set<String> dateSet = {};
@@ -341,6 +392,16 @@ class ExcelReports {
 
       List<String> employees = employeeSet.toList()..sort();
       List<String> dates = dateSet.toList()..sort();
+
+      /// ⭐ WORKING DAYS CALCULATION =================
+      /// Total days in the selected range vs Sunday/3rd Saturday (week-off)
+      /// vs actual Working Days (Total - WeekOff)
+      int totalDaysInRange = dates.length;
+      int weekOffDaysCount = dates.where((d) {
+        Map<String, dynamic> info = getWeekendInfo(d);
+        return info["isWeekend"] as bool;
+      }).length;
+      int workingDaysCount = totalDaysInRange - weekOffDaysCount;
 
       int rowIndex = 0;
 
@@ -362,19 +423,36 @@ class ExcelReports {
 
         rowIndex++;
 
+        /// ================= WORKING DAYS SUMMARY ROW =================
+        sheet
+            .cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: rowIndex))
+            .value =
+        "Total Days: $totalDaysInRange   |   Week Off (Sun/3rd Sat): $weekOffDaysCount   |   Working Days: $workingDaysCount";
+
+        sheet.merge(
+          CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: rowIndex),
+          CellIndex.indexByColumnRow(columnIndex: 13, rowIndex: rowIndex),
+        );
+
+        sheet
+            .cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: rowIndex))
+            .cellStyle = totalStyle;
+
+        rowIndex++;
+
         /// ================= HEADER ROW =================
         List headers = [
           "Date",
           "Present",
           "In_Time",
           "Out_Time",
-          "Work Hours", // ⭐ NEW
+          "Work Hours",
           "Absent",
           "Late",
           "Permission",
           "Permission_In",
           "Permission_Out",
-          "Permission Hours", // ⭐ NEW
+          "Permission Hours",
           "Permission Reason",
           "Leave",
           "Leave Reason",
@@ -426,7 +504,21 @@ class ExcelReports {
           String perOut = "-";
           String perReason = "-";
 
-          if (record != null) {
+          /// ⭐ WEEKEND CHECK (Sunday + 3rd Saturday) =================
+          Map<String, dynamic> weekendInfo = getWeekendInfo(d);
+          bool isWeekend = weekendInfo["isWeekend"] as bool;
+          String weekendLabel = weekendInfo["label"] as String;
+
+          /// ⭐ Tracks whether employee actually applied for leave on this
+          /// (non-weekend) day, so we can highlight it yellow.
+          bool isAppliedLeave = false;
+
+          if (isWeekend) {
+            // Sunday / 3rd Saturday -> mark as Leave (Week Off)
+            // present/absent/late/permission untouched (stay 0)
+            leaveCount = 1;
+            reason = weekendLabel;
+          } else if (record != null) {
             present = int.tryParse(record["present"]?.toString() ?? "0") ?? 0;
             absent = int.tryParse(record["absent"]?.toString() ?? "0") ?? 0;
             late = int.tryParse(record["late"]?.toString() ?? "0") ?? 0;
@@ -443,10 +535,22 @@ class ExcelReports {
             inTime = record["in_time"]?.toString() ?? "-";
             outTime = record["out_time"]?.toString() ?? "-";
 
+            /// ⭐ Safety-net: if Out_Time was wrongly saved same as In_Time
+            /// (login time duplicated into out_time), treat it as "not
+            /// checked out yet" instead of showing the duplicate value.
+            if (outTime == inTime) {
+              outTime = "-";
+            }
+
             perIn = record["per_in"]?.toString() ?? "-";
             perOut = record["per_out"]?.toString() ?? "-";
 
             perReason = record["permission_reason"]?.toString() ?? "-";
+
+            // Applied leave -> leave_count > 0 on a normal working day
+            if (leaveCount > 0) {
+              isAppliedLeave = true;
+            }
           }
 
           /// ================= WORK HOURS CALC =================
@@ -466,6 +570,18 @@ class ExcelReports {
           if (perInMin > 0 && perOutMin > 0 && perOutMin > perInMin) {
             permissionMinutes = perOutMin - perInMin;
           }
+
+          /// ⭐ Work Hours display -> "-" when out time not available
+          String workHoursDisplay =
+          (inMin > 0 && outMin > 0 && outMin > inMin)
+              ? minutesToHourFormat(workMinutes)
+              : "-";
+
+          /// ⭐ Permission Hours display -> "-" when perm-out not available
+          String permissionHoursDisplay =
+          (perInMin > 0 && perOutMin > 0 && perOutMin > perInMin)
+              ? minutesToHourFormat(permissionMinutes)
+              : "-";
 
           totalWorkMinutes += workMinutes;
           totalPermissionMinutes += permissionMinutes;
@@ -487,10 +603,9 @@ class ExcelReports {
               .cell(CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: rowIndex))
               .value = formatTime12(outTime);
 
-          /// ⭐ Work Hours
           sheet
               .cell(CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: rowIndex))
-              .value = minutesToHourFormat(workMinutes);
+              .value = workHoursDisplay;
 
           sheet
               .cell(CellIndex.indexByColumnRow(columnIndex: 5, rowIndex: rowIndex))
@@ -512,10 +627,9 @@ class ExcelReports {
               .cell(CellIndex.indexByColumnRow(columnIndex: 9, rowIndex: rowIndex))
               .value = formatTime12(perOut);
 
-          /// ⭐ Permission Hours
           sheet
               .cell(CellIndex.indexByColumnRow(columnIndex: 10, rowIndex: rowIndex))
-              .value = minutesToHourFormat(permissionMinutes);
+              .value = permissionHoursDisplay;
 
           sheet
               .cell(CellIndex.indexByColumnRow(columnIndex: 11, rowIndex: rowIndex))
@@ -529,11 +643,18 @@ class ExcelReports {
               .cell(CellIndex.indexByColumnRow(columnIndex: 13, rowIndex: rowIndex))
               .value = reason;
 
-          /// Apply Normal Style
+          /// Apply Style
+          /// Priority: Weekend (Sunday/3rd Saturday) -> green
+          ///           Applied Leave (working day)    -> yellow
+          ///           Otherwise                       -> normal
+          CellStyle rowStyle = isWeekend
+              ? weekOffStyle
+              : (isAppliedLeave ? leaveStyle : normalStyle);
+
           for (int col = 0; col <= 13; col++) {
             sheet
                 .cell(CellIndex.indexByColumnRow(columnIndex: col, rowIndex: rowIndex))
-                .cellStyle = normalStyle;
+                .cellStyle = rowStyle;
           }
 
           rowIndex++;
@@ -542,7 +663,12 @@ class ExcelReports {
           totalAbsent += absent;
           totalLate += late;
           totalPermission += permission;
-          totalLeave += leaveCount;
+
+          // ⭐ Total Leave should only reflect actual APPLIED leaves,
+          // not the Sunday / 3rd Saturday week-off leaveCount.
+          if (isAppliedLeave) {
+            totalLeave += leaveCount;
+          }
         }
 
         /// ================= TOTAL ROW =================
@@ -562,7 +688,6 @@ class ExcelReports {
             .cell(CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: rowIndex))
             .value = "";
 
-        /// ⭐ TOTAL WORK HOURS
         sheet
             .cell(CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: rowIndex))
             .value = minutesToHourFormat(totalWorkMinutes);
@@ -587,7 +712,6 @@ class ExcelReports {
             .cell(CellIndex.indexByColumnRow(columnIndex: 9, rowIndex: rowIndex))
             .value = "";
 
-        /// ⭐ TOTAL PERMISSION HOURS
         sheet
             .cell(CellIndex.indexByColumnRow(columnIndex: 10, rowIndex: rowIndex))
             .value = minutesToHourFormat(totalPermissionMinutes);
@@ -622,7 +746,7 @@ class ExcelReports {
       if (!kIsWeb && bytes != null) {
         _saveExcelMobile(
           bytes,
-          "JPS_Attendance_Report_${formatDate(startDate)}_to_${formatDate(endDate)}.xlsx",
+          "${constValue.appName}_Attendance_Report_${formatDate(startDate)}_to_${formatDate(endDate)}.xlsx",
           context,
         );
       }
@@ -631,6 +755,7 @@ class ExcelReports {
       utils.showWarningToast(context, text: "Something went wrong");
     }
   }
+
   // Future<void> exportAttendanceSingleSheetExcel(
   //     context, {
   //       required List attendanceList,

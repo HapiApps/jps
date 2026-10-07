@@ -9,6 +9,7 @@ class Assets{
   final String webDesign= "assets/images/about/web-design.png";
   final String brandImg= "assets/images/about/branding.png";
   final String hapiAppsLogo= "assets/images/about/hapiapps_logo.png";
+  final String otpImage= "assets/images/otp.png";
 
   final String login= "assets/images/login.svg";
   final String circle = "assets/images/circle.png";
@@ -118,9 +119,9 @@ class Assets{
   final String edit2= "assets/images/payroll/edit.svg";
   final String payroll2= "assets/images/payroll/payroll2.svg";
 
-  final String tDownload= "assets/images/task/download.svg";
+  final String tDownload= "assets/images/task/down.svg";
   final String tEdit= "assets/images/task/Edit.svg";
-  final String tFilter= "assets/images/task/Filter.svg";
+  final String tFilter= "assets/images/task/filter1.svg";
   final String tMessage= "assets/images/task/message.svg";
   final String img1= "assets/images/task/img1.svg";
   final String img2= "assets/images/task/img2.svg";
@@ -130,9 +131,20 @@ class Assets{
   final String rep2= "assets/images/task/rep2.svg";
 
   final String loc= "assets/images/task/loc.svg";
-  final String not= "assets/images/task/not.svg";
+  final String not= "assets/images/task/not1.svg";
   final String sett= "assets/images/task/sett.svg";
 
-
+  /// Expasy
+  final String cart= "assets/images/expasy/shopping_cart.svg";
+  final String rupees= "assets/images/expasy/rupees_icon.svg";
+  final String food= "assets/images/expasy/food.svg";
+  final String vector= "assets/images/expasy/vector.svg";
+  final String account= "assets/images/expasy/account.svg";
+  final String moneyBill= "assets/images/expasy/money-bill.svg";
+  final String cBag= "assets/images/expasy/cart_bag.svg";
+  final String bar= "assets/images/expasy/bar.svg";
+  final String detail= "assets/images/expasy/expense_details_bill.svg";
+  final String card= "assets/images/expasy/credit_card.svg";
+  final String download= "assets/images/expasy/Download.svg";
 
 }

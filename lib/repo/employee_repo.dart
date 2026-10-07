@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:developer';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart'as http;
-import 'package:master_code/source/constant/api.dart';
+import '../../source/constant/api.dart';
 
 import '../model/user_model.dart';
 
@@ -73,7 +73,8 @@ class EmployeeRepository{
       String img5,List<int> imgList5,String imgName5,
       String img6,List<int> imgList6,String imgName6,
       String img7,List<int> imgList7,String imgName7,
-      ) async {
+      ) async
+  {
     try{
     // print("img");
     // print(img);
@@ -266,7 +267,6 @@ class EmployeeRepository{
           encoding: Encoding.getByName("utf-8"));
       // print(data);
       // print(request.body);
-      // print(phpFile);
       if (request.statusCode == 200){
         List response = json.decode(request.body);
         return response.map((json) => UserModel.fromJson(json)).toList();
@@ -287,8 +287,8 @@ class EmployeeRepository{
           },
           body: jsonEncode(data),
           encoding: Encoding.getByName("utf-8"));
-      log(data.toString());
-      log(request.body.toString());
+      // log(data.toString());
+      // log(request.body.toString());
       if (request.statusCode == 200){
         List response = json.decode(request.body);
         return response;

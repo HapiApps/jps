@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart'as http;
-import 'package:master_code/model/payroll/payroll_setting_model.dart';
-import 'package:master_code/model/user_model.dart';
+import '../../model/payroll/payroll_setting_model.dart';
+import '../../model/user_model.dart';
 import '../model/payroll/payroll_details_model.dart';
 import '../source/constant/api.dart';
 class PayrollARepository{

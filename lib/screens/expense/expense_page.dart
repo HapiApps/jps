@@ -1,10 +1,10 @@
-import 'package:master_code/screens/expense/view_expense.dart';
-import 'package:master_code/view_model/expense_provider.dart';
+import '../../screens/expense/view_expense.dart';
+import '../../view_model/expense_provider.dart';
 import 'package:flutter/foundation.dart';
-import 'package:master_code/source/extentions/extensions.dart';
+import '../../source/extentions/extensions.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:master_code/view_model/home_provider.dart';
+import '../../view_model/home_provider.dart';
 import '../../component/custom_appbar.dart';
 import '../../component/custom_text.dart';
 import '../../source/constant/colors_constant.dart';

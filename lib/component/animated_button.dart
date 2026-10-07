@@ -1,7 +1,8 @@
-import 'package:master_code/component/custom_text.dart';
+
 import 'package:flutter/material.dart';
 
 import '../source/styles/styles.dart';
+import 'custom_text.dart';
 
 class CustomButton extends StatelessWidget {
   final VoidCallback callback;

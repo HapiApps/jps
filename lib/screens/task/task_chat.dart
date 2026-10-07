@@ -1,12 +1,11 @@
 import 'dart:async';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
-import 'package:master_code/source/extentions/extensions.dart';
-import 'package:master_code/view_model/task_provider.dart';
+import '../../source/extentions/extensions.dart';
+import '../../view_model/task_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:record/record.dart';
 import '../../../component/custom_appbar.dart';
@@ -19,10 +18,9 @@ import '../../../source/styles/styles.dart';
 import '../../../source/utilities/utils.dart';
 import '../../../view_model/customer_provider.dart';
 import 'package:provider/provider.dart';
-
+import '../../component/audio_player.dart';
 import '../../source/constant/api.dart';
 import '../../source/constant/assets_constant.dart';
-import '../../source/styles/decoration.dart';
 
 class TaskChat extends StatefulWidget {
   final String taskId;
@@ -34,8 +32,9 @@ class TaskChat extends StatefulWidget {
   final String date1;
   final String date2;
   final String type;
+  final int index;
 
-  const TaskChat({
+  const  TaskChat({
     super.key,
     required this.taskId,
     required this.assignedId,
@@ -46,6 +45,7 @@ class TaskChat extends StatefulWidget {
     required this.date1,
     required this.date2,
     required this.type,
+    required this.index,
   });
 
   @override
@@ -58,14 +58,7 @@ class _TaskChatState extends State<TaskChat> with SingleTickerProviderStateMixin
   final FocusScopeNode _myFocusScopeNode = FocusScopeNode();
 
   final AudioRecorder _audioRecorder = AudioRecorder();
-
-  /// 🔥 Player for the local "recorded preview" (before sending)
   final AudioPlayer _audioPlayer = AudioPlayer();
-
-  /// 🔥 Separate player for playing audio bubbles inside the chat list.
-  /// Using a dedicated player avoids the recorded-preview player and the
-  /// chat player fighting over the same duration/position/state streams.
-  final AudioPlayer _chatPlayer = AudioPlayer();
 
   bool isRecording = false;
   String? recordedPath;
@@ -93,9 +86,9 @@ class _TaskChatState extends State<TaskChat> with SingleTickerProviderStateMixin
       custProvider.disPoint.clear();
 
       if (widget.isVisit == true) {
-        await custProvider.getComments(widget.taskId);
+        custProvider.getComments(widget.taskId);
       } else {
-        await custProvider.getTaskComments(widget.taskId);
+        custProvider.getTaskComments(widget.taskId);
       }
 
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -113,6 +106,7 @@ class _TaskChatState extends State<TaskChat> with SingleTickerProviderStateMixin
     /// 🔥 Duration Fix (Recorded Preview)
     _audioPlayer.onDurationChanged.listen((d) {
       if (!mounted) return;
+
       setState(() {
         totalDuration = d;
       });
@@ -120,6 +114,7 @@ class _TaskChatState extends State<TaskChat> with SingleTickerProviderStateMixin
 
     _audioPlayer.onPositionChanged.listen((p) {
       if (!mounted) return;
+
       setState(() {
         currentPosition = p;
       });
@@ -127,57 +122,123 @@ class _TaskChatState extends State<TaskChat> with SingleTickerProviderStateMixin
 
     _audioPlayer.onPlayerStateChanged.listen((state) {
       if (!mounted) return;
+
       setState(() {
         isPlaying = state == PlayerState.playing;
       });
     });
 
-    // Reset the preview player back to the start when it finishes playing,
-    // otherwise the play/pause icon gets stuck on "pause".
-    _audioPlayer.onPlayerComplete.listen((event) {
+    /// 🔥 Duration Fix (Network Audio inside Chat)
+    _audioPlayer.onDurationChanged.listen((d) {
+      networkTotal = d;
+    });
+
+    _audioPlayer.onPositionChanged.listen((p) {
+      networkCurrent = p;
+    });
+
+    _audioPlayer.onPlayerStateChanged.listen((state) {
+      networkPlaying = state == PlayerState.playing;
+    });
+
+    _audioPlayer.onPlayerComplete.listen((_) {
+
       if (!mounted) return;
+
+      _audioPlayer.seek(
+        Duration.zero,
+      );
+
       setState(() {
-        isPlaying = false;
-        currentPosition = Duration.zero;
+
+        isPlaying =
+        false;
+
+        currentPosition =
+            Duration.zero;
+
       });
+
     });
 
     /// 🔥 Duration Fix (Network Audio inside Chat)
-    _chatPlayer.onDurationChanged.listen((d) {
+    _audioPlayer.onDurationChanged.listen((d) {
       if (!mounted) return;
+
       setState(() {
         networkTotal = d;
       });
     });
 
-    _chatPlayer.onPositionChanged.listen((p) {
+    _audioPlayer.onPositionChanged.listen((p) {
       if (!mounted) return;
+
       setState(() {
         networkCurrent = p;
       });
     });
 
-    _chatPlayer.onPlayerStateChanged.listen((state) {
+    _audioPlayer.onPlayerStateChanged.listen((state) {
       if (!mounted) return;
+
       setState(() {
         networkPlaying = state == PlayerState.playing;
       });
     });
 
-    // 🔥 This was missing — without it, networkPlaying never resets to
-    // false when a chat audio clip finishes, so the icon stays on "pause"
-    // and tapping it again just calls pause() instead of restarting.
-    _chatPlayer.onPlayerComplete.listen((event) {
+    _audioPlayer.onPlayerComplete.listen((_) {
       if (!mounted) return;
+
       setState(() {
         networkPlaying = false;
         networkCurrent = Duration.zero;
       });
+
+      _audioPlayer.seek(Duration.zero);
     });
 
     super.initState();
   }
+  Future<void> playNetworkAudio(String url) async {
+    try {
 
+      setState(() {
+        isBuffering = true;
+        bufferingUrl = url;
+        playingUrl = url;
+      });
+
+      await _audioPlayer.stop();
+
+      // 👇 source set pannunga
+      await _audioPlayer.setSource(
+        UrlSource(url),
+      );
+
+      // 👇 duration fetch
+      final dur = await _audioPlayer.getDuration();
+
+      setState(() {
+        networkTotal = dur ?? Duration.zero;
+      });
+
+      await _audioPlayer.resume();
+
+      setState(() {
+        isBuffering = false;
+        networkPlaying = true;
+      });
+
+    } catch (e) {
+
+      setState(() {
+        isBuffering = false;
+        networkPlaying = false;
+        playingUrl = null;
+      });
+
+    }
+  }
   Future<void> startRecording() async {
     final status = await Permission.microphone.request();
 
@@ -201,7 +262,6 @@ class _TaskChatState extends State<TaskChat> with SingleTickerProviderStateMixin
         });
       });
     } else {
-      print("Permission denied");
     }
   }
 
@@ -209,97 +269,104 @@ class _TaskChatState extends State<TaskChat> with SingleTickerProviderStateMixin
     timer?.cancel();
 
     final path = await _audioRecorder.stop();
-    print("Recorded Path: $path");
 
     if (path != null) {
+
+      await _audioPlayer.stop();
+
+      await _audioPlayer.setSource(
+        DeviceFileSource(path),
+      );
+
+      final dur =
+      await _audioPlayer.getDuration();
+
       setState(() {
         isRecording = false;
+
         recordedPath = path;
-        currentPosition = Duration.zero;
-        totalDuration = Duration.zero;
+
+        duration =
+            dur ??
+                Duration.zero;
+
+        totalDuration =
+            dur ??
+                Duration.zero;
+
+        currentPosition =
+            Duration.zero;
+
+        isPlaying = false;
       });
 
-      // 🔥 duration fetch fix
-      await _audioPlayer.setSource(DeviceFileSource(path));
-      await _audioPlayer.resume();
-      await Future.delayed(const Duration(milliseconds: 200));
-      await _audioPlayer.pause();
     } else {
+
       setState(() {
         isRecording = false;
       });
     }
   }
-
   Future<void> togglePlayRecorded() async {
+
     if (recordedPath == null) return;
 
     if (isPlaying) {
+
       await _audioPlayer.pause();
+
     } else {
-      await _audioPlayer.play(DeviceFileSource(recordedPath!));
+
+      // await _audioPlayer.setSource(
+      //   DeviceFileSource(
+      //     recordedPath!,
+      //   ),
+      // );
+
+      await _audioPlayer.resume();
     }
+
+    setState(() {});
   }
-
-
-  Future<void> playNetworkAudio(String url) async {
-    try {
-      // If same audio already playing -> pause
-      if (playingUrl == url && networkPlaying) {
-        await _chatPlayer.pause();
-        setState(() {
-          networkPlaying = false;
-        });
-        return;
-      }
-
-      // If same audio was paused midway -> just resume instead of restarting
-      if (playingUrl == url && !networkPlaying && networkCurrent > Duration.zero) {
-        await _chatPlayer.resume();
-        setState(() {
-          networkPlaying = true;
-        });
-        return;
-      }
-
-      // show loading only for clicked audio
-      setState(() {
-        isBuffering = true;
-        bufferingUrl = url;
-        playingUrl = url;
-        networkCurrent = Duration.zero;
-        networkTotal = Duration.zero;
-      });
-
-      await _chatPlayer.stop();
-      await _chatPlayer.play(UrlSource(url));
-
-      // 🔥 Fallback: onDurationChanged doesn't always fire promptly (or at
-      // all) for streamed network sources, so also ask the player directly.
-      final fetchedDuration = await _chatPlayer.getDuration();
-      if (fetchedDuration != null && fetchedDuration > Duration.zero) {
-        setState(() {
-          networkTotal = fetchedDuration;
-        });
-      }
-
-      // when play starts -> loading off
-      setState(() {
-        isBuffering = false;
-        networkPlaying = true;
-      });
-    } catch (e) {
-      print("Audio play error => $e");
-      setState(() {
-        isBuffering = false;
-        bufferingUrl = "";
-        networkPlaying = false;
-        playingUrl = null;
-      });
-
-      utils.showWarningToast(context, text: "Audio cannot be played");
-    }
-  }
+  // Future<void> playNetworkAudio(String url) async {
+  //   try {
+  //     // If same audio already playing -> pause
+  //     if (playingUrl == url && networkPlaying) {
+  //       await _audioPlayer.pause();
+  //       setState(() {
+  //         networkPlaying = false;
+  //       });
+  //       return;
+  //     }
+  //
+  //     // show loading only for clicked audio
+  //     setState(() {
+  //       isBuffering = true;
+  //       bufferingUrl = url;
+  //       playingUrl = url;
+  //       networkCurrent = Duration.zero;
+  //       networkTotal = Duration.zero;
+  //     });
+  //
+  //     await _audioPlayer.stop();
+  //     await _audioPlayer.play(UrlSource(url));
+  //
+  //     // when play starts -> loading off
+  //     setState(() {
+  //       isBuffering = false;
+  //       networkPlaying = true;
+  //     });
+  //   } catch (e) {
+  //     setState(() {
+  //       isBuffering = false;
+  //       bufferingUrl = "";
+  //       networkPlaying = false;
+  //       playingUrl = null;
+  //     });
+  //
+  //     utils.showWarningToast(context, text: "Audio cannot be played");
+  //   }
+  // }
   String formatTime(Duration d) {
     String twoDigits(int n) => n.toString().padLeft(2, '0');
     final minutes = twoDigits(d.inMinutes);
@@ -312,7 +379,6 @@ class _TaskChatState extends State<TaskChat> with SingleTickerProviderStateMixin
     animationController.dispose();
     _myFocusScopeNode.dispose();
     _audioPlayer.dispose();
-    _chatPlayer.dispose();
     _audioRecorder.dispose();
     super.dispose();
   }
@@ -327,57 +393,41 @@ class _TaskChatState extends State<TaskChat> with SingleTickerProviderStateMixin
         return FocusScope(
           node: _myFocusScopeNode,
           child: SafeArea(
-            child: WillPopScope(
-              onWillPop: () async {
-                Navigator.pop(context, true);
-                return false;
-              },
-              child: Scaffold(
-                backgroundColor: const Color(0xffEAEAEA),
-
-                appBar: PreferredSize(
+            child: Scaffold(
+              backgroundColor: const Color(0xffEAEAEA),
+              appBar: PreferredSize(
                   preferredSize: const Size(300, 60),
-
-                  child: localData.storage.read("role").toString() == "1"
-                      ? CustomAppbar(
-                    callback: () {
-                      Navigator.pop(context, true);
-                    },
-                    text: widget.assignedName.toString(),
+                  child: CustomAppbar(
+                    text: widget.assignedName.toString()==""?widget.name:widget.assignedName,
                   )
-                      : CustomAppbar(
-                    text: widget.name.toString(),
-                    callback: () {
-                      Navigator.pop(context, true);
-                    },
-                  ),
-                ),
+              ),
 
-                /// 🔥 BOTTOM INPUT
-                bottomSheet: Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      if (recordedPath == null && isRecording == false)
-                        SizedBox(
-                          width: MediaQuery.of(context).size.width * 0.63,
-                          child: TextFormField(
-                            textCapitalization: TextCapitalization.sentences,
-                            textInputAction: TextInputAction.done,
-                            keyboardType: TextInputType.text,
-                            controller: custProvider.disPoint,
-                            decoration: customStyle.inputDecoration(
-                              text: "Type a comment",
-                              fieldClr: Colors.white,
-                              radius: 50,
-                            ),
+              /// 🔥 BOTTOM INPUT
+              bottomSheet: Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    if (recordedPath == null && isRecording == false)
+                      SizedBox(
+                        width: kIsWeb?webWidth/1:MediaQuery.of(context).size.width * 0.63,
+                        child: TextFormField(
+                          textCapitalization: TextCapitalization.sentences,
+                          textInputAction: TextInputAction.done,
+                          keyboardType: TextInputType.text,
+                          controller: custProvider.disPoint,
+                          decoration: customStyle.inputDecoration(
+                            text: "Type a comment",
+                            fieldClr: Colors.white,
+                            radius: 50,
                           ),
                         ),
-
+                      ),
+                    if(kIsWeb)
+                      10.width,
+                    if(!kIsWeb&&recordedPath == null&&!isRecording)
                       IconButton(
-                        icon: Icon(
-                          isRecording ? Icons.stop : Icons.mic,
+                        icon: Icon(Icons.mic,
                           color: Colors.green,
                         ),
                         onPressed: () async {
@@ -388,346 +438,380 @@ class _TaskChatState extends State<TaskChat> with SingleTickerProviderStateMixin
                           }
                         },
                       ),
-
-                      if (isRecording)
-                        Text(
-                          "${duration.inSeconds}s Recording...",
-                          style: const TextStyle(color: Colors.red),
-                        ),
-
-                      if (recordedPath != null && !isRecording)
-                        Container(
-                          height: 40,
-                          width: phoneWidth / 2,
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(5),
-                            boxShadow: const [
-                              BoxShadow(
-                                color: Colors.black12,
-                                blurRadius: 4,
-                              )
-                            ],
+                    if (isRecording)
+                      Row(
+                        children: [
+                          CustomText(
+                            text:taskProvider.formatDuration2(duration.inSeconds),
+                            colors: Colors.red,isBold: true,
+                          ),10.width,
+                          CustomText(
+                            text:"Recording...",
                           ),
-                          child: Row(
-                            children: [
-                              IconButton(
-                                icon: Icon(
-                                  isPlaying ? Icons.pause : Icons.play_arrow,
-                                  size: 30,
-                                  color: Colors.green,
-                                ),
-                                onPressed: togglePlayRecorded,
-                              ),
 
-                              Expanded(
-                                child: Slider(
-                                  activeColor: Colors.green,
-                                  inactiveColor: Colors.grey.shade300,
-                                  value: currentPosition.inSeconds.toDouble(),
-                                  min: 0,
-                                  max: totalDuration.inSeconds.toDouble() == 0
+                          50.width,
+                        ],
+                      ),
+
+                    if (recordedPath != null && !isRecording)
+                      Container(
+                        height: 40,
+                        width: phoneWidth / 1.5,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(5),
+                          boxShadow: const [
+                            BoxShadow(
+                              color: Colors.black12,
+                              blurRadius: 4,
+                            )
+                          ],
+                        ),
+                        child: Row(
+                          children: [
+                            IconButton(
+                              icon: Icon(
+                                isPlaying ? Icons.pause : Icons.play_arrow,
+                                size: 30,
+                                color: Colors.green,
+                              ),
+                              onPressed: togglePlayRecorded,
+                            ),
+
+                            Expanded(
+                              child: Slider(
+                                activeColor: Colors.green,
+                                inactiveColor: Colors.grey.shade300,
+                                value:
+                                currentPosition.inSeconds
+                                    .toDouble()
+                                    .clamp(
+                                  0,
+                                  totalDuration.inSeconds
+                                      .toDouble() == 0
                                       ? 1
-                                      : totalDuration.inSeconds.toDouble(),
-                                  onChanged: (value) async {
-                                    final position =
-                                    Duration(seconds: value.toInt());
-                                    await _audioPlayer.seek(position);
-                                  },
+                                      : totalDuration.inSeconds
+                                      .toDouble(),
                                 ),
+                                min: 0,
+                                max: totalDuration.inSeconds.toDouble() == 0
+                                    ? 1
+                                    : totalDuration.inSeconds.toDouble(),
+                                onChanged: (value) async {
+                                  final position =
+                                  Duration(seconds: value.toInt());
+                                  await _audioPlayer.seek(position);
+
+                                  setState(() {
+                                    currentPosition = position;
+                                  });
+                                },
                               ),
+                            ),
 
-                              Text(
-                                formatTime(currentPosition),
-                                style: const TextStyle(fontSize: 12),
+                            Text(
+                              "${formatTime(currentPosition)} / "
+                                  "${formatTime(totalDuration)}",
+                              style:
+                              const TextStyle(
+                                fontSize: 12,
                               ),
-                              const SizedBox(width: 5),
-                            ],
-                          ),
-                        ),
-
-                      if (recordedPath != null)
-                        IconButton(
-                          icon: SvgPicture.asset(
-                            assets.deleteValue,
-                            width: 20,
-                            height: 20,
-                          ),
-                          onPressed: () {
-                            setState(() {
-                              recordedPath = null;
-                            });
-                          },
-                        ),
-
-                      SizedBox(
-                        height: 45,
-                        width: 45,
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            shape: const CircleBorder(),
-                            padding: EdgeInsets.zero,
-                            backgroundColor: colorsConst.primary,
-                            elevation: 2,
-                          ),
-                          onPressed: () async {
-                            _myFocusScopeNode.unfocus();
-
-                            if (isRecording) {
-                              await stopRecording();
-                              return;
-                            }
-
-                            if (custProvider.disPoint.text.trim().isEmpty &&
-                                recordedPath == null) {
-                              utils.showWarningToast(
-                                context,
-                                text: "Type a comment or record audio",
-                              );
-                              return;
-                            }
-
-                            if (widget.isVisit == true) {
-                              await custProvider.addComment(
-                                context: context,
-                                visitId: widget.taskId.toString(),
-                                companyName: widget.name,
-                                companyId: "",
-                                numberList: [],
-                                taskId: "0",
-                                createdBy: widget.createdBy.toString(),
-                                assignedId: widget.assignedId.toString(),
-                                path: recordedPath ?? "",
-                              );
-                            } else {
-                              await custProvider.tComment(
-                                context: context,
-                                taskId: widget.taskId.toString(),
-                                assignedId: widget.assignedId.toString(),
-                                path: recordedPath ?? "",
-                              );
-                            }
-
-                            setState(() {
-                              recordedPath = null;
-                              totalDuration = Duration.zero;
-                              currentPosition = Duration.zero;
-                            });
-                          },
-                          child: Icon(
-                            isRecording ? Icons.stop : Icons.send,
-                            color: Colors.white,
-                            size: 20,
-                          ),
+                            ),
+                            const SizedBox(width: 5),
+                          ],
                         ),
                       ),
-                    ],
-                  ),
+
+                    if (recordedPath != null)
+                      IconButton(
+                        icon: SvgPicture.asset(
+                          assets.deleteValue,
+                          width: 20,
+                          height: 20,
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            recordedPath = null;
+                          });
+                        },
+                      ),
+
+                    SizedBox(
+                      height: 45,
+                      width: 45,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          shape: const CircleBorder(),
+                          padding: EdgeInsets.zero,
+                          backgroundColor: isRecording?Colors.red:colorsConst.primary,
+                          elevation: 2,
+                        ),
+                        onPressed: () async {
+                          _myFocusScopeNode.unfocus();
+
+                          if (isRecording) {
+                            await stopRecording();
+                            return;
+                          }
+
+                          if (custProvider.disPoint.text.trim().isEmpty &&
+                              recordedPath == null) {
+                            utils.showWarningToast(
+                              context,
+                              text: "Type a comment or record audio",
+                            );
+                            return;
+                          }
+
+                          if (widget.isVisit == true) {
+                            await custProvider.addComment(
+                              context: context,
+                              visitId: widget.taskId.toString(),
+                              companyName: widget.name,
+                              companyId: "",
+                              numberList: [],
+                              taskId: "0",
+                              createdBy: widget.createdBy.toString(),
+                              assignedId: widget.assignedId.toString(),
+                              path: recordedPath ?? "",
+                            );
+                          } else {
+                            await custProvider.tComment(
+                              context: context,
+                              taskId: widget.taskId.toString(),
+                              assignedId: widget.assignedId.toString(),
+                              path: recordedPath ?? "", index: widget.index,
+                            );
+                          }
+
+                          setState(() {
+                            recordedPath = null;
+                            totalDuration = Duration.zero;
+                            currentPosition = Duration.zero;
+                          });
+                        },
+                        child: Icon(
+                          isRecording ? Icons.stop : Icons.send,
+                          color: Colors.white,
+                          size: 20,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
+              ),
 
-                /// 🔥 CHAT BODY
-                body: custProvider.refresh == false
-                    ? const Loading()
-                    : custProvider.customerReport.isEmpty
-                    ? const Center(
-                  child: CustomText(
-                    text: "No Comments Found",
-                    size: 15,
-                  ),
-                )
-                    : ListView.builder(
-                  controller: taskProvider.scrollController,
-                  padding: const EdgeInsets.fromLTRB(10, 10, 10, 80),
-                  physics: const BouncingScrollPhysics(),
-                  itemCount: custProvider.customerReport.length,
-                  itemBuilder: (context, index) {
-                    CustomerReportModel data = custProvider.customerReport[index];
+              /// 🔥 CHAT BODY
+              body: custProvider.refresh == false
+                  ? const Loading()
+                  : custProvider.customerReport.isEmpty
+                  ? const Center(
+                child: CustomText(
+                  text: "No Comments Found",
+                  size: 15,
+                ),
+              )
+                  : Center(
+                child: SizedBox(
+                  // color: Colors.blueGrey,
+                  width: kIsWeb?webWidth:phoneWidth,
+                  child: ListView.builder(
+                    controller: taskProvider.scrollController,
+                    padding: const EdgeInsets.fromLTRB(10, 10, 10, 80),
+                    physics: const BouncingScrollPhysics(),
+                    itemCount: custProvider.customerReport.length,
+                    itemBuilder: (context, index) {
+                      CustomerReportModel data = custProvider.customerReport[index];
+                      print(data.createdBy.toString());
+                      print(localData.storage.read("id").toString());
+                      bool isSender = data.createdBy.toString() ==
+                          localData.storage.read("id").toString();
 
-                    bool isSender = data.createdBy.toString() ==
-                        localData.storage.read("id").toString();
+                      /// ✅ FIX: document trim + lowercase check
+                      String doc = data.documents?.toString().trim() ?? "";
 
-                    /// ✅ FIX: document trim + lowercase check
-                    String doc = data.documents?.toString().trim() ?? "";
+                      bool isAudio = doc.isNotEmpty &&
+                          (doc.toLowerCase().endsWith(".m4a") ||
+                              doc.toLowerCase().endsWith(".mp3") ||
+                              doc.toLowerCase().endsWith(".wav"));
 
-                    bool isAudio = doc.isNotEmpty &&
-                        (doc.toLowerCase().endsWith(".m4a") ||
-                            doc.toLowerCase().endsWith(".mp3") ||
-                            doc.toLowerCase().endsWith(".wav"));
+                      /// ✅ FIX: build proper audio url
+                      String audioUrl = doc;
 
-                    /// ✅ FIX: build proper audio url
-                    String audioUrl = "$imageFile?path=$doc";
-
-                    return Align(
-                      alignment:
-                      isSender ? Alignment.centerRight : Alignment.centerLeft,
-                      child: IntrinsicWidth(
-                        child: ConstrainedBox(
-                          constraints: BoxConstraints(
-                            maxWidth: MediaQuery.of(context).size.width * 0.70,
-                          ),
-                          child: Container(
-                            margin: const EdgeInsets.symmetric(vertical: 4),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 10,
+                      return Align(
+                        alignment:
+                        isSender ? Alignment.centerRight : Alignment.centerLeft,
+                        child: IntrinsicWidth(
+                          child: ConstrainedBox(
+                            constraints: BoxConstraints(
+                              maxWidth: MediaQuery.of(context).size.width * 0.70,
                             ),
-                            decoration: BoxDecoration(
-                              color: isSender
-                                  ? const Color(0xFFDCF8C6)
-                                  : Colors.white,
-                              borderRadius: BorderRadius.only(
-                                topLeft: const Radius.circular(12),
-                                topRight: const Radius.circular(12),
-                                bottomLeft:
-                                isSender ? const Radius.circular(12) : Radius.zero,
-                                bottomRight:
-                                isSender ? Radius.zero : const Radius.circular(12),
+                            child: Container(
+                              margin: const EdgeInsets.symmetric(vertical: 4),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 10,
                               ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.08),
-                                  blurRadius: 5,
-                                  offset: const Offset(0, 2),
-                                )
-                              ],
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                20.height,
-                                if (!isSender)
-                                  Padding(
-                                    padding: const EdgeInsets.only(bottom: 4),
-                                    child: Row(
-                                      children: [
-                                        Text(
-                                          data.firstname.toString(),
-                                          style: const TextStyle(
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.w600,
-                                            color: Color(0xFF0D47A1),
+                              decoration: BoxDecoration(
+                                color: isSender
+                                    ? const Color(0xFFDCF8C6)
+                                    : Colors.white,
+                                borderRadius: BorderRadius.only(
+                                  topLeft: const Radius.circular(12),
+                                  topRight: const Radius.circular(12),
+                                  bottomLeft:
+                                  isSender ? const Radius.circular(12) : Radius.zero,
+                                  bottomRight:
+                                  isSender ? Radius.zero : const Radius.circular(12),
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.08),
+                                    blurRadius: 5,
+                                    offset: const Offset(0, 2),
+                                  )
+                                ],
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  if (!isSender)
+                                    Padding(
+                                      padding: const EdgeInsets.only(bottom: 4),
+                                      child: Row(
+                                        children: [
+                                          Text(
+                                            data.firstname.toString(),
+                                            style: const TextStyle(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w600,
+                                              color: Color(0xFF0D47A1),
+                                            ),
                                           ),
+                                          const SizedBox(width: 5),
+                                          Text(
+                                            "( ${data.role} )",
+                                            style: TextStyle(
+                                              fontSize: 11,
+                                              color: Colors.grey.shade600,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+
+                                  /// ✅ AUDIO UI
+                                  if (isAudio)
+                                    AudioTile(
+                                        key: ValueKey(audioUrl),audioUrl: '$imageFile?path=$audioUrl')
+                                  // Container(
+                                  //   height: 45,
+                                  //   width: 240,
+                                  //   padding: const EdgeInsets.symmetric(horizontal: 6),
+                                  //   decoration: BoxDecoration(
+                                  //     color: Colors.grey.shade100,
+                                  //     borderRadius: BorderRadius.circular(10),
+                                  //   ),
+                                  //   child: Row(
+                                  //     children: [
+                                  //       (isBuffering && bufferingUrl == audioUrl)
+                                  //           ? const SizedBox(
+                                  //         height: 20,
+                                  //         width: 20,
+                                  //         child: CircularProgressIndicator(strokeWidth: 2,color: Colors.green,),
+                                  //       )
+                                  //           : IconButton(
+                                  //         icon: Icon(
+                                  //           (playingUrl == audioUrl && networkPlaying)
+                                  //               ? Icons.pause
+                                  //               : Icons.play_arrow,
+                                  //           color: Colors.green,
+                                  //         ),
+                                  //         onPressed: () async {
+                                  //           await playNetworkAudio(audioUrl);
+                                  //         },
+                                  //       ),
+                                  //       Expanded(
+                                  //         child: Slider(
+                                  //           activeColor: Colors.green,
+                                  //           inactiveColor: Colors.grey.shade300,
+                                  //           value: (playingUrl == audioUrl &&
+                                  //               networkTotal.inSeconds > 0)
+                                  //               ? networkCurrent.inSeconds
+                                  //               .toDouble()
+                                  //               .clamp(
+                                  //             0,
+                                  //             networkTotal.inSeconds.toDouble(),
+                                  //           )
+                                  //               : 0,
+                                  //           min: 0,
+                                  //           max: (playingUrl == audioUrl &&
+                                  //               networkTotal.inSeconds > 0)
+                                  //               ? networkTotal.inSeconds.toDouble()
+                                  //               : 1,
+                                  //           onChanged: (value) async {
+                                  //             if (playingUrl == audioUrl) {
+                                  //               await _audioPlayer.seek(
+                                  //                 Duration(seconds: value.toInt()),
+                                  //               );
+                                  //             }
+                                  //           },
+                                  //         ),
+                                  //       ),
+                                  //       Text(
+                                  //         (playingUrl == audioUrl)
+                                  //             ? "${formatTime(networkCurrent)} / ${formatTime(networkTotal)}"
+                                  //             : "00:00 / 00:00",
+                                  //         style: const TextStyle(fontSize: 11),
+                                  //       ),
+                                  //       const SizedBox(width: 5),
+                                  //     ],
+                                  //   ),
+                                  // )
+
+                                  else
+                                    Text(
+                                      data.comments.toString(),
+                                      style: const TextStyle(
+                                        fontSize: 13,
+                                        color: Colors.black87,
+                                      ),
+                                    ),
+
+                                  const SizedBox(height: 6),
+
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.end,
+                                    children: [
+                                      Text(
+                                        DateFormat('hh:mm a').format(
+                                          DateTime.parse(data.createdTs.toString()),
                                         ),
-                                        const SizedBox(width: 5),
-                                        Text(
-                                          "( ${data.role} )",
-                                          style: TextStyle(
-                                            fontSize: 11,
+                                        style: TextStyle(
+                                          fontSize: 10,
+                                          color: Colors.grey.shade700,
+                                        ),
+                                      ),
+                                      if (data.isLocal == true)
+                                        Padding(
+                                          padding: const EdgeInsets.only(left: 4),
+                                          child: Icon(
+                                            Icons.schedule,
+                                            size: 12,
                                             color: Colors.grey.shade600,
                                           ),
                                         ),
-                                      ],
-                                    ),
+                                    ],
                                   ),
-
-                                /// ✅ AUDIO UI
-                                if (isAudio)
-                                  Container(
-                                    height: 45,
-                                    width: 240,
-                                    padding: const EdgeInsets.symmetric(horizontal: 6),
-                                    decoration: BoxDecoration(
-                                      color: Colors.grey.shade100,
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        (isBuffering && bufferingUrl == audioUrl)
-                                            ? const SizedBox(
-                                          height: 20,
-                                          width: 20,
-                                          child: CircularProgressIndicator(strokeWidth: 2,color: Colors.green,),
-                                        )
-                                            : IconButton(
-                                          icon: Icon(
-                                            (playingUrl == audioUrl && networkPlaying)
-                                                ? Icons.pause
-                                                : Icons.play_arrow,
-                                            color: Colors.green,
-                                          ),
-                                          onPressed: () async {
-                                            await playNetworkAudio(audioUrl);
-                                          },
-                                        ),
-                                        Expanded(
-                                          child: Slider(
-                                            activeColor: Colors.green,
-                                            inactiveColor: Colors.grey.shade300,
-                                            value: (playingUrl == audioUrl &&
-                                                networkTotal.inSeconds > 0)
-                                                ? networkCurrent.inSeconds
-                                                .toDouble()
-                                                .clamp(
-                                              0,
-                                              networkTotal.inSeconds.toDouble(),
-                                            )
-                                                : 0,
-                                            min: 0,
-                                            max: (playingUrl == audioUrl &&
-                                                networkTotal.inSeconds > 0)
-                                                ? networkTotal.inSeconds.toDouble()
-                                                : 1,
-                                            onChanged: (value) async {
-                                              if (playingUrl == audioUrl) {
-                                                await _chatPlayer.seek(
-                                                  Duration(seconds: value.toInt()),
-                                                );
-                                              }
-                                            },
-                                          ),
-                                        ),
-                                        Text(
-                                          (playingUrl == audioUrl)
-                                              ? "${formatTime(networkCurrent)} / ${formatTime(networkTotal)}"
-                                              : " ",
-                                          style: const TextStyle(fontSize: 11),
-                                        ),
-                                        const SizedBox(width: 5),
-                                      ],
-                                    ),
-                                  )
-                                else
-                                  Text(
-                                    data.comments.toString(),
-                                    style: const TextStyle(
-                                      fontSize: 13,
-                                      color: Colors.black87,
-                                    ),
-                                  ),
-
-                                const SizedBox(height: 6),
-
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.end,
-                                  children: [
-                                    Text(
-                                      DateFormat('hh:mm a').format(
-                                        DateTime.parse(data.createdTs.toString()),
-                                      ),
-                                      style: TextStyle(
-                                        fontSize: 10,
-                                        color: Colors.grey.shade700,
-                                      ),
-                                    ),
-                                    if (data.isLocal == true)
-                                      Padding(
-                                        padding: const EdgeInsets.only(left: 4),
-                                        child: Icon(
-                                          Icons.schedule,
-                                          size: 12,
-                                          color: Colors.grey.shade600,
-                                        ),
-                                      ),
-                                  ],
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                    );
-                  },
+                      );
+                    },
+                  ),
                 ),
               ),
             ),

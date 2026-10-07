@@ -7,12 +7,12 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:flutter_svg/svg.dart';
-import 'package:master_code/model/add_expense_model.dart';
-import 'package:master_code/source/constant/default_constant.dart';
-import 'package:master_code/source/extentions/extensions.dart';
-import 'package:master_code/source/utilities/utils.dart';
-import 'package:master_code/view_model/employee_provider.dart';
-import 'package:master_code/view_model/home_provider.dart';
+import '../../model/add_expense_model.dart';
+import '../../source/constant/language_model.dart';
+import '../../source/extentions/extensions.dart';
+import '../../source/utilities/utils.dart';
+import '../../view_model/employee_provider.dart';
+import '../../view_model/home_provider.dart';
 import 'package:excel/excel.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/foundation.dart';
@@ -20,8 +20,8 @@ import 'package:flutter/material.dart';
 import 'package:group_button/group_button.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
-import 'package:master_code/view_model/project_provider.dart';
-import 'package:master_code/view_model/task_provider.dart';
+import '../../view_model/project_provider.dart';
+import '../../view_model/task_provider.dart';
 import 'package:open_file/open_file.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
@@ -45,7 +45,7 @@ import 'package:http/http.dart'as http;
 import '../source/constant/assets_constant.dart';
 import '../source/constant/colors_constant.dart';
 import '../source/constant/local_data.dart';
-// import 'package:syncfusion_flutter_pdf/pdf.dart' as sf;
+import 'package:syncfusion_flutter_pdf/pdf.dart' as sf;
 import 'package:pdf/widgets.dart' as pw;
 import 'package:syncfusion_flutter_datepicker/datepicker.dart';
 import '../source/utilities/excel_download_mobile.dart'
@@ -3847,7 +3847,7 @@ class ExpenseProvider with ChangeNotifier{
   //                       pw.Container(
   //                         alignment: pw.Alignment.center,
   //                         padding: const pw.EdgeInsets.all(4),
-  //                         child: pw.Text('Task Type',
+  //                         child: pw.Text('Task type',
   //                             style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: fontC)),
   //                       ),
   //                       pw.Container(
@@ -4725,7 +4725,7 @@ class ExpenseProvider with ChangeNotifier{
   //                       pw.Container(
   //                         alignment: pw.Alignment.center,
   //                         padding: const pw.EdgeInsets.all(4),
-  //                         child: pw.Text('Task Type',
+  //                         child: pw.Text('Task type',
   //                             style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: fontC)),
   //                       ),
   //                       pw.Container(
@@ -5574,7 +5574,7 @@ class ExpenseProvider with ChangeNotifier{
   //                       pw.Container(
   //                         alignment: pw.Alignment.centerLeft,
   //                         padding: const pw.EdgeInsets.all(4),
-  //                         child: pw.Text('Task Type',
+  //                         child: pw.Text('Task type',
   //                             style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: fontC)),
   //                       ),
   //                       pw.Container(
@@ -6439,7 +6439,7 @@ class ExpenseProvider with ChangeNotifier{
 //                         pw.Container(
 //                           alignment: pw.Alignment.centerLeft,
 //                           padding: const pw.EdgeInsets.all(4),
-//                           child: pw.Text('Task Type',
+//                           child: pw.Text('Task type',
 //                               style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: fontC)),
 //                         ),
 //                         pw.Container(
@@ -7393,7 +7393,7 @@ class ExpenseProvider with ChangeNotifier{
                           color: PdfColor.fromInt(0xFFF6F6F6),
                         ),
                         padding: const pw.EdgeInsets.all(4),
-                        child: pw.Text('Task Type',
+                        child: pw.Text('Task type',
                             style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: fontC)),
                       ),
                       pw.Container(
@@ -8335,7 +8335,7 @@ class ExpenseProvider with ChangeNotifier{
   //     "To Date",
   //     "Customer Name",
   //     "Amount",
-  //     "Task Type",
+  //     "Task type",
   //     "No. of Days",
   //     "Per Day"
   //   ], rowIndex++);
@@ -8727,7 +8727,7 @@ class ExpenseProvider with ChangeNotifier{
       "To Date",
       "Customer Name",
       "Amount",
-      "Task Type",
+      "Task type",
       "No. of Days",
       "Per Day"
     ], rowIndex++);

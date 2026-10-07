@@ -2,8 +2,8 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:master_code/component/custom_loading.dart';
-import 'package:master_code/source/constant/default_constant.dart';
+import '../../component/custom_loading.dart';
+import '../../source/constant/language_model.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../../component/custom_text.dart';

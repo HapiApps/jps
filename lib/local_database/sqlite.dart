@@ -366,6 +366,16 @@ class LocalDatabase {
       whereArgs: [id],
     );
   }
+  static Future<void> deleteTaskStatusById(String id) async {
+    final db = _db;
+    if (db == null) return;
+
+    await db.delete(
+      'task_status',
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
 
   static Future<void> deleteDb() async {
     String path = join(await getDatabasesPath(), 'ACI.db');

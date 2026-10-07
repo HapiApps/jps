@@ -1,5 +1,5 @@
-import 'package:master_code/component/dotted_border.dart';
-import 'package:master_code/source/extentions/extensions.dart';
+import '../../component/dotted_border.dart';
+import '../../source/extentions/extensions.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -93,15 +93,15 @@ class _AllGradeState extends State<AllGrade>{
                                     SizedBox(
                                         width:kIsWeb?MediaQuery.sizeOf(context).width*0.1:MediaQuery.sizeOf(context).width*0.26,
                                         // color: Colors.pink,
-                                        child: CustomText(text: employeeData["tra"].text,)),
+                                        child: CustomText(text: employeeData["tra"].text.isEmpty?'0':employeeData["tra"].text,)),
                                     SizedBox(
                                         width:kIsWeb?MediaQuery.sizeOf(context).width*0.1:MediaQuery.sizeOf(context).width*0.29,
                                         // color: Colors.yellow,
-                                        child: CustomText(text: employeeData["da"].text,)),
+                                        child: CustomText(text: employeeData["da"].text.isEmpty?'0':employeeData["da"].text)),
                                     SizedBox(
                                         width:kIsWeb?MediaQuery.sizeOf(context).width*0.1:MediaQuery.sizeOf(context).width*0.35,
                                         // color: Colors.blue,
-                                        child: CustomText(text: employeeData["conv"].text,)),
+                                        child: CustomText(text: employeeData["conv"].text.isEmpty?'0':employeeData["conv"].text)),
                                   ],
                                 ),10.height,
                                 Container(color: Colors.grey.shade200,height: 0.99,)
@@ -200,7 +200,7 @@ class _EditGradeState extends State<EditGrade>{
                                           },
                                           inputFormatters: constInputFormatters.numberInput,
                                           keyboardType: TextInputType.number,
-                                          text: "", controller: employeeData["tra"]),
+                                          text: "", hintText: "0", controller: employeeData["tra"]),
                                       CustomTextField(
                                           width: kIsWeb?webWidth/3:phoneWidth/3,
                                           onChanged: (value){
@@ -208,7 +208,7 @@ class _EditGradeState extends State<EditGrade>{
                                           },
                                           inputFormatters: constInputFormatters.numberInput,
                                           keyboardType: TextInputType.number,
-                                          text: "", controller: employeeData["da"]),
+                                          text: "", hintText: "0", controller: employeeData["da"]),
                                       CustomTextField(
                                           width: kIsWeb?webWidth/3:phoneWidth/3,
                                           onChanged: (value){
@@ -217,7 +217,7 @@ class _EditGradeState extends State<EditGrade>{
                                           inputFormatters: constInputFormatters.numberInput,
                                           keyboardType: TextInputType.number,
                                           textInputAction: TextInputAction.done,
-                                          text: "", controller: employeeData["conv"]),
+                                          text: "", hintText: "0", controller: employeeData["conv"]),
                                     ],
                                   ),
                                   const DotLine()

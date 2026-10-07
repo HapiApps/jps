@@ -1,9 +1,9 @@
 import 'package:flutter_svg/svg.dart';
-import 'package:master_code/source/constant/default_constant.dart';
-import 'package:master_code/view_model/expense_provider.dart';
+import '../../source/constant/language_model.dart';
+import '../../view_model/expense_provider.dart';
 import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart';
-import 'package:master_code/source/extentions/extensions.dart';
+import '../../source/extentions/extensions.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../component/animated_button.dart';
@@ -332,7 +332,11 @@ class _ViewExpenseState extends State<ViewExpense> with SingleTickerProviderStat
                               ),
                               child: Padding(
                                 padding: const EdgeInsets.all(6.0),
-                                child: SvgPicture.asset(assets.tFilter,width: 15,height: 15,),
+                                child:  Icon(
+                                  Icons.filter_alt,
+                                  size: 27,
+                                  color: Colors.white,
+                                ),
                               ),
                             ),
                           ),
@@ -433,9 +437,10 @@ class _ViewExpenseState extends State<ViewExpense> with SingleTickerProviderStat
                               return InkWell(
                                 onTap: (){
                                   _myFocusScopeNode.unfocus();
-                                  utils.navigatePage(context, ()=> DashBoard(child: ExpenseDetails(visitId: '0', isExpense: true,companyId: "", id: data.id.toString(),
+                                  utils.navigatePage(context, ()=> DashBoard(child: ExpenseDetails(visitId: '0', isExpense: true,companyId: "", id:
+                                  data.id.toString(),
                                     name: data.firstname.toString(), role: data.role.toString(),
-                                    customer: data.projectName.toString(), purpose: data.taskTitle.toString(), date: createdBy)));
+                                    customer: data.projectName??'', purpose: data.taskTitle.toString(), date: createdBy)));
                                 },
                                 child: Column(
                                   children: [
@@ -793,9 +798,10 @@ class _DownloadExpenseState extends State<DownloadExpense> with SingleTickerProv
                               return InkWell(
                                 onTap: (){
                                   _myFocusScopeNode.unfocus();
-                                  utils.navigatePage(context, ()=> DashBoard(child: ExpenseDetails(visitId: '0', isExpense: true,companyId: "", id: data.id.toString(),
+                                  utils.navigatePage(context, ()=> DashBoard(child: ExpenseDetails(visitId: '0', isExpense: true,companyId: "",
+                                    id: data.id.toString(),
                                       name: data.firstname.toString(), role: data.role.toString(),
-                                      customer: data.projectName.toString(), purpose: data.taskTitle.toString(), date: createdBy,)));
+                                      customer: data.projectName??'', purpose: data.taskTitle.toString(), date: createdBy,)));
                                 },
                                 child: Column(
                                   children: [

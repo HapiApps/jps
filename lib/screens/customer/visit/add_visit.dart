@@ -1,31 +1,25 @@
-import 'package:master_code/component/custom_loading_button.dart';
-import 'package:master_code/view_model/employee_provider.dart';
-import 'package:master_code/view_model/home_provider.dart';
-import 'package:master_code/view_model/location_provider.dart';
+import '../../../component/custom_loading_button.dart';
+import '../../../view_model/employee_provider.dart';
+import '../../../view_model/home_provider.dart';
+import '../../../view_model/location_provider.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:master_code/source/extentions/extensions.dart';
-import 'package:master_code/view_model/customer_provider.dart';
+import '../../../source/extentions/extensions.dart';
+import '../../../view_model/customer_provider.dart';
 import '../../../component/custom_appbar.dart';
-import '../../../component/custom_loading.dart';
 import '../../../component/custom_text.dart';
 import '../../../component/custom_textfield.dart';
 import '../../../component/map_dropdown.dart';
 import '../../../component/maxline_textfield.dart';
-import '../../../component/multi_dropdown.dart'
-    hide MapDropDown, MultiSelectDropdown;
 import '../../../component/search_drop_down.dart';
 import '../../../model/customer/customer_model.dart';
 import '../../../source/constant/colors_constant.dart';
-import '../../../source/constant/default_constant.dart';
+import '../../../source/constant/language_model.dart';
 import '../../../source/styles/decoration.dart';
 import '../../../source/utilities/utils.dart';
 import '../../../view_model/task_provider.dart';
 import '../../common/dashboard.dart';
-import '../../task/search_custom_dropdown.dart'
-    hide MapDropDown, MultiSelectDropdown;
-import '../../task/search_dropdown_list.dart';
 import '../viamap.dart';
 import '../visit_report/visits_report.dart';
 import 'add_company.dart';
@@ -341,34 +335,34 @@ class _CusAddVisitState extends State<CusAddVisit>
                                 ),
 
                               /// ====================== CUSTOMER TYPE ======================
-                              MapDropDown(
-                                isRefresh: taskProvider.cusTypeList.isEmpty,
-                                callback: () {
-                                  closeAllDropdowns();
-                                  if (!kIsWeb) {
-                                    taskProvider.refreshCusType();
-                                  } else {
-                                    taskProvider.getAllCusTypes();
-                                  }
-                                },
-                                width: kIsWeb ? webWidth : phoneWidth,
-                                hintText: constValue.cusType,
-                                list: taskProvider.cusTypeList,
-                                saveValue: taskProvider.selectType != null
-                                    ? taskProvider.selectType['id']
-                                    : null,
-                                onChanged: (value) {
-                                  closeAllDropdowns();
-
-                                  final selected =
-                                  taskProvider.cusTypeList.firstWhere(
-                                        (e) => e['id'] == value,
-                                  );
-
-                                  taskProvider.changeCusType(selected);
-                                },
-                                dropText: 'value',
-                              ),
+                              // MapDropDown(
+                              //   isRefresh: taskProvider.cusTypeList.isEmpty,
+                              //   callback: () {
+                              //     closeAllDropdowns();
+                              //     if (!kIsWeb) {
+                              //       taskProvider.refreshCusType();
+                              //     } else {
+                              //       taskProvider.getAllCusTypes();
+                              //     }
+                              //   },
+                              //   width: kIsWeb ? webWidth : phoneWidth,
+                              //   hintText: constValue.cusType,
+                              //   list: taskProvider.cusTypeList,
+                              //   saveValue: taskProvider.selectType != null
+                              //       ? taskProvider.selectType['id']
+                              //       : null,
+                              //   onChanged: (value) {
+                              //     closeAllDropdowns();
+                              //
+                              //     final selected =
+                              //     taskProvider.cusTypeList.firstWhere(
+                              //           (e) => e['id'] == value,
+                              //     );
+                              //
+                              //     taskProvider.changeCusType(selected);
+                              //   },
+                              //   dropText: 'value',
+                              // ),
 
                               /// ====================== CUSTOMER MULTI SELECT ======================
                               Consumer<CustomerProvider>(
@@ -489,7 +483,7 @@ class _CusAddVisitState extends State<CusAddVisit>
                                 dropText: 'value',
                               ),
 
-                              /// ====================== VISIT TYPE DROPDOWN ======================
+                              /// ====================== Task type DROPDOWN ======================
                               MapDropDown(
                                 callback: () {
                                   closeAllDropdowns();
@@ -522,7 +516,7 @@ class _CusAddVisitState extends State<CusAddVisit>
                                   utils.datePick(
                                     context: context,
                                     textEditingController:
-                                    custProvider.commentDate,
+                                    custProvider.commentDate,isDob: true
                                   );
                                 },
                                 onChanged: null,

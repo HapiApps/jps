@@ -1,9 +1,9 @@
-import 'package:master_code/view_model/expense_provider.dart';
+import '../../view_model/expense_provider.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:master_code/source/extentions/extensions.dart';
+import '../../source/extentions/extensions.dart';
 import '../../component/custom_text.dart';
 import '../../source/constant/colors_constant.dart';
 

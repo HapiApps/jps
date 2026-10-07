@@ -1,7 +1,7 @@
-import 'package:master_code/screens/payroll/payroll_payslip.dart';
-import 'package:master_code/source/extentions/extensions.dart';
-import 'package:master_code/source/utilities/utils.dart';
-import 'package:master_code/view_model/leave_provider.dart';
+import '../../screens/payroll/payroll_payslip.dart';
+import '../../source/extentions/extensions.dart';
+import '../../source/utilities/utils.dart';
+import '../../view_model/leave_provider.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';

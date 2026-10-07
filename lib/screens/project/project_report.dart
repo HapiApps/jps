@@ -1,11 +1,11 @@
-import 'package:master_code/screens/task/task_attendance.dart';
-import 'package:master_code/source/utilities/utils.dart';
-import 'package:master_code/view_model/expense_provider.dart';
+import '../../screens/task/task_attendance.dart';
+import '../../source/utilities/utils.dart';
+import '../../view_model/expense_provider.dart';
 import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart';
-import 'package:master_code/source/extentions/extensions.dart';
+import '../../source/extentions/extensions.dart';
 import 'package:flutter/material.dart';
-import 'package:master_code/view_model/project_provider.dart';
+import '../../view_model/project_provider.dart';
 import 'package:provider/provider.dart';
 import '../../component/custom_appbar.dart';
 import '../../component/custom_loading.dart';

@@ -2,8 +2,8 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:master_code/component/custom_network_image.dart';
-import 'package:master_code/source/extentions/extensions.dart';
+import '../../component/custom_network_image.dart';
+import '../../source/extentions/extensions.dart';
 import '../source/styles/decoration.dart';
 import 'custom_text.dart';
 

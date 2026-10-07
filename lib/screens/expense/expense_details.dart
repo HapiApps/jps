@@ -1,12 +1,11 @@
-import 'package:master_code/component/app_custom_data_text.dart';
-import 'package:master_code/component/custom_loading_button.dart';
-import 'package:master_code/component/dotted_border.dart';
-import 'package:master_code/model/expense_model.dart';
-import 'package:master_code/source/constant/default_constant.dart';
-import 'package:master_code/view_model/expense_provider.dart';
+import '../../component/app_custom_data_text.dart';
+import '../../component/custom_loading_button.dart';
+import '../../component/dotted_border.dart';
+import '../../model/expense_model.dart';
+import '../../view_model/expense_provider.dart';
 import 'package:flutter/foundation.dart';
 import 'package:group_button/group_button.dart';
-import 'package:master_code/source/extentions/extensions.dart';
+import '../../source/extentions/extensions.dart';
 import 'package:flutter/material.dart';
 import 'package:path/path.dart' as p;
 import 'package:provider/provider.dart';
@@ -78,6 +77,7 @@ class _ExpenseDetailsState extends State<ExpenseDetails> {
                     borderRadius:BorderRadius.circular(5),
                     buttonHeight: 30,
                     buttonWidth: 74,
+                    selectedColor: colorsConst.primary,
                     selectedBorderColor:colorsConst.primary,
                     unselectedBorderColor:colorsConst.primary,
                     selectedTextStyle:const TextStyle(
@@ -147,11 +147,11 @@ class _ExpenseDetailsState extends State<ExpenseDetails> {
                               CustomText(
                                   text: expProvider.expenseDetail[index].status.toString()=="0"?"Rejected":
                                   expProvider.expenseDetail[index].status.toString()=="2"?"Approved":"In process",
-                                  colors: expProvider.expenseDetail[index].status.toString()=="0"?colorsConst.appRed:
+                                  colors: expProvider.expenseDetail[index].status.toString()=="0"?colorsConst.callColor:
                                   expProvider.expenseDetail[index].status.toString()=="2"?colorsConst.appGreen:colorsConst.greyClr,size: 16),5.width,
                               CircleAvatar(
                                 radius: 5,
-                                backgroundColor:  expProvider.expenseDetail[index].status.toString()=="0"?colorsConst.appRed:
+                                backgroundColor:  expProvider.expenseDetail[index].status.toString()=="0"?colorsConst.callColor:
                                 expProvider.expenseDetail[index].status.toString()=="2"?colorsConst.appGreen:colorsConst.litGrey,
                               )
                             ],
@@ -186,13 +186,13 @@ class _ExpenseDetailsState extends State<ExpenseDetails> {
                                     child: Container(
                                       width: kIsWeb?webHeight/2.4:phoneHeight/2.4,height: 35,
                                       decoration: customDecoration.baseBackgroundDecoration(
-                                          color: Colors.white,radius: 5,borderColor: colorsConst.appRed
+                                          color: Colors.white,radius: 5,borderColor: colorsConst.callColor
                                       ),
                                       child: Row(
                                         mainAxisAlignment: MainAxisAlignment.center,
                                         children: [
-                                          CustomText(text: "Reject",colors: colorsConst.appRed),5.width,
-                                          CustomText(text: "X",colors: colorsConst.appRed),
+                                          CustomText(text: "Reject",colors: colorsConst.callColor),5.width,
+                                          CustomText(text: "X",colors: colorsConst.callColor),
                                         ],
                                       ),
                                     ),
@@ -321,7 +321,7 @@ class _ExpenseDetailsState extends State<ExpenseDetails> {
                               child: Column(
                                 children: [
                                   // CustomDataText(title: "Total Advance :", value: "₹ ${expProvider.expenseDetail[index].advance.toString()!=""&&expProvider.expenseDetail[index].advance.toString()!="null"?utils.formatNo(expProvider.expenseDetail[index].advance.toString()):"0"}",color2: colorsConst.greyClr,isBold: true,),
-                                  CustomDataText(title: "Total Amount :", value: "₹ ${utils.formatNo(expProvider.expenseDetail[index].amount.toString())}",color2: colorsConst.appRed,isBold: true,),
+                                  CustomDataText(title: "Total Amount :", value: "₹ ${utils.formatNo(expProvider.expenseDetail[index].amount.toString())}",color2: colorsConst.callColor,isBold: true,),
                                   if(expProvider.expenseDetail[index].status.toString()=="2")
                                     CustomDataText(title: "Approved Amount :", value: "₹ ${expProvider.expenseDetail[index].approvalAmt.toString()!=""&&expProvider.expenseDetail[index].approvalAmt.toString()!="null"?utils.formatNo(expProvider.expenseDetail[index].approvalAmt.toString()):"0"}",color2: colorsConst.appOrg,isBold: true,),
                                   if(expProvider.expenseDetail[index].status.toString()=="2")

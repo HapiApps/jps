@@ -1,14 +1,14 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:master_code/source/extentions/extensions.dart';
-import 'package:master_code/view_model/customer_provider.dart';
+import '../../../source/extentions/extensions.dart';
+import '../../../view_model/customer_provider.dart';
 import '../../../component/custom_loading.dart';
 import '../../../component/custom_text.dart';
 import '../../../component/dotted_border.dart';
 import '../../../model/customer/customer_report_model.dart';
 import '../../../source/constant/colors_constant.dart';
-import '../../../source/constant/default_constant.dart';
+import '../../../source/constant/language_model.dart';
 import '../../../source/styles/decoration.dart';
 import '../../../source/utilities/utils.dart';
 import '../../customer/comments/comment_chat.dart';

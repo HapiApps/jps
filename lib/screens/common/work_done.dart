@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:master_code/source/constant/colors_constant.dart';
+import '../../source/constant/colors_constant.dart';
 import 'package:provider/provider.dart';
 import '../../view_model/attendance_provider.dart';
 

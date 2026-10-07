@@ -335,7 +335,7 @@ ExpenseReportData2 prepareExpenseDataForExcel(List<ExpenseModel2> dataList) {
       'To Date': DateFormat('dd-MM-yyyy').format(endDate),
       'Customer Name': project,
       'Amount': totalAmount.toStringAsFixed(2),
-      'Task Type': taskType,
+      'Task type': taskType,
       'No. of Days': noOfDays,
       'Per Day': (totalAmount / noOfDays).toStringAsFixed(2),
     });

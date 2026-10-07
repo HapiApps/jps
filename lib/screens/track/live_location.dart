@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:provider/provider.dart';
 
-import 'package:master_code/component/custom_loading.dart';
-import 'package:master_code/component/custom_text.dart';
-import 'package:master_code/component/custom_appbar.dart';
+import '../../component/custom_loading.dart';
+import '../../component/custom_text.dart';
+import '../../component/custom_appbar.dart';
 
 import '../../source/constant/colors_constant.dart';
 import '../../source/utilities/utils.dart';

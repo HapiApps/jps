@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'dart:developer';
 import 'dart:io';
 import 'package:audioplayers/audioplayers.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:excel/excel.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
@@ -15,19 +14,19 @@ import 'package:get/get.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
-import 'package:master_code/component/maxline_textfield.dart';
-import 'package:master_code/source/styles/decoration.dart';
-import 'package:master_code/view_model/task_provider.dart';
+import '../../component/maxline_textfield.dart';
+import '../../source/styles/decoration.dart';
+import '../../view_model/task_provider.dart';
 import 'package:open_file/open_file.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:record/record.dart';
-import 'package:master_code/model/customer/customer_attendance_model.dart';
-import 'package:master_code/repo/customer_repo.dart';
-import 'package:master_code/source/extentions/extensions.dart';
+import '../../model/customer/customer_attendance_model.dart';
+import '../../repo/customer_repo.dart';
+import '../../source/extentions/extensions.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:rounded_loading_button_plus/rounded_loading_button.dart';
-import 'package:master_code/view_model/home_provider.dart';
+import '../../view_model/home_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import '../component/custom_loading_button.dart';
 import '../component/custom_text.dart';
@@ -45,7 +44,7 @@ import '../screens/common/fullscreen_photo.dart';
 import '../source/constant/api.dart';
 import '../source/constant/assets_constant.dart';
 import '../source/constant/colors_constant.dart';
-import '../source/constant/default_constant.dart';
+import '../source/constant/language_model.dart';
 import '../source/constant/local_data.dart';
 import '../source/utilities/utils.dart';
 import 'dart:ui' as ui;
@@ -67,7 +66,20 @@ class CustomerProvider with ChangeNotifier{
   String selectCustomerNo = "";
   bool hideEmptyEmployees = false;
   bool isAddCompanyLoading = false;
+  String emgCountryCode = "+91";       // <-- RENAMED
+  String emgCountryFlag = "🇮🇳";       // <-- RENAMED
 
+  void changeCountryCode(int index, String code, String flag) {
+    addCustomer[index].countryCode = code;
+    addCustomer[index].countryFlag = flag;
+    notifyListeners();
+  }
+
+  void changeEmgCountryCode(String code, String flag) {
+    emgCountryCode = code;
+    emgCountryFlag = flag;
+    notifyListeners();
+  }
   void toggleHideEmptyEmployees(bool value) {
     hideEmptyEmployees = value;
     notifyListeners();
@@ -140,6 +152,7 @@ class CustomerProvider with ChangeNotifier{
     required String taskId,
     required String assignedId,
     required String path,
+    required int index,
   }) async {
     /// ✅ Store comment before clearing controller
     final commentText = disPoint.text.trim();
@@ -156,8 +169,13 @@ class CustomerProvider with ChangeNotifier{
     );
 
     _customerReport.add(tempMessage);
+    print("index $index");
+    if(index!=-1){
+      final taskProvider = Provider.of<TaskProvider>(context, listen: false);
+      taskProvider.updateTaskComment(index,commentText);
+      notifyListeners();
+    }
     notifyListeners();
-
     try {
       /// ✅ 2. MINIMAL PAYLOAD
       List<Map<String, String>> customersList = [];
@@ -414,12 +432,12 @@ void closeVisible(){
       },
     );
   }
-  void setCustomerData(List<CustomerModel> data) {
-    _customerData = data;
-    _searchCustomerDate = data;
-    _filterCustomerData = data;
-    notifyListeners();
-  }
+  // void setCustomerData(List<CustomerModel> data) {
+  //   _customerData = data;
+  //   _searchCustomerDate = data;
+  //   _filterCustomerData = data;
+  //   notifyListeners();
+  // }
   Future<void> getAllCustomers(bool isRefresh) async {
     if(isRefresh==true){
       _cusRefresh=false;
@@ -562,93 +580,138 @@ void changeCallType(dynamic value){
   notifyListeners();
 }
 
-Future<void> getCustomerDetail(String id,bool isUpdate,bool isRefresh) async {
-  if(isRefresh==true){
-    _refresh=false;
+  Future<void> getCustomerDetail(String id, bool isUpdate, bool isRefresh) async {
+    if (isRefresh == true) {
+      _refresh = false;
+    }
+    _update = false;
+    _showIndex = 0;
+    _listItem = 0;
+    _customerDetailData.clear();
+    notifyListeners();
+
+    try {
+      Map data = {
+        "action": getAllData,
+        "search_type": "customers_full_details",
+        "cus_id": id,
+        "cos_id": localData.storage.read("cos_id")
+      };
+      final response = await custRepo.getCustomers(data);
+      log(response.toString());
+
+      if (response.isNotEmpty) {
+        _customerDetailData = response;
+        if (isUpdate == true) {
+          CustomerModel data = _customerDetailData[0];
+          localData.storage.write("lead_id", data.leadId.toString());
+          localData.storage.write("visit_id", data.visitId.toString());
+
+          if (data.visitId.toString() != "0") {
+            callType = callList.firstWhere(
+                  (item) =>
+              item["categories"] == "Call Task type" &&
+                  item["id"] == data.visitId.toString() &&
+                  item["value"] == data.visitType.toString(),
+              orElse: () => <String, String>{},
+            );
+          }
+
+          if (data.leadId.toString() != "0") {
+            leadType = leadCategoryList.firstWhere(
+                  (item) =>
+              item["categories"] == "Lead Categories" &&
+                  item["id"].toString() == data.leadId.toString() &&
+                  item["value"] == data.leadStatus.toString(),
+              orElse: () => <String, String>{},
+            );
+          }
+
+          _type = data.type.toString() == "2"
+              ? "Shop"
+              : data.type.toString() == "3"
+              ? "Office"
+              : data.type.toString() == "4"
+              ? "Factory"
+              : data.type.toString() == "5"
+              ? "Hotel"
+              : data.type.toString() == "6"
+              ? "Others"
+              : "1";
+
+          companyName.text = data.companyName.toString();
+          productDis.text = data.productDiscussion.toString() == "null" ? "" : data.productDiscussion.toString();
+          disPoint.text = data.discussionPoint.toString() == "null" ? "" : data.discussionPoint.toString();
+          points.text = data.points.toString() == "null" ? "" : data.points.toString();
+          address.text = data.doorNo.toString();
+          comArea.text = data.area.toString();
+          city.text = data.city.toString();
+          country.text = data.country.toString();
+          pinCode.text = data.pincode.toString();
+          emgName.text = data.emergencyName.toString();
+          emgNo.text = data.emergencyNumber.toString();
+          landmark.text = data.landmark.toString();
+
+          _type = data.type.toString() == "2"
+              ? "Shop"
+              : data.type.toString() == "3"
+              ? "Office"
+              : data.type.toString() == "4"
+              ? "Factory"
+              : data.type.toString() == "5"
+              ? "Hotel"
+              : data.type.toString() == "6"
+              ? "Others"
+              : "Home";
+
+          state = data.state.toString() == "null" || data.state.toString() == "" ? null : data.state.toString();
+
+          var idList = data.customerId.toString().split('||');
+          var usersList = data.firstName.toString().split('||');
+          var phoneList = data.phoneNumber.toString().split('||');
+          var phoneList2 = data.mobileNumber.toString().split('||');
+          var emailList = data.emailId.toString().split('||');
+          var designationList = data.designation.toString().split('||');
+          var departmentList = data.department.toString().split('||');
+          var mainPersonList = data.mainPerson.toString().split('||');
+          var roleList = data.roles.toString().split('||');
+
+          addCustomer.clear();
+          for (var i = 0; i < usersList.length; i++) {
+            addCustomer.add(AddCustomerModel(
+              newE: "0",
+              name: TextEditingController(text: usersList[i] == "null" ? "" : usersList[i]),
+              whatsApp: TextEditingController(text: i < phoneList2.length && phoneList2[i] != "null" ? phoneList2[i] : ""),
+              phone: TextEditingController(text: i < phoneList.length && phoneList[i] != "null" ? phoneList[i] : ""),
+              email: TextEditingController(text: i < emailList.length && emailList[i] != "null" ? emailList[i] : ""),
+              id: idList[i],
+              designation: TextEditingController(text: i < designationList.length && designationList[i] != "null" ? designationList[i] : ""),
+              department: TextEditingController(text: i < departmentList.length && departmentList[i] != "null" ? departmentList[i] : ""),
+              isMain: i < mainPersonList.length && mainPersonList[i] == "1" ? true : mainPersonList.length == 1 ? true : false,
+              isWhatsapp: i < phoneList2.length &&
+                  i < phoneList.length &&
+                  phoneList2[i].trim().isNotEmpty &&
+                  phoneList[i].trim().isNotEmpty &&
+                  phoneList2[i] == phoneList[i]
+                  ? true
+                  : false,
+              role: i < roleList.length ? roleList[i] : "",
+              roleC: i < roleList.length ? roleList[i] : "",
+            ));
+          }
+          _listItem = addCustomer.length;
+        }
+      } else {
+        _listItem = 0;
+      }
+    } catch (e, stackTrace) {
+      log("getCustomerDetail error: $e");
+      log(stackTrace.toString());
+    } finally {
+      _refresh = true;
+      notifyListeners();
+    }
   }
-  _update=false;
-  _showIndex=0;
-  _listItem=0;
-  _customerDetailData.clear();
-  notifyListeners();
-    Map data = {
-      "action": getAllData,
-      "search_type":"customers_full_details",
-      "cus_id":id,
-      "cos_id": localData.storage.read("cos_id")
-    };
-    final response =await custRepo.getCustomers(data);
-    log(response.toString());
-    if (response.isNotEmpty) {
-    _customerDetailData=response;
-    if(isUpdate==true){
-      CustomerModel data = _customerDetailData[0];
-      localData.storage.write("lead_id",data.leadId.toString());
-      localData.storage.write("visit_id",data.visitId.toString());
-      if(data.visitId.toString()!="0"){
-        callType= callList.firstWhere(
-              (item) =>
-          item["categories"] == "Call Visit Type" &&
-              item["id"] == data.visitId.toString() &&
-              item["value"] == data.visitType.toString(),
-        );
-      }
-      if(data.leadId.toString()!="0"){
-        leadType = leadCategoryList.firstWhere(
-              (item) =>
-          item["categories"] == "Lead Categories" &&
-              item["id"].toString() == data.leadId.toString() &&
-              item["value"] == data.leadStatus.toString(),
-        );
-      }
-      _type=data.type.toString()=="2"?"Shop":data.type.toString()=="3"?"Office":data.type.toString()=="4"?"Factory":data.type.toString()=="5"?"Hotel":data.type.toString()=="6"?"Others":"1";
-      companyName.text=data.companyName.toString();
-      productDis.text=data.productDiscussion.toString()=="null"?"":data.productDiscussion.toString();
-      disPoint.text=data.discussionPoint.toString()=="null"?"":data.discussionPoint.toString();
-      points.text=data.points.toString()=="null"?"":data.points.toString();
-      address.text=data.doorNo.toString();
-      comArea.text=data.area.toString();
-      city.text=data.city.toString();
-      country.text=data.country.toString();
-      pinCode.text=data.pincode.toString();
-      emgName.text=data.emergencyName.toString();
-      emgNo.text=data.emergencyNumber.toString();
-      landmark.text=data.landmark.toString();
-      _type=data.type.toString()=="2"?"Shop":data.type.toString()=="3"?"Office":data.type.toString()=="4"?"Factory":data.type.toString()=="5"?"Hotel":data.type.toString()=="6"?"Others":"Home";
-      state=data.state.toString()=="null"||data.state.toString()==""?null:data.state.toString();
-      var idList=data.customerId.toString().split('||');
-      var usersList=data.firstName.toString().split('||');
-      var phoneList=data.phoneNumber.toString().split('||');
-      var phoneList2=data.mobileNumber.toString().split('||');
-      var emailList=data.emailId.toString().split('||');
-      var designationList=data.designation.toString().split('||');
-      var departmentList=data.department.toString().split('||');
-      var mainPersonList=data.mainPerson.toString().split('||');
-      var roleList=data.roles.toString().split('||');
-      addCustomer.clear();
-      for(var i=0;i<usersList.length;i++){
-        addCustomer.add(AddCustomerModel(
-            newE:"0",
-            name: TextEditingController(text: usersList[i]=="null"?"":usersList[i]),
-            whatsApp: TextEditingController(text: phoneList2[i]=="null"?"":phoneList2[i]),
-            phone: TextEditingController(text: phoneList[i]=="null"?"":phoneList[i]),
-            email: TextEditingController(text: emailList[i]=="null"?"":emailList[i]), id: idList[i],
-            designation: TextEditingController(text: designationList[i]=="null"?"":designationList[i]),
-            department: TextEditingController(text: departmentList[i]=="null"?"":departmentList[i]),
-            isMain: mainPersonList[i]=="1"?true:mainPersonList.length==1?true:false,
-            isWhatsapp: phoneList2[i].trim().isNotEmpty&&phoneList[i].trim().isNotEmpty&&
-                phoneList2[i]==phoneList[i]?true:false,
-            role: roleList[i], roleC: roleList[i]));
-      }
-      _listItem=addCustomer.length;
-    }
-      _refresh=true;
-    } else {
-      _listItem=0;
-      _refresh=true;
-    }
-  notifyListeners();
-}
   void searchCustomer(String value){
     if(_filter==false){
       final suggestions=_searchCustomerDate.where(
@@ -832,7 +895,6 @@ int get listItem=>_listItem;
   TextEditingController emgName = TextEditingController();
   TextEditingController emgNo = TextEditingController();
   final RoundedLoadingButtonController addCtr =RoundedLoadingButtonController();
-  final RoundedLoadingButtonController delctr =RoundedLoadingButtonController();
 
  bool required = false,status1 = false,status2 = false,status3 = false;
  var statusType = "1";
@@ -907,32 +969,6 @@ int get listItem=>_listItem;
     } catch (e) {
       utils.showErrorToast(context: context);
       addCtr.reset();
-    }
-    notifyListeners();
-  }
-  Future<void> deleteCompany(context, {required String cusId,required String comId, required String id}) async {
-    try {
-      Map<String, String> data = {
-        "action":delete,
-        "ops": "company",
-        "id": id,
-        "cus_id": cusId,
-        "com_id": comId,
-        "cos_id": localData.storage.read("cos_id"),
-        "updated_by": localData.storage.read("id"),
-        "platform": localData.storage.read("platform").toString(),
-      };
-      final response =await custRepo.deleteCompany(data);
-      if (response.toString().contains("ok")) {
-        Navigator.pop(context);
-        utils.showSuccessToast(context: context, text: "Deleted Successfully",);
-        getCustomerDetail(cusId,false,true);
-        getAllCustomers(false);
-        delctr.reset();
-      }
-    } catch (e) {
-      utils.showErrorToast(context: context);
-      delctr.reset();
     }
     notifyListeners();
   }
@@ -1112,7 +1148,7 @@ int get listItem=>_listItem;
       utils.showWarningToast(context, text: "Please Fill ${constValue.contact} Name");
     } else if (customer.phone.text.trim().isEmpty) {
       utils.showWarningToast(context, text: "Please Fill ${constValue.contact} ${constValue.phoneNumber}");
-    } else if (customer.phone.text.trim().length != 10) {
+    } else if (customer.phone.text.trim().length < 8 || customer.phone.text.trim().length >12) {
       utils.showWarningToast(context, text: "Please Check ${constValue.contact} ${constValue.phoneNumber}");
     } else if (customer.whatsApp.text.trim().isNotEmpty && customer.whatsApp.text.trim().length != 10) {
       utils.showWarningToast(context, text: "Please Check ${constValue.contact} ${constValue.mobileNumber}");
@@ -1155,11 +1191,14 @@ int get listItem=>_listItem;
     }else if(_addCustomer.last.phone.text.trim().isEmpty){
       utils.showWarningToast(context,text: "Please fill customer phone number");
       addCtr.reset();
-    }else if(_addCustomer.last.phone.text.trim().length!=10){
+    }else if(_addCustomer.last.phone.text.trim().length<8 ||_addCustomer.last.phone.text.trim().length>12 ){
       utils.showWarningToast(context,text: "Please check customer phone number",);
       addCtr.reset();
-    }else if(_addCustomer.last.whatsApp.text.trim().isNotEmpty&&_addCustomer.last.whatsApp.text.trim().length!=10){
+    }else if(_addCustomer.last.whatsApp.text.trim().isNotEmpty&&_addCustomer.last.whatsApp.text.trim().length<8 ||_addCustomer.last.whatsApp.text.trim().length>12){
       utils.showWarningToast(context,text: "Please check customer whatsApp number",);
+      addCtr.reset();
+    }else if(leadType == null || leadType?['id'] == null){          // 👈 புது LEAD STATUS CHECK
+      utils.showWarningToast(context,text: constValue.pleaseSelectLeadStatus);
       addCtr.reset();
     }else if(_addCustomer.last.email.text.trim().isNotEmpty){
       final email = _addCustomer.last.email.text.trim();
@@ -1375,6 +1414,7 @@ Future<void> insertCustomer(context,String lat,String lng) async {
           "name": _addCustomer[i].name.text.trim(),
           "email": _addCustomer[i].email.text.trim(),
           "phone_no": _addCustomer[i].phone.text.trim(),
+          "c_code": _addCustomer[i].countryCode.toString().trim(),
           "whatsapp_no": _addCustomer[i].whatsApp.text.trim(),
           "created_by":localData.storage.read("id"),
           "platform":localData.storage.read("platform").toString(),
@@ -1390,7 +1430,8 @@ Future<void> insertCustomer(context,String lat,String lng) async {
         "log_file": localData.storage.read("mobile_number").toString(),
         "user_id": localData.storage.read("id"),
         "company_name": companyName.text.trim(),
-        "emergency_name": emgName.text.trim(),
+        "emergency_name": emgName.text.trim(),//emgCountryCode
+        "c_code": emgCountryCode.toString().trim(),
         "emergency_number": emgNo.text.trim(),
         "product_discussion": productDis.text.trim(),
         "discussion_point": disPoint.text.trim(),
@@ -1448,7 +1489,7 @@ Future<void> insertCustomer(context,String lat,String lng) async {
     }
     notifyListeners();
   }
-Future<void> updatedCustomer(context,String id,String addressId,String lat,String lng) async {
+  Future<void> updatedCustomer(context,String id,String addressId,String lat,String lng) async {
     try {
       List<Map<String, String>> customersList = [];
       List<Map<String, String>> addCustomersList = [];
@@ -1457,7 +1498,8 @@ Future<void> updatedCustomer(context,String id,String addressId,String lat,Strin
           "id": _addCustomer[i].id,
           "name": _addCustomer[i].name.text,
           "email": _addCustomer[i].email.text,
-          "phone_no": _addCustomer[i].phone.text,
+          "c_code": _addCustomer[i].countryCode.toString().trim(),
+          "phone_no": _addCustomer[i].phone.text.trim(),   // <-- FIXED: this key was missing entirely
           "whatsapp_no": _addCustomer[i].whatsApp.text,
           "department":_addCustomer[i].department.text,
           "designation":_addCustomer[i].designation.text,
@@ -1477,6 +1519,7 @@ Future<void> updatedCustomer(context,String id,String addressId,String lat,Strin
         "data": jsonString,
         "company_name": companyName.text.trim(),
         "product_discussion": productDis.text.trim(),
+        "ec_code":emgCountryCode.toString().trim(),
         "emergency_name": emgName.text.trim(),
         "emergency_number": emgNo.text.trim(),
         "discussion_point": disPoint.text.trim(),
@@ -1490,7 +1533,7 @@ Future<void> updatedCustomer(context,String id,String addressId,String lat,Strin
         "pincode": pinCode.text.trim(),
         "type": type=="Shop"?"2":type=="Office"?"3":type=="Factory"?"4":type=="Hotel"?"5":type=="Others"?"6":"1",
         "lat": lat,
-        "lng": lat,
+        "lng": lng,   // <-- FIXED: was sending lat here by mistake
         "landmark_1": landmark.text.trim(),
         "platform": localData.storage.read("platform").toString(),
         "cos_id": localData.storage.read("cos_id"),
@@ -1811,9 +1854,9 @@ Future<void> getEmpComments() async {
       notifyListeners();
     }
 
-    _refresh=false;
-    _customerReport.clear();
-    notifyListeners();
+    // _refresh=false;
+    // _customerReport.clear();
+    // notifyListeners();
     try {
       Map data = {
         "action": getAllData,
@@ -1827,12 +1870,12 @@ Future<void> getEmpComments() async {
       if (response.isNotEmpty) {
         _customerReport=response;
         print("vist tcommend ${_customerReport}");
-        _refresh=false;
+        _refresh=true;
       } else {
-        _refresh=false;
+        _refresh=true;
       }
     } catch (e) {
-      _refresh=false;
+      _refresh=true;
     }
     notifyListeners();
   }
@@ -2915,7 +2958,7 @@ List<Marker> get liveMarker =>_liveMarker;
     // Build observations only if they have values
     List<String> observationInfo = [];
     if (sanitize(datas.leadStatus).isNotEmpty) observationInfo.add("Lead Status: ${sanitize(datas.leadStatus)}");
-    if (sanitize(datas.visitType).isNotEmpty) observationInfo.add("Visit Type: ${sanitize(datas.visitType)}");
+    if (sanitize(datas.visitType).isNotEmpty) observationInfo.add("Task type: ${sanitize(datas.visitType)}");
     if (sanitize(datas.discussionPoint).isNotEmpty) observationInfo.add("Discussion Points: ${sanitize(datas.discussionPoint)}");
     if (sanitize(datas.points).isNotEmpty) observationInfo.add("Additional Points: ${sanitize(datas.points)}");
 
@@ -3137,6 +3180,7 @@ List<Marker> get liveMarker =>_liveMarker;
   }
 
   List<Map<String, dynamic>> groupedList = [];
+  List<Map<String, dynamic>> groupedList2 = [];
   List<UserModel> employeeList = []; // எல்லா employee list
    List<Map<String, dynamic>> finalList = []; // UIக்கு use ஆகும் list
   void prepareFinalEmpList(BuildContext context) {
@@ -3182,6 +3226,7 @@ List<Marker> get liveMarker =>_liveMarker;
     }
 
     groupedList = temp.values.toList();
+    groupedList2 = temp.values.toList();
     print("🔥 GROUPED DATA: $groupedList");
   }
   List _empWiseCount=[];
@@ -3709,7 +3754,7 @@ List<Marker> get liveMarker =>_liveMarker;
         )
           ..setAttribute(
               'download',
-              'JPS_Daily Work Plan Report.xlsx')
+              '${constValue.appName}_Daily Work Plan Report.xlsx')
           ..click();
 
       } else {
@@ -3719,7 +3764,7 @@ List<Marker> get liveMarker =>_liveMarker;
                 .path;
 
         final file =
-        File('$path/JPS_Daily Work Plan Report.xlsx');
+        File('$path/${constValue.appName}_Daily Work Plan Report.xlsx');
 
         await file.writeAsBytes(
           bytes,
@@ -4965,7 +5010,8 @@ print("customer all is${localData.storage.read("c_ids")}");
     required String companyName,
     required String customerName,
     required String mobileNo,
-  }) async {
+  })
+  async {
 
     Map<String, dynamic> data = {
       "action": editPopCompany,

@@ -2,23 +2,24 @@ import 'dart:developer';
 import 'dart:io';
 
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
-import 'package:master_code/component/custom_checkbox.dart';
+import '../../component/custom_checkbox.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_swipe_button/flutter_swipe_button.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:master_code/component/custom_loading.dart';
-import 'package:master_code/source/extentions/extensions.dart';
-import 'package:master_code/source/styles/decoration.dart';
-import 'package:master_code/view_model/attendance_provider.dart';
+import '../../component/custom_loading.dart';
+import '../../source/extentions/extensions.dart';
+import '../../source/styles/decoration.dart';
+import '../../view_model/attendance_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 import '../../component/animated_button.dart';
 import '../../model/leave/leave_model.dart';
 import '../../source/constant/assets_constant.dart';
 import '../../source/constant/colors_constant.dart';
-import '../../source/constant/default_constant.dart';
+import '../../source/constant/language_model.dart';
+import '../../source/constant/language_model.dart';
 import '../../source/constant/local_data.dart';
 import '../../source/utilities/utils.dart';
 import '../../component/custom_text.dart';
@@ -26,7 +27,7 @@ import '../../view_model/customer_provider.dart';
 import '../../view_model/leave_provider.dart';
 import '../../view_model/location_provider.dart';
 import 'package:provider/provider.dart';
-import 'package:master_code/view_model/home_provider.dart';
+import '../../view_model/home_provider.dart';
 
 import '../common/dashboard.dart';
 import '../common/home_page.dart';
@@ -43,14 +44,20 @@ class CheckAttendance extends StatefulWidget {
 }
 
 class _CheckAttendanceState extends State<CheckAttendance> {
+
+
   @override
   void initState() {
-    Future.delayed(
-        Duration.zero, () {
-      if (!mounted) return;
-      Provider.of<LocationProvider>(context, listen: false).manageLocation(context,false);
-    });
     super.initState();
+    final locProvider = Provider.of<LocationProvider>(context, listen: false);
+    final attProvider = Provider.of<AttendanceProvider>(context, listen: false);
+
+    if (attProvider.attCheck == false) {
+      Future.delayed(Duration.zero, () {
+        if (!mounted) return;
+        locProvider.manageLocation(context, false);
+      });
+    }
   }
   void startTracking(BuildContext context,String lat,String lng){
     showDialog(context: context,
@@ -267,7 +274,8 @@ class _CheckAttendanceState extends State<CheckAttendance> {
 
           print("permissionStatus  ${attProvider.permissionStatus}");
           print("isPermissionActive ${isPermissionActive}");
-          return attProvider.attCheck==false?const Loading():
+          return
+            // attProvider.attCheck==false?const Loading():
           Column(
             children: [
               Container(
@@ -311,13 +319,16 @@ class _CheckAttendanceState extends State<CheckAttendance> {
                                               : null,
                                         ),
                                       ),
-                                      const SizedBox(width: 6),
-                                      const CustomText(
-                                        text:  "Verify",
-                                        size: 13,
+                                      const SizedBox(width: 3),
+                                      CustomText(
+                                        //text:  "verify",
+                                        text:  "${constValue.verify}",
+
+                                        shrink: true,
+                                        size: 11,
                                         colors: Colors.blue,isBold: true,
                                       ),
-                                      5.width,
+                                      3.width,
                                       GestureDetector(
                                         onTap: attProvider.permissionStatus != "1"
                                             ? () {
@@ -345,7 +356,7 @@ class _CheckAttendanceState extends State<CheckAttendance> {
                                                           children: [
                                                             Center(
                                                               child: CustomText(
-                                                                text: "Permission\n",
+                                                                text: "${constValue.permission}\n",
                                                                 colors: Colors.black,
                                                                 size: 15,
                                                                 isBold: true,
@@ -516,13 +527,15 @@ class _CheckAttendanceState extends State<CheckAttendance> {
                                             children: [
                                               Icon(
                                                 Icons.lock_clock,
-                                                size: 16,
+                                                size: 14,
                                                 color: Colors.white,
                                               ),
                                               const SizedBox(width: 6),
-                                              const CustomText(
-                                                text: "Permission",
-                                                size: 12,
+                                              CustomText(
+                                                text: "${constValue.permission}",
+                                                size: 11,
+                                                shrink: true,
+                                                isBold: true,
                                                 colors: Colors.white,
                                               ),
                                             ],
@@ -535,7 +548,6 @@ class _CheckAttendanceState extends State<CheckAttendance> {
                               ],
                             ),
                             20.height,
-
                             Container(
                               width: MediaQuery.of(context).size.width * 0.9,
                               height: 35,
@@ -650,118 +662,140 @@ class _CheckAttendanceState extends State<CheckAttendance> {
                                   }
                                 },
 
-                                child: Text(
-                                  attProvider.mainCheckOut
-                                      ? "Attendance Marked"
+                                child: CustomText(
+                                 text:  attProvider.mainCheckOut
+                                      ? constValue.attendMak
                                       : attProvider.permissionStatus == "1"
-                                      ? "Permission Out"
+                                      ? constValue.perOut
                                       : attProvider.mainAttendance == 0
-                                      ? "Attendance In"
-                                      : "Attendance Out",
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 14,
-                                  ),
+                                      ? constValue.attendIn
+                                      : constValue.attendOut,
+                                  size: 13,
+                                 isBold: true,
+                                  colors: Colors.white,
+                                  shrink: true,
                                 ),
                               ),
                             )
                           ],
                         ),
                       ),
-                      localData.storage.read("role")=="1"?
-                      InkWell(
-                        onTap:(){
-                          Provider.of<LeaveProvider>(context, listen: false).changeIndex(2);
-
-                          utils.navigatePage(
-                              context,
-                                  ()=>const DashBoard(child: LeaveManagementDashboard())
-                          );
-                        },
-                        child: Container(
-                            height: 90,
-                            width: screenWidth/2.5,
-                            decoration: customDecoration.baseBackgroundDecoration(
-                                color: Colors.white,radius: 10
-                            ),
-                            child: Center(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.center,
-                                mainAxisAlignment: MainAxisAlignment.center,
+                    localData.storage.read("role")=="1"?
+                    Container(
+                        height: 90,
+                        width: screenWidth/2.5,
+                        decoration: customDecoration.baseBackgroundDecoration(
+                            color: Colors.white,radius: 10
+                        ),
+                        child: Center(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Column(
+                                mainAxisAlignment: MainAxisAlignment.start,
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
 
-                                  Column(
-                                    mainAxisAlignment: MainAxisAlignment.start,
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
+                                  /// LEAVE APPLIED -> Tab 1 (Leave Created / Applied)
+                                  GestureDetector(
+                                    onTap: () {
+                                      final leaveProvider = Provider.of<LeaveProvider>(context, listen: false);
+                                      leaveProvider.changeIndex(2);
+                                      leaveProvider.setViewLeaveTab(0);
 
-                                      Container(
-                                        width: 130,
-                                        height: 30,
-                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 5),
-                                        decoration: BoxDecoration(
-                                          color: Colors.red.withOpacity(0.12),
-                                          borderRadius: BorderRadius.circular(12),
-                                          border: Border.all(color: Colors.red, width: 1),
-                                        ),
-                                        child: Row(
-                                          children: [
-                                            CustomText(
-                                              text: "Leave Applied: ",
+                                      utils.navigatePage(
+                                        context,
+                                            () => const DashBoard(child: LeaveManagementDashboard()),
+                                      );
+                                    },
+                                    child: Container(
+                                      width: 150,
+                                      height: 32,
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                                      decoration: BoxDecoration(
+                                        color: Colors.red.withOpacity(0.12),
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(color: Colors.red, width: 1),
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          Flexible(
+                                            child: CustomText(
+                                              text: "${constValue.leave_Applided}:",
                                               size: 12,
                                               colors: Colors.red.shade800,
                                               isBold: true,
+                                              shrink: true,
                                             ),
-                                            const SizedBox(height: 6),
-                                            CustomText(
-                                              text: homeProvider.mainReportList.isEmpty?"":homeProvider.mainReportList[0]["today_apply_leave"].toString(),
-                                              size: 16,
-                                              isBold: true,
-                                              colors: Colors.red.shade900,
-                                            ),
-                                          ],
-                                        ),
+                                          ),
+                                          const SizedBox(width: 4),
+                                          CustomText(
+                                            text: homeProvider.mainReportList.isEmpty
+                                                ? ""
+                                                : homeProvider.mainReportList[0]["today_apply_leave"].toString(),
+                                            size: 16,
+                                            isBold: true,
+                                            colors: Colors.red.shade900,
+                                          ),
+                                        ],
                                       ),
-                                      const SizedBox(height:5),
-                                      Container(
-                                        width: 130,  height: 30,
-                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 5),
-                                        decoration: BoxDecoration(
-                                          color: Colors.green.withOpacity(0.12),
-                                          borderRadius: BorderRadius.circular(12),
-                                          border: Border.all(color: Colors.green, width: 1),
-                                        ),
-                                        child: Row(
-                                          children: [
-                                            CustomText(
-                                              text: "On Leave : ",
+                                    ),
+                                  ),
+                                  const SizedBox(height: 5),
+
+                                  /// ON LEAVE -> Tab 2 (Employees On Leave)
+                                  GestureDetector(
+                                    onTap: () {
+                                      final leaveProvider = Provider.of<LeaveProvider>(context, listen: false);
+                                      leaveProvider.changeIndex(2);
+                                      leaveProvider.setViewLeaveTab(1);
+
+                                      utils.navigatePage(
+                                        context,
+                                            () => const DashBoard(child: LeaveManagementDashboard()),
+                                      );
+                                    },
+                                    child: Container(
+                                      width: 150,
+                                      height: 32,
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                                      decoration: BoxDecoration(
+                                        color: Colors.green.withOpacity(0.12),
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(color: Colors.green, width: 1),
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          Flexible(
+                                            child: CustomText(
+                                              text: "${constValue.on_Leave}:",
                                               size: 12,
                                               colors: Colors.green.shade800,
                                               isBold: true,
+                                              shrink: true,
                                             ),
-                                            CustomText(
-                                              text:  homeProvider.mainReportList.isEmpty?"0":"${int.parse(
-                                                  homeProvider.mainReportList[0]["fulldayleave_user"].toString()=="null"?"0":
-                                                  homeProvider.mainReportList[0]["fulldayleave_user"].toString())+int.parse(
-                                                  homeProvider.mainReportList[0]["sessionleave_user"].toString() =="null"?"0":
-                                                  homeProvider.mainReportList[0]["sessionleave_user"].toString())}",
-                                              size: 16,
-                                              isBold: true,
-                                              colors: Colors.black,
-                                            ),
-                                          ],
-                                        ),
+                                          ),
+                                          const SizedBox(width: 4),
+                                          CustomText(
+                                            text: homeProvider.mainReportList.isEmpty
+                                                ? "0"
+                                                : "${int.parse(homeProvider.mainReportList[0]["fulldayleave_user"].toString() == "null" ? "0" : homeProvider.mainReportList[0]["fulldayleave_user"].toString()) + int.parse(homeProvider.mainReportList[0]["sessionleave_user"].toString() == "null" ? "0" : homeProvider.mainReportList[0]["sessionleave_user"].toString())}",
+                                            size: 16,
+                                            isBold: true,
+                                            colors: Colors.black,
+                                          ),
+                                        ],
                                       ),
-
-                                    ],
+                                    ),
                                   ),
                                 ],
                               ),
-                            )
-                        ),
-                      ): Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            ],
+                          ),
+                        )
+                    ): Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
 
                           if(localData.storage.read("role")!="1")
@@ -773,9 +807,6 @@ class _CheckAttendanceState extends State<CheckAttendance> {
                                 15.height,
                                 GestureDetector(
                                   onTap: () async {
-                                    /// ✅ FIX: request background location permission
-                                    /// before starting tracking, so it keeps working
-                                    /// after the app is minimized.
                                     if (localData.storage.read("Track") == true) {
                                       stopTracking(context);
                                     } else {
@@ -851,7 +882,7 @@ class _CheckAttendanceState extends State<CheckAttendance> {
                 allowed:" ${ homeProvider.mainReportList.isEmpty ?"0":homeProvider.
                 mainReportList[0]["emp_leave_allowed"].toString()=="null"?"0":
                 homeProvider.mainReportList[0]["emp_leave_allowed"].toString()}",
-          // is_on_leave
+                // is_on_leave
                 taken: " ${ homeProvider.mainReportList.isEmpty ?"0":homeProvider.
                 mainReportList[0]["emp_leave_taken"].toString()=="null"?"0":
                 homeProvider.mainReportList[0]["emp_leave_taken"].toString()}",

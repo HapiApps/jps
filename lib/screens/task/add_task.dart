@@ -1,16 +1,16 @@
 import 'dart:io';
-import 'package:master_code/component/custom_radio_button.dart';
-import 'package:master_code/component/map_dropdown.dart';
-import 'package:master_code/component/maxline_textfield.dart';
-import 'package:master_code/screens/task/search_custom_dropdown.dart' hide MapDropDown;
-import 'package:master_code/screens/task/task_types.dart';
-import 'package:master_code/source/extentions/extensions.dart';
-import 'package:master_code/view_model/customer_provider.dart';
+import '../../component/custom_radio_button.dart';
+import '../../component/map_dropdown.dart';
+import '../../component/maxline_textfield.dart';
+import '../../screens/task/search_custom_dropdown.dart' hide MapDropDown;
+import '../../screens/task/task_types.dart';
+import '../../source/extentions/extensions.dart';
+import '../../view_model/customer_provider.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/svg.dart';
-import 'package:master_code/view_model/employee_provider.dart';
+import '../../view_model/employee_provider.dart';
 import 'package:provider/provider.dart';
 import '../../component/custom_appbar.dart';
 import '../../component/custom_loading.dart';
@@ -21,7 +21,8 @@ import '../../component/search_drop_down.dart';
 import '../../model/customer/customer_model.dart';
 import '../../source/constant/assets_constant.dart';
 import '../../source/constant/colors_constant.dart';
-import '../../source/constant/default_constant.dart';
+import '../../source/constant/language_model.dart';
+import '../../source/constant/language_model.dart';
 import '../../source/styles/decoration.dart';
 import '../../source/utilities/utils.dart';
 import '../../view_model/task_provider.dart';
@@ -117,9 +118,9 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
             node: _myFocusScopeNode,
             child: Scaffold(
               backgroundColor: colorsConst.bacColor,
-              appBar: const PreferredSize(
+              appBar:  PreferredSize(
                 preferredSize: Size(300, 50),
-                child: CustomAppbar(text: "Add Task"),
+                child: CustomAppbar(text: "${constValue.add_Task}"),
               ),
               // ✅ முழு page-ஐயும் loading state-க்கு ஏத்த switch பண்றது
               body: _isLoading
@@ -273,37 +274,40 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
                                 ],
                               ),
                               SearchCustomDropdown(
-                                  text: "Assign To",
+                                  text: "${constValue.assigned}",
                                   hintText: taskProvider.assignedNames.isEmpty
-                                      ? "Assign To"
+                                      ? "${constValue.assigned}"
                                       : taskProvider.assignedNames,
                                   valueList: empPvr.activeEmps,
                                   isOptional: false,
                                   onChanged: (value) {},
                                   width: kIsWeb ? webWidth : phoneWidth),
+                              MapDropDown(
+                                hintText: "${constValue.status}",
+                                saveValue: taskProvider.status,
+                                list: taskProvider.statusList,
+                                dropText: 'value',
+                                onChanged: (value) {
+                                  taskProvider.changeStatus(value);
+                                },
+                                // width: kIsWeb
+                                //     ? webWidth
+                                //     : MediaQuery.of(context).size.width * 0.42,
+
+                             // ),
+                                  width: kIsWeb ? webWidth : phoneWidth),
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  MapDropDown(
-                                    hintText: "Status",
-                                    saveValue: taskProvider.status,
-                                    list: taskProvider.statusList,
-                                    dropText: 'value',
-                                    onChanged: (value) {
-                                      taskProvider.changeStatus(value);
-                                    },
-                                    width: kIsWeb
-                                        ? webWidth
-                                        : MediaQuery.of(context).size.width * 0.42,
-                                  ),
+
                                   Padding(
                                     padding: const EdgeInsets.only(top: 4.0, left: 4),
                                     child: CustomTextField(
                                       width: kIsWeb
                                           ? webWidth
                                           : MediaQuery.of(context).size.width * 0.42,
-                                      text: "Task Date",
+                                      text: "${constValue.taskStDate}",
                                       controller: taskProvider.taskDt,
                                       hintText: "DD-MM-YYYY",
                                       readOnly: true,
@@ -314,12 +318,29 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
                                       },
                                     ),
                                   ),
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 4.0, left: 4),
+                                    child: CustomTextField(
+                                      width: kIsWeb
+                                          ? webWidth
+                                          : MediaQuery.of(context).size.width * 0.42,
+                                      text: "${constValue.taskEdDate}",
+                                      controller: taskProvider.taskEt,
+                                      hintText: "DD-MM-YYYY",
+                                      readOnly: true,
+                                      onTap: () {
+                                        _myFocusScopeNode.unfocus();
+                                        taskProvider.datePick(
+                                            context: context, date: taskProvider.taskEt);
+                                      },
+                                    ),
+                                  ),
                                 ],
                               ),
                               Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const CustomText(text: "Priority Level"),
+                                   CustomText(text: "${constValue.priority}",),
                                   5.height,
                                   Row(
                                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -355,7 +376,7 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
                               4.height,
                               MaxLineTextField(
                                 width: kIsWeb ? webWidth : phoneWidth,
-                                text: " Task Title / Description",
+                                text: "${constValue.taskTitle}",
                                 isRequired: true,
                                 controller: taskProvider.taskTitleCont,
                                 textCapitalization: TextCapitalization.sentences,
@@ -364,9 +385,9 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
                               if (!kIsWeb)
                                 SizedBox(
                                   width: kIsWeb ? webWidth : phoneWidth,
-                                  child: const Row(
+                                  child:  Row(
                                     crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [CustomText(text: "Notes Attachments")],
+                                    children: [CustomText(text:"${constValue.notes}")],
                                   ),
                                 ),
                               SizedBox(
@@ -790,7 +811,7 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
                                   Future.microtask(() => Navigator.pop(context));
                                 },
                                 isLoading: false,
-                                text: "Cancel",
+                                text: "${constValue.cancel}",
                                 backgroundColor: Colors.white,
                                 textColor: colorsConst.primary,
                                 radius: 10,
@@ -800,20 +821,20 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
                                 radius: 10,
                                 width: kIsWeb ? webWidth / 2.5 : phoneWidth / 2.5,
                                 backgroundColor: colorsConst.primary,
-                                text: "Save",
+                                text: "${constValue.save}",
                                 callback: () {
                                   if (taskProvider.type == null) {
                                     _myFocusScopeNode.unfocus();
                                     utils.showWarningToast(context,
-                                        text: "Please select a type");
+                                        text: "${constValue.selectTypeTask}");
                                     taskProvider.taskCtr.reset();
                                   } else if (taskProvider.taskTitleCont.text.isEmpty) {
                                     utils.showWarningToast(context,
-                                        text: "Please fill description");
+                                        text: "${constValue.fillDescription}");
                                     taskProvider.taskCtr.reset();
                                   } else if (taskProvider.assignedId == "") {
                                     utils.showWarningToast(context,
-                                        text: "Please select assigned to");
+                                        text: "${constValue.selectAssignedTo}");
                                     taskProvider.taskCtr.reset();
                                   } else {
                                     _myFocusScopeNode.unfocus();

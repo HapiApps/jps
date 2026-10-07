@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart'as http;
-import 'package:master_code/model/leave/rules_model.dart';
-import 'package:master_code/source/constant/api.dart';
+import '../../model/leave/rules_model.dart';
+import '../../source/constant/api.dart';
 
 import '../model/leave/holiday.dart';
 import '../model/leave/leave_model.dart';

@@ -1,12 +1,11 @@
 import 'package:intl/intl.dart';
-import 'package:master_code/screens/employee/update_employee.dart';
+import '../../screens/employee/update_employee.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:provider/provider.dart';
-import 'package:master_code/source/extentions/extensions.dart';
+import '../../source/extentions/extensions.dart';
 import '../../component/custom_text.dart';
-import '../../component/dotted_border.dart';
 import '../../model/user_model.dart';
 import '../../source/constant/assets_constant.dart';
 import '../../source/constant/colors_constant.dart';

@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import '../../source/constant/language_model.dart';
 import 'package:provider/provider.dart';
 
 import '../../component/custom_appbar.dart';
@@ -14,7 +15,7 @@ import '../../source/constant/key_constant.dart';
 import '../../source/styles/decoration.dart';
 import '../../source/utilities/utils.dart';
 import '../../view_model/leave_provider.dart';
-import 'package:master_code/source/extentions/extensions.dart';
+import '../../source/extentions/extensions.dart';
 
 class LeaveTypes extends StatefulWidget {
   const LeaveTypes({super.key});
@@ -33,7 +34,7 @@ class _LeaveTypesState extends State<LeaveTypes> {
           appBar: PreferredSize(
             preferredSize: const Size(300, 50),
             child: CustomAppbar(
-              text: "Leave Types",
+              text: "${constValue.leaveType}",
               isButton: true,
               callback: () {
                 levProvider.changePage(context);
@@ -191,15 +192,15 @@ class _AddTypeState extends State<AddType> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   20.height,
-                  const CustomText(
-                    text: "Add Leave Type",
+                   CustomText(
+                    text: "${constValue.addLeaveType}",
                     size: 18,
                     isBold: true,
                   ),
                   30.height,
 
                   CustomTextField(
-                    text: "Type",
+                    text: "${constValue.types}",
                     isRequired: true,
                     inputFormatters: constInputFormatters.numTextInput,
                     controller: levProvider.reason,

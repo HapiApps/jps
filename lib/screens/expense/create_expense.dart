@@ -10,9 +10,10 @@ import '../../component/custom_text.dart';
 import '../../component/custom_textfield.dart';
 import '../../component/map_dropdown.dart';
 import '../../model/task/task_data_model.dart';
+import '../../source/constant/api.dart' as constValue;
 import '../../source/constant/assets_constant.dart';
 import '../../source/constant/colors_constant.dart';
-import '../../source/constant/default_constant.dart';
+import '../../source/constant/language_model.dart';
 import '../../source/constant/key_constant.dart';
 import '../../source/constant/local_data.dart';
 import '../../source/extentions/int_extensions.dart';
@@ -1187,28 +1188,28 @@ class _CreateExpenseState extends State<CreateExpense> with TickerProviderStateM
                                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                       children: [
                                         CustomText(text: "DA/Board/Lodging/Other Expenses",colors: colorsConst.greyClr),
-                                        CustomText(text: "₹ ${expensePvr.formatter.format(expensePvr.otherAmt)}",colors: colorsConst.appRed,isBold: true,),
+                                        CustomText(text: "₹ ${expensePvr.formatter.format(expensePvr.otherAmt)}",colors: colorsConst.primary,isBold: true,),
                                       ],
                                     ),10.height,
                                     Row(
                                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                       children: [
                                         CustomText(text: "Travel Expenses",colors: colorsConst.greyClr),
-                                        CustomText(text: "₹ ${expensePvr.formatter.format(expensePvr.travelAmt)}",colors: colorsConst.appRed,isBold: true,),
+                                        CustomText(text: "₹ ${expensePvr.formatter.format(expensePvr.travelAmt)}",colors: colorsConst.primary,isBold: true,),
                                       ],
                                     ),10.height,
                                     Row(
                                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                       children: [
                                         CustomText(text: "Local Conveyance Expenses",colors: colorsConst.greyClr),
-                                        CustomText(text: "₹ ${expensePvr.formatter.format(expensePvr.convAmt)}",colors: colorsConst.appRed,isBold: true,),
+                                        CustomText(text: "₹ ${expensePvr.formatter.format(expensePvr.convAmt)}",colors: colorsConst.primary,isBold: true,),
                                       ],
                                     ),10.height,
                                     Row(
                                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                       children: [
                                         CustomText(text: "Total Expenses",colors: colorsConst.greyClr),
-                                        CustomText(text: "₹ ${expensePvr.formatter.format(double.parse(expensePvr.totalAmt.text))}",colors: colorsConst.appRed,isBold: true,),
+                                        CustomText(text: "₹ ${expensePvr.formatter.format(double.parse(expensePvr.totalAmt.text))}",colors: colorsConst.primary,isBold: true,),
                                       ],
                                     ),
                                   ],

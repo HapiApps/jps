@@ -5,8 +5,8 @@
 // import 'package:flutter_svg/svg.dart';
 // import 'package:intl/intl.dart';
 // import 'package:flutter/material.dart';
-// import 'package:master_code/source/extentions/extensions.dart';
-// import 'package:master_code/view_model/task_provider.dart';
+// import '../../source/extentions/extensions.dart';
+// import '../../view_model/task_provider.dart';
 // import 'package:permission_handler/permission_handler.dart';
 // import 'package:record/record.dart';
 // import 'package:rounded_loading_button_plus/rounded_loading_button.dart';

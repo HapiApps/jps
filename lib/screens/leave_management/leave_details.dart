@@ -1,21 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:intl/intl.dart';
-import 'package:master_code/screens/leave_management/leave_report.dart';
-import 'package:master_code/source/constant/assets_constant.dart';
-import 'package:master_code/source/extentions/extensions.dart';
+import '../../source/constant/assets_constant.dart';
+import '../../source/extentions/extensions.dart';
 import 'package:provider/provider.dart';
 import '../../component/custom_appbar.dart';
 import '../../component/custom_loading.dart';
 import '../../component/custom_text.dart';
 import '../../model/attendance_model.dart';
 import '../../source/constant/colors_constant.dart';
-import '../../source/constant/local_data.dart';
 import '../../source/styles/decoration.dart';
 import '../../source/utilities/utils.dart';
 import '../../view_model/leave_provider.dart';
 import '../common/check_location.dart';
-import '../common/dashboard.dart';
 
 class LeaveDetails extends StatefulWidget {
   final String empId;

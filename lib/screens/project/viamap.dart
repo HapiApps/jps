@@ -1,10 +1,10 @@
 
 import 'package:flutter/foundation.dart';
-import 'package:master_code/component/custom_loading.dart';
-import 'package:master_code/component/custom_loading_button.dart';
+import '../../component/custom_loading.dart';
+import '../../component/custom_loading_button.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:master_code/view_model/project_provider.dart';
+import '../../view_model/project_provider.dart';
 import 'package:provider/provider.dart';
 import '../../component/custom_text.dart';
 import '../../component/custom_textfield.dart';

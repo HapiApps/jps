@@ -1,4 +1,4 @@
-import 'package:master_code/source/extentions/extensions.dart';
+import '../../source/extentions/extensions.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../source/constant/colors_constant.dart';
@@ -37,9 +37,9 @@ class MaxLineTextField extends StatelessWidget {
           child: TextFormField(
               minLines: maxLine,
               maxLines: null,
-              onChanged: onChanged,
               keyboardType: TextInputType.multiline,
               textInputAction: TextInputAction.newline,
+              onChanged: onChanged,
               textCapitalization: textCapitalization!,
               controller: controller,
               decoration: customStyle.inputDecoration(fieldClr: Colors.white

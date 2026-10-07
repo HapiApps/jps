@@ -1,0 +1,112 @@
+import '../../screens/setting/headings.dart';
+import '../../screens/setting/manage_setting.dart';
+import '../../source/constant/language_model.dart';
+import '../../source/constant/local_data.dart';
+import 'package:flutter/material.dart';
+import '../../component/animated_drawer.dart';
+import '../../component/custom_appbar.dart';
+import '../../source/constant/assets_constant.dart';
+import '../../source/constant/colors_constant.dart';
+import '../../source/utilities/utils.dart';
+import '../../view_model/home_provider.dart';
+import '../task/task_status.dart';
+import 'grade/grades.dart';
+import 'task_types.dart';
+import '../common/dashboard.dart';
+import '../common/developer_screen.dart';
+import '../common/home_page.dart';
+import 'package:provider/provider.dart';
+
+class Setting extends StatelessWidget {
+  const Setting({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<HomeProvider>(builder: (context,homeProvider,_){
+      return Scaffold(
+        backgroundColor: colorsConst.bacColor,
+        appBar: PreferredSize(
+          preferredSize: const Size(300, 50),
+          child: CustomAppbar(text: "${constValue.setting}",callback: (){
+            homeProvider.updateIndex(0);
+            utils.navigatePage(context, ()=>const DashBoard(child: HomePage()));
+          }),
+        ),
+        body: PopScope(
+          canPop: false,
+          onPopInvoked: (bool didPop) {
+            homeProvider.updateIndex(0);
+            if (!didPop) {
+              utils.navigatePage(context, ()=>const DashBoard(child: HomePage()));
+            }
+          },
+          child: Column(
+            children: [
+              if(localData.storage.read("role")=="1")
+              DrawerListTile(text: "${constValue.grades}",
+                image: assets.grade,isImage: true,
+                callback: (){
+                  utils.navigatePage(context, ()=>const DashBoard(child: Grades()));
+              },
+              ), 
+              if(localData.storage.read("role")=="1")
+              DrawerListTile(text: "${constValue.taskType}",
+                iconData: Icons.category_outlined,
+                callback: (){
+                  utils.navigatePage(context, ()=>const DashBoard(child: ViewTaskTypes()));
+                },
+              ),
+              if(localData.storage.read("role")=="1")
+              DrawerListTile(text: "${constValue.taskStatus}",
+                iconData: Icons.category_outlined,
+                callback: (){
+                  utils.navigatePage(context, ()=>const DashBoard(child: ViewTaskStatus()));
+                },
+              ),
+              if(localData.storage.read("role")=="1")
+              DrawerListTile(text: "${constValue.appValues}",
+                iconData: Icons.edit,
+                callback: (){
+                  utils.navigatePage(context, ()=>const DashBoard(child: AppHeadings()));
+                },
+              ),
+              if(localData.storage.read("role")=="1")
+              DrawerListTile(text: "${constValue.setting}",
+                iconData: Icons.settings,
+                callback: (){
+                  utils.navigatePage(context, ()=>const DashBoard(child: ManageSetting()));
+                },
+              ),
+              DrawerListTile(text: "${constValue.aboutUs}",iconData: Icons.info_outline,
+                callback: (){
+                  utils.navigatePage(context, ()=>const DashBoard(child: DeveloperScreen()));
+              },
+              ),
+              DrawerListTile(text: "${constValue.logOut}",iconData: Icons.logout,callback: (){
+                utils.customDialog(
+                    context: context,
+                    title: "Are you sure you want",
+                    title2: "to end the session?",
+                    callback: () {
+                      homeProvider.loginOuts(context);
+                    },
+                    isLoading: true,roundedLoadingButtonController: homeProvider.loginCtr);
+              }),
+              DrawerListTile(text: "${constValue.deleteAccount}",iconData: Icons.delete_outlined,callback: (){
+                utils.customDialog(
+                    context: context,
+                    title: "Are you sure you want",
+                    title2: "to delete your account?",
+                    callback: () {
+                      homeProvider.deleteUseAccount(context);
+                    },
+                    isLoading: true,roundedLoadingButtonController: homeProvider.loginCtr);
+                // utils.navigatePage(context, ()=>const DashBoard(child: TaskCalendar()));
+              }),
+            ],
+          ),
+        ),
+      );
+    });
+  }
+}

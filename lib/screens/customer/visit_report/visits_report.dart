@@ -2,10 +2,10 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:intl/intl.dart';
-import 'package:master_code/screens/customer/visit_report/visit_report_details.dart';
-import 'package:master_code/source/extentions/extensions.dart';
-import 'package:master_code/view_model/employee_provider.dart';
-import 'package:master_code/view_model/task_provider.dart';
+import '../../../screens/customer/visit_report/visit_report_details.dart';
+import '../../../source/extentions/extensions.dart';
+import '../../../view_model/employee_provider.dart';
+import '../../../view_model/task_provider.dart';
 import 'package:provider/provider.dart';
 import '../../../component/animated_button.dart';
 import '../../../component/custom_appbar.dart';
@@ -16,7 +16,7 @@ import '../../../model/customer/customer_report_model.dart';
 import '../../../model/user_model.dart';
 import '../../../source/constant/assets_constant.dart';
 import '../../../source/constant/colors_constant.dart';
-import '../../../source/constant/default_constant.dart';
+import '../../../source/constant/language_model.dart';
 import '../../../source/constant/local_data.dart';
 import '../../../source/styles/decoration.dart';
 import '../../../source/utilities/utils.dart';
@@ -156,7 +156,6 @@ class _VisitReportState extends State<VisitReport> with SingleTickerProviderStat
                           Tab(text: "Visit Details"),
                         ],
                       ),
-
                   ),
                   Expanded(
                     child: TabBarView(
@@ -201,7 +200,14 @@ class _VisitReportState extends State<VisitReport> with SingleTickerProviderStat
                                                   const EdgeInsets.symmetric(vertical: 10),
                                                 ),
                                                 onChanged: (value) {
-                                                 // custProvider.searchEmployee(value);
+                                                  setState(() {
+                                                    final suggestions = custProvider.groupedList2.where((user) {
+                                                      final comFName = user["firstname"].toString().toLowerCase();
+                                                      final input = value.toString().toLowerCase();
+                                                      return comFName.contains(input);
+                                                    }).toList();
+                                                    custProvider.groupedList = suggestions;
+                                                  });
                                                 },
                                               ),
                                             ),

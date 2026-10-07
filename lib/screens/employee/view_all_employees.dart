@@ -1,20 +1,18 @@
-import 'package:master_code/screens/employee/create_employee.dart';
+import '../../screens/employee/create_employee.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:intl/intl.dart';
-import 'package:master_code/source/constant/assets_constant.dart';
-import 'package:master_code/source/extentions/extensions.dart';
+import '../../source/constant/assets_constant.dart';
+import '../../source/extentions/extensions.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:master_code/view_model/home_provider.dart';
+import '../../view_model/home_provider.dart';
 import '../../component/animated_button.dart';
 import '../../component/custom_appbar.dart';
 import '../../component/custom_loading.dart';
 import '../../component/custom_text.dart';
-import '../../component/custom_textfield.dart';
 import '../../component/map_dropdown.dart';
 import '../../source/constant/colors_constant.dart';
-import '../../source/constant/default_constant.dart';
+import '../../source/constant/language_model.dart';
 import '../../source/styles/decoration.dart';
 import '../../source/utilities/utils.dart';
 import '../../view_model/employee_provider.dart';
@@ -165,17 +163,16 @@ class _ViewEmployeesState extends State<ViewEmployees>
                                             color: Colors.white,
                                             borderRadius: BorderRadius.circular(30),
                                           ),
-                                          child: TextField(
+                                          child:TextField(
                                             controller: empProvider.search,
+                                            style: const TextStyle(color: Colors.black, fontSize: 16),
+                                            cursorColor: Colors.black,
                                             decoration: const InputDecoration(
                                               hintText: "Search Name or No",
-                                              prefixIcon: Icon(
-                                                Icons.search,
-                                                color: Colors.grey,
-                                              ),
+                                              hintStyle: TextStyle(color: Colors.grey),
+                                              prefixIcon: Icon(Icons.search, color: Colors.grey),
                                               border: InputBorder.none,
-                                              contentPadding:
-                                              EdgeInsets.symmetric(vertical: 15),
+                                              contentPadding: EdgeInsets.symmetric(vertical: 15),
                                             ),
                                             onChanged: (value) {
                                               empProvider.searchUser(value);

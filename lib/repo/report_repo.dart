@@ -1,9 +1,9 @@
 import 'dart:convert';
 import 'dart:developer';
 import 'package:http/http.dart'as http;
-import 'package:master_code/model/report/work_report_model.dart';
-import 'package:master_code/screens/report_dashboard/report_dashboard.dart';
-import 'package:master_code/source/constant/api.dart';
+import '../../model/report/work_report_model.dart';
+import '../../screens/report_dashboard/report_dashboard.dart';
+import '../../source/constant/api.dart';
 
 class ReportRepository{
 

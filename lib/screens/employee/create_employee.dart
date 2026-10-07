@@ -1,16 +1,17 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:country_picker/country_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:master_code/component/custom_loading_button.dart';
-import 'package:master_code/component/custom_textfield.dart';
-import 'package:master_code/screens/employee/viamap.dart';
-import 'package:master_code/source/constant/colors_constant.dart';
-import 'package:master_code/source/constant/key_constant.dart';
-import 'package:master_code/source/extentions/extensions.dart';
+import '../../component/custom_loading_button.dart';
+import '../../component/custom_textfield.dart';
+import '../../screens/employee/viamap.dart';
+import '../../source/constant/colors_constant.dart';
+import '../../source/constant/key_constant.dart';
+import '../../source/extentions/extensions.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:master_code/source/styles/decoration.dart';
+import '../../source/styles/decoration.dart';
 import '../../component/custom_appbar.dart';
 import '../../component/custom_checkbox.dart';
 import '../../component/custom_dropdown.dart';
@@ -18,7 +19,7 @@ import '../../component/custom_text.dart';
 import '../../component/document_container.dart';
 import '../../component/map_dropdown.dart';
 import '../../source/constant/assets_constant.dart';
-import '../../source/constant/default_constant.dart';
+import '../../source/constant/language_model.dart';
 import '../../source/utilities/utils.dart';
 import '../../view_model/employee_provider.dart';
 import '../../view_model/location_provider.dart';
@@ -64,220 +65,275 @@ class _CreateEmployeeState extends State<CreateEmployee>with SingleTickerProvide
               preferredSize: const Size(300, 50),
               child: CustomAppbar(text: constValue.createEmployee),
             ),
-            bottomNavigationBar:Container(
-              width:kIsWeb?webWidth:phoneWidth,
-                padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
-                // color:Colors.blue,
-              child:empProvider.tabController!.index==0?
-              Row(
+            bottomNavigationBar: Container(
+              width: kIsWeb ? webWidth : phoneWidth,
+              padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
+              child: empProvider.tabController!.index == 0
+                  ? Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   CustomLoadingButton(
-                      callback: (){
+                      callback: () {
                         if (empProvider.signFirstName.text.trim().isEmpty) {
-                          utils.showWarningToast(context, text: "Please fill first name");
+                          utils.showWarningToast(context, text: "${constValue.fillFirstName}");
                         } else if (empProvider.signMobileNumber.text.trim().isEmpty) {
-                          utils.showWarningToast(context, text: "Please fill mobile number");
+                          utils.showWarningToast(context, text: "${constValue.fillMobileNumber}");
                         } else if (empProvider.signMobileNumber.text.trim().length != 10) {
-                          utils.showWarningToast(context, text: "Please check mobile number");
+                          utils.showWarningToast(context, text: "${constValue.checkMobileNumber}");
                         } else if (empProvider.signPassword.text.trim().isEmpty) {
-                          utils.showWarningToast(context, text: "Please fill password");
+                          utils.showWarningToast(context, text: "${constValue.fillPassword}");
                         } else if (empProvider.signPassword.text.trim().length < 8) {
-                          utils.showWarningToast(context, text: "Password must be at least 8 characters");
+                          utils.showWarningToast(context, text: "${constValue.passwordMinLength}");
                         } else if (empProvider.role == null) {
-                          utils.showWarningToast(context, text: "Please select role");
+                          utils.showWarningToast(context, text: "${constValue.selectRole}");
                         } else if (empProvider.pinCode.text.trim().isNotEmpty &&
                             empProvider.pinCode.text.trim().length != 6) {
-                          utils.showWarningToast(context, text: "Please check pincode");
+                          utils.showWarningToast(context, text: "${constValue.checkPincode}");
                         } else if (empProvider.signWhatsappNumber.text.trim().isNotEmpty &&
                             empProvider.signWhatsappNumber.text.trim().length != 10) {
-                          utils.showWarningToast(context, text: "Please check whatsapp number");
+                          utils.showWarningToast(context, text: "${constValue.checkWhatsappNumber}");
                         } else {
                           _myFocusScopeNode.unfocus();
                           empProvider.tabController?.animateTo(1);
                         }
-                      }, isLoading: false,text: "Add More",
-                      backgroundColor: Colors.white, textColor: colorsConst.primary,radius: 10,
-                      width: kIsWeb?webWidth/2.1:phoneWidth/2.1),
+                      },
+                      isLoading: false,
+                      text: "${constValue.addMore}",
+                      backgroundColor: Colors.white,
+                      textColor: colorsConst.primary,
+                      radius: 10,
+                      width: kIsWeb ? webWidth / 2.1 : phoneWidth / 2.1),
                   CustomLoadingButton(
-                      callback: (){
+                      callback: () {
                         if (empProvider.signFirstName.text.trim().isEmpty) {
-                          utils.showWarningToast(context, text: "Please fill first name");
+                          utils.showWarningToast(context, text: "${constValue.fillFirstName}");
                           empProvider.signCtr.reset();
                         } else if (empProvider.signMobileNumber.text.trim().isEmpty) {
-                          utils.showWarningToast(context, text: "Please fill mobile number");
+                          utils.showWarningToast(context, text: "${constValue.fillMobileNumber}");
                           empProvider.signCtr.reset();
-                        } else if (empProvider.signMobileNumber.text.trim().length != 10) {
-                          utils.showWarningToast(context, text: "Please check mobile number");
+                        } else if (empProvider.signMobileNumber.text.trim().length < 8 ||
+                            empProvider.signMobileNumber.text.trim().length > 12) {
+                          utils.showWarningToast(context, text: "${constValue.checkMobileNumber}");
                           empProvider.signCtr.reset();
                         } else if (empProvider.signPassword.text.trim().isEmpty) {
-                          utils.showWarningToast(context, text: "Please fill password");
+                          utils.showWarningToast(context, text: "${constValue.fillPassword}");
                           empProvider.signCtr.reset();
                         } else if (empProvider.signPassword.text.trim().length < 8) {
-                          utils.showWarningToast(context, text: "Password must be at least 8 characters");
+                          utils.showWarningToast(context, text: "${constValue.passwordMinLength}");
                           empProvider.signCtr.reset();
                         } else if (empProvider.role == null) {
-                          utils.showWarningToast(context, text: "Please select role");
+                          utils.showWarningToast(context, text: "${constValue.selectRole}");
                           empProvider.signCtr.reset();
                         } else if (empProvider.pinCode.text.trim().isNotEmpty &&
                             empProvider.pinCode.text.trim().length != 6) {
-                          utils.showWarningToast(context, text: "Please check pincode");
+                          utils.showWarningToast(context, text: "${constValue.checkPincode}");
                           empProvider.signCtr.reset();
                         } else if (empProvider.signWhatsappNumber.text.trim().isNotEmpty &&
-                            empProvider.signWhatsappNumber.text.trim().length != 10) {
-                          utils.showWarningToast(context, text: "Please check whatsapp number");
+                            empProvider.signWhatsappNumber.text.trim().length < 8 ||
+                            empProvider.signWhatsappNumber.text.trim().length > 12) {
+                          utils.showWarningToast(context, text: "${constValue.checkWhatsappNumber}");
                           empProvider.signCtr.reset();
                         } else {
                           _myFocusScopeNode.unfocus();
-                          empProvider.insertEmployeeDetails(context, locPvr.latitude, locPvr.longitude);
+                          empProvider.insertEmployeeDetails(
+                              context, locPvr.latitude, locPvr.longitude);
                         }
-                      }, isLoading: true,text: "Save",controller: empProvider.signCtr,
-                      backgroundColor: colorsConst.primary,radius: 10,
-                      width: kIsWeb?webWidth/2.1:phoneWidth/2.1),
+                      },
+                      isLoading: true,
+                      text: "${constValue.save}",
+                      controller: empProvider.signCtr,
+                      backgroundColor: colorsConst.primary,
+                      radius: 10,
+                      width: kIsWeb ? webWidth / 2.1 : phoneWidth / 2.1),
                 ],
               )
-              :empProvider.tabController!.index==1?
-              Row(
+                  : empProvider.tabController!.index == 1
+                  ? Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   CustomLoadingButton(
-                      callback: (){
+                      callback: () {
                         _myFocusScopeNode.unfocus();
                         empProvider.tabController?.animateTo(0);
-                      }, isLoading: false,text: "Back",
-                      backgroundColor: Colors.white, textColor: colorsConst.primary,radius: 10,
-                      width: kIsWeb?webWidth/2.1:phoneWidth/2.1),
+                      },
+                      isLoading: false,
+                      text: "${constValue.back}",
+                      backgroundColor: Colors.white,
+                      textColor: colorsConst.primary,
+                      radius: 10,
+                      width: kIsWeb ? webWidth / 2.1 : phoneWidth / 2.1),
                   CustomLoadingButton(
-                      callback: (){
+                      callback: () {
                         final email = empProvider.signEmailid.text.trim();
                         final aadhar = empProvider.signAadhar.text.trim();
                         final pan = empProvider.signPan.text.trim();
 
                         if (email.isNotEmpty &&
-                            !RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$').hasMatch(email)) {
-                          utils.showWarningToast(context, text: "Please check email id");
+                            !RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$')
+                                .hasMatch(email)) {
+                          utils.showWarningToast(context, text: "${constValue.checkEmail}");
                         } else if (aadhar.isNotEmpty && aadhar.length != 12) {
-                          utils.showWarningToast(context, text: "Please check aadhaar number");
+                          utils.showWarningToast(context, text: "${constValue.checkAadhaar}");
                         } else if (pan.isNotEmpty && pan.length != 10) {
-                          utils.showWarningToast(context, text: "Please check pan number");
+                          utils.showWarningToast(context, text: "${constValue.checkPan}");
                         } else {
                           _myFocusScopeNode.unfocus();
                           empProvider.tabController?.animateTo(2);
                         }
-                      }, isLoading: false,text: "Next",controller: empProvider.signCtr,
-                      backgroundColor: colorsConst.primary,radius: 10,
-                      width: kIsWeb?webWidth/2.1:phoneWidth/2.1),
+                      },
+                      isLoading: false,
+                      text: "${constValue.next}",
+                      controller: empProvider.signCtr,
+                      backgroundColor: colorsConst.primary,
+                      radius: 10,
+                      width: kIsWeb ? webWidth / 2.1 : phoneWidth / 2.1),
                 ],
               )
-              :empProvider.tabController!.index==2?
-              Row(
+                  : empProvider.tabController!.index == 2
+                  ? Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   CustomLoadingButton(
-                      callback: (){
+                      callback: () {
                         _myFocusScopeNode.unfocus();
                         empProvider.tabController?.animateTo(1);
-                      }, isLoading: false,text: "Back",
-                      backgroundColor: Colors.white, textColor: colorsConst.primary,radius: 10,
-                      width: kIsWeb?webWidth/2.1:phoneWidth/2.1),
+                      },
+                      isLoading: false,
+                      text: "${constValue.back}",
+                      backgroundColor: Colors.white,
+                      textColor: colorsConst.primary,
+                      radius: 10,
+                      width: kIsWeb ? webWidth / 2.1 : phoneWidth / 2.1),
                   CustomLoadingButton(
-                      callback: (){
+                      callback: () {
                         if (empProvider.permanentPin.text.trim().isNotEmpty &&
                             empProvider.permanentPin.text.trim().length != 6) {
-                          utils.showWarningToast(context, text: "Please check pincode");
-                        }else {
+                          utils.showWarningToast(context, text: "${constValue.checkPincode}");
+                        } else {
                           _myFocusScopeNode.unfocus();
                           empProvider.tabController?.animateTo(3);
                         }
-                      }, isLoading: false,text: "Next",controller: empProvider.signCtr,
-                      backgroundColor: colorsConst.primary,radius: 10,
-                      width: kIsWeb?webWidth/2.1:phoneWidth/2.1),
+                      },
+                      isLoading: false,
+                      text: "${constValue.next}",
+                      controller: empProvider.signCtr,
+                      backgroundColor: colorsConst.primary,
+                      radius: 10,
+                      width: kIsWeb ? webWidth / 2.1 : phoneWidth / 2.1),
                 ],
               )
-              :empProvider.tabController!.index==3?
-              Row(
+                  : empProvider.tabController!.index == 3
+                  ? Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   CustomLoadingButton(
-                      callback: (){
+                      callback: () {
                         _myFocusScopeNode.unfocus();
                         empProvider.tabController?.animateTo(2);
-                      }, isLoading: false,text: "Back",
-                      backgroundColor: Colors.white, textColor: colorsConst.primary,radius: 10,
-                      width: kIsWeb?webWidth/2.1:phoneWidth/2.1),
+                      },
+                      isLoading: false,
+                      text: "${constValue.back}",
+                      backgroundColor: Colors.white,
+                      textColor: colorsConst.primary,
+                      radius: 10,
+                      width: kIsWeb ? webWidth / 2.1 : phoneWidth / 2.1),
                   CustomLoadingButton(
-                      callback: (){
+                      callback: () {
                         if (empProvider.signEmPh.text.trim().isNotEmpty &&
                             empProvider.signEmPh.text.trim().length != 10) {
-                          utils.showWarningToast(context, text: "Please check phone number");
-                        }else {
+                          utils.showWarningToast(context, text: "${constValue.checkPhoneNumber}");
+                        } else {
                           _myFocusScopeNode.unfocus();
                           empProvider.tabController?.animateTo(4);
                         }
-                      }, isLoading: false,text: "Next",controller: empProvider.signCtr,
-                      backgroundColor: colorsConst.primary,radius: 10,
-                      width: kIsWeb?webWidth/2.1:phoneWidth/2.1),
+                      },
+                      isLoading: false,
+                      text: "${constValue.next}",
+                      controller: empProvider.signCtr,
+                      backgroundColor: colorsConst.primary,
+                      radius: 10,
+                      width: kIsWeb ? webWidth / 2.1 : phoneWidth / 2.1),
                 ],
               )
-              :empProvider.tabController!.index==4?
-              Row(
+                  : empProvider.tabController!.index == 4
+                  ? Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   CustomLoadingButton(
-                      callback: (){
+                      callback: () {
                         _myFocusScopeNode.unfocus();
                         empProvider.tabController?.animateTo(3);
-                      }, isLoading: false,text: "Back",
-                      backgroundColor: Colors.white, textColor: colorsConst.primary,radius: 10,
-                      width: kIsWeb?webWidth/2.1:phoneWidth/2.1),
+                      },
+                      isLoading: false,
+                      text: "${constValue.back}",
+                      backgroundColor: Colors.white,
+                      textColor: colorsConst.primary,
+                      radius: 10,
+                      width: kIsWeb ? webWidth / 2.1 : phoneWidth / 2.1),
                   CustomLoadingButton(
-                      callback: (){
+                      callback: () {
                         _myFocusScopeNode.unfocus();
                         empProvider.tabController?.animateTo(5);
-                      }, isLoading: false,text: "Next",controller: empProvider.signCtr,
-                      backgroundColor: colorsConst.primary,radius: 10,
-                      width: kIsWeb?webWidth/2.1:phoneWidth/2.1),
+                      },
+                      isLoading: false,
+                      text: "${constValue.next}",
+                      controller: empProvider.signCtr,
+                      backgroundColor: colorsConst.primary,
+                      radius: 10,
+                      width: kIsWeb ? webWidth / 2.1 : phoneWidth / 2.1),
                 ],
               )
-              :empProvider.tabController!.index==5?
-              Row(
+                  : empProvider.tabController!.index == 5
+                  ? Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   CustomLoadingButton(
-                      callback: (){
+                      callback: () {
                         _myFocusScopeNode.unfocus();
                         empProvider.tabController?.animateTo(4);
-                      }, isLoading: false,text: "Back",
-                      backgroundColor: Colors.white, textColor: colorsConst.primary,radius: 10,
-                      width: kIsWeb?webWidth/2.1:phoneWidth/2.1),
+                      },
+                      isLoading: false,
+                      text: "${constValue.back}",
+                      backgroundColor: Colors.white,
+                      textColor: colorsConst.primary,
+                      radius: 10,
+                      width: kIsWeb ? webWidth / 2.1 : phoneWidth / 2.1),
                   CustomLoadingButton(
-                      callback: (){
+                      callback: () {
                         if (empProvider.signRePh1.text.trim().isNotEmpty &&
                             empProvider.signRePh1.text.trim().length != 10) {
-                          utils.showWarningToast(context, text: "Please check reference 1 phone number");
-                        }else if (empProvider.signRePh2.text.trim().isNotEmpty &&
+                          utils.showWarningToast(context, text: "${constValue.checkRef1Phone}");
+                        } else if (empProvider.signRePh2.text.trim().isNotEmpty &&
                             empProvider.signRePh2.text.trim().length != 10) {
-                          utils.showWarningToast(context, text: "Please check reference 2 phone number");
-                        }else {
+                          utils.showWarningToast(context, text: "${constValue.checkRef2Phone}");
+                        } else {
                           _myFocusScopeNode.unfocus();
                           empProvider.tabController?.animateTo(6);
                         }
-                      }, isLoading: false,text: "Next",controller: empProvider.signCtr,
-                      backgroundColor: colorsConst.primary,radius: 10,
-                      width: kIsWeb?webWidth/2.1:phoneWidth/2.1),
+                      },
+                      isLoading: false,
+                      text: "${constValue.next}",
+                      controller: empProvider.signCtr,
+                      backgroundColor: colorsConst.primary,
+                      radius: 10,
+                      width: kIsWeb ? webWidth / 2.1 : phoneWidth / 2.1),
                 ],
               )
-              :Row(
+                  : Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   CustomLoadingButton(
-                      callback: (){
+                      callback: () {
                         Future.microtask(() => Navigator.pop(context));
-                      }, isLoading: false,text: "Cancel",
-                      backgroundColor: Colors.white, textColor: colorsConst.primary,radius: 10,
-                      width: kIsWeb?webWidth/2.1:phoneWidth/2.1),
+                      },
+                      isLoading: false,
+                      text: "${constValue.cancel}",
+                      backgroundColor: Colors.white,
+                      textColor: colorsConst.primary,
+                      radius: 10,
+                      width: kIsWeb ? webWidth / 2.1 : phoneWidth / 2.1),
                   CustomLoadingButton(
-                      callback: (){
+                      callback: () {
                         final email = empProvider.signEmailid.text.trim();
                         final aadhar = empProvider.signAadhar.text.trim();
                         final pan = empProvider.signPan.text.trim();
@@ -287,62 +343,68 @@ class _CreateEmployeeState extends State<CreateEmployee>with SingleTickerProvide
                         final signRePh2 = empProvider.signRePh2.text.trim();
 
                         if (empProvider.signFirstName.text.trim().isEmpty) {
-                          utils.showWarningToast(context, text: "Please fill first name");
+                          utils.showWarningToast(context, text: "${constValue.fillFirstName}");
                           empProvider.signCtr.reset();
                         } else if (empProvider.signMobileNumber.text.trim().isEmpty) {
-                          utils.showWarningToast(context, text: "Please fill mobile number");
+                          utils.showWarningToast(context, text: "${constValue.fillMobileNumber}");
                           empProvider.signCtr.reset();
                         } else if (empProvider.signMobileNumber.text.trim().length != 10) {
-                          utils.showWarningToast(context, text: "Please check mobile number");
+                          utils.showWarningToast(context, text: "${constValue.checkMobileNumber}");
                           empProvider.signCtr.reset();
                         } else if (empProvider.signPassword.text.trim().isEmpty) {
-                          utils.showWarningToast(context, text: "Please fill password");
+                          utils.showWarningToast(context, text: "${constValue.fillPassword}");
                           empProvider.signCtr.reset();
                         } else if (empProvider.signPassword.text.trim().length < 8) {
-                          utils.showWarningToast(context, text: "Password must be at least 8 characters");
+                          utils.showWarningToast(context, text: "${constValue.passwordMinLength}");
                           empProvider.signCtr.reset();
                         } else if (empProvider.role == null) {
-                          utils.showWarningToast(context, text: "Please select role");
+                          utils.showWarningToast(context, text: "${constValue.selectRole}");
                           empProvider.signCtr.reset();
                         } else if (empProvider.pinCode.text.trim().isNotEmpty &&
                             empProvider.pinCode.text.trim().length != 6) {
-                          utils.showWarningToast(context, text: "Please check pincode");
+                          utils.showWarningToast(context, text: "${constValue.checkPincode}");
                           empProvider.signCtr.reset();
                         } else if (empProvider.signWhatsappNumber.text.trim().isNotEmpty &&
                             empProvider.signWhatsappNumber.text.trim().length != 10) {
-                          utils.showWarningToast(context, text: "Please check whatsapp number");
+                          utils.showWarningToast(context, text: "${constValue.checkWhatsappNumber}");
                           empProvider.signCtr.reset();
-                        }else if (email.isNotEmpty &&
-                            !RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$').hasMatch(email)) {
-                          utils.showWarningToast(context, text: "Please check email id");
+                        } else if (email.isNotEmpty &&
+                            !RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$')
+                                .hasMatch(email)) {
+                          utils.showWarningToast(context, text: "${constValue.checkEmail}");
                           empProvider.signCtr.reset();
                         } else if (aadhar.isNotEmpty && aadhar.length != 12) {
-                          utils.showWarningToast(context, text: "Please check aadhaar number");
+                          utils.showWarningToast(context, text: "${constValue.checkAadhaar}");
                           empProvider.signCtr.reset();
                         } else if (pan.isNotEmpty && pan.length != 10) {
-                          utils.showWarningToast(context, text: "Please check pan number");
+                          utils.showWarningToast(context, text: "${constValue.checkPan}");
                           empProvider.signCtr.reset();
-                        }else if (permanentPin.isNotEmpty && permanentPin.length != 6) {
-                          utils.showWarningToast(context, text: "Please check permanent address pincode");
+                        } else if (permanentPin.isNotEmpty && permanentPin.length != 6) {
+                          utils.showWarningToast(context, text: "${constValue.checkPermanentPincode}");
                           empProvider.signCtr.reset();
-                        }else if (signEmPh.isNotEmpty && signEmPh.length != 10) {
-                          utils.showWarningToast(context, text: "Please check phone number");
+                        } else if (signEmPh.isNotEmpty && signEmPh.length != 10) {
+                          utils.showWarningToast(context, text: "${constValue.checkPhoneNumber}");
                           empProvider.signCtr.reset();
-                        }else if (signRePh1.isNotEmpty &&signRePh1.length != 10) {
-                          utils.showWarningToast(context, text: "Please check reference 1 phone number");
+                        } else if (signRePh1.isNotEmpty && signRePh1.length != 10) {
+                          utils.showWarningToast(context, text: "${constValue.checkRef1Phone}");
                           empProvider.signCtr.reset();
-                        }else if (signRePh2.isNotEmpty &&signRePh2.length != 10) {
-                          utils.showWarningToast(context, text: "Please check reference 2 phone number");
+                        } else if (signRePh2.isNotEmpty && signRePh2.length != 10) {
+                          utils.showWarningToast(context, text: "${constValue.checkRef2Phone}");
                           empProvider.signCtr.reset();
-                        }else{
+                        } else {
                           _myFocusScopeNode.unfocus();
-                          empProvider.insertEmployeeDetails(context, locPvr.latitude, locPvr.longitude);
+                          empProvider.insertEmployeeDetails(
+                              context, locPvr.latitude, locPvr.longitude);
                         }
-                      }, isLoading: true,text: "Save",controller: empProvider.signCtr,
-                      backgroundColor: colorsConst.primary,radius: 10,
-                      width: kIsWeb?webWidth/2.1:phoneWidth/2.1),
+                      },
+                      isLoading: true,
+                      text: "${constValue.save}",
+                      controller: empProvider.signCtr,
+                      backgroundColor: colorsConst.primary,
+                      radius: 10,
+                      width: kIsWeb ? webWidth / 2.1 : phoneWidth / 2.1),
                 ],
-          ),
+              ),
             ),
             body: Center(
               child: SizedBox(
@@ -381,12 +443,12 @@ class _CreateEmployeeState extends State<CreateEmployee>with SingleTickerProvide
                         )
                     ),10.height,
                     CustomText(text:
-                    empProvider.swipeIndex==0||empProvider.swipeIndex==1?"Personal Information\n"
-                        :empProvider.swipeIndex==2?"Permanent Address\n"
-                        :empProvider.swipeIndex==3?"Emergency Contact Information\n"
-                        :empProvider.swipeIndex==4?"Job Information\n"
-                        :empProvider.swipeIndex==5?"Reference\n"
-                        :"KYC\n",
+                    empProvider.swipeIndex==0||empProvider.swipeIndex==1?"${constValue.personalInformationE1}\n"
+                        :empProvider.swipeIndex==2?"${constValue.addressEmpE1}\n"
+                        :empProvider.swipeIndex==3?"${constValue.EmergencyContactE1}\n"
+                        :empProvider.swipeIndex==4?"${constValue.jobInformationE1}\n"
+                        :empProvider.swipeIndex==5?"${constValue.ReferenceE1}\n"
+                        :"${constValue.kyc}\n",
                       colors: Colors.black,size: 15,isBold: true,),
                     Expanded(
                       child: TabBarView(
@@ -453,32 +515,104 @@ class _CreateEmployeeState extends State<CreateEmployee>with SingleTickerProvide
                                     text: constValue.lastName, controller: empProvider.signLastName,
                                     width: kIsWeb?webWidth:phoneWidth,
                                   ),
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  Column(
                                     children: [
-                                      CustomTextField(text: constValue.phoneNumber2,
-                                        controller: empProvider.signMobileNumber,
-                                        isRequired: true,isLogin: true,
-                                        iconCallBack: (){
-                                          empProvider.isWhatsAppCheck(isUpdate: true);
-                                        },
-                                        onChanged: (value){
-                                          empProvider.isWhatsAppCheck(isUpdate: false);
-                                        },
-                                        iconData: Icons.check_circle,
-                                        iconColor: empProvider.isWhatsApp==true?Colors.green:Colors.grey,
-                                        width: kIsWeb?webWidth/2.1:phoneWidth/2.1,
+                                      Row(
+                                        children: [
+                                          CustomText(
+                                            text: "${constValue.phoneNumber}",
+                                            size: 13,
+                                            isBold: false,
+                                          ),
+                                          CustomText(
+                                            text: "*",
+                                            colors: colorsConst.appRed,
+                                            size: 20,
+                                            isBold: false,
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                  Column(
+                                    children: [
+                                      Row(
+                                        crossAxisAlignment: CrossAxisAlignment.center,
+                                        children: [
+                                          Padding(
+                                            padding: const EdgeInsets.only(top: 12.0),
+                                            child: Container(
+                                              margin: const EdgeInsets.only(bottom: 14),
+                                              child: Material(
+                                                color: Colors.transparent,
+                                                child: InkWell(
+                                                  borderRadius: BorderRadius.circular(10),
+                                                  onTap: () {
+                                                    showCountryPicker(
+                                                      context: context,
+                                                      showPhoneCode: true,
+                                                      countryListTheme: CountryListThemeData(
+                                                        bottomSheetHeight: MediaQuery.of(context).size.height * 0.7,
+                                                      ),
+                                                      onSelect: (Country country) {
+                                                        setState(() {
+                                                          empProvider.selectedCountryCode = "+${country.phoneCode}";
+                                                          empProvider.selectedCountryFlag = country.flagEmoji;
+                                                          empProvider.notifyListeners();   // <-- ADD THIS
+                                                        });
+                                                      },
+                                                    );
+                                                  },
+                                                  child: Container(
+                                                    height: 50,
+                                                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                                                    decoration: BoxDecoration(
+                                                      border: Border.all(color: Colors.grey.shade400),
+                                                      borderRadius: BorderRadius.circular(10),
+                                                    ),
+                                                    child: Row(
+                                                      mainAxisSize: MainAxisSize.min,
+                                                      children: [
+                                                        CustomText(text: empProvider.selectedCountryFlag),
+                                                        4.width,
+                                                        CustomText(text: empProvider.selectedCountryCode, colors: Colors.black),
+                                                        2.width,
+                                                        const Icon(Icons.arrow_drop_down, size: 18, color: Colors.grey),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                          8.width,
+                                          Expanded(
+                                            child: CustomTextField(
+                                              text: "",
+                                              controller: empProvider.signMobileNumber,
+                                             // isRequired: true,
+                                              isLogin: true,
+                                              iconCallBack: () {
+                                                empProvider.isWhatsAppCheck(isUpdate: true);
+                                              },
+                                              onChanged: (value) {
+                                                empProvider.isWhatsAppCheck(isUpdate: false);
+                                              },
+                                              iconData: Icons.check_circle,
+                                              iconColor: empProvider.isWhatsApp == true ? Colors.green : Colors.grey,
+                                              width: double.infinity,
+                                              keyboardType: TextInputType.number,
+                                              inputFormatters: constInputFormatters.mobileNumberInput,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      CustomTextField(
+                                        text: constValue.whatsappNo,
+                                        controller: empProvider.signWhatsappNumber,
+                                        width: kIsWeb ? webWidth : phoneWidth,
                                         keyboardType: TextInputType.number,
                                         inputFormatters: constInputFormatters.mobileNumberInput,
-                                      ),
-                                      Padding(
-                                        padding: const EdgeInsets.fromLTRB(0, 8, 0, 0),
-                                        child: CustomTextField(text: constValue.whatsappNo,
-                                          controller: empProvider.signWhatsappNumber,
-                                          width: kIsWeb?webWidth/2.1:phoneWidth/2.1,
-                                          keyboardType: TextInputType.number,
-                                          inputFormatters: constInputFormatters.mobileNumberInput,
-                                        ),
                                       ),
                                     ],
                                   ),
@@ -522,13 +656,13 @@ class _CreateEmployeeState extends State<CreateEmployee>with SingleTickerProvide
                                         isHint: true,
                                         width: kIsWeb?webWidth/2.1:phoneWidth/2.1,
                                         isRequired: true,
-                                        hintText: "Role",
+                                        hintText: "${constValue.role}",
                                         list: empProvider.roleValues,
                                         saveValue: empProvider.role,
                                         onChanged: (Object? value) {
                                           empProvider.changeRole(value);
                                         },
-                                        dropText: 'role',),
+                                        dropText:  "role",),
                                       MapDropDown(
                                         isRefresh: empProvider.gradeValues.isEmpty?true:false,
                                         callback: (){
@@ -543,13 +677,13 @@ class _CreateEmployeeState extends State<CreateEmployee>with SingleTickerProvide
                                         },
                                         isHint: true,
                                         width: kIsWeb?webWidth/2.1:phoneWidth/2.1,
-                                        hintText: "Grade",
+                                        hintText:  "${constValue.grades}",
                                         list: empProvider.gradeValues,
                                         saveValue: empProvider.grade,
                                         onChanged: (Object? value) {
                                           empProvider.changeGrade(value,false);
                                         },
-                                        dropText: 'grade',),
+                                        dropText: "grade",),
                                     ],
                                   ),
                                   Row(
@@ -561,7 +695,7 @@ class _CreateEmployeeState extends State<CreateEmployee>with SingleTickerProvide
                                         width: kIsWeb?webWidth/2.1:phoneWidth/2.1,
                                       ),
                                       CustomTextField(
-                                        text: "Salary",
+                                        text: "${constValue.salary}",
                                         inputFormatters: constInputFormatters.amtInput,
                                         keyboardType: TextInputType.number,
                                         controller: empProvider.salary,
@@ -622,7 +756,7 @@ class _CreateEmployeeState extends State<CreateEmployee>with SingleTickerProvide
                                         CustomDropDown(
                                           size: 15,
                                           color: Colors.white,
-                                          text: "State",
+                                          text:  "${constValue.state}",
                                           saveValue: empProvider.state,
                                           valueList: empProvider.stateList,
                                           onChanged: (value) {
@@ -738,7 +872,7 @@ class _CreateEmployeeState extends State<CreateEmployee>with SingleTickerProvide
                                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                     children: [
                                       DocumentContainer(
-                                        text:"Aadhaar Card\n( Front )",
+                                        text:"${constValue.aadhaarFront}",
                                         imageValue:empProvider.aadharPhoto, callback: () {
                                         _myFocusScopeNode.unfocus();
                                         empProvider.signDialog(
@@ -746,14 +880,14 @@ class _CreateEmployeeState extends State<CreateEmployee>with SingleTickerProvide
                                           img: empProvider.aadharPhoto,
                                           imgName: empProvider.aadharPhotoName,
                                           imgList: empProvider.aadharPhotoList,
-                                          docType: "aadhar",
+                                          docType: "${constValue.aadhaarFront}",
                                           onPicked: empProvider.setDocument,
                                           onRemove: empProvider.removeDocument,
                                         );
                                       },
                                       ),
                                       DocumentContainer(
-                                        text:"    Aadhaar Card\n( Back Optional )",
+                                        text:"  ${constValue.aadhaarBack}",
                                         imageValue:empProvider.aadharPhoto2, callback: () {
                                         _myFocusScopeNode.unfocus();
                                         empProvider.signDialog(
@@ -768,7 +902,7 @@ class _CreateEmployeeState extends State<CreateEmployee>with SingleTickerProvide
                                       },
                                       ),
                                       DocumentContainer(
-                                        text:"PAN \nCard",
+                                        text:"${constValue.panNumber}",
                                         imageValue:empProvider.panPhoto,callback: ()  {
                                         _myFocusScopeNode.unfocus();
                                         empProvider.signDialog(
@@ -776,7 +910,7 @@ class _CreateEmployeeState extends State<CreateEmployee>with SingleTickerProvide
                                           img: empProvider.panPhoto,
                                           imgName: empProvider.panPhotoName,
                                           imgList: empProvider.panPhotoList,
-                                          docType: "pan",
+                                          docType: "${constValue.panNumber}",
                                           onPicked: empProvider.setDocument,
                                           onRemove: empProvider.removeDocument,
                                         );
@@ -784,19 +918,19 @@ class _CreateEmployeeState extends State<CreateEmployee>with SingleTickerProvide
                                       ),
                                     ],
                                   ),
-                                  CustomTextField(text: "Aadhaar Number",controller: empProvider.signAadhar,
+                                  CustomTextField(text: "${constValue.aadhaarNumber}",controller: empProvider.signAadhar,
                                     inputFormatters: constInputFormatters.aadharInput,
                                     width: kIsWeb?webWidth:phoneWidth,
                                     keyboardType: TextInputType.number,
                                   ),
-                                  CustomTextField(text: "PAN Number",controller: empProvider.signPan,
+                                  CustomTextField(text:"${constValue.panNumber}",controller: empProvider.signPan,
                                     width: kIsWeb?webWidth:phoneWidth,
                                     textCapitalization: TextCapitalization.characters,
                                     inputFormatters: constInputFormatters.panInput,
                                   ),
                                   CustomDropDown(
                                     color: Colors.grey.shade100,
-                                    text: "House Type",saveValue: empProvider.houseType,valueList: empProvider.houseTypeList,
+                                    text: "${constValue.houseType}",saveValue: empProvider.houseType,valueList: empProvider.houseTypeList,
                                     onChanged: (value) {
                                       empProvider.changeHouseType(value);
                                     },
@@ -804,7 +938,7 @@ class _CreateEmployeeState extends State<CreateEmployee>with SingleTickerProvide
                                   ),
                                   CustomDropDown(
                                     color: Colors.grey.shade100,
-                                    text: "Marital Status",saveValue: empProvider.maritalStatus,valueList: empProvider.maritalList,
+                                    text: "${constValue.maritalStatus}",saveValue: empProvider.maritalStatus,valueList: empProvider.maritalList,
                                     onChanged: (value) {
                                       empProvider.changeMaritalStatus(value);
                                     },
@@ -812,7 +946,7 @@ class _CreateEmployeeState extends State<CreateEmployee>with SingleTickerProvide
                                   ),
                                   CustomDropDown(
                                     color: Colors.grey.shade100,
-                                    text: "Relationship",saveValue: empProvider.relation,valueList: empProvider.relationList,
+                                    text: "${constValue.relationship}",saveValue: empProvider.relation,valueList: empProvider.relationList,
                                     onChanged: (value)  {
                                       empProvider.changeRelation(value);
                                     },
@@ -823,7 +957,7 @@ class _CreateEmployeeState extends State<CreateEmployee>with SingleTickerProvide
                                     children: [
                                       CustomDropDown(
                                         color: colorsConst.primary,
-                                        text: "Full Name",saveValue: empProvider.signSpousePrefix,valueList: empProvider.prefix,
+                                        text: "${constValue.fullName}",saveValue: empProvider.signSpousePrefix,valueList: empProvider.prefix,
                                         onChanged: (value) {
                                           empProvider.changePrefix2(value);
                                         },
@@ -882,7 +1016,7 @@ class _CreateEmployeeState extends State<CreateEmployee>with SingleTickerProvide
                                         // color:Colors.yellow,
                                         width: kIsWeb?webWidth:phoneWidth,
                                         child: CustomCheckBox(
-                                          text:"Copy From Present Address?",
+                                          text:"${constValue.copyPresentAddress}",
                                           onChanged: (bool? value) {
                                             empProvider.addressCheck(value);
                                           },
@@ -890,28 +1024,28 @@ class _CreateEmployeeState extends State<CreateEmployee>with SingleTickerProvide
                                       ),
                                     ),
                                     10.height,
-                                    CustomTextField(text: "Door No",controller: empProvider.permanentDoNo,
+                                    CustomTextField(text: "${constValue.doorNo}",controller: empProvider.permanentDoNo,
                                       width: kIsWeb?webWidth:phoneWidth,
                                       keyboardType: TextInputType.multiline,
                                     ),
-                                    CustomTextField(text: "Street Name",controller: empProvider.permanentStreet,
+                                    CustomTextField(text: "${constValue.streetName}",controller: empProvider.permanentStreet,
                                       width: kIsWeb?webWidth:phoneWidth,
                                       keyboardType: TextInputType.multiline,
                                     ),
-                                    CustomTextField(text: "Area",controller: empProvider.permanentArea,
+                                    CustomTextField(text: "${constValue.area}",controller: empProvider.permanentArea,
                                       width: kIsWeb?webWidth:phoneWidth,
                                       keyboardType: TextInputType.multiline,
                                     ),
                                     Row(
                                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                       children: [
-                                        CustomTextField(text: "City",controller: empProvider.permanentCity,
+                                        CustomTextField(text: "${constValue.city}",controller: empProvider.permanentCity,
                                           width: kIsWeb?webWidth/2.1:phoneWidth/2.1,
                                         ),
                                         CustomDropDown(
                                           size: 15,
                                           color: Colors.grey.shade100,
-                                          text: "State",saveValue: empProvider.permanentState,valueList: empProvider.stateList,
+                                          text: "${constValue.state}",saveValue: empProvider.permanentState,valueList: empProvider.stateList,
                                           onChanged: (value)  {
                                             empProvider.changeState2(value);
                                           },
@@ -922,11 +1056,11 @@ class _CreateEmployeeState extends State<CreateEmployee>with SingleTickerProvide
                                     Row(
                                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                       children: [
-                                        CustomTextField(text: "Country",controller: empProvider.permanentCountry,
+                                        CustomTextField(text: "${constValue.country}",controller: empProvider.permanentCountry,
                                           inputFormatters: constInputFormatters.numTextInput,
                                           width: kIsWeb?webWidth/2.1:phoneWidth/2.1,
                                         ),
-                                        CustomTextField(text: "Pincode",controller: empProvider.permanentPin,
+                                        CustomTextField(text:"${constValue.pincode}",controller: empProvider.permanentPin,
                                           keyboardType: TextInputType.number,
                                           textInputAction: TextInputAction.done,
                                           inputFormatters: constInputFormatters.pinCodeInput,
@@ -966,43 +1100,19 @@ class _CreateEmployeeState extends State<CreateEmployee>with SingleTickerProvide
                                 child:
                                 Column(
                                   children: [
-                                    CustomTextField(text: "Full Name",controller: empProvider.signEmFname,
+                                    CustomTextField(text: "${constValue.fullName}",controller: empProvider.signEmFname,
                                       width: kIsWeb?webWidth:phoneWidth,
                                     ),
-                                    CustomTextField(text: "Phone Number",controller: empProvider.signEmPh,
+                                    CustomTextField(text: "${constValue.phoneNumber}",controller: empProvider.signEmPh,
                                       width: kIsWeb?webWidth:phoneWidth,
                                       keyboardType: TextInputType.phone,
                                       inputFormatters: constInputFormatters.mobileNumberInput,
                                     ),
-                                    CustomTextField(text: "Relation",controller: empProvider.signEmRelation,
+                                    CustomTextField(text: "${constValue.relation}",controller: empProvider.signEmRelation,
                                       width: kIsWeb?webWidth:phoneWidth,
                                       textInputAction: TextInputAction.done,
                                     ),
-                                    // 50.height,
-                                    // Row(
-                                    //   mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    //   children: [
-                                    //     CustomLoadingButton(
-                                    //         callback: (){
-                                    //           _myFocusScopeNode.unfocus();
-                                    //           empProvider.tabController?.animateTo(2);
-                                    //         }, isLoading: false,text: "Back",
-                                    //         backgroundColor: Colors.white, textColor: colorsConst.primary,radius: 10,
-                                    //         width: kIsWeb?webWidth/2.1:phoneWidth/2.1),
-                                    //     CustomLoadingButton(
-                                    //         callback: (){
-                                    //           if (empProvider.signEmPh.text.trim().isNotEmpty &&
-                                    //               empProvider.signEmPh.text.trim().length != 10) {
-                                    //             utils.showWarningToast(context, text: "Please check phone number");
-                                    //           }else {
-                                    //             _myFocusScopeNode.unfocus();
-                                    //             empProvider.tabController?.animateTo(4);
-                                    //           }
-                                    //         }, isLoading: false,text: "Next",controller: empProvider.signCtr,
-                                    //         backgroundColor: colorsConst.primary,radius: 10,
-                                    //         width: kIsWeb?webWidth/2.1:phoneWidth/2.1),
-                                    //   ],
-                                    // ),
+
                                   ],
                                 )
                             ),
@@ -1010,11 +1120,11 @@ class _CreateEmployeeState extends State<CreateEmployee>with SingleTickerProvide
                                 child:
                                 Column(
                                   children: [
-                                    CustomTextField(text: "Last Organization",controller: empProvider.signLastOrganization,
+                                    CustomTextField(text: "${constValue.lastOrganization}",controller: empProvider.signLastOrganization,
                                       width: kIsWeb?webWidth:phoneWidth,
                                     ),
                                     // CustomTextField(text: "Person name who referred you in Lending Paisa",controller: empProvider.signReffered,
-                                    CustomTextField(text: "Referred By",controller: empProvider.signReffered,
+                                    CustomTextField(text: "${constValue.referredBy}",controller: empProvider.signReffered,
                                       width: kIsWeb?webWidth:phoneWidth,
                                       textInputAction: TextInputAction.done,
                                     ),
@@ -1045,18 +1155,18 @@ class _CreateEmployeeState extends State<CreateEmployee>with SingleTickerProvide
                                 child:
                                 Column(
                                   children: [
-                                    CustomTextField(text: "Reference 1 Full Name",controller: empProvider.signReFname1,
+                                    CustomTextField(text: "${constValue.reference1Name}",controller: empProvider.signReFname1,
                                       width: kIsWeb?webWidth:phoneWidth,
                                     ),
-                                    CustomTextField(text: "Reference 1 Phone Number",controller: empProvider.signRePh1,
+                                    CustomTextField(text: "${constValue.reference1Phone}",controller: empProvider.signRePh1,
                                         keyboardType: TextInputType.phone,
                                         width: kIsWeb?webWidth:phoneWidth,
                                         inputFormatters: constInputFormatters.mobileNumberInput,
                                     ),
-                                    CustomTextField(text: "Reference 2 Full Name",controller: empProvider.signReFname2,
+                                    CustomTextField(text: "${constValue.reference2Name}",controller: empProvider.signReFname2,
                                       width: kIsWeb?webWidth:phoneWidth,
                                     ),
-                                    CustomTextField(text: "Reference 2 Phone Number",controller: empProvider.signRePh2,
+                                    CustomTextField(text: "${constValue.reference2Phone}",controller: empProvider.signRePh2,
                                         keyboardType: TextInputType.phone,
                                         width: kIsWeb?webWidth:phoneWidth,
                                         inputFormatters: constInputFormatters.mobileNumberInput,
@@ -1106,12 +1216,12 @@ class _CreateEmployeeState extends State<CreateEmployee>with SingleTickerProvide
                                   ],
                                 ),
                                 5.height,
-                                const Row(
+                                 Row(
                                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
-                                    CustomText(text: "Cheque",colors: Colors.grey,size: 14),
-                                    CustomText(text: kIsWeb?"Voter (Optional)":"Voter\n(Optional)",colors: Colors.grey,size: 14),
-                                    CustomText(text: kIsWeb?"License (Optional)":"License\n(Optional)",colors: Colors.grey,size: 14),
+                                    CustomText(text: "${constValue.cheque}",colors: Colors.grey,size: 14),
+                                    CustomText(text: kIsWeb?"${constValue.voter}${constValue.optional}":"${constValue.voter}\n ${constValue.optional}",colors: Colors.grey,size: 14),
+                                    CustomText(text: kIsWeb?"${constValue.voter}${constValue.optional}":"${constValue.voter}\n ${constValue.optional}",colors: Colors.grey,size: 14),
                                   ],
                                 ),
                                 25.height,
@@ -1119,7 +1229,7 @@ class _CreateEmployeeState extends State<CreateEmployee>with SingleTickerProvide
                                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
                                     DocumentContainer(
-                                      text:"Cheque",
+                                      text:"${constValue.cheque}",
                                       imageValue:empProvider.chequePhoto, callback: () {
                                       _myFocusScopeNode.unfocus();
                                       empProvider.signDialog(
@@ -1127,14 +1237,14 @@ class _CreateEmployeeState extends State<CreateEmployee>with SingleTickerProvide
                                         img: empProvider.chequePhoto,
                                         imgName: empProvider.chequePhotoName,
                                         imgList: empProvider.chequePhotoList,
-                                        docType: "cheque",
+                                        docType: "${constValue.cheque}",
                                         onPicked: empProvider.setDocument,
                                         onRemove: empProvider.removeDocument,
                                       );
                                     },
                                     ),
                                     DocumentContainer(
-                                      text:"License",
+                                      text:"${constValue.license}",
                                       imageValue:empProvider.licensePhoto, callback: () {
                                       _myFocusScopeNode.unfocus();
                                       empProvider.signDialog(
@@ -1142,14 +1252,14 @@ class _CreateEmployeeState extends State<CreateEmployee>with SingleTickerProvide
                                         img: empProvider.licensePhoto,
                                         imgName: empProvider.licensePhotoName,
                                         imgList: empProvider.licensePhotoList,
-                                        docType: "license",
+                                        docType: "${constValue.license}",
                                         onPicked: empProvider.setDocument,
                                         onRemove: empProvider.removeDocument,
                                       );
                                     },
                                     ),
                                     DocumentContainer(
-                                      text:"Voter",
+                                      text:"${constValue.voter}",
                                       imageValue:empProvider.voterPhoto, callback: () {
                                       _myFocusScopeNode.unfocus();
                                       empProvider.signDialog(
@@ -1157,7 +1267,7 @@ class _CreateEmployeeState extends State<CreateEmployee>with SingleTickerProvide
                                         img: empProvider.voterPhoto,
                                         imgName: empProvider.voterPhotoName,
                                         imgList: empProvider.voterPhotoList,
-                                        docType: "voter",
+                                        docType: "${constValue.voter}",
                                         onPicked: empProvider.setDocument,
                                         onRemove: empProvider.removeDocument,
                                       );

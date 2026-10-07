@@ -4,13 +4,12 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:fluttertoast/fluttertoast.dart';
-import 'package:master_code/component/custom_network_image.dart';
-import 'package:master_code/source/extentions/extensions.dart';
+import '../../component/custom_network_image.dart';
+import '../../source/extentions/extensions.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:rounded_loading_button_plus/rounded_loading_button.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../../component/custom_loading_button.dart';
 import '../../component/custom_text.dart';
 import '../constant/assets_constant.dart';
 import '../constant/colors_constant.dart';
@@ -23,6 +22,73 @@ class Utils {
     var output=value.toString().padLeft(2,"0");
     return output;
   }
+
+  void showDeleteDialog(BuildContext context, VoidCallback onDelete,
+      String text1, String text2, String text3, IconData icon) {
+      showDialog(
+        context: context,
+        builder: (BuildContext dialogContext) {
+          return AlertDialog(
+            backgroundColor: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            titlePadding: EdgeInsets.zero,
+            title:  Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                IconButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                    },
+                    icon: const Icon(Icons.close),
+                    color: colorsConst.primary),
+              ],
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(icon, size: 48, color: Colors.red),
+                16.height,
+                CustomText(
+                  text: text1,
+                  size: 15,
+                ),
+                8.height,
+                CustomText(
+                  text: text2,
+                  colors: Colors.grey,
+                ),
+              ],
+            ),
+            actionsAlignment: MainAxisAlignment.center,
+            actions: [
+              ElevatedButton(
+                onPressed: () => Navigator.of(dialogContext).pop(),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xffD9D9D9),
+                ),
+                child:  const CustomText(
+                  text:"Cancel",
+                  colors: Color(0xff000000),
+                  size: 15,
+                  isBold: false,
+                ),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.of(dialogContext).pop();
+                  onDelete();
+                },
+                style: ElevatedButton.styleFrom(backgroundColor: colorsConst.primary),
+                child:  CustomText(text: text3, colors: Colors.white, size: 15),
+              )
+            ],
+          );
+        },
+      );
+  }
+
   // void navigatePage(BuildContext context, Widget Function() pageBuilder) {
   //   Navigator.push(
   //     context,

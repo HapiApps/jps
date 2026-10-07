@@ -1,8 +1,9 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_svg/svg.dart';
-import 'package:master_code/source/extentions/extensions.dart';
+
 import 'package:flutter/material.dart';
 import '../source/constant/colors_constant.dart';
+import '../source/extentions/int_extensions.dart';
 import 'custom_text.dart';
 
 class AppCustomDataText extends StatelessWidget {

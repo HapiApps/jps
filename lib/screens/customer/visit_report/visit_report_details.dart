@@ -2,18 +2,17 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:intl/intl.dart';
-import 'package:master_code/source/extentions/extensions.dart';
+import '../../../source/extentions/extensions.dart';
 import '../../../component/custom_text.dart';
 import '../../../component/dotted_border.dart';
 import '../../../model/customer/customer_report_model.dart';
 import '../../../source/constant/assets_constant.dart';
 import '../../../source/constant/colors_constant.dart';
-import '../../../source/constant/default_constant.dart';
+import '../../../source/constant/language_model.dart';
 import '../../../source/styles/decoration.dart';
 import '../../../source/utilities/utils.dart';
 import '../../common/dashboard.dart';
 import '../../task/task_chat.dart';
-import '../comments/comment_chat.dart';
 
 class VisitReportDetails extends StatelessWidget {
   final CustomerReportModel data;
@@ -29,14 +28,14 @@ class VisitReportDetails extends StatelessWidget {
     var commentsTs=data.commentsTs.toString().split('||');
     var created=data.createdBy.toString();
     var createdcommentsTs =data.commentsTs.toString();
-    print("created by:${created}");
-    print("created by createdcommentsTs:${createdcommentsTs}");
+    // print("created by:${created}");
+    // print("created by createdcommentsTs:${createdcommentsTs}");
     return GestureDetector(
       onTap:(){
-        print("created by 12 task :${data.createdBy.toString()}");
-        print("created by 12 task :${data.companyName.toString()}");
+        // print("created by 12 task :${data.createdBy.toString()}");
+        // print("created by 12 task :${data.companyName.toString()}");
         utils.navigatePage(context, ()=> DashBoard(child: TaskChat(isVisit:true,createdBy: data.createdBy.toString(),
-            taskId: data.id.toString(), assignedId: "", assignedName:"",name: data.companyName.toString(), date1: '', date2: '', type: '',)));
+            taskId: data.id.toString(), assignedId: "", assignedName:"",name: data.companyName.toString(), date1: '', date2: '', type: '', index: -1,)));
         // utils.navigatePage(context, ()=>CommentChat(visitId: data.id.toString(), companyName: data.companyName.toString(), numberList: [], companyId: '',createdBy: data.createdBy.toString(),));
       },
       child: Padding(
@@ -163,8 +162,11 @@ class VisitReportDetails extends StatelessWidget {
                           ],
                         ),5.height,
                         Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            const CustomText(text: "Customer Category :                ",colors: Colors.grey),
+                            SizedBox(
+                                width: kIsWeb?phoneWidth/2.8:phoneWidth/2.8,
+                                child: const CustomText(text: "Customer Category",colors: Colors.grey)),
                             SizedBox(
                               // color: Colors.yellow,
                                 width: kIsWeb?phoneWidth/1.8:phoneWidth/1.8,

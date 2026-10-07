@@ -5,6 +5,23 @@ final InputFormatters constInputFormatters = InputFormatters._();
 class InputFormatters{
 
   InputFormatters._();
+  // final List<TextInputFormatter> mobileNumberInput=[
+  //   TextInputFormatter.withFunction((oldValue, newValue) {
+  //     String text = newValue.text;
+  //     text = text.replaceAll(RegExp(r'\D'), '');
+  //     if (text.startsWith('91') && text.length > 10) {
+  //       text = text.substring(2);
+  //     }
+  //     if (text.length > 10) {
+  //       text = text.substring(text.length - 10);
+  //     }
+  //     return TextEditingValue(
+  //       text: text,
+  //       selection: TextSelection.collapsed(offset: text.length),
+  //     );
+  //   }),
+  // ];
+
 
   final List<TextInputFormatter> mobileNumberInput = [
     TextInputFormatter.withFunction((oldValue, newValue) {
@@ -49,6 +66,7 @@ class InputFormatters{
       );
     }),
   ];
+
   final List<TextInputFormatter> daInput=[
     FilteringTextInputFormatter.allow(RegExp("[0-9.]"))
   ];
@@ -57,7 +75,7 @@ class InputFormatters{
     FilteringTextInputFormatter.allow(RegExp("[0-9]")),
     LengthLimitingTextInputFormatter(7),
   ];
-// final List<TextInputFormatter> =[
+// final List<TextInputFormatter> mobileNumberInput=[
 //   LengthLimitingTextInputFormatter(10),
 //   FilteringTextInputFormatter.digitsOnly,
 //   FilteringTextInputFormatter.allow(RegExp("[0-9]"))

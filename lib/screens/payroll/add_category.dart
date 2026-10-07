@@ -1,5 +1,5 @@
-import 'package:master_code/component/custom_loading.dart';
-import 'package:master_code/source/extentions/extensions.dart';
+import '../../component/custom_loading.dart';
+import '../../source/extentions/extensions.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';

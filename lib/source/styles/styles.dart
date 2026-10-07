@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:master_code/source/constant/assets_constant.dart';
-import 'package:master_code/source/constant/colors_constant.dart';
+import '../../source/constant/assets_constant.dart';
+import '../../source/constant/colors_constant.dart';
 
 final CustomStyle customStyle = CustomStyle._();
 

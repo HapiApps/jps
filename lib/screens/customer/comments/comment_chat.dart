@@ -1,6 +1,7 @@
 import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
-import 'package:master_code/source/extentions/extensions.dart';
+import '../../../source/extentions/int_extensions.dart';
+
 import 'package:provider/provider.dart';
 import 'package:rounded_loading_button_plus/rounded_loading_button.dart';
 import '../../../component/custom_appbar.dart';
@@ -8,7 +9,7 @@ import '../../../component/custom_loading.dart';
 import '../../../component/custom_text.dart';
 import '../../../model/customer/customer_report_model.dart';
 import '../../../source/constant/colors_constant.dart';
-import '../../../source/constant/default_constant.dart';
+import '../../../source/constant/language_model.dart';
 import '../../../source/constant/local_data.dart';
 import '../../../source/styles/styles.dart';
 import '../../../source/utilities/utils.dart';

@@ -1,9 +1,9 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:master_code/component/custom_text.dart';
-import 'package:master_code/source/constant/colors_constant.dart';
-import 'package:master_code/source/extentions/extensions.dart';
+import '../../../component/custom_text.dart';
+import '../../../source/constant/colors_constant.dart';
+import '../../../source/extentions/extensions.dart';
 import 'package:provider/provider.dart';
 import '../../../component/custom_appbar.dart';
 import '../../../component/custom_loading.dart';
@@ -11,7 +11,7 @@ import '../../../component/dotted_border.dart';
 import '../../../model/customer/customer_report_model.dart';
 import '../../../source/constant/api.dart';
 import '../../../source/constant/assets_constant.dart';
-import '../../../source/constant/default_constant.dart';
+import '../../../source/constant/language_model.dart';
 import '../../../source/styles/decoration.dart';
 import '../../../view_model/customer_provider.dart';
 

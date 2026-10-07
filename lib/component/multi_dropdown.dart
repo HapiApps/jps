@@ -1,6 +1,6 @@
-import 'package:master_code/source/extentions/extensions.dart';
+import '../../source/extentions/extensions.dart';
 import 'package:dropdown_search/dropdown_search.dart';
-import 'package:master_code/source/styles/decoration.dart';
+import '../../source/styles/decoration.dart';
 import 'package:flutter/material.dart';
 import '../model/user_model.dart';
 import '../source/constant/colors_constant.dart';

@@ -1,11 +1,11 @@
-import 'package:master_code/screens/common/fullscreen_photo.dart';
-import 'package:master_code/view_model/task_provider.dart';
+import '../../screens/common/fullscreen_photo.dart';
+import '../../view_model/task_provider.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:master_code/component/custom_text.dart';
-import 'package:master_code/source/constant/colors_constant.dart';
-import 'package:master_code/source/extentions/extensions.dart';
-import 'package:master_code/source/styles/decoration.dart';
+import '../../component/custom_text.dart';
+import '../../source/constant/colors_constant.dart';
+import '../../source/extentions/extensions.dart';
+import '../../source/styles/decoration.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:provider/provider.dart';
 import '../../component/audio_player.dart';

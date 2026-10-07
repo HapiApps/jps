@@ -1,5 +1,5 @@
-import 'package:master_code/source/constant/colors_constant.dart';
-import 'package:master_code/source/extentions/lib_extensions.dart';
+import '../../source/constant/colors_constant.dart';
+import '../../source/extentions/lib_extensions.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'custom_text.dart';

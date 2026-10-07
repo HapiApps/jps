@@ -1,35 +1,42 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:developer';
 import 'dart:io';
-import 'package:master_code/view_model/attendance_provider.dart';
-import 'package:master_code/view_model/customer_provider.dart';
-import 'package:master_code/view_model/employee_provider.dart';
-import 'package:master_code/view_model/expense_provider.dart';
-import 'package:master_code/view_model/task_provider.dart';
+import '../../view_model/attendance_provider.dart';
+import '../../view_model/customer_provider.dart';
+import '../../view_model/employee_provider.dart';
+import '../../view_model/expense_provider.dart';
+import '../../view_model/payroll_provider.dart';
+import '../../view_model/project_provider.dart';
+import '../../view_model/report_provider.dart';
+import '../../view_model/setting_provider.dart';
+import '../../view_model/task_provider.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import 'package:intl/intl.dart';
-import 'package:path/path.dart';
+import '../../view_model/track_provider.dart';
+import 'package:otp_text_field_v2/otp_field_v2.dart';
 import 'package:provider/provider.dart';
-import 'package:master_code/component/custom_text.dart';
-import 'package:master_code/screens/employee/view_all_employees.dart';
-import 'package:master_code/screens/forgot_password.dart';
+import '../../component/custom_text.dart';
+import '../../screens/employee/view_all_employees.dart';
+import '../../screens/forgot_password.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:rounded_loading_button_plus/rounded_loading_button.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sidebarx/sidebarx.dart';
 import 'package:syncfusion_flutter_datepicker/datepicker.dart';
 import '../component/month_calendar.dart';
+import '../component/panel_button.dart';
 import '../local_database/sqlite.dart';
 import '../model/attendance_model.dart';
-import '../model/customer/customer_model.dart';
+import '../model/home_model.dart';
+import '../model/panel_model.dart';
 import '../model/task/work_details_plan.dart';
 import '../model/user_model.dart';
 import '../repo/home_repo.dart';
-import '../screens/attendance/attendance_report.dart';
 import '../screens/common/dashboard.dart';
 import '../screens/common/setting.dart';
 import '../screens/common/home_page.dart';
@@ -40,10 +47,14 @@ import '../screens/report_dashboard/report_dashboard.dart';
 import '../screens/track/live_location.dart';
 import '../source/constant/api.dart';
 import '../source/constant/colors_constant.dart';
+import '../source/constant/language_model.dart';
 import '../source/constant/local_data.dart';
 import '../source/utilities/utils.dart';
+import 'expasy_provider.dart';
 import 'leave_provider.dart';
+import 'package:http/http.dart' as http;
 
+import 'location_provider.dart';
 class HomeProvider with ChangeNotifier{
 final HomeRepository homeRepo = HomeRepository();
 final sidebarController = SidebarXController(selectedIndex: 0, extended: true);
@@ -257,17 +268,23 @@ checkForUpdates(bool login,context) async {
   }
 /// Login
 bool _isEyeOpen = true;
+bool _isEyeOpen2 = true;
 bool _rememberMe = false;
 bool _versionCheck = false;
 bool _versionActive = false;
 bool _updateAvailable = false;
 bool get isEyeOpen =>_isEyeOpen;
+bool get isEyeOpen2 =>_isEyeOpen2;
 bool get rememberMe =>_rememberMe;
 bool get versionCheck =>_versionCheck;
 bool get versionActive =>_versionActive;
 bool get updateAvailable =>_updateAvailable;
 void manageEye(){
   _isEyeOpen=!_isEyeOpen;
+  notifyListeners();
+}
+void manageEye2(){
+  _isEyeOpen2=!_isEyeOpen2;
   notifyListeners();
 }
 Future<void> remember(bool isClick) async {
@@ -319,8 +336,6 @@ Future<void> checkVersion() async {
       "platform":localData.storage.read("platform")
     };
     final response = await homeRepo.selectDataList(data);
-    // log("response.toString()");
-    // log(response.toString());
     if (response.isNotEmpty){
       _currentVersion=response[0]["current_version"];
       _currentAPK=response[0]["current_url"];
@@ -592,112 +607,120 @@ String get notificationToken =>_notificationToken;
       },
     );
   }
-Future<void> login(context) async {
-  // print("printttt");
-  // log("logggg");
-  //   try {
+// <-- CHANGED: added optional `countryCode` named param (defaults to "+91"
+  // so any other place in the app that still calls login(context) without it
+  // keeps working).
+  Future<void> login(context, {String countryCode = "+91"}) async {
+    // print("printttt");
+    // log("logggg");
+    //   try {
 
-  await getToken();
-  checkPlatform();
-      var id="",brand="",model="",version="";
-      if(kIsWeb){
-        final deviceInfoPlugin = DeviceInfoPlugin();
-        final deviceInfo = await deviceInfoPlugin.deviceInfo;
-        final allInfo = deviceInfo.data;
+    await getToken();
+    checkPlatform();
+    var id="",brand="",model="",version="";
+    if(kIsWeb){
+      final deviceInfoPlugin = DeviceInfoPlugin();
+      final deviceInfo = await deviceInfoPlugin.deviceInfo;
+      final allInfo = deviceInfo.data;
+      id="";
+      brand="";
+      model=allInfo.toString();
+      version="";
+    }else{
+      if (Platform.isIOS) {
+        DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
+        IosDeviceInfo iosInfo = await deviceInfo.iosInfo;
         id="";
-        brand="";
-        model=allInfo.toString();
-        version="";
+        brand=iosInfo.name.toString();
+        model=iosInfo.model.toString();
+        version=iosInfo.systemVersion.toString();
       }else{
-        if (Platform.isIOS) {
-          DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
-          IosDeviceInfo iosInfo = await deviceInfo.iosInfo;
-          id="";
-          brand=iosInfo.name.toString();
-          model=iosInfo.model.toString();
-          version=iosInfo.systemVersion.toString();
-        }else{
-          DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
-          AndroidDeviceInfo androidInfo = await deviceInfo.androidInfo;
-          id=androidInfo.id.toString();
-          brand=androidInfo.brand.toString();
-          model=androidInfo.model.toString();
-          version=androidInfo.version.release.toString();
-        }
+        DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
+        AndroidDeviceInfo androidInfo = await deviceInfo.androidInfo;
+        id=androidInfo.id.toString();
+        brand=androidInfo.brand.toString();
+        model=androidInfo.model.toString();
+        version=androidInfo.version.release.toString();
       }
-      final prefs =await SharedPreferences.getInstance();
-      Map data = {
-        "action": loginUser,
-        "mobile_number": loginNumber.text.trim(),
-        "password": loginPassword.text.trim(),
-        "cos_id":localData.storage.read("cos_id"),
-        'app_version': localData.versionNumber,
-        'device_id': id,
-        'device_brand': brand,
-        'device_model':model,
-        'device_os': version,
-        'token': _notificationToken,
-        'platform': localData.storage.read("platform").toString()
-      };
-      print("body data ${data}");      final response = await homeRepo.loginApi(data);
-      log(response.toString());
-      if(response.toString().contains("No user found")){
-        utils.showWarningToast(context,text: "No user found");
-        loginCtr.reset();
-      }else if(response.toString().contains("Incorrect password")){
-        utils.showWarningToast(context,text: "Incorrect password");
-        loginCtr.reset();
-      }else if(response.toString().contains("Something went wrong")){
-        utils.showWarningToast(context,text: "Something went wrong");
-        loginCtr.reset();
+    }
+    final prefs =await SharedPreferences.getInstance();
+    Map data = {
+      "action": loginUser,
+      // <-- CHANGED: mobile_number now includes the selected country dial code.
+      // If your backend expects the plain 10-digit number instead and the
+      // dial code as its own field, use the commented-out version below.
+      "mobile_number": "$countryCode${loginNumber.text.trim()}",
+      // "mobile_number": loginNumber.text.trim(),
+      // "country_code": countryCode,
+      "password": loginPassword.text.trim(),
+      "cos_id":localData.storage.read("cos_id"),
+      'app_version': localData.versionNumber,
+      'device_id': id,
+      'device_brand': brand,
+      'device_model':model,
+      'device_os': version,
+      'token': _notificationToken,
+      'platform': localData.storage.read("platform").toString()
+    };
+    print("body data ${data}");      final response = await homeRepo.loginApi(data);
+    log(response.toString());
+    if(response.toString().contains("No user found")){
+      utils.showWarningToast(context,text: constValue.noUserFound);
+      loginCtr.reset();
+    }else if(response.toString().contains("Incorrect password")){
+      utils.showWarningToast(context,text: constValue.incorrectPassword);
+      loginCtr.reset();
+    }else if(response.toString().contains("Something went wrong")){
+      utils.showWarningToast(context,text: constValue.somethingWentWrong);
+      loginCtr.reset();}
+    else{
+      if(response.isNotEmpty){
+        localData.storage.write("f_name",response['firstname']);
+        localData.storage.write("mobile_number",response['mobile_number']);
+        localData.storage.write("id",response['id']);
+        localData.storage.write("role_name",response['role_name']);
+        localData.storage.write("role",response['role']);
+        localData.storage.write("cos_id",response['cos_id']);
+        localData.storage.write("conveyance_amount",response['conveyance_amount'].toString()=="null"||response['conveyance_amount'].toString()==""?"0":response['conveyance_amount'].toString());
+        localData.storage.write("travel_amount",response['travel_amount'].toString()=="null"||response['travel_amount'].toString()==""?"0":response['travel_amount'].toString());
+        localData.storage.write("da_amount",response['da_amount'].toString()=="null"||response['da_amount'].toString()==""?"0":response['da_amount'].toString());
+        prefs.setBool("homescreen", true);
+        prefs.setString("appVersion", localData.versionNumber);
+        if(!kIsWeb){
+          LocalDatabase.initDb();
+          Provider.of<EmployeeProvider>(context, listen: false).getRoles();
+          Provider.of<CustomerProvider>(context, listen: false).getLeadCategory();
+          Provider.of<CustomerProvider>(context, listen: false).getVisitType();
+          Provider.of<CustomerProvider>(context, listen: false).getCmtType();
+
+          Provider.of<TaskProvider>(context, listen: false).getTaskType(false);
+          Provider.of<TaskProvider>(context, listen: false).getTaskStatuses();
+          Provider.of<ExpenseProvider>(context, listen: false).getExpenseType();
+        }
+
+        Provider.of<HomeProvider>(context, listen: false).updateIndex(0);
+        Provider.of<HomeProvider>(context, listen: false).initValue();
+        // Provider.of<HomeProvider>(context, listen: false).roleEmployees();
+        Provider.of<HomeProvider>(context, listen: false).loadFullDashboard(context);
+        // Provider.of<AttendanceProvider>(context, listen: false).getMainAttendance();
+        // getMainReport(false);
+        // getDashboardReport(false);
+        Future.microtask(() {
+          utils.navigatePage(context,()=>const DashBoard(child: HomePage()));
+        });
       }else{
-        if(response.isNotEmpty){
-          localData.storage.write("f_name",response['firstname']);
-          localData.storage.write("mobile_number",response['mobile_number']);
-          localData.storage.write("id",response['id']);
-          localData.storage.write("role_name",response['role_name']);
-          localData.storage.write("role",response['role']);
-          localData.storage.write("cos_id",response['cos_id']);
-          localData.storage.write("conveyance_amount",response['conveyance_amount'].toString()=="null"||response['conveyance_amount'].toString()==""?"0":response['conveyance_amount'].toString());
-          localData.storage.write("travel_amount",response['travel_amount'].toString()=="null"||response['travel_amount'].toString()==""?"0":response['travel_amount'].toString());
-          localData.storage.write("da_amount",response['da_amount'].toString()=="null"||response['da_amount'].toString()==""?"0":response['da_amount'].toString());
-          prefs.setBool("homescreen", true);
-          prefs.setString("appVersion", localData.versionNumber);
-          if(!kIsWeb){
-            LocalDatabase.initDb();
-            Provider.of<EmployeeProvider>(context, listen: false).getRoles();
-            Provider.of<CustomerProvider>(context, listen: false).getLeadCategory();
-            Provider.of<CustomerProvider>(context, listen: false).getVisitType();
-            Provider.of<CustomerProvider>(context, listen: false).getCmtType();
-
-            Provider.of<TaskProvider>(context, listen: false).getTaskType(false);
-            Provider.of<TaskProvider>(context, listen: false).getTaskStatuses();
-            Provider.of<ExpenseProvider>(context, listen: false).getExpenseType();
-          }
-
-          Provider.of<HomeProvider>(context, listen: false).updateIndex(0);
-          Provider.of<HomeProvider>(context, listen: false).initValue();
-          // Provider.of<HomeProvider>(context, listen: false).roleEmployees();
-          Provider.of<HomeProvider>(context, listen: false).loadFullDashboard(context);
-          // Provider.of<AttendanceProvider>(context, listen: false).getMainAttendance();
-          // getMainReport(false);
-          // getDashboardReport(false);
-          Future.microtask(() {
-            utils.navigatePage(context,()=>const DashBoard(child: HomePage()));
-          });
-        }else{
-          utils.showErrorToast(context: context);
-          loginCtr.reset();
-        }
+        utils.showErrorToast(context: context);
+        loginCtr.reset();
       }
+    }
     // } catch (e) {
     //   // print(e.toString());
     //   utils.showErrorToast(context: context);
     //   loginCtr.reset();
     // }
     notifyListeners();
-}
-Future<void> loginOuts(context) async {
+  }
+  Future<void> loginOuts(context) async {
     try {
       Map data = {
         "action": logOut,
@@ -709,6 +732,12 @@ Future<void> loginOuts(context) async {
       if(response.isNotEmpty){
         final prefs =await SharedPreferences.getInstance();
         prefs.setBool("homescreen", false);
+
+        // (b) navigate-ku munnadiye providers-a eduthuduvom
+        final attendanceProvider = Provider.of<AttendanceProvider>(context, listen: false);
+        final leaveProvider = Provider.of<LeaveProvider>(context, listen: false);
+        final taskProvider = Provider.of<TaskProvider>(context, listen: false);
+
         localData.storage.remove("firstname");
         loginNumber.clear();
         loginPassword.clear();
@@ -722,7 +751,24 @@ Future<void> loginOuts(context) async {
           localData.storage.write("T_Shift", "");
           localData.storage.write("TrackUnitName", "null");
         }
+
+        // (c) login-la write panna user keys remove
+        for (final key in const [
+          "f_name", "mobile_number", "id", "role_name", "role",
+          "conveyance_amount", "travel_amount", "da_amount",
+          "no_attendance_count", "leave_emp_name",
+        ]) {
+          localData.storage.remove(key);
+        }
+
         utils.navigatePage(context,()=>const LoginPage());
+
+        // (c) ella provider data-vum clear
+        attendanceProvider.resetOnLogout();
+        leaveProvider.resetOnLogout();
+        taskProvider.resetOnLogout();
+        resetOnLogout();
+
         loginCtr.reset();
       }else{
         utils.showErrorToast(context: context);
@@ -733,7 +779,41 @@ Future<void> loginOuts(context) async {
       loginCtr.reset();
     }
     notifyListeners();
-}
+  }
+
+  Future<void> resetApp(BuildContext context) async {
+    // 1. Clear SharedPreferences
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.clear();
+
+    // 3. Remove all existing routes and recreate Provider tree
+    if (!context.mounted) return;
+
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(
+        builder: (_) => MultiProvider(
+          providers: [
+            ChangeNotifierProvider(create: (_) => AttendanceProvider()),
+            ChangeNotifierProvider(create: (_) => CustomerProvider()),
+            ChangeNotifierProvider(create: (_) => EmployeeProvider()),
+            ChangeNotifierProvider(create: (_) => ExpasyProvider()),
+            ChangeNotifierProvider(create: (_) => ExpenseProvider()),
+            ChangeNotifierProvider(create: (_) => HomeProvider()),
+            ChangeNotifierProvider(create: (_) => LeaveProvider()),
+            ChangeNotifierProvider(create: (_) => LocationProvider()),
+            ChangeNotifierProvider(create: (_) => PayrollProvider()),
+            ChangeNotifierProvider(create: (_) => ProjectProvider()),
+            ChangeNotifierProvider(create: (_) => ReportProvider()),
+            ChangeNotifierProvider(create: (_) => SettingProvider()),
+            ChangeNotifierProvider(create: (_) => TaskProvider()),
+            ChangeNotifierProvider(create: (_) => TrackProvider()),
+          ],
+          child: const LoginPage(),
+        ),
+      ),
+          (route) => false,
+    );
+  }
 // Future<void> updateToken(context) async {
 //     try {
 //       String? token="";
@@ -881,6 +961,7 @@ Future<void> loginOuts(context) async {
       Map data = {
         "action": getAllData,
         "search_type": "work_plan_list",
+        // "search_type": "hapi_work_plan_list",
         "user_id": localData.storage.read("id"),
         "role": localData.storage.read("role"),
         "cos_id": localData.storage.read("cos_id"),
@@ -930,19 +1011,12 @@ Future<void> loginOuts(context) async {
         "detail_id": detailId,
         "work_status": workStatus,
       };
-
-      print("📌 Update WorkStatus Request: $data");
-
       final response = await homeRepo.getDashboardReport(data);
-
-      print("✅ Update WorkStatus Response: $response");
-
       if (response.isNotEmpty && response[0]["status"] == true) {
         workPlanRefresh = true;
 
         String startDate = DateFormat("yyyy-MM-dd").format(DateTime.now());
         String endDate = DateTime.now().toIso8601String().split("T")[0];
-        print("🎯 Status Updated Successfully. Fetching WorkPlan List for $startDate");
 
         await getWorkPlanList(true, startDate,endDate);
         final homeProvider = Provider.of<HomeProvider>(context, listen: false);
@@ -950,17 +1024,94 @@ Future<void> loginOuts(context) async {
         homeProvider.loadFullDashboard(context);
       } else {
         workPlanRefresh = true;
-        print("❌ Update Failed Response: $response");
       }
 
       notifyListeners();
     } catch (e) {
-      print("🚨 Update WorkStatus Error: $e");
       workPlanRefresh = true;
       notifyListeners();
     }
   }
 
+  // Future<void> loadFullDashboard(BuildContext context) async {
+  //
+  //   _refresh = false;
+  //   notifyListeners();
+  //
+  //   try {
+  //
+  //     Map data = {
+  //       "action": home,
+  //       "id": localData.storage.read("id"),
+  //       "salesman_id": localData.storage.read("id"),
+  //       "role": localData.storage.read("role"),
+  //       "cos_id": localData.storage.read("cos_id"),
+  //       "st_dt": _startDate,
+  //       "en_dt": _endDate,
+  //       "date1": _startDate,
+  //       "date2": _endDate,
+  //     };
+  //
+  //     final response = await homeRepo.getFullDashboard(data);
+  //
+  //
+  //     /* ================= MAIN REPORT ================= */
+  //
+  //     _mainReportList = [response["main_report"]];
+  //     localData.storage.write("conveyance_amount",response[0]['conveyance_amount'].toString()=="null"||response[0]['conveyance_amount'].toString()==""?"0":response[0]['conveyance_amount'].toString());
+  //     localData.storage.write("travel_amount",response[0]['travel_amount'].toString()=="null"||response[0]['travel_amount'].toString()==""?"0":response[0]['travel_amount'].toString());
+  //     localData.storage.write("da_amount",response[0]['da_amount'].toString()=="null"||response[0]['da_amount'].toString()==""?"0":response[0]['da_amount'].toString());
+  //     /* ================= DASHBOARD VISIT ================= */
+  //
+  //     _visitCount = response["dashboard_report"];
+  //
+  //     /* ================= USERS ================= */
+  //
+  //     final attendanceProvider =
+  //     Provider.of<AttendanceProvider>(context, listen: false);
+  //
+  //     final employeeProvider =
+  //     Provider.of<EmployeeProvider>(context, listen: false);
+  //
+  //     final customerProvider =
+  //     Provider.of<CustomerProvider>(context, listen: false);
+  //
+  //     /* ================= ATTENDANCE ================= */
+  //
+  //     attendanceProvider.setAttendanceData(
+  //       (response["attendance"] as List)
+  //           .map((e) => AttendanceModel.fromJson(e))
+  //           .toList(),
+  //     );
+  //
+  //     /* ================= USERS ================= */
+  //
+  //     employeeProvider.setUserData(
+  //       (response["allusers"] as List)
+  //           .map((e) => UserModel.fromJson(e))
+  //           .toList(),
+  //     );
+  //
+  //     /* ================= CUSTOMERS ================= */
+  //
+  //     customerProvider.setCustomerData(
+  //       (response["allcustomers"] as List)
+  //           .map((e) => CustomerModel.fromJson(e))
+  //           .toList(),
+  //     );
+  //
+  //     /* ================= NOTIFICATIONS ================= */
+  //
+  //     employeeProvider.setNotifications(response["notifications"]);
+  //
+  //     _refresh = true;
+  //
+  //   } catch (e) {
+  //     _refresh = true;
+  //   }
+  //
+  //   notifyListeners();
+  // }
   int permisCount = 0;
   int lateCountShow = 0;
   bool isLate(String inTime) {
@@ -969,17 +1120,198 @@ Future<void> loginOuts(context) async {
 
       DateTime officeTime = format.parse("09:00 AM");
       DateTime userTime = format.parse(inTime);
+
       return userTime.isAfter(officeTime);
     } catch (e) {
       return false;
     }
   }
+
+  Timer? _refreshTimer;
+  BuildContext? _refreshContext;
+
+  int _timerTickCount = 0;
+
+  bool _isHomePageActive = false;
+
+  bool get isHomePageActive => _isHomePageActive;
+  bool _isDashboardLoading = false;
+  int _loadCallCount = 0;
+  int _loadCompleteCount = 0;
+
+
+  void setHomePageActive(bool value, [BuildContext? context]) {
+    _isHomePageActive = value;
+
+    if (value && context != null) {
+      _refreshContext = context;
+    }
+
+    if (!value) {
+      stopAutoRefresh();
+      _refreshContext = null;
+    }
+
+    print("🏠 HomePage Active = $_isHomePageActive");
+  }
+  void startAutoRefresh(BuildContext context) {
+    if (!_isHomePageActive) {
+      print(
+        "⛔ Timer NOT STARTED — HomePage inactive",
+      );
+      return;
+    }
+
+    if (!context.mounted) {
+      print(
+        "⛔ Timer NOT STARTED — context invalid",
+      );
+      return;
+    }
+
+    _refreshContext = context;
+
+    _refreshTimer?.cancel();
+
+    _timerTickCount = 0;
+
+    print(
+      "⏱️ Timer STARTED — HomePage only",
+    );
+
+    _refreshTimer = Timer.periodic(
+      const Duration(seconds: 60),
+          (_) async {
+        if (!_isHomePageActive) {
+          print(
+            "⛔ Timer stopped — HomePage inactive",
+          );
+
+          stopAutoRefresh();
+          return;
+        }
+
+        if (_refreshContext == null ||
+            !_refreshContext!.mounted) {
+          print(
+            "⛔ Timer stopped — context invalid",
+          );
+
+          stopAutoRefresh();
+          return;
+        }
+
+        if (_isDashboardLoading) {
+          print(
+            "⏭️ Timer tick skipped — "
+                "dashboard already loading",
+          );
+
+          return;
+        }
+
+        _timerTickCount++;
+
+        print(
+          "⏱️ Timer TICK #$_timerTickCount — "
+              "calling loadFullDashboard()",
+        );
+
+        await loadFullDashboard(
+          _refreshContext!,
+        );
+      },
+    );
+  }
+
+  void stopAutoRefresh() {
+    print(
+      "⏹️ Timer STOPPED — "
+          "total ticks: $_timerTickCount",
+    );
+
+    _refreshTimer?.cancel();
+    _refreshTimer = null;
+    _refreshContext = null;
+  }
+
+
+
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    super.dispose();
+  }
+  DashboardModel _dashboard = DashboardModel.empty();
+  DashboardModel get dashboard => _dashboard;
+
+
+
   Future<void> loadFullDashboard(BuildContext context) async {
+    _loadCallCount++;
+
+    final int thisCallId = _loadCallCount;
+    final DateTime callStartTime = DateTime.now();
+
+    print(
+      "🚀🚀🚀 loadFullDashboard() CALLED — "
+          "Call ID: #$thisCallId at $callStartTime 🚀🚀🚀",
+    );
+
+    // ============================================================
+    // HOME PAGE ACTIVE CHECK
+    // ============================================================
+
+    if (!_isHomePageActive) {
+      print(
+        "⛔ Call #$thisCallId BLOCKED — "
+            "HomePage is not active",
+      );
+      return;
+    }
+
+    // ============================================================
+    // CONTEXT CHECK
+    // ============================================================
+
+    if (!context.mounted) {
+      print(
+        "⛔ Call #$thisCallId BLOCKED — "
+            "Context is not mounted",
+      );
+      return;
+    }
+
+    // ============================================================
+    // PREVENT DUPLICATE / OVERLAPPING API CALL
+    // ============================================================
+
+    if (_isDashboardLoading) {
+      print(
+        "⏭️ Call #$thisCallId SKIPPED — "
+            "Previous loadFullDashboard() is still running",
+      );
+
+      return;
+    }
+
+    _isDashboardLoading = true;
+
+    print(
+      "🔒 _isDashboardLoading = true "
+          "(Call #$thisCallId)",
+    );
+
     _refresh = false;
+
     notifyListeners();
 
     try {
-      Map data = {
+      // ============================================================
+      // API DATA
+      // ============================================================
+
+      final Map<String, dynamic> data = {
         "action": home,
         "id": localData.storage.read("id"),
         "salesman_id": localData.storage.read("id"),
@@ -991,193 +1323,396 @@ Future<void> loginOuts(context) async {
         "date2": _endDate,
       };
 
-      print("===== REQUEST DATA =====");
-      print(data);
-
-      final response = await homeRepo.getFullDashboard(data);
-
-      print("===== FULL API RESPONSE =====");
-      print(response);
-
-      /* ================= MAIN REPORT ================= */
-
-      print("===== MAIN REPORT =====");
-      print(response["main_report"]);
-
-      // ✅ main_report is Map, so wrap inside list safely
-      _mainReportList =
-      response["main_report"] == null ? [] : [response["main_report"]];
-
-      var mainReport = response["main_report"] ?? {};
-
-      _noAttendanceCount =
-          int.tryParse(mainReport["no_attendance_count"].toString()) ?? 0;
-
-      // 🔥 no attendance count store
-      localData.storage.write(
-        "no_attendance_count",
-        mainReport["no_attendance_count"] == null ||
-            mainReport["no_attendance_count"].toString().isEmpty
-            ? "0"
-            : mainReport["no_attendance_count"].toString(),
+      print(
+        "📤 Call #$thisCallId — "
+            "Sending API request...",
       );
 
-      print("✅ no_attendance_count variable : $_noAttendanceCount");
-      print("No Attendance Count local : ${mainReport["no_attendance_count"]}");
+      final response =
+      await homeRepo.getFullDashboard(data);
+
+      print(
+        "📥 Call #$thisCallId — "
+            "API response received",
+      );
+
+      // ============================================================
+      // CHECK HOME PAGE AFTER API RESPONSE
+      // ============================================================
+
+      if (!_isHomePageActive) {
+        print(
+          "⛔ Call #$thisCallId — "
+              "HomePage became inactive while API was running",
+        );
+
+        return;
+      }
+
+      if (!context.mounted) {
+        print(
+          "⛔ Call #$thisCallId — "
+              "Context became invalid after API response",
+        );
+
+        return;
+      }
+
+      // ============================================================
+      // MAIN REPORT
+      // ============================================================
+
+      final mainReportJson =
+          response["main_report"] ?? {};
+
+      final mainReportModel =
+      MainReportModel.fromJson(mainReportJson);
+
+      _mainReportList =
+      response["main_report"] == null
+          ? []
+          : [response["main_report"]];
+
+      localData.storage.write(
+        "no_attendance_count",
+        mainReportModel.noAttendanceCount.toString(),
+      );
 
       localData.storage.write(
         "conveyance_amount",
-        mainReport["conveyance_amount"] == null ||
-            mainReport["conveyance_amount"].toString().isEmpty
-            ? "0"
-            : mainReport["conveyance_amount"].toString(),
+        mainReportModel.conveyanceAmount,
       );
 
       localData.storage.write(
         "travel_amount",
-        mainReport["travel_amount"] == null ||
-            mainReport["travel_amount"].toString().isEmpty
-            ? "0"
-            : mainReport["travel_amount"].toString(),
+        mainReportModel.travelAmount,
       );
 
       localData.storage.write(
         "da_amount",
-        mainReport["da_amount"] == null ||
-            mainReport["da_amount"].toString().isEmpty
-            ? "0"
-            : mainReport["da_amount"].toString(),
+        mainReportModel.daAmount,
       );
 
-      print("Conveyance Amount : ${mainReport["conveyance_amount"]}");
-      print("Travel Amount : ${mainReport["travel_amount"]}");
-      print("DA Amount : ${mainReport["da_amount"]}");
+      // ============================================================
+      // VISIT COUNT
+      // ============================================================
 
-      /* ================= DASHBOARD VISIT ================= */
-      _visitCount = response["dashboard_report"] ?? [];
+      _visitCount =
+          response["dashboard_report"] ?? [];
 
       int store = 0;
+
       inActiveVisit = 0;
       activeVisit = 0;
 
       for (var i = 0; i < _visitCount.length; i++) {
-        int count = int.tryParse(_visitCount[i]["total_count"].toString()) ?? 0;
+        final int count =
+            int.tryParse(
+              _visitCount[i]["total_count"]
+                  .toString(),
+            ) ??
+                0;
 
-        store += count; // total visits sum
+        store += count;
 
         if (count == 0) {
-          inActiveVisit++;   // pending visit type count
+          inActiveVisit++;
         } else {
-          activeVisit++;     // ✅ active visit type count (NOT sum)
+          activeVisit++;
         }
       }
 
       _totalV = store.toString();
 
-      print("✅ Total Visits Count : $_totalV");
-      print("✅ Pending Visit Types : $inActiveVisit");
-      print("✅ Active Visit Types : $activeVisit");
+      // ============================================================
+      // ATTENDANCE
+      // ============================================================
+
+      final attendanceList =
+      (response["attendance"] ?? []) as List;
 
       final attendanceProvider =
-      Provider.of<AttendanceProvider>(context, listen: false);
-
-      final employeeProvider =
-      Provider.of<EmployeeProvider>(context, listen: false);
-
-      final customerProvider =
-      Provider.of<CustomerProvider>(context, listen: false);
-
-      /* ================= ATTENDANCE ================= */
-
-      print("===== ATTENDANCE =====");
-      print(response["attendance"]);
-
-      final attendanceList = (response["attendance"] ?? []) as List;
+      Provider.of<AttendanceProvider>(
+        context,
+        listen: false,
+      );
 
       attendanceProvider.setAttendanceData(
         attendanceList
-            .map<AttendanceModel>((e) => AttendanceModel.fromJson(e))
+            .map<AttendanceModel>(
+              (e) => AttendanceModel.fromJson(e),
+        )
             .toList(),
       );
 
-// ✅ now no error
-      attendanceProvider.setMainAttendanceFromDashboard(attendanceList);
-      /* ================= LATE + PERMISSION COUNT (FROM SAME RESPONSE) ================= */
+      // ============================================================
+      // LATE + PERMISSION
+      // ============================================================
 
       permisCount = 0;
       lateCountShow = 0;
 
-      for (var i = 0; i < attendanceList.length; i++) {
-        var row = attendanceList[i];
+      for (var i = 0;
+      i < attendanceList.length;
+      i++) {
+        final row = attendanceList[i];
 
-        // Permission Count
-        if (row["per_status"] != null && row["per_status"].toString() != "null") {
+        // Permission count
+        if (row["per_status"] != null &&
+            row["per_status"].toString() != "null") {
           permisCount++;
         }
 
-        // Late Count
-        String status = row["status"].toString();
-        String time = row["time"]?.toString() ?? "";
+        final String status =
+            row["status"]?.toString() ?? "";
 
-        if (time.isEmpty) continue;
+        final String time =
+            row["time"]?.toString() ?? "";
+
+        if (time.isEmpty) {
+          continue;
+        }
+
+        final List<String> timeParts =
+        time.split(",");
 
         String inTime = "";
 
         if (status.contains("1,2")) {
-          inTime = time.split(",")[0];
+          if (timeParts.isNotEmpty) {
+            inTime = timeParts[0];
+          }
         } else if (status.contains("2,1")) {
-          inTime = time.split(",")[1];
+          if (timeParts.length > 1) {
+            inTime = timeParts[1];
+          }
         } else {
-          inTime = time.split(",")[0];
+          if (timeParts.isNotEmpty) {
+            inTime = timeParts[0];
+          }
         }
 
-        if (inTime.isNotEmpty && isLate(inTime)) {
+        if (inTime.isNotEmpty &&
+            isLate(inTime)) {
           lateCountShow++;
         }
       }
 
-      print("✅ permisCount : $permisCount");
-      print("✅ lateCountShow : $lateCountShow");
-      /* ================= USERS ================= */
+      // ============================================================
+      // DASHBOARD MODEL
+      // ============================================================
 
-      // print("===== USERS =====");
-      // print(response["allusers"]);
-      //
-      // employeeProvider.setUserData(
-      //   (response["allusers"] ?? [])
-      //       .map<UserModel>((e) => UserModel.fromJson(e))
-      //       .toList(),
-      // );
-
-      /* ================= CUSTOMERS ================= */
-
-      // print("===== CUSTOMERS =====");
-      // print(response["allcustomers"]);
-      //
-      // customerProvider.setCustomerData(
-      //   (response["allcustomers"] ?? [])
-      //       .map<CustomerModel>((e) => CustomerModel.fromJson(e))
-      //       .toList(),
-      // );
-
-      /* ================= NOTIFICATIONS ================= */
-
-      print("===== NOTIFICATIONS =====");
-      print(response["notifications"]);
-
-      employeeProvider.setNotifications(response["notifications"] ?? []);
+      _dashboard = DashboardModel(
+        mainReport: mainReportModel,
+        visitCount: _visitCount
+            .map<VisitCountModel>(
+              (e) => VisitCountModel.fromJson(e),
+        )
+            .toList(),
+        totalVisits: store,
+        activeVisit: activeVisit,
+        inActiveVisit: inActiveVisit,
+        lateCount: lateCountShow,
+        permissionCount: permisCount,
+      );
 
       _refresh = true;
+
+      print(
+        "📊 Call #$thisCallId — "
+            "Dashboard data updated successfully",
+      );
     } catch (e, stack) {
-      print("===== DASHBOARD ERROR =====");
+      print(
+        "===== DASHBOARD ERROR "
+            "(Call #$thisCallId) =====",
+      );
+
       print(e);
       print(stack);
+
       _refresh = true;
+    } finally {
+      // ============================================================
+      // ALWAYS RESET LOADING
+      // ============================================================
+
+      _isDashboardLoading = false;
+
+      _loadCompleteCount++;
+
+      final Duration elapsed =
+      DateTime.now().difference(callStartTime);
+
+      print(
+        "✅✅✅ loadFullDashboard() COMPLETED — "
+            "Call #$thisCallId took "
+            "${elapsed.inMilliseconds}ms | "
+            "Total completed: "
+            "$_loadCompleteCount ✅✅✅",
+      );
+
+      print(
+        "🔓 _isDashboardLoading = false "
+            "(Call #$thisCallId)",
+      );
+
+      if (_isHomePageActive) {
+        notifyListeners();
+      }
     }
-
-    notifyListeners();
   }
+  // Future<void> loadDashboard(BuildContext context) async {
+  //   _refresh = false;
+  //   notifyListeners();
+  //
+  //   try {
+  //     Map data = {
+  //       "action": home,
+  //       "id": localData.storage.read("id"),
+  //       "salesman_id": localData.storage.read("id"),
+  //       "role": localData.storage.read("role"),
+  //       "cos_id": localData.storage.read("cos_id"),
+  //       "st_dt": _startDate,
+  //       "en_dt": _endDate,
+  //       "date1": _startDate,
+  //       "date2": _endDate,
+  //     };
+  //
+  //     print("===== REQUEST DATA =====");
+  //     print(data);
+  //
+  //     final response = await homeRepo.getFullDashboard(data);
+  //
+  //     // print("===== FULL API RESPONSE =====");
+  //     // print(response);
+  //
+  //     /* ================= MAIN REPORT ================= */
+  //
+  //     // print("===== MAIN REPORT =====");
+  //     // print(response["main_report"]);
+  //
+  //     // ✅ main_report is Map, so wrap inside list safely
+  //     _mainReportList =
+  //     response["main_report"] == null ? [] : [response["main_report"]];
+  //
+  //     var mainReport = response["main_report"] ?? {};
+  //
+  //     _noAttendanceCount =
+  //         int.tryParse(mainReport["no_attendance_count"].toString()) ?? 0;
+  //
+  //     // 🔥 no attendance count store
+  //     localData.storage.write(
+  //       "no_attendance_count",
+  //       mainReport["no_attendance_count"] == null ||
+  //           mainReport["no_attendance_count"].toString().isEmpty
+  //           ? "0"
+  //           : mainReport["no_attendance_count"].toString(),
+  //     );
+  //     /* ================= DASHBOARD VISIT ================= */
+  //     _visitCount = response["dashboard_report"] ?? [];
+  //
+  //     int store = 0;
+  //     inActiveVisit = 0;
+  //     activeVisit = 0;
+  //
+  //     for (var i = 0; i < _visitCount.length; i++) {
+  //       int count = int.tryParse(_visitCount[i]["total_count"].toString()) ?? 0;
+  //
+  //       store += count; // total visits sum
+  //
+  //       if (count == 0) {
+  //         inActiveVisit++;   // pending Task type count
+  //       } else {
+  //         activeVisit++;     // ✅ active Task type count (NOT sum)
+  //       }
+  //     }
+  //     _totalV = store.toString();
+  //
+  //     final attendanceProvider = Provider.of<AttendanceProvider>(context, listen: false);
+  //     final attendanceList = (response["attendance"] ?? []) as List;
+  //     attendanceProvider.setAttendanceData(
+  //       attendanceList
+  //           .map<AttendanceModel>((e) => AttendanceModel.fromJson(e))
+  //           .toList(),
+  //     );
+  //     permisCount = 0;
+  //     lateCountShow = 0;
+  //
+  //     for (var i = 0; i < attendanceList.length; i++) {
+  //       var row = attendanceList[i];
+  //
+  //       // Permission Count
+  //       if (row["per_status"] != null && row["per_status"].toString() != "null") {
+  //         permisCount++;
+  //       }
+  //
+  //       // Late Count
+  //       String status = row["status"].toString();
+  //       String time = row["time"]?.toString() ?? "";
+  //
+  //       if (time.isEmpty) continue;
+  //
+  //       String inTime = "";
+  //
+  //       if (status.contains("1,2")) {
+  //         inTime = time.split(",")[0];
+  //       } else if (status.contains("2,1")) {
+  //         inTime = time.split(",")[1];
+  //       } else {
+  //         inTime = time.split(",")[0];
+  //       }
+  //
+  //       if (inTime.isNotEmpty && isLate(inTime)) {
+  //         lateCountShow++;
+  //       }
+  //     }
+  //     _refresh = true;
+  //   } catch (e, stack) {
+  //     print("===== DASHBOARD ERROR =====");
+  //     print(e);
+  //     print(stack);
+  //     _refresh = true;
+  //   }
+  //
+  //   notifyListeners();
+  // }
 
+  OtpFieldControllerV2 otpbox = OtpFieldControllerV2();
+  String otp='';
+  String sentOtp='';
+  String countryDial = "+91";
+
+  void sentOtpNumber(String number,context) async {
+    try{
+      Map data = {
+        "action":psdOtp,
+        "number":number
+      };
+      final request = await http.post(Uri.parse(phpFile),
+          headers: {
+            "Accept": "application/text",
+            "Content-Type": "application/x-www-form-urlencoded"
+          },
+          body: jsonEncode(data),
+          encoding: Encoding.getByName("utf-8"));
+      // print("request.body");
+      // print(otp);
+      // print(data.toString());
+      // print(request.body);
+      // print(request.statusCode);
+      if (request.statusCode==200){
+        var jsonResponse = json.decode(request.body);
+        sentOtp=jsonResponse['otp'].toString();
+        // print("%%%%%  ${testController.sentOtp.value}");
+        utils.showSuccessToast(context:context,text: "OTP Sent");
+      } else {
+        utils.showErrorToast(context: context);
+      }
+    }catch(e){
+      utils.showErrorToast(context: context);
+    }
+  }
 
   Future<void> forgotPassword(context) async {
   try{
@@ -1206,6 +1741,90 @@ Future<void> loginOuts(context) async {
   }
       notifyListeners();
 }
+
+  Future<void> checkNumber(context) async {
+  try{
+      Map data = {
+        "action":forgotPsd,
+        "mobile_number":loginNumber.text.trim(),
+        "password":'',
+        "updated_by":localData.storage.read("id")??"0",
+        "cos_id":localData.storage.read("cos_id")
+      };
+      final response = await homeRepo.forgotPwd(data);
+      if(response.toString().contains("No user for this number")){
+        utils.showWarningToast(context,text: "No user for this number",);
+      }else if(response.isNotEmpty){
+        if(isRelease==true){
+          sentOtpNumber('$countryDial${loginNumber.text}',context);
+        }else{
+          utils.showSuccessToast(context:context,text: "OTP Sent");
+        }
+        utils.navigatePage(context,()=>const Otp());
+      }else{
+        if(isRelease==true){
+          sentOtpNumber('$countryDial${loginNumber.text}',context);
+        }else{
+          utils.showSuccessToast(context:context,text: "OTP Sent");
+        }
+        utils.navigatePage(context,()=>const Otp());
+      }
+  }catch(e){
+    if(isRelease==true){
+      sentOtpNumber('$countryDial${loginNumber.text}',context);
+    }else{
+      utils.showSuccessToast(context:context,text: "OTP Sent");
+    }
+    utils.navigatePage(context,()=>const Otp());
+  }
+      notifyListeners();
+}
+
+  Future<void> verifyOtp(BuildContext context) async {
+    if(isRelease==true) {
+      showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (BuildContext context){
+            return AlertDialog(
+              title: Center(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    CustomText(text: "Verifying OTP",colors: colorsConst.primary,size: 15,isBold: true,),
+                    CircularProgressIndicator(color: colorsConst.appGreen,)
+                  ],
+                )
+              ),
+            );
+          }
+      );
+      // log(testController.sentOtp.value);
+      // log(testController.otp.value);
+      if (sentOtp == otp) {
+        // log("success  login");
+        utils.showSuccessToast(context: context,text: "Verified Successfully",);
+        utils.navigatePage(context,()=>const ForgotPassword());
+      } else {
+        log("failed");
+        utils.showErrorToast(context: context);
+        Navigator.pop(context);
+      }
+    }
+    else{
+        if (otp=='123456') {
+          log("success  login");
+          utils.showSuccessToast(context: context,text: "Verified Successfully",);
+          utils.navigatePage(context,()=>const ForgotPassword());
+        } else {
+          log("failed");
+          utils.showErrorToast(context: context);
+          Navigator.pop(context);
+        }
+    }
+  }
+
+
 Future<void> deleteUseAccount(context) async {
       Map data = {
         "action":deleteAccount,
@@ -1458,4 +2077,192 @@ Future<void> deleteUseAccount(context) async {
     notifyListeners();
   }
 
+
+  List _appComponent = [];
+  List get appComponent =>_appComponent;
+
+  List _roleAccess = [];
+  List get roleAccess =>_roleAccess;
+
+  Color _primary=Colors.blue;
+  Color _secondary=Colors.blue.shade400;
+  Color get primary => _primary;
+  Color get secondary => _secondary;
+  String _primaryCode="";
+  String get primaryCode => _primaryCode;
+  Future<void> appComponents() async {
+    try {
+      _appComponent=[];
+      notifyListeners();
+      Map data = {
+        "action": settingData,
+        "search_type":"app_components",
+        "cos_id":localData.storage.read("cos_id")
+      };
+      final response = await homeRepo.settingList(data);
+      // print("response.toString()");
+      print("app_components");
+      print(response.toString());
+      if (response.isNotEmpty){
+        _appComponent=response;
+        String hexColor = response[0]["app_primaryclr"];
+        String hexSecondary = response[0]["app_primaryclr"];
+        _primary = Color(int.parse('0xFF$hexColor'));
+        _primaryCode = hexColor;
+        _secondary = Color(int.parse('0xFF$hexSecondary'));
+        // _primary=Colors.pink;
+        notifyListeners();
+        print(_primary);
+      }else {
+        _appComponent=[];
+      }
+    } catch (e) {
+      _appComponent=[];
+    }
+    notifyListeners();
+  }
+  Future<void> getRoleAccess() async {
+    try {
+      // _roleAccess=[];
+      notifyListeners();
+      Map data = {
+        "action": settingData,
+        "search_type":"role_access",
+        "cos_id":localData.storage.read("cos_id"),
+        "role":localData.storage.read("role")
+      };
+      // print(data.toString());
+      final response = await homeRepo.settingList(data);
+      print("role_access");
+      log(response.toString());
+      // print("response.toString()");
+      if (response.isNotEmpty){
+        _roleAccess=response;
+        notifyListeners();
+      }else {
+        _roleAccess=[];
+      }
+    } catch (e) {
+      _roleAccess=[];
+    }
+    notifyListeners();
+  }
+
+
+  List _appFeatures = [];
+  List get appFeatures =>_appFeatures;
+  List<PanelItem> _allItems = [];
+  List<PanelButton> _panelButtons = [];
+  List<PanelButton> get panelButtons => _panelButtons;
+  Future<void> activeFeatures() async {
+    // try {
+    _appFeatures=[];
+    notifyListeners();
+    Map data = {
+      "action": settingData,
+      "search_type":"active_features",
+      "cos_id":localData.storage.read("cos_id")
+    };
+    final response = await homeRepo.settingList(data);
+    print("active_features");
+    print(response.toString());
+    if (response.isNotEmpty){
+      _appFeatures=response;
+    }else {
+      _appFeatures=[];
+    }
+    // } catch (e) {
+    //   _appFeatures=[];
+    // }
+    notifyListeners();
+  }
+
+  List _settingFeatures = [];
+  List get settingFeatures =>_settingFeatures;
+  Future<void> getSettingFeatures() async {
+    try {
+      _refresh=false;
+      _settingFeatures=[];
+      notifyListeners();
+      Map data = {
+        "action": settingData,
+        "search_type":"feature_setting",
+        "cos_id":localData.storage.read("cos_id")
+      };
+      print("active_features");
+      final response = await homeRepo.settingList(data);
+      // print("response.toString()");
+      // print(response.toString());
+      if (response.isNotEmpty){
+        _settingFeatures=response;
+        _refresh=true;
+      }else {
+        _settingFeatures=[];
+        _refresh=true;
+      }
+    } catch (e) {
+      _settingFeatures=[];
+      _refresh=true;
+    }
+    notifyListeners();
+  }
+
+  void resetOnLogout() {
+    final now = DateTime.now();
+
+    stopAutoRefresh();
+    _isHomePageActive = false;
+    _isDashboardLoading = false;
+    _loadCallCount = 0;
+    _loadCompleteCount = 0;
+    _timerTickCount = 0;
+
+    _isOpen = false;
+    _selectedIndex = 0;
+    _empType = 0;
+    _cusType = 0;
+    _mainType = 0;
+    _expType = 0;
+    _taskType = 0;
+    try {
+      sidebarController.selectIndex(0);
+    } catch (_) {}
+
+    _isEyeOpen = true;
+    _isEyeOpen2 = true;
+    loginNumber.clear();
+    loginPassword.clear();
+    forgotPassword1.clear();
+    forgotPassword2.clear();
+    otp = '';
+    sentOtp = '';
+    _notificationToken = "";
+
+    _refresh = true;
+    _vRefresh = true;
+    _noAttendanceCount = 0;
+    _mainReportList = [];
+    _visitCount = [];
+    _totalV = "0";
+    activeVisit = 0;
+    inActiveVisit = 0;
+    permisCount = 0;
+    lateCountShow = 0;
+    _dashboard = DashboardModel.empty();
+    _roleEmp = [];
+    workPlanList = [];
+    workPlanRefresh = false;
+    _roleAccess = [];
+    _allItems = [];
+    _panelButtons = [];
+
+    selectedDate = null;
+    datesBetween = [];
+    betweenDates = "";
+    _date = DateFormat('MMM d, yyyy').format(now);
+    _time = DateFormat('hh:mm a').format(now);
+    initValue();
+
+    notifyListeners();
+  }
 }

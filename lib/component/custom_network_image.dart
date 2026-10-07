@@ -1,9 +1,9 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:master_code/screens/common/fullscreen_photo.dart';
-import 'package:master_code/source/constant/colors_constant.dart';
-import 'package:master_code/source/utilities/utils.dart';
+import '../../screens/common/fullscreen_photo.dart';
+import '../../source/constant/colors_constant.dart';
+import '../../source/utilities/utils.dart';
 import '../source/constant/api.dart';
 import '../source/constant/assets_constant.dart';
 import 'custom_loading.dart';

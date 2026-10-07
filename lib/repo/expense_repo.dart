@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart'as http;
-import 'package:master_code/source/constant/api.dart';
+import '../../source/constant/api.dart';
 import '../model/expense_model.dart';
 import '../screens/expense/expense_dashboard.dart';
 

@@ -1,10 +1,11 @@
-import 'package:master_code/source/constant/local_data.dart';
-import 'package:master_code/source/extentions/extensions.dart';
+import '../../source/constant/local_data.dart';
+import '../../source/extentions/extensions.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../source/constant/colors_constant.dart';
-import '../source/constant/default_constant.dart';
+import '../source/constant/language_model.dart';
+import '../source/constant/language_model.dart';
 import '../source/utilities/utils.dart';
 import '../view_model/home_provider.dart';
 import 'custom_text.dart';

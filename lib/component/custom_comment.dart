@@ -1,8 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:master_code/model/customer/customer_report_model.dart';
-import 'package:master_code/source/extentions/extensions.dart';
+import '../../model/customer/customer_report_model.dart';
+import '../../source/extentions/extensions.dart';
 import '../source/constant/api.dart';
 import '../source/constant/assets_constant.dart';
 import '../source/constant/colors_constant.dart';

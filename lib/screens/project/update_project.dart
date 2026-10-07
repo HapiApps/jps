@@ -1,14 +1,14 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:master_code/model/project/project_model.dart';
-import 'package:master_code/source/extentions/extensions.dart';
+import '../../model/project/project_model.dart';
+import '../../source/extentions/extensions.dart';
 import 'package:provider/provider.dart';
 import '../../component/custom_appbar.dart';
 import '../../component/custom_dropdown.dart';
 import '../../component/custom_loading_button.dart';
 import '../../component/custom_textfield.dart';
 import '../../source/constant/colors_constant.dart';
-import '../../source/constant/default_constant.dart';
+import '../../source/constant/language_model.dart';
 import '../../source/constant/key_constant.dart';
 import '../../source/utilities/utils.dart';
 import '../../view_model/project_provider.dart';

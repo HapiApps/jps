@@ -1,5 +1,10 @@
- // const String domain="https://aci.hrides.in"; //pro
-  const String domain="https://thirumald.hapirides.in";  //dev
+// // // /// PRODUCTION
+const String domain="https://aci.hrides.in";
+const bool isRelease=true;
+
+// DEV
+// const String domain="https://thirumald.hapirides.in";
+// const bool isRelease=false;
 
 const String path="ACI";
 const String scriptFile="script.php";
@@ -8,25 +13,31 @@ const String imgFile="get_files.php";
 const String leaveScriptFile="leave_script.php";
 const String payrollScriptFile="payroll_script.php";
 const String projectScriptFile="project_script.php";
+ const String expasyScriptFile="expasy_script.php";
+ const String settingScriptFile="setting_script.php";
+
 const String phpFile="$domain/$path/$scriptFile";
 const String taskScript="$domain/$path/$taskFile";
 const String imageFile="$domain/$path/$imgFile";
 const String leavePhpFile="$domain/$path/$leaveScriptFile";
 const String payrollPhpFile="$domain/$path/$payrollScriptFile";
 const String projectPhpFile="$domain/$path/$projectScriptFile";
+ const String expasyPhpFile="$domain/$path/$expasyScriptFile";
+ const String settingPhpFile="$domain/$path/$settingScriptFile";
 
 
 const String loginUser="login";
 const String logOut="log_out";
 const String forgotPsd="forgot_password";
 const String home="home_data";
+const String psdOtp="otp";
 
 /// EMPLOYEE
 const String signUp = "sign_up";
 const String insertUsers = "insert_users";
 const String updateUsers = "update_user";
-const String createEmp = "create_employee";
-const String updateEmp = "update_employee";
+// const String createEmp = "create_employee";
+// const String updateEmp = "update_employee";
 const String empActivity = "emp_activity";
 const String addGrade = "add_grade";
 const String empAttendance ="daily_attendance";
@@ -61,6 +72,7 @@ const String insertTrack="insert_tracking";
 const String getTrackDetails="get_track_details";
 
 /// Task
+const String insertTaskLog="insert_task_log";
 const String adTask="create_task";
 const String taskDatas="task_data";
 const String taskAtt="task_attendance";
@@ -68,10 +80,12 @@ const String updateTask="update_task";
 const String updateLevel="update_level";
 const String addTaskType="add_task_type";
 const String taskComments="task_comments";
+ const String updateTaskType="edit_task_type";
 
 /// Leave Management
 const String fixLeave="fix_leave";
 const String applyLeave="apply_leave";
+const String updateLeave="update_leave";
 const String approveLeave="leave_status";
 const String listLeaves="list_of_leaves";
 const String leaveType="leave_type";
@@ -90,8 +104,10 @@ const String insertPayrollSetting="insert_payroll_setting";
 /// NOTIFICATION
 const String roleNotification="role_notification";
 const String userNotification="user_notification";
-const String someUserNotification="some_user_notification";
-const String adminNotification="admin_notification";
+// const String someUserNotification="some_user_notification";
+// const String adminNotification="admin_notification";
+const String someUserNotification="hapi_some_user_notification"; // hapiapps only
+const String adminNotification="hapi_admin_notification";   //hapiapps only
 const String seenNotification="update_read_notification";
 
 
@@ -110,3 +126,10 @@ const String addWrkReport="insert_work_report";
 const String addProjectReport="insert_project_report";
 ///
 const String projectGroupAttendance="project_group_attendance";
+
+
+ const String settingData="setting_data";
+ const String manageSettings="manage_settings";
+ const String roleComponents="role_components";
+ const String manageComponents="manage_components";
+ const String appValues="app_values";

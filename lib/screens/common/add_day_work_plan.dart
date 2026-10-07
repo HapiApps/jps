@@ -1,15 +1,13 @@
-import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-
 import '../../component/custom_loading_button.dart';
 import '../../component/maxline_textfield.dart';
 import '../../component/multi_dropdown.dart';
 import '../../component/search_drop_down.dart';
 import '../../model/customer/customer_model.dart';
 import '../../source/constant/colors_constant.dart';
-import '../../source/constant/default_constant.dart';
+import '../../source/constant/language_model.dart';
 import '../../source/utilities/utils.dart';
 import '../../view_model/customer_provider.dart';
 import '../../view_model/leave_provider.dart';
@@ -43,10 +41,12 @@ class _DayWorkPlanPageState extends State<DayWorkPlanPage> {
   @override
   void dispose() {
     _scrollController.dispose();
+
     for (var item in workPlans) {
       item.descriptionController.dispose();
     }
     super.dispose();
+
   }
 
   void scrollToBottom() {
@@ -63,8 +63,12 @@ class _DayWorkPlanPageState extends State<DayWorkPlanPage> {
 
   void addNewPlan() {
     if (workPlans.isNotEmpty) {
-      if (workPlans.last.descriptionController.text.trim().isEmpty) {
-        utils.showWarningToast(context, text: "Please enter description");
+      if (workPlans.last.companyName.trim().isEmpty &&
+          workPlans.last.companyId.trim().isEmpty) {
+        utils.showWarningToast(context, text: "${constValue.selectCustomerMsg}");
+        return;
+      } else if (workPlans.last.descriptionController.text.trim().isEmpty) {
+        utils.showWarningToast(context, text: "${constValue.enterDescriptionMsg}");
         return;
       }
     }
@@ -72,7 +76,6 @@ class _DayWorkPlanPageState extends State<DayWorkPlanPage> {
     setState(() {
       workPlans.add(WorkPlanModel());
     });
-
     scrollToBottom();
   }
 
@@ -109,7 +112,7 @@ class _DayWorkPlanPageState extends State<DayWorkPlanPage> {
           appBar: AppBar(
             backgroundColor: colorsConst.bacColor,
             title: Text(
-              "Day Work Plan",
+              "${constValue.planDayWork}",
               style: TextStyle(
                 color: colorsConst.primary,
                 fontSize: 14,
@@ -256,36 +259,42 @@ class _DayWorkPlanPageState extends State<DayWorkPlanPage> {
                                 onChanged: (CustomerModel? value) {
                                   if (value == null) return;
 
-                                  item.companyId = value.userId.toString();
-                                  item.companyName =
-                                      value.companyName.toString();
+                                  setState(() {
+                                    item.companyId = value.userId.toString();
+                                    item.companyName =
+                                        value.companyName.toString();
 
-                                  item.selectedCustomers = [];
-                                  item.sendList = [];
+                                    // 🔥 Reset previous customer selection
+                                    // whenever the company changes
+                                    item.selectedCustomers = [];
+                                    item.sendList = [];
 
-                                  var idList =
-                                  value.customerId.toString().split('||');
-                                  var usersList =
-                                  value.firstName.toString().split('||');
-                                  var phoneList = value.phoneNumber
-                                      .toString()
-                                      .split('||');
+                                    var idList = value.customerId
+                                        .toString()
+                                        .split('||');
+                                    var usersList = value.firstName
+                                        .toString()
+                                        .split('||');
+                                    var phoneList = value.phoneNumber
+                                        .toString()
+                                        .split('||');
 
-                                  for (var i = 0; i < usersList.length; i++) {
-                                    item.sendList.add({
-                                      "id": idList[i],
-                                      "name": usersList[i],
-                                      "no": phoneList[i],
-                                    });
-                                  }
+                                    for (var i = 0;
+                                    i < usersList.length;
+                                    i++) {
+                                      item.sendList.add({
+                                        "id": idList[i],
+                                        "name": usersList[i],
+                                        "no": phoneList[i],
+                                      });
+                                    }
 
-                                  if (item.sendList.length == 1) {
-                                    item.selectedCustomers = [
-                                      item.sendList[0]
-                                    ];
-                                  }
-
-                                  setState(() {});
+                                    if (item.sendList.length == 1) {
+                                      item.selectedCustomers = [
+                                        item.sendList[0]
+                                      ];
+                                    }
+                                  });
                                 },
                                 size: mainWidth,
                               ),
@@ -295,7 +304,14 @@ class _DayWorkPlanPageState extends State<DayWorkPlanPage> {
                               /// CUSTOMER DROPDOWN ONLY IF COMPANY SELECTED
                               if (item.companyId.isNotEmpty)
                                 MultiSelectDropdown(
-                                  hintText: "Customer",
+                                  // 🔥 Key tied to companyId forces Flutter to
+                                  // rebuild this widget fresh whenever the
+                                  // company changes, so old customer
+                                  // selections don't linger in its internal
+                                  // state.
+                                  key: ValueKey(
+                                      '${item.companyId}_${index}'),
+                                  hintText: "${constValue.customer}",
                                   dropText: "name",
                                   list: item.sendList,
                                   width: mainWidth,
@@ -312,7 +328,7 @@ class _DayWorkPlanPageState extends State<DayWorkPlanPage> {
                               /// DESCRIPTION
                               MaxLineTextField(
                                 width: mainWidth,
-                                text: "Description",
+                                text: "${constValue.notes}",
                                 controller: item.descriptionController,
                                 maxLine: 2,
                                 isRequired: true,
@@ -335,11 +351,15 @@ class _DayWorkPlanPageState extends State<DayWorkPlanPage> {
                       children: [
                         /// CANCEL
                         CustomLoadingButton(
-                            callback: (){
+                            callback: () {
                               Future.microtask(() => Navigator.pop(context));
-                            }, isLoading: false,text: "Cancel",
-                            backgroundColor: Colors.white, textColor: colorsConst.primary,radius: 10,
-                            width: kIsWeb?webWidth/2.1:phoneWidth/2.1),
+                            },
+                            isLoading: false,
+                            text: "Cancel",
+                            backgroundColor: Colors.white,
+                            textColor: colorsConst.primary,
+                            radius: 10,
+                            width: kIsWeb ? webWidth / 2.1 : phoneWidth / 2.1),
 
                         const SizedBox(width: 6),
 

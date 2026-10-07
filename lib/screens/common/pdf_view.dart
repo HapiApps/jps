@@ -27,7 +27,7 @@ class PdfViewPage extends StatelessWidget {
         ),
         title: CustomText(text: "PDF Viewer",colors: colorsConst.primary,isBold: true,size: 17,),
       ),
-    //  body: pdfPath.startsWith('http')?
+      //  body: pdfPath.startsWith('http')?
       // SfPdfViewer.network(pdfPath): SfPdfViewer.file(File(pdfPath))
     );
   }

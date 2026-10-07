@@ -7,12 +7,12 @@ import 'package:geocoding/geocoding.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
-import 'package:master_code/repo/employee_repo.dart';
+import '../../repo/employee_repo.dart';
 import 'package:rounded_loading_button_plus/rounded_loading_button.dart';
-import 'package:master_code/screens/common/fullscreen_photo.dart';
-import 'package:master_code/screens/log_in.dart';
-import 'package:master_code/source/extentions/extensions.dart';
-import 'package:master_code/view_model/home_provider.dart';
+import '../../screens/common/fullscreen_photo.dart';
+import '../../screens/log_in.dart';
+import '../../source/extentions/extensions.dart';
+import '../../view_model/home_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../component/custom_text.dart';
 import '../local_database/sqlite.dart';
@@ -23,14 +23,20 @@ import '../screens/employee/employee_details.dart';
 import '../source/constant/api.dart';
 import '../source/constant/assets_constant.dart';
 import '../source/constant/colors_constant.dart';
-import '../source/constant/default_constant.dart';
+import '../source/constant/language_model.dart';
 import '../source/constant/local_data.dart';
 import '../source/utilities/utils.dart';
 
 class EmployeeProvider with ChangeNotifier{
 final EmployeeRepository empRepo = EmployeeRepository();
-
-
+// <-- ADDED
+String selectedCountryCode = "+91";
+String selectedCountryFlag = "🇮🇳";
+  void changeSignCountryCode(String code, String flag) {
+    selectedCountryCode = code;
+    selectedCountryFlag = flag;
+    notifyListeners();
+  }
 int _swipeIndex = 0;
 int get swipeIndex =>_swipeIndex;
 void addressCheck(dynamic value){
@@ -701,12 +707,11 @@ dynamic get grade =>_grade;
       _update = true;
     }
 
-    _grade = value.toString();
-
-    // ✅ SAFE: check type
     if (value is Map) {
+      _grade = value["grade"].toString();
       localData.storage.write("g_id", value["id"].toString());
     } else {
+      _grade = value.toString();
       localData.storage.write("g_id", value.toString());
     }
 
@@ -832,8 +837,8 @@ Future<void> getRoles() async {
   }
 Future<void> getGrades(bool isRefresh) async {
     try {
-      _gradeValues.clear();
       if(isRefresh==true){
+        _gradeValues.clear();
         _refresh=false;
         notifyListeners();
       }
@@ -849,18 +854,20 @@ Future<void> getGrades(bool isRefresh) async {
         List<Map<String, dynamic>> callList = response.map((e) => {
           "id": e['id'].toString(),
           "grade": e['grade'].toString(),
-          "conv": TextEditingController(text: e['conveyance_amount'].toString()),
-          "tra": TextEditingController(text: e['travel_amount'].toString()),
-          "da": TextEditingController(text: e['da_amount'].toString()),
+          "conv": TextEditingController(text: e['conveyance_amount'].toString().isEmpty||e['conveyance_amount'].toString()=="0"?"":e['conveyance_amount'].toString()=="null"?"":e['conveyance_amount'].toString()),
+          "tra": TextEditingController(text: e['travel_amount'].toString().isEmpty||e['travel_amount'].toString()=="0"||e['travel_amount'].toString()=="null"?"":e['travel_amount'].toString()),
+          "da": TextEditingController(text: e['da_amount'].toString().isEmpty||e['da_amount'].toString()=="0"||e['da_amount'].toString()=="null"?"":e['da_amount'].toString())
         }).toList();
         _gradeValues=callList;
         _refresh=true;
       }
       else{
         _refresh=true;
+        _gradeValues.clear();
       }
     } catch (e) {
       _refresh=true;
+      _gradeValues.clear();
     }
     notifyListeners();
   }
@@ -1082,6 +1089,7 @@ Future<void> insertEmployeeDetails(context,String lat,String lng) async {
       "firstname": signFirstName.text.trim(),
       "password": signPassword.text.trim(),
       "mobile_number":signMobileNumber.text.trim(),
+      "c_code":selectedCountryCode.toString().trim(),
       "surname":signLastName.text.trim(),
       "role": localData.storage.read("roleId"),
       "created_by": localData.storage.read("id"),
@@ -1134,12 +1142,15 @@ Future<void> insertEmployeeDetails(context,String lat,String lng) async {
       "lng_perm":"0.0",
       "salary":salary.text,
     };
+    print("SENDING c_code: $selectedCountryCode");
+
     final response =await empRepo.addEmployee(data,_profile,_profileList,_profileName,_aadharPhoto,_aadharPhotoList,_aadharPhotoName,
         _aadharPhoto2,_aadharPhotoList2,_aadharPhotoName2,
         _panPhoto,_panPhotoList,_panPhotoName,
         _chequePhoto,_chequePhotoList,_chequePhotoName,
         _licensePhoto,_licensePhotoList,_licensePhotoName,
         _voterPhoto,_voterPhotoList,_voterPhotoName);
+    print("FULL RESPONSE: ${data.toString()}");
     // print(response.toString());
     if (response.toString().contains("Employee with this Phone Number already exits")){
       utils.showWarningToast(context,text: "Employee with this Phone Number already exits");
@@ -1168,65 +1179,77 @@ Future<void> insertEmployeeDetails(context,String lat,String lng) async {
     notifyListeners();
   }
 /// SignUp Employee
-Future<void> signupEmployee(context,String lat,String lng) async {
-  try {
-    Provider.of<HomeProvider>(context, listen: false).checkPlatform();
-    Map<String, String> data = {
-      "action": signUp,
-      "log_file": signMobileNumber.text.trim(),
-      "firstname": signFirstName.text.trim(),
-      "password": signPassword.text.trim(),
-      "mobile_number":signMobileNumber.text.trim(),
-      "surname":signLastName.text.trim(),
-      "role": "1",
-      "created_by": "Signup",
-      "referred_by": signReffered.text.trim(),
-      "email_id": signEmailid.text.trim(),
-      "boss_id": "1",
-      "platform": localData.storage.read("platform").toString(),
-      "door_no": doorNo.text.trim(),
-      "area": comArea.text.trim(),
-      "city": city.text.trim(),
-      "country": country.text.trim(),
-      "state": state.toString(),
-      "pincode": pinCode.text.trim(),
-      "lat": lat,
-      "lng": lng
-    };
-    final response =await empRepo.addEmployee(data,_profile,_profileList,_profileName,_aadharPhoto,_aadharPhotoList,_aadharPhotoName,
-        _aadharPhoto2,_aadharPhotoList2,_aadharPhotoName2,
-        _panPhoto,_panPhotoList,_panPhotoName,
-        _chequePhoto,_chequePhotoList,_chequePhotoName,
-        _licensePhoto,_licensePhotoList,_licensePhotoName,
-        _voterPhoto,_voterPhotoList,_voterPhotoName);
-    log(response.toString());
-    if (response.toString().contains("already exists")){
-      utils.showWarningToast(context,text: "Employee with this Phone Number already exits");
-      signCtr.reset();
-    }else if (response["status_code"]==200){
-      // utils.showSuccessToast(context: context,text: "Signup completed successfully.",);
-      // Future.microtask(() {
-      //   utils.navigatePage(context,()=>const LoginPage());
-      // });
-      Provider.of<HomeProvider>(context, listen: false).loginPassword.text=signPassword.text.trim();
-      Provider.of<HomeProvider>(context, listen: false).loginNumber.text=signMobileNumber.text.trim();
-      Provider.of<HomeProvider>(context, listen: false).login(context);
-      // signCtr.reset();
-    }else if (response.toString().contains("Employee with this Phone Number already exits")){
-      utils.showWarningToast(context,text: "Employee with this Phone Number already exits");
-      signCtr.reset();
-    }
-    else {
+// <-- CHANGED: added optional `countryCode` named param (defaults to "+91"
+  // so any other existing call to signupEmployee(...) without it still compiles).
+  Future<void> signupEmployee(context,String lat,String lng,{String countryCode = "+91"}) async {
+    try {
+      Provider.of<HomeProvider>(context, listen: false).checkPlatform();
+      Map<String, String> data = {
+        "action": signUp,
+        // <-- NOTE: kept as the plain number (no "+") since this looks like
+        // it's used as a filename/folder reference for uploaded documents;
+        // a "+" in a file path can cause issues on some backends/servers.
+        "log_file": signMobileNumber.text.trim(),
+        "firstname": signFirstName.text.trim(),
+        "password": signPassword.text.trim(),
+        // <-- CHANGED: mobile_number now includes the selected country dial code.
+        // If your backend expects the plain 10-digit number instead and the
+        // dial code as its own field, use the commented-out version below.
+        "mobile_number": "$countryCode${signMobileNumber.text.trim()}",
+        // "mobile_number": signMobileNumber.text.trim(),
+        // "country_code": countryCode,
+        "surname":signLastName.text.trim(),
+        "role": "1",
+        "created_by": "Signup",
+        "referred_by": signReffered.text.trim(),
+        "email_id": signEmailid.text.trim(),
+        "boss_id": "1",
+        "platform": localData.storage.read("platform").toString(),
+        "door_no": doorNo.text.trim(),
+        "area": comArea.text.trim(),
+        "city": city.text.trim(),
+        "country": country.text.trim(),
+        "state": state.toString(),
+        "pincode": pinCode.text.trim(),
+        "lat": lat,
+        "lng": lng
+      };
+      final response =await empRepo.addEmployee(data,_profile,_profileList,_profileName,_aadharPhoto,_aadharPhotoList,_aadharPhotoName,
+          _aadharPhoto2,_aadharPhotoList2,_aadharPhotoName2,
+          _panPhoto,_panPhotoList,_panPhotoName,
+          _chequePhoto,_chequePhotoList,_chequePhotoName,
+          _licensePhoto,_licensePhotoList,_licensePhotoName,
+          _voterPhoto,_voterPhotoList,_voterPhotoName);
+      log(response.toString());
+      if (response.toString().contains("already exists")){
+        utils.showWarningToast(context,text: "Employee with this Phone Number already exits");
+        signCtr.reset();
+      }else if (response["status_code"]==200){
+        // utils.showSuccessToast(context: context,text: "Signup completed successfully.",);
+        // Future.microtask(() {
+        //   utils.navigatePage(context,()=>const LoginPage());
+        // });
+        Provider.of<HomeProvider>(context, listen: false).loginPassword.text=signPassword.text.trim();
+        Provider.of<HomeProvider>(context, listen: false).loginNumber.text=signMobileNumber.text.trim();
+        // <-- CHANGED: pass the same country code through to login so the
+        // auto-login after signup uses the matching mobile_number format.
+        Provider.of<HomeProvider>(context, listen: false).login(context,countryCode: countryCode);
+        // signCtr.reset();
+      }else if (response.toString().contains("Employee with this Phone Number already exits")){
+        utils.showWarningToast(context,text: "Employee with this Phone Number already exits");
+        signCtr.reset();
+      }
+      else {
+        utils.showErrorToast(context: context);
+        signCtr.reset();
+      }
+    } catch (e) {
+      log(e.toString());
       utils.showErrorToast(context: context);
       signCtr.reset();
     }
-  } catch (e) {
-    log(e.toString());
-    utils.showErrorToast(context: context);
-    signCtr.reset();
+    notifyListeners();
   }
-  notifyListeners();
-}
 /// update Employee
 Future<void> updatedEmployee(context,String userId,bool isDetailView) async {
   try {
@@ -1237,6 +1260,7 @@ Future<void> updatedEmployee(context,String userId,bool isDetailView) async {
       "firstname": signFirstName.text.trim(),
       "mobile_number":signMobileNumber.text.trim(),
       "surname":signLastName.text.trim(),
+      "c_code":selectedCountryCode.toString().trim(),
       "role": localData.storage.read("roleId"),
       "updated_by": localData.storage.read("id"),
       "referred_by": signReffered.text.trim(),
@@ -1402,6 +1426,11 @@ Future<void> empActive(context,{required String userId,required String active}) 
       Provider.of<HomeProvider>(context, listen: false).loadFullDashboard(context);
       // Provider.of<HomeProvider>(context, listen: false).getMainReport(false);
       // Provider.of<HomeProvider>(context, listen: false).getDashboardReport(false);
+      if(active=="1"){
+        tabController?.animateTo(0);
+      }else{
+        tabController?.animateTo(1);
+      }
       Navigator.pop(context);
       signCtr.reset();
     }else {
@@ -1518,11 +1547,14 @@ Future<void> getAllUsers({bool? isRefresh=true}) async {
     _userData.clear();
     _searchUserData.clear();
     _filterUserData.clear();
+    _active=0;
+    _inActive=0;
+    search.clear();
+    _sortBy=false;
+    _sortByN=true;
+    notifyListeners();
   }
-  search.clear();
-  _sortBy=false;
-  _sortByN=true;
-  notifyListeners();
+  print("isRefresh $isRefresh");
   try {
     Map data = {
       "action": getAllData,
@@ -1532,18 +1564,18 @@ Future<void> getAllUsers({bool? isRefresh=true}) async {
     };
     final response =await empRepo.getUsers(data);
     // print("response.toString()");
+    // print(data.toString());
     // print(response.toString());
     if (response.isNotEmpty) {
+      _filterUserData=response;
       _userData=response;
       _searchUserData=response;
-      _filterUserData=response;
-      _active=0;
-      _inActive=0;
       for (var user in _filterUserData) {
         user.active == "1" ? _active++ : _inActive++;
       }
-      filterEmps();
-
+      // if(isRefresh==false){
+        filterEmps();
+      // }
       _empRefresh=true;
     } else {
       _empRefresh=true;
@@ -1782,7 +1814,7 @@ Future<void> getNotifications({bool markSeen = false}) async {
       "search_type": "notifications",
       "cos_id":localData.storage.read("cos_id"),
       "date1":_startDate,
-       "date2":_endDate,
+      "date2":_endDate,
       "id":localData.storage.read("id"),
     };
 
@@ -1987,28 +2019,38 @@ String oldImage5="";
 String oldImage6="";
 String oldImage7="";
 String gradeName="";
-Future<void> getUserDetails({required String id}) async {
-  _swipeIndex=0;
-  _refresh=false;
-  addressId="";
-  gradeName="";
-  _grade=null;
-  _profile="";
-  _aadharPhoto="";
-  _aadharPhoto2="";
-  _panPhoto="";
-  _chequePhoto="";
-  _licensePhoto="";
-  _voterPhoto="";
-  oldImage="";
-  oldImage2="";
-  oldImage3="";
-  oldImage4="";
-  oldImage5="";
-  oldImage6="";
-  oldImage7="";
-  notifyListeners();
-  // try {
+  // list la id match panni, id illa name return pannum
+  String? _pickFromList(List list, String id, String nameKey, {bool returnId = true}) {
+    for (final r in list) {
+      if (r['id'].toString() == id) {
+        return returnId ? r['id'].toString() : r[nameKey].toString();
+      }
+    }
+    return null;
+  }
+
+  Future<void> getUserDetails({required String id}) async {
+    _swipeIndex=0;
+    _refresh=false;
+    addressId="";
+    gradeName="";
+    _grade=null;
+    _profile="";
+    _aadharPhoto="";
+    _aadharPhoto2="";
+    _panPhoto="";
+    _chequePhoto="";
+    _licensePhoto="";
+    _voterPhoto="";
+    oldImage="";
+    oldImage2="";
+    oldImage3="";
+    oldImage4="";
+    oldImage5="";
+    oldImage6="";
+    oldImage7="";
+    notifyListeners();
+    // try {
     Map data = {
       "action": getAllData,
       "search_type": "employee_details",
@@ -2020,15 +2062,28 @@ Future<void> getUserDetails({required String id}) async {
     if (response.isNotEmpty) {
       _update = false;
       UserDetail data=response[0];
-      _role = _roleValues.firstWhere(
-            (item) =>
-        item["id"] == data.role.toString(),
-        // orElse: () => {"id": "", "role": ""}, // Provide a valid default map
-      );
+
+      // ---------- ROLE ----------
+      if (_roleValues.isEmpty) {
+        await refreshRoles();
+      }
+      _role = _pickFromList(_roleValues, data.role.toString(), 'role', returnId: true);
+      print("Role set to: $_role");
+      // --------------------------
+
+      // ---------- GRADE ----------
+      if (_gradeValues.isEmpty) {
+        await getGrades(false);
+      }
+      print("Grade values list: $_gradeValues");
+      _grade = _pickFromList(_gradeValues, data.gradeId.toString(), 'grade', returnId: true);
+      gradeName = _pickFromList(_gradeValues, data.gradeId.toString(), 'grade', returnId: false) ?? "";
+      localData.storage.write("g_id", data.gradeId.toString());
+      print("Grade set to: $_grade");
+      // ---------------------------
+
       localData.storage.write("roleId", data.role.toString());
       localData.storage.write("roleName", data.roleName.toString());
-
-      gradeName=data.grade.toString();
       signFirstName.text=data.firstname.toString();
       signLastName.text=data.surname.toString()=="null"?"":data.surname.toString();
       signMiddleName.text=data.middleName.toString()=="null"?"":data.middleName.toString();
@@ -2093,23 +2148,6 @@ Future<void> getUserDetails({required String id}) async {
       _lastCheck=data.lastCheckin.toString();
       _commentCount=data.commentCount.toString();
       print("data.gradeId.toString() : ${data.gradeId.toString()}");
-      if(data.gradeId.toString()!="null"&&data.gradeId.toString()!=""){
-        for(var i=0;i<_gradeValues.length;i++){
-          if(_gradeValues[i]["id"] == data.gradeId.toString()){
-            _grade=_gradeValues[i];
-            break;
-          }
-        }
-        // _grade = _gradeValues.firstWhere(
-        //       (item) => item["id"] == data.gradeId.toString(),
-        //   orElse: () => <String, dynamic>{},
-        // );
-      }else{
-        _grade=null;
-      }
-
-      localData.storage.write("g_id", data.gradeId.toString());
-
 
       permanentDoNo.text=data.permanentAddressLine1.toString()=="null"?"":data.permanentAddressLine1.toString();
       permanentStreet.text=data.permanentAddressLine2.toString()=="null"?"":data.permanentAddressLine2.toString();
@@ -2135,12 +2173,12 @@ Future<void> getUserDetails({required String id}) async {
     } else {
       _refresh=true;
     }
-  // } catch (e) {
-  //   _refresh=true;
-  //   log(e.toString());
-  // }
-  notifyListeners();
-}
+    // } catch (e) {
+    //   _refresh=true;
+    //   log(e.toString());
+    // }
+    notifyListeners();
+  }
 void searchUser(String value){
   if(_filter==false){
     final suggestions=_searchUserData.where(

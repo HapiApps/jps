@@ -1,11 +1,11 @@
-import 'package:master_code/screens/sign_up.dart';
-import 'package:master_code/view_model/location_provider.dart';
+import 'package:country_picker/country_picker.dart';
+import '../../view_model/location_provider.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:master_code/component/custom_loading.dart';
-import 'package:master_code/source/constant/assets_constant.dart';
-import 'package:master_code/source/constant/local_data.dart';
-import 'package:master_code/source/extentions/extensions.dart';
+import '../../component/custom_loading.dart';
+import '../../source/constant/assets_constant.dart';
+import '../../source/constant/local_data.dart';
+import '../../source/extentions/extensions.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -15,11 +15,13 @@ import '../component/custom_text.dart';
 import '../component/custom_textfield.dart';
 import '../component/update_app.dart';
 import '../source/constant/colors_constant.dart';
-import '../source/constant/default_constant.dart';
+import '../source/constant/language_model.dart';
 import '../source/constant/key_constant.dart';
+import '../source/constant/language_model.dart';
 import '../source/utilities/utils.dart';
 import '../view_model/home_provider.dart';
 import 'forgot_password.dart';
+
 class LoginPage extends StatefulWidget {
   final String? number;
   const LoginPage({super.key, this.number});
@@ -30,23 +32,28 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> {
 
+  // <-- CHANGED: holds the currently selected dial code, e.g. "+91"
+  String selectedCountryCode = "+91";
+  // <-- ADDED: holds the flag emoji to show next to the code (optional, purely visual)
+  String selectedCountryFlag = "🇮🇳";
+
   @override
   void initState() {
     WidgetsBinding.instance.addPostFrameCallback((timeStamp) async {
       Provider.of<HomeProvider>(context, listen: false).getToken();
-      Provider.of<LocationProvider>(context, listen: false).requestNotificationPermissions();
+      // Provider.of<LocationProvider>(context, listen: false).requestNotificationPermissions();
       Provider.of<HomeProvider>(context, listen: false).checkLoginValues(widget.number.toString());
-      await Provider.of<LocationProvider>(context, listen: false).manageLocation(context,false);
+
     });
     super.initState();
   }
   @override
   Widget build(BuildContext context) {
-    var webWidth=MediaQuery.of(context).size.width*0.5; 
+    var webWidth=MediaQuery.of(context).size.width*0.5;
     var phoneWidth=MediaQuery.of(context).size.width*0.83;
     var webHeight=MediaQuery.of(context).size.height*0.3;
     var phoneHeight=MediaQuery.of(context).size.height*0.3;
-    return Consumer<HomeProvider>(builder: (context, homeProvider, _) {
+    return Consumer2<HomeProvider, LanguageManager>(builder: (context, homeProvider,langManager, _) {
       final homeProvider = context.read<HomeProvider>();
       return PopScope(
         canPop: false,
@@ -54,7 +61,7 @@ class _LoginPageState extends State<LoginPage> {
           return utils.customDialog(
               context: context,
               callback: (){SystemNavigator.pop();
-              }, title: "Do you want to Exit the App?");
+              }, title: constValue.exitAppQ);
         },
         child: SafeArea(
           child: Scaffold(
@@ -88,20 +95,102 @@ class _LoginPageState extends State<LoginPage> {
                     children: [
                       30.height,
                       SvgPicture.asset(assets.login,
-                        width: kIsWeb?webWidth:phoneWidth,
-                        height: kIsWeb?webHeight:phoneHeight),
+                          width: kIsWeb?webWidth:phoneWidth,
+                          height: kIsWeb?webHeight:phoneHeight),
                       20.height,
                       // CustomText(text: constValue.login,colors: Colors.black,size: 20,isBold: true,),
                       20.height,
-                      CustomTextField(
+                      // <-- CHANGED: phone number field is now wrapped in a Row
+                      // with a tappable country-code box (opens showCountryPicker) on the left.
+                      // ✅ FIX: Country code box now has a "Code *" label above it,
+                      // matching the style of the Phone Number / Password labels.
+                      Column(
+                        children: [
+                          Row(
+                            children: [
+                               CustomText(
+                                text: "${constValue.phoneNumber}",
+                                size: 13,
+                                isBold: false,
+                              ),
+                              CustomText(
+                                text: "*",
+                                colors: colorsConst.appRed,
+                                size: 20,
+                                isBold: false,
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                      SizedBox(
                         width: kIsWeb?webWidth:phoneWidth,
-                        isRequired: true,
-                        text: "Phone Number",controller: homeProvider.loginNumber,
-                        keyboardType: TextInputType.phone,
-                        inputFormatters: constInputFormatters.mobileNumberInput,
-                        onChanged: (value)  {
-                          homeProvider.remember(false);
-                        },
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+
+                                Container(
+                                  margin: const EdgeInsets.only(bottom: 14),
+                                  child: Material(
+                                    color: Colors.transparent,
+                                    child: InkWell(
+                                      borderRadius: BorderRadius.circular(10),
+                                      onTap: () {
+                                        showCountryPicker(
+                                          context: context,
+                                          showPhoneCode: true,
+                                          countryListTheme: CountryListThemeData(
+                                            bottomSheetHeight: MediaQuery.of(context).size.height * 0.7,
+                                          ),
+                                          onSelect: (Country country) {
+                                            setState(() {
+                                              selectedCountryCode = "+${country.phoneCode}";
+                                              selectedCountryFlag = country.flagEmoji;
+                                            });
+                                          },
+                                        );
+                                      },
+                                      child: Container(
+                                        height: 45,
+                                        padding: const EdgeInsets.symmetric(horizontal: 10),
+                                        decoration: BoxDecoration(
+                                          border: Border.all(color: Colors.grey.shade400),
+                                          borderRadius: BorderRadius.circular(10),
+                                        ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            CustomText(text: selectedCountryFlag),
+                                            4.width,
+                                            CustomText(text: selectedCountryCode, colors: Colors.black),
+                                            2.width,
+                                            const Icon(Icons.arrow_drop_down, size: 18, color: Colors.grey),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            8.width,
+                            Expanded(
+                              child: CustomTextField(
+                                width: double.infinity,
+                                //isRequired: true,
+                                text: "",controller: homeProvider.loginNumber,
+                                keyboardType: TextInputType.phone,
+                                inputFormatters: constInputFormatters.mobileNumberInput,
+                                onChanged: (value)  {
+                                  homeProvider.remember(false);
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                       CustomTextField(
                         width: kIsWeb?webWidth:phoneWidth,
@@ -124,25 +213,26 @@ class _LoginPageState extends State<LoginPage> {
                         onEditingComplete: (){
                           homeProvider.loginCtr.start();
                           if(homeProvider.loginNumber.text.trim().isEmpty){
-                            utils.showWarningToast(context,text: "Please fill phone number");
+                            utils.showWarningToast(context,text: constValue.pleaseFillPhoneNumber);
                             homeProvider.loginCtr.reset();
-                          }else if(homeProvider.loginNumber.text.trim().length!=10){
-                            utils.showWarningToast(context,text: "Please check phone number");
+                          }else if(homeProvider.loginNumber.text.trim().length<8 || homeProvider.loginNumber.text.trim().length>12 ){
+                            utils.showWarningToast(context,text: constValue.pleaseCheckPhoneNumber2);
                             homeProvider.loginCtr.reset();
                           }else if(homeProvider.loginPassword.text.trim().isEmpty){
-                            utils.showWarningToast(context,text: "Please fill password");
+                            utils.showWarningToast(context,text: constValue.fillPassword);
                             homeProvider.loginCtr.reset();
                           }else if(homeProvider.loginPassword.text.trim().length<6) {
-                            utils.showWarningToast(context,text: "Password must be 6 characters");
+                            utils.showWarningToast(context,text: constValue.passwordMinLength6);
                             homeProvider.loginCtr.reset();
                           }else {
                             FocusScope.of(context).unfocus();
-                            homeProvider.login(context);
+                            // <-- CHANGED: pass the selected country code to the provider before login
+                            homeProvider.login(context, countryCode: selectedCountryCode);
                           }
                         },
                       ),
                       Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        mainAxisAlignment: MainAxisAlignment.start,
                         children: [
                           CustomCheckBox(
                             text: constValue.remember,
@@ -150,17 +240,24 @@ class _LoginPageState extends State<LoginPage> {
                               homeProvider.remember(true);
                             },
                             saveValue: homeProvider.rememberMe,),
+
+                        ],
+                      ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+
                           TextButton(
-                              onPressed: (){
+                              onPressed: () async {
                                 // homeProvider.verifyUser(context);
                                 if (homeProvider.loginNumber.text.trim().isEmpty) {
-                                  utils.showWarningToast(context,text: "Enter Your Mobile Number");
-                                }else if (homeProvider.loginNumber.text.trim().length!=10) {
-                                  utils.showWarningToast(context,text: "Check Your Mobile Number");
+                                  utils.showWarningToast(context,text: constValue.enterMobileNumberMsg);
+                                }else if (homeProvider.loginNumber.text.trim().length<8 ||homeProvider.loginNumber.text.trim().length >12) {
+                                  utils.showWarningToast(context,text: constValue.checkMobileNumberMsg);
                                   homeProvider.checkCtr.reset();
                                 }else{
                                   FocusScope.of(context).unfocus();
-                                  utils.navigatePage(context,()=>const ForgotPassword());
+                                  await homeProvider.checkNumber(context);
                                 }
                               },
                               child: CustomText(text: constValue.forgot,colors: colorsConst.primary,isBold: true,)
@@ -172,20 +269,21 @@ class _LoginPageState extends State<LoginPage> {
                         width: kIsWeb?webWidth:phoneWidth,
                         callback: (){
                           if(homeProvider.loginNumber.text.trim().isEmpty){
-                            utils.showWarningToast(context,text: "Please fill phone number");
+                            utils.showWarningToast(context,text: constValue.pleaseFillPhoneNumber);
                             homeProvider.loginCtr.reset();
-                          }else if(homeProvider.loginNumber.text.trim().length!=10){
-                            utils.showWarningToast(context,text: "Please check phone number");
+                          }else if(homeProvider.loginNumber.text.trim().length<8 ||homeProvider.loginNumber.text.trim().length >12){
+                            utils.showWarningToast(context,text: constValue.pleaseCheckPhoneNumber2);
                             homeProvider.loginCtr.reset();
                           }else if(homeProvider.loginPassword.text.trim().isEmpty){
-                            utils.showWarningToast(context,text: "Please fill password");
+                            utils.showWarningToast(context,text: constValue.fillPassword);
                             homeProvider.loginCtr.reset();
                           }else if(homeProvider.loginPassword.text.trim().length<6) {
-                            utils.showWarningToast(context,text: "Password must be 6 characters");
+                            utils.showWarningToast(context,text: constValue.passwordMinLength6);
                             homeProvider.loginCtr.reset();
                           }else {
                             FocusScope.of(context).unfocus();
-                            homeProvider.login(context);
+                            // <-- CHANGED: pass the selected country code to the provider before login
+                            homeProvider.login(context, countryCode: selectedCountryCode);
                           }
                         },
                         text: constValue.login,controller: homeProvider.loginCtr,
@@ -210,6 +308,3 @@ class _LoginPageState extends State<LoginPage> {
     });
   }
 }
-
-
-

@@ -1,9 +1,9 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:master_code/model/user_model.dart';
-import 'package:master_code/source/extentions/extensions.dart';
-import 'package:master_code/view_model/employee_provider.dart';
-import 'package:master_code/view_model/leave_provider.dart';
+import '../../source/constant/language_model.dart';
+import '../../source/extentions/extensions.dart';
+import '../../view_model/employee_provider.dart';
+import '../../view_model/leave_provider.dart';
 import 'package:provider/provider.dart';
 import '../../component/custom_appbar.dart';
 import '../../component/custom_loading.dart';
@@ -47,7 +47,7 @@ class _AddLeaveRulesState extends State<AddLeaveRules> {
           backgroundColor: colorsConst.bacColor,
           appBar: PreferredSize(
             preferredSize: Size(300, 50),
-            child: CustomAppbar(text: "Add Annual Leaves",
+            child: CustomAppbar(text: "${constValue.addAnnualLeaves}",
               callback: () {
                 _myFocusScopeNode.unfocus();
                 levProvider.changePage(context);

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:master_code/source/extentions/extensions.dart';
+import '../../source/extentions/extensions.dart';
 import '../source/constant/colors_constant.dart';
 import 'custom_text.dart';
 

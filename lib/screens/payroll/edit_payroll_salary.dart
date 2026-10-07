@@ -1,4 +1,4 @@
-import 'package:master_code/source/extentions/extensions.dart';
+import '../../source/extentions/extensions.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -8,7 +8,7 @@ import '../../component/custom_loading.dart';
 import '../../component/custom_text.dart';
 import '../../component/custom_textfield.dart';
 import '../../source/constant/colors_constant.dart';
-import '../../source/constant/default_constant.dart';
+import '../../source/constant/language_model.dart';
 import '../../source/constant/key_constant.dart';
 import '../../source/styles/decoration.dart';
 import '../../source/utilities/utils.dart';

@@ -1,7 +1,7 @@
 import 'package:dropdown_search/dropdown_search.dart';
 import 'package:flutter/material.dart';
-import 'package:master_code/model/project/project_model.dart';
-import 'package:master_code/source/extentions/extensions.dart';
+import '../../model/project/project_model.dart';
+import '../../source/extentions/extensions.dart';
 import '../model/customer/customer_model.dart';
 import '../model/user_model.dart';
 import '../source/constant/colors_constant.dart';

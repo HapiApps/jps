@@ -1,8 +1,8 @@
 import 'dart:convert';
 import 'dart:developer';
 import 'package:http/http.dart'as http;
-import 'package:master_code/model/project/project_model.dart';
-import 'package:master_code/source/constant/api.dart';
+import '../../model/project/project_model.dart';
+import '../../source/constant/api.dart';
 
 import '../model/customer/customer_attendance_model.dart';
 import '../model/user_model.dart';

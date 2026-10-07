@@ -1,7 +1,7 @@
 import 'package:provider/provider.dart';
-import 'package:master_code/component/custom_text.dart';
-import 'package:master_code/source/constant/assets_constant.dart';
-import 'package:master_code/source/extentions/extensions.dart';
+import '../../component/custom_text.dart';
+import '../../source/constant/assets_constant.dart';
+import '../../source/extentions/extensions.dart';
 import 'package:flutter/material.dart';
 import '../../component/custom_appbar.dart';
 import '../../source/constant/colors_constant.dart';

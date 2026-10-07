@@ -1,9 +1,9 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:master_code/component/custom_text.dart';
-import 'package:master_code/source/extentions/extensions.dart';
-import 'package:master_code/source/styles/decoration.dart';
+import '../../component/custom_text.dart';
+import '../../source/extentions/extensions.dart';
+import '../../source/styles/decoration.dart';
 import '../../source/constant/colors_constant.dart';
 
 class VisitCard extends StatelessWidget {

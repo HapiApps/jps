@@ -1,9 +1,9 @@
 import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart';
-import 'package:master_code/component/custom_loading.dart';
-import 'package:master_code/model/customer/customer_model.dart';
-import 'package:master_code/source/extentions/extensions.dart';
-import 'package:master_code/source/styles/decoration.dart';
+import '../../component/custom_loading.dart';
+import '../../model/customer/customer_model.dart';
+import '../../source/extentions/extensions.dart';
+import '../../source/styles/decoration.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../component/app_custom_data_text.dart';
@@ -11,7 +11,7 @@ import '../../component/custom_appbar.dart';
 import '../../component/custom_text.dart';
 import '../../component/dotted_border.dart';
 import '../../source/constant/colors_constant.dart';
-import '../../source/constant/default_constant.dart';
+import '../../source/constant/language_model.dart';
 import '../../source/utilities/utils.dart';
 import '../../view_model/customer_provider.dart';
 import '../common/dashboard.dart';
@@ -30,7 +30,6 @@ class _CustomerDetailsState extends State<CustomerDetails> {
   @override
   void initState() {
     Future.delayed(Duration.zero, () {
-      Provider.of<CustomerProvider>(context, listen: false).getAllCustomers(true);
       Provider.of<CustomerProvider>(context, listen: false).getCustomerDetail(widget.id,false,true);
     });
     super.initState();
@@ -191,9 +190,9 @@ class _CustomerDetailsState extends State<CustomerDetails> {
                                             if(idList.length!=1)
                                             InkWell(
                                               onTap:(){
-                                                // if(mainPerson[index]=="1"){
-                                                //   utils.showWarningToast(context, text: "Main contact cannot be deleted");
-                                                // }else{
+                                                if(mainPerson[index]=="1"){
+                                                  utils.showWarningToast(context, text: "Main contact cannot be deleted");
+                                                }else{
                                                   utils.customDialog(
                                                       context: context,
                                                       isLoading: true,
@@ -204,7 +203,7 @@ class _CustomerDetailsState extends State<CustomerDetails> {
                                                         custProvider.deleteCustomer(context,id:idList[index],cusId: data.userId.toString());
                                                       }
                                                   );
-                                               // }
+                                                }
                                               },
                                               child: Container(
                                                 height:30,

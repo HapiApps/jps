@@ -1,6 +1,6 @@
-import 'package:master_code/component/custom_text.dart';
-import 'package:master_code/source/constant/colors_constant.dart';
-import 'package:master_code/source/extentions/extensions.dart';
+import '../../component/custom_text.dart';
+import '../../source/constant/colors_constant.dart';
+import '../../source/extentions/extensions.dart';
 import 'package:flutter/material.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';

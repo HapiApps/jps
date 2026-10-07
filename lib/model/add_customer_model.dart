@@ -14,7 +14,8 @@ class AddCustomerModel {
   TextEditingController designation = TextEditingController();
   bool isMain = false;
   bool isWhatsapp = false;
-
+  String countryCode = "+91";   // <-- ADD THIS LINE
+  String countryFlag = "🇮🇳";   // <-- ADD THIS LINE
   AddCustomerModel({
     required this.newE,
     required this.id,
