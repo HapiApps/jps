@@ -1453,15 +1453,15 @@ class _TaskDetailsState extends State<TaskDetails>
                 ),
               ),
 
-              20.height,
-              Center(
-                child: SizedBox(
-                  width: kIsWeb ? webWidth : phoneWidth,
-                  child: WagesWorkReportSection(
-                    taskId: widget.data.id.toString(),
-                  ),
-                ),
-              ),
+              // 20.height,
+              // Center(
+              //   child: SizedBox(
+              //     width: kIsWeb ? webWidth : phoneWidth,
+              //     child: WagesWorkReportSection(
+              //       taskId: widget.data.id.toString(),
+              //     ),
+              //   ),
+              // ),
               140.height,
             ],
           ),

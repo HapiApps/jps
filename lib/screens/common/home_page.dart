@@ -1195,280 +1195,280 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                               ),
                            //   if(homeProvider.roleAccess.any((f) => f['feature'] == 'Task Management'&&f['name'] == 'Visit Report'))
                               10.height,
-                           // if(homeProvider.roleAccess.any((f) => f['feature'] == 'Task Management'&&f['name'] == 'Visit Report'))
-                           //    InkWell(
-                           //      onTap:(){
-                           //        utils.navigatePage(context, ()=> DashBoard(child: VisitReport(date1: homeProvider.startDate, date2: homeProvider.endDate,month: homeProvider.month,type: homeProvider.type,)));
-                           //        },
-                           //      child:
-                           //      // homeProvider.vRefresh==false
-                           //      //     ? const Loading():
-                           //      Container(
-                           //        padding: const EdgeInsets.all(16),
-                           //        decoration: BoxDecoration(
-                           //          color: Colors.white,
-                           //          borderRadius: BorderRadius.circular(15),
-                           //          boxShadow: const [
-                           //            BoxShadow(
-                           //              color: Colors.black12,
-                           //              blurRadius: 8,
-                           //              offset: Offset(0, 4),
-                           //            ),
-                           //          ],
-                           //        ),
-                           //        child: Column(
-                           //          crossAxisAlignment: CrossAxisAlignment.start,
-                           //          children: [
-                           //            /// Top Row
-                           //            Row(
-                           //              crossAxisAlignment: CrossAxisAlignment.center,
-                           //              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                           //              children: [
-                           //                Row(
-                           //                  children: [
-                           //                    const CustomText(
-                           //                      "Daily Work Report ",
-                           //                      size: 16,
-                           //                      weight: FontWeight.bold,
-                           //                    ),
-                           //                    CustomText("${homeProvider.visitCount.length}", size: 20, weight: FontWeight.bold),
-                           //                  ],
-                           //                ),
-                           //                InkWell(
-                           //                  onTap: (){
-                           //                    utils.navigatePage(context, ()=> DashBoard(child:
-                           //                    CusAddVisit(taskId:"",companyId: "",companyName: "",
-                           //                        numberList: [],isDirect: true, type: "", desc: "")));
-                           //                  },
-                           //                  child: Container(
-                           //                    width: screenWidth/2.5,
-                           //                    height: screenHeight/22,
-                           //                    decoration: BoxDecoration(
-                           //                      color: Color(0xffDAF2DC),
-                           //                      borderRadius: BorderRadius.circular(10),
-                           //                      boxShadow: const [
-                           //                        BoxShadow(
-                           //                          color: Colors.black38,
-                           //                          blurRadius: 4,
-                           //                          offset: Offset(0, 0),
-                           //                        ),
-                           //                      ],
-                           //                    ),
-                           //                    child: Padding(
-                           //                      padding: const EdgeInsets.all(5.0),
-                           //                      child: Row(
-                           //                        mainAxisAlignment: MainAxisAlignment.center,
-                           //                        children: [
-                           //                          Image.asset(
-                           //                            assets.addButton,
-                           //                          ),
-                           //                          SizedBox(width: 6),
-                           //                          CustomText(
-                           //                            "Add Work",
-                           //                            size: 14,
-                           //                            weight: FontWeight.bold,
-                           //                            color: Color(0xff0F8D4B),
-                           //                          ),
-                           //                        ],
-                           //                      ),
-                           //                    ),
-                           //                  ), ///ADDED NEW,
-                           //                ),
-                           //              ],
-                           //            ),7.height,
-                           //
-                           //            /// Big Count
-                           //
-                           //            /// Main Content Row
-                           //            Row(
-                           //              crossAxisAlignment: CrossAxisAlignment.start,
-                           //              children: [
-                           //                /// LEFT SECTION
-                           //                Expanded(
-                           //                  flex: 40,
-                           //                  child: Column(
-                           //                    crossAxisAlignment: CrossAxisAlignment.start,
-                           //                    children: [
-                           //                      Container(
-                           //                        width: screenWidth/1.8,
-                           //
-                           //                        height:30,
-                           //                        decoration: BoxDecoration(
-                           //                          color: Color(0xff63D076),
-                           //                          borderRadius: BorderRadius.circular(20),
-                           //                        ),
-                           //                        child: Padding(
-                           //                          padding: const EdgeInsets.only(left: 8.0,bottom: 3),
-                           //                          child: Row(
-                           //
-                           //                            crossAxisAlignment: CrossAxisAlignment.center,
-                           //                            mainAxisAlignment: MainAxisAlignment.start,
-                           //                            children: [
-                           //
-                           //                              Icon(
-                           //                                Icons.calendar_month,
-                           //                                size: 16,
-                           //                                color: Colors.white,
-                           //                              ),
-                           //                              5.width,
-                           //                              CustomText(
-                           //                                "Active Works : ${homeProvider.activeVisit}",
-                           //                                size: 13,
-                           //                                weight: FontWeight.bold,
-                           //                                color: Colors.white,
-                           //                              ),
-                           //                            ],
-                           //                          ),
-                           //                        ),
-                           //                      ),
-                           //
-                           //                      const SizedBox(height: 8),
-                           //                      /// Scrollable List (3 visible items height)
-                           //                      SizedBox(
-                           //                        height: 95,
-                           //                        child: Scrollbar(
-                           //                          thumbVisibility: true, // 👈 always show scroll indicator
-                           //                          thickness: 5,          // 👈 scroll bar width
-                           //                          radius: const Radius.circular(10),
-                           //                          interactive: true,
-                           //                          child: SingleChildScrollView(
-                           //                            physics: const BouncingScrollPhysics(),
-                           //                            child: Column(
-                           //                              children: [
-                           //                                !homeProvider.vRefresh
-                           //                                    ? const SkeletonLoading()
-                           //                                    : homeProvider.visitCount.isEmpty
-                           //                                    ? const Center(
-                           //                                  child: CustomText("No Daily Work activity Report Found"),
-                           //                                )
-                           //                                    : Padding(
-                           //                                  padding: const EdgeInsets.fromLTRB(0, 0, 0, 5),
-                           //                                  child: ListView.builder(
-                           //                                    itemCount: homeProvider.visitCount.length,
-                           //                                    shrinkWrap: true,
-                           //                                    physics: const NeverScrollableScrollPhysics(),
-                           //                                    itemBuilder: (context, index) {
-                           //                                      return Padding(
-                           //                                        padding: const EdgeInsets.symmetric(vertical: 4),
-                           //                                        child: Row(
-                           //                                          children: [
-                           //                                            const Text("• "),
-                           //                                            Expanded(
-                           //                                              child: CustomText(
-                           //                                                homeProvider.visitCount[index]["value"],
-                           //                                                size: 13,
-                           //                                              ),
-                           //                                            ),
-                           //                                            Padding(
-                           //                                              padding: const EdgeInsets.only(right: 10.0),
-                           //                                              child: Container(
-                           //                                                padding: const EdgeInsets.symmetric(
-                           //                                                  horizontal: 8,
-                           //                                                  vertical: 2,
-                           //                                                ),
-                           //                                                decoration: BoxDecoration(
-                           //                                                  color: Colors.blue,
-                           //                                                  borderRadius: BorderRadius.circular(12),
-                           //                                                ),
-                           //                                                child: CustomText(
-                           //                                                  homeProvider.visitCount[index]["total_count"],
-                           //                                                  size: 10,
-                           //                                                  color: Colors.white,
-                           //                                                ),
-                           //                                              ),
-                           //                                            ),
-                           //                                          ],
-                           //                                        ),
-                           //                                      );
-                           //                                    },
-                           //                                  ),
-                           //                                ),
-                           //                              ],
-                           //                            ),
-                           //                          ),
-                           //                        ),
-                           //                      ),
-                           //                    ],
-                           //                  ),
-                           //                ),
-                           //                const SizedBox(width: 16),
-                           //                /// RIGHT SECTION
-                           //                Expanded(
-                           //                  flex: 45,
-                           //                  child: Column(
-                           //                    children: [
-                           //                      /// Larger Pie Chart (closer to reference)
-                           //                      Container(
-                           //                        width: screenWidth/2,
-                           //                        decoration: BoxDecoration(
-                           //                            color: Colors.red,
-                           //                          borderRadius: BorderRadius.circular(20),
-                           //                        ),
-                           //                        child: Padding(
-                           //                          padding: const EdgeInsets.all(8.0),
-                           //                          child: Row(
-                           //                            children: [
-                           //                              Icon(
-                           //                                Icons.calendar_month,
-                           //                                size: 16,
-                           //                                color: Colors.white,
-                           //                              ),
-                           //                              SizedBox(width: 6),
-                           //                              CustomText(
-                           //                                "Pending Works: ${homeProvider.inActiveVisit}",
-                           //                                size: 12,
-                           //                                weight: FontWeight.w600,
-                           //                                color: Colors.white,
-                           //                              ),
-                           //                            ],
-                           //                          ),
-                           //                        ),
-                           //                      ),
-                           //                      15.height,
-                           //                      SizedBox(
-                           //                        height: 80,
-                           //                        child:
-                           //                        // totalVisits == 0
-                           //                        //     ? const Center(
-                           //                        //   child: CustomText("No Data"),
-                           //                        // )
-                           //                        //     :
-                           //                        PieChart(
-                           //                          PieChartData(
-                           //                            sectionsSpace: 0,
-                           //                            centerSpaceRadius: 0,
-                           //                            sections: [
-                           //                              PieChartSectionData(
-                           //                                value: visitPendingsCount.toDouble(),
-                           //                                color:  Colors.red,
-                           //                                radius: 50,
-                           //                                showTitle: false,
-                           //                              ),
-                           //                              PieChartSectionData(
-                           //                                value: visitActiveCount.toDouble(),
-                           //                                color: Color(0xff63D076),
-                           //                                radius: 50,
-                           //                                showTitle: false,
-                           //                              ),
-                           //                            ],
-                           //                          ),
-                           //                        ),
-                           //                      ),
-                           //
-                           //
-                           //
-                           //                    ],
-                           //                  ),
-                           //                ),
-                           //              ],
-                           //            ),
-                           //            10.height,
-                           //
-                           //          ],
-                           //        ),
-                           //      ),
-                           //    ),
-                             if(homeProvider.roleAccess.any((f) => f['feature'] == 'Task Management'&&f['name'] == 'View'))
+                        //   if(homeProvider.roleAccess.any((f) => f['feature'] == 'Task Management'&&f['name'] == 'Visit Report'))
+                              InkWell(
+                                onTap:(){
+                                  utils.navigatePage(context, ()=> DashBoard(child: VisitReport(date1: homeProvider.startDate, date2: homeProvider.endDate,month: homeProvider.month,type: homeProvider.type,)));
+                                  },
+                                child:
+                                // homeProvider.vRefresh==false
+                                //     ? const Loading():
+                                Container(
+                                  padding: const EdgeInsets.all(16),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(15),
+                                    boxShadow: const [
+                                      BoxShadow(
+                                        color: Colors.black12,
+                                        blurRadius: 8,
+                                        offset: Offset(0, 4),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      /// Top Row
+                                      Row(
+                                        crossAxisAlignment: CrossAxisAlignment.center,
+                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Row(
+                                            children: [
+                                              const CustomText(
+                                                "Daily Work Report ",
+                                                size: 16,
+                                                weight: FontWeight.bold,
+                                              ),
+                                              CustomText("${homeProvider.visitCount.length}", size: 20, weight: FontWeight.bold),
+                                            ],
+                                          ),
+                                          InkWell(
+                                            onTap: (){
+                                              utils.navigatePage(context, ()=> DashBoard(child:
+                                              CusAddVisit(taskId:"",companyId: "",companyName: "",
+                                                  numberList: [],isDirect: true, type: "", desc: "")));
+                                            },
+                                            child: Container(
+                                              width: screenWidth/2.5,
+                                              height: screenHeight/22,
+                                              decoration: BoxDecoration(
+                                                color: Color(0xffDAF2DC),
+                                                borderRadius: BorderRadius.circular(10),
+                                                boxShadow: const [
+                                                  BoxShadow(
+                                                    color: Colors.black38,
+                                                    blurRadius: 4,
+                                                    offset: Offset(0, 0),
+                                                  ),
+                                                ],
+                                              ),
+                                              child: Padding(
+                                                padding: const EdgeInsets.all(5.0),
+                                                child: Row(
+                                                  mainAxisAlignment: MainAxisAlignment.center,
+                                                  children: [
+                                                    Image.asset(
+                                                      assets.addButton,
+                                                    ),
+                                                    SizedBox(width: 6),
+                                                    CustomText(
+                                                      "Add Work",
+                                                      size: 14,
+                                                      weight: FontWeight.bold,
+                                                      color: Color(0xff0F8D4B),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ), ///ADDED NEW,
+                                          ),
+                                        ],
+                                      ),7.height,
+
+                                      /// Big Count
+
+                                      /// Main Content Row
+                                      Row(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          /// LEFT SECTION
+                                          Expanded(
+                                            flex: 40,
+                                            child: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                Container(
+                                                  width: screenWidth/1.8,
+
+                                                  height:30,
+                                                  decoration: BoxDecoration(
+                                                    color: Color(0xff63D076),
+                                                    borderRadius: BorderRadius.circular(20),
+                                                  ),
+                                                  child: Padding(
+                                                    padding: const EdgeInsets.only(left: 8.0,bottom: 3),
+                                                    child: Row(
+
+                                                      crossAxisAlignment: CrossAxisAlignment.center,
+                                                      mainAxisAlignment: MainAxisAlignment.start,
+                                                      children: [
+
+                                                        Icon(
+                                                          Icons.calendar_month,
+                                                          size: 16,
+                                                          color: Colors.white,
+                                                        ),
+                                                        5.width,
+                                                        CustomText(
+                                                          "Active Works : ${homeProvider.activeVisit}",
+                                                          size: 13,
+                                                          weight: FontWeight.bold,
+                                                          color: Colors.white,
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                ),
+
+                                                const SizedBox(height: 8),
+                                                /// Scrollable List (3 visible items height)
+                                                SizedBox(
+                                                  height: 95,
+                                                  child: Scrollbar(
+                                                    thumbVisibility: true, // 👈 always show scroll indicator
+                                                    thickness: 5,          // 👈 scroll bar width
+                                                    radius: const Radius.circular(10),
+                                                    interactive: true,
+                                                    child: SingleChildScrollView(
+                                                      physics: const BouncingScrollPhysics(),
+                                                      child: Column(
+                                                        children: [
+                                                          !homeProvider.vRefresh
+                                                              ? const SkeletonLoading()
+                                                              : homeProvider.visitCount.isEmpty
+                                                              ? const Center(
+                                                            child: CustomText("No Daily Work activity Report Found"),
+                                                          )
+                                                              : Padding(
+                                                            padding: const EdgeInsets.fromLTRB(0, 0, 0, 5),
+                                                            child: ListView.builder(
+                                                              itemCount: homeProvider.visitCount.length,
+                                                              shrinkWrap: true,
+                                                              physics: const NeverScrollableScrollPhysics(),
+                                                              itemBuilder: (context, index) {
+                                                                return Padding(
+                                                                  padding: const EdgeInsets.symmetric(vertical: 4),
+                                                                  child: Row(
+                                                                    children: [
+                                                                      const Text("• "),
+                                                                      Expanded(
+                                                                        child: CustomText(
+                                                                          homeProvider.visitCount[index]["value"],
+                                                                          size: 13,
+                                                                        ),
+                                                                      ),
+                                                                      Padding(
+                                                                        padding: const EdgeInsets.only(right: 10.0),
+                                                                        child: Container(
+                                                                          padding: const EdgeInsets.symmetric(
+                                                                            horizontal: 8,
+                                                                            vertical: 2,
+                                                                          ),
+                                                                          decoration: BoxDecoration(
+                                                                            color: Colors.blue,
+                                                                            borderRadius: BorderRadius.circular(12),
+                                                                          ),
+                                                                          child: CustomText(
+                                                                            homeProvider.visitCount[index]["total_count"],
+                                                                            size: 10,
+                                                                            color: Colors.white,
+                                                                          ),
+                                                                        ),
+                                                                      ),
+                                                                    ],
+                                                                  ),
+                                                                );
+                                                              },
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                          const SizedBox(width: 16),
+                                          /// RIGHT SECTION
+                                          Expanded(
+                                            flex: 45,
+                                            child: Column(
+                                              children: [
+                                                /// Larger Pie Chart (closer to reference)
+                                                Container(
+                                                  width: screenWidth/2,
+                                                  decoration: BoxDecoration(
+                                                      color: Colors.red,
+                                                    borderRadius: BorderRadius.circular(20),
+                                                  ),
+                                                  child: Padding(
+                                                    padding: const EdgeInsets.all(8.0),
+                                                    child: Row(
+                                                      children: [
+                                                        Icon(
+                                                          Icons.calendar_month,
+                                                          size: 16,
+                                                          color: Colors.white,
+                                                        ),
+                                                        SizedBox(width: 6),
+                                                        CustomText(
+                                                          "Pending Works: ${homeProvider.inActiveVisit}",
+                                                          size: 12,
+                                                          weight: FontWeight.w600,
+                                                          color: Colors.white,
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                ),
+                                                15.height,
+                                                SizedBox(
+                                                  height: 80,
+                                                  child:
+                                                  // totalVisits == 0
+                                                  //     ? const Center(
+                                                  //   child: CustomText("No Data"),
+                                                  // )
+                                                  //     :
+                                                  PieChart(
+                                                    PieChartData(
+                                                      sectionsSpace: 0,
+                                                      centerSpaceRadius: 0,
+                                                      sections: [
+                                                        PieChartSectionData(
+                                                          value: visitPendingsCount.toDouble(),
+                                                          color:  Colors.red,
+                                                          radius: 50,
+                                                          showTitle: false,
+                                                        ),
+                                                        PieChartSectionData(
+                                                          value: visitActiveCount.toDouble(),
+                                                          color: Color(0xff63D076),
+                                                          radius: 50,
+                                                          showTitle: false,
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                ),
+
+
+
+                                              ],
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      10.height,
+
+                                    ],
+                                  ),
+                                ),
+                              ),
+                           //  if(homeProvider.roleAccess.any((f) => f['feature'] == 'Task Management'&&f['name'] == 'View'))
                               10.height,
                           //    if(homeProvider.roleAccess.any((f) => f['feature'] == 'Task Management'&&f['name'] == 'View'))
                               InkWell(

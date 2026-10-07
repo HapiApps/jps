@@ -335,34 +335,34 @@ class _CusAddVisitState extends State<CusAddVisit>
                                 ),
 
                               /// ====================== CUSTOMER TYPE ======================
-                              // MapDropDown(
-                              //   isRefresh: taskProvider.cusTypeList.isEmpty,
-                              //   callback: () {
-                              //     closeAllDropdowns();
-                              //     if (!kIsWeb) {
-                              //       taskProvider.refreshCusType();
-                              //     } else {
-                              //       taskProvider.getAllCusTypes();
-                              //     }
-                              //   },
-                              //   width: kIsWeb ? webWidth : phoneWidth,
-                              //   hintText: constValue.cusType,
-                              //   list: taskProvider.cusTypeList,
-                              //   saveValue: taskProvider.selectType != null
-                              //       ? taskProvider.selectType['id']
-                              //       : null,
-                              //   onChanged: (value) {
-                              //     closeAllDropdowns();
-                              //
-                              //     final selected =
-                              //     taskProvider.cusTypeList.firstWhere(
-                              //           (e) => e['id'] == value,
-                              //     );
-                              //
-                              //     taskProvider.changeCusType(selected);
-                              //   },
-                              //   dropText: 'value',
-                              // ),
+                              MapDropDown(
+                                isRefresh: taskProvider.cusTypeList.isEmpty,
+                                callback: () {
+                                  closeAllDropdowns();
+                                  if (!kIsWeb) {
+                                    taskProvider.refreshCusType();
+                                  } else {
+                                    taskProvider.getAllCusTypes();
+                                  }
+                                },
+                                width: kIsWeb ? webWidth : phoneWidth,
+                                hintText: constValue.cusType,
+                                list: taskProvider.cusTypeList,
+                                saveValue: taskProvider.selectType != null
+                                    ? taskProvider.selectType['id']
+                                    : null,
+                                onChanged: (value) {
+                                  closeAllDropdowns();
+
+                                  final selected =
+                                  taskProvider.cusTypeList.firstWhere(
+                                        (e) => e['id'] == value,
+                                  );
+
+                                  taskProvider.changeCusType(selected);
+                                },
+                                dropText: 'value',
+                              ),
 
                               /// ====================== CUSTOMER MULTI SELECT ======================
                               Consumer<CustomerProvider>(

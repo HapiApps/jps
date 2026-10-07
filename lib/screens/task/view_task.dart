@@ -38,7 +38,7 @@ import '../../view_model/task_provider.dart';
 import '../common/dashboard.dart';
 import '../common/home_page.dart';
 import '../expense/create_expense.dart';
-import 'add_wages_work_details.dart';
+// import 'add_wages_work_details.dart';   // WagesAddWorkDetails  (hide only for jps)
 
 
 class ViewTask extends StatefulWidget {
@@ -1049,9 +1049,9 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
                         ),
                         const SizedBox(width: 6),
 
-                        WagesAddWorkDetails(
-                          taskId: data.id.toString(),
-                        ),
+                        // WagesAddWorkDetails(
+                        //   taskId: data.id.toString(),
+                        // ),
 
                         const SizedBox(width: 6),
 
@@ -1775,10 +1775,10 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
                                         isBold: true,
                                       ),
                                     ),
-                                    const SizedBox(width: 6),
-                                    WagesAddWorkDetails(
-                                      taskId: data.id.toString(),
-                                    ),
+                                    // const SizedBox(width: 6),
+                                    // WagesAddWorkDetails(
+                                    //   taskId: data.id.toString(),
+                                    // ),
                                     const SizedBox(width: 6),
                                     InkWell(
                                       onTap: () {

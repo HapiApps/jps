@@ -6,8 +6,8 @@ class ColorsConst{
   ColorsConst._();
   /// Original Color
 //   final Color primary=  const Color(0xff45377D); /// aci blue
- // final Color primary=  const Color(0xffA50008); /// JPS red
-final Color primary=  const Color(0xff1976D2); /// hapiapps red
+final Color primary=  const Color(0xffA50008); /// JPS red
+// final Color primary=  const Color(0xff1976D2); /// hapiapps red
   final Color primaryLight1=  const Color(0xffefa6aa); /// JPS red
   final Color late=  const Color(0xffDD9830); /// JPS red
   final Color active=  const Color(0xff075985); /// JPS red
