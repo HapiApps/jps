@@ -1,6 +1,6 @@
 class AttendanceModel {
   AttendanceModel({
-    this.salesmanId,
+    required this.salesmanId,
     this.id,
     this.date,
     this.time,
@@ -16,11 +16,11 @@ class AttendanceModel {
     this.perReason,
     this.perCreatedTs,
     this.missingDate,
-    this.isWorkDone,   // 🔥 ADD THIS
+    this.isWorkDone, required this.active,
   });
 
   String? id;
-  String? salesmanId;
+  String salesmanId;
   String? date;
   String? image;
   String? time;
@@ -35,7 +35,8 @@ class AttendanceModel {
   String? perReason;
   String? perCreatedTs;
   String? missingDate;
-  String? isWorkDone;   // 🔥 ADD THIS
+  String? isWorkDone;
+  String active;
 
   factory AttendanceModel.fromJson(Map<String, dynamic> json) =>
       AttendanceModel(
@@ -55,7 +56,8 @@ class AttendanceModel {
         perStatus: json["per_status"],
         perReason: json["per_reason"],
         perCreatedTs: json["per_created_ts"],
-        isWorkDone: json["is_work_done"]?.toString(),  // 🔥 ADD THIS
+        isWorkDone: json["is_work_done"]?.toString(),
+        active : json["active"].toString(),
       );
 
   @override
@@ -76,7 +78,8 @@ AttendanceModel(
   perTime: $perTime,
   perStatus: $perStatus,
   perReason: $perReason,
-  perCreatedTs: $perCreatedTs
+  perCreatedTs: $perCreatedTs,
+  active: $active
 )''';
   }
 }

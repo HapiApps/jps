@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_svg/svg.dart';
@@ -6,6 +7,7 @@ import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
 import 'package:master_code/source/extentions/extensions.dart';
 import 'package:master_code/view_model/task_provider.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:record/record.dart';
 import '../../../component/custom_appbar.dart';
@@ -34,7 +36,7 @@ class TaskChat extends StatefulWidget {
   final String type;
   final int index;
 
-  const  TaskChat({
+  const TaskChat({
     super.key,
     required this.taskId,
     required this.assignedId,
@@ -52,12 +54,16 @@ class TaskChat extends StatefulWidget {
   State<TaskChat> createState() => _TaskChatState();
 }
 
-class _TaskChatState extends State<TaskChat> with SingleTickerProviderStateMixin {
+class _TaskChatState extends State<TaskChat>
+    with SingleTickerProviderStateMixin {
   late AnimationController animationController;
   late Animation<double> animation;
   final FocusScopeNode _myFocusScopeNode = FocusScopeNode();
 
   final AudioRecorder _audioRecorder = AudioRecorder();
+
+  /// Recorded audio preview mattum indha player use pannum.
+  /// Chat la irukkura audio ellam AudioTile handle pannum.
   final AudioPlayer _audioPlayer = AudioPlayer();
 
   bool isRecording = false;
@@ -65,23 +71,17 @@ class _TaskChatState extends State<TaskChat> with SingleTickerProviderStateMixin
 
   Duration duration = Duration.zero;
   Timer? timer;
-  bool isBuffering = false;
-  String bufferingUrl = "";
-  // 🔥 Player state for recorded audio preview
+
+  // Recorded audio preview state
   Duration totalDuration = Duration.zero;
   Duration currentPosition = Duration.zero;
   bool isPlaying = false;
 
-  // 🔥 currently playing chat audio
-  String? playingUrl;
-  Duration networkTotal = Duration.zero;
-  Duration networkCurrent = Duration.zero;
-  bool networkPlaying = false;
-
   @override
   void initState() {
     WidgetsBinding.instance.addPostFrameCallback((timeStamp) async {
-      final custProvider = Provider.of<CustomerProvider>(context, listen: false);
+      final custProvider =
+      Provider.of<CustomerProvider>(context, listen: false);
 
       custProvider.disPoint.clear();
 
@@ -101,12 +101,12 @@ class _TaskChatState extends State<TaskChat> with SingleTickerProviderStateMixin
       duration: const Duration(seconds: 1),
     )..repeat(reverse: true);
 
-    animation = Tween<double>(begin: 0.5, end: 1.5).animate(animationController);
+    animation =
+        Tween<double>(begin: 0.5, end: 1.5).animate(animationController);
 
-    /// 🔥 Duration Fix (Recorded Preview)
+    /// Recorded preview listeners (oru thadava mattum)
     _audioPlayer.onDurationChanged.listen((d) {
       if (!mounted) return;
-
       setState(() {
         totalDuration = d;
       });
@@ -114,7 +114,6 @@ class _TaskChatState extends State<TaskChat> with SingleTickerProviderStateMixin
 
     _audioPlayer.onPositionChanged.listen((p) {
       if (!mounted) return;
-
       setState(() {
         currentPosition = p;
       });
@@ -122,155 +121,89 @@ class _TaskChatState extends State<TaskChat> with SingleTickerProviderStateMixin
 
     _audioPlayer.onPlayerStateChanged.listen((state) {
       if (!mounted) return;
-
       setState(() {
         isPlaying = state == PlayerState.playing;
       });
     });
 
-    /// 🔥 Duration Fix (Network Audio inside Chat)
-    _audioPlayer.onDurationChanged.listen((d) {
-      networkTotal = d;
-    });
-
-    _audioPlayer.onPositionChanged.listen((p) {
-      networkCurrent = p;
-    });
-
-    _audioPlayer.onPlayerStateChanged.listen((state) {
-      networkPlaying = state == PlayerState.playing;
-    });
-
-    _audioPlayer.onPlayerComplete.listen((_) {
-
-      if (!mounted) return;
-
-      _audioPlayer.seek(
-        Duration.zero,
-      );
-
-      setState(() {
-
-        isPlaying =
-        false;
-
-        currentPosition =
-            Duration.zero;
-
-      });
-
-    });
-
-    /// 🔥 Duration Fix (Network Audio inside Chat)
-    _audioPlayer.onDurationChanged.listen((d) {
-      if (!mounted) return;
-
-      setState(() {
-        networkTotal = d;
-      });
-    });
-
-    _audioPlayer.onPositionChanged.listen((p) {
-      if (!mounted) return;
-
-      setState(() {
-        networkCurrent = p;
-      });
-    });
-
-    _audioPlayer.onPlayerStateChanged.listen((state) {
-      if (!mounted) return;
-
-      setState(() {
-        networkPlaying = state == PlayerState.playing;
-      });
-    });
-
     _audioPlayer.onPlayerComplete.listen((_) {
       if (!mounted) return;
-
       setState(() {
-        networkPlaying = false;
-        networkCurrent = Duration.zero;
+        isPlaying = false;
+        currentPosition = Duration.zero;
       });
-
-      _audioPlayer.seek(Duration.zero);
     });
 
     super.initState();
   }
-  Future<void> playNetworkAudio(String url) async {
-    try {
 
-      setState(() {
-        isBuffering = true;
-        bufferingUrl = url;
-        playingUrl = url;
-      });
-
-      await _audioPlayer.stop();
-
-      // 👇 source set pannunga
-      await _audioPlayer.setSource(
-        UrlSource(url),
-      );
-
-      // 👇 duration fetch
-      final dur = await _audioPlayer.getDuration();
-
-      setState(() {
-        networkTotal = dur ?? Duration.zero;
-      });
-
-      await _audioPlayer.resume();
-
-      setState(() {
-        isBuffering = false;
-        networkPlaying = true;
-      });
-
-    } catch (e) {
-
-      setState(() {
-        isBuffering = false;
-        networkPlaying = false;
-        playingUrl = null;
-      });
-
-    }
-  }
   Future<void> startRecording() async {
     final status = await Permission.microphone.request();
 
     if (status.isGranted) {
-      String path =
-          '/storage/emulated/0/Download/audio_${DateTime.now().millisecondsSinceEpoch}.m4a';
+      // App temp folder (permission issue varaadhu)
+      final dir = await getTemporaryDirectory();
+
+      final String path =
+          '${dir.path}/audio_${DateTime.now().millisecondsSinceEpoch}.m4a';
 
       await _audioRecorder.start(
-        const RecordConfig(),
+        const RecordConfig(encoder: AudioEncoder.aacLc),
         path: path,
       );
+
+      debugPrint("Recording started: $path");
 
       setState(() {
         isRecording = true;
         duration = Duration.zero;
       });
 
+      timer?.cancel();
       timer = Timer.periodic(const Duration(seconds: 1), (t) {
+        if (!mounted) return;
         setState(() {
           duration += const Duration(seconds: 1);
         });
       });
     } else {
+      if (mounted) {
+        utils.showWarningToast(
+          context,
+          text: "Microphone permission required",
+        );
+      }
     }
   }
 
   Future<void> stopRecording() async {
     timer?.cancel();
 
+    // stop() complete aagura varai wait pannanum
     final path = await _audioRecorder.stop();
 
     if (path != null) {
+      final File file = File(path);
+      final bool exists = await file.exists();
+      final int size = exists ? await file.length() : 0;
+
+      debugPrint("Recorded path: $path");
+      debugPrint("Recorded size: $size");
+
+      if (!exists || size == 0) {
+        setState(() {
+          isRecording = false;
+          recordedPath = null;
+        });
+
+        if (mounted) {
+          utils.showWarningToast(
+            context,
+            text: "Recording failed, try again",
+          );
+        }
+        return;
+      }
 
       await _audioPlayer.stop();
 
@@ -278,95 +211,40 @@ class _TaskChatState extends State<TaskChat> with SingleTickerProviderStateMixin
         DeviceFileSource(path),
       );
 
-      final dur =
-      await _audioPlayer.getDuration();
+      final dur = await _audioPlayer.getDuration();
 
       setState(() {
         isRecording = false;
-
         recordedPath = path;
-
-        duration =
-            dur ??
-                Duration.zero;
-
-        totalDuration =
-            dur ??
-                Duration.zero;
-
-        currentPosition =
-            Duration.zero;
-
+        duration = dur ?? Duration.zero;
+        totalDuration = dur ?? Duration.zero;
+        currentPosition = Duration.zero;
         isPlaying = false;
       });
-
     } else {
-
       setState(() {
         isRecording = false;
       });
     }
   }
-  Future<void> togglePlayRecorded() async {
 
+  Future<void> togglePlayRecorded() async {
     if (recordedPath == null) return;
 
     if (isPlaying) {
-
       await _audioPlayer.pause();
-
     } else {
-
-      // await _audioPlayer.setSource(
-      //   DeviceFileSource(
-      //     recordedPath!,
-      //   ),
-      // );
-
-      await _audioPlayer.resume();
+      if (currentPosition == Duration.zero) {
+        // Mudinjirundha / start la irundhu play
+        await _audioPlayer.play(DeviceFileSource(recordedPath!));
+      } else {
+        await _audioPlayer.resume();
+      }
     }
 
     setState(() {});
   }
-  // Future<void> playNetworkAudio(String url) async {
-  //   try {
-  //     // If same audio already playing -> pause
-  //     if (playingUrl == url && networkPlaying) {
-  //       await _audioPlayer.pause();
-  //       setState(() {
-  //         networkPlaying = false;
-  //       });
-  //       return;
-  //     }
-  //
-  //     // show loading only for clicked audio
-  //     setState(() {
-  //       isBuffering = true;
-  //       bufferingUrl = url;
-  //       playingUrl = url;
-  //       networkCurrent = Duration.zero;
-  //       networkTotal = Duration.zero;
-  //     });
-  //
-  //     await _audioPlayer.stop();
-  //     await _audioPlayer.play(UrlSource(url));
-  //
-  //     // when play starts -> loading off
-  //     setState(() {
-  //       isBuffering = false;
-  //       networkPlaying = true;
-  //     });
-  //   } catch (e) {
-  //     setState(() {
-  //       isBuffering = false;
-  //       bufferingUrl = "";
-  //       networkPlaying = false;
-  //       playingUrl = null;
-  //     });
-  //
-  //     utils.showWarningToast(context, text: "Audio cannot be played");
-  //   }
-  // }
+
   String formatTime(Duration d) {
     String twoDigits(int n) => n.toString().padLeft(2, '0');
     final minutes = twoDigits(d.inMinutes);
@@ -376,11 +254,20 @@ class _TaskChatState extends State<TaskChat> with SingleTickerProviderStateMixin
 
   @override
   void dispose() {
+    timer?.cancel();
     animationController.dispose();
     _myFocusScopeNode.dispose();
     _audioPlayer.dispose();
     _audioRecorder.dispose();
     super.dispose();
+  }
+
+  /// Local phone path-ah nu check
+  bool _isLocalAudioPath(String s) {
+    return s.startsWith('/storage/') ||
+        s.startsWith('/data/') ||
+        s.startsWith('/sdcard/') ||
+        s.startsWith('file://');
   }
 
   @override
@@ -398,11 +285,12 @@ class _TaskChatState extends State<TaskChat> with SingleTickerProviderStateMixin
               appBar: PreferredSize(
                   preferredSize: const Size(300, 60),
                   child: CustomAppbar(
-                    text: widget.assignedName.toString()==""?widget.name:widget.assignedName,
-                  )
-              ),
+                    text: widget.assignedName.toString() == ""
+                        ? widget.name
+                        : widget.assignedName,
+                  )),
 
-              /// 🔥 BOTTOM INPUT
+              /// BOTTOM INPUT
               bottomSheet: Padding(
                 padding: const EdgeInsets.all(8.0),
                 child: Row(
@@ -410,7 +298,9 @@ class _TaskChatState extends State<TaskChat> with SingleTickerProviderStateMixin
                   children: [
                     if (recordedPath == null && isRecording == false)
                       SizedBox(
-                        width: kIsWeb?webWidth/1:MediaQuery.of(context).size.width * 0.63,
+                        width: kIsWeb
+                            ? webWidth / 1
+                            : MediaQuery.of(context).size.width * 0.63,
                         child: TextFormField(
                           textCapitalization: TextCapitalization.sentences,
                           textInputAction: TextInputAction.done,
@@ -423,11 +313,11 @@ class _TaskChatState extends State<TaskChat> with SingleTickerProviderStateMixin
                           ),
                         ),
                       ),
-                    if(kIsWeb)
-                      10.width,
-                    if(!kIsWeb&&recordedPath == null&&!isRecording)
+                    if (kIsWeb) 10.width,
+                    if (!kIsWeb && recordedPath == null && !isRecording)
                       IconButton(
-                        icon: Icon(Icons.mic,
+                        icon: const Icon(
+                          Icons.mic,
                           color: Colors.green,
                         ),
                         onPressed: () async {
@@ -442,13 +332,15 @@ class _TaskChatState extends State<TaskChat> with SingleTickerProviderStateMixin
                       Row(
                         children: [
                           CustomText(
-                            text:taskProvider.formatDuration2(duration.inSeconds),
-                            colors: Colors.red,isBold: true,
-                          ),10.width,
-                          CustomText(
-                            text:"Recording...",
+                            text: taskProvider
+                                .formatDuration2(duration.inSeconds),
+                            colors: Colors.red,
+                            isBold: true,
                           ),
-
+                          10.width,
+                          const CustomText(
+                            text: "Recording...",
+                          ),
                           50.width,
                         ],
                       ),
@@ -477,21 +369,17 @@ class _TaskChatState extends State<TaskChat> with SingleTickerProviderStateMixin
                               ),
                               onPressed: togglePlayRecorded,
                             ),
-
                             Expanded(
                               child: Slider(
                                 activeColor: Colors.green,
                                 inactiveColor: Colors.grey.shade300,
-                                value:
-                                currentPosition.inSeconds
+                                value: currentPosition.inSeconds
                                     .toDouble()
                                     .clamp(
                                   0,
-                                  totalDuration.inSeconds
-                                      .toDouble() == 0
+                                  totalDuration.inSeconds.toDouble() == 0
                                       ? 1
-                                      : totalDuration.inSeconds
-                                      .toDouble(),
+                                      : totalDuration.inSeconds.toDouble(),
                                 ),
                                 min: 0,
                                 max: totalDuration.inSeconds.toDouble() == 0
@@ -508,12 +396,10 @@ class _TaskChatState extends State<TaskChat> with SingleTickerProviderStateMixin
                                 },
                               ),
                             ),
-
                             Text(
                               "${formatTime(currentPosition)} / "
                                   "${formatTime(totalDuration)}",
-                              style:
-                              const TextStyle(
+                              style: const TextStyle(
                                 fontSize: 12,
                               ),
                             ),
@@ -529,9 +415,12 @@ class _TaskChatState extends State<TaskChat> with SingleTickerProviderStateMixin
                           width: 20,
                           height: 20,
                         ),
-                        onPressed: () {
+                        onPressed: () async {
+                          await _audioPlayer.stop();
                           setState(() {
                             recordedPath = null;
+                            totalDuration = Duration.zero;
+                            currentPosition = Duration.zero;
                           });
                         },
                       ),
@@ -543,7 +432,8 @@ class _TaskChatState extends State<TaskChat> with SingleTickerProviderStateMixin
                         style: ElevatedButton.styleFrom(
                           shape: const CircleBorder(),
                           padding: EdgeInsets.zero,
-                          backgroundColor: isRecording?Colors.red:colorsConst.primary,
+                          backgroundColor:
+                          isRecording ? Colors.red : colorsConst.primary,
                           elevation: 2,
                         ),
                         onPressed: () async {
@@ -563,6 +453,11 @@ class _TaskChatState extends State<TaskChat> with SingleTickerProviderStateMixin
                             return;
                           }
 
+                          // Preview play aagitu irundha niruthu
+                          await _audioPlayer.stop();
+
+                          debugPrint("Sending audio path: $recordedPath");
+
                           if (widget.isVisit == true) {
                             await custProvider.addComment(
                               context: context,
@@ -580,9 +475,12 @@ class _TaskChatState extends State<TaskChat> with SingleTickerProviderStateMixin
                               context: context,
                               taskId: widget.taskId.toString(),
                               assignedId: widget.assignedId.toString(),
-                              path: recordedPath ?? "", index: widget.index,
+                              path: recordedPath ?? "",
+                              index: widget.index,
                             );
                           }
+
+                          if (!mounted) return;
 
                           setState(() {
                             recordedPath = null;
@@ -601,7 +499,7 @@ class _TaskChatState extends State<TaskChat> with SingleTickerProviderStateMixin
                 ),
               ),
 
-              /// 🔥 CHAT BODY
+              /// CHAT BODY
               body: custProvider.refresh == false
                   ? const Loading()
                   : custProvider.customerReport.isEmpty
@@ -613,41 +511,54 @@ class _TaskChatState extends State<TaskChat> with SingleTickerProviderStateMixin
               )
                   : Center(
                 child: SizedBox(
-                  // color: Colors.blueGrey,
-                  width: kIsWeb?webWidth:phoneWidth,
+                  width: kIsWeb ? webWidth : phoneWidth,
                   child: ListView.builder(
                     controller: taskProvider.scrollController,
-                    padding: const EdgeInsets.fromLTRB(10, 10, 10, 80),
+                    padding:
+                    const EdgeInsets.fromLTRB(10, 10, 10, 80),
                     physics: const BouncingScrollPhysics(),
                     itemCount: custProvider.customerReport.length,
                     itemBuilder: (context, index) {
-                      CustomerReportModel data = custProvider.customerReport[index];
-                      print(data.createdBy.toString());
-                      print(localData.storage.read("id").toString());
+                      CustomerReportModel data =
+                      custProvider.customerReport[index];
+
                       bool isSender = data.createdBy.toString() ==
                           localData.storage.read("id").toString();
 
-                      /// ✅ FIX: document trim + lowercase check
-                      String doc = data.documents?.toString().trim() ?? "";
+                      String doc =
+                          data.documents?.toString().trim() ?? "";
 
                       bool isAudio = doc.isNotEmpty &&
                           (doc.toLowerCase().endsWith(".m4a") ||
                               doc.toLowerCase().endsWith(".mp3") ||
                               doc.toLowerCase().endsWith(".wav"));
 
-                      /// ✅ FIX: build proper audio url
                       String audioUrl = doc;
 
+                      // Local file (just record panni send panna) na direct path,
+                      // illana server URL
+                      final bool isLocalAudio =
+                          data.isLocal == true ||
+                              _isLocalAudioPath(audioUrl);
+
+                      final String finalAudioUrl = isLocalAudio
+                          ? audioUrl
+                          : '$imageFile?path=$audioUrl';
+
                       return Align(
-                        alignment:
-                        isSender ? Alignment.centerRight : Alignment.centerLeft,
+                        alignment: isSender
+                            ? Alignment.centerRight
+                            : Alignment.centerLeft,
                         child: IntrinsicWidth(
                           child: ConstrainedBox(
                             constraints: BoxConstraints(
-                              maxWidth: MediaQuery.of(context).size.width * 0.70,
+                              maxWidth:
+                              MediaQuery.of(context).size.width *
+                                  0.70,
                             ),
                             child: Container(
-                              margin: const EdgeInsets.symmetric(vertical: 4),
+                              margin: const EdgeInsets.symmetric(
+                                  vertical: 4),
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 12,
                                 vertical: 10,
@@ -659,34 +570,41 @@ class _TaskChatState extends State<TaskChat> with SingleTickerProviderStateMixin
                                 borderRadius: BorderRadius.only(
                                   topLeft: const Radius.circular(12),
                                   topRight: const Radius.circular(12),
-                                  bottomLeft:
-                                  isSender ? const Radius.circular(12) : Radius.zero,
-                                  bottomRight:
-                                  isSender ? Radius.zero : const Radius.circular(12),
+                                  bottomLeft: isSender
+                                      ? const Radius.circular(12)
+                                      : Radius.zero,
+                                  bottomRight: isSender
+                                      ? Radius.zero
+                                      : const Radius.circular(12),
                                 ),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: Colors.black.withOpacity(0.08),
+                                    color: Colors.black
+                                        .withOpacity(0.08),
                                     blurRadius: 5,
                                     offset: const Offset(0, 2),
                                   )
                                 ],
                               ),
                               child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
+                                crossAxisAlignment:
+                                CrossAxisAlignment.start,
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   if (!isSender)
                                     Padding(
-                                      padding: const EdgeInsets.only(bottom: 4),
+                                      padding: const EdgeInsets.only(
+                                          bottom: 4),
                                       child: Row(
                                         children: [
                                           Text(
                                             data.firstname.toString(),
                                             style: const TextStyle(
                                               fontSize: 12,
-                                              fontWeight: FontWeight.w600,
-                                              color: Color(0xFF0D47A1),
+                                              fontWeight:
+                                              FontWeight.w600,
+                                              color:
+                                              Color(0xFF0D47A1),
                                             ),
                                           ),
                                           const SizedBox(width: 5),
@@ -694,82 +612,21 @@ class _TaskChatState extends State<TaskChat> with SingleTickerProviderStateMixin
                                             "( ${data.role} )",
                                             style: TextStyle(
                                               fontSize: 11,
-                                              color: Colors.grey.shade600,
+                                              color: Colors
+                                                  .grey.shade600,
                                             ),
                                           ),
                                         ],
                                       ),
                                     ),
 
-                                  /// ✅ AUDIO UI
+                                  /// AUDIO UI
                                   if (isAudio)
                                     AudioTile(
-                                        key: ValueKey(audioUrl),audioUrl: '$imageFile?path=$audioUrl')
-                                  // Container(
-                                  //   height: 45,
-                                  //   width: 240,
-                                  //   padding: const EdgeInsets.symmetric(horizontal: 6),
-                                  //   decoration: BoxDecoration(
-                                  //     color: Colors.grey.shade100,
-                                  //     borderRadius: BorderRadius.circular(10),
-                                  //   ),
-                                  //   child: Row(
-                                  //     children: [
-                                  //       (isBuffering && bufferingUrl == audioUrl)
-                                  //           ? const SizedBox(
-                                  //         height: 20,
-                                  //         width: 20,
-                                  //         child: CircularProgressIndicator(strokeWidth: 2,color: Colors.green,),
-                                  //       )
-                                  //           : IconButton(
-                                  //         icon: Icon(
-                                  //           (playingUrl == audioUrl && networkPlaying)
-                                  //               ? Icons.pause
-                                  //               : Icons.play_arrow,
-                                  //           color: Colors.green,
-                                  //         ),
-                                  //         onPressed: () async {
-                                  //           await playNetworkAudio(audioUrl);
-                                  //         },
-                                  //       ),
-                                  //       Expanded(
-                                  //         child: Slider(
-                                  //           activeColor: Colors.green,
-                                  //           inactiveColor: Colors.grey.shade300,
-                                  //           value: (playingUrl == audioUrl &&
-                                  //               networkTotal.inSeconds > 0)
-                                  //               ? networkCurrent.inSeconds
-                                  //               .toDouble()
-                                  //               .clamp(
-                                  //             0,
-                                  //             networkTotal.inSeconds.toDouble(),
-                                  //           )
-                                  //               : 0,
-                                  //           min: 0,
-                                  //           max: (playingUrl == audioUrl &&
-                                  //               networkTotal.inSeconds > 0)
-                                  //               ? networkTotal.inSeconds.toDouble()
-                                  //               : 1,
-                                  //           onChanged: (value) async {
-                                  //             if (playingUrl == audioUrl) {
-                                  //               await _audioPlayer.seek(
-                                  //                 Duration(seconds: value.toInt()),
-                                  //               );
-                                  //             }
-                                  //           },
-                                  //         ),
-                                  //       ),
-                                  //       Text(
-                                  //         (playingUrl == audioUrl)
-                                  //             ? "${formatTime(networkCurrent)} / ${formatTime(networkTotal)}"
-                                  //             : "00:00 / 00:00",
-                                  //         style: const TextStyle(fontSize: 11),
-                                  //       ),
-                                  //       const SizedBox(width: 5),
-                                  //     ],
-                                  //   ),
-                                  // )
-
+                                      key: ValueKey(
+                                          '${data.createdTs}_$audioUrl'),
+                                      audioUrl: finalAudioUrl,
+                                    )
                                   else
                                     Text(
                                       data.comments.toString(),
@@ -782,11 +639,14 @@ class _TaskChatState extends State<TaskChat> with SingleTickerProviderStateMixin
                                   const SizedBox(height: 6),
 
                                   Row(
-                                    mainAxisAlignment: MainAxisAlignment.end,
+                                    mainAxisAlignment:
+                                    MainAxisAlignment.end,
                                     children: [
                                       Text(
                                         DateFormat('hh:mm a').format(
-                                          DateTime.parse(data.createdTs.toString()),
+                                          DateTime.parse(
+                                              data.createdTs
+                                                  .toString()),
                                         ),
                                         style: TextStyle(
                                           fontSize: 10,
@@ -795,11 +655,14 @@ class _TaskChatState extends State<TaskChat> with SingleTickerProviderStateMixin
                                       ),
                                       if (data.isLocal == true)
                                         Padding(
-                                          padding: const EdgeInsets.only(left: 4),
+                                          padding:
+                                          const EdgeInsets.only(
+                                              left: 4),
                                           child: Icon(
                                             Icons.schedule,
                                             size: 12,
-                                            color: Colors.grey.shade600,
+                                            color:
+                                            Colors.grey.shade600,
                                           ),
                                         ),
                                     ],
@@ -819,6 +682,5 @@ class _TaskChatState extends State<TaskChat> with SingleTickerProviderStateMixin
         );
       },
     );
-
   }
 }

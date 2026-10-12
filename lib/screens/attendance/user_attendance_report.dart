@@ -302,7 +302,7 @@ class _UserAttendanceReportState extends State<UserAttendanceReport> {
                                       data.perTime.toString(),
 
                                       perCreatedTs:
-                                      data.perCreatedTs.toString(),
+                                      data.perCreatedTs.toString(), empId: data.salesmanId, active: data.active,
                                     ),
                                   ],
                                 ),

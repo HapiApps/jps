@@ -1,6 +1,5 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter_svg/svg.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:master_code/component/custom_loading.dart';
 import 'package:master_code/component/custom_loading_button.dart';
@@ -16,7 +15,6 @@ import 'package:master_code/source/extentions/extensions.dart';
 import 'package:master_code/view_model/customer_provider.dart';
 import 'package:master_code/view_model/employee_provider.dart';
 import 'package:master_code/view_model/home_provider.dart';
-import 'package:master_code/view_model/location_provider.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -40,12 +38,15 @@ import '../common/home_page.dart';
 import '../expense/create_expense.dart';
 import 'add_wages_work_details.dart';
 
-
+/// ---------------------------------------------------------------------------
+/// PARENT: loads all data ONCE (dropdown data + task list).
+/// The child tab (ViewfilterUserData) does NOT call any API in initState.
+/// ---------------------------------------------------------------------------
 class ViewTask extends StatefulWidget {
   final String date1;
   final String date2;
   final String type;
-  const ViewTask({super.key,required this.date1, required this.date2, required this.type});
+  const ViewTask({super.key, required this.date1, required this.date2, required this.type});
 
   @override
   State<ViewTask> createState() => _ViewTaskState();
@@ -54,45 +55,44 @@ class ViewTask extends StatefulWidget {
 class _ViewTaskState extends State<ViewTask> with SingleTickerProviderStateMixin {
   final FocusScopeNode _myFocusScopeNode = FocusScopeNode();
   late TabController tabController;
+
   @override
   void initState() {
     super.initState();
-    tabController=TabController(length:2, vsync: this);
+    if (kDebugMode) debugPrint('>>> ViewTask initState');
+    tabController = TabController(length: 2, vsync: this);
     tabController.addListener(() {
       _myFocusScopeNode.unfocus();
-      tabController.index;
     });
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return; // 🔥 IMPORTANT FIX
+      if (!mounted) return;
 
       final taskProvider = Provider.of<TaskProvider>(context, listen: false);
-      final empProvider = Provider.of<EmployeeProvider>(context, listen: false);
       final custProvider = Provider.of<CustomerProvider>(context, listen: false);
-      empProvider.getAllUsers(isRefresh: false);
+
+      // employees / customers / task users -> HomePage already loaded them.
+      // They are loaded lazily (only if empty) when the Filter dialog opens.
 
       taskProvider.search.clear();
       taskProvider.search2.clear();
-      Provider.of<CustomerProvider>(context, listen: false)
-          .getAllCustomers(true);
 
-      //empProvider.filterEmps();
-
+      // Dropdown / master data
       if (kIsWeb) {
         taskProvider.getTaskType(false);
         taskProvider.getTaskStatuses();
-        taskProvider.getTaskUsers();
         custProvider.getLeadCategory();
         custProvider.getVisitType();
         custProvider.getCmtType();
       } else {
         taskProvider.getAllTypes();
         taskProvider.getTypeSts();
-        taskProvider.getTaskUsers();
         custProvider.getLead();
         custProvider.getVisit();
         custProvider.getCommentType();
       }
 
+      // Task list + filter -> ONLY HERE (not in the child)
       taskProvider.initFilterValue(
         true,
         date1: widget.date1,
@@ -100,7 +100,6 @@ class _ViewTaskState extends State<ViewTask> with SingleTickerProviderStateMixin
         type: widget.type,
       );
       taskProvider.dataSource = _getDataSource();
-      taskProvider.getTaskUsers();
       taskProvider.getAllIncompleteTask(
         true,
         date1: widget.date1,
@@ -109,38 +108,45 @@ class _ViewTaskState extends State<ViewTask> with SingleTickerProviderStateMixin
       );
     });
   }
+
   @override
-
   void dispose() {
+    if (kDebugMode) debugPrint('>>> ViewTask dispose');
     tabController.dispose();
-
     _myFocusScopeNode.dispose();
     super.dispose();
   }
+
   @override
   Widget build(BuildContext context) {
-    var webHeight=MediaQuery.of(context).size.width * 0.5;
-    var phoneHeight=MediaQuery.of(context).size.width * 0.95;
+    var webHeight = MediaQuery.of(context).size.width * 0.5;
+    var phoneHeight = MediaQuery.of(context).size.width * 0.95;
 
-    return Consumer3<TaskProvider,HomeProvider,LocationProvider>(
-        builder: (context, taskProvider, homeProvider,locPvr, _) {
+    // Only TaskProvider triggers rebuild. HomeProvider is read once (no listen).
+    // Selector: rebuilds ONLY when provider data really changes (dataVersion).
+    // The 1-second timer ticker no longer rebuilds the whole task list.
+    return Selector<TaskProvider, int>(
+        selector: (_, p) => p.dataVersion,
+        builder: (context, _, __) {
+          final taskProvider = context.read<TaskProvider>();
+          final homeProvider = context.read<HomeProvider>();
+
           return FocusScope(
             node: _myFocusScopeNode,
             child: Scaffold(
               backgroundColor: colorsConst.bacColor,
               appBar: PreferredSize(
-                preferredSize:  Size(300, 50),
+                preferredSize: const Size(300, 50),
                 child: CustomAppbar(
                   text: "${constValue.viewTask}",
                   callback: () {
                     _myFocusScopeNode.unfocus();
                     homeProvider.updateIndex(0);
-                    utils.navigatePage(context, () => const DashBoard(child: HomePage()));
+                    utils.navigateAndClear(context, () => const DashBoard(child: HomePage()));
                   },
-                  //   isButton: homeProvider.roleAccess.any((f) => f['feature'] == 'Task Management'&&f['name'] == 'Create')? true : false, // ✅ FIX: was missing
-                  isLoading: taskProvider.isAddTaskLoading, // ✅ FIX: was hardcoded `true`
+                  isLoading: taskProvider.isAddTaskLoading,
                   buttonCallback: () async {
-                    if (taskProvider.isAddTaskLoading) return; // 🔒 double-tap block
+                    if (taskProvider.isAddTaskLoading) return; // double-tap block
 
                     setState(() {
                       taskProvider.isAddTaskLoading = true;
@@ -171,12 +177,12 @@ class _ViewTaskState extends State<ViewTask> with SingleTickerProviderStateMixin
                   _myFocusScopeNode.unfocus();
                   homeProvider.updateIndex(0);
                   if (!didPop) {
-                    utils.navigatePage(context, ()=>const DashBoard(child: HomePage()));
+                    utils.navigateAndClear(context, () => const DashBoard(child: HomePage()));
                   }
                 },
                 child: Center(
                   child: SizedBox(
-                    width: kIsWeb?webHeight:phoneHeight,
+                    width: kIsWeb ? webHeight : phoneHeight,
                     child: Column(
                       children: [
                         20.height,
@@ -188,28 +194,28 @@ class _ViewTaskState extends State<ViewTask> with SingleTickerProviderStateMixin
                             ),
                             child: TabBar(
                               indicator: customDecoration.baseBackgroundDecoration(
-                                  radius: 30,
-                                  color:colorsConst.primary
-                              ),
+                                  radius: 30, color: colorsConst.primary),
                               indicatorSize: TabBarIndicatorSize.tab,
                               labelColor: Colors.white,
                               unselectedLabelColor: Colors.black,
                               controller: tabController,
-                              tabs:  [
-                                Tab(child:Text("Tasks",style:TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontFamily:'Lato'))),
-                                Tab(child:Text("Calendar",style:TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontFamily:'Lato'))),
+                              tabs: const [
+                                Tab(
+                                    child: Text("Tasks",
+                                        style: TextStyle(
+                                            fontWeight: FontWeight.bold, fontFamily: 'Lato'))),
+                                Tab(
+                                    child: Text("Calendar",
+                                        style: TextStyle(
+                                            fontWeight: FontWeight.bold, fontFamily: 'Lato'))),
                               ],
-                            )
-                        ),
+                            )),
                         Expanded(
                           child: TabBarView(
                             controller: tabController,
                             children: [
-                              ViewfilterUserData(date1: widget.date1,date2:widget.date2,type:widget.type),
+                              ViewfilterUserData(
+                                  date1: widget.date1, date2: widget.date2, type: widget.type),
                               TaskCalendar(taskPvr: taskProvider),
                             ],
                           ),
@@ -223,64 +229,112 @@ class _ViewTaskState extends State<ViewTask> with SingleTickerProviderStateMixin
           );
         });
   }
+
   _DataSource _getDataSource() {
     List<Appointment> appointments = <Appointment>[];
     return _DataSource(appointments);
   }
 }
 
-
-
+/// ---------------------------------------------------------------------------
+/// CHILD TAB: only shows the data. NO API calls here.
+/// Lazy loading: first 15 tasks kaatum, scroll panna innum 15 15 ah add aagum.
+/// ---------------------------------------------------------------------------
 class ViewfilterUserData extends StatefulWidget {
   final String date1;
   final String date2;
   final String type;
-  const ViewfilterUserData({super.key,required this.date1, required this.date2, required this.type});
+  const ViewfilterUserData(
+      {super.key, required this.date1, required this.date2, required this.type});
 
   @override
   State<ViewfilterUserData> createState() => _ViewfilterUserDataState();
 }
 
-class _ViewfilterUserDataState extends State<ViewfilterUserData>{
+class _ViewfilterUserDataState extends State<ViewfilterUserData>
+    with AutomaticKeepAliveClientMixin {
   final FocusScopeNode _myFocusScopeNode = FocusScopeNode();
+
+  // ✅ lazy loading
+  final ScrollController _scrollController = ScrollController();
+  static const int _pageSize = 15;
+  int _visibleCount = _pageSize;
+  bool _isLoadingMore = false;
+
+  @override
+  bool get wantKeepAlive => true; // tab switch panna list rebuild / reset aagaadhu
+
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final taskProvider = Provider.of<TaskProvider>(context, listen: false);
-      taskProvider.initFilterValue(true,date1:widget.date1,date2:widget.date2,type:widget.type);
-      taskProvider.dataSource = _getDataSource();
-      taskProvider.getAllIncompleteTask(true,date1:widget.date1,date2:widget.date2,type:widget.type);
-      if(localData.storage.read("role")=="1"){
-        taskProvider.getTaskUsers();
-      }
-    });
+    _scrollController.addListener(_onScroll);
   }
+
+  void _onScroll() {
+    if (_isLoadingMore) return;
+    if (!_scrollController.hasClients) return;
+
+    final total = context.read<TaskProvider>().filterUserData.length;
+    if (_visibleCount >= total) return;
+
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 300) {
+      setState(() => _isLoadingMore = true);
+      Future.delayed(const Duration(milliseconds: 300), () {
+        if (!mounted) return;
+        setState(() {
+          _visibleCount += _pageSize;
+          _isLoadingMore = false;
+        });
+      });
+    }
+  }
+
+  // ✅ search / filter / tab maathum bodhu thirumba first 15 ku reset
+  void _resetPaging() {
+    if (!mounted) return;
+    setState(() => _visibleCount = _pageSize);
+    if (_scrollController.hasClients) _scrollController.jumpTo(0);
+  }
+
   @override
   void dispose() {
+    if (kDebugMode) debugPrint('>>> ViewfilterUserData dispose');
+    _scrollController.dispose();
     _myFocusScopeNode.dispose();
     super.dispose();
   }
+
   @override
   Widget build(BuildContext context) {
-    var webHeight=MediaQuery.of(context).size.width * 0.5;
-    var phoneHeight=MediaQuery.of(context).size.width * 0.95;
-    return Consumer3<TaskProvider,HomeProvider,LocationProvider>(
-        builder: (context, taskProvider, homeProvider,locPvr, _) {
+    super.build(context); // required for keep-alive
+    if (kDebugMode) debugPrint('>>> ViewfilterUserData rebuild');
+    var webHeight = MediaQuery.of(context).size.width * 0.5;
+    var phoneHeight = MediaQuery.of(context).size.width * 0.95;
+
+    // Only TaskProvider triggers rebuild (Location/Home providers removed).
+    // Selector: rebuilds ONLY when provider data really changes (dataVersion).
+    // The 1-second timer ticker no longer rebuilds the whole task list.
+    return Selector<TaskProvider, int>(
+        selector: (_, p) => p.dataVersion,
+        builder: (context, _, __) {
+          final taskProvider = context.read<TaskProvider>();
+          final homeProvider = context.read<HomeProvider>();
+
           return FocusScope(
             node: _myFocusScopeNode,
             child: Scaffold(
-              backgroundColor: Color(0xffEAEAEA),
-              body: taskProvider.viewRefresh==false?
-              const Loading():
-              Column(
+              backgroundColor: const Color(0xffEAEAEA),
+              body: taskProvider.viewRefresh == false
+                  ? const Loading()
+                  : Column(
                 children: [
                   10.height,
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Container(
-                        width: kIsWeb?webHeight/1.2:phoneHeight/1.4,
+                        width: kIsWeb ? webHeight / 1.2 : phoneHeight / 1.4,
                         decoration: customDecoration.baseBackgroundDecoration(
                           radius: 30,
                           color: colorsConst.primary,
@@ -289,13 +343,13 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Container(
-                              width: kIsWeb?webHeight/1.5:phoneHeight/1.8,
+                              width: kIsWeb ? webHeight / 1.5 : phoneHeight / 1.8,
                               height: 45,
                               decoration: customDecoration.baseBackgroundDecoration(
                                 radius: 30,
                                 color: Colors.transparent,
                               ),
-                              child:TextFormField(
+                              child: TextFormField(
                                 controller: taskProvider.search,
                                 cursorColor: colorsConst.primary,
                                 style: const TextStyle(
@@ -303,6 +357,7 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
                                   fontSize: 14,
                                 ),
                                 onChanged: (value) {
+                                  _resetPaging();
                                   Future.microtask(() {
                                     taskProvider.searchTask(value);
                                   });
@@ -315,7 +370,6 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
                                   ),
                                   fillColor: Colors.white,
                                   filled: true,
-
                                   prefixIcon: const Icon(
                                     Icons.search,
                                     color: Colors.grey,
@@ -328,8 +382,8 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
                                     ),
                                     onPressed: () {
                                       taskProvider.search.clear();
-
                                       taskProvider.searchTask("");
+                                      _resetPaging();
                                     },
                                   )
                                       : null,
@@ -337,19 +391,16 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
                                     horizontal: 20,
                                     vertical: 14,
                                   ),
-
                                   border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(30), // 🔥 Round Edge
+                                    borderRadius: BorderRadius.circular(30),
                                     borderSide: BorderSide.none,
                                   ),
-
                                   enabledBorder: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(30),
                                     borderSide: BorderSide(
                                       color: Colors.grey.shade300,
                                     ),
                                   ),
-
                                   focusedBorder: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(30),
                                     borderSide: BorderSide(
@@ -361,317 +412,24 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
                               ),
                             ),
                             InkWell(
-                              onTap: (){
+                              onTap: () {
                                 _myFocusScopeNode.unfocus();
+                                // lazy load: filter dialog ku mattum thevai
+                                final cust = context.read<CustomerProvider>();
+                                final emp = context.read<EmployeeProvider>();
+                                if (cust.customer.isEmpty) cust.getAllCustomers(true);
+                                if (emp.activeEmps.isEmpty) emp.getAllUsers(isRefresh: false);
                                 if (!taskProvider.typeList.any((e) => e['value'] == 'All')) {
                                   taskProvider.typeList.insert(0, {
                                     "id": "",
                                     "value": "All",
                                   });
                                 }
-                                showDialog(
-                                  context: context,
-                                  builder: (context) {
-                                    return Consumer3<TaskProvider,CustomerProvider,EmployeeProvider>(
-                                      builder: (context, taskProvider,cusPvr,empProvider, _) {
-                                        return AlertDialog(
-                                          actions: [
-                                            SizedBox(
-                                              width: kIsWeb?MediaQuery.of(context).size.width*0.3:MediaQuery.of(context).size.width*0.9,
-                                              child: Column(
-                                                crossAxisAlignment: CrossAxisAlignment.start,
-                                                children: [
-                                                  20.height,
-                                                  Row(
-                                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                                    children: [
-                                                      70.width,
-                                                      const CustomText(
-                                                        text: 'Filters',
-                                                        colors: Colors.black,
-                                                        size: 16,
-                                                        isBold: true,
-                                                      ),
-                                                      30.width,
-                                                      InkWell(
-                                                        onTap: () {
-                                                          taskProvider.initFilterValue(true,date1:widget.date1,date2:widget.date2,type:widget.type);
-                                                          Navigator.of(context, rootNavigator: true).pop();
-
-                                                        },
-                                                        child: SvgPicture.asset(assets.cancel),
-                                                      )
-                                                    ],
-                                                  ),
-                                                  20.height,
-                                                  Row(
-                                                    children: [
-                                                      Expanded(
-                                                        child: Column(
-                                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                                          children: [
-                                                            CustomText(
-                                                              text: "From Date",
-                                                              colors: colorsConst.greyClr,
-                                                              size: 12,
-                                                            ),
-                                                            InkWell(
-                                                              onTap: () {
-                                                                taskProvider.filterPick(
-                                                                  context: context,
-                                                                  isStartDate: true,
-                                                                  date: taskProvider.startDate,
-                                                                );
-                                                              },
-                                                              child: Container(
-                                                                height: 30,
-                                                                width: double.infinity, // 🔥 IMPORTANT
-                                                                decoration: customDecoration.baseBackgroundDecoration(
-                                                                  color: Colors.white,
-                                                                  radius: 5,
-                                                                  borderColor: colorsConst.litGrey,
-                                                                ),
-                                                                child: Row(
-                                                                  mainAxisAlignment: MainAxisAlignment.center,
-                                                                  children: [
-                                                                    Expanded(
-                                                                      child: CustomText(
-                                                                        text: taskProvider.startDate,
-                                                                        //overflow: TextOverflow.ellipsis, // 🔥 FIX
-                                                                      ),
-                                                                    ),
-                                                                    5.width,
-                                                                    SvgPicture.asset(assets.calendar2),
-                                                                  ],
-                                                                ),
-                                                              ),
-                                                            )
-                                                          ],
-                                                        ),
-                                                      ),
-
-                                                      10.width,
-
-                                                      Expanded(
-                                                        child: Column(
-                                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                                          children: [
-                                                            CustomText(
-                                                              text: "To Date",
-                                                              colors: colorsConst.greyClr,
-                                                              size: 12,
-                                                            ),
-                                                            InkWell(
-                                                              onTap: () {
-                                                                taskProvider.filterPick(
-                                                                  context: context,
-                                                                  isStartDate: false,
-                                                                  date: taskProvider.endDate,
-                                                                );
-                                                              },
-                                                              child: Container(
-                                                                height: 30,
-                                                                width: double.infinity, // 🔥 IMPORTANT
-                                                                decoration: customDecoration.baseBackgroundDecoration(
-                                                                  color: Colors.white,
-                                                                  radius: 5,
-                                                                  borderColor: colorsConst.litGrey,
-                                                                ),
-                                                                child: Row(
-                                                                  mainAxisAlignment: MainAxisAlignment.center,
-                                                                  children: [
-                                                                    Expanded(
-                                                                      child: CustomText(
-                                                                        text: taskProvider.endDate,
-                                                                        //overflow: TextOverflow.ellipsis, // 🔥 FIX
-                                                                      ),
-                                                                    ),
-                                                                    5.width,
-                                                                    SvgPicture.asset(assets.calendar2),
-                                                                  ],
-                                                                ),
-                                                              ),
-                                                            )
-                                                          ],
-                                                        ),
-                                                      ),
-                                                    ],
-                                                  ),
-                                                  10.height,
-                                                  Row(
-                                                    children: [
-
-                                                      Expanded(
-                                                        child: Column(
-                                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                                          children: [
-
-                                                            CustomText(
-                                                              text: "Select Date Range",
-                                                              colors: colorsConst.greyClr,
-                                                              size: 12,
-                                                            ),
-
-                                                            Container(
-                                                              height: 30,
-                                                              decoration: customDecoration.baseBackgroundDecoration(
-                                                                radius: 5,
-                                                                color: Colors.white,
-                                                                borderColor: colorsConst.litGrey,
-                                                              ),
-                                                              child: DropdownButton<String>(
-                                                                value: taskProvider.filterTypeList.contains(taskProvider.filterType)
-                                                                    ? taskProvider.filterType
-                                                                    : null,
-                                                                isExpanded: true,
-                                                                underline: const SizedBox(),
-                                                                icon: const Icon(Icons.keyboard_arrow_down_outlined),
-                                                                onChanged: (value) {
-                                                                  if (value != null) {
-                                                                    taskProvider.changeFilterType(value);
-                                                                  }
-                                                                },
-                                                                items: taskProvider.filterTypeList
-                                                                    .toSet()
-                                                                    .map<DropdownMenuItem<String>>((list) {
-                                                                  return DropdownMenuItem<String>(
-                                                                    value: list,
-                                                                    child: CustomText(text: "  $list"),
-                                                                  );
-                                                                }).toList(),
-                                                              ),
-                                                            ),
-                                                          ],
-                                                        ),
-                                                      ),
-
-                                                      10.width,
-
-                                                      Expanded(
-                                                        child: localData.storage.read("role") == "1"
-                                                            ? SearchCustomDropdown(
-                                                          text: "Employee Name",
-
-                                                          hintText: taskProvider.assignedId == ""
-                                                              ? ""
-                                                              : taskProvider.assignedNames,
-                                                          valueList: empProvider.activeEmps,
-                                                          onChanged: (value) {},
-                                                          width: double.infinity,
-                                                        )
-                                                            : const SizedBox(),
-                                                      ),
-                                                    ],
-                                                  ),
-
-                                                  10.height,
-                                                  Row(
-                                                    children: [
-
-                                                      Expanded(
-                                                        child: Column(
-                                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                                          children: [
-
-                                                            CustomText(
-                                                              text: constValue.type,
-                                                              colors: colorsConst.greyClr,
-                                                              size: 12,
-                                                            ),
-
-                                                            MapDropDown(
-                                                              saveValue: taskProvider.type,
-                                                              hintText: constValue.type,
-                                                              isHint: false,
-                                                              onChanged: (value) {
-                                                                taskProvider.checkFilterType(value);
-                                                              },
-                                                              dropText: 'value',
-                                                              list: taskProvider.typeList.toSet().toList(),
-                                                            ),
-                                                          ],
-                                                        ),
-                                                      ),
-
-                                                      10.width,
-
-                                                      Expanded(
-                                                        child: Column(
-                                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                                          children: [
-
-                                                            CustomText(
-                                                              text: constValue.companyName,
-                                                              colors: colorsConst.greyClr,
-                                                              size: 12,
-                                                            ),
-
-                                                            cusPvr.customer.isEmpty
-                                                                ? const SizedBox(
-                                                              height: 30,
-                                                              child: Center(
-                                                                child: CircularProgressIndicator(strokeWidth: 2),
-                                                              ),
-                                                            )
-                                                                : CustomerDropdown(
-                                                              text: taskProvider.companyName.isEmpty
-                                                                  ? constValue.companyName
-                                                                  : taskProvider.companyName,
-                                                              isRequired: false,
-                                                              hintText: false,
-                                                              employeeList: cusPvr.customer,
-                                                              onChanged: (CustomerModel? value) {
-                                                                taskProvider.changeName(value);
-                                                              },
-                                                              size: double.infinity,
-                                                            ),
-                                                          ],
-                                                        ),
-                                                      ),
-                                                    ],
-                                                  ),
-                                                  20.height,
-                                                  Row(
-                                                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                                                    children: [
-                                                      CustomBtn(
-                                                        width: 100,
-                                                        text: 'Clear All',
-                                                        callback: () {
-                                                          taskProvider.initFilterValue(true,date1:widget.date1,date2:widget.date2,type:widget.type);
-                                                          Navigator.of(context, rootNavigator: true).pop();
-                                                        },
-                                                        bgColor: Colors.grey.shade200,
-                                                        textColor: Colors.black,
-                                                      ),
-                                                      CustomBtn(
-                                                        width: 100,
-                                                        text: 'Apply Filters',
-                                                        callback: () {
-                                                          taskProvider.initFilterValue(false);
-                                                          taskProvider.filterList();
-                                                          taskProvider.applyDateAndStatusFilter();
-                                                          Navigator.of(context, rootNavigator: true).pop();
-                                                        },
-                                                        bgColor: colorsConst.primary,
-                                                        textColor: Colors.white,
-                                                      ),
-                                                    ],
-                                                  ),
-                                                  20.height,
-                                                ],
-                                              ),
-                                            )
-                                          ],
-                                        );
-                                      },
-                                    );
-                                  },
-                                );
+                                _showFilterDialog();
                               },
-                              child: Padding(
-                                padding: const EdgeInsets.all(6.0),
-                                child:  Icon(
+                              child: const Padding(
+                                padding: EdgeInsets.all(6.0),
+                                child: Icon(
                                   Icons.filter_alt,
                                   size: 27,
                                   color: Colors.white,
@@ -680,52 +438,27 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
                             ),
                             5.width
                           ],
-                        ),),
+                        ),
+                      ),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.end,
                         children: [
-                          // downloadAllOnlyEmpTask
-                          localData.storage.read("role").toString() == "1"
-                              ? InkWell(
+                          // Admin -> full report | Employee -> only assigned (same call)
+                          InkWell(
                             onTap: () async {
-                              taskProvider.downloadAllOnlyEmpTask(context); // Admin full report
+                              taskProvider.downloadAllOnlyEmpTask(context);
                             },
                             borderRadius: BorderRadius.circular(12),
                             child: Column(
                               mainAxisSize: MainAxisSize.min,
-                              children: [
+                              children: const [
                                 Icon(
                                   Icons.download_rounded,
                                   size: 27,
                                   color: Colors.red,
                                 ),
-                                const SizedBox(height: 5),
-                                const Text(
-                                  "Task",
-                                  style: TextStyle(
-                                    color: Colors.black,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 12,
-                                  ),
-                                )
-                              ],
-                            ),
-                          )
-                              : InkWell(
-                            onTap: () async {
-                              taskProvider.downloadAllOnlyEmpTask(context); // Employee only assigned
-                            },
-                            borderRadius: BorderRadius.circular(12),
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  Icons.download_rounded,
-                                  size: 27,
-                                  color: Colors.red,
-                                ),
-                                const SizedBox(height: 5),
-                                const Text(
+                                SizedBox(height: 5),
+                                Text(
                                   "Task",
                                   style: TextStyle(
                                     color: Colors.black,
@@ -744,14 +477,14 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
                             borderRadius: BorderRadius.circular(12),
                             child: Column(
                               mainAxisSize: MainAxisSize.min,
-                              children: [
+                              children: const [
                                 Icon(
                                   Icons.download_rounded,
                                   size: 27,
                                   color: Colors.red,
                                 ),
-                                const SizedBox(width: 8),
-                                const Text(
+                                SizedBox(width: 8),
+                                Text(
                                   "Comments",
                                   style: TextStyle(
                                     color: Colors.black,
@@ -762,23 +495,17 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
                               ],
                             ),
                           )
-
                         ],
                       ),
-
                     ],
-                  )
-                  ,10.height,
+                  ),
+                  10.height,
                   Padding(
                     padding: const EdgeInsets.all(8.0),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-
-
-
-
-                        /// ✅ STATUS TABS (Search கீழே)
+                        /// STATUS TABS
                         SizedBox(
                           height: 40,
                           child: ListView(
@@ -791,24 +518,16 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
                             ],
                           ),
                         ),
-
                         10.height,
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             CustomText(
-                              text: taskProvider.isFilter!=true?"Today: ${taskProvider.startDate}":"",
-                              //overflow: TextOverflow.ellipsis, // 🔥 FIX
+                              text: taskProvider.isFilter != true
+                                  ? "Today: ${taskProvider.startDate}"
+                                  : "",
                             ),
-                            if(taskProvider.isFilter==true)
-                            // const Text(
-                            //   "Filters Selected",
-                            //   style: TextStyle(
-                            //     fontSize: 13,
-                            //     fontWeight: FontWeight.bold,
-                            //   ),
-                            // ),
-
+                            if (taskProvider.isFilter == true)
                               Text(
                                 "Total Tasks : ${taskProvider.filterUserData.length}",
                                 style: const TextStyle(
@@ -820,95 +539,395 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
                           ],
                         ),
                         6.height,
-                        if(taskProvider.isFilter==true)
-
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-
-                            ],
-                          ),
                       ],
                     ),
                   ),
-                  taskProvider.filterUserData.isEmpty||(taskProvider.statusId!=""&&taskProvider.matched==0)?
-                  Column(
+                  taskProvider.filterUserData.isEmpty ||
+                      (taskProvider.statusId != "" && taskProvider.matched == 0)
+                      ? Column(
                     children: [
                       100.height,
-                      CustomText(text: "No Task Found",
-                          colors: colorsConst.greyClr)
+                      CustomText(text: "No Task Found", colors: colorsConst.greyClr)
                     ],
-                  ) :
-                  Expanded(
-                    child: ListView.builder(
-                      itemCount: taskProvider.filterUserData.length,
-                      itemBuilder: (context, index) {
-                        final sortedData = taskProvider.filterUserData;
-                        final data = sortedData[index];
-                        String timestamp = data.createdTs.toString();
-                        DateTime dateTime = DateTime.parse(timestamp);
+                  )
+                      : Expanded(
+                    child: Builder(builder: (context) {
+                      final total = taskProvider.filterUserData.length;
+                      final visible = _visibleCount > total ? total : _visibleCount;
+                      final hasMore = visible < total;
 
-                        DateTime today = DateTime.now();
-                        String headerText;
-
-                        if (dateTime.year == today.year &&
-                            dateTime.month == today.month &&
-                            dateTime.day == today.day) {
-                          headerText = "Today";
-                        } else if (dateTime.isAfter(today.subtract(const Duration(days: 1))) &&
-                            dateTime.isBefore(today)) {
-                          headerText = "Yesterday";
-                        } else {
-                          headerText = "${dateTime.day}/${dateTime.month}/${dateTime.year}";
-                        }
-
-                        String createdBy = "${dateTime.day}/${dateTime.month}/${dateTime.year}";
-
-                        final showDateHeader = index == 0 || createdBy != getCreatedDate(sortedData[index - 1]);
-                        return Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            if (showDateHeader)
-                              Padding(
-                                padding: const EdgeInsets.fromLTRB(8, 0, 0, 0),
-                                child: CustomText(
-                                  text: headerText,
-                                  colors: colorsConst.greyClr,
-                                  size: 13,
-                                  isBold: true,
+                      return ListView.builder(
+                        controller: _scrollController,
+                        physics: const ClampingScrollPhysics(),
+                        cacheExtent: 600,
+                        addAutomaticKeepAlives: false,
+                        itemCount: hasMore ? visible + 1 : visible,
+                        itemBuilder: (context, index) {
+                          // ✅ last la loader kaatu
+                          if (index == visible) {
+                            return const Padding(
+                              padding: EdgeInsets.symmetric(vertical: 20),
+                              child: Center(
+                                child: SizedBox(
+                                  width: 24,
+                                  height: 24,
+                                  child: CircularProgressIndicator(strokeWidth: 2),
                                 ),
                               ),
-                            _taskCard(data,taskProvider,homeProvider,index),
-                            if (index == taskProvider.filterUserData.length - 1)
-                              50.height,
-                          ],
-                        );
-                      },
-                    ),
+                            );
+                          }
+
+                          final sortedData = taskProvider.filterUserData;
+                          final data = sortedData[index];
+                          String timestamp = data.createdTs.toString();
+                          DateTime dateTime = DateTime.parse(timestamp);
+
+                          DateTime today = DateTime.now();
+                          String headerText;
+
+                          if (dateTime.year == today.year &&
+                              dateTime.month == today.month &&
+                              dateTime.day == today.day) {
+                            headerText = "Today";
+                          } else if (dateTime
+                              .isAfter(today.subtract(const Duration(days: 1))) &&
+                              dateTime.isBefore(today)) {
+                            headerText = "Yesterday";
+                          } else {
+                            headerText =
+                            "${dateTime.day}/${dateTime.month}/${dateTime.year}";
+                          }
+
+                          String createdBy =
+                              "${dateTime.day}/${dateTime.month}/${dateTime.year}";
+
+                          final showDateHeader = index == 0 ||
+                              createdBy != getCreatedDate(sortedData[index - 1]);
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              if (showDateHeader)
+                                Padding(
+                                  padding: const EdgeInsets.fromLTRB(8, 0, 0, 0),
+                                  child: CustomText(
+                                    text: headerText,
+                                    colors: colorsConst.greyClr,
+                                    size: 13,
+                                    isBold: true,
+                                  ),
+                                ),
+                              // ✅ RepaintBoundary -> scroll smooth ah irukka
+                              RepaintBoundary(
+                                child: KeyedSubtree(
+                                  key: ValueKey('task_${data.id}'),
+                                  child: _taskCard(data, taskProvider, homeProvider, index),
+                                ),
+                              ),
+                              if (index == visible - 1 && !hasMore) 50.height,
+                            ],
+                          );
+                        },
+                      );
+                    }),
                   ),
-
-
                 ],
               ),
             ),
           );
         });
   }
-  Widget _filterChip(String text) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: Color(0xff353535),
-        borderRadius: BorderRadius.circular(5),
-      ),
-      child: Text(
-        text,
-        style: const TextStyle(
-          color: Color(0xffF5F5F5),
-          fontSize: 12,
-          fontWeight: FontWeight.w500,
-        ),
-      ),
+
+  // -------------------------------------------------------------------------
+  // FILTER DIALOG
+  // -------------------------------------------------------------------------
+  void _showFilterDialog() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return Consumer3<TaskProvider, CustomerProvider, EmployeeProvider>(
+          builder: (context, taskProvider, cusPvr, empProvider, _) {
+            return AlertDialog(
+              actions: [
+                SizedBox(
+                  width: kIsWeb
+                      ? MediaQuery.of(context).size.width * 0.3
+                      : MediaQuery.of(context).size.width * 0.9,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      20.height,
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          70.width,
+                          const CustomText(
+                            text: 'Filters',
+                            colors: Colors.black,
+                            size: 16,
+                            isBold: true,
+                          ),
+                          30.width,
+                          InkWell(
+                            onTap: () {
+                              taskProvider.initFilterValue(true,
+                                  date1: widget.date1, date2: widget.date2, type: widget.type);
+                              _resetPaging();
+                              Navigator.of(context, rootNavigator: true).pop();
+                            },
+                            child: SvgPicture.asset(assets.cancel),
+                          )
+                        ],
+                      ),
+                      20.height,
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                CustomText(
+                                  text: "From Date",
+                                  colors: colorsConst.greyClr,
+                                  size: 12,
+                                ),
+                                InkWell(
+                                  onTap: () {
+                                    taskProvider.filterPick(
+                                      context: context,
+                                      isStartDate: true,
+                                      date: taskProvider.startDate,
+                                    );
+                                  },
+                                  child: Container(
+                                    height: 30,
+                                    width: double.infinity,
+                                    decoration: customDecoration.baseBackgroundDecoration(
+                                      color: Colors.white,
+                                      radius: 5,
+                                      borderColor: colorsConst.litGrey,
+                                    ),
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Expanded(
+                                          child: CustomText(
+                                            text: taskProvider.startDate,
+                                          ),
+                                        ),
+                                        5.width,
+                                        SvgPicture.asset(assets.calendar2),
+                                      ],
+                                    ),
+                                  ),
+                                )
+                              ],
+                            ),
+                          ),
+                          10.width,
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                CustomText(
+                                  text: "To Date",
+                                  colors: colorsConst.greyClr,
+                                  size: 12,
+                                ),
+                                InkWell(
+                                  onTap: () {
+                                    taskProvider.filterPick(
+                                      context: context,
+                                      isStartDate: false,
+                                      date: taskProvider.endDate,
+                                    );
+                                  },
+                                  child: Container(
+                                    height: 30,
+                                    width: double.infinity,
+                                    decoration: customDecoration.baseBackgroundDecoration(
+                                      color: Colors.white,
+                                      radius: 5,
+                                      borderColor: colorsConst.litGrey,
+                                    ),
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Expanded(
+                                          child: CustomText(
+                                            text: taskProvider.endDate,
+                                          ),
+                                        ),
+                                        5.width,
+                                        SvgPicture.asset(assets.calendar2),
+                                      ],
+                                    ),
+                                  ),
+                                )
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      10.height,
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                CustomText(
+                                  text: "Select Date Range",
+                                  colors: colorsConst.greyClr,
+                                  size: 12,
+                                ),
+                                Container(
+                                  height: 30,
+                                  decoration: customDecoration.baseBackgroundDecoration(
+                                    radius: 5,
+                                    color: Colors.white,
+                                    borderColor: colorsConst.litGrey,
+                                  ),
+                                  child: DropdownButton<String>(
+                                    value: taskProvider.filterTypeList
+                                        .contains(taskProvider.filterType)
+                                        ? taskProvider.filterType
+                                        : null,
+                                    isExpanded: true,
+                                    underline: const SizedBox(),
+                                    icon: const Icon(Icons.keyboard_arrow_down_outlined),
+                                    onChanged: (value) {
+                                      if (value != null) {
+                                        taskProvider.changeFilterType(value);
+                                      }
+                                    },
+                                    items: taskProvider.filterTypeList
+                                        .toSet()
+                                        .map<DropdownMenuItem<String>>((list) {
+                                      return DropdownMenuItem<String>(
+                                        value: list,
+                                        child: CustomText(text: "  $list"),
+                                      );
+                                    }).toList(),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          10.width,
+                          Expanded(
+                            child: localData.storage.read("role") == "1"
+                                ? SearchCustomDropdown(
+                              text: "Employee Name",
+                              hintText: taskProvider.assignedId == ""
+                                  ? ""
+                                  : taskProvider.assignedNames,
+                              valueList: empProvider.activeEmps,
+                              onChanged: (value) {},
+                              width: double.infinity,
+                            )
+                                : const SizedBox(),
+                          ),
+                        ],
+                      ),
+                      10.height,
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                CustomText(
+                                  text: constValue.type,
+                                  colors: colorsConst.greyClr,
+                                  size: 12,
+                                ),
+                                MapDropDown(
+                                  saveValue: taskProvider.type,
+                                  hintText: constValue.type,
+                                  isHint: false,
+                                  onChanged: (value) {
+                                    taskProvider.checkFilterType(value);
+                                  },
+                                  dropText: 'value',
+                                  list: taskProvider.typeList.toSet().toList(),
+                                ),
+                              ],
+                            ),
+                          ),
+                          10.width,
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                CustomText(
+                                  text: constValue.companyName,
+                                  colors: colorsConst.greyClr,
+                                  size: 12,
+                                ),
+                                cusPvr.customer.isEmpty
+                                    ? const SizedBox(
+                                  height: 30,
+                                  child: Center(
+                                    child: CircularProgressIndicator(strokeWidth: 2),
+                                  ),
+                                )
+                                    : CustomerDropdown(
+                                  text: taskProvider.companyName.isEmpty
+                                      ? constValue.companyName
+                                      : taskProvider.companyName,
+                                  isRequired: false,
+                                  hintText: false,
+                                  employeeList: cusPvr.customer,
+                                  onChanged: (CustomerModel? value) {
+                                    taskProvider.changeName(value);
+                                  },
+                                  size: double.infinity,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      20.height,
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          CustomBtn(
+                            width: 100,
+                            text: 'Clear All',
+                            callback: () {
+                              taskProvider.initFilterValue(true,
+                                  date1: widget.date1, date2: widget.date2, type: widget.type);
+                              _resetPaging();
+                              Navigator.of(context, rootNavigator: true).pop();
+                            },
+                            bgColor: Colors.grey.shade200,
+                            textColor: Colors.black,
+                          ),
+                          CustomBtn(
+                            width: 100,
+                            text: 'Apply Filters',
+                            callback: () {
+                              taskProvider.initFilterValue(false);
+                              taskProvider.filterList();
+                              taskProvider.applyDateAndStatusFilter();
+                              _resetPaging();
+                              Navigator.of(context, rootNavigator: true).pop();
+                            },
+                            bgColor: colorsConst.primary,
+                            textColor: Colors.white,
+                          ),
+                        ],
+                      ),
+                      20.height,
+                    ],
+                  ),
+                )
+              ],
+            );
+          },
+        );
+      },
     );
   }
 
@@ -918,6 +937,7 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
     return InkWell(
       onTap: () {
         taskProvider.changeFilterStatusTab(id);
+        _resetPaging();
       },
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 5),
@@ -942,7 +962,9 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
       ),
     );
   }
-  Widget _taskCard(TaskData data,TaskProvider taskPvr,HomeProvider homeProvider,int index) {
+
+  Widget _taskCard(
+      TaskData data, TaskProvider taskPvr, HomeProvider homeProvider, int index) {
     Color priorityBg;
     Color priorityTextColor;
     String priorityText;
@@ -967,34 +989,29 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
         priorityTextColor = Colors.grey;
         priorityText = "Normal";
     }
-    //final Color roleColor = const Color(0xffFF8E1C);
-    final Color roleColor =
-    data.role.toString() == "1"
-        ? const Color(0xffA80007)
-        : const Color(0xffFF8E1C);
-    String fullName =
-    formatAssignedNames(data.assignedNames).split('+').first.trim();
+
+    final formattedNames = formatAssignedNames(data.assignedNames);
+    String fullName = formattedNames.split('+').first.trim();
     String displayName =
     fullName.length > 15 ? "${fullName.substring(0, 15)}..." : fullName;
-    var webWidth=MediaQuery.of(context).size.width * 0.5;
-    var phoneWidth=MediaQuery.of(context).size.width * 0.9;
-    var statusList=data.employeeStatus.toString().split('||');
-    var hoursList=data.employeeHours.toString().split('||');
+
     return Padding(
       padding: const EdgeInsets.all(8.0),
       child: GestureDetector(
-        onTap: (){
+        onTap: () {
           _myFocusScopeNode.unfocus();
           Provider.of<HomeProvider>(context, listen: false).panelClose();
           utils.navigatePage(
-            context, () => DashBoard(
-            child: TaskDetails(
-              data: data,
-              isDirect: true,
-              coId: "0",
-              numberList: const [], index: index,
+            context,
+                () => DashBoard(
+              child: TaskDetails(
+                data: data,
+                isDirect: true,
+                coId: "0",
+                numberList: const [],
+                index: index,
+              ),
             ),
-          ),
           );
         },
         child: Container(
@@ -1010,32 +1027,7 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    /// TITLE
-                    // Row(
-                    //   crossAxisAlignment: CrossAxisAlignment.start,
-                    //   children: [
-                    //     SizedBox(
-                    //       width: kIsWeb ? webWidth / 1.2 : phoneWidth / 1.2,
-                    //       child: ExpandableText(
-                    //         text: data.taskTitle ?? "",
-                    //         trimLines: 2,
-                    //         fontSize: 14,
-                    //         isBold: true,
-                    //       ),
-                    //     ),
-                    //     if(localData.storage.read("role") =="1")
-                    //     Column(
-                    //       children: [
-                    //         InkWell(onTap: (){
-                    //           utils.navigatePage(context, ()=> DashBoard(child: EditTask(
-                    //               data: data,isDirect: false,numberList: [])));
-                    //         }, child: SvgPicture.asset(assets.tEdit,width: 20,height: 20,)),
-                    //         const SizedBox(height: 12),
-                    //
-                    //       ],
-                    //     )
-                    //   ],
-                    // ),
+                    /// TITLE + wages + edit
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -1048,13 +1040,6 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
                           ),
                         ),
                         const SizedBox(width: 6),
-
-                        WagesAddWorkDetails(
-                          taskId: data.id.toString(),
-                        ),
-
-                        const SizedBox(width: 6),
-
                         InkWell(
                           onTap: () {
                             utils.navigatePage(
@@ -1078,300 +1063,229 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
                       ],
                     ),
                     5.height,
+                    if (data.taskDesc != null && data.taskDesc!.trim().isNotEmpty)
+                      CustomText(
+                        text: data.taskDesc!,
+                        size: 12,
+                      ),
+                    5.height,
                     /// ASSIGNED USERS
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-
-                        RichText(
-                          text: TextSpan(
-                            children: [
-                              TextSpan(
-                                text: displayName,
-                                style: const TextStyle(
-                                  color: Color(0xff007AAE),
-                                  fontSize: 15,
-                                ),
-                                recognizer: TapGestureRecognizer()
-                                  ..onTap = () {
-                                    showDialog(
-                                      context: context,
-                                      builder: (context) {
-                                        return AlertDialog(
-                                          title: const Text("Assigned User"),
-                                          content: Text(fullName),
-                                          actions: [
-                                            TextButton(
-                                              onPressed: () => Navigator.pop(context),
-                                              child: const Text("Close"),
-                                            ),
-                                          ],
-                                        );
-                                      },
+                        // GestureDetector instead of TapGestureRecognizer
+                        // (no recognizer created on every build -> no leak)
+                        Flexible(
+                            child: GestureDetector(
+                              onTap: () {
+                                showDialog(
+                                  context: context,
+                                  builder: (context) {
+                                    return AlertDialog(
+                                      title: const Text("Assigned User"),
+                                      content: Text(fullName),
+                                      actions: [
+                                        TextButton(
+                                          onPressed: () => Navigator.pop(context),
+                                          child: const Text("Close"),
+                                        ),
+                                      ],
                                     );
                                   },
+                                );
+                              },
+                              child: RichText(
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                text: TextSpan(
+                                  children: [
+                                    TextSpan(
+                                      text: displayName,
+                                      style: const TextStyle(
+                                        color: Color(0xff007AAE),
+                                        fontSize: 15,
+                                      ),
+                                    ),
+                                    if (formattedNames.contains('+'))
+                                      TextSpan(
+                                        text: " +${formattedNames.split('+').last.trim()}",
+                                        style: const TextStyle(
+                                          color: Color(0xff007AAE),
+                                          fontSize: 11,
+                                        ),
+                                      ),
+                                    if (formattedNames.contains('+'))
+                                      const TextSpan(
+                                        text: " oths",
+                                        style: TextStyle(
+                                          color: Color(0xff007AAE),
+                                          fontSize: 11,
+                                        ),
+                                      ),
+                                  ],
+                                ),
                               ),
-
-                              if (formatAssignedNames(data.assignedNames).contains('+'))
-                                TextSpan(
-                                  text:
-                                  " +${formatAssignedNames(data.assignedNames).split('+').last.trim()}",
-                                  style: const TextStyle(
-                                    color: Color(0xff007AAE),
-                                    fontSize: 11,
-                                  ),
-                                ),
-
-                              if (formatAssignedNames(data.assignedNames).contains('+'))
-                                const TextSpan(
-                                  text: " oths",
-                                  style: TextStyle(
-                                    color: Color(0xff007AAE),
-                                    fontSize: 11,
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ),
-
+                            )),
                         Padding(
-                          padding: const EdgeInsets.fromLTRB(0, 0, 2,0 ),
+                          padding: const EdgeInsets.fromLTRB(0, 0, 2, 0),
                           child: Container(height: 16, width: 2, color: Colors.grey),
                         ),
-                        Column(
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                _statusChip(
-                                  data.statval ?? "",
-                                  data.statval == "Completed"
-                                      ? const Color(0xff1FAF38)
-                                      : Color(0xff007AAE),
-                                  Colors.white,
-                                ),
-                                2.width,
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 7, vertical: 3),
-                                  decoration: BoxDecoration(
-                                    color: priorityBg,
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      Icon(Icons.circle,
-                                          size: 8, color: priorityTextColor),
-                                      const SizedBox(width: 6),
-                                      CustomText(
-                                        text: priorityText,
-                                        colors: priorityTextColor,
-                                        size: 13,
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
+                            _statusChip(
+                              data.statval ?? "",
+                              data.statval == "Completed"
+                                  ? const Color(0xff1FAF38)
+                                  : const Color(0xff007AAE),
+                              Colors.white,
                             ),
-
+                            2.width,
+                            Container(
+                              padding:
+                              const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: priorityBg,
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(Icons.circle, size: 8, color: priorityTextColor),
+                                  const SizedBox(width: 6),
+                                  CustomText(
+                                    text: priorityText,
+                                    colors: priorityTextColor,
+                                    size: 13,
+                                  ),
+                                ],
+                              ),
+                            ),
                           ],
                         ),
                       ],
                     ),
-                    const Divider(thickness: 2,),
-                    if ((data.projectName ?? "").trim().isNotEmpty)
-                      _infoBlock("Company", data.projectName ?? ""),
-                    const SizedBox(height: 5),
-                    if(data.name.toString()!="null"&&data.name.toString()!="")
+                    const Divider(thickness: 2),
+                    Row(
+                      children: [
+                        if ((data.projectName ?? "").trim().isNotEmpty)
+                          _infoBlock("Company", data.projectName ?? ""),
+                        const Spacer(),
+                        WagesAddWorkDetails(
+                          taskId: data.id.toString(),
+                        ),
+                      ],
+                    ),
+                    10.height,
+                    if (data.name.toString() != "null" && data.name.toString() != "")
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              CustomText(text: "Customer",size: 12,colors: const Color(0xff7E7E7E),isBold: true,),
-                              CustomText(text: data.name??'',size: 14,isBold: true,),
+                              CustomText(
+                                text: "Customer",
+                                size: 12,
+                                colors: const Color(0xff7E7E7E),
+                                isBold: true,
+                              ),
+                              CustomText(
+                                text: data.name ?? '',
+                                size: 14,
+                                isBold: true,
+                              ),
                             ],
                           ),
                           Row(
                             children: [
-                              CustomText(text: data.phoneNo??'',size: 14,),5.width,
+                              CustomText(text: data.phoneNo ?? '', size: 14),
+                              5.width,
                               GestureDetector(
-                                onTap: (){
-                                  utils.makingPhoneCall(ph:data.phoneNo.toString());
+                                onTap: () {
+                                  utils.makingPhoneCall(ph: data.phoneNo.toString());
                                 },
-                                child: Icon(Icons.call,color: Colors.blue,),
+                                child: const Icon(Icons.call, color: Colors.blue),
                               )
                             ],
                           )
                         ],
                       ),
-                    //   const SizedBox(height: 5),
-                    /// COMPANY + Task type
+
+                    /// Task type + Task date
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-
-
                         _infoBlock("Task type", data.type ?? ""),
                         _infoBlock("Task Date", data.taskDate ?? ""),
                       ],
                     ),
-                    // Ftaskif(homeProvider.roleAccess.any((f) => f['feature'] == 'Task Management'&&f['name'] == 'Expense'))
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        // TextButton(
-                        //     onPressed: (){
-                        //       _myFocusScopeNode.unfocus();
-                        //       utils.navigatePage(context, ()=> DashBoard(child: CreateExpense(taskId: data.id.toString(),data: data,coId: "",numberList: const [],
-                        //           companyName: data.projectName??'', type: data.type.toString(), desc: data.taskTitle.toString(),
-                        //           date: data.taskDate.toString())));
-                        //     },
-                        //     child: CustomText(text: "Add Expense",colors: colorsConst.blueClr,)),
-                        // TextButton(
-                        //     onPressed: (){
-                        //       _myFocusScopeNode.unfocus();
-                        //       utils.navigatePage(context, ()=>DashBoard(child:
-                        //       TaskReport(taskId: data.id.toString(),coId: data.companyId.toString(),numberList: const [], isTask: true,
-                        //         coName: data.projectName.toString(),description: data.taskTitle.toString(),type: data.type.toString(),
-                        //         callback: () {
-                        //           Future.microtask(() => Navigator.pop(context));
-                        //         }, index: 0,
-                        //       )));
-                        //     },
-                        //     child: CustomText(text: "View Report",colors: colorsConst.appDarkGreen,)),
-                      ],
-                    ),
-                    const Divider(thickness: 2,),
-                    // "employee_status":"Hariharan##Complete##30-07-2026 13:13:00||Santhiya##Complete##30-07-2026 12:57:13","employee_hours":"Hariharan##00:02:07||Santhiya##00:29:53"
-                    // localData.storage.read("role")=="1"&&data.employeeStatus!=''?
-                    // SizedBox(
-                    //   width:kIsWeb?MediaQuery.of(context).size.width*0.5:MediaQuery.of(context).size.width*0.83,
-                    //   child: ListView.builder(
-                    //       shrinkWrap: true,
-                    //       physics: const NeverScrollableScrollPhysics(),
-                    //       itemCount:statusList.length,
-                    //       itemBuilder: (context,index){
-                    //         return Padding(
-                    //           padding: const EdgeInsets.fromLTRB(0, 5, 0, 0),
-                    //           child: Row(
-                    //             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    //             children: [
-                    //               Row(
-                    //                 children: [
-                    //                   Icon(Icons.person_outline_sharp,color: Colors.grey,size: 20,),
-                    //                   Column(
-                    //                     crossAxisAlignment: CrossAxisAlignment.start,
-                    //                     children: [
-                    //                       CustomText(text: statusList[index].split("##")[0],isBold: true,colors: colorsConst.pink2),
-                    //                       Row(
-                    //                         children: [
-                    //                           CustomText(text: statusList[index].split("##")[1]),
-                    //                         ],
-                    //                       ),
-                    //                     ],
-                    //                   ),
-                    //                 ],
-                    //               ),
-                    //               CustomText(text: "Working Time : ${hoursList[index]==""?"0 sec":taskPvr.formatHours(hoursList[index].split("##")[1])}"),
-                    //             ],
-                    //           ),
-                    //         );
-                    //       }),
-                    // ):
-                    // Row(
-                    //   mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    //   children: [
-                    //     Row(
-                    //       children: [
-                    //         CustomText(text: "Status : "),
-                    //         CustomText(text: "${data.workStatus}",isBold: true,colors: colorsConst.orange,),
-                    //       ],
-                    //     ),
-                    //     CustomText(text: "Total Hours : ${data.totalHours.toString()=="null"?"0 Sec":taskPvr.formatHours(data.totalHours.toString())}"),
-                    //   ],
-                    // ),5.height,
-                    // if(data.statval!="Completed")
-                    // taskButton(taskPvr,data.id.toString(),data.workStatus.toString()),
-                    // const Divider(thickness: 2,),
-                    /// DATE + CREATED BY
+                    const Divider(thickness: 2),
+
+                    /// CREATED / UPDATED
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Column(
-                          crossAxisAlignment: CrossAxisAlignment.start ,
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Row(
                               children: [
                                 CustomText(
                                   text: "Created:  ",
-                                  colors:const Color(0xff7E7E7E),
-                                  size: 13,isBold: true,
+                                  colors: const Color(0xff7E7E7E),
+                                  size: 13,
+                                  isBold: true,
                                 ),
                                 CustomText(
                                   text: data.creator.toString(),
-                                  colors:Colors.black,
-                                  size: 13,isBold: true,
+                                  colors: Colors.black,
+                                  size: 13,
+                                  isBold: true,
                                 ),
                               ],
                             ),
-                            Row(
-                              children: [
-                                CustomText(
-                                  text: "",
-                                  colors:Colors.black,
-                                  size: 13,isBold: true,
-                                ),
-                                CustomText(
-                                  text: formatDateTime(data.createdTs.toString()),
-                                  colors:Colors.black,
-                                  size: 12,
-                                ),
-                              ],
+                            CustomText(
+                              text: formatDateTime(data.createdTs.toString()),
+                              colors: Colors.black,
+                              size: 12,
                             ),
                           ],
                         ),
                         Column(
-                          crossAxisAlignment: CrossAxisAlignment.start ,
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Row(
                               children: [
                                 CustomText(
                                   text: "Updated :  ",
-                                  colors:const Color(0xff7E7E7E),
-                                  size: 13,isBold: true,
+                                  colors: const Color(0xff7E7E7E),
+                                  size: 13,
+                                  isBold: true,
                                 ),
                                 CustomText(
-                                  text: data.updatedByName==null?"-":data.updatedByName.toString(),
-                                  colors:Colors.black,
-                                  size: 13,isBold: true,
+                                  text: data.updatedByName == null
+                                      ? "-"
+                                      : data.updatedByName.toString(),
+                                  colors: Colors.black,
+                                  size: 13,
+                                  isBold: true,
                                 ),
                               ],
                             ),
-                            Row(
-                              children: [
-                                CustomText(
-                                  text: "",
-                                  colors:Colors.black,
-                                  size: 13,isBold: true,
-                                ),
-                                CustomText(
-                                  text: formatDateTime(data.updatedTs.toString()),
-                                  colors:Colors.black,
-                                  size: 12,
-                                ),
-                              ],
+                            CustomText(
+                              text: formatDateTime(data.updatedTs.toString()),
+                              colors: Colors.black,
+                              size: 12,
                             ),
                           ],
                         ),
-
                       ],
                     ),
-                    const Divider(thickness: 2,),
-                    /// STATUS + PRIORITY
+                    const Divider(thickness: 2),
 
+                    /// COMMENTS
                     Row(
                       children: [
                         Expanded(
@@ -1383,7 +1297,6 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
                                 size: 18,
                               ),
                               const SizedBox(width: 4),
-
                               Text(
                                 (data.commentCount ?? "").toString().isNotEmpty
                                     ? "(${data.commentCount}) - "
@@ -1393,7 +1306,6 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
                                   fontWeight: FontWeight.w500,
                                 ),
                               ),
-
                               Expanded(
                                 child: RichText(
                                   maxLines: 1,
@@ -1423,9 +1335,7 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
                             ],
                           ),
                         ),
-
                         const SizedBox(width: 8),
-
                         GestureDetector(
                           onTap: () async {
                             final result = await Navigator.push(
@@ -1440,23 +1350,25 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
                                     assignedName: data.assignedNames.toString(),
                                     date1: widget.date1,
                                     date2: widget.date2,
-                                    type: widget.type, index: index,
+                                    type: widget.type,
+                                    index: index,
                                   ),
                                 ),
                               ),
                             );
 
                             if (result == true) {
+                              if (!mounted) return;
                               Provider.of<TaskProvider>(
                                 context,
                                 listen: false,
                               ).getAllTask(false);
                             }
                           },
-                          child: Icon(
+                          child: const Icon(
                             Icons.message_outlined,
                             size: 20,
-                            color:Colors.green,
+                            color: Colors.green,
                           ),
                         ),
                       ],
@@ -1464,8 +1376,6 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
                   ],
                 ),
               ),
-
-
             ],
           ),
         ),
@@ -1473,86 +1383,101 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
     );
   }
 
-  Widget taskButton(TaskProvider taskPvr,String id,String status) {
+  Widget taskButton(TaskProvider taskPvr, String id, String status) {
     switch (status) {
       case "Complete":
         return Row(
           children: [
             CustomLoadingButton(
                 callback: () async {
-                  // 1. status ah "Completed" nu set pannunga (statusController/statusList mudhalvachu update pannanum)
                   taskPvr.changeStatusT("Completed");
-                  taskPvr.changeStatus({"id": "3", "value": "Completed"}); // ungaloda statusList structure padi id maathunga
-                  taskPvr.updateChanges(); // isUpdate = true aaganum
-
-                  // 2. history log insert pannunga
+                  taskPvr.changeStatus({"id": "3", "value": "Completed"});
+                  taskPvr.updateChanges();
                   await taskPvr.insertTaskLogHistory(context, id: id, level: "Completed");
-
-                  // 3. appuram editTask call pannunga - idhu dhaan actual save
-                  // taskPvr.editTask(
-                  //   context: context,
-                  //   data: data,
-                  //   taskId: id,
-                  //   isDirect: isDirect,
-                  //   coId: coId.toString(),
-                  // );
-                }
-                , isLoading: false,
-                backgroundColor: colorsConst.pink, radius: 50, height: 30,width: 70,text: "Start"
-            ),
+                },
+                isLoading: false,
+                backgroundColor: colorsConst.pink,
+                radius: 50,
+                height: 30,
+                width: 70,
+                text: "Start"),
             10.width,
             CustomLoadingButton(
-                callback: (){
-                  taskPvr.insertTaskLogHistory(context,id:id,level:"Complete");
-                }, isLoading: false,
-                backgroundColor: Colors.green, radius: 50, height: 30, width: 100,text: "Complete"
-            ),
+                callback: () {
+                  taskPvr.insertTaskLogHistory(context, id: id, level: "Complete");
+                },
+                isLoading: false,
+                backgroundColor: Colors.green,
+                radius: 50,
+                height: 30,
+                width: 100,
+                text: "Complete"),
           ],
         );
       case "Pending":
         return Row(
           children: [
             CustomLoadingButton(
-                callback: (){
-                  taskPvr.insertTaskLogHistory(context,id:id,level:"Start");
-                }, isLoading: false,
-                backgroundColor: colorsConst.pink, radius: 50, height: 30,width: 70,text: "Start"
-            ),
+                callback: () {
+                  taskPvr.insertTaskLogHistory(context, id: id, level: "Start");
+                },
+                isLoading: false,
+                backgroundColor: colorsConst.pink,
+                radius: 50,
+                height: 30,
+                width: 70,
+                text: "Start"),
             10.width,
             CustomLoadingButton(
-                callback: (){
-                  taskPvr.insertTaskLogHistory(context,id:id,level:"Complete");
-                }, isLoading: false,
-                backgroundColor: Colors.green, radius: 50, height: 30, width: 100,text: "Complete"
-            ),
+                callback: () {
+                  taskPvr.insertTaskLogHistory(context, id: id, level: "Complete");
+                },
+                isLoading: false,
+                backgroundColor: Colors.green,
+                radius: 50,
+                height: 30,
+                width: 100,
+                text: "Complete"),
           ],
         );
       case "Start":
         return Row(
           children: [
             CustomLoadingButton(
-              callback: (){
-                taskPvr.insertTaskLogHistory(context,id:id,level:"Hold");
-              }, isLoading: false,
-              backgroundColor: Colors.blue, radius: 50, height: 30,width: 70,text: "Hold",),
+              callback: () {
+                taskPvr.insertTaskLogHistory(context, id: id, level: "Hold");
+              },
+              isLoading: false,
+              backgroundColor: Colors.blue,
+              radius: 50,
+              height: 30,
+              width: 70,
+              text: "Hold",
+            ),
             10.width,
             CustomLoadingButton(
-                callback: (){
-                  taskPvr.insertTaskLogHistory(context,id:id,level:"Complete");
-                }, isLoading: false,
-                backgroundColor: Colors.green, radius: 50, height: 30, width: 100,text: "Complete"
-            ),
+                callback: () {
+                  taskPvr.insertTaskLogHistory(context, id: id, level: "Complete");
+                },
+                isLoading: false,
+                backgroundColor: Colors.green,
+                radius: 50,
+                height: 30,
+                width: 100,
+                text: "Complete"),
           ],
         );
-
       case "Hold":
         return CustomLoadingButton(
-            callback: (){
-              taskPvr.insertTaskLogHistory(context,id:id,level:"Start");
-            }, isLoading: false,
-            backgroundColor: colorsConst.red1, radius: 50, height: 30,width: 100,text: "Resume"
-        );
-
+            callback: () {
+              taskPvr.insertTaskLogHistory(context, id: id, level: "Start");
+            },
+            isLoading: false,
+            backgroundColor: colorsConst.red1,
+            radius: 50,
+            height: 30,
+            width: 100,
+            text: "Resume");
       case "Completed":
         return const Text(
           "✓ Task Completed",
@@ -1561,7 +1486,6 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
             fontWeight: FontWeight.bold,
           ),
         );
-
       default:
         return const SizedBox();
     }
@@ -1569,16 +1493,15 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
 
   String formatDateTime(String? date) {
     if (date == null || date.isEmpty) return "";
-
-    final parsedDate = DateTime.parse(date);
-
+    final parsedDate = DateTime.tryParse(date);
+    if (parsedDate == null) return "";
     return DateFormat('dd-MM-yyyy h:mm a').format(parsedDate);
   }
+
   String formatAssignedNames(String? names) {
     if (names == null || names.trim().isEmpty) return "";
 
-    List<String> nameList =
-    names.split(',').map((e) => e.trim()).toList();
+    List<String> nameList = names.split(',').map((e) => e.trim()).toList();
 
     if (nameList.length <= 4) {
       return nameList.join(', ');
@@ -1605,21 +1528,24 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
     );
   }
 
+  /// GoogleFonts.lato REMOVED -> uses bundled 'Lato' font (no runtime font load)
   Widget _infoBlock(String title, String value) {
     return RichText(
       text: TextSpan(
         children: [
           TextSpan(
             text: "$title\n",
-            style: GoogleFonts.lato(
-                fontSize: 12,
-                color: const Color(0xff7E7E7E),
-                fontWeight: FontWeight.bold
+            style: const TextStyle(
+              fontFamily: 'Lato',
+              fontSize: 12,
+              color: Color(0xff7E7E7E),
+              fontWeight: FontWeight.bold,
             ),
           ),
           TextSpan(
             text: value,
-            style: GoogleFonts.lato(
+            style: const TextStyle(
+              fontFamily: 'Lato',
               fontSize: 14,
               fontWeight: FontWeight.bold,
               color: Colors.black,
@@ -1630,269 +1556,11 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>{
     );
   }
 
-  Widget _infoBlockNew(String title, String value) {
-    return RichText(
-      text: TextSpan(
-        children: [
-          TextSpan(
-            text: "$title\n",
-            style: GoogleFonts.lato(
-                fontSize: 12,
-                color: const Color(0xff7E7E7E),
-                fontWeight: FontWeight.bold
-            ),
-          ),
-          TextSpan(
-            text: value,
-            style: GoogleFonts.lato(
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
-              color: Colors.black,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-  String formatCreatedDate(DateTime dateTime) {
-    DateTime now = DateTime.now();
-    DateTime today = DateTime(now.year, now.month, now.day);
-    DateTime dataDate = DateTime(dateTime.year, dateTime.month, dateTime.day);
-
-    if (dataDate == today) {
-      return "Today";
-    } else if (dataDate == today.subtract(const Duration(days: 1))) {
-      return "Yesterday";
-    } else {
-      return "${dateTime.day}/${dateTime.month}/${dateTime.year}";
-    }
-  }
   String getCreatedDate(data) {
     final timestamp = data.createdTs.toString();
     final dateTime = DateTime.parse(timestamp);
     return "${dateTime.day}/${dateTime.month}/${dateTime.year}";
   }
-  Widget detail({required double width, required TaskData data,required VoidCallback callBack,required int index}){
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(0, 0, 0, 10),
-      child: Container(
-        width: width,
-        // decoration: customDecoration.baseBackgroundDecoration(
-        //     color: Colors.white,radius: 10
-        // ),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-
-          // shadow
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black12,
-              blurRadius: 6,
-              offset: Offset(0, 3),
-            ),
-          ],
-
-          // top border color (blue line)
-          border: Border(
-            top: BorderSide(
-              color: data.statval.toString().contains("ompleted")?Colors.green:Colors.blue,
-              width: 4,
-            ),
-          ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
-                  children: [
-                    // Container(
-                    //   width: 3,
-                    //   decoration: BoxDecoration(
-                    //     color: data.statval.toString().contains("ompleted")?Colors.green:Colors.blue,
-                    //     borderRadius: const BorderRadius.only(
-                    //       topLeft: Radius.circular(50),
-                    //       bottomLeft: Radius.circular(50),
-                    //     ),
-                    //   ),
-                    //   height: 100,),
-                    // kIsWeb?10.width:
-                    // 5.width,
-                    SizedBox(
-                      width: width,
-                      // color: Colors.yellow,
-                      child: Padding(
-                        padding: const EdgeInsets.all(5.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                          children: [
-                            // 5.height,
-                            //   Row(
-                            //     mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            //     children: [
-                            //       CustomText(text: data.taskDate.toString(),colors: colorsConst.greyClr,),
-                            //       Row(
-                            //         children: [
-                            //           CircleAvatar(backgroundColor: data.expenseReportCount.toString()=="0"?colorsConst.red2:colorsConst.green2,radius: 4,),
-                            //           2.width,
-                            //           CustomText(text: "Expense",colors: data.expenseReportCount.toString()=="0"?colorsConst.red2:colorsConst.green2,isItalic: true,),10.width,
-                            //           CircleAvatar(backgroundColor: data.visitReportCount.toString()=="0"?colorsConst.red2:colorsConst.green2,radius: 4,),2.width,
-                            //           CustomText(text: "Visit",colors: data.visitReportCount.toString()=="0"?colorsConst.red2:colorsConst.green2,isItalic: true),
-                            //         ],
-                            //       ),
-                            //     ],
-                            //   ),5.height,
-                            Row(
-                              children: [
-                                CustomText(text: "Service Date ",colors: colorsConst.greyClr,isBold: true),
-                                CustomText(text: data.taskDate.toString()),
-                              ],
-                            ),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Row(
-                                  children: [
-                                    CustomText(text: data.projectName.toString()=="null"?"":data.projectName.toString(),isBold: true,),
-                                    if(data.projectName.toString()!="null")
-                                      CustomText(text: " - ",isBold: true),
-                                    CustomText(text: data.type.toString().trim(),isBold: true),
-                                  ],
-                                ),
-                                /// TITLE
-                                Row(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Expanded(
-                                      child: ExpandableText(
-                                        text: data.taskTitle ?? "",
-                                        trimLines: 2,
-                                        fontSize: 14,
-                                        isBold: true,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 6),
-                                    WagesAddWorkDetails(
-                                      taskId: data.id.toString(),
-                                    ),
-                                    const SizedBox(width: 6),
-                                    InkWell(
-                                      onTap: () {
-                                        utils.navigatePage(
-                                          context,
-                                              () => DashBoard(
-                                            child: EditTask(
-                                              data: data,
-                                              isDirect: false,
-                                              numberList: [],
-                                            ),
-                                          ),
-                                        );
-                                      },
-                                      child: const Icon(
-                                        Icons.edit,
-                                        size: 20,
-                                        color: Colors.red,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                // if(localData.storage.read("role") =="1")
-                                //   IconButton(icon: SvgPicture.asset(assets.tEdit,width: 20,height: 20,),onPressed: (){
-                                //   utils.navigatePage(context, ()=> DashBoard(child: EditTask(
-                                //       data: data,isDirect:true, numberList: const [])));
-                                // },)
-                              ],
-                            ),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                CustomText(text: "ASSIGNED TO",colors: colorsConst.greyClr,isBold: true),
-                                CustomText(text: data.assignedNames.toString().trim()),
-                              ],
-                            ),3.height,
-                            Divider(color: Colors.grey.shade200,),3.height,
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                CustomText(text: "CREATED BY",colors: colorsConst.greyClr,isBold: true),
-                                CustomText(text: data.creator.toString().trim()),
-                              ],
-                            ),3.height,
-                            Divider(color: Colors.grey.shade200,),
-
-                            // Row(
-                            //   children: [
-                            //     CircleAvatar(backgroundColor: data.statval.toString().contains("ompleted")?Colors.green:Colors.blue,radius: 4,),2.width,
-                            //   ],
-                            // ),5.height,
-                            // CustomText(text: data.taskTitle.toString(),colors: Colors.grey,),5.height
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-            Padding(
-              padding: const EdgeInsets.all(5.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Container(
-                    decoration: customDecoration.baseBackgroundDecoration(
-                        color: data.statval.toString().contains("ompleted")?Colors.green:Colors.grey,
-                        radius: 30
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(5.0),
-                      child: CustomText(text: "${data.statval==""?"-":data.statval}",colors: Colors.white,),
-                    ),
-                  ),
-                  Row(
-                    children: [
-                      Container(
-                          decoration: customDecoration.baseBackgroundDecoration(
-                              color: data.level=='High'?Colors.red.shade50:data.level=='Immediate'?Colors.orange.shade50:Colors.pink.shade50,
-                              radius: 10
-                          ),
-                          child: Padding(
-                            padding: const EdgeInsets.all(5.0),
-                            child: Row(
-                              children: [
-                                Icon(Icons.circle,color: data.level=='High'?Colors.red:data.level=='Immediate'?Colors.orange:Colors.pink,size: 10,),5.width,
-                                CustomText(text: "${data.level}",colors: data.level=='High'?Colors.red:data.level=='Immediate'?Colors.orange:Colors.pink),
-                              ],
-                            ),
-                          )),
-                      Icon(Icons.add),
-                      IconButton(onPressed: (){
-                        utils.navigatePage(context, ()=> DashBoard(child: TaskChat(isVisit:false,
-                          taskId: data.id.toString(), assignedId: data.assigned.toString(),
-                          name: data.creator.toString(), assignedName: data.assignedNames.toString(), date1: widget.date1
-                          , date2: widget.date2, type: widget.type, index: index,)));
-                      }, icon: SvgPicture.asset(assets.tMessage,width: 10,height: 10,)),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-
-          ],
-        ),
-      ),
-    );
-  }
-  _DataSource _getDataSource() {
-    List<Appointment> appointments = <Appointment>[];
-    return _DataSource(appointments);
-  }
-
 }
 
 class _DataSource extends CalendarDataSource {
@@ -1900,429 +1568,3 @@ class _DataSource extends CalendarDataSource {
     appointments = source;
   }
 }
-
-// Expanded(
-//   child: ListView.builder(
-//       itemCount: taskProvider.filterUserData.length,
-//       itemBuilder: (context, index) {
-//         final sortedData = taskProvider.filterUserData;
-//         final data = sortedData[index];
-//         var createdBy = "";
-//         String timestamp = data.createdTs.toString();
-//         DateTime dateTime = DateTime.parse(timestamp);
-//         String dayOfWeek = DateFormat('EEEE').format(dateTime);
-//         DateTime today = DateTime.now();
-//         if (dateTime.day == today.day && dateTime.month == today.month && dateTime.year == today.year) {
-//           dayOfWeek = 'Today';
-//         } else if (dateTime.isAfter(today.subtract(const Duration(days: 1))) &&
-//             dateTime.isBefore(today)) {
-//           dayOfWeek = 'Yesterday';
-//         } else {
-//           dayOfWeek = "${dateTime.day}/${dateTime.month}/${dateTime.year}";
-//         }
-//         createdBy = "${dateTime.day}/${dateTime.month}/${dateTime.year}";
-//         final showDateHeader = index == 0 || createdBy != getCreatedDate(sortedData[index - 1]);
-//         return InkWell(
-//           onTap: (){
-//             _myFocusScopeNode.unfocus();
-//             Provider.of<HomeProvider >(context, listen: false).panelClose();
-//             utils.navigatePage(context, ()=>DashBoard(child: TaskDetails(
-//                 data:data,isDirect:true,coId: "0", numberList: const [])));
-//           },
-//           child: Column(
-//             children: [
-//               if (showDateHeader)
-//                 CustomText(
-//                     text: dayOfWeek,
-//                     colors: colorsConst.greyClr
-//                 ),
-//               taskProvider.statusId==""?
-//               detail(
-//                   width: kIsWeb?webHeight:phoneHeight,
-//                   data: data, callBack: () async {
-//                 _myFocusScopeNode.unfocus();
-//                 if(locPvr.latitude!=""&&locPvr.longitude!=""){
-//                   if(taskProvider.checkAtt==""){
-//                     taskProvider.signDialog(context: context,
-//                       img: taskProvider.profile,
-//                       onTap:(newImg){
-//                         taskProvider.profilePick(newImg);
-//                         taskProvider.taskAttDirect(
-//                             context,
-//                             status:data.isChecked.toString()=="null"||data.isChecked.toString()=="2"?"1":"2",
-//                             taskId: data.id.toString(),
-//                             lat:locPvr.latitude,
-//                             lng:locPvr.longitude);
-//                       },
-//                     );
-//                   }
-//                   else if(taskProvider.checkAtt==data.id.toString()){
-//                     taskProvider.signDialog(context: context,
-//                       img: taskProvider.profile,
-//                       onTap:(newImg){
-//                         taskProvider.profilePick(newImg);
-//                         taskProvider.taskAttDirect(
-//                             context,
-//                             status:data.isChecked.toString()=="null"||data.isChecked.toString()=="2"?"1":"2",
-//                             taskId: data.id.toString(),
-//                             lat:locPvr.latitude,
-//                             lng:locPvr.longitude);
-//                       },
-//                     );
-//                   }else{
-//                     utils.showWarningToast(context, text: "Please check out previous ${taskProvider.checkAttName} task");
-//                   }
-//                 }else{
-//                   utils.showWarningToast(context, text: "Check your location accuracy.");
-//                   await locPvr.manageLocation(context, true);
-//                 }
-//               })
-//                   :taskProvider.statusId!=""&&taskProvider.statusId==data.statval?
-//               detail(
-//                   width: kIsWeb?webHeight:phoneHeight,
-//                   data: data, callBack: () async {
-//                 _myFocusScopeNode.unfocus();
-//                 if(locPvr.latitude!=""&&locPvr.longitude!=""){
-//                   if(taskProvider.checkAtt==""){
-//                     taskProvider.signDialog(context: context,
-//                       img: taskProvider.profile,
-//                       onTap:(newImg){
-//                         taskProvider.profilePick(newImg);
-//                         taskProvider.taskAttDirect(
-//                             context,
-//                             status:data.isChecked.toString()=="null"||data.isChecked.toString()=="2"?"1":"2",
-//                             taskId: data.id.toString(),
-//                             lat:locPvr.latitude,
-//                             lng:locPvr.longitude);
-//                       },
-//                     );
-//                   }
-//                   else if(taskProvider.checkAtt==data.id.toString()){
-//                     taskProvider.signDialog(context: context,
-//                       img: taskProvider.profile,
-//                       onTap:(newImg){
-//                         taskProvider.profilePick(newImg);
-//                         taskProvider.taskAttDirect(
-//                             context,
-//                             status:data.isChecked.toString()=="null"||data.isChecked.toString()=="2"?"1":"2",
-//                             taskId: data.id.toString(),
-//                             lat:locPvr.latitude,
-//                             lng:locPvr.longitude);
-//                       },
-//                     );
-//                   }else{
-//                     utils.showWarningToast(context, text: "Please check out previous ${taskProvider.checkAttName} task");
-//                   }
-//                 }else{
-//                   utils.showWarningToast(context, text: "Check your location accuracy.");
-//                   await locPvr.manageLocation(context, true);
-//                 }
-//               }):const SizedBox.shrink(),
-//               if(index==taskProvider.filterUserData.length-1)
-//                 50.height
-//             ],
-//           ),
-//         );
-//         // :0.width;
-//       }),
-// ),
-// const Padding(
-//   padding: EdgeInsets.fromLTRB(0, 0, 0, 5),
-//   child: DotLine(),
-// ),
-// Padding(
-//   padding: const EdgeInsets.fromLTRB(kIsWeb?10:5, 0, 5, 0),
-//   child: Row(
-//     mainAxisAlignment: MainAxisAlignment.spaceBetween,
-//     children: [
-//       if(data.assignedNames.toString()!="null")
-//         SizedBox(
-//           // color:Colors.pinkAccent,
-//             width: kIsWeb?MediaQuery.of(context).size.width*0.3:MediaQuery.of(context).size.width*0.6,
-//             child: CustomText(text: data.assignedNames.toString())),
-//       if((localData.storage.read("role")=="1"&&data.assignedNames.toString().contains(localData.storage.read("f_name"))||localData.storage.read("role")!="1")&&(!kIsWeb&&!data.statval.toString().contains("ompleted")))
-//         SizedBox(
-//           width:MediaQuery.of(context).size.width*0.3,
-//           height: 30,
-//           child: ElevatedButton(
-//             style: ElevatedButton.styleFrom(
-//                 backgroundColor: data.isChecked.toString()=="null"?colorsConst.litGrey
-//                     :data.isChecked.toString()=="2"?colorsConst.litGrey:colorsConst.appGreen,
-//                 shape: const StadiumBorder()
-//             ),
-//             onPressed: callBack,
-//             child: Row(
-//               mainAxisAlignment: MainAxisAlignment.center,
-//               children: [
-//                 Icon(Icons.location_on_outlined,color: data.isChecked.toString()=="null"?Colors.black: data.isChecked.toString()=="2"?Colors.black: Colors.white,size: 15,),
-//                 CustomText(text: data.isChecked.toString()=="null"?"Check In":data.isChecked.toString()=="1"?"Check Out":"Check In",
-//                   colors: data.isChecked.toString()=="null"?Colors.black:data.isChecked.toString()=="2"?Colors.black: Colors.white,isBold: true,),
-//               ],
-//             ),
-//           ),
-//         ),
-//       // if(data.statval.toString().contains("ompleted")||kIsWeb)
-//       //   TextButton(
-//       //       onPressed: (){
-//       //         _myFocusScopeNode.unfocus();
-//       //         utils.navigatePage(context, ()=>DashBoard(child:
-//       //         TaskReport(taskId: data.id.toString(),coId: data.companyId.toString(),numberList: const [], isTask: true,
-//       //           coName: data.projectName.toString(),description: data.taskTitle.toString(),type: data.type.toString(),
-//       //           callback: () {
-//       //             Future.microtask(() => Navigator.pop(context));
-//       //           }, index: 0,
-//       //         )));
-//       //       },
-//       //       child: CustomText(text: "View Report",colors: colorsConst.appDarkGreen,)),
-//     ],
-//   ),
-// ),
-// if(!kIsWeb)
-//   Row(
-//     mainAxisAlignment: MainAxisAlignment.spaceBetween,
-//     children: [
-//       TextButton(
-//           onPressed: (){
-//             _myFocusScopeNode.unfocus();
-//             utils.navigatePage(context, ()=> DashBoard(child: CreateExpense(taskId: data.id.toString(),data: data,coId: "",numberList: const [], companyName: data.projectName.toString(), type: data.type.toString(), desc: data.taskTitle.toString(),
-//                 date: data.taskDate.toString())));
-//           },
-//           child: CustomText(text: "Add Expense",colors: colorsConst.blueClr,)),
-//       TextButton(
-//           onPressed: (){
-//             _myFocusScopeNode.unfocus();
-//             utils.navigatePage(context, ()=> DashBoard(child:
-//             AddVisit(taskId:data.id.toString(),companyId: data.companyId.toString(),companyName: data.projectName.toString(),
-//                 numberList: const [],isDirect: true, type: data.type.toString(), desc: data.taskTitle.toString())));
-//           },
-//           child: CustomText(text: "Add Visit Report",colors: colorsConst.bankColor,)),
-//       TextButton(
-//           onPressed: (){
-//             _myFocusScopeNode.unfocus();
-//             // homeProvider.showTaskType(5);
-//             // homeProvider.changeTaskList(taskId: data.id.toString(),coId: data.companyId.toString(),numberList: [],isDirect: true);
-//
-//             utils.navigatePage(context, ()=>DashBoard(child:
-//             TaskReport(taskId: data.id.toString(),coId: data.companyId.toString(),numberList: const [], isTask: true,
-//               coName: data.projectName.toString(),description: data.taskTitle.toString(),type: data.type.toString(),
-//               callback: () {
-//                 Future.microtask(() => Navigator.pop(context));
-//               }, index: 0,
-//             )));
-//           },
-//           child: CustomText(text: "View Report",colors: colorsConst.appDarkGreen,)),
-//     ],
-//   ),
-
-// Expanded(
-//   child: ListView.builder(
-//       itemCount: taskProvider.filterUserData.length,
-//       itemBuilder: (context, index) {
-//         final sortedData = taskProvider.filterUserData;
-//         final data = sortedData[index];
-//         var createdBy = "";
-//         String timestamp = data.createdTs.toString();
-//         DateTime dateTime = DateTime.parse(timestamp);
-//         String dayOfWeek = DateFormat('EEEE').format(dateTime);
-//         DateTime today = DateTime.now();
-//         if (dateTime.day == today.day && dateTime.month == today.month && dateTime.year == today.year) {
-//           dayOfWeek = 'Today';
-//         } else if (dateTime.isAfter(today.subtract(const Duration(days: 1))) &&
-//             dateTime.isBefore(today)) {
-//           dayOfWeek = 'Yesterday';
-//         } else {
-//           dayOfWeek = "${dateTime.day}/${dateTime.month}/${dateTime.year}";
-//         }
-//         createdBy = "${dateTime.day}/${dateTime.month}/${dateTime.year}";
-//         final showDateHeader = index == 0 || createdBy != getCreatedDate(sortedData[index - 1]);
-//         return InkWell(
-//           onTap: (){
-//             _myFocusScopeNode.unfocus();
-//             Provider.of<HomeProvider >(context, listen: false).panelClose();
-//             utils.navigatePage(context, ()=>DashBoard(child: TaskDetails(
-//                 data:data,isDirect:true,coId: "0", numberList: const [])));
-//           },
-//           child: Column(
-//             children: [
-//               if (showDateHeader)
-//                 CustomText(
-//                     text: dayOfWeek,
-//                     colors: colorsConst.greyClr
-//                 ),
-//               taskProvider.statusId==""?
-//               detail(
-//                   width: kIsWeb?webHeight:phoneHeight,
-//                   data: data, callBack: () async {
-//                 _myFocusScopeNode.unfocus();
-//                 if(locPvr.latitude!=""&&locPvr.longitude!=""){
-//                   if(taskProvider.checkAtt==""){
-//                     taskProvider.signDialog(context: context,
-//                       img: taskProvider.profile,
-//                       onTap:(newImg){
-//                         taskProvider.profilePick(newImg);
-//                         taskProvider.taskAttDirect(
-//                             context,
-//                             status:data.isChecked.toString()=="null"||data.isChecked.toString()=="2"?"1":"2",
-//                             taskId: data.id.toString(),
-//                             lat:locPvr.latitude,
-//                             lng:locPvr.longitude);
-//                       },
-//                     );
-//                   }
-//                   else if(taskProvider.checkAtt==data.id.toString()){
-//                     taskProvider.signDialog(context: context,
-//                       img: taskProvider.profile,
-//                       onTap:(newImg){
-//                         taskProvider.profilePick(newImg);
-//                         taskProvider.taskAttDirect(
-//                             context,
-//                             status:data.isChecked.toString()=="null"||data.isChecked.toString()=="2"?"1":"2",
-//                             taskId: data.id.toString(),
-//                             lat:locPvr.latitude,
-//                             lng:locPvr.longitude);
-//                       },
-//                     );
-//                   }else{
-//                     utils.showWarningToast(context, text: "Please check out previous ${taskProvider.checkAttName} task");
-//                   }
-//                 }else{
-//                   utils.showWarningToast(context, text: "Check your location accuracy.");
-//                   await locPvr.manageLocation(context, true);
-//                 }
-//               })
-//                   :taskProvider.statusId!=""&&taskProvider.statusId==data.statval?
-//               detail(
-//                   width: kIsWeb?webHeight:phoneHeight,
-//                   data: data, callBack: () async {
-//                 _myFocusScopeNode.unfocus();
-//                 if(locPvr.latitude!=""&&locPvr.longitude!=""){
-//                   if(taskProvider.checkAtt==""){
-//                     taskProvider.signDialog(context: context,
-//                       img: taskProvider.profile,
-//                       onTap:(newImg){
-//                         taskProvider.profilePick(newImg);
-//                         taskProvider.taskAttDirect(
-//                             context,
-//                             status:data.isChecked.toString()=="null"||data.isChecked.toString()=="2"?"1":"2",
-//                             taskId: data.id.toString(),
-//                             lat:locPvr.latitude,
-//                             lng:locPvr.longitude);
-//                       },
-//                     );
-//                   }
-//                   else if(taskProvider.checkAtt==data.id.toString()){
-//                     taskProvider.signDialog(context: context,
-//                       img: taskProvider.profile,
-//                       onTap:(newImg){
-//                         taskProvider.profilePick(newImg);
-//                         taskProvider.taskAttDirect(
-//                             context,
-//                             status:data.isChecked.toString()=="null"||data.isChecked.toString()=="2"?"1":"2",
-//                             taskId: data.id.toString(),
-//                             lat:locPvr.latitude,
-//                             lng:locPvr.longitude);
-//                       },
-//                     );
-//                   }else{
-//                     utils.showWarningToast(context, text: "Please check out previous ${taskProvider.checkAttName} task");
-//                   }
-//                 }else{
-//                   utils.showWarningToast(context, text: "Check your location accuracy.");
-//                   await locPvr.manageLocation(context, true);
-//                 }
-//               }):const SizedBox.shrink(),
-//               if(index==taskProvider.filterUserData.length-1)
-//                 50.height
-//             ],
-//           ),
-//         );
-//         // :0.width;
-//       }),
-// ),
-// const Padding(
-//   padding: EdgeInsets.fromLTRB(0, 0, 0, 5),
-//   child: DotLine(),
-// ),
-// Padding(
-//   padding: const EdgeInsets.fromLTRB(kIsWeb?10:5, 0, 5, 0),
-//   child: Row(
-//     mainAxisAlignment: MainAxisAlignment.spaceBetween,
-//     children: [
-//       if(data.assignedNames.toString()!="null")
-//         SizedBox(
-//           // color:Colors.pinkAccent,
-//             width: kIsWeb?MediaQuery.of(context).size.width*0.3:MediaQuery.of(context).size.width*0.6,
-//             child: CustomText(text: data.assignedNames.toString())),
-//       if((localData.storage.read("role")=="1"&&data.assignedNames.toString().contains(localData.storage.read("f_name"))||localData.storage.read("role")!="1")&&(!kIsWeb&&!data.statval.toString().contains("ompleted")))
-//         SizedBox(
-//           width:MediaQuery.of(context).size.width*0.3,
-//           height: 30,
-//           child: ElevatedButton(
-//             style: ElevatedButton.styleFrom(
-//                 backgroundColor: data.isChecked.toString()=="null"?colorsConst.litGrey
-//                     :data.isChecked.toString()=="2"?colorsConst.litGrey:colorsConst.appGreen,
-//                 shape: const StadiumBorder()
-//             ),
-//             onPressed: callBack,
-//             child: Row(
-//               mainAxisAlignment: MainAxisAlignment.center,
-//               children: [
-//                 Icon(Icons.location_on_outlined,color: data.isChecked.toString()=="null"?Colors.black: data.isChecked.toString()=="2"?Colors.black: Colors.white,size: 15,),
-//                 CustomText(text: data.isChecked.toString()=="null"?"Check In":data.isChecked.toString()=="1"?"Check Out":"Check In",
-//                   colors: data.isChecked.toString()=="null"?Colors.black:data.isChecked.toString()=="2"?Colors.black: Colors.white,isBold: true,),
-//               ],
-//             ),
-//           ),
-//         ),
-//       // if(data.statval.toString().contains("ompleted")||kIsWeb)
-//       //   TextButton(
-//       //       onPressed: (){
-//       //         _myFocusScopeNode.unfocus();
-//       //         utils.navigatePage(context, ()=>DashBoard(child:
-//       //         TaskReport(taskId: data.id.toString(),coId: data.companyId.toString(),numberList: const [], isTask: true,
-//       //           coName: data.projectName.toString(),description: data.taskTitle.toString(),type: data.type.toString(),
-//       //           callback: () {
-//       //             Future.microtask(() => Navigator.pop(context));
-//       //           }, index: 0,
-//       //         )));
-//       //       },
-//       //       child: CustomText(text: "View Report",colors: colorsConst.appDarkGreen,)),
-//     ],
-//   ),
-// ),
-// if(!kIsWeb)
-//   Row(
-//     mainAxisAlignment: MainAxisAlignment.spaceBetween,
-//     children: [
-//       TextButton(
-//           onPressed: (){
-//             _myFocusScopeNode.unfocus();
-//             utils.navigatePage(context, ()=> DashBoard(child: CreateExpense(taskId: data.id.toString(),data: data,coId: "",numberList: const [], companyName: data.projectName.toString(), type: data.type.toString(), desc: data.taskTitle.toString(),
-//                 date: data.taskDate.toString())));
-//           },
-//           child: CustomText(text: "Add Expense",colors: colorsConst.blueClr,)),
-//       TextButton(
-//           onPressed: (){
-//             _myFocusScopeNode.unfocus();
-//             utils.navigatePage(context, ()=> DashBoard(child:
-//             AddVisit(taskId:data.id.toString(),companyId: data.companyId.toString(),companyName: data.projectName.toString(),
-//                 numberList: const [],isDirect: true, type: data.type.toString(), desc: data.taskTitle.toString())));
-//           },
-//           child: CustomText(text: "Add Visit Report",colors: colorsConst.bankColor,)),
-//       TextButton(
-//           onPressed: (){
-//             _myFocusScopeNode.unfocus();
-//             // homeProvider.showTaskType(5);
-//             // homeProvider.changeTaskList(taskId: data.id.toString(),coId: data.companyId.toString(),numberList: [],isDirect: true);
-//
-//             utils.navigatePage(context, ()=>DashBoard(child:
-//             TaskReport(taskId: data.id.toString(),coId: data.companyId.toString(),numberList: const [], isTask: true,
-//               coName: data.projectName.toString(),description: data.taskTitle.toString(),type: data.type.toString(),
-//               callback: () {
-//                 Future.microtask(() => Navigator.pop(context));
-//               }, index: 0,
-//             )));
-//           },
-//           child: CustomText(text: "View Report",colors: colorsConst.appDarkGreen,)),
-//     ],
-//   ),

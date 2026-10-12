@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:master_code/source/extentions/extensions.dart';
 
@@ -23,28 +22,54 @@ class ExpandableText extends StatefulWidget {
 class _ExpandableTextState extends State<ExpandableText> {
   bool expanded = false;
 
+  // Cached measurement: TextPainter layout is heavy, so it is re-run ONLY
+  // when text / width / font / lines actually change (not on every rebuild).
+  String? _cText;
+  double? _cWidth;
+  double? _cFont;
+  bool? _cBold;
+  int? _cLines;
+  bool _cOverflow = false;
+
+  bool _checkOverflow(double maxWidth, TextStyle style) {
+    if (_cText == widget.text &&
+        _cWidth == maxWidth &&
+        _cFont == widget.fontSize &&
+        _cBold == widget.isBold &&
+        _cLines == widget.trimLines) {
+      return _cOverflow;
+    }
+
+    final tp = TextPainter(
+      text: TextSpan(text: widget.text, style: style),
+      maxLines: widget.trimLines,
+      textDirection: TextDirection.ltr,
+    )..layout(maxWidth: maxWidth);
+
+    final overflow = tp.didExceedMaxLines;
+    tp.dispose();
+
+    _cText = widget.text;
+    _cWidth = maxWidth;
+    _cFont = widget.fontSize;
+    _cBold = widget.isBold;
+    _cLines = widget.trimLines;
+    _cOverflow = overflow;
+
+    return overflow;
+  }
+
   @override
   Widget build(BuildContext context) {
+    final style = TextStyle(
+      fontSize: widget.fontSize,
+      fontWeight: widget.isBold ? FontWeight.bold : FontWeight.normal,
+      color: Colors.black,
+    );
+
     return LayoutBuilder(
       builder: (context, constraints) {
-        final span = TextSpan(
-          text: widget.text,
-          style: TextStyle(
-            fontSize: widget.fontSize,
-            fontWeight: widget.isBold ? FontWeight.bold : FontWeight.normal,
-            color: Colors.black,
-          ),
-        );
-
-        final tp = TextPainter(
-          text: span,
-          maxLines: widget.trimLines,
-          textDirection: TextDirection.ltr,
-        );
-
-        tp.layout(maxWidth: constraints.maxWidth);
-
-        final isOverflow = tp.didExceedMaxLines;
+        final isOverflow = _checkOverflow(constraints.maxWidth, style);
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -53,13 +78,8 @@ class _ExpandableTextState extends State<ExpandableText> {
               widget.text,
               maxLines: expanded ? null : widget.trimLines,
               overflow: expanded ? TextOverflow.visible : TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: widget.fontSize,
-                fontWeight: widget.isBold ? FontWeight.bold : FontWeight.normal,
-                color: Colors.black,
-              ),
+              style: style,
             ),
-
             if (isOverflow)
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,

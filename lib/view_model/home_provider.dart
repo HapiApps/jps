@@ -57,6 +57,11 @@ import 'package:http/http.dart' as http;
 import 'location_provider.dart';
 class HomeProvider with ChangeNotifier{
 final HomeRepository homeRepo = HomeRepository();
+void _log(Object? message) {
+  if (!kDebugMode) return;
+  final s = message.toString();
+  debugPrint(s.length > 400 ? '${s.substring(0, 400)}… (${s.length} chars)' : s);
+}
 final sidebarController = SidebarXController(selectedIndex: 0, extended: true);
 
 Future<void> deleteCacheDir() async {
@@ -444,12 +449,26 @@ Future<void> verifyUser(context) async {
 }
 String _notificationToken="";
 String get notificationToken =>_notificationToken;
+
   Future<void> getToken() async {
     try {
+      final messaging = FirebaseMessaging.instance;
+
+      // iOS: APNS token ready aagura varai wait
+      if (!kIsWeb && Platform.isIOS) {
+        String? apns;
+        for (int i = 0; i < 10; i++) {
+          apns = await messaging.getAPNSToken();
+          if (apns != null && apns.isNotEmpty) break;
+          await Future.delayed(const Duration(seconds: 1));
+        }
+        debugPrint("APNS Token: $apns");
+      }
+
       String? token;
       /// Try 3 times
       for (int i = 0; i < 3; i++) {
-        token = await FirebaseMessaging.instance.getToken();
+        token = await messaging.getToken();
         if (token != null && token.isNotEmpty) {
           break;
         }
@@ -462,6 +481,58 @@ String get notificationToken =>_notificationToken;
       _notificationToken = "";
     }
   }
+  // Future<void> syncFcmToken({String? newToken}) async {
+  //   try {
+  //     final userId = localData.storage.read("id");
+  //     if (userId == null) return; // login aagala
+  //
+  //     String token = newToken ?? "";
+  //     if (token.isEmpty) {
+  //       await getToken();
+  //       token = _notificationToken;
+  //     }
+  //     if (token.isEmpty) {
+  //       debugPrint("syncFcmToken: token empty, skip");
+  //       return;
+  //     }
+  //     _notificationToken = token;
+  //
+  //     final key = "$userId|$token";
+  //     if (localData.storage.read("fcm_token_synced") == key) {
+  //       debugPrint("syncFcmToken: already synced");
+  //       return;
+  //     }
+  //
+  //     checkPlatform();
+  //
+  //     final data = {
+  //       "action": updateTokenAction,
+  //       "id": userId.toString(),
+  //       "token": token,
+  //       "platform": localData.storage.read("platform").toString(),
+  //     };
+  //
+  //     final response = await homeRepo.loginApi(data);
+  //     debugPrint("Token sync response => $response");
+  //
+  //     final res = response.toString().toLowerCase();
+  //     final failed = res.contains("invalid") ||
+  //         res.contains("error") ||
+  //         res.contains("fail");
+  //
+  //     // Exception vara-nu, "invalid/error" illa-na success-nu eduthukkalam
+  //     if (!failed) {
+  //       localData.storage.write("fcm_token_synced", key);
+  //     }
+  //   } catch (e) {
+  //     debugPrint("syncFcmToken error: $e");
+  //     if (e is FormatException && e.toString().contains("ok")) {
+  //       final userId = localData.storage.read("id");
+  //       localData.storage.write("fcm_token_synced", "$userId|$_notificationToken");
+  //     }
+  //   }
+  // }
+
   // Future<void> getToken() async {
   //   try{
   //     String? token="";
@@ -610,116 +681,139 @@ String get notificationToken =>_notificationToken;
 // <-- CHANGED: added optional `countryCode` named param (defaults to "+91"
   // so any other place in the app that still calls login(context) without it
   // keeps working).
+  bool _isLoggingIn = false;
+
   Future<void> login(context, {String countryCode = "+91"}) async {
-    // print("printttt");
-    // log("logggg");
-    //   try {
+    // 1. Double tap / double call block
+    if (_isLoggingIn) return;
+    _isLoggingIn = true;
 
-    await getToken();
-    checkPlatform();
-    var id="",brand="",model="",version="";
-    if(kIsWeb){
-      final deviceInfoPlugin = DeviceInfoPlugin();
-      final deviceInfo = await deviceInfoPlugin.deviceInfo;
-      final allInfo = deviceInfo.data;
-      id="";
-      brand="";
-      model=allInfo.toString();
-      version="";
-    }else{
-      if (Platform.isIOS) {
-        DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
-        IosDeviceInfo iosInfo = await deviceInfo.iosInfo;
-        id="";
-        brand=iosInfo.name.toString();
-        model=iosInfo.model.toString();
-        version=iosInfo.systemVersion.toString();
-      }else{
-        DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
-        AndroidDeviceInfo androidInfo = await deviceInfo.androidInfo;
-        id=androidInfo.id.toString();
-        brand=androidInfo.brand.toString();
-        model=androidInfo.model.toString();
-        version=androidInfo.version.release.toString();
-      }
-    }
-    final prefs =await SharedPreferences.getInstance();
-    Map data = {
-      "action": loginUser,
-      // <-- CHANGED: mobile_number now includes the selected country dial code.
-      // If your backend expects the plain 10-digit number instead and the
-      // dial code as its own field, use the commented-out version below.
-      "mobile_number": "$countryCode${loginNumber.text.trim()}",
-      // "mobile_number": loginNumber.text.trim(),
-      // "country_code": countryCode,
-      "password": loginPassword.text.trim(),
-      "cos_id":localData.storage.read("cos_id"),
-      'app_version': localData.versionNumber,
-      'device_id': id,
-      'device_brand': brand,
-      'device_model':model,
-      'device_os': version,
-      'token': _notificationToken,
-      'platform': localData.storage.read("platform").toString()
-    };
-    print("body data ${data}");      final response = await homeRepo.loginApi(data);
-    log(response.toString());
-    if(response.toString().contains("No user found")){
-      utils.showWarningToast(context,text: constValue.noUserFound);
-      loginCtr.reset();
-    }else if(response.toString().contains("Incorrect password")){
-      utils.showWarningToast(context,text: constValue.incorrectPassword);
-      loginCtr.reset();
-    }else if(response.toString().contains("Something went wrong")){
-      utils.showWarningToast(context,text: constValue.somethingWentWrong);
-      loginCtr.reset();}
-    else{
-      if(response.isNotEmpty){
-        localData.storage.write("f_name",response['firstname']);
-        localData.storage.write("mobile_number",response['mobile_number']);
-        localData.storage.write("id",response['id']);
-        localData.storage.write("role_name",response['role_name']);
-        localData.storage.write("role",response['role']);
-        localData.storage.write("cos_id",response['cos_id']);
-        localData.storage.write("conveyance_amount",response['conveyance_amount'].toString()=="null"||response['conveyance_amount'].toString()==""?"0":response['conveyance_amount'].toString());
-        localData.storage.write("travel_amount",response['travel_amount'].toString()=="null"||response['travel_amount'].toString()==""?"0":response['travel_amount'].toString());
-        localData.storage.write("da_amount",response['da_amount'].toString()=="null"||response['da_amount'].toString()==""?"0":response['da_amount'].toString());
-        prefs.setBool("homescreen", true);
-        prefs.setString("appVersion", localData.versionNumber);
-        if(!kIsWeb){
-          LocalDatabase.initDb();
-          Provider.of<EmployeeProvider>(context, listen: false).getRoles();
-          Provider.of<CustomerProvider>(context, listen: false).getLeadCategory();
-          Provider.of<CustomerProvider>(context, listen: false).getVisitType();
-          Provider.of<CustomerProvider>(context, listen: false).getCmtType();
+    try {
+      await getToken();
+      checkPlatform();
 
-          Provider.of<TaskProvider>(context, listen: false).getTaskType(false);
-          Provider.of<TaskProvider>(context, listen: false).getTaskStatuses();
-          Provider.of<ExpenseProvider>(context, listen: false).getExpenseType();
+      var id = "", brand = "", model = "", version = "";
+      if (kIsWeb) {
+        final deviceInfoPlugin = DeviceInfoPlugin();
+        final deviceInfo = await deviceInfoPlugin.deviceInfo;
+        id = "";
+        brand = "";
+        model = deviceInfo.data.toString();
+        version = "";
+      } else {
+        if (Platform.isIOS) {
+          final iosInfo = await DeviceInfoPlugin().iosInfo;
+          id = "";
+          brand = iosInfo.name.toString();
+          model = iosInfo.model.toString();
+          version = iosInfo.systemVersion.toString();
+        } else {
+          final androidInfo = await DeviceInfoPlugin().androidInfo;
+          id = androidInfo.id.toString();
+          brand = androidInfo.brand.toString();
+          model = androidInfo.model.toString();
+          version = androidInfo.version.release.toString();
         }
-
-        Provider.of<HomeProvider>(context, listen: false).updateIndex(0);
-        Provider.of<HomeProvider>(context, listen: false).initValue();
-        // Provider.of<HomeProvider>(context, listen: false).roleEmployees();
-        Provider.of<HomeProvider>(context, listen: false).loadFullDashboard(context);
-        // Provider.of<AttendanceProvider>(context, listen: false).getMainAttendance();
-        // getMainReport(false);
-        // getDashboardReport(false);
-        Future.microtask(() {
-          utils.navigatePage(context,()=>const DashBoard(child: HomePage()));
-        });
-      }else{
-        utils.showErrorToast(context: context);
-        loginCtr.reset();
       }
+
+      final prefs = await SharedPreferences.getInstance();
+
+      Map data = {
+        "action": loginUser,
+        "mobile_number": "$countryCode${loginNumber.text.trim()}",
+        "password": loginPassword.text.trim(),
+        "cos_id": localData.storage.read("cos_id"),
+        'app_version': localData.versionNumber,
+        'device_id': id,
+        'device_brand': brand,
+        'device_model': model,
+        'device_os': version,
+        'token': _notificationToken,
+        'platform': localData.storage.read("platform").toString()
+      };
+
+      final response = await homeRepo.loginApi(data);
+      log(response.toString());
+
+      if (response.toString().contains("No user found")) {
+        utils.showWarningToast(context, text: constValue.noUserFound);
+        loginCtr.reset();
+      } else if (response.toString().contains("Incorrect password")) {
+        utils.showWarningToast(context, text: constValue.incorrectPassword);
+        loginCtr.reset();
+      } else if (response.toString().contains("Something went wrong")) {
+        utils.showWarningToast(context, text: constValue.somethingWentWrong);
+        loginCtr.reset();
+      } else {
+        if (response.isNotEmpty) {
+          localData.storage.write("f_name", response['firstname']);
+          localData.storage.write("mobile_number", response['mobile_number']);
+          localData.storage.write("id", response['id']);
+          localData.storage.write("role_name", response['role_name']);
+          localData.storage.write("role", response['role']);
+          localData.storage.write("cos_id", response['cos_id']);
+
+          if (_notificationToken.isNotEmpty) {
+            localData.storage.write(
+                "fcm_token_synced", "${response['id']}|$_notificationToken");
+          } else {
+            localData.storage.remove("fcm_token_synced");
+          }
+
+          localData.storage.write(
+              "conveyance_amount",
+              response['conveyance_amount'].toString() == "null" ||
+                  response['conveyance_amount'].toString() == ""
+                  ? "0"
+                  : response['conveyance_amount'].toString());
+          localData.storage.write(
+              "travel_amount",
+              response['travel_amount'].toString() == "null" ||
+                  response['travel_amount'].toString() == ""
+                  ? "0"
+                  : response['travel_amount'].toString());
+          localData.storage.write(
+              "da_amount",
+              response['da_amount'].toString() == "null" ||
+                  response['da_amount'].toString() == ""
+                  ? "0"
+                  : response['da_amount'].toString());
+
+          prefs.setBool("homescreen", true);
+          prefs.setString("appVersion", localData.versionNumber);
+
+          if (!kIsWeb) {
+            LocalDatabase.initDb();
+            Provider.of<EmployeeProvider>(context, listen: false).getRoles();
+            Provider.of<CustomerProvider>(context, listen: false).getLeadCategory();
+            Provider.of<CustomerProvider>(context, listen: false).getVisitType();
+            Provider.of<CustomerProvider>(context, listen: false).getCmtType();
+            Provider.of<TaskProvider>(context, listen: false).getTaskType(false);
+            Provider.of<TaskProvider>(context, listen: false).getTaskStatuses();
+            Provider.of<ExpenseProvider>(context, listen: false).getExpenseType();
+          }
+
+          // 2. Inga dhaan direct use panrom, Provider.of(...) thevai illa
+          updateIndex(0);
+          initValue();
+          // 3. loadFullDashboard REMOVED -> HomePage itself load pannum
+
+          // 4. Microtask remove + stack clear
+          if (context.mounted) {
+            utils.navigateAndClear(
+                context, () => const DashBoard(child: HomePage()));
+          }
+        } else {
+          utils.showErrorToast(context: context);
+          loginCtr.reset();
+        }
+      }
+    } finally {
+      _isLoggingIn = false;
     }
-    // } catch (e) {
-    //   // print(e.toString());
-    //   utils.showErrorToast(context: context);
-    //   loginCtr.reset();
-    // }
     notifyListeners();
   }
+
   Future<void> loginOuts(context) async {
     try {
       Map data = {
@@ -757,11 +851,12 @@ String get notificationToken =>_notificationToken;
           "f_name", "mobile_number", "id", "role_name", "role",
           "conveyance_amount", "travel_amount", "da_amount",
           "no_attendance_count", "leave_emp_name",
+          "fcm_token_synced",
         ]) {
           localData.storage.remove(key);
         }
 
-        utils.navigatePage(context,()=>const LoginPage());
+        utils.navigateAndClear(context, () => const LoginPage());
 
         // (c) ella provider data-vum clear
         attendanceProvider.resetOnLogout();
@@ -1895,7 +1990,7 @@ Future<void> deleteUseAccount(context) async {
   String get month => _month;
   var typeList = ["Today","Yesterday","Last 7 Days","Last 30 Days","This Week","This Month","Last 3 months"];
 
-  void changeType(context,dynamic value){
+  void changeType(context, dynamic value, {bool reloadDashboard = true}){
     _type = value;
     if(_type=="Today"){
       daily();
@@ -1913,7 +2008,7 @@ Future<void> deleteUseAccount(context) async {
       last3Month();
     }
     checkThisMonth();
-    loadFullDashboard(context);
+    if (reloadDashboard) loadFullDashboard(context);
     // getMainReport(false);
  //   getDashboardReport(false);
     Provider.of<AttendanceProvider>(context, listen: false).getLateCount(_startDate,_endDate);

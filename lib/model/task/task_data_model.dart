@@ -1,6 +1,7 @@
 class TaskData {
   final String? id;
   final String? taskTitle;
+  final String? taskDesc;
   final String? projectName;
   final String? department;
   final String? type;
@@ -46,6 +47,7 @@ class TaskData {
     this.phoneNo,
     this.id,
     this.taskTitle,
+      this.taskDesc,
     this.projectName,
     this.department,
     this.type,
@@ -85,6 +87,7 @@ class TaskData {
       isChecked: json['is_checked_out'],
       id: json['id'],
       taskTitle: json['task_title'],
+      taskDesc: json['task_desc'],
       projectName: json['project_name'],
       department: json['department'],
       type: json['type'],
@@ -122,6 +125,7 @@ class TaskData {
     );
   }
 
+
   Map<String?, dynamic> toJson() {
     return {
       'employee_status': employeeStatus,
@@ -135,6 +139,7 @@ class TaskData {
       'id': id,
       'role': role,
       'task_title': taskTitle,
+      'task_desc': taskDesc,
       'project_name': projectName,
       'department': department,
       'type': type,
@@ -169,6 +174,7 @@ class TaskData {
 
 class DTaskModel {
   final String taskTitle;
+  final String taskDesc;
   final String taskDate;
   final String projectName;
   final String creator;
@@ -223,6 +229,7 @@ class DTaskModel {
 
   DTaskModel({
     required this.taskTitle,
+    required this.taskDesc,
     required this.taskDate,
     required this.projectName,
     required this.creator,
@@ -303,6 +310,7 @@ class DTaskModel {
 
       taskDate: json['task_date'] ?? '',
       taskTitle: json['task_title'] ?? '',
+      taskDesc: json['task_desc'] ?? '',
       projectName: json['company_name'] ?? '',
       creator: json['creator'] ?? '',
       status: json['statval'] ?? '',
@@ -359,6 +367,7 @@ class DTaskModel {
 
       'task_date': taskDate,
       'taskTitle': taskTitle,
+      'taskDesc': taskDesc,
       'projectName': projectName,
       'creator': creator,
       'status': status,

@@ -126,7 +126,7 @@ class ConstantValues {
     }
   }
 
-  final String appName = "Aswin Fire System";
+  final String appName = "HapiApps";
   final String checkPdf = "pdf";
   final String rupeeSign = "₹";
 
@@ -163,6 +163,9 @@ class ConstantValues {
   String get name => _t("Company Name", "நிறுவனத்தின் பெயர்", "कंपनी का नाम");
 
   String get empName => _t("Employee Name", "பணியாளர் பெயர்", "कर्मचारी का नाम");
+
+  String get taskTitle =>
+      _t("Task Title", "பணியின் தலைப்பு", "कार्य का शीर्षक");
 
   String get companyName =>
       _t("Company Name", "நிறுவனத்தின் பெயர்", "कंपनी का नाम");
@@ -752,8 +755,11 @@ class ConstantValues {
   String get priority =>
       _t("Priority Level", "முன்னுரிமை நிலை", "प्राथमिकता स्तर");
 
-  String get taskTitle => _t("Task Title / Description",
-      "பணி தலைப்பு / விளக்கம்", "कार्य शीर्षक / विवरण");
+  String get taskDesc => _t(
+    "Task Description",
+    "பணி விளக்கம்",
+    "कार्य विवरण",
+  );
 
   String get notes => _t("Notes Attachments",
       "குறிப்புகள் மற்றும் இணைப்புகள்", "नोट्स और संलग्नक");
@@ -766,6 +772,12 @@ class ConstantValues {
 
   String get fillDescription => _t("Please fill description",
       "விளக்கத்தை நிரப்பவும்", "कृपया विवरण भरें");
+
+  String get fillTitle => _t(
+    "Please fill Title",
+    "தலைப்பை நிரப்பவும்",
+    "कृपया शीर्षक भरें",
+  );
 
   String get selectAssignedTo => _t("Please select assigned to",
       "நியமிக்கப்பட்டவரை தேர்ந்தெடுக்கவும்", "कृपया सौंपे जाने वाले व्यक्ति को चुनें");

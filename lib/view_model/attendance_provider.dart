@@ -940,10 +940,9 @@ class AttendanceProvider with ChangeNotifier{
         "st_dt": _startDate,
         "en_dt": _endDate
       };
-      print("data${data}");
+      print("attendance report now data: ${data}");
       final response = await attRepo.getReport(data);
       print("response");
-      print(response);
       if (response.isNotEmpty){
         _getDailyAttendance=response;
         _searchGetDailyAttendance=response;

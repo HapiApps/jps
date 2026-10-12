@@ -7,19 +7,6 @@ import '../../source/constant/colors_constant.dart';
 import '../../view_model/task_provider.dart';
 import '../attendance/offline_attendance.dart';
 
-class WagesAddWorkDetails extends StatefulWidget {
-  final String taskId;
-
-  const WagesAddWorkDetails({
-    super.key,
-    required this.taskId,
-  });
-
-  @override
-  State<WagesAddWorkDetails> createState() =>
-      _WagesAddWorkDetailsState();
-}
-
 class _Worker {
   final String id;
   final String name;
@@ -34,120 +21,117 @@ class _Worker {
       );
 }
 
+/// ---------------------------------------------------------------------------
+/// SHARED WORKERS STORE
+///
+/// BEFORE: every task card called `provider.getWages()` (API) in initState.
+///         50 cards  ->  50 API calls + 50 setState + provider notifies
+///         -> scroll stuck.
+///
+/// NOW:    workers are loaded ONLY when the user taps "Add Wages Entry",
+///         and the result is cached for 5 minutes and shared by all cards.
+///         Parallel taps share ONE in-flight request.
+/// ---------------------------------------------------------------------------
+class _WorkersStore {
+  static List<_Worker>? _cache;
+  static DateTime? _loadedAt;
+  static Future<List<_Worker>>? _inFlight;
+  static const Duration _ttl = Duration(minutes: 5);
+
+  static bool get _isFresh =>
+      _cache != null &&
+          _loadedAt != null &&
+          DateTime.now().difference(_loadedAt!) < _ttl;
+
+  static Future<List<_Worker>> get(TaskProvider provider,
+      {bool force = false}) {
+    if (!force && _isFresh) {
+      return Future.value(_cache!);
+    }
+    if (_inFlight != null) {
+      return _inFlight!;
+    }
+    final future = _fetch(provider).whenComplete(() {
+      _inFlight = null;
+    });
+    _inFlight = future;
+    return future;
+  }
+
+  static Future<List<_Worker>> _fetch(TaskProvider provider) async {
+    List<Map<String, dynamic>> list;
+
+    if (await OfflineAttendanceService.isOnline()) {
+      try {
+        final res = await provider.getWages();
+
+        list = List.from(res)
+            .map((e) => Map<String, dynamic>.from(e as Map))
+            .toList();
+
+        if (list.isNotEmpty) {
+          await OfflineAttendanceService.saveWorkersCache(list);
+        }
+      } catch (e) {
+        print("WORKERS ONLINE FAILED: $e");
+        list = OfflineAttendanceService.getWorkersCache();
+      }
+    } else {
+      list = OfflineAttendanceService.getWorkersCache();
+    }
+
+    final workers = list
+        .map(
+          (m) => _Worker(
+        (m['id'] ?? m['wage_emp_id'] ?? m['emp_id'] ?? '').toString(),
+        (m['emp_name'] ?? m['name'] ?? '').toString(),
+        (m['emp_contact'] ?? m['phone'] ?? '').toString(),
+        double.tryParse((m['rate'] ?? '0').toString()) ?? 0,
+      ),
+    )
+        .toList();
+
+    // Empty result-ah cache pannaadhu (next tap-la thirumba try pannum)
+    if (workers.isNotEmpty) {
+      _cache = workers;
+      _loadedAt = DateTime.now();
+    }
+
+    return workers;
+  }
+}
+
+class WagesAddWorkDetails extends StatefulWidget {
+  final String taskId;
+
+  const WagesAddWorkDetails({
+    super.key,
+    required this.taskId,
+  });
+
+  @override
+  State<WagesAddWorkDetails> createState() => _WagesAddWorkDetailsState();
+}
+
 class _WagesAddWorkDetailsState extends State<WagesAddWorkDetails> {
   final List<_Worker> _workers = [];
 
   bool _loadingWorkers = false;
 
-  @override
-  void initState() {
-    super.initState();
-    _loadWorkers();
-  }
-
-  Future<void> _loadWorkers() async {
-    if (mounted) {
-      setState(() {
-        _loadingWorkers = true;
-      });
-    }
-
-    try {
-      final provider = Provider.of<TaskProvider>(
-        context,
-        listen: false,
-      );
-
-      List<Map<String, dynamic>> list;
-
-      if (await OfflineAttendanceService.isOnline()) {
-        try {
-          final res = await provider.getWages();
-
-          list = List.from(res)
-              .map(
-                (e) => Map<String, dynamic>.from(e as Map),
-          )
-              .toList();
-
-          if (list.isNotEmpty) {
-            await OfflineAttendanceService.saveWorkersCache(list);
-          }
-        } catch (e) {
-          print("WORKERS ONLINE FAILED: $e");
-          list = OfflineAttendanceService.getWorkersCache();
-        }
-      } else {
-        list = OfflineAttendanceService.getWorkersCache();
-      }
-
-      if (!mounted) {
-        return;
-      }
-
-      setState(() {
-        _workers
-          ..clear()
-          ..addAll(
-            list.map(
-                  (m) => _Worker(
-                (
-                    m['id'] ??
-                        m['wage_emp_id'] ??
-                        m['emp_id'] ??
-                        ''
-                ).toString(),
-                (
-                    m['emp_name'] ??
-                        m['name'] ??
-                        ''
-                ).toString(),
-                (
-                    m['emp_contact'] ??
-                        m['phone'] ??
-                        ''
-                ).toString(),
-                double.tryParse(
-                  (
-                      m['rate'] ??
-                          '0'
-                  ).toString(),
-                ) ??
-                    0,
-              ),
-            ),
-          );
-
-        _loadingWorkers = false;
-      });
-    } catch (e) {
-      print("LOAD WORKERS ERROR: $e");
-
-      if (!mounted) {
-        return;
-      }
-
-      setState(() {
-        _loadingWorkers = false;
-      });
-    }
-  }
+  // initState REMOVED -> no API call when the card is built / scrolled.
 
   Future<Position?> _getLocation() async {
     try {
-      final enabled =
-      await Geolocator.isLocationServiceEnabled();
+      final enabled = await Geolocator.isLocationServiceEnabled();
 
       if (!enabled) {
         return null;
       }
 
-      LocationPermission permission =
-      await Geolocator.checkPermission();
+      LocationPermission permission = await Geolocator.checkPermission();
 
       if (permission == LocationPermission.denied) {
-        permission =
-        await Geolocator.requestPermission();
+        permission = await Geolocator.requestPermission();
       }
 
       if (permission == LocationPermission.denied ||
@@ -169,8 +153,7 @@ class _WagesAddWorkDetailsState extends State<WagesAddWorkDetails> {
   String _localStatus(String empId) {
     final today = DateTime.now();
 
-    final pendingList =
-    OfflineAttendanceService.pendingWagesForTask(
+    final pendingList = OfflineAttendanceService.pendingWagesForTask(
       widget.taskId,
     );
 
@@ -185,15 +168,13 @@ class _WagesAddWorkDetailsState extends State<WagesAddWorkDetails> {
 
       final data = Map<String, dynamic>.from(raw);
 
-      final employeeId =
-      (data["wage_emp_id"] ?? "").toString();
+      final employeeId = (data["wage_emp_id"] ?? "").toString();
 
       if (employeeId != empId) {
         continue;
       }
 
-      final markedAt =
-      DateTime.tryParse(
+      final markedAt = DateTime.tryParse(
         (p["markedAt"] ?? "").toString(),
       );
 
@@ -208,15 +189,36 @@ class _WagesAddWorkDetailsState extends State<WagesAddWorkDetails> {
     return '';
   }
 
-  void open() {
+  /// Button tap -> load workers (cached / shared) -> open bottom sheet
+  Future<void> open() async {
     if (_loadingWorkers) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Loading workers..."),
-        ),
-      );
       return;
     }
+
+    setState(() {
+      _loadingWorkers = true;
+    });
+
+    List<_Worker> list;
+
+    try {
+      final provider = Provider.of<TaskProvider>(context, listen: false);
+      list = await _WorkersStore.get(provider);
+    } catch (e) {
+      print("LOAD WORKERS ERROR: $e");
+      list = [];
+    }
+
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _workers
+        ..clear()
+        ..addAll(list);
+      _loadingWorkers = false;
+    });
 
     if (_workers.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -258,14 +260,11 @@ class _WagesAddWorkDetailsState extends State<WagesAddWorkDetails> {
               context,
               setSheet,
               ) {
-            final bool isCheckOut =
-                currentStatus == "1";
+            final bool isCheckOut = currentStatus == "1";
 
-            final bool isAttendanceMarked =
-                currentStatus == "2";
+            final bool isAttendanceMarked = currentStatus == "2";
 
-            final String buttonText =
-            isAttendanceMarked
+            final String buttonText = isAttendanceMarked
                 ? "Attendance Marked"
                 : isCheckOut
                 ? "Check Out"
@@ -276,20 +275,15 @@ class _WagesAddWorkDetailsState extends State<WagesAddWorkDetails> {
                 20,
                 20,
                 20,
-                MediaQuery.of(sheetContext)
-                    .viewInsets
-                    .bottom +
-                    20,
+                MediaQuery.of(sheetContext).viewInsets.bottom + 20,
               ),
               child: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment:
-                  CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
-                      mainAxisAlignment:
-                      MainAxisAlignment.spaceBetween,
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         const Text(
                           "Add Wages Entry",
@@ -319,8 +313,7 @@ class _WagesAddWorkDetailsState extends State<WagesAddWorkDetails> {
                           size: 20,
                         ),
                         border: OutlineInputBorder(
-                          borderRadius:
-                          BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(12),
                         ),
                       ),
                       items: _workers.map(
@@ -329,15 +322,12 @@ class _WagesAddWorkDetailsState extends State<WagesAddWorkDetails> {
                             value: worker,
                             child: Text(
                               "${worker.name} (${worker.phone})",
-                              overflow:
-                              TextOverflow.ellipsis,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           );
                         },
                       ).toList(),
-                      onChanged:
-                      checkingStatus ||
-                          savingWork
+                      onChanged: checkingStatus || savingWork
                           ? null
                           : (worker) async {
                         if (worker == null) {
@@ -351,9 +341,7 @@ class _WagesAddWorkDetailsState extends State<WagesAddWorkDetails> {
                           currentStatus = '';
                         });
 
-                        final provider =
-                        Provider.of<
-                            TaskProvider>(
+                        final provider = Provider.of<TaskProvider>(
                           context,
                           listen: false,
                         );
@@ -361,17 +349,13 @@ class _WagesAddWorkDetailsState extends State<WagesAddWorkDetails> {
                         String workStatus = '';
 
                         final online =
-                        await OfflineAttendanceService
-                            .isOnline();
+                        await OfflineAttendanceService.isOnline();
 
                         try {
                           workStatus = online
-                              ? await provider
-                              .getWagesStatus(
-                            taskId:
-                            widget.taskId,
-                            wageEmpId:
-                            worker.id,
+                              ? await provider.getWagesStatus(
+                            taskId: widget.taskId,
+                            wageEmpId: worker.id,
                           )
                               : _localStatus(
                             worker.id,
@@ -381,10 +365,9 @@ class _WagesAddWorkDetailsState extends State<WagesAddWorkDetails> {
                             "STATUS CHECK ERROR: $e",
                           );
 
-                          workStatus =
-                              _localStatus(
-                                worker.id,
-                              );
+                          workStatus = _localStatus(
+                            worker.id,
+                          );
                         }
 
                         if (!context.mounted) {
@@ -396,8 +379,7 @@ class _WagesAddWorkDetailsState extends State<WagesAddWorkDetails> {
 
                           if (workStatus == "1") {
                             currentStatus = "1";
-                          } else if (workStatus ==
-                              "2") {
+                          } else if (workStatus == "2") {
                             currentStatus = "2";
                           } else {
                             currentStatus = '';
@@ -409,9 +391,7 @@ class _WagesAddWorkDetailsState extends State<WagesAddWorkDetails> {
                     TextField(
                       maxLines: 3,
                       enabled:
-                      !checkingStatus &&
-                          !savingWork &&
-                          !isAttendanceMarked,
+                      !checkingStatus && !savingWork && !isAttendanceMarked,
                       onChanged: (value) {
                         description = value;
                       },
@@ -422,8 +402,7 @@ class _WagesAddWorkDetailsState extends State<WagesAddWorkDetails> {
                           size: 20,
                         ),
                         border: OutlineInputBorder(
-                          borderRadius:
-                          BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(12),
                         ),
                       ),
                     ),
@@ -445,8 +424,7 @@ class _WagesAddWorkDetailsState extends State<WagesAddWorkDetails> {
                     ],
                     if (error != null)
                       Padding(
-                        padding:
-                        const EdgeInsets.only(top: 8),
+                        padding: const EdgeInsets.only(top: 8),
                         child: Text(
                           error!,
                           style: const TextStyle(
@@ -461,15 +439,12 @@ class _WagesAddWorkDetailsState extends State<WagesAddWorkDetails> {
                       height: 44,
                       child: ElevatedButton(
                         onPressed:
-                        checkingStatus ||
-                            savingWork ||
-                            isAttendanceMarked
+                        checkingStatus || savingWork || isAttendanceMarked
                             ? null
                             : () async {
                           if (selected == null) {
                             setSheet(() {
-                              error =
-                              "Please select employee";
+                              error = "Please select employee";
                             });
                             return;
                           }
@@ -479,34 +454,24 @@ class _WagesAddWorkDetailsState extends State<WagesAddWorkDetails> {
                             error = null;
                           });
 
-                          final now =
-                          TimeOfDay.now();
+                          final now = TimeOfDay.now();
 
                           final currentTime =
                               '${now.hour.toString().padLeft(2, '0')}:'
                               '${now.minute.toString().padLeft(2, '0')}:'
                               '${DateTime.now().second.toString().padLeft(2, '0')}';
 
-                          final pos =
-                          await _getLocation();
+                          final pos = await _getLocation();
 
                           if (!context.mounted) {
                             return;
                           }
 
-                          final lat =
-                              pos?.latitude
-                                  .toString() ??
-                                  '';
+                          final lat = pos?.latitude.toString() ?? '';
 
-                          final lng =
-                              pos?.longitude
-                                  .toString() ??
-                                  '';
+                          final lng = pos?.longitude.toString() ?? '';
 
-                          final provider =
-                          Provider.of<
-                              TaskProvider>(
+                          final provider = Provider.of<TaskProvider>(
                             context,
                             listen: false,
                           );
@@ -516,39 +481,25 @@ class _WagesAddWorkDetailsState extends State<WagesAddWorkDetails> {
                           try {
                             if (isCheckOut) {
                               success =
-                              await provider
-                                  .saveWagesCheckOut(
+                              await provider.saveWagesCheckOut(
                                 context: context,
-                                taskId:
-                                widget.taskId,
-                                empId:
-                                selected!.id,
-                                checkOut:
-                                currentTime,
+                                taskId: widget.taskId,
+                                empId: selected!.id,
+                                checkOut: currentTime,
                                 lat: lat,
                                 lng: lng,
                               );
                             } else {
                               success =
-                              await provider
-                                  .saveWagesCheckIn(
+                              await provider.saveWagesCheckIn(
                                 context: context,
-                                taskId:
-                                widget.taskId,
-                                empId:
-                                selected!.id,
-                                empName:
-                                selected!.name,
-                                empContact:
-                                selected!.phone,
-                                rate:
-                                selected!.salary
-                                    .toString(),
-                                description:
-                                description
-                                    .trim(),
-                                checkIn:
-                                currentTime,
+                                taskId: widget.taskId,
+                                empId: selected!.id,
+                                empName: selected!.name,
+                                empContact: selected!.phone,
+                                rate: selected!.salary.toString(),
+                                description: description.trim(),
+                                checkIn: currentTime,
                                 lat: lat,
                                 lng: lng,
                               );
@@ -567,8 +518,7 @@ class _WagesAddWorkDetailsState extends State<WagesAddWorkDetails> {
                           if (!success) {
                             setSheet(() {
                               savingWork = false;
-                              error =
-                              "Work details save failed";
+                              error = "Work details save failed";
                             });
                             return;
                           }
@@ -577,45 +527,33 @@ class _WagesAddWorkDetailsState extends State<WagesAddWorkDetails> {
                             sheetContext,
                           );
                         },
-                        style:
-                        ElevatedButton.styleFrom(
-                          backgroundColor:
-                          isAttendanceMarked
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: isAttendanceMarked
                               ? Colors.green
                               : colorsConst.primary,
-                          disabledBackgroundColor:
-                          isAttendanceMarked
+                          disabledBackgroundColor: isAttendanceMarked
                               ? Colors.green
                               : Colors.grey.shade300,
-                          shape:
-                          RoundedRectangleBorder(
-                            borderRadius:
-                            BorderRadius.circular(12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
                           ),
                         ),
-                        child:
-                        checkingStatus ||
-                            savingWork
+                        child: checkingStatus || savingWork
                             ? const SizedBox(
                           width: 20,
                           height: 20,
-                          child:
-                          CircularProgressIndicator(
+                          child: CircularProgressIndicator(
                             strokeWidth: 2,
-                            valueColor:
-                            AlwaysStoppedAnimation<
-                                Color>(
+                            valueColor: AlwaysStoppedAnimation<Color>(
                               Colors.white,
                             ),
                           ),
                         )
                             : Text(
                           buttonText,
-                          style:
-                          const TextStyle(
+                          style: const TextStyle(
                             color: Colors.white,
-                            fontWeight:
-                            FontWeight.bold,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
                       ),
@@ -631,11 +569,19 @@ class _WagesAddWorkDetailsState extends State<WagesAddWorkDetails> {
   }
 
   @override
-
   Widget build(BuildContext context) {
     return ElevatedButton.icon(
       onPressed: _loadingWorkers ? null : open,
-      icon: const Icon(
+      icon: _loadingWorkers
+          ? const SizedBox(
+        width: 14,
+        height: 14,
+        child: CircularProgressIndicator(
+          strokeWidth: 2,
+          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+        ),
+      )
+          : const Icon(
         Icons.add_task,
         size: 14,
         color: Colors.white,

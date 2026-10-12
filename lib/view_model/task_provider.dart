@@ -49,16 +49,72 @@ import 'package:http/http.dart' as http;
 import 'package:image/image.dart' as img;
 import 'package:syncfusion_flutter_datepicker/datepicker.dart';
 
-
 class TaskProvider with ChangeNotifier {
+  // ===========================================================================
+  // PERFORMANCE CORE
+  // ===========================================================================
+
+  /// view_task.dart listens with Selector<TaskProvider, int>(p.dataVersion).
+  /// Every real data change bumps this (automatically via notifyListeners()).
+  /// The 1-second timer tick does NOT bump it -> list is not rebuilt each second.
+  int _dataVersion = 0;
+  int get dataVersion => _dataVersion;
+
+  @override
+  void notifyListeners() {
+    if (_isDisposed) return;
+    _dataVersion++;
+    super.notifyListeners();
+  }
+
+  /// Timer widgets can listen to this (ValueListenableBuilder) instead of the
+  /// whole provider.
+  final ValueNotifier<int> tickNotifier = ValueNotifier<int>(0);
+
+  /// Debug-only logging (print is slow in release builds)
+  void _log(Object? message) {
+    if (kDebugMode) debugPrint(message.toString());
+  }
+
+  /// Date parse cache (dd-MM-yyyy). Avoids re-parsing the same string
+  /// thousands of times on every build / filter.
+  static final DateFormat _df = DateFormat('dd-MM-yyyy');
+  final Map<String, DateTime?> _dateCache = {};
+
+  DateTime? _parseTaskDate(String? s) {
+    if (s == null) return null;
+    final key = s.trim();
+    if (key.isEmpty) return null;
+    return _dateCache.putIfAbsent(key, () {
+      try {
+        return _df.parse(key);
+      } catch (_) {
+        return null;
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _isDisposed = true;
+    timer?.cancel();
+    _uiTicker?.cancel();
+    _durationSub?.cancel();
+    _positionSub?.cancel();
+    _completeSub?.cancel();
+    _a2PosSub?.cancel();
+    _a2CompleteSub?.cancel();
+    tickNotifier.dispose();
+    super.dispose();
+  }
+
+  // ===========================================================================
+
   void updateTaskComment(int index, String commentText) {
-    // print("index $index");
-    _filterUserData[index].lastComment=commentText;
-    _filterUserData[index].lastCommentBy=localData.storage.read("f_name");
-    _filterUserData[index].commentCount="${int.parse(_filterUserData[index].commentCount??'0')+1}";
-    // print("taskProvider.filterUserData[index] ${taskProvider.filterUserData[index].lastComment}");
-    // print("taskProvider.filterUserData[index] ${taskProvider.filterUserData[index].lastCommentBy}");
-    // print("taskProvider.filterUserData[index] ${taskProvider.filterUserData[index].commentCount}");
+    _filterUserData[index].lastComment = commentText;
+    _filterUserData[index].lastCommentBy = localData.storage.read("f_name");
+    _filterUserData[index].commentCount =
+    "${int.parse(_filterUserData[index].commentCount ?? '0') + 1}";
     notifyListeners();
   }
 
@@ -71,37 +127,32 @@ class TaskProvider with ChangeNotifier {
   RoundedLoadingButtonController resumeCtr = RoundedLoadingButtonController();
   RoundedLoadingButtonController taskCtr = RoundedLoadingButtonController();
   RoundedLoadingButtonController taskStatusCtr = RoundedLoadingButtonController();
-  String formatDuration2(
-      int totalSeconds,
-      ) {
 
-    final minutes =
-        totalSeconds ~/ 60;
-
-    final seconds =
-        totalSeconds % 60;
-
-    return "$minutes:"
-        "${seconds.toString().padLeft(2, '0')}";
+  String formatDuration2(int totalSeconds) {
+    final minutes = totalSeconds ~/ 60;
+    final seconds = totalSeconds % 60;
+    return "$minutes:${seconds.toString().padLeft(2, '0')}";
   }
 
   bool isAddTaskLoading = false;
   bool _incompleteMode = false;
   GroupButtonController statusController = GroupButtonController();
-  bool _isFilter=false;
-  bool get isFilter=>_isFilter;
+  bool _isFilter = false;
+  bool get isFilter => _isFilter;
   String _startDate = "";
   String get startDate => _startDate;
-  String lStatus="";
-  String _endDate="";
+  String lStatus = "";
+  String _endDate = "";
   String get endDate => _endDate;
-  String _companyName="";
+  String _companyName = "";
   String get companyName => _companyName;
+
   void setFilterDate(String value) {
-    if (_filterDate == value) return; // 🔥 avoid unnecessary rebuild
+    if (_filterDate == value) return; // avoid unnecessary rebuild
     _filterDate = value;
     notifyListeners();
   }
+
   final ScrollController scrollController = ScrollController();
   void scrollToBottom() {
     if (scrollController.hasClients) {
@@ -112,11 +163,12 @@ class TaskProvider with ChangeNotifier {
       );
     }
   }
+
   void changeFilterStatusTab(String id) {
     _statusIds = id;
-    filterList();
-    notifyListeners();
+    filterList(); // filterList already notifies
   }
+
   void setDefaultType() {
     if (typeList.isNotEmpty && (type == null || type.toString().isEmpty)) {
       _type = typeList.first["id"].toString();
@@ -124,14 +176,8 @@ class TaskProvider with ChangeNotifier {
     }
   }
 
-  ///
-
-  ///
-
   void filterList() {
     if (_startDate.isEmpty || _endDate.isEmpty) return;
-
-    final dateFormat = DateFormat('dd-MM-yyyy');
 
     // Incomplete screen la user date filter apply pannala na date check venaam
     final bool applyDate = !(_incompleteMode && _isFilter != true);
@@ -140,109 +186,72 @@ class TaskProvider with ChangeNotifier {
     DateTime parsedEndDate;
 
     try {
-      final startDate = dateFormat.parse(_startDate);
-      final endDate = dateFormat.parse(_endDate);
+      final startDate = _df.parse(_startDate);
+      final endDate = _df.parse(_endDate);
 
       parsedStartDate = DateTime(startDate.year, startDate.month, startDate.day);
       parsedEndDate = DateTime(endDate.year, endDate.month, endDate.day);
     } catch (e) {
-      print("Start/End Date Parse Error: $e");
+      _log("Start/End Date Parse Error: $e");
       return;
     }
+
+    // values that do not change per task -> computed once, outside the loop
+    final selectedType = _fType.toString().trim().toLowerCase();
+    final searchName = _assignedNames.trim().toLowerCase();
+    final selectedCompany = _companyName.toString().trim().toLowerCase();
+    final selectedStatus = _statusIds.toString().trim();
 
     _filterUserData = _searchAllTasks.where((contact) {
       // ---------------- DATE CHECK ----------------
       bool isWithinDateRange = true;
 
       if (applyDate) {
-        if (contact.taskDate == null ||
-            contact.taskDate.toString().trim().isEmpty) {
-          return false;
-        }
-
-        DateTime taskDate;
-        try {
-          taskDate = dateFormat.parse(contact.taskDate.toString().trim());
-        } catch (e) {
-          return false;
-        }
+        final taskDate = _parseTaskDate(contact.taskDate);
+        if (taskDate == null) return false;
 
         final taskDateOnly = DateTime(taskDate.year, taskDate.month, taskDate.day);
 
         isWithinDateRange = !taskDateOnly.isBefore(parsedStartDate) &&
             !taskDateOnly.isAfter(parsedEndDate);
       }
+      if (!isWithinDateRange) return false;
 
       // ---------------- TYPE CHECK ----------------
-      final selectedType = _fType.toString().trim().toLowerCase();
       final contactType = (contact.type ?? "").toString().trim().toLowerCase();
       final isTypeMatch = selectedType.isEmpty || selectedType == contactType;
+      if (!isTypeMatch) return false;
 
       // ---------------- EMPLOYEE CHECK ----------------
-      final rawAssignedNames = (contact.assignedNames ?? "").toString();
-      final assignedList = rawAssignedNames
-          .split(',')
-          .map((e) => e.trim().toLowerCase())
-          .where((e) => e.isNotEmpty)
-          .toList();
+      bool isEmpMatch = true;
+      if (searchName.isNotEmpty) {
+        final assignedList = (contact.assignedNames ?? "")
+            .toString()
+            .split(',')
+            .map((e) => e.trim().toLowerCase())
+            .where((e) => e.isNotEmpty);
 
-      final searchName = _assignedNames.trim().toLowerCase();
-
-      final matchedNames = assignedList.where((name) {
-        return name == searchName ||
+        isEmpMatch = assignedList.any((name) =>
+        name == searchName ||
             name.contains(searchName) ||
-            searchName.contains(name);
-      }).toList();
-
-      final isEmpMatch = searchName.isEmpty || matchedNames.isNotEmpty;
+            searchName.contains(name));
+      }
+      if (!isEmpMatch) return false;
 
       // ---------------- CUSTOMER CHECK ----------------
-      final selectedCompany = _companyName.toString().trim().toLowerCase();
       final contactCompany =
       (contact.projectName ?? "").toString().trim().toLowerCase();
       final isCusMatch =
           selectedCompany.isEmpty || selectedCompany == contactCompany;
+      if (!isCusMatch) return false;
 
       // ---------------- STATUS CHECK ----------------
       final taskStatus = (contact.statval ?? "").toString().trim();
-      final selectedStatus = _statusIds.toString().trim();
-      final isStatusMatch =
-          selectedStatus.isEmpty || taskStatus == selectedStatus;
-
-      return isWithinDateRange &&
-          isTypeMatch &&
-          isEmpMatch &&
-          isCusMatch &&
-          isStatusMatch;
+      return selectedStatus.isEmpty || taskStatus == selectedStatus;
     }).toList();
 
-    if (!_isDisposed) {
-      notifyListeners();
-    }
+    notifyListeners();
   }
-  // void filterList() {
-  //   final dateFormat = DateFormat('dd-MM-yyyy');
-  //   final parsedStartDate = dateFormat.parse(_startDate);
-  //   final parsedEndDate = dateFormat.parse(_endDate);
-  //
-  //   _filterUserData = _searchAllTasks.where((contact) {
-  //     // Parse contact.taskDate (in dd-MM-yyyy format)
-  //     final taskDate = dateFormat.parse(contact.taskDate.toString());
-  //     final taskDateOnly = DateTime(taskDate.year, taskDate.month, taskDate.day);
-  //
-  //     // Filter by date range
-  //     final isWithinDateRange = !taskDateOnly.isBefore(parsedStartDate) && !taskDateOnly.isAfter(parsedEndDate);
-  //     // Optional filters
-  //     final isTypeMatch = _fType == "" || _fType == contact.type;
-  //     final isEmpMatch = _userName == "" || contact.assignedNames.toString().contains(_userName);
-  //     final isCusMatch = _companyName == "" || contact.projectName == _companyName;
-  //
-  //     // Return if all filters match
-  //     return isWithinDateRange && isTypeMatch && isEmpMatch && isCusMatch;
-  //   }).toList();
-  //
-  //   notifyListeners();
-  // }
 
   String _fType = "";
   String get fType => _fType;
@@ -254,7 +263,6 @@ class TaskProvider with ChangeNotifier {
     } else if (value is Map) {
       _fType = value["value"] == "All" ? "" : value["value"].toString();
     } else {
-      // value is String
       _fType = value.toString() == "All" ? "" : value.toString();
     }
 
@@ -262,40 +270,47 @@ class TaskProvider with ChangeNotifier {
   }
 
   void filterList2() {
-    final dateFormat = DateFormat('dd-MM-yyyy');
-    final parsedStartDate = dateFormat.parse(_startDate);
-    final parsedEndDate = dateFormat.parse(_endDate);
+    DateTime parsedStartDate;
+    DateTime parsedEndDate;
+    try {
+      parsedStartDate = _df.parse(_startDate);
+      parsedEndDate = _df.parse(_endDate);
+    } catch (e) {
+      _log("filterList2 date parse error: $e");
+      return;
+    }
+
     _filterUserData = _searchAllTasks.where((contact) {
-      // Parse contact.taskDate (in dd-MM-yyyy format)
-      final taskDate = dateFormat.parse(contact.taskDate.toString());
+      final taskDate = _parseTaskDate(contact.taskDate?.toString());
+      if (taskDate == null) return false;
       final taskDateOnly = DateTime(taskDate.year, taskDate.month, taskDate.day);
 
-      // Filter by date range
       final isWithinDateRange =
           !taskDateOnly.isBefore(parsedStartDate) && !taskDateOnly.isAfter(parsedEndDate);
 
-      // Optional filters
       final isTypeMatch = _fType == "" || _fType == contact.type;
-      final isEmpMatch = _userName == "" || contact.assignedNames.toString().contains(_userName);
+      final isEmpMatch =
+          _userName == "" || contact.assignedNames.toString().contains(_userName);
       final isCusMatch = _companyName == "" || contact.projectName == _companyName;
 
-      // Return if all filters match
       return isWithinDateRange && isTypeMatch && isEmpMatch && isCusMatch;
     }).toList();
 
     notifyListeners();
   }
+
   void changeName(value) {
-    _companyName=value!.companyName.toString();
+    _companyName = value!.companyName.toString();
     notifyListeners();
   }
-  String _stDate="";
-  String _enDate="";
-  String get stDate=> _stDate;
-  String get enDate=> _enDate;
+
+  String _stDate = "";
+  String _enDate = "";
+  String get stDate => _stDate;
+  String get enDate => _enDate;
   PickerDateRange? selectedDate2;
   List<DateTime> datesBetween = [];
-  String betweenDates="";
+  String betweenDates = "";
   List<DateTime> getDatesInRange(DateTime start, DateTime end) {
     List<DateTime> days = [];
     for (int i = 0; i <= end.difference(start).inDays; i++) {
@@ -303,6 +318,7 @@ class TaskProvider with ChangeNotifier {
     }
     return days;
   }
+
   void showDatePickerDialog(BuildContext context) {
     DateTime today = DateTime.now();
     selectedDate2 = PickerDateRange(today, today);
@@ -314,36 +330,39 @@ class TaskProvider with ChangeNotifier {
 
     _stDate = dateFormat.format(selectedDate2!.startDate!);
     notifyListeners();
-    notifyListeners();
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: CustomText(text: '   Select Date',colors: colorsConst.secondary,isBold: true,),
+          title: CustomText(
+            text: '   Select Date',
+            colors: colorsConst.secondary,
+            isBold: true,
+          ),
           content: SizedBox(
-            height: 300, // Adjust height as needed
-            width: 300, // Adjust width as needed
+            height: 300,
+            width: 300,
             child: SfDateRangePicker(
-              minDate: DateTime(2025), // Disable past dates
+              minDate: DateTime(2025),
               maxDate: DateTime.now(),
               onSelectionChanged: (DateRangePickerSelectionChangedArgs args) {
                 selectedDate2 = args.value;
-                _startDate="";
-                _endDate="";
-                if(selectedDate2?.endDate!=null){
-                  _startDate="${selectedDate2?.startDate?.day.toString().padLeft(2,"0")}"
-                      "-${selectedDate2?.startDate?.month.toString().padLeft(2,"0")}"
+                _startDate = "";
+                _endDate = "";
+                if (selectedDate2?.endDate != null) {
+                  _startDate = "${selectedDate2?.startDate?.day.toString().padLeft(2, "0")}"
+                      "-${selectedDate2?.startDate?.month.toString().padLeft(2, "0")}"
                       "-${selectedDate2?.startDate?.year.toString()}";
 
-                  _endDate="${selectedDate2?.endDate?.day.toString().padLeft(2,"0")}"
-                      "-${selectedDate2?.endDate?.month.toString().padLeft(2,"0")}"
+                  _endDate = "${selectedDate2?.endDate?.day.toString().padLeft(2, "0")}"
+                      "-${selectedDate2?.endDate?.month.toString().padLeft(2, "0")}"
                       "-${selectedDate2?.endDate?.year.toString()}";
-                }else{
-                  _startDate="${selectedDate2?.startDate?.day.toString().padLeft(2,"0")}"
-                      "-${selectedDate2?.startDate?.month.toString().padLeft(2,"0")}"
+                } else {
+                  _startDate = "${selectedDate2?.startDate?.day.toString().padLeft(2, "0")}"
+                      "-${selectedDate2?.startDate?.month.toString().padLeft(2, "0")}"
                       "-${selectedDate2?.startDate?.year.toString()}";
-                  _endDate="${selectedDate2?.startDate?.day.toString().padLeft(2,"0")}"
-                      "-${selectedDate2?.startDate?.month.toString().padLeft(2,"0")}"
+                  _endDate = "${selectedDate2?.startDate?.day.toString().padLeft(2, "0")}"
+                      "-${selectedDate2?.startDate?.month.toString().padLeft(2, "0")}"
                       "-${selectedDate2?.startDate?.year.toString()}";
                 }
                 notifyListeners();
@@ -355,20 +374,23 @@ class TaskProvider with ChangeNotifier {
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                CustomText(text: 'Click and drag to select multiple dates',colors: colorsConst.greyClr,),
+                CustomText(
+                  text: 'Click and drag to select multiple dates',
+                  colors: colorsConst.greyClr,
+                ),
               ],
             ),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
                 TextButton(
-                  child: const CustomText(text:'Cancel',colors: Colors.grey,isBold: true,),
+                  child: const CustomText(text: 'Cancel', colors: Colors.grey, isBold: true),
                   onPressed: () {
                     Navigator.of(context).pop();
                   },
                 ),
                 TextButton(
-                  child: CustomText(text: 'OK',colors: colorsConst.primary,isBold: true,),
+                  child: CustomText(text: 'OK', colors: colorsConst.primary, isBold: true),
                   onPressed: () {
                     if (selectedDate2 != null) {
                       datesBetween = getDatesInRange(
@@ -378,11 +400,11 @@ class TaskProvider with ChangeNotifier {
                     }
                     DateFormat dateFormat = DateFormat('dd-MM-yyyy');
 
-                    List<String> formattedDates = datesBetween.map((date) => dateFormat.format(date)).toList();
+                    List<String> formattedDates =
+                    datesBetween.map((date) => dateFormat.format(date)).toList();
                     betweenDates = formattedDates.join(' || ');
                     filterList2();
                     initFilterValue(false);
-                    notifyListeners();
                     Navigator.of(context).pop();
                   },
                 ),
@@ -394,46 +416,43 @@ class TaskProvider with ChangeNotifier {
     );
   }
 
-  void initDateValue(String date1,String date2,String type,){
-      _isFilter=false;
-      _filterType=type;
-      _type=null;
-      _companyName="";
-      _fType="";
-      _filterUserData=_allTasks;
-      _userName="";
-    _filterDate="";
-    _startDate=date1;
-    _endDate=date2;
+  void initDateValue(String date1, String date2, String type) {
+    _isFilter = false;
+    _filterType = type;
+    _type = null;
+    _companyName = "";
+    _fType = "";
+    _filterUserData = _allTasks;
+    _userName = "";
+    _filterDate = "";
+    _startDate = date1;
+    _endDate = date2;
     search.clear();
     filterList();
-    notifyListeners();
   }
-  void initFilterValue(bool isClear,{String? date1, String? date2, String? type}){
-    if(isClear==false){
-      _isFilter=true;
-    }else{
-      _isFilter=false;
-      _filterType=type;
-      _type=null;
-      _companyName="";
-      _fType="";
-      _filterUserData=_allTasks;
-      _userName="";
-      _filterDate="";
-      _startDate=date1!;
-      _endDate=date2!;
+
+  void initFilterValue(bool isClear, {String? date1, String? date2, String? type}) {
+    if (isClear == false) {
+      _isFilter = true;
+    } else {
+      _isFilter = false;
+      _filterType = type;
+      _type = null;
+      _companyName = "";
+      _fType = "";
+      _filterUserData = _allTasks;
+      _userName = "";
+      _filterDate = "";
+      _startDate = date1!;
+      _endDate = date2!;
       search.clear();
-      _assignedNames="";
+      _assignedNames = "";
     }
-    // _filterDate="";
-    // _stDate="${DateTime.now().day.toString().padLeft(2,"0")}-${DateTime.now().month.toString().padLeft(2,"0")}-${DateTime.now().year}";
-    // _enDate="${DateTime.now().day.toString().padLeft(2,"0")}-${DateTime.now().month.toString().padLeft(2,"0")}-${DateTime.now().year}";
     search.clear();
     notifyListeners();
   }
+
   void filterPick({required BuildContext context, required String date, required bool isStartDate}) {
-    DateTime dateTime = DateTime.now();
     final parsedDate = DateFormat('dd-MM-yyyy').parse(date);
     final now = DateTime.now();
     DateTime initDate = DateTime(
@@ -465,23 +484,24 @@ class TaskProvider with ChangeNotifier {
       }
     });
   }
+
   dynamic _filterType;
-  dynamic get filterType =>_filterType;
-  void changeFilterType(dynamic value){
+  dynamic get filterType => _filterType;
+  void changeFilterType(dynamic value) {
     _filterType = value;
-    if(_filterType=="Today"){
+    if (_filterType == "Today") {
       daily();
-    }else if(_filterType=="Yesterday"){
+    } else if (_filterType == "Yesterday") {
       yesterday();
-    }else if(_filterType=="Last 7 Days"){
+    } else if (_filterType == "Last 7 Days") {
       last7Days();
-    }else if(_filterType=="Last 30 Days"){
+    } else if (_filterType == "Last 30 Days") {
       last30Days();
-    }else if(_filterType=="This Week"){
+    } else if (_filterType == "This Week") {
       thisWeek();
-    }else if(_filterType=="This Month"){
+    } else if (_filterType == "This Month") {
       thisMonth();
-    }else if(_filterType=="Last 3 months"){
+    } else if (_filterType == "Last 3 months") {
       last3Month();
     }
     notifyListeners();
@@ -490,19 +510,21 @@ class TaskProvider with ChangeNotifier {
   DateTime stDt = DateTime.now();
   DateTime enDt = DateTime.now().add(const Duration(days: 1));
   void daily() {
-    stDt=DateTime.now();
-    enDt=DateTime.now().add(const Duration(days: 1));
+    stDt = DateTime.now();
+    enDt = DateTime.now().add(const Duration(days: 1));
     _startDate = DateFormat('dd-MM-yyyy').format(stDt);
     _endDate = DateFormat('dd-MM-yyyy').format(stDt);
     notifyListeners();
   }
+
   void yesterday() {
-    stDt=DateTime.now().subtract(const Duration(days: 1));
+    stDt = DateTime.now().subtract(const Duration(days: 1));
     enDt = DateTime.now();
     _startDate = DateFormat('dd-MM-yyyy').format(stDt);
     _endDate = DateFormat('dd-MM-yyyy').format(stDt);
     notifyListeners();
   }
+
   void last7Days() {
     DateTime now = DateTime.now();
     DateTime lastWeekStart = now.subtract(const Duration(days: 6));
@@ -511,6 +533,7 @@ class TaskProvider with ChangeNotifier {
     _endDate = DateFormat('dd-MM-yyyy').format(lastWeekEnd);
     notifyListeners();
   }
+
   void last30Days() {
     DateTime now = DateTime.now();
     DateTime lastMonthStart = now.subtract(const Duration(days: 29));
@@ -519,6 +542,7 @@ class TaskProvider with ChangeNotifier {
     _endDate = DateFormat('dd-MM-yyyy').format(lastMonthEnd);
     notifyListeners();
   }
+
   void thisWeek() {
     DateTime now = DateTime.now();
     int currentWeekday = now.weekday;
@@ -528,18 +552,11 @@ class TaskProvider with ChangeNotifier {
     _endDate = DateFormat('dd-MM-yyyy').format(enDt);
     notifyListeners();
   }
-  // void thisMonth() {
-  //   DateTime now = DateTime.now();
-  //   stDt = DateTime(now.year, now.month, 1);
-  //   enDt = DateTime(now.year, now.month + 1, 0);
-  //   _startDate = DateFormat('dd-MM-yyyy').format(stDt);
-  //   _endDate = DateFormat('dd-MM-yyyy').format(enDt);
-  //   notifyListeners();
-  // }
+
   void thisMonth() {
     DateTime now = DateTime.now();
     stDt = DateTime(now.year, now.month, 1); // Start of month
-    enDt = now; // Today’s date
+    enDt = now; // Today's date
     _startDate = DateFormat('dd-MM-yyyy').format(stDt);
     _endDate = DateFormat('dd-MM-yyyy').format(enDt);
     notifyListeners();
@@ -547,8 +564,6 @@ class TaskProvider with ChangeNotifier {
 
   void last3Month() {
     DateTime now = DateTime.now();
-
-// Subtract 3 months from today
     DateTime stDt = DateTime(now.year, now.month - 3, now.day);
     DateTime enDt = now;
 
@@ -556,6 +571,7 @@ class TaskProvider with ChangeNotifier {
     _endDate = DateFormat('dd-MM-yyyy').format(enDt);
     notifyListeners();
   }
+
   void lastMonth() {
     DateTime now = DateTime.now();
     stDt = DateTime(now.year, now.month, 1);
@@ -566,16 +582,24 @@ class TaskProvider with ChangeNotifier {
     _endDate = DateFormat('dd-MM-yyyy').format(DateTime(enDt.year, enDt.month + 1, 0));
     notifyListeners();
   }
-  var filterTypeList = ["Today","Yesterday","Last 7 Days","Last 30 Days","This Week","This Month","Last 3 months"];
+
+  var filterTypeList = [
+    "Today",
+    "Yesterday",
+    "Last 7 Days",
+    "Last 30 Days",
+    "This Week",
+    "This Month",
+    "Last 3 months"
+  ];
   dynamic _user;
-  dynamic get user=>_user;
-  String _userName="";
-  String get userName=>_userName;
-  void selectUser(UserModel value){
-    _user=value.id;
-    _userName=value.firstname.toString();
+  dynamic get user => _user;
+  String _userName = "";
+  String get userName => _userName;
+  void selectUser(UserModel value) {
+    _user = value.id;
+    _userName = value.firstname.toString();
     filterList();
-    notifyListeners();
   }
 
   Future<void> downloadAllTask(BuildContext context) async {
@@ -599,7 +623,7 @@ class TaskProvider with ChangeNotifier {
       };
 
       final response = await _taskRepo.downloadReport(data);
-       print("log response${response}");
+      _log("log response$response");
       if (!context.mounted) return;
 
       if (response.isNotEmpty) {
@@ -608,11 +632,11 @@ class TaskProvider with ChangeNotifier {
         List<DTaskModel> filteredList = taskList.where((task) {
           final isTypeMatch = _fType.isEmpty || (_fType == task.type);
 
-          final isEmpMatch = _userName.isEmpty ||
-              (task.assignedNames ?? "").contains(_userName);
+          final isEmpMatch =
+              _userName.isEmpty || (task.assignedNames ?? "").contains(_userName);
 
-          final isCusMatch = _companyName.isEmpty ||
-              (_companyName == (task.projectName?? ""));
+          final isCusMatch =
+              _companyName.isEmpty || (_companyName == (task.projectName ?? ""));
 
           return isTypeMatch && isEmpMatch && isCusMatch;
         }).toList();
@@ -648,6 +672,7 @@ class TaskProvider with ChangeNotifier {
 
     notifyListeners();
   }
+
   Future<void> downloadAllOnlyEmpTask(BuildContext context) async {
     notifyListeners();
 
@@ -669,7 +694,7 @@ class TaskProvider with ChangeNotifier {
       };
 
       final response = await _taskRepo.downloadReport(data);
-      print("log response${response}");
+      _log("log response$response");
       if (!context.mounted) return;
 
       if (response.isNotEmpty) {
@@ -678,11 +703,11 @@ class TaskProvider with ChangeNotifier {
         List<DTaskModel> filteredList = taskList.where((task) {
           final isTypeMatch = _fType.isEmpty || (_fType == task.type);
 
-          final isEmpMatch = _userName.isEmpty ||
-              (task.assignedNames ?? "").contains(_userName);
+          final isEmpMatch =
+              _userName.isEmpty || (task.assignedNames ?? "").contains(_userName);
 
-          final isCusMatch = _companyName.isEmpty ||
-              (_companyName == (task.projectName?? ""));
+          final isCusMatch =
+              _companyName.isEmpty || (_companyName == (task.projectName ?? ""));
 
           return isTypeMatch && isEmpMatch && isCusMatch;
         }).toList();
@@ -690,8 +715,7 @@ class TaskProvider with ChangeNotifier {
         filteredList = List<DTaskModel>.from(filteredList);
 
         if (filteredList.isNotEmpty) {
-          await
-          exportTaskOnlyEmployeeWiseExcel(
+          await exportTaskOnlyEmployeeWiseExcel(
             taskList: taskList,
             fromDate: _startDate,
             toDate: _endDate,
@@ -725,8 +749,7 @@ class TaskProvider with ChangeNotifier {
     required List<DTaskModel> taskList,
     required String fromDate,
     required String toDate,
-  })
-  async {
+  }) async {
     try {
       var excel = Excel.createExcel();
       Sheet sheet = excel["Sheet1"];
@@ -829,14 +852,12 @@ class TaskProvider with ChangeNotifier {
 
         for (int col = 0; col < 7; col++) {
           sheet
-              .cell(CellIndex.indexByColumnRow(
-              columnIndex: col, rowIndex: rowIndex))
+              .cell(CellIndex.indexByColumnRow(columnIndex: col, rowIndex: rowIndex))
               .cellStyle = headerStyle;
         }
 
         rowIndex++;
 
-        // ✅ FIXED: projectName ❌ -> companyName ✅
         sheet.appendRow([
           safeText(task.taskDate),
           safeText(task.taskTitle),
@@ -849,8 +870,7 @@ class TaskProvider with ChangeNotifier {
 
         for (int col = 0; col < 7; col++) {
           sheet
-              .cell(CellIndex.indexByColumnRow(
-              columnIndex: col, rowIndex: rowIndex))
+              .cell(CellIndex.indexByColumnRow(columnIndex: col, rowIndex: rowIndex))
               .cellStyle = dataStyle;
         }
 
@@ -865,9 +885,7 @@ class TaskProvider with ChangeNotifier {
           CellIndex.indexByString("C${rowIndex + 1}"),
         );
 
-        sheet
-            .cell(CellIndex.indexByString("A${rowIndex + 1}"))
-            .cellStyle = subHeaderStyle;
+        sheet.cell(CellIndex.indexByString("A${rowIndex + 1}")).cellStyle = subHeaderStyle;
 
         rowIndex++;
 
@@ -875,8 +893,7 @@ class TaskProvider with ChangeNotifier {
 
         for (int col = 0; col < 3; col++) {
           sheet
-              .cell(CellIndex.indexByColumnRow(
-              columnIndex: col, rowIndex: rowIndex))
+              .cell(CellIndex.indexByColumnRow(columnIndex: col, rowIndex: rowIndex))
               .cellStyle = headerStyle;
         }
 
@@ -896,8 +913,7 @@ class TaskProvider with ChangeNotifier {
             ]);
 
             sheet
-                .cell(CellIndex.indexByColumnRow(
-                columnIndex: 2, rowIndex: rowIndex))
+                .cell(CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: rowIndex))
                 .cellStyle = dataStyle;
 
             rowIndex++;
@@ -927,7 +943,7 @@ class TaskProvider with ChangeNotifier {
       String cleanToDate = toDate.replaceAll("/", "-").replaceAll(":", "-");
 
       String filePath =
-          "${dir.path}/Task_Comments_Block_${cleanFromDate}_to_${cleanToDate}.xlsx";
+          "${dir.path}/Task_Comments_Block_${cleanFromDate}_to_$cleanToDate.xlsx";
 
       final bytes = excel.encode();
       if (bytes == null) return;
@@ -937,7 +953,7 @@ class TaskProvider with ChangeNotifier {
 
       await OpenFile.open(filePath);
     } catch (e) {
-      print("Excel Export Error => $e");
+      _log("Excel Export Error => $e");
     }
   }
 
@@ -966,19 +982,16 @@ class TaskProvider with ChangeNotifier {
       if (!context.mounted) return;
 
       if (response.isNotEmpty) {
-        // ✅ make modifiable list
         List<DTaskModel> taskList = List<DTaskModel>.from(response);
 
-        // ✅ filter
         List<DTaskModel> test = taskList.where((task) {
           final isTypeMatch = _fType.isEmpty || _fType == task.type;
 
-          final isEmpMatch = _userName.isEmpty ||
-              (task.assignedNames ?? "").contains(_userName);
+          final isEmpMatch =
+              _userName.isEmpty || (task.assignedNames ?? "").contains(_userName);
 
-          // ✅ IMPORTANT FIX: projectName ❌ -> companyName ✅
-          final isCusMatch = _companyName.isEmpty ||
-              (task.projectName ?? "") == _companyName;
+          final isCusMatch =
+              _companyName.isEmpty || (task.projectName ?? "") == _companyName;
 
           return isTypeMatch && isEmpMatch && isCusMatch;
         }).toList();
@@ -1013,8 +1026,7 @@ class TaskProvider with ChangeNotifier {
     required List<DTaskModel> taskList,
     required String fromDate,
     required String toDate,
-  })
-  async {
+  }) async {
     var excel = Excel.createExcel();
     Sheet sheet = excel["Sheet1"];
 
@@ -1042,11 +1054,6 @@ class TaskProvider with ChangeNotifier {
       verticalAlign: VerticalAlign.Center,
     );
 
-    CellStyle normalStyle = CellStyle(
-      horizontalAlign: HorizontalAlign.Left,
-      verticalAlign: VerticalAlign.Center,
-    );
-
     /// =================== TOP TITLE ===================
     sheet.appendRow(["${constValue.appName} TASK REPORT DETAILS"]);
     sheet.merge(
@@ -1055,7 +1062,6 @@ class TaskProvider with ChangeNotifier {
     );
     sheet.cell(CellIndex.indexByString("A1")).cellStyle = titleStyle;
 
-    /// EMPTY ROW
     sheet.appendRow([""]);
 
     /// =================== GROUP BY EMPLOYEE ===================
@@ -1064,7 +1070,6 @@ class TaskProvider with ChangeNotifier {
     for (var task in taskList) {
       String names = task.assignedNames ?? "Unknown";
 
-      // ✅ split comma separated names
       List<String> empList = names.split(",");
 
       for (var emp in empList) {
@@ -1076,18 +1081,16 @@ class TaskProvider with ChangeNotifier {
       }
     }
 
-    int rowIndex = 2; // because already 2 rows added
+    int rowIndex = 2;
 
     /// =================== LOOP EMPLOYEE WISE ===================
     groupedTasks.forEach((empName, tasks) {
-      /// ✅ SORT DATE ASCENDING (dd-MM-yyyy)
       tasks.sort((a, b) {
         DateTime da = parseDate(a.taskDate);
         DateTime db = parseDate(b.taskDate);
         return da.compareTo(db);
       });
 
-      /// EMPLOYEE NAME + DATE RANGE
       sheet.appendRow(["$empName ($fromDate to $toDate)"]);
 
       sheet.merge(
@@ -1095,12 +1098,10 @@ class TaskProvider with ChangeNotifier {
         CellIndex.indexByString("I${rowIndex + 1}"),
       );
 
-      sheet.cell(CellIndex.indexByString("A${rowIndex + 1}")).cellStyle =
-          empStyle;
+      sheet.cell(CellIndex.indexByString("A${rowIndex + 1}")).cellStyle = empStyle;
 
       rowIndex++;
 
-      /// HEADER ROW
       sheet.appendRow([
         "Task Created Date",
         "Task Title",
@@ -1120,61 +1121,16 @@ class TaskProvider with ChangeNotifier {
       }
       rowIndex++;
 
-      /// TASK DATA ROWS
-      // for (var task in tasks) {
-      //   var hoursList=task.employeeHours.toString().split('||');
-      //   // sheet.appendRow([
-      //   //   task.taskDate ?? "-",
-      //   //   task.taskTitle ?? "-",
-      //   //   task.projectName ?? "-",
-      //   //   task.type ?? "-",
-      //   //   task.taskDate ?? "-",
-      //   //   task.assignedNames ?? "-",
-      //   //   task.creator ?? "-",
-      //   //   task.status ?? "-",
-      //   //   hoursList[index]==""?"0 sec":taskPvr.formatHours(hoursList[index].split("##")[1])
-      //   // ]);
-      //   String hours = "0 sec";
-      //
-      //   if (index < hoursList.length && hoursList[index].isNotEmpty) {
-      //     var parts = hoursList[index].split("##");
-      //
-      //     if (parts.length > 1 && parts[1].isNotEmpty) {
-      //       hours = taskPvr.formatHours(parts[1]);
-      //     }
-      //   }
-      //
-      //   sheet.appendRow([
-      //     task.taskDate ?? "-",
-      //     task.taskTitle ?? "-",
-      //     task.projectName ?? "-",
-      //     task.type ?? "-",
-      //     task.taskDate ?? "-",
-      //     task.assignedNames ?? "-",
-      //     task.creator ?? "-",
-      //     task.status ?? "-",
-      //     hours,
-      //   ]);
-      //
-      //   for (int col = 0; col < 9; col++) {
-      //     sheet
-      //         .cell(CellIndex.indexByColumnRow(
-      //         columnIndex: col, rowIndex: rowIndex))
-      //         .cellStyle = normalStyle;
-      //   }
-      //
-      //   rowIndex++;
-      // }
-      ///
       for (var task in tasks) {
         var hoursList = task.employeeHours.toString().split('||');
-        var statusList=task.employeeStatus.toString().split('||');
+        var statusList = task.employeeStatus.toString().split('||');
 
         String hours = "";
 
-        if (hoursList.isNotEmpty&&hoursList.first.isNotEmpty) {
-          for(var i=0;i<hoursList.length;i++){
-            hours+="${statusList[i].split("##")[0]} : ${hoursList[i]==""?"0 sec":formatHours(hoursList[i].split("##")[1])} ";
+        if (hoursList.isNotEmpty && hoursList.first.isNotEmpty) {
+          for (var i = 0; i < hoursList.length; i++) {
+            hours +=
+            "${statusList[i].split("##")[0]} : ${hoursList[i] == "" ? "0 sec" : formatHours(hoursList[i].split("##")[1])} ";
           }
         }
 
@@ -1192,7 +1148,7 @@ class TaskProvider with ChangeNotifier {
 
         rowIndex++;
       }
-      /// GAP AFTER EACH EMPLOYEE
+
       sheet.appendRow([""]);
       rowIndex++;
     });
@@ -1211,8 +1167,7 @@ class TaskProvider with ChangeNotifier {
     /// =================== SAVE FILE ===================
     final dir = await getApplicationDocumentsDirectory();
 
-    String filePath =
-        "${dir.path}/Employee_Task_Report_($fromDate to $toDate).xlsx";
+    String filePath = "${dir.path}/Employee_Task_Report_($fromDate to $toDate).xlsx";
 
     File(filePath)
       ..createSync(recursive: true)
@@ -1221,17 +1176,14 @@ class TaskProvider with ChangeNotifier {
     await OpenFile.open(filePath);
   }
 
-// Un provider-la irukkura exportTaskOnlyEmployeeWiseExcel function-ku badhila idhai paste pannu.
-// Imports (already un file-la irukkum): excel, path_provider, open_file, dart:io
-
   Future<void> exportTaskOnlyEmployeeWiseExcel({
     required List<DTaskModel> taskList,
     required String fromDate,
     required String toDate,
     required String role,
-    String? userName, // 👈 employee login name
+    String? userName, // employee login name
   }) async {
-    print("### EXPORT CALLED ### tasks=${taskList.length} role=$role user=$userName");
+    _log("### EXPORT CALLED ### tasks=${taskList.length} role=$role user=$userName");
 
     var excel = Excel.createExcel();
     Sheet sheet = excel["Sheet1"];
@@ -1280,8 +1232,6 @@ class TaskProvider with ChangeNotifier {
     );
 
     /// =================== REMOVE DUPLICATE ROWS ===================
-    /// Backend join (expense x attendance x visit) naala same task
-    /// pala thadava varum. Excel-la kaattura values same irundha oru thadava mattum.
     final Set<String> seen = {};
     final List<DTaskModel> uniqueTasks = [];
     for (final t in taskList) {
@@ -1301,17 +1251,15 @@ class TaskProvider with ChangeNotifier {
       ].join("|");
       if (seen.add(key)) uniqueTasks.add(t);
     }
-    print("AFTER DEDUPE: ${uniqueTasks.length} (from ${taskList.length})");
-    print("TASKS WITH WAGES: ${uniqueTasks.where(hasWages).length}");
+    _log("AFTER DEDUPE: ${uniqueTasks.length} (from ${taskList.length})");
+    _log("TASKS WITH WAGES: ${uniqueTasks.where(hasWages).length}");
 
     /// =================== FILTER LIST ===================
     List<DTaskModel> filteredTasks = [];
 
     if (role.toString().trim() == "1") {
-      /// ✅ Admin = all tasks
       filteredTasks = uniqueTasks;
     } else {
-      /// ✅ Employee = only assigned tasks for that user
       String filter = (userName ?? "").trim().toLowerCase();
 
       filteredTasks = uniqueTasks.where((task) {
@@ -1328,7 +1276,7 @@ class TaskProvider with ChangeNotifier {
     final bool anyWages = filteredTasks.any(hasWages);
     final int totalCols = anyWages ? 13 : 8;
     final String lastCol = anyWages ? "M" : "H";
-    print("AFTER FILTER: ${filteredTasks.length} | anyWages=$anyWages");
+    _log("AFTER FILTER: ${filteredTasks.length} | anyWages=$anyWages");
 
     /// =================== TOP TITLE ===================
     sheet.appendRow(["${constValue.appName} TASK REPORT DETAILS"]);
@@ -1348,7 +1296,6 @@ class TaskProvider with ChangeNotifier {
         String empName = emp.trim();
         if (empName.isEmpty) empName = "Unknown";
 
-        /// Employee role na only login user name group la add pannum
         if (role.toString().trim() != "1") {
           if (empName.toLowerCase() != (userName ?? "").trim().toLowerCase()) {
             continue;
@@ -1360,7 +1307,6 @@ class TaskProvider with ChangeNotifier {
       }
     }
 
-    /// =================== IF EMPTY ===================
     if (groupedTasks.isEmpty) {
       sheet.appendRow(["No Tasks Found"]);
     }
@@ -1369,7 +1315,6 @@ class TaskProvider with ChangeNotifier {
 
     /// =================== LOOP EMPLOYEE WISE ===================
     groupedTasks.forEach((empName, tasks) {
-      /// wages irukkura tasks mela, appuram date padi
       tasks.sort((a, b) {
         final wa = hasWages(a) ? 0 : 1;
         final wb = hasWages(b) ? 0 : 1;
@@ -1386,8 +1331,7 @@ class TaskProvider with ChangeNotifier {
         CellIndex.indexByString("$lastCol${rowIndex + 1}"),
       );
 
-      sheet.cell(CellIndex.indexByString("A${rowIndex + 1}")).cellStyle =
-          empStyle;
+      sheet.cell(CellIndex.indexByString("A${rowIndex + 1}")).cellStyle = empStyle;
 
       rowIndex++;
 
@@ -1430,7 +1374,6 @@ class TaskProvider with ChangeNotifier {
           task.creator.isEmpty ? "-" : task.creator,
           task.status.isEmpty ? "-" : task.status,
           if (anyWages) ...[
-            // wages illana blank
             w ? clean(task.wagesWorkers) : "",
             w ? clean(task.wagesAddedBy) : "",
             w ? clean(task.wagesDescription) : "",
@@ -1491,7 +1434,7 @@ class TaskProvider with ChangeNotifier {
     final font = await PdfGoogleFonts.notoSansRegular();
     final boldFont = await PdfGoogleFonts.notoSansBold();
 
-    /// 🔹 Image Loader
+    /// Image Loader
     Future<pw.MemoryImage?> loadAndCompressImage(String url,
         {int maxWidth = 600, int maxHeight = 600, int quality = 50}) async {
       try {
@@ -1511,7 +1454,7 @@ class TaskProvider with ChangeNotifier {
       return null;
     }
 
-    /// 🔹 Preload Images
+    /// Preload Images
     Map<DTaskModel, List<pw.MemoryImage>> taskImages = {};
     for (var task in taskList) {
       final images = <pw.MemoryImage>[];
@@ -1530,10 +1473,8 @@ class TaskProvider with ChangeNotifier {
       taskImages[task] = images;
     }
 
-    /// 🔹 Build Task Section
+    /// Build Task Section
     pw.Widget buildTaskSection(DTaskModel task, List<pw.MemoryImage> images) {
-
-      /// 🔥 COMMENTS PARSE
       List<Map<String, String>> comments = [];
 
       if (task.commentsFull != null && task.commentsFull!.trim().isNotEmpty) {
@@ -1569,34 +1510,21 @@ class TaskProvider with ChangeNotifier {
       return pw.Column(
         crossAxisAlignment: pw.CrossAxisAlignment.start,
         children: [
-
           pw.Divider(),
-
-          /// 🔹 Title
           pw.Text("Task Reports - ${task.taskDate}",
               style: pw.TextStyle(fontSize: 16, font: boldFont)),
-
           pw.SizedBox(height: 5),
-
-          /// 🔹 Basic Info
           pw.Text("Task: ${task.taskTitle}", style: pw.TextStyle(font: font)),
           pw.Text("Company: ${task.projectName}", style: pw.TextStyle(font: font)),
           pw.Text("Assigned To: ${task.assignedNames}", style: pw.TextStyle(font: font)),
           pw.Text("Created By: ${task.creator}", style: pw.TextStyle(font: font)),
-
           pw.SizedBox(height: 10),
-
-          /// 🔥 COMMENTS TABLE
           if (comments.isNotEmpty)
             pw.Column(
               crossAxisAlignment: pw.CrossAxisAlignment.start,
               children: [
-
-                pw.Text("Comments",
-                    style: pw.TextStyle(font: boldFont, fontSize: 14)),
-
+                pw.Text("Comments", style: pw.TextStyle(font: boldFont, fontSize: 14)),
                 pw.SizedBox(height: 5),
-
                 pw.Table(
                   border: pw.TableBorder.all(color: PdfColors.grey300),
                   columnWidths: {
@@ -1605,8 +1533,6 @@ class TaskProvider with ChangeNotifier {
                     2: const pw.FlexColumnWidth(6),
                   },
                   children: [
-
-                    /// HEADER
                     pw.TableRow(
                       decoration: pw.BoxDecoration(color: PdfColors.grey200),
                       children: [
@@ -1627,8 +1553,6 @@ class TaskProvider with ChangeNotifier {
                         ),
                       ],
                     ),
-
-                    /// DATA
                     ...comments.map((c) {
                       return pw.TableRow(
                         children: [
@@ -1660,17 +1584,13 @@ class TaskProvider with ChangeNotifier {
                 ),
               ],
             ),
-
           pw.SizedBox(height: 10),
-
-          /// 🔹 Images
           if (images.isNotEmpty)
             pw.Column(
               crossAxisAlignment: pw.CrossAxisAlignment.start,
               children: [
                 pw.Text("Documents", style: pw.TextStyle(font: boldFont)),
                 pw.SizedBox(height: 5),
-
                 ...images.map((img) => pw.Padding(
                   padding: const pw.EdgeInsets.all(5),
                   child: pw.Image(img, width: 150, height: 100),
@@ -1681,13 +1601,10 @@ class TaskProvider with ChangeNotifier {
       );
     }
 
-    /// 🔹 Add Pages
     for (var task in taskList) {
       pdf.addPage(
         pw.MultiPage(
-          build: (context) => [
-            buildTaskSection(task, taskImages[task] ?? [])
-          ],
+          build: (context) => [buildTaskSection(task, taskImages[task] ?? [])],
         ),
       );
     }
@@ -1696,17 +1613,7 @@ class TaskProvider with ChangeNotifier {
     await Printing.layoutPdf(onLayout: (format) async => pdf.save());
   }
 
-
-
-
-  /// ===============================================================
-  /// ✅ EXPORT EMPLOYEE WISE EXCEL FULL CODE
-  /// ===============================================================
-
-
-  /// ===============================================================
-  /// ✅ DATE PARSE FUNCTION (dd-MM-yyyy support)
-  /// ===============================================================
+  /// DATE PARSE FUNCTION (dd-MM-yyyy support)
   DateTime parseDate(String? date) {
     if (date == null || date.isEmpty) return DateTime(2000);
 
@@ -1721,10 +1628,7 @@ class TaskProvider with ChangeNotifier {
     }
   }
 
-  /// ===============================================================
-  /// ✅ CREATED TS FORMAT FUNCTION
-  /// (server format: 2026-04-04 17:28:11)
-  /// ===============================================================
+  /// CREATED TS FORMAT FUNCTION (server format: 2026-04-04 17:28:11)
   String formatDate(String? dateTime) {
     if (dateTime == null || dateTime.isEmpty) return "-";
 
@@ -1736,393 +1640,7 @@ class TaskProvider with ChangeNotifier {
     }
   }
 
-  // String parseDate(String value) {
-  //   try {
-  //     return DateFormat('dd-MM-yyyy hh:mm a').format(DateTime.parse(value));
-  //   } catch (_) {
-  //     return value; // if invalid format, return as-is
-  //   }
-  // }
-
-  // Future<void> generatePdf(List<DTaskModel> taskList, BuildContext context) async {
-  //   final pdf = pw.Document();
-  //
-  //   // Unicode-safe fonts
-  //   final font = await PdfGoogleFonts.notoSansRegular();
-  //   final boldFont = await PdfGoogleFonts.notoSansBold();
-  //
-  //   // Helper to load and compress images
-  //   Future<pw.MemoryImage?> loadAndCompressImage(String url,
-  //       {int maxWidth = 800, int maxHeight = 800, int quality = 70}) async {
-  //     try {
-  //       final response = await http.get(Uri.parse("$imageFile?path=$url"));
-  //       if (response.statusCode == 200 && response.bodyBytes.isNotEmpty) {
-  //         img.Image? image = img.decodeImage(response.bodyBytes);
-  //         if (image != null) {
-  //           image = img.copyResize(image,
-  //               width: image.width > maxWidth ? maxWidth : image.width,
-  //               height: image.height > maxHeight ? maxHeight : image.height);
-  //           return pw.MemoryImage(img.encodeJpg(image, quality: quality));
-  //         }
-  //       }
-  //     } catch (_) {}
-  //     return null;
-  //   }
-  //
-  //   // Preload all images for tasks
-  //   Map<DTaskModel, List<pw.MemoryImage>> taskImages = {};
-  //   for (var task in taskList) {
-  //     final images = <pw.MemoryImage>[];
-  //     final docs = [task.docsType1, task.docsType2, task.docsType3];
-  //     for (var docList in docs) {
-  //       if (docList != null && docList.isNotEmpty) {
-  //         for (var url in docList) {
-  //           if (url.isNotEmpty && url != "null") {
-  //             final imgData = await loadAndCompressImage(url);
-  //             if (imgData != null) images.add(imgData);
-  //           }
-  //         }
-  //       }
-  //     }
-  //     taskImages[task] = images;
-  //   }
-  //
-  //   // Build PDF
-  //   pdf.addPage(
-  //     pw.MultiPage(
-  //       pageFormat: PdfPageFormat.a4,
-  //       build: (context) {
-  //         return [
-  //           pw.Center(
-  //             child: pw.Text(
-  //               "Task Reports - $startDate${startDate != endDate ? " To $endDate" : ""}",
-  //               style: pw.TextStyle(fontSize: 20, font: boldFont),
-  //             ),
-  //           ),
-  //           pw.SizedBox(height: 15),
-  //           ...taskList.map((task) {
-  //             // Prepare expense data map
-  //             final expIds = task.expenseIds;
-  //             final expAmounts = task.expenseAmount;
-  //             final expStatus = task.expenseStatus;
-  //             Map<String, Map<String, List<List<String>>>> expenseData = {};
-  //             for (var id in expIds) {
-  //               expenseData[id] = {"travel": [], "da": [], "conv": []};
-  //             }
-  //
-  //             // Travel details
-  //             if (task.travelDetails != null) {
-  //               for (var travelBlock in task.travelDetails) {
-  //                 final travelRows = travelBlock.split("||");
-  //                 for (var row in travelRows) {
-  //                   final parts = row.split("|").map((e) => e.trim()).toList();
-  //                   if (parts.isNotEmpty && expenseData.containsKey(parts[0])) {
-  //                     expenseData[parts[0]]!["travel"]!.add(parts.sublist(1));
-  //                   }
-  //                 }
-  //               }
-  //             }
-  //
-  //             // DA details
-  //             if (task.daDetails != null) {
-  //               for (var daBlock in task.daDetails) {
-  //                 final daGroups = daBlock.split("###");
-  //                 for (var group in daGroups) {
-  //                   final rows = group.split("||");
-  //                   for (var row in rows) {
-  //                     final parts = row.split("|").map((e) => e.trim()).toList();
-  //                     if (parts.isNotEmpty && expenseData.containsKey(parts[0])) {
-  //                       expenseData[parts[0]]!["da"]!.add(parts.sublist(1));
-  //                     }
-  //                   }
-  //                 }
-  //               }
-  //             }
-  //
-  //             // Conveyance details
-  //             if (task.convDetails != null) {
-  //               for (var convBlock in task.convDetails) {
-  //                 final convGroups = convBlock.split("###");
-  //                 for (var group in convGroups) {
-  //                   final rows = group.split("||");
-  //                   for (var row in rows) {
-  //                     final parts = row.split("|").map((e) => e.trim()).toList();
-  //                     if (parts.isNotEmpty && expenseData.containsKey(parts[0])) {
-  //                       expenseData[parts[0]]!["conv"]!.add(parts.sublist(1));
-  //                     }
-  //                   }
-  //                 }
-  //               }
-  //             }
-  //
-  //             // Build task section
-  //             return pw.Column(
-  //               crossAxisAlignment: pw.CrossAxisAlignment.start,
-  //               children: [
-  //                 pw.Row(
-  //                     mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-  //                     children: [
-  //                       pw.RichText(
-  //                         text: pw.TextSpan(
-  //                           children: [
-  //                             pw.TextSpan(text: "Task Date: ", style: pw.TextStyle(font: font)),
-  //                             pw.TextSpan(text: task.taskDate, style: pw.TextStyle(font: boldFont)),
-  //                           ],
-  //                         ),
-  //                       ),
-  //                       pw.RichText(
-  //                         text: pw.TextSpan(
-  //                           children: [
-  //                             pw.TextSpan(text: "Status: ", style: pw.TextStyle(font: font)),
-  //                             pw.TextSpan(text: task.status, style: pw.TextStyle(font: boldFont)),
-  //                           ],
-  //                         ),
-  //                       ),
-  //                     ]
-  //                 ),
-  //                 pw.RichText(
-  //                   text: pw.TextSpan(
-  //                     children: [
-  //                       pw.TextSpan(text: "Task: ", style: pw.TextStyle(font: font)),
-  //                       pw.TextSpan(text: task.taskTitle, style: pw.TextStyle(font: boldFont)),
-  //                     ],
-  //                   ),
-  //                 ),
-  //                 pw.RichText(
-  //                   text: pw.TextSpan(
-  //                     children: [
-  //                       pw.TextSpan(text: "Company Name: ", style: pw.TextStyle(font: font)),
-  //                       pw.TextSpan(text: task.projectName, style: pw.TextStyle(font: boldFont)),
-  //                     ],
-  //                   ),
-  //                 ),
-  //                 pw.Row(
-  //                     mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-  //                     children: [
-  //                       pw.RichText(
-  //                         text: pw.TextSpan(
-  //                           children: [
-  //                             pw.TextSpan(text: "Assigned To: ", style: pw.TextStyle(font: font)),
-  //                             pw.TextSpan(text: task.assignedNames, style: pw.TextStyle(font: boldFont)),
-  //                           ],
-  //                         ),
-  //                       ),
-  //                       pw.RichText(
-  //                         text: pw.TextSpan(
-  //                           children: [
-  //                             pw.TextSpan(text: "Created By: ", style: pw.TextStyle(font: font)),
-  //                             pw.TextSpan(text: task.creator, style: pw.TextStyle(font: boldFont)),
-  //                           ],
-  //                         ),
-  //                       ),
-  //                     ]
-  //                 ),
-  //                 pw.SizedBox(height: 5),
-  //                 // Attendance
-  //                 if (task.checkInTs.toString()!="null")
-  //                   pw.Column(
-  //                     crossAxisAlignment: pw.CrossAxisAlignment.start,
-  //                     children: [
-  //                       pw.Text("Visits", style: pw.TextStyle(font: boldFont, fontSize: 14)),
-  //                       pw.SizedBox(height: 5),
-  //
-  //                       // Split the comma-separated strings
-  //                           () {
-  //                         final inTimeList = task.checkInTs.toString().split(",");
-  //                         final outTimeList = task.checkOutTs.toString().split(",");
-  //                         final isCheckedOutList = task.isCheckedOut.toString().split(",");
-  //                         final visitedRows = <List<String>>[];
-  //
-  //                         for (var i = 0; i < inTimeList.length; i++) {
-  //                           final inTime = inTimeList.length > i ? inTimeList[i].trim() : "";
-  //                           final outTime = outTimeList.length > i ? outTimeList[i].trim() : "";
-  //                           final isCheckedOut = isCheckedOutList.length > i ? isCheckedOutList[i].trim() : "";
-  //
-  //                           // Extract only the date part from inTime
-  //                           String datePart = "";
-  //                           String inTimeOnly = "";
-  //                           String outTimeOnly = "-";
-  //
-  //                           if (inTime.isNotEmpty) {
-  //                             final dt = DateTime.tryParse(inTime);
-  //                             if (dt != null) {
-  //                               datePart = DateFormat('dd-MM-yyyy').format(dt);
-  //                               inTimeOnly = DateFormat('hh:mm a').format(dt);
-  //                             }
-  //                           }
-  //
-  //                           if (outTime.isNotEmpty && isCheckedOut == "2") {
-  //                             final dtOut = DateTime.tryParse(outTime);
-  //                             if (dtOut != null) {
-  //                               outTimeOnly = DateFormat('hh:mm a').format(dtOut);
-  //                             }
-  //                           }
-  //
-  //                           visitedRows.add([datePart, inTimeOnly, outTimeOnly]);
-  //                         }
-  //
-  //                         // Return a table with headers
-  //                         return pw.Table.fromTextArray(
-  //                           headers: ['Date', 'Check-In', 'Check-Out'],
-  //                           data: visitedRows,
-  //                           headerStyle: pw.TextStyle(font: boldFont),
-  //                           cellStyle: pw.TextStyle(font: font),
-  //                           headerDecoration: pw.BoxDecoration(color: PdfColors.grey300),
-  //                           cellAlignment: pw.Alignment.centerLeft,
-  //                         );
-  //                       }(),
-  //                     ],
-  //                   ),
-  //                 pw.SizedBox(height: 10),
-  //
-  //                 // Attendance
-  //                 if (task.cvDates.toString()!="null")
-  //                   pw.Column(
-  //                     crossAxisAlignment: pw.CrossAxisAlignment.start,
-  //                     children: [
-  //                       pw.Text("Visits Report", style: pw.TextStyle(font: boldFont, fontSize: 14)),
-  //                       pw.SizedBox(height: 5),
-  //
-  //                           () {
-  //                         final dateList = task.cvDates.toString().split(",");
-  //                         final cusNameList = task.cvCustomerNames.toString().split(",");
-  //                         final discList = task.cvDiscussionPoints.toString().split(",");
-  //                         final actionList = task.cvActionTakens.toString().split(",");
-  //                         final visitedRows = <List<String>>[];
-  //
-  //                         for (var i = 0; i < dateList.length; i++) {
-  //                           visitedRows.add([
-  //                             dateList[i].trim(),
-  //                             cusNameList.length > i ? cusNameList[i].trim() : "",
-  //                             discList.length > i ? discList[i].trim() : "",
-  //                             actionList.length > i ? actionList[i].trim() : "",
-  //                           ]);
-  //                         }
-  //
-  //                         return pw.Table.fromTextArray(
-  //                           headers: ['Date', 'Customer Name', 'Discussion Points', 'Action to be taken'],
-  //                           data: visitedRows,
-  //                           headerStyle: pw.TextStyle(font: boldFont),
-  //                           cellStyle: pw.TextStyle(font: font),
-  //                           headerDecoration: pw.BoxDecoration(color: PdfColors.grey300),
-  //                           cellAlignment: pw.Alignment.centerLeft,
-  //                         );
-  //                       }(),
-  //                     ],
-  //                   ),
-  //                 pw.SizedBox(height: 10),
-  //
-  //                 // Expenses
-  //                 if (expenseData.isNotEmpty)
-  //                   pw.Column(
-  //                     crossAxisAlignment: pw.CrossAxisAlignment.start,
-  //                     children: [
-  //                       pw.Text("Expenses", style: pw.TextStyle(fontSize: 14, font: boldFont)),
-  //                       pw.SizedBox(height: 5),
-  //                       ...expenseData.keys.map((id) {
-  //                         final index = expIds.indexOf(id);
-  //                         final total = index < expAmounts.length ? expAmounts[index] : "0";
-  //                         final status = index < expStatus.length ? expStatus[index] : "0";
-  //
-  //                         return pw.Column(
-  //                           crossAxisAlignment: pw.CrossAxisAlignment.start,
-  //                           children: [
-  //                             pw.Text(
-  //                               "Expense - Total: ₹$total – Status: ${status == "0" ? "Rejected" : status == "1" ? "In Process" : "Approved"}",
-  //                               style: pw.TextStyle(font: font),
-  //                             ),
-  //                             pw.SizedBox(height: 5),
-  //
-  //                             // DA Table
-  //                             if (expenseData[id]!["da"]!.isNotEmpty)
-  //                               pw.Column(
-  //                                 crossAxisAlignment: pw.CrossAxisAlignment.start,
-  //                                 children: [
-  //                                   pw.Text("DA Expenses", style: pw.TextStyle(font: boldFont)),
-  //                                   ...chunkList(expenseData[id]!["da"]!, 15).map((chunk) {
-  //                                     return pw.Table.fromTextArray(
-  //                                       headers: ['Day', 'Type', 'Amount'],
-  //                                       data: chunk,
-  //                                     );
-  //                                   }),
-  //                                 ],
-  //                               ),
-  //
-  //                             // Travel Table
-  //                             if (expenseData[id]!["travel"]!.isNotEmpty)
-  //                               pw.Column(
-  //                                 crossAxisAlignment: pw.CrossAxisAlignment.start,
-  //                                 children: [
-  //                                   pw.Text("Travel Expenses", style: pw.TextStyle(font: boldFont)),
-  //                                   ...chunkList(expenseData[id]!["travel"]!, 15).map((chunk) {
-  //                                     return pw.Table.fromTextArray(
-  //                                       headers: [
-  //                                         'From', 'To', 'Start Date', 'Start Time',
-  //                                         'End Date', 'End Time', 'Mode', 'Amount'
-  //                                       ],
-  //                                       data: chunk,
-  //                                     );
-  //                                   }),
-  //                                 ],
-  //                               ),
-  //
-  //                             // Conveyance Table
-  //                             if (expenseData[id]!["conv"]!.isNotEmpty)
-  //                               pw.Column(
-  //                                 crossAxisAlignment: pw.CrossAxisAlignment.start,
-  //                                 children: [
-  //                                   pw.Text("Conveyance Expenses", style: pw.TextStyle(font: boldFont)),
-  //                                   ...chunkList(expenseData[id]!["conv"]!, 15).map((chunk) {
-  //                                     return pw.Table.fromTextArray(
-  //                                       headers: ['Date', 'From', 'To', 'Mode', 'Amount'],
-  //                                       data: chunk,
-  //                                     );
-  //                                   }),
-  //                                 ],
-  //                               ),
-  //                             pw.SizedBox(height: 10),
-  //                           ],
-  //                         );
-  //                       }),
-  //                     ],
-  //                   ),
-  //
-  //                 // Expense images
-  //                 if (taskImages[task] != null && taskImages[task]!.isNotEmpty)
-  //                   pw.Column(
-  //                     crossAxisAlignment: pw.CrossAxisAlignment.start,
-  //                     children: [
-  //                       pw.Text("Expense Documents", style: pw.TextStyle(font: boldFont, fontSize: 14)),
-  //                       pw.SizedBox(height: 5),
-  //                       ...List.generate((taskImages[task]!.length / 3).ceil(), (rowIndex) {
-  //                         final rowImages = taskImages[task]!.skip(rowIndex * 3).take(3).toList();
-  //                         return pw.Row(
-  //                           mainAxisAlignment: pw.MainAxisAlignment.start,
-  //                           children: rowImages
-  //                               .map((img) => pw.Padding(
-  //                             padding: const pw.EdgeInsets.only(right: 5, bottom: 5),
-  //                             child: pw.Image(img, width: 180, height: 120, fit: pw.BoxFit.contain),
-  //                           ))
-  //                               .toList(),
-  //                         );
-  //                       }),
-  //                     ],
-  //                   ),
-  //                 pw.Divider(),
-  //                 pw.SizedBox(height: 20),
-  //               ],
-  //             );
-  //           }),
-  //         ];
-  //       },
-  //     ),
-  //   );
-  //
-  //   Navigator.pop(context); // hide loading
-  //   await Printing.layoutPdf(onLayout: (format) async => pdf.save());
-  // }
-
-// Helper to chunk large lists into smaller lists (to prevent too many rows in one table)
+  // Helper to chunk large lists into smaller lists
   List<List<T>> chunkList<T>(List<T> list, int chunkSize) {
     List<List<T>> chunks = [];
     for (var i = 0; i < list.length; i += chunkSize) {
@@ -2131,46 +1649,45 @@ class TaskProvider with ChangeNotifier {
     return chunks;
   }
 
-
   late CalendarDataSource dataSource;
 
-  String _year="";
-  String get year=> _year;
-  int total=0;
+  String _year = "";
+  String get year => _year;
+  int total = 0;
 
-  dynamic _defaultMonth=DateTime.now().month;
-  dynamic get defaultMonth =>_defaultMonth;
+  dynamic _defaultMonth = DateTime.now().month;
+  dynamic get defaultMonth => _defaultMonth;
   String _thisMonthLeave = "0";
-  String get thisMonthLeave=>_thisMonthLeave;
+  String get thisMonthLeave => _thisMonthLeave;
 
   int _filterTasks = 0;
-  int get filterTasks=>_filterTasks;
-  List<HolyDaysModel> _fixedLeaves= <HolyDaysModel>[];
-  List<HolyDaysModel> get fixedLeaves=> _fixedLeaves;
+  int get filterTasks => _filterTasks;
+  List<HolyDaysModel> _fixedLeaves = <HolyDaysModel>[];
+  List<HolyDaysModel> get fixedLeaves => _fixedLeaves;
+
   List<TaskData> get filteredTasks {
+    final month = utils.returnPadLeft(defaultMonth.toString());
     return _allTasks.where((task) {
-      String dateStr = task.taskDate ?? "";
-      DateTime st = DateFormat('dd-MM-yyyy').parse(dateStr);
+      final dateStr = task.taskDate ?? "";
+      final st = _parseTaskDate(dateStr);
+      if (st == null) return false;
 
-      bool sameMonth = utils.returnPadLeft(defaultMonth.toString()) ==
-          utils.returnPadLeft(st.month.toString());
-
-      bool dateMatch = (filterDate == "" || filterDate == dateStr);
+      final sameMonth = month == utils.returnPadLeft(st.month.toString());
+      final dateMatch = (filterDate == "" || filterDate == dateStr);
 
       return sameMonth && dateMatch;
     }).toList();
   }
-  void checkMonth(ViewChangedDetails details){
-    _filterDate="";
-    // _filterTasks=0;
-    _defaultMonth =details.visibleDates[15].month;
+
+  void checkMonth(ViewChangedDetails details) {
+    _filterDate = "";
+    _defaultMonth = details.visibleDates[15].month;
+    final month = utils.returnPadLeft(_defaultMonth.toString());
     var count = 0;
-    for (var i = 0; i <_allTasks.length; i++) {
-      String dateStr = _allTasks[i].taskDate.toString(); // "24-05-2025"
-      DateTime parsedDate = DateFormat('dd-MM-yyyy').parse(dateStr);
-      var st = parsedDate;
-      if (utils.returnPadLeft(_defaultMonth.toString()) ==
-          utils.returnPadLeft(st.month.toString())) {
+    for (var i = 0; i < _allTasks.length; i++) {
+      final st = _parseTaskDate(_allTasks[i].taskDate?.toString());
+      if (st == null) continue;
+      if (month == utils.returnPadLeft(st.month.toString())) {
         count++;
       }
     }
@@ -2178,19 +1695,19 @@ class TaskProvider with ChangeNotifier {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       notifyListeners();
     });
-    print("_filterDate22 ${_filterDate}");
-
   }
-  void changeMonth(dynamic value){
+
+  void changeMonth(dynamic value) {
     _defaultMonth = value;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       notifyListeners();
     });
   }
-  void checkMonth2(){
+
+  void checkMonth2() {
     var count = 0;
-    for (var i = 0; i <_allTasks.length; i++) {
-      if (_filterDate==_allTasks[i].taskDate.toString()) {
+    for (var i = 0; i < _allTasks.length; i++) {
+      if (_filterDate == _allTasks[i].taskDate.toString()) {
         count++;
       }
     }
@@ -2199,133 +1716,87 @@ class TaskProvider with ChangeNotifier {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       notifyListeners();
     });
-    // print("_filterDate ${_filterDate}");
   }
 
   String _filterDate = "";
-  String get filterDate=>_filterDate;
-  void filterDateList(String value,DateTime dateTime){
-    _filterDate=value;
+  String get filterDate => _filterDate;
+  void filterDateList(String value, DateTime dateTime) {
+    _filterDate = value;
     _selectedDate = dateTime;
-    print(_filterDate);
-    print(_selectedDate);
     notifyListeners();
   }
 
   var _statusT;
-  String _filter="1";
-  String statusId="";
+  String _filter = "1";
+  String statusId = "";
   String _statusIds = "";
   String get statusIds => _statusIds;
-  int matched=0;
+  int matched = 0;
   get statusT => _statusT;
   String get filter => _filter;
+
   void changeFilterStatus(dynamic value) {
-    _status=value;
-    statusId="";
-    matched=0;
-    print(value);
+    _status = value;
+    statusId = "";
+    matched = 0;
     var list = [];
     list.add(value);
     statusId = list[0]["value"];
-    for(var i=0;i<_allTasks.length;i++){
-      if(statusId==_allTasks[i].statval){
+    for (var i = 0; i < _allTasks.length; i++) {
+      if (statusId == _allTasks[i].statval) {
         matched++;
       }
     }
     notifyListeners();
-  } void changeFilter(String value) {
+  }
+
+  void changeFilter(String value) {
     _filter = value;
     notifyListeners();
-  } void changeStatusT(String value) {
+  }
+
+  void changeStatusT(String value) {
     _statusT = value;
-    lStatus=value;
+    lStatus = value;
     notifyListeners();
   }
+
   void setStatus(String value) {
-    for(var i=0;i<statusList.length;i++){
-      if(statusList[i]["value"]==value){
+    for (var i = 0; i < statusList.length; i++) {
+      if (statusList[i]["value"] == value) {
         statusController = GroupButtonController(selectedIndex: i);
       }
     }
     notifyListeners();
   }
 
-  TextEditingController search     = TextEditingController();
-  TextEditingController search2     = TextEditingController();
-  TextEditingController taskTitleCont     = TextEditingController();
-  TextEditingController projectNameCont   = TextEditingController();
-  TextEditingController departmentCont    = TextEditingController();
+  TextEditingController search = TextEditingController();
+  TextEditingController search2 = TextEditingController();
+  TextEditingController taskDescCont = TextEditingController();
+  TextEditingController projectNameCont = TextEditingController();
+  TextEditingController departmentCont = TextEditingController();
   TextEditingController projectSearchCont = TextEditingController();
   TextEditingController taskDt = TextEditingController();
   TextEditingController taskEt = TextEditingController();
-  List<TextEditingController> fileNameCont  = <TextEditingController>[];
-  // void searchTask(String value){
-  //   if(_isFilter==false){
-  //     final suggestions=_filterUserData.where(
-  //             (user){
-  //           final userFName=user.projectName.toString().toLowerCase();
-  //           final userNumber = user.assignedNames.toString().toLowerCase();
-  //           final input=value.toString().toLowerCase();
-  //           return userFName.contains(input) || userNumber.contains(input);
-  //         }).toList();
-  //     _filterUserData=suggestions;
-  //   }else{
-  //     final suggestions=_filterUserData.where(
-  //             (user){
-  //           final userFName=user.projectName.toString().toLowerCase();
-  //           final userNumber = user.assignedNames.toString().toLowerCase();
-  //           final input=value.toString().toLowerCase();
-  //           return userFName.contains(input) || userNumber.contains(input);
-  //         }).toList();
-  //     _filterUserData=suggestions;
-  //   }
-  //   if(value.isEmpty){
-  //     filterList();
-  //   }
-  //   // _allTasks=suggestions;
-  //   notifyListeners();
-  // }
+  TextEditingController taskTitleCont = TextEditingController();
+  List<TextEditingController> fileNameCont = <TextEditingController>[];
 
-  // void searchTask(String value) {
-  //
-  //   final input = value.toLowerCase();
-  //
-  //   if (value.trim().isEmpty) {
-  //     _filterUserData = List.from(_allTasks);
-  //   } else {
-  //     final suggestions = _allTasks.where((user) {
-  //       final userFName =
-  //       user.projectName.toString().toLowerCase();
-  //
-  //       final userNumber =
-  //       user.assignedNames.toString().toLowerCase();
-  //
-  //       return userFName.contains(input) ||
-  //           userNumber.contains(input);
-  //     }).toList();
-  //
-  //     _filterUserData = suggestions;
-  //   }
-  //
-  //   notifyListeners();
-  // }
-  void searchTask2(String value){
-    _filterTasks=0;
-    final suggestions=_searchAllTasks.where(
-            (user){
-          final userFName=user.projectName.toString().toLowerCase();
-          final userNumber = user.assignedNames.toString().toLowerCase();
-          final input=value.toString().toLowerCase();
-          return userFName.contains(input) || userNumber.contains(input);
-        }).toList();
-    _allTasks=suggestions;
-    _filterTasks=_taskList.length;
-    if(value.isEmpty){
-      _filterTasks=_searchAllTasks.length;
+  void searchTask2(String value) {
+    _filterTasks = 0;
+    final input = value.toLowerCase();
+    final suggestions = _searchAllTasks.where((user) {
+      final userFName = user.projectName.toString().toLowerCase();
+      final userNumber = user.assignedNames.toString().toLowerCase();
+      return userFName.contains(input) || userNumber.contains(input);
+    }).toList();
+    _allTasks = suggestions;
+    _filterTasks = _taskList.length;
+    if (value.isEmpty) {
+      _filterTasks = _searchAllTasks.length;
     }
     notifyListeners();
   }
+
   String _signPrefix = "Mr";
   String _assignedId = "";
   String _assName = "";
@@ -2341,7 +1812,7 @@ class TaskProvider with ChangeNotifier {
   var _department;
   var _type;
   String? _status;
-  bool _isUpdate=false;
+  bool _isUpdate = false;
   String _level = "Normal";
   String _taskSDate = "";
   String _taskEDate = "";
@@ -2350,10 +1821,11 @@ class TaskProvider with ChangeNotifier {
   String _changeTaskStatus = "";
 
   bool get isUpdate => _isUpdate;
-  void updateChanges(){
-    _isUpdate=true;
+  void updateChanges() {
+    _isUpdate = true;
     notifyListeners();
   }
+
   String get signPrefix => _signPrefix;
   String get assignedId => _assignedId;
   get title => _title;
@@ -2368,14 +1840,8 @@ class TaskProvider with ChangeNotifier {
   String get changeTaskStatus => _changeTaskStatus;
 
   var prefix = ["Mr", "Mrs", "Dr", "Ms"];
-  List<String> titleList = [
-    "Bug Report",
-    "UI Update",
-    "API Integration",
-    "Issue Fix"
-  ];
-  var departmentList = ["UI/UX Design", "Development", "Testing","HR"];
-  // var statusList = ["Assigned", "In-Queue", "Started", "On Hold", "New Issues"];
+  List<String> titleList = ["Bug Report", "UI Update", "API Integration", "Issue Fix"];
+  var departmentList = ["UI/UX Design", "Development", "Testing", "HR"];
   var fullStatusList = [
     "Assigned",
     "In-Queue",
@@ -2395,35 +1861,18 @@ class TaskProvider with ChangeNotifier {
     _changeTaskStatus = value;
     notifyListeners();
   }
+
   Future<void> refreshCusType() async {
-    _selectType=null;
+    _selectType = null;
     cusTypeList.clear();
     List storedLeads = await LocalDatabase.getCusTypes();
-    cusTypeList=storedLeads;
-    if(cusTypeList.isNotEmpty){
-      _selectType=cusTypeList[0];
+    cusTypeList = storedLeads;
+    if (cusTypeList.isNotEmpty) {
+      _selectType = cusTypeList[0];
     }
     notifyListeners();
   }
-  // void changeAssignedIs(context, List<dynamic> names) {
-  //   List<String> ids = [];
-  //   var list = Provider.of<EmployeeProvider>(context, listen: false).filterUserData;
-  //
-  //   for (var name in names) {
-  //     var found = list.firstWhere(
-  //           (element) => element.firstname.toString().trim().toLowerCase() == name.toString().trim().toLowerCase(),
-  //       orElse: () => UserModel(id: "0", firstname: ''), // use valid default
-  //     );
-  //
-  //     if (found.id != 0) {
-  //       ids.add(found.id.toString());
-  //     }
-  //   }
-  //
-  //   _assignedId = ids.join(",");
-  //   print("assign $_assignedId");
-  //   notifyListeners();
-  // }
+
   void changeAssignedIs(context, List<dynamic> names) {
     List<String> ids = [];
     List<String> selectedNames = [];
@@ -2432,22 +1881,23 @@ class TaskProvider with ChangeNotifier {
 
     for (var name in names) {
       var found = list.firstWhere(
-            (element) => element.firstname.toString().trim().toLowerCase() == name.toString().trim().toLowerCase(),
+            (element) =>
+        element.firstname.toString().trim().toLowerCase() ==
+            name.toString().trim().toLowerCase(),
         orElse: () => UserModel(id: "0", firstname: ''),
       );
 
       if (found.id != "0") {
         ids.add(found.id.toString());
-        selectedNames.add(found.firstname.toString()); // save the matched name
+        selectedNames.add(found.firstname.toString());
       }
     }
 
     _assignedId = ids.join(",");
-    // _assignedNames = selectedNames.join(", "); // <- add this line to save names
     _assignedNames = selectedNames.join(", ").replaceAll(".", ",");
 
-    print("Assigned IDs: $_assignedId");
-    print("Assigned Names: $_assignedNames");
+    _log("Assigned IDs: $_assignedId");
+    _log("Assigned Names: $_assignedNames");
 
     notifyListeners();
   }
@@ -2465,10 +1915,11 @@ class TaskProvider with ChangeNotifier {
   void changeType(dynamic value) {
     _selectType = value;
     _type = value;
-    print("VVV $value");
+    _log("VVV $value");
     localData.storage.write("type_id", value);
     notifyListeners();
   }
+
   void changeCusType(dynamic value) {
     _selectType = value;
     _type = value;
@@ -2476,24 +1927,18 @@ class TaskProvider with ChangeNotifier {
     localData.storage.write("cus_type", value);
     notifyListeners();
   }
-  // void changeStatus(dynamic value) {
-  //   _status = value;
-  //   var list = [];
-  //   list.add(value);
-  //   localData.storage.write("status_id", list[0]["id"]);
-  //   notifyListeners();
-  // }
+
   void changeStatus(dynamic value) {
     _status = value is Map ? value["id"].toString() : value.toString();
     localData.storage.write("status_id", _status);
-    print("Selected Status ID => $_status");
+    _log("Selected Status ID => $_status");
     notifyListeners();
   }
+
   void setTodayDate() {
     final now = DateTime.now();
 
-    String formattedDate =
-        "${now.day.toString().padLeft(2, '0')}-"
+    String formattedDate = "${now.day.toString().padLeft(2, '0')}-"
         "${now.month.toString().padLeft(2, '0')}-"
         "${now.year}";
 
@@ -2502,26 +1947,24 @@ class TaskProvider with ChangeNotifier {
 
     notifyListeners();
   }
+
   void setStatusByName(String value) {
     try {
       final selectedStatus = statusList.firstWhere(
             (status) =>
-        status["value"]
-            .toString()
-            .trim()
-            .toLowerCase() ==
-            value.trim().toLowerCase(),
+        status["value"].toString().trim().toLowerCase() == value.trim().toLowerCase(),
       );
 
-      _status = selectedStatus["id"].toString(); // ✅ store ID only
-      print("Selected Status ID => $_status");
+      _status = selectedStatus["id"].toString();
+      _log("Selected Status ID => $_status");
       localData.storage.write("status_id", _status);
       _isUpdate = false;
       notifyListeners();
     } catch (e) {
-      print("Status not found: $value");
+      _log("Status not found: $value");
     }
   }
+
   void changeLevel(String value) {
     _level = value;
     notifyListeners();
@@ -2579,7 +2022,7 @@ class TaskProvider with ChangeNotifier {
   List<String> _assignList = [];
   List<String> get assignList => _assignList;
 
-  List<Map<String, dynamic>> _assignItems = [
+  final List<Map<String, dynamic>> _assignItems = [
     {'name': 'Selvi', 'selected': false},
     {'name': 'Priya Mehra', 'selected': false},
     {'name': 'Aditya Singh', 'selected': false},
@@ -2589,13 +2032,9 @@ class TaskProvider with ChangeNotifier {
   List<Map<String, dynamic>> get assignItems => _assignItems;
 
   String get selectedItemsText {
-    final selectedNames = _assignItems
-        .where((item) => item['selected'])
-        .map((item) => item['name'])
-        .toList();
-    return selectedNames.isEmpty
-        ? 'Select Assignees'
-        : selectedNames.join(', ');
+    final selectedNames =
+    _assignItems.where((item) => item['selected']).map((item) => item['name']).toList();
+    return selectedNames.isEmpty ? 'Select Assignees' : selectedNames.join(', ');
   }
 
   void toggleSelectAll(bool? isSelected) {
@@ -2696,15 +2135,15 @@ class TaskProvider with ChangeNotifier {
   List<AddAudioModel> audioList = [];
   final AudioPlayer player = AudioPlayer();
   void deleteAudio(int index) {
-
-    // if (currentIndex == index) {
-    //   player.stop();
-    // }
-
     audioList.removeAt(index);
     notifyListeners();
   }
+
   int currentIndex = -1;
+
+  // playAudio2 subscriptions (kept so they can be cancelled -> no listener pile-up)
+  StreamSubscription? _a2PosSub;
+  StreamSubscription? _a2CompleteSub;
 
   Future<void> playAudio2(int index) async {
     try {
@@ -2712,8 +2151,7 @@ class TaskProvider with ChangeNotifier {
 
       // Pause current audio
       if (audio.play) {
-        audio.position =
-            await player.getCurrentPosition() ?? Duration.zero;
+        audio.position = await player.getCurrentPosition() ?? Duration.zero;
 
         await player.pause();
 
@@ -2732,6 +2170,10 @@ class TaskProvider with ChangeNotifier {
 
       currentIndex = index;
 
+      // cancel old listeners BEFORE adding new ones
+      await _a2PosSub?.cancel();
+      await _a2CompleteSub?.cancel();
+
       // Play selected audio
       await player.play(
         DeviceFileSource(audio.audioPath),
@@ -2740,32 +2182,29 @@ class TaskProvider with ChangeNotifier {
 
       audio.play = true;
 
-      audio.duration =
-          await player.getDuration() ??
-              Duration(milliseconds: (audio.second * 1000).toInt());
+      audio.duration = await player.getDuration() ??
+          Duration(milliseconds: (audio.second * 1000).toInt());
 
       notifyListeners();
 
       // Listen for completion
-      player.onPlayerComplete.listen((event) {
+      _a2CompleteSub = player.onPlayerComplete.listen((event) {
         audio.play = false;
         audio.position = Duration.zero;
         notifyListeners();
       });
 
       // Update current position
-      player.onPositionChanged.listen((position) {
+      _a2PosSub = player.onPositionChanged.listen((position) {
         if (currentIndex == index) {
           audio.position = position;
           notifyListeners();
         }
       });
-
     } catch (e) {
-      print("Audio Play Error: $e");
+      _log("Audio Play Error: $e");
     }
   }
-
 
   Duration _position = Duration.zero;
   Duration? _duration;
@@ -2779,39 +2218,27 @@ class TaskProvider with ChangeNotifier {
   final List<String> _videos = [];
 
   List<String> get videos => _videos;
+
   List<TaskData> get _taskList {
+    final month = utils.returnPadLeft(defaultMonth.toString());
     return _allTasks.where((task) {
-
-      String dateStr = task.taskDate ?? "";
-
-      // ❌ empty date skip
+      final dateStr = task.taskDate ?? "";
       if (dateStr.isEmpty) return false;
 
-      DateTime? st;
+      final st = _parseTaskDate(dateStr);
+      if (st == null) return false;
 
-      try {
-        st = DateFormat('dd-MM-yyyy').parse(dateStr);
-      } catch (e) {
-        print("Invalid date: $dateStr");
-        return false; // ❌ wrong format skip
-      }
-
-      bool sameMonth =
-          utils.returnPadLeft(defaultMonth.toString()) ==
-              utils.returnPadLeft(st.month.toString());
-
-      bool dateMatch = (filterDate == "" || filterDate == dateStr);
+      final sameMonth = month == utils.returnPadLeft(st.month.toString());
+      final dateMatch = (filterDate == "" || filterDate == dateStr);
 
       return sameMonth && dateMatch;
-
     }).toList();
   }
 
   List<String> _projectDropList = [];
   List<DepResponse> _departmentList = [];
-  //List<Response> get taskList => _taskList;
   List<TaskData> get taskList => _taskList;
-  List<String>  get projectDropList => _projectDropList;
+  List<String> get projectDropList => _projectDropList;
   List<DepResponse> get serverDepartmentList => _departmentList;
   List<TaskResponse> _taskDetailsList = [];
   List<TaskResponse> get taskDetailsList => _taskDetailsList;
@@ -2825,30 +2252,26 @@ class TaskProvider with ChangeNotifier {
     final minutes = (seconds % 3600) ~/ 60;
     final secs = seconds % 60;
 
-    return formatTime(hours: hours,minutes: minutes,seconds: secs);
+    return formatTime(hours: hours, minutes: minutes, seconds: secs);
   }
+
   String formatTime({
     required int hours,
     required int minutes,
     required int seconds,
   }) {
     if (hours > 0) {
-      // hours irundha → h.m.s
       return "$hours.$minutes.$seconds";
     } else if (minutes > 0) {
-      // minutes irundha → m.s
       return "$minutes.$seconds";
     } else {
-      // only seconds → 0.s
       return "0.$seconds";
     }
   }
+
   Future<void> pickedVideo() async {
-    final XFile? recordedFile =
-    await picker.pickVideo(source: ImageSource.gallery);
+    final XFile? recordedFile = await picker.pickVideo(source: ImageSource.gallery);
     if (recordedFile != null) {
-      // print("Path ${recordedFile.path}");
-      //String url = await _taskRepo.insertVideoApi(video: recordedFile.path);
       _videos.add(recordedFile.path);
     }
     notifyListeners();
@@ -2858,7 +2281,7 @@ class TaskProvider with ChangeNotifier {
     try {
       final controller = VideoPlayerController.file(File(path));
       await controller.initialize();
-      await controller.pause(); // Keep the video in a paused state
+      await controller.pause();
       return controller;
     } catch (e) {
       throw "Video error";
@@ -2868,125 +2291,6 @@ class TaskProvider with ChangeNotifier {
   List<AddAudioModel> _recordedAudioPaths = [];
   List<AddAudioModel> get recordedAudioPaths => _recordedAudioPaths;
 
-  /// Start Recording
-  // Future<void> startRecording() async {
-  //   HapticFeedback.heavyImpact();
-  //
-  //   try {
-  //     if (await _record.hasPermission()) {
-  //       // print("Audio Start");
-  //       final dir = await getApplicationDocumentsDirectory();
-  //       String path =
-  //           "${dir.path}/recorded_audio_${DateTime.now().millisecondsSinceEpoch}.m4a";
-  //       await _record.start(const RecordConfig(), path: path);
-  //
-  //       _isRecording = true;
-  //       _startTime = DateTime.now();
-  //       _recordingDuration = 0.0;
-  //
-  //       timer = Timer.periodic(const Duration(milliseconds: 100), (timer) {
-  //         final elapsed = DateTime.now().difference(_startTime).inMilliseconds;
-  //         _recordingDuration = elapsed / 1000; // Convert to seconds
-  //         notifyListeners();
-  //       });
-  //     }
-  //   } catch (e) {
-  //     log("Error in startRecording: $e");
-  //   }
-  //   notifyListeners();
-  // }
-  // Future<void> startRecording() async {
-  //
-  //   try {
-  //
-  //     if (_isRecording) return;
-  //
-  //     _recordingDuration = 0;
-  //
-  //     final dir =
-  //     await getApplicationDocumentsDirectory();
-  //
-  //     final path =
-  //         "${dir.path}/audio_${DateTime.now().millisecondsSinceEpoch}.m4a";
-  //
-  //     final permission =
-  //     await _record.hasPermission();
-  //
-  //     if (!permission) {
-  //       return;
-  //     }
-  //
-  //     await _record.start(
-  //
-  //       const RecordConfig(
-  //
-  //         encoder:
-  //         AudioEncoder.aacLc,
-  //
-  //         sampleRate:
-  //         44100,
-  //
-  //         bitRate:
-  //         128000,
-  //       ),
-  //
-  //       path: path,
-  //     );
-  //
-  //     _isRecording = true;
-  //
-  //     timer?.cancel();
-  //
-  //     timer = Timer.periodic(
-  //       const Duration(
-  //         seconds: 1,
-  //       ),
-  //           (_) {
-  //
-  //         _recordingDuration++;
-  //
-  //         notifyListeners();
-  //       },
-  //     );
-  //
-  //   } catch (e) {
-  //
-  //     debugPrint(
-  //       "Record Error $e",
-  //     );
-  //   }
-  //
-  //   notifyListeners();
-  // }  /// Stop Recording
-  //
-  // Future<void> stopRecording() async {
-  //   if (!_isRecording) return;
-  //
-  //   try {
-  //     final path = await _record.stop();
-  //
-  //     timer?.cancel();
-  //     _isRecording = false;
-  //
-  //     if (path != null) {
-  //       _recordedAudioPaths.insert(
-  //         0,
-  //         AddAudioModel(
-  //           audioPath: path,
-  //           time: DateTime.now().toString(),
-  //           second: recordingDuration.toDouble(),
-  //           duration: Duration(seconds: recordingDuration),
-  //         ),
-  //       );
-  //
-  //       _recordingDuration = 0;
-  //     }
-  //   } catch (e) {
-  //     log("Stop Recording Error: $e");
-  //   }
-  //
-  //   notifyListeners();
-  // }
   Future<void> startRecording() async {
     try {
       if (_isRecording) return;
@@ -2995,8 +2299,7 @@ class TaskProvider with ChangeNotifier {
 
       final dir = await getApplicationDocumentsDirectory();
 
-      final path =
-          "${dir.path}/audio_${DateTime.now().millisecondsSinceEpoch}.m4a";
+      final path = "${dir.path}/audio_${DateTime.now().millisecondsSinceEpoch}.m4a";
 
       final permission = await _record.hasPermission();
 
@@ -3062,12 +2365,10 @@ class TaskProvider with ChangeNotifier {
             ),
           );
 
-          debugPrint("Recorded Audio Path: $path");
-          debugPrint(
-            "Recorded Audio Count: ${_recordedAudioPaths.length}",
-          );
+          _log("Recorded Audio Path: $path");
+          _log("Recorded Audio Count: ${_recordedAudioPaths.length}");
         } else {
-          debugPrint("Audio file does not exist: $path");
+          _log("Audio file does not exist: $path");
         }
       }
 
@@ -3081,45 +2382,11 @@ class TaskProvider with ChangeNotifier {
 
     notifyListeners();
   }
+
   void removeAudio(int index) {
     _recordedAudioPaths.removeAt(index);
     notifyListeners();
   }
-
-  // Future<void> playAudio(String audioPath, int index) async {
-  //   if (audioPath.isNotEmpty) {
-  //     _isPlaying = true;
-  //     _recordedAudioPaths[index].play = true;
-  //     notifyListeners();
-  //
-  //     audioPlayer.onDurationChanged.listen((durationV) {
-  //       _duration = durationV;
-  //       notifyListeners();
-  //     });
-  //
-  //     audioPlayer.onPositionChanged.listen((positionV) {
-  //       _position = positionV;
-  //       notifyListeners();
-  //     });
-  //
-  //     audioPlayer.onPlayerComplete.listen((event) {
-  //       _isPlaying = false;
-  //       _position = Duration.zero;
-  //       _recordedAudioPaths[index].play = false;
-  //       notifyListeners();
-  //     });
-  //
-  //     try {
-  //       await audioPlayer.play(DeviceFileSource(audioPath));
-  //     } catch (e) {
-  //       _isPlaying = false;
-  //       _recordedAudioPaths[index].play = false;
-  //       // print("Audio play error: $e");
-  //       notifyListeners();
-  //     }
-  //   }
-  // }
-
 
   StreamSubscription? _durationSub;
   StreamSubscription? _positionSub;
@@ -3128,12 +2395,10 @@ class TaskProvider with ChangeNotifier {
     if (audioPath.isEmpty) return;
 
     try {
-      // Reset all play states
       for (var i = 0; i < _recordedAudioPaths.length; i++) {
         _recordedAudioPaths[i].play = false;
       }
 
-      // ✅ Properly cancel OLD subscriptions before creating new ones
       await _durationSub?.cancel();
       await _positionSub?.cancel();
       await _completeSub?.cancel();
@@ -3162,7 +2427,6 @@ class TaskProvider with ChangeNotifier {
       });
 
       await audioPlayer.play(DeviceFileSource(audioPath));
-
     } catch (e) {
       _isPlaying = false;
       _recordedAudioPaths[index].play = false;
@@ -3170,6 +2434,7 @@ class TaskProvider with ChangeNotifier {
       notifyListeners();
     }
   }
+
   Future<void> stopAudio() async {
     try {
       await audioPlayer.pause();
@@ -3179,20 +2444,19 @@ class TaskProvider with ChangeNotifier {
       log("Stop Audio Error: $e");
     }
   }
+
   Future<void> loadAudioDuration(String url) async {
     try {
       await audioPlayer.setSourceUrl(url);
       Duration? fetchedDuration = await audioPlayer.getDuration();
       if (fetchedDuration != null) {
         _duration = fetchedDuration;
-        // print("Duration $duration");
       }
     } catch (e) {
-      // print("Error fetching duration: $e");
+      // ignore
     }
     notifyListeners();
   }
-
 
   String calculateDueDays(String dateRange,
       {String? timeRange, String? updatedDate, String? status}) {
@@ -3215,14 +2479,12 @@ class TaskProvider with ChangeNotifier {
         }
       }
 
-      // Check if today is same as end date
       if (taskEndDate == today && timeRange != null && timeRange.contains("||")) {
         List<String> times = timeRange.split("||");
 
         String endTimeStr = times[1].trim();
-        // print("end $endTimeStr");
         if (endTimeStr.isEmpty) {
-          endTimeStr = "11:59 PM"; // Default fallback time
+          endTimeStr = "11:59 PM";
         }
 
         DateTime parsedEndTime = DateFormat("hh:mm a").parse(endTimeStr);
@@ -3258,21 +2520,21 @@ class TaskProvider with ChangeNotifier {
       return "Invalid Input";
     }
   }
+
   bool _refresh = true;
-  bool get refresh =>_refresh;
+  bool get refresh => _refresh;
 
   bool _viewRefresh = true;
-  bool get viewRefresh =>_viewRefresh;
+  bool get viewRefresh => _viewRefresh;
   List<TaskData> _allTasks = <TaskData>[];
   List<TaskData> _searchAllTasks = <TaskData>[];
   List<TaskData> get allTasks => _allTasks;
   List<TaskData> get searchAllTasks => _searchAllTasks;
-  List<UserModel> assignEmployees=[];
-  List historyDetails=[];
+  List<UserModel> assignEmployees = [];
+  List historyDetails = [];
 
   Future<void> getTaskUsers() async {
-    print("========== getTaskUsers() CALLED ==========");
-    log("========== getTaskUsers() CALLED ==========");
+    _log("========== getTaskUsers() CALLED ==========");
 
     try {
       Map data = {
@@ -3282,102 +2544,59 @@ class TaskProvider with ChangeNotifier {
         "role": localData.storage.read("role"),
       };
 
-      print("Request Data: $data");
-
       final response = await _taskRepo.getUsers(data);
 
-      print("API Response: $response");
-      print("Response Length: ${response.length}");
+      _log("Response Length: ${response.length}");
 
       if (response.isNotEmpty) {
         assignEmployees = [];
         assignEmployees = response;
-
-        print("assignEmployees Count: ${assignEmployees.length}");
-        print("assignEmployees: $assignEmployees");
-
       } else {
         assignEmployees = [];
-        print("Response is Empty");
       }
     } catch (e, stackTrace) {
       assignEmployees = [];
-      print("ERROR in getTaskUsers(): $e");
-      print(stackTrace);
+      _log("ERROR in getTaskUsers(): $e");
+      _log(stackTrace);
     }
 
-    print("notifyListeners() called");
     notifyListeners();
-
-    print("========== getTaskUsers() END ==========");
   }
+
   Future<void> getStatusHistory(String taskId) async {
     try {
-      _refresh=false;
-      // historyDetails.clear();
+      _refresh = false;
       Map data = {
         "action": taskDatas,
         "search_type": "task_status_history",
-        "cos_id":localData.storage.read("cos_id"),
-        "role":localData.storage.read("role"),
-        "id":localData.storage.read("id"),
-        "task_id":taskId,
+        "cos_id": localData.storage.read("cos_id"),
+        "role": localData.storage.read("role"),
+        "id": localData.storage.read("id"),
+        "task_id": taskId,
       };
-      final response =await _taskRepo.getTasks(data);
+      final response = await _taskRepo.getTasks(data);
       log(response.toString());
       if (response.isNotEmpty) {
-        historyDetails=response;
-        _refresh=true;
-      }else{
-        historyDetails=[];
-        _refresh=true;
+        historyDetails = response;
+        _refresh = true;
+      } else {
+        historyDetails = [];
+        _refresh = true;
       }
     } catch (e) {
-      historyDetails=[];
-      _refresh=true;
+      historyDetails = [];
+      _refresh = true;
       log(e.toString());
     }
     notifyListeners();
   }
-  // void initValue() {
-  //
-  //   _isRecording = false;
-  //   _selectedFiles.clear();
-  //   _recordedAudioPaths.clear();
-  //   selectedPhotos.clear();
-  //   taskTitleCont.clear();
-  //
-  //   _type = null;
-  //   _status = null;
-  //   _assignedId = "";
-  //   _level = "Normal";
-  //
-  //   if (typeList.isNotEmpty) {
-  //     _type = typeList[0]["id"].toString();
-  //   }
-  //
-  //   if (statusList.isNotEmpty) {
-  //
-  //     final selectedStatus = statusList.firstWhere(
-  //           (status) => status["value"]?.trim() == "Assigned",
-  //       orElse: () => statusList.first,
-  //     );
-  //
-  //     _status = selectedStatus["id"].toString();
-  //   }
-  //
-  //   taskDt.text =
-  //   "${DateTime.now().day.toString().padLeft(2, "0")}-"
-  //       "${DateTime.now().month.toString().padLeft(2, "0")}-"
-  //       "${DateTime.now().year}";
-  //
-  //   notifyListeners();
-  // }
+
   void initValue() {
     _isRecording = false;
     _selectedFiles.clear();
     _recordedAudioPaths.clear();
     selectedPhotos.clear();
+    taskDescCont.clear();
     taskTitleCont.clear();
 
     _type = null;
@@ -3390,31 +2609,31 @@ class TaskProvider with ChangeNotifier {
     }
 
     if (statusList.isNotEmpty) {
-      final match = statusList.where(
-            (status) =>
-        status["value"].toString().trim() == "Assigned",
-      ).toList();
+      final match = statusList
+          .where((status) => status["value"].toString().trim() == "Assigned")
+          .toList();
 
-      final selectedStatus =
-      match.isNotEmpty ? match.first : statusList.first;
+      final selectedStatus = match.isNotEmpty ? match.first : statusList.first;
 
       _status = selectedStatus["id"].toString();
     }
 
     final now = DateTime.now();
-    taskDt.text =
-    "${now.day.toString().padLeft(2, "0")}-"
+    taskDt.text = "${now.day.toString().padLeft(2, "0")}-"
         "${now.month.toString().padLeft(2, "0")}-"
         "${now.year}";
 
     notifyListeners();
   }
-  void initEditValue(context, TaskData data) {
 
+  void initEditValue(context, TaskData data) {
+    taskDescCont.text = data.taskDesc.toString();
     taskTitleCont.text = data.taskTitle.toString();
     _level = data.level.toString();
     taskDt.text = data.taskDate.toString();
-    taskEt.text = data.taskTime.toString().isNotEmpty?data.taskTime.toString():data.taskDate.toString();
+    taskEt.text = data.taskTime.toString().isNotEmpty
+        ? data.taskTime.toString()
+        : data.taskDate.toString();
     _assignedId = data.assigned.toString();
     _assName = data.assignedNames.toString();
     _cusId = data.companyId.toString();
@@ -3453,6 +2672,7 @@ class TaskProvider with ChangeNotifier {
 
     notifyListeners();
   }
+
   Future<void> addTask({
     context,
     required String id,
@@ -3460,298 +2680,177 @@ class TaskProvider with ChangeNotifier {
     try {
       List<Map<String, String>> customersList = [];
 
-      print("====================================");
-      print("ADD TASK FILE DEBUG");
-      print("Selected Files: ${_selectedFiles.length}");
-      print("Recorded Audio: ${_recordedAudioPaths.length}");
-      print("Selected Photos: ${selectedPhotos.length}");
-      print("====================================");
-
-      // --------------------------------------------------
       // Selected Files
-      // --------------------------------------------------
       for (int i = 0; i < _selectedFiles.length; i++) {
         final filePath = _selectedFiles[i]['path'].toString();
-
-        customersList.add({
-          "image_$i": filePath,
-        });
-
-        print("FILE $i => $filePath");
+        customersList.add({"image_$i": filePath});
       }
 
-      // --------------------------------------------------
       // Recorded Audio
-      // --------------------------------------------------
       for (int i = 0; i < _recordedAudioPaths.length; i++) {
         final int index = _selectedFiles.length + i;
-
-        final String audioPath =
-        _recordedAudioPaths[i].audioPath.toString();
-
-        customersList.add({
-          "image_$index": audioPath,
-        });
-
-        print("AUDIO $index => $audioPath");
+        final String audioPath = _recordedAudioPaths[i].audioPath.toString();
+        customersList.add({"image_$index": audioPath});
       }
 
-      // --------------------------------------------------
       // Selected Photos
-      // --------------------------------------------------
       for (int i = 0; i < selectedPhotos.length; i++) {
-        final int index =
-            _selectedFiles.length +
-                _recordedAudioPaths.length +
-                i;
-
-        final String photoPath =
-        selectedPhotos[i].toString();
-
-        customersList.add({
-          "image_$index": photoPath,
-        });
-
-        print("PHOTO $index => $photoPath");
+        final int index = _selectedFiles.length + _recordedAudioPaths.length + i;
+        final String photoPath = selectedPhotos[i].toString();
+        customersList.add({"image_$index": photoPath});
       }
 
-      // --------------------------------------------------
-      // JSON
-      // --------------------------------------------------
       final String jsonString = json.encode(customersList);
 
-      print("====================================");
-      print("CUSTOMERS LIST");
-      print(customersList);
-      print("====================================");
-
-      print("JSON DATA");
-      print(jsonString);
-      print("====================================");
-
-      // --------------------------------------------------
-      // Task Data
-      // --------------------------------------------------
       final Map<String, String> data = {
         'project_name': id,
         'task_title': taskTitleCont.text.trim(),
+        'task_desc': taskDescCont.text.trim(),
         'department': departmentCont.text.trim(),
-        'log_file':
-        localData.storage.read("mobile_number").toString(),
+        'log_file': localData.storage.read("mobile_number").toString(),
         'type': _type.toString(),
         'assigned': assignedId.toString(),
         'level': level.toString(),
         'status': _status.toString(),
-        'user_id':
-        localData.storage.read("id").toString(),
+        'user_id': localData.storage.read("id").toString(),
         'task_date': taskDt.text.trim(),
         'task_time': taskEt.text.trim(),
         'action': adTask,
-        'cos_id':
-        localData.storage.read("cos_id").toString(),
+        'cos_id': localData.storage.read("cos_id").toString(),
         'data': jsonString,
-        'version':
-        localData.versionNumber.toString(),
+        'version': localData.versionNumber.toString(),
       };
 
-      print("====================================");
-      print("ADD TASK DATA");
-      print(data);
-      print("====================================");
+      debugPrint("ADD TASK DATA => $data");
 
-      // --------------------------------------------------
-      // Add Task API
-      // --------------------------------------------------
-      final response =
-      await _taskRepo.addTask(data, customersList);
-
+      final response = await _taskRepo.addTask(data, customersList);
       log(response.toString());
-
-      print("====================================");
-      print("ADD TASK RESPONSE");
-      print(response);
-      print("====================================");
+      debugPrint("ADD TASK RESPONSE => $response");
 
       if (response.toString().contains("200")) {
-        // ------------------------------------------------
-        // Task Success
-        // ------------------------------------------------
         utils.showSuccessToast(
           context: context,
           text: constValue.successTask,
         );
 
-        // =================================================
-        // EMPLOYEE NOTIFICATION
-        // =================================================
-        try {
-          final String assignedEmployeeIds =
-          _assignedId.toString();
+        await _sendTaskNotifications(
+          context: context,
+          taskTitle: taskTitleCont.text.trim(),
+          taskDesc: taskDescCont.text.trim(),
+          taskDate: taskDt.text.trim(),
+          taskId: "", // backend new task id return pannina inga podu
+        );
 
-          print("====================================");
-          print("EMPLOYEE NOTIFICATION");
-          print("Assigned IDs: $assignedEmployeeIds");
-          print("====================================");
-
-          await Provider.of<EmployeeProvider>(
-            context,
-            listen: false,
-          ).sendSomeUserNotification(
-            "${taskTitleCont.text.trim()} by "
-                "${localData.storage.read("f_name")}",
-            "${taskTitleCont.text.trim()} || "
-                "${taskDt.text.trim()}",
-            assignedEmployeeIds,
-            "",
-            taskDt.text.trim(),
-          );
-
-          print("Employee notification sent");
-        } catch (e) {
-          print("User notification error: $e");
-        }
-
-        // =================================================
-        // ADMIN NOTIFICATION
-        // =================================================
-        try {
-          final String currentRole =
-          localData.storage.read("role").toString();
-
-          final String currentUserId =
-          localData.storage.read("id").toString();
-
-          final dynamic storedAdminIds =
-          localData.storage.read("admin_ids");
-
-          print("====================================");
-          print("ADMIN NOTIFICATION DEBUG");
-          print("Stored Admin IDs: $storedAdminIds");
-          print(
-            "Stored Admin IDs Type: "
-                "${storedAdminIds.runtimeType}",
-          );
-          print("Current Role: $currentRole");
-          print("Current User ID: $currentUserId");
-          print("Assigned Names: $assignedNames");
-          print("====================================");
-
-          String adminIds = "";
-
-          if (storedAdminIds is List) {
-            adminIds = storedAdminIds
-                .map((e) => e.toString())
-                .where(
-                  (id) => id.isNotEmpty && id != "null",
-            )
-                .join(",");
-          } else if (storedAdminIds != null) {
-            adminIds = storedAdminIds.toString();
-          }
-
-          print("ADMIN IDS FOR API: $adminIds");
-
-          if (adminIds.isEmpty) {
-            print(
-              "WARNING: Admin IDs are empty. "
-                  "Admin notification will not be sent.",
-            );
-          } else {
-            await Provider.of<EmployeeProvider>(
-              context,
-              listen: false,
-            ).sendAdminNotification(
-              "${taskTitleCont.text.trim()} "
-                  "assigned to $assignedNames",
-              taskTitleCont.text.trim(),
-              adminIds,
-              "",
-              currentRole == "1" ? adminIds : "",
-            );
-
-            print("====================================");
-            print("ADMIN NOTIFICATION API CALLED");
-            print("Admin IDs: $adminIds");
-            print("Role: $currentRole");
-            print("====================================");
-          }
-        } catch (e) {
-          print("Admin notification error: $e");
-        }
-
-        // =================================================
-        // Reset
-        // =================================================
         taskCtr.reset();
-
         getAllTask(true);
 
-        // =================================================
-        // Navigate
-        // =================================================
+        if (!context.mounted) return;
+
+        final homeProvider = Provider.of<HomeProvider>(context, listen: false);
+
         utils.navigatePage(
           context,
               () => DashBoard(
             child: ViewTask(
-              date1: Provider.of<HomeProvider>(
-                context,
-                listen: false,
-              ).startDate,
-              date2: Provider.of<HomeProvider>(
-                context,
-                listen: false,
-              ).endDate,
-              type: Provider.of<HomeProvider>(
-                context,
-                listen: false,
-              ).type,
+              date1: homeProvider.startDate,
+              date2: homeProvider.endDate,
+              type: homeProvider.type,
             ),
           ),
-        );
-
-        // =================================================
-        // Dashboard Refresh
-        // =================================================
-        final homeProvider =
-        Provider.of<HomeProvider>(
-          context,
-          listen: false,
         );
 
         homeProvider.checkThisMonth();
         homeProvider.loadFullDashboard(context);
       } else {
-        // ------------------------------------------------
-        // API Failed
-        // ------------------------------------------------
-        utils.showErrorToast(
-          context: context,
-        );
-
+        utils.showErrorToast(context: context);
         taskCtr.reset();
       }
     } catch (e) {
-      print("====================================");
-      print("ADD TASK ERROR");
-      print(e);
-      print("====================================");
-
-      utils.showWarningToast(
-        context,
-        text: e.toString(),
-      );
-
+      debugPrint("ADD TASK ERROR => $e");
+      utils.showWarningToast(context, text: e.toString());
       taskCtr.reset();
     }
 
     notifyListeners();
   }
-  Future<void> updateTaskDetail(context,{required String taskId,required String id,required bool isDirect,required List numberList,required String companyName}) async {
+
+  /// Task add pannina aprm notification anuppum helper
+  Future<void> _sendTaskNotifications({
+    required BuildContext context,
+    required String taskTitle,
+    required String taskDate,
+    required String taskId, required String taskDesc,
+  }) async {
+    if (!context.mounted) return;
+
+    try {
+      final String role = localData.storage.read("role").toString();
+      final String myName = localData.storage.read("f_name").toString();
+      final String assignedEmployeeIds = _assignedId.toString();
+
+      final String title = "$taskTitle by $myName";
+      final String msg = "$taskTitle || $taskDate";
+
+      debugPrint("TASK NOTIF role=$role "
+          "myId=${localData.storage.read("id")} "
+          "assignedIds='$assignedEmployeeIds' taskId='$taskId'");
+
+      final empProvider = Provider.of<EmployeeProvider>(context, listen: false);
+
+      /// 1) Assigned employee(s)-ku
+      final String safeAssignedIds =
+      (assignedEmployeeIds.isEmpty || assignedEmployeeIds == "null")
+          ? ""
+          : assignedEmployeeIds;
+
+      if (safeAssignedIds.isNotEmpty) {
+        await empProvider.sendSomeUserNotification(
+          title,
+          msg,
+          safeAssignedIds,
+          taskId,
+          taskDate,
+        );
+      }
+
+      /// 2) Admin(s)-ku
+      final String adminIds = await empProvider.getAdminIds();
+
+      if (adminIds.isNotEmpty) {
+        await empProvider.sendSomeUserNotification(
+          "$taskTitle assigned to $assignedNames",
+          msg,
+          adminIds,
+          taskId,
+          taskDate,
+        );
+      } else {
+        debugPrint("No admin ids found, fallback to sendAdminNotification");
+        await empProvider.sendAdminNotification(
+          "$taskTitle assigned to $assignedNames",
+          taskTitle,
+          "1",
+          taskId,
+          role == "1" ? "1" : "",
+        );
+      }
+    } catch (e) {
+      debugPrint("Task notification error: $e");
+    }
+  }
+
+  Future<void> updateTaskDetail(context,
+      {required String taskId,
+        required String id,
+        required bool isDirect,
+        required List numberList,
+        required String companyName}) async {
     try {
       Map<String, String> data = {
         'id': taskId,
         'project_name': id,
         'task_title': taskTitleCont.text.trim(),
+        'task_desc': taskDescCont.text.trim(),
         'department': departmentCont.text.trim(),
         'log_file': localData.storage.read("mobile_number"),
         'type': localData.storage.read("type_id"),
@@ -3760,59 +2859,64 @@ class TaskProvider with ChangeNotifier {
         'status': localData.storage.read("status_id"),
         'user_id': localData.storage.read("id"),
         'task_date': taskDt.text.trim(),
-        'task_time': "${taskEt.text.trim()}",
+        'task_time': taskEt.text.trim(),
         'action': updateTask,
         'cos_id': localData.storage.read("cos_id"),
       };
-      final response =await _taskRepo.updateTask(data);
-      // print(data.toString());
+      final response = await _taskRepo.updateTask(data);
       log(response.toString());
-      if (response.toString().contains("200")){
-        utils.showSuccessToast(context: context,text: constValue.updated,);
+      if (response.toString().contains("200")) {
+        utils.showSuccessToast(context: context, text: constValue.updated);
         try {
-          await Provider.of<EmployeeProvider>(context, listen: false).sendSomeUserNotification(
+          await Provider.of<EmployeeProvider>(context, listen: false)
+              .sendSomeUserNotification(
             "${taskTitleCont.text.trim()} (${localData.storage.read("f_name")})",
             taskTitleCont.text.trim(),
-            assignedId,"",taskDt.text.trim(),
+            assignedId,
+            "",
+            taskDt.text.trim(),
           );
         } catch (e) {
-          print("User notification error: $e");
+          _log("User notification error: $e");
         }
 
         // admin notification (always run)
         try {
-          await Provider.of<EmployeeProvider>(context, listen: false).sendAdminNotification(
-            "${taskTitleCont.text.trim()}(${localData.storage.read("f_name")})",
-            taskTitleCont.text.trim(),"",
-            localData.storage.read("role"),""
-          );
+          await Provider.of<EmployeeProvider>(context, listen: false)
+              .sendAdminNotification(
+              "${taskTitleCont.text.trim()}(${localData.storage.read("f_name")})",
+              taskTitleCont.text.trim(),
+              "",
+              localData.storage.read("role"),
+              "");
         } catch (e) {
-          print("Admin notification error: $e");
+          _log("Admin notification error: $e");
         }
         taskCtr.reset();
-        // await FirebaseFirestore.instance.collection('attendance').add({
-        //   'emp_id': localData.storage.read("id"),
-        //   'time': DateTime.now(),
-        //   'status': "",
-        // });
-        Provider.of<HomeProvider>(context, listen: false).loadFullDashboard(context);
-        // Provider.of<HomeProvider>(context, listen: false).getMainReport(false);
-        if(isDirect==true){
-          utils.navigatePage(context, ()=> DashBoard(child: ViewTask(date1: Provider.of<HomeProvider>(context, listen: false).startDate, date2: Provider.of<HomeProvider>(context, listen: false).endDate, type: Provider.of<HomeProvider>(context, listen: false).type)));
-        }else{
-          utils.navigatePage(context, ()=> DashBoard(child: ViewTask(date1: Provider.of<HomeProvider>(context, listen: false).startDate, date2: Provider.of<HomeProvider>(context, listen: false).endDate, type: Provider.of<HomeProvider>(context, listen: false).type)));
-        }
-      }else {
+        final home = Provider.of<HomeProvider>(context, listen: false);
+        home.loadFullDashboard(context);
+        utils.navigatePage(
+          context,
+              () => DashBoard(
+            child: ViewTask(
+              date1: home.startDate,
+              date2: home.endDate,
+              type: home.type,
+            ),
+          ),
+        );
+      } else {
         utils.showErrorToast(context: context);
         taskCtr.reset();
       }
     } catch (e) {
-      utils.showWarningToast(context,text: "Failed",);
+      utils.showWarningToast(context, text: "Failed");
       taskCtr.reset();
     }
     notifyListeners();
   }
-  Future<void> updateLevelDetail(context,{required String id,required String level}) async {
+
+  Future<void> updateLevelDetail(context, {required String id, required String level}) async {
     try {
       Map<String, String> data = {
         'id': id,
@@ -3822,23 +2926,24 @@ class TaskProvider with ChangeNotifier {
         'cos_id': localData.storage.read("cos_id"),
         'log_file': localData.storage.read("mobile_number"),
       };
-      final response =await _taskRepo.updateTask(data);
-      print(data.toString());
+      final response = await _taskRepo.updateTask(data);
+      _log(data.toString());
       log(response.toString());
-      if (response.toString().contains("200")){
-        utils.showSuccessToast(context: context,text: constValue.updated,);
+      if (response.toString().contains("200")) {
+        utils.showSuccessToast(context: context, text: constValue.updated);
         taskCtr.reset();
         getAllTask(false);
-      }else {
+      } else {
         utils.showErrorToast(context: context);
         taskCtr.reset();
       }
     } catch (e) {
-      utils.showWarningToast(context,text: "Failed",);
+      utils.showWarningToast(context, text: "Failed");
       taskCtr.reset();
     }
     notifyListeners();
   }
+
   String formatHours(String time) {
     final parts = time.split(":");
 
@@ -3861,159 +2966,103 @@ class TaskProvider with ChangeNotifier {
     if (seconds > 0) {
       result.add("${seconds}s");
     }
-    return result.toString()=="null"||result.isEmpty ? "0 sec" : result.join(" ");
+    return result.toString() == "null" || result.isEmpty ? "0 sec" : result.join(" ");
   }
-  // Future<void> insertTaskLogHistory(context,{required String id,required String level}) async {
-  //   try {
-  //     showDialog(
-  //       context: context,
-  //       barrierDismissible: false,
-  //       builder: (BuildContext context) {
-  //         return AlertDialog(
-  //           title: Center(
-  //             child: Column(
-  //               children: [
-  //                 const CustomText(
-  //                   text: "Loading",
-  //                   colors: Colors.grey,
-  //                   size: 15,
-  //                   isBold: true,
-  //                 ),
-  //                 10.height,
-  //                 const CustomText(
-  //                   text: "Please Wait",
-  //                   colors: Colors.grey,
-  //                   size: 15,
-  //                   isBold: true,
-  //                 ),
-  //                 20.height,
-  //                 LoadingAnimationWidget.staggeredDotsWave(
-  //                   color: colorsConst.secondary,
-  //                   size: 25,
-  //                 ),
-  //               ],
-  //             ),
-  //           ),
-  //         );
-  //       },
-  //     );
-  //     Map<String, String> data = {
-  //       'task_id': id,
-  //       'status': level,
-  //       'user_id': localData.storage.read("id"),
-  //       'action': insertTaskLog,
-  //       'cos_id': localData.storage.read("cos_id"),
-  //       'log_file': localData.storage.read("mobile_number"),
-  //     };
-  //     final response =await _taskRepo.addType(data);
-  //     print(data.toString());
-  //     log(response.toString());
-  //     if (response.toString().contains("200")){
-  //       utils.showSuccessToast(context: context,text: constValue.updated,);
-  //       getAllTask(false);
-  //       Navigator.pop(context);
-  //     }else {
-  //       utils.showErrorToast(context: context);
-  //       Navigator.pop(context);
-  //     }
-  //   } catch (e) {
-  //     utils.showWarningToast(context,text: "Failed",);
-  //     Navigator.pop(context);
-  //   }
-  //   notifyListeners();
-  // }
 
   List<CustomerAttendanceModel> _customerAttendanceReport = <CustomerAttendanceModel>[];
-  List<CustomerAttendanceModel> get customerAttendanceReport=>_customerAttendanceReport;
+  List<CustomerAttendanceModel> get customerAttendanceReport => _customerAttendanceReport;
 
   Future<void> getAttendance(String id) async {
-    _refresh=false;
+    _refresh = false;
     _customerAttendanceReport.clear();
     notifyListeners();
     try {
       Map data = {
         "action": getAllData,
-        "search_type":"task_visits",
-        "task_id":id,
-        "id":localData.storage.read("id"),
-        "cos_id":localData.storage.read("cos_id"),
-        "role":localData.storage.read("role"),
+        "search_type": "task_visits",
+        "task_id": id,
+        "id": localData.storage.read("id"),
+        "cos_id": localData.storage.read("cos_id"),
+        "role": localData.storage.read("role"),
       };
-      final response =await _taskRepo.getAttendances1(data);
+      final response = await _taskRepo.getAttendances1(data);
       log(data.toString());
       log(response.toString());
       if (response.isNotEmpty) {
-        _customerAttendanceReport=response;
-        _refresh=true;
+        _customerAttendanceReport = response;
+        _refresh = true;
       } else {
-        _refresh=true;
+        _refresh = true;
       }
     } catch (e) {
-      _refresh=true;
+      _refresh = true;
     }
     notifyListeners();
   }
-  Future<void> getUserTaskAttendance(String id,String date1,String date2) async {
-    _refresh=false;
+
+  Future<void> getUserTaskAttendance(String id, String date1, String date2) async {
+    _refresh = false;
     _customerAttendanceReport.clear();
     notifyListeners();
     try {
       Map data = {
         "action": taskDatas,
-        "search_type":"emp_visits_details",
-        "id":localData.storage.read("role")=="1"?id:localData.storage.read("id"),
-        "date1":date1,
-        "date2":date2,
-        "cos_id":localData.storage.read("cos_id"),
-        "role":localData.storage.read("role"),
+        "search_type": "emp_visits_details",
+        "id": localData.storage.read("role") == "1" ? id : localData.storage.read("id"),
+        "date1": date1,
+        "date2": date2,
+        "cos_id": localData.storage.read("cos_id"),
+        "role": localData.storage.read("role"),
       };
-      final response =await _taskRepo.getAttendances(data);
+      final response = await _taskRepo.getAttendances(data);
       log(data.toString());
       log(response.toString());
       if (response.isNotEmpty) {
-        _customerAttendanceReport=response;
-        _refresh=true;
+        _customerAttendanceReport = response;
+        _refresh = true;
       } else {
-        _refresh=true;
+        _refresh = true;
       }
     } catch (e) {
-      _refresh=true;
+      _refresh = true;
     }
     notifyListeners();
   }
-  Future<void> getCustomerTaskAttendance(String id,String date1,String date2) async {
-    _refresh=false;
+
+  Future<void> getCustomerTaskAttendance(String id, String date1, String date2) async {
+    _refresh = false;
     _customerAttendanceReport.clear();
     notifyListeners();
     try {
       Map data = {
         "action": taskDatas,
-        "search_type":"customer_visits_details",
-        "id":id,
-        "date1":date1,
-        "date2":date2,
-        "cos_id":localData.storage.read("cos_id"),
-        "role":localData.storage.read("role"),
-        "user_id":localData.storage.read("role")=="1"?id:localData.storage.read("id"),
+        "search_type": "customer_visits_details",
+        "id": id,
+        "date1": date1,
+        "date2": date2,
+        "cos_id": localData.storage.read("cos_id"),
+        "role": localData.storage.read("role"),
+        "user_id": localData.storage.read("role") == "1" ? id : localData.storage.read("id"),
       };
-      final response =await _taskRepo.getAttendances(data);
+      final response = await _taskRepo.getAttendances(data);
       log(data.toString());
       log(response.toString());
       if (response.isNotEmpty) {
-        _customerAttendanceReport=response;
-        _refresh=true;
+        _customerAttendanceReport = response;
+        _refresh = true;
       } else {
-        _refresh=true;
+        _refresh = true;
       }
     } catch (e) {
-      _refresh=true;
+      _refresh = true;
     }
     notifyListeners();
   }
+
   String crtDate(String dateTimeString, String type) {
     var parts = dateTimeString.split(' ');
-    var dateParts = parts[0].split('-'); // Split the date into year, month, and day
-    var formattedDate = "${dateParts[2]}/${dateParts[1]}/${dateParts[0]}"; // Reorder to dd-MM-yyyy
+    var dateParts = parts[0].split('-');
+    var formattedDate = "${dateParts[2]}/${dateParts[1]}/${dateParts[0]}";
 
     var timeParts = parts[1].split(':');
     int hour = int.parse(timeParts[0]);
@@ -4027,86 +3076,75 @@ class TaskProvider with ChangeNotifier {
     }
   }
 
-  Future<void> editTask({context,required TaskData data,required String taskId,required String coId,required bool isDirect}) async {
+  Future<void> editTask(
+      {context,
+        required TaskData data,
+        required String taskId,
+        required String coId,
+        required bool isDirect}) async {
     try {
-      // Map<String, String> data = {
-      //   "user_id": localData.storage.read("id"),
-      //   "action": "update_status",
-      //   "task_id": taskId,
-      //   "status": status,
-      //   "mobile": localData.storage.read("mobile_number"),
-      //   'cos_id': localData.storage.read("cos_id")
-      // };
-
-      final response =await _taskRepo.updateTaskStatusApi(taskId: taskId, status: localData.storage.read("status_id"));
-      print(response.toString());
-      if (response.toString().contains("200")){
-        utils.showSuccessToast(context: context,text: constValue.updated,);
+      final response = await _taskRepo.updateTaskStatusApi(
+          taskId: taskId, status: localData.storage.read("status_id"));
+      _log(response.toString());
+      if (response.toString().contains("200")) {
+        utils.showSuccessToast(context: context, text: constValue.updated);
         taskStatusCtr.reset();
-        // Provider.of<HomeProvider>(context, listen: false).getMainReport(false);
         Provider.of<HomeProvider>(context, listen: false).loadFullDashboard(context);
         getAllTask(false);
-        TaskData? sentData;
-        for(var i=0;i<_allTasks.length;i++){
-          if(_allTasks[i].id==data.id){
-            sentData=_allTasks[i];
-            break;
-          }
-        }
         getStatusHistory(data.id.toString());
-        // utils.navigatePage(context, ()=>DashBoard(child: TaskDetails(
-        //     data:sentData!,isDirect:true,coId: "0", numberList: const [])));
-        // Future.microtask(() => Navigator.pop(context));
-      }else {
+      } else {
         utils.showErrorToast(context: context);
         taskStatusCtr.reset();
       }
     } catch (e) {
-      utils.showWarningToast(context,text: "Failed",);
+      utils.showWarningToast(context, text: "Failed");
       taskStatusCtr.reset();
     }
     notifyListeners();
   }
-  Future<void> getAllCoTask(String coId,bool isRefresh) async {
-    if(isRefresh==true){
-      _filter="1";
-      statusId="";
-      matched=0;
-      _status=null;
+
+  Future<void> getAllCoTask(String coId, bool isRefresh) async {
+    if (isRefresh == true) {
+      _filter = "1";
+      statusId = "";
+      matched = 0;
+      _status = null;
       search.clear();
       _allTasks.clear();
       _searchAllTasks.clear();
-      _refresh=false;
+      _refresh = false;
     }
     notifyListeners();
     try {
       Map data = {
         "action": taskDatas,
-        "search_type":"co_tasks",
-        "co_id":coId,
+        "search_type": "co_tasks",
+        "co_id": coId,
         "cos_id": localData.storage.read("cos_id"),
         "role": localData.storage.read("role"),
         "id": localData.storage.read("id")
       };
-      final response =await _taskRepo.getReport(data);
-      // print(data.toString());
-      // print(response.toString());
+      final response = await _taskRepo.getReport(data);
       if (response.isNotEmpty) {
-        _allTasks=response;
-        _searchAllTasks=response;
-        _refresh=true;
+        _allTasks = response;
+        _searchAllTasks = response;
+        _refresh = true;
       }
     } catch (e) {
-      _allTasks=[];
-      _searchAllTasks=[];
-      _refresh=true;
+      _allTasks = [];
+      _searchAllTasks = [];
+      _refresh = true;
     }
     notifyListeners();
   }
-  String _profile="";
-  String get profile=>_profile;
-  Future<void> signDialog({required BuildContext context, required String img,required Function(String newImg) onTap}) async {
-    _profile="";
+
+  String _profile = "";
+  String get profile => _profile;
+  Future<void> signDialog(
+      {required BuildContext context,
+        required String img,
+        required Function(String newImg) onTap}) async {
+    _profile = "";
     var imgData = await Navigator.push(
         context,
         MaterialPageRoute(
@@ -4115,12 +3153,12 @@ class TaskProvider with ChangeNotifier {
               isSelfie: true,
             )));
     if (!context.mounted) return;
-    // Navigator.pop(context);
     if (imgData != null) {
       final compressedFile = await compressImage(imgData);
       onTap(compressedFile.path);
     }
   }
+
   Future<XFile> compressImage(String filePath) async {
     final dir = await getTemporaryDirectory();
     final targetPath = '${dir.absolute.path}/temp_${DateTime.now().millisecondsSinceEpoch}.jpg';
@@ -4128,21 +3166,24 @@ class TaskProvider with ChangeNotifier {
     final result = await FlutterImageCompress.compressAndGetFile(
       filePath,
       targetPath,
-      quality: 70, // lower = more compressed
+      quality: 70,
     );
 
     return result!;
   }
-  void profilePick(String imgData){
+
+  void profilePick(String imgData) {
     _profile = imgData;
     notifyListeners();
   }
+
   bool hasAppointment(DateTime date) {
     return dataSource.appointments!.any((appt) =>
     appt.startTime.year == date.year &&
         appt.startTime.month == date.month &&
         appt.startTime.day == date.day);
   }
+
   bool hasStatus(DateTime date, String status) {
     return dataSource.appointments!.any((appt) =>
     appt.startTime.year == date.year &&
@@ -4150,22 +3191,21 @@ class TaskProvider with ChangeNotifier {
         appt.startTime.day == date.day &&
         (appt.subject?.toLowerCase() ?? '') == status.toLowerCase());
   }
-  String _checkAtt="";
-  String _checkAttName="";
+
+  String _checkAtt = "";
+  String _checkAttName = "";
   String get checkAtt => _checkAtt;
   String get checkAttName => _checkAttName;
   List<TaskData> _filterUserData = <TaskData>[];
   List<TaskData> get filterUserData => _filterUserData;
 
   Future<void> getAllTask(bool isRefresh, {String? date1, String? date2, String? type}) async {
-    print("=====  getAllTask START =====");
+    _log("=====  getAllTask START =====");
     _incompleteMode = false;
     _checkAtt = "";
     _checkAttName = "";
 
     if (isRefresh == true) {
-      print("Refreshing data...");
-
       _filter = "1";
       statusId = "";
       matched = 0;
@@ -4194,23 +3234,23 @@ class TaskProvider with ChangeNotifier {
         "id": localData.storage.read("id"),
       };
 
-      print("API Request : $data");
-
       final response = await _taskRepo.getReport(data);
 
       if (response.isNotEmpty) {
-        print("Response not empty");
-
         _allTasks = response;
         _searchAllTasks = response;
         _filterUserData = response;
 
-        print("_allTasks length : ${_allTasks.length}");
+        _log("_allTasks length : ${_allTasks.length}");
+
+        // collect appointments, add + notify ONCE after the loop
+        final List<Appointment> newApps = [];
+        final monthPad = utils.returnPadLeft(defaultMonth.toString());
 
         for (var i = 0; i < response.length; i++) {
           String? dateStr = response[i].taskDate;
 
-          // 👉 TIMER SETUP
+          // TIMER SETUP
           String id = response[i].id.toString();
           int totalSeconds = int.tryParse(response[i].totalHours.toString()) ?? 0;
           String status = response[i].workStatus.toString();
@@ -4225,33 +3265,26 @@ class TaskProvider with ChangeNotifier {
           if (status == "Start") {
             _startUiTicker();
           }
-          // 👆 TIMER SETUP END
 
-          /// 🔴 EMPTY DATE SKIP
-          if (dateStr == null || dateStr.isEmpty) {
-            continue;
-          }
-          DateTime parsedDate = DateFormat('dd-MM-yyyy').parse(dateStr);
+          // EMPTY / INVALID DATE SKIP
+          final parsedDate = _parseTaskDate(dateStr);
+          if (parsedDate == null) continue;
 
-          Appointment app = Appointment(
+          newApps.add(Appointment(
             startTime: parsedDate,
             endTime: parsedDate,
             subject: response[i].statval.toString(),
             color: colorsConst.red2,
-          );
+          ));
 
-          dataSource.appointments!.add(app);
-
-          dataSource.notifyListeners(
-            CalendarDataSourceAction.add,
-            <Appointment>[app],
-          );
-
-          /// THIS MONTH CHECK
-          if (utils.returnPadLeft(defaultMonth.toString()) ==
-              utils.returnPadLeft(parsedDate.month.toString())) {
+          if (monthPad == utils.returnPadLeft(parsedDate.month.toString())) {
             _thisMonthLeave = "1";
           }
+        }
+
+        if (newApps.isNotEmpty) {
+          dataSource.appointments!.addAll(newApps);
+          dataSource.notifyListeners(CalendarDataSourceAction.add, newApps);
         }
 
         /// CHECKED TASK
@@ -4265,11 +3298,8 @@ class TaskProvider with ChangeNotifier {
 
         filterList();
         _viewRefresh = true;
-      } else {
-        // print("Response EMPTY");
       }
     } catch (e) {
-      // print("ERROR OCCURRED : $e");
       _allTasks = [];
       _searchAllTasks = [];
       _filterUserData = [];
@@ -4280,11 +3310,13 @@ class TaskProvider with ChangeNotifier {
       _viewRefresh = true;
     }
 
-    print("===== getAllTask END =====");
+    _log("===== getAllTask END =====");
 
     notifyListeners();
   }
-  Future<void> getAllIncompleteTask(bool isRefresh, {String? date1, String? date2, String? type}) async {
+
+  Future<void> getAllIncompleteTask(bool isRefresh,
+      {String? date1, String? date2, String? type}) async {
     _incompleteMode = true; // date filter skip panna
 
     _checkAtt = "";
@@ -4333,7 +3365,7 @@ class TaskProvider with ChangeNotifier {
           );
         }
       } catch (e) {
-        print("Server error (offline?): $e");
+        _log("Server error (offline?): $e");
       }
 
       // 2. Net illa / response empty na, save panna data edu
@@ -4348,9 +3380,15 @@ class TaskProvider with ChangeNotifier {
       // ---------- OFFLINE SAVE LOGIC END ----------
 
       if (response.isNotEmpty) {
+        response = List<TaskData>.from(response)
+          ..sort((a, b) => b.createdTs.toString().compareTo(a.createdTs.toString()));
+
         _allTasks = response;
         _searchAllTasks = response;
         _filterUserData = response;
+
+        final List<Appointment> newApps = [];
+        final monthPad = utils.returnPadLeft(defaultMonth.toString());
 
         for (var i = 0; i < response.length; i++) {
           String? dateStr = response[i].taskDate;
@@ -4371,31 +3409,25 @@ class TaskProvider with ChangeNotifier {
             _startUiTicker();
           }
 
-          // EMPTY DATE SKIP
-          if (dateStr == null || dateStr.isEmpty) {
-            continue;
-          }
-          DateTime parsedDate = DateFormat('dd-MM-yyyy').parse(dateStr);
+          // EMPTY / INVALID DATE SKIP
+          final parsedDate = _parseTaskDate(dateStr);
+          if (parsedDate == null) continue;
 
-          Appointment app = Appointment(
+          newApps.add(Appointment(
             startTime: parsedDate,
             endTime: parsedDate,
             subject: response[i].statval.toString(),
             color: colorsConst.red2,
-          );
+          ));
 
-          dataSource.appointments!.add(app);
-
-          dataSource.notifyListeners(
-            CalendarDataSourceAction.add,
-            <Appointment>[app],
-          );
-
-          // THIS MONTH CHECK
-          if (utils.returnPadLeft(defaultMonth.toString()) ==
-              utils.returnPadLeft(parsedDate.month.toString())) {
+          if (monthPad == utils.returnPadLeft(parsedDate.month.toString())) {
             _thisMonthLeave = "1";
           }
+        }
+
+        if (newApps.isNotEmpty) {
+          dataSource.appointments!.addAll(newApps);
+          dataSource.notifyListeners(CalendarDataSourceAction.add, newApps);
         }
 
         // CHECKED TASK
@@ -4426,77 +3458,80 @@ class TaskProvider with ChangeNotifier {
 
     notifyListeners();
   }
+
   List<TaskData> _userAllTasks = <TaskData>[];
   List<TaskData> get userAllTasks => _userAllTasks;
-  Future<void> getUserTasks(String id,String date1,String date2) async {
-    _filter="1";
-    statusId="";
-    matched=0;
-    _filterDate=="";
-    _filterTasks=0;
-    _status=null;
+
+  Future<void> getUserTasks(String id, String date1, String date2) async {
+    _filter = "1";
+    statusId = "";
+    matched = 0;
+    _filterDate = "";
+    _filterTasks = 0;
+    _status = null;
     _userAllTasks.clear();
-    _viewRefresh=false;
+    _viewRefresh = false;
     notifyListeners();
     try {
       Map data = {
         "action": taskDatas,
-        "search_type":"emp_tasks_details",
+        "search_type": "emp_tasks_details",
         "cos_id": localData.storage.read("cos_id"),
         "role": localData.storage.read("role"),
-        "id":localData.storage.read("role")=="1"?id:localData.storage.read("id"),
+        "id": localData.storage.read("role") == "1" ? id : localData.storage.read("id"),
         "date1": date1,
         "date2": date2
       };
-      final response =await _taskRepo.getReport(data);
-      // print(data.toString());
-      // print(response.toString());
+      final response = await _taskRepo.getReport(data);
       if (response.isNotEmpty) {
-        _userAllTasks=response;
-        _viewRefresh=true;
+        _userAllTasks = response;
+        _viewRefresh = true;
       }
     } catch (e) {
-      _userAllTasks=[];
-      _viewRefresh=true;
-    }
-    notifyListeners();
-  }
-  Future<void> getCustomerTasks(String id,String date1,String date2) async {
-    _filter="1";
-    statusId="";
-    matched=0;
-    _filterDate=="";
-    _filterTasks=0;
-    _status=null;
-    _userAllTasks.clear();
-    _viewRefresh=false;
-    notifyListeners();
-    try {
-      Map data = {
-        "action": taskDatas,
-        "search_type":"customer_tasks_details",
-        "cos_id": localData.storage.read("cos_id"),
-        "role": localData.storage.read("role"),
-        "user_id":localData.storage.read("role")=="1"?id:localData.storage.read("id"),
-        "id":id,
-        "date1": date1,
-        "date2": date2
-      };
-      final response =await _taskRepo.getReport(data);
-      // print(data.toString());
-      // print(response.toString());
-      if (response.isNotEmpty) {
-        _userAllTasks=response;
-        _viewRefresh=true;
-      }
-    } catch (e) {
-      _userAllTasks=[];
-      _viewRefresh=true;
+      _userAllTasks = [];
+      _viewRefresh = true;
     }
     notifyListeners();
   }
 
-  Future<void> taskAttDirect(context,{required String status,required String lat, required String lng,required String taskId}) async {
+  Future<void> getCustomerTasks(String id, String date1, String date2) async {
+    _filter = "1";
+    statusId = "";
+    matched = 0;
+    _filterDate = "";
+    _filterTasks = 0;
+    _status = null;
+    _userAllTasks.clear();
+    _viewRefresh = false;
+    notifyListeners();
+    try {
+      Map data = {
+        "action": taskDatas,
+        "search_type": "customer_tasks_details",
+        "cos_id": localData.storage.read("cos_id"),
+        "role": localData.storage.read("role"),
+        "user_id": localData.storage.read("role") == "1" ? id : localData.storage.read("id"),
+        "id": id,
+        "date1": date1,
+        "date2": date2
+      };
+      final response = await _taskRepo.getReport(data);
+      if (response.isNotEmpty) {
+        _userAllTasks = response;
+        _viewRefresh = true;
+      }
+    } catch (e) {
+      _userAllTasks = [];
+      _viewRefresh = true;
+    }
+    notifyListeners();
+  }
+
+  Future<void> taskAttDirect(context,
+      {required String status,
+        required String lat,
+        required String lng,
+        required String taskId}) async {
     try {
       showDialog(
           context: context,
@@ -4506,10 +3541,12 @@ class TaskProvider with ChangeNotifier {
               title: Center(
                 child: Column(
                   children: [
-                    const CustomText(text: "Marking Please Wait",
+                    const CustomText(
+                      text: "Marking Please Wait",
                       colors: Colors.grey,
                       size: 15,
-                      isBold: true,),
+                      isBold: true,
+                    ),
                     20.height,
                     LoadingAnimationWidget.staggeredDotsWave(
                       color: colorsConst.primary,
@@ -4519,8 +3556,7 @@ class TaskProvider with ChangeNotifier {
                 ),
               ),
             );
-          }
-      );
+          });
       Map<String, String> data = {
         "action": taskAtt,
         "log_file": localData.storage.read("mobile_number"),
@@ -4537,18 +3573,16 @@ class TaskProvider with ChangeNotifier {
         "traveled_kms": "0.0",
         "id": localData.storage.read("tk_id").toString(),
         "cos_id": localData.storage.read("cos_id"),
-
       };
-      final response =await _taskRepo.addAttendance(data,_profile);
-      // print(response.toString());
-      if (response.isNotEmpty){
+      final response = await _taskRepo.addAttendance(data, _profile);
+      if (response.isNotEmpty) {
         localData.storage.write("tk_id", response[0]["id"]);
-        utils.showSuccessToast(text: status=="1"?"Check In Successful":"Check Out Successful",context: context);
+        utils.showSuccessToast(
+            text: status == "1" ? "Check In Successful" : "Check Out Successful",
+            context: context);
         getAllTask(false);
-        // Provider.of<HomeProvider>(context, listen: false).getMainReport(false);
-       // Provider.of<HomeProvider>(context, listen: false).loadFullDashboard(context);
         Navigator.of(context, rootNavigator: true).pop();
-      }else {
+      } else {
         Navigator.of(context, rootNavigator: true).pop();
         utils.showErrorToast(context: context);
         notifyListeners();
@@ -4557,10 +3591,11 @@ class TaskProvider with ChangeNotifier {
       Navigator.of(context, rootNavigator: true).pop();
       log(e.toString());
       utils.showErrorToast(context: context);
-    }finally{
+    } finally {
       notifyListeners();
     }
   }
+
   Future<void> taskAttendance(context,
       {required String status,
         required String taskId,
@@ -4576,10 +3611,12 @@ class TaskProvider with ChangeNotifier {
               title: Center(
                 child: Column(
                   children: [
-                    const CustomText(text: "Marking Please Wait",
+                    const CustomText(
+                      text: "Marking Please Wait",
                       colors: Colors.grey,
                       size: 15,
-                      isBold: true,),
+                      isBold: true,
+                    ),
                     20.height,
                     LoadingAnimationWidget.staggeredDotsWave(
                       color: colorsConst.primary,
@@ -4589,8 +3626,7 @@ class TaskProvider with ChangeNotifier {
                 ),
               ),
             );
-          }
-      );
+          });
       Map<String, String> data = {
         "action": taskAtt,
         "log_file": localData.storage.read("mobile_number"),
@@ -4608,14 +3644,16 @@ class TaskProvider with ChangeNotifier {
         "id": localData.storage.read("tk_id"),
         "cos_id": localData.storage.read("cos_id"),
       };
-      final response =await _taskRepo.addAttendance(data,_profile);
+      final response = await _taskRepo.addAttendance(data, _profile);
       log(response.toString());
-      if (response.isNotEmpty){
+      if (response.isNotEmpty) {
         localData.storage.write("tk_id", response[0]["id"]);
-        utils.showSuccessToast(text: status=="1"?"Check In Successful":"Check Out Successful",context: context);
-        getAllCoTask(coId,false);
+        utils.showSuccessToast(
+            text: status == "1" ? "Check In Successful" : "Check Out Successful",
+            context: context);
+        getAllCoTask(coId, false);
         Navigator.of(context, rootNavigator: true).pop();
-      }else {
+      } else {
         Navigator.of(context, rootNavigator: true).pop();
         utils.showErrorToast(context: context);
       }
@@ -4627,28 +3665,29 @@ class TaskProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  var typeList=[];
-  var customerList=[];
-  var cusTypeList=[];
-  var statusList=[];
+  var typeList = [];
+  var customerList = [];
+  var cusTypeList = [];
+  var statusList = [];
 
   bool _addRefresh = true;
-  bool get addRefresh =>_addRefresh;
+  bool get addRefresh => _addRefresh;
   dynamic _selectType;
-  dynamic get selectType=>_selectType;
+  dynamic get selectType => _selectType;
   dynamic _selectType1;
-  dynamic get selectType1=>_selectType1;
+  dynamic get selectType1 => _selectType1;
 
-  void changeTypeValue(dynamic value){
-    _selectType=null;
-    _selectType=value;
-    var list=[];
+  void changeTypeValue(dynamic value) {
+    _selectType = null;
+    _selectType = value;
+    var list = [];
     list.add(value);
-    localData.storage.write("type_id",list[0]["id"]);
-    localData.storage.write("typeName",list[0]["value"]);
+    localData.storage.write("type_id", list[0]["id"]);
+    localData.storage.write("typeName", list[0]["value"]);
 
     notifyListeners();
   }
+
   String? typeId;
   String? typeName;
 
@@ -4661,7 +3700,7 @@ class TaskProvider with ChangeNotifier {
     );
 
     if (selected.isEmpty) {
-      print("Type not found");
+      _log("Type not found");
       return;
     }
 
@@ -4669,10 +3708,11 @@ class TaskProvider with ChangeNotifier {
 
     localData.storage.write("type_id", selected["id"].toString());
 
-    print("Saved TYPE ID => ${selected["id"]}");
+    _log("Saved TYPE ID => ${selected["id"]}");
 
     notifyListeners();
   }
+
   Future<void> getTaskType(bool isRefresh) async {
     try {
       _selectType = null;
@@ -4695,13 +3735,15 @@ class TaskProvider with ChangeNotifier {
       log("Response task list=> ${response.toString()}");
 
       if (response.isNotEmpty) {
-        List<Map<String, String>> list = response.map((e) => {
+        List<Map<String, String>> list = response
+            .map((e) => {
           "id": e['id'].toString(),
           "value": e['value'].toString().trim(),
           "categories": e['categories'].toString(),
           "created_ts": e['created_ts'].toString(),
           "created_by": e['created_by'].toString(),
-        }).toList();
+        })
+            .toList();
 
         if (!kIsWeb) {
           await LocalDatabase.insertTaskType(list);
@@ -4724,9 +3766,10 @@ class TaskProvider with ChangeNotifier {
 
     notifyListeners();
   }
+
   Future<void> getCustomerType(bool isRefresh) async {
     try {
-      _selectType= null;
+      _selectType = null;
 
       if (isRefresh == true) {
         _addRefresh = false;
@@ -4746,13 +3789,15 @@ class TaskProvider with ChangeNotifier {
       log("Response task list=> ${response.toString()}");
 
       if (response.isNotEmpty) {
-        List<Map<String, String>> list = response.map((e) => {
+        List<Map<String, String>> list = response
+            .map((e) => {
           "id": e['id'].toString(),
           "value": e['value'].toString().trim(),
           "categories": e['categories'].toString(),
           "created_ts": e['created_ts'].toString(),
           "created_by": e['created_by'].toString(),
-        }).toList();
+        })
+            .toList();
         if (!kIsWeb) {
           await LocalDatabase.insertCusType(list);
           getAllCusTypes();
@@ -4771,37 +3816,9 @@ class TaskProvider with ChangeNotifier {
 
     notifyListeners();
   }
+
   TextEditingController typeCtr = TextEditingController();
 
-  // Future<void> getTaskStatuses() async {
-  //   try {
-  //     Map data = {
-  //       "action": getAllData,
-  //       "search_type":"cmt_type",
-  //       "cat_id":"8",
-  //       "cos_id": localData.storage.read("cos_id")
-  //     };
-  //     final response =await _taskRepo.getListDatas(data);
-  //    log("Task status ${response.toString()}");
-  //     if (response.isNotEmpty) {
-  //       List<Map<String, String>> list = response.map((e) => {
-  //         "id": e['id'].toString(),
-  //         "value": e['value'].toString(),
-  //         "categories": e['categories'].toString()
-  //       }).toList();
-  //       if(!kIsWeb){
-  //         await LocalDatabase.insertTaskStatus(list);
-  //       }else{
-  //         statusList.clear();
-  //         statusList=list;
-  //         notifyListeners();
-  //       }
-  //     }
-  //   } catch (e) {
-  //     // _refresh=true;
-  //   }
-  //   notifyListeners();
-  // }
   Future<void> getTaskStatuses() async {
     try {
       Map data = {
@@ -4816,59 +3833,63 @@ class TaskProvider with ChangeNotifier {
       log("Task status ${response.toString()}");
 
       if (response.isNotEmpty) {
-
-        List<Map<String, String>> list = response.map<Map<String, String>>((e) => {
+        List<Map<String, String>> list = response
+            .map<Map<String, String>>((e) => {
           "id": e['id'].toString(),
           "value": e['value'].toString(),
           "categories": e['categories'].toString(),
-        }).toList();
+        })
+            .toList();
 
-        /// ⭐ always update provider list
+        /// always update provider list
         statusList = list;
 
-        print("STATUS LIST $statusList");
+        _log("STATUS LIST $statusList");
 
         /// save offline
-        if(!kIsWeb){
+        if (!kIsWeb) {
           await LocalDatabase.insertTaskStatus(list);
         }
 
         notifyListeners();
       }
-
     } catch (e) {
-      print("STATUS ERROR $e");
+      _log("STATUS ERROR $e");
     }
   }
+
   Future<void> getAllTypes() async {
     typeList.clear();
     List storedLeads = await LocalDatabase.getTaskTypes();
-    typeList=storedLeads;
-    _addRefresh=true;
-    print("local db typeList......${typeList}");
-    _selectType=null;
+    typeList = storedLeads;
+    _addRefresh = true;
+    _selectType = null;
     notifyListeners();
   }
+
   Future<void> refreshTypes() async {
-    _type=null;
+    _type = null;
     typeList.clear();
     List storedLeads = await LocalDatabase.getTaskTypes();
-    typeList=storedLeads;
+    typeList = storedLeads;
     notifyListeners();
   }
+
   Future<void> getTypeSts() async {
     statusList.clear();
     List storedLeads = await LocalDatabase.getTaskStatus();
-    statusList=storedLeads;
+    statusList = storedLeads;
     notifyListeners();
   }
+
   Future<void> refreshStatus() async {
-    _status=null;
+    _status = null;
     statusList.clear();
     List storedLeads = await LocalDatabase.getTaskStatus();
-    statusList=storedLeads;
+    statusList = storedLeads;
     notifyListeners();
   }
+
   Future<void> getAllCusTypes() async {
     cusTypeList.clear();
 
@@ -4877,19 +3898,18 @@ class TaskProvider with ChangeNotifier {
 
     _addRefresh = true;
 
-    print("local db typeList.customer .....$cusTypeList");
-
     if (cusTypeList.isNotEmpty) {
       _selectType ??= cusTypeList[0];
     }
 
     notifyListeners();
   }
+
   Future<void> refreshCusTypes() async {
-    _type=null;
+    _type = null;
     cusTypeList.clear();
     List storedLeads = await LocalDatabase.getCusTypes();
-    cusTypeList=storedLeads;
+    cusTypeList = storedLeads;
     notifyListeners();
   }
 
@@ -4902,19 +3922,11 @@ class TaskProvider with ChangeNotifier {
         List<dynamic> data = response["Response"] ?? [];
         _userNameList = data;
         _assignList = [];
-        // for(var name in _userNameList){
-        //   if(name["f_name"]==localData.currentUserName){
-        //     _assignList.add("Self");
-        //   }else{
-        //     _assignList.add(name["f_name"]);
-        //   }
-        // }
         _assignList = _userNameList.map((e) => e["f_name"].toString()).toList();
       } else {
         _userNameList = [];
       }
     } catch (e) {
-      // print("FetchUserNameList error $e");
       _userNameList = [];
       notifyListeners();
     } finally {
@@ -4923,25 +3935,6 @@ class TaskProvider with ChangeNotifier {
     }
   }
 
-  /// Play Recorded Audio
-  // Future<void> playAudio() async {
-  //   if (_audioPath != null) {
-  //     _isPlaying = true;
-  //     notifyListeners();
-  //     await _audioPlayer.play(DeviceFileSource(_audioPath!));
-  //     _audioPlayer.onPlayerComplete.listen((event) {
-  //       _isPlaying = false;
-  //       notifyListeners();
-  //     });
-  //   }
-  // }
-
-  /// Stop Audio Playback
-  // Future<void> stopAudio() async {
-  //   await _audioPlayer.stop();
-  //   _isPlaying = false;
-  //   notifyListeners();
-  // }
   /// CHART
   String _totalCount = "";
   String _pendingCount = "";
@@ -4966,7 +3959,6 @@ class TaskProvider with ChangeNotifier {
     notifyListeners();
     try {
       final response = await _taskRepo.getDashboardCount();
-      // print("dashboard output ${response["Response"]}");
       if (response["ResponseCode"].toString() == "200") {
         List<dynamic> data = response["Response"] ?? [];
         _totalCount = data[0]["total_count"];
@@ -4993,17 +3985,15 @@ class TaskProvider with ChangeNotifier {
       _pendingCount = "0";
       _completedCount = "0";
       _overdueCount = "0";
-      // print("FetchUserNameList error $e");
       notifyListeners();
     } finally {
       _isDashboardLoading = false;
       notifyListeners();
     }
   }
+
   /// copy of customer add visit page
-
-
-  List<String> _selectedPhotos = [];
+  final List<String> _selectedPhotos = [];
 
   List<String> get selectedPhotos => _selectedPhotos;
 
@@ -5017,6 +4007,7 @@ class TaskProvider with ChangeNotifier {
     _selectedPhotos.add(imgData);
     notifyListeners();
   }
+
   void removePhotos(int index) {
     _selectedPhotos.removeAt(index);
     notifyListeners();
@@ -5034,29 +4025,30 @@ class TaskProvider with ChangeNotifier {
     String seconds = (d.inSeconds % 60).toString().padLeft(2, '0');
     return "$minutes:$seconds";
   }
+
   Future<void> insertTaskType(context) async {
     try {
       Map<String, String> data = {
         "action": addTaskType,
-        "meta_id":"7",
-        "value":typeCtr.text.trim(),
+        "meta_id": "7",
+        "value": typeCtr.text.trim(),
         "created_by": localData.storage.read("id"),
         "platform": localData.storage.read("platform").toString(),
         "cos_id": localData.storage.read("cos_id").toString(),
         "log_file": localData.storage.read("mobile_number").toString(),
       };
-      final response =await _taskRepo.addType(data);
-      print(data.toString());
-      print(response.toString());
-      if (response.toString().contains("This type already exits")){
-        utils.showWarningToast(context,text: "This type already exits");
+      final response = await _taskRepo.addType(data);
+      _log(data.toString());
+      _log(response.toString());
+      if (response.toString().contains("This type already exits")) {
+        utils.showWarningToast(context, text: "This type already exits");
         taskCtr.reset();
-      }else if (response["status_code"]==200){
-        utils.showSuccessToast(context: context,text: constValue.success);
+      } else if (response["status_code"] == 200) {
+        utils.showSuccessToast(context: context, text: constValue.success);
         getTaskType(true);
         Navigator.pop(context);
         taskCtr.reset();
-      }else {
+      } else {
         utils.showErrorToast(context: context);
         taskCtr.reset();
       }
@@ -5067,21 +4059,22 @@ class TaskProvider with ChangeNotifier {
     }
     notifyListeners();
   }
-  void deleteType(context,String id) async {
+
+  void deleteType(context, String id) async {
     try {
       Map data = {
-        "action":delete,
-        "ops":"type",
-        "id":id,
-        "meta_id":"7",
-        "updated_by":localData.storage.read("id"),
+        "action": delete,
+        "ops": "type",
+        "id": id,
+        "meta_id": "7",
+        "updated_by": localData.storage.read("id"),
         "platform": localData.storage.read("platform"),
         "cos_id": localData.storage.read("cos_id"),
       };
       final response = await _taskRepo.addType(data);
-      if (response["status_code"]==200) {
-        utils.showSuccessToast(context: context,text: constValue.deleted);
-        if(!kIsWeb){
+      if (response["status_code"] == 200) {
+        utils.showSuccessToast(context: context, text: constValue.deleted);
+        if (!kIsWeb) {
           await LocalDatabase.deleteTaskTypeById(id);
         }
         getTaskType(false);
@@ -5098,68 +4091,68 @@ class TaskProvider with ChangeNotifier {
     notifyListeners();
   }
 
-
   bool isAssignedDisabled = false;
   bool isStartedDisabled = false;
   bool isCompletedDisabled = false;
 
   void updateDisableStatus(String currentStatus) {
-  isAssignedDisabled = false;
-  isStartedDisabled = false;
-  isCompletedDisabled = false;
+    isAssignedDisabled = false;
+    isStartedDisabled = false;
+    isCompletedDisabled = false;
 
-  if (currentStatus == "Assigned") {
-  isAssignedDisabled = true;
-  } else if (currentStatus == "Started") {
-  isAssignedDisabled = true;
-  isStartedDisabled = true;
-  } else if (currentStatus == "Completed") {
-  isAssignedDisabled = true;
-  isStartedDisabled = true;
-  isCompletedDisabled = true;
-  }
+    if (currentStatus == "Assigned") {
+      isAssignedDisabled = true;
+    } else if (currentStatus == "Started") {
+      isAssignedDisabled = true;
+      isStartedDisabled = true;
+    } else if (currentStatus == "Completed") {
+      isAssignedDisabled = true;
+      isStartedDisabled = true;
+      isCompletedDisabled = true;
+    }
   }
 
   String selectedStatusValue = "Assigned";
 
   Color getButtonColor(String status, bool isSelected) {
-  if (isSelected) {
-  if (status == "Assigned") return Colors.orange;
-  if (status == "Started") return Colors.blue;
-  if (status == "Completed") return Colors.green;
-  }
-  return Colors.white;
+    if (isSelected) {
+      if (status == "Assigned") return Colors.orange;
+      if (status == "Started") return Colors.blue;
+      if (status == "Completed") return Colors.green;
+    }
+    return Colors.white;
   }
 
   Color getBorderColor(String status) {
-  if (status == "Assigned") return Colors.orange;
-  if (status == "Started") return Colors.blue;
-  if (status == "Completed") return Colors.green;
-  return Colors.grey;
+    if (status == "Assigned") return Colors.orange;
+    if (status == "Started") return Colors.blue;
+    if (status == "Completed") return Colors.green;
+    return Colors.grey;
   }
 
   Color getTextColor(String status, bool isSelected) {
-  if (isSelected) return Colors.white;
+    if (isSelected) return Colors.white;
 
-  if (status == "Assigned") return Colors.orange;
-  if (status == "Started") return Colors.blue;
-  if (status == "Completed") return Colors.green;
+    if (status == "Assigned") return Colors.orange;
+    if (status == "Started") return Colors.blue;
+    if (status == "Completed") return Colors.green;
 
-  return Colors.black;
+    return Colors.black;
   }
+
   String currentStatus = "Assigned"; // default
 
   bool isButtonDisabled(String status) {
     if (currentStatus == "Assigned") {
-      return status == "Assigned"; // Assigned மட்டும் disable
+      return status == "Assigned";
     }
 
     if (currentStatus == "Started") {
-      return status == "Assigned" || status == "Started"; // Assigned+Started disable
+      return status == "Assigned" || status == "Started";
     }
 
     if (currentStatus == "Completed") {
-      return true; // எல்லாமே disable
+      return true;
     }
 
     return false;
@@ -5171,20 +4164,16 @@ class TaskProvider with ChangeNotifier {
     if (status == "Completed") return Colors.green;
     return colorsConst.primary;
   }
-  /// ✅ NEW: holds data AFTER date/status filter applied, BEFORE search applied
+
+  /// holds data AFTER date/status filter applied, BEFORE search applied
   List<TaskData> _filteredBeforeSearch = [];
 
-  /// ✅ Call this from initFilterValue() / filterList() / status tab change,
-  /// right after you finish computing the date-filtered list.
-  /// (wherever you currently assign the date-filtered result, also assign it here)
   void updateFilteredBeforeSearch(List<TaskData> dateFilteredList) {
     _filteredBeforeSearch = dateFilteredList;
-
-    /// re-apply existing search text if user already typed something
     searchTask(search.text);
   }
 
-  /// ✅ FIXED searchTask — searches within _filteredBeforeSearch, NOT _allTasks
+  /// searchTask — searches within _filteredBeforeSearch, NOT _allTasks
   void searchTask(String value) {
     final input = value.toLowerCase();
 
@@ -5203,85 +4192,81 @@ class TaskProvider with ChangeNotifier {
 
     notifyListeners();
   }
-  /// Call this whenever date filter / status tab changes (Apply Filters, Clear All, tab click, initial load)
+
+  /// Call this whenever date filter / status tab changes
   void applyDateAndStatusFilter() {
-    List<TaskData> baseList = List<TaskData>.from(allTasks); // your full/original list
+    List<TaskData> baseList = List<TaskData>.from(allTasks);
 
     /// ---- DATE FILTER ----
     if (isFilter == true) {
+      DateTime? from;
+      DateTime? to;
+      try {
+        final f = _df.parse(startDate);
+        final t = _df.parse(endDate);
+        from = DateTime(f.year, f.month, f.day);
+        to = DateTime(t.year, t.month, t.day);
+      } catch (_) {}
+
       baseList = baseList.where((task) {
-        try {
-          DateTime taskDate = DateFormat('dd-MM-yyyy').parse(task.taskDate.toString());
-          DateTime from = DateFormat('dd-MM-yyyy').parse(startDate);
-          DateTime to = DateFormat('dd-MM-yyyy').parse(endDate);
-          DateTime taskOnly = DateTime(taskDate.year, taskDate.month, taskDate.day);
-          DateTime fromOnly = DateTime(from.year, from.month, from.day);
-          DateTime toOnly = DateTime(to.year, to.month, to.day);
-          return (taskOnly.isAtSameMomentAs(fromOnly) || taskOnly.isAfter(fromOnly)) &&
-              (taskOnly.isAtSameMomentAs(toOnly) || taskOnly.isBefore(toOnly));
-        } catch (_) {
-          return false;
-        }
+        if (from == null || to == null) return false;
+        final taskDate = _parseTaskDate(task.taskDate.toString());
+        if (taskDate == null) return false;
+        final taskOnly = DateTime(taskDate.year, taskDate.month, taskDate.day);
+        return (taskOnly.isAtSameMomentAs(from) || taskOnly.isAfter(from)) &&
+            (taskOnly.isAtSameMomentAs(to) || taskOnly.isBefore(to));
       }).toList();
     } else {
-      // No filter applied -> default to today only (matches your "Today: ${startDate}" label)
+      final today = DateTime.now();
       baseList = baseList.where((task) {
-        try {
-          DateTime taskDate = DateFormat('dd-MM-yyyy').parse(task.taskDate.toString());
-          DateTime today = DateTime.now();
-          return taskDate.year == today.year &&
-              taskDate.month == today.month &&
-              taskDate.day == today.day;
-        } catch (_) {
-          return false;
-        }
+        final taskDate = _parseTaskDate(task.taskDate.toString());
+        if (taskDate == null) return false;
+        return taskDate.year == today.year &&
+            taskDate.month == today.month &&
+            taskDate.day == today.day;
       }).toList();
     }
 
-    /// ---- STATUS TAB FILTER (All / Assigned / Started / Completed) ----
+    /// ---- STATUS TAB FILTER ----
     if (statusIds.isNotEmpty) {
-      baseList = baseList.where((task) =>
-      task.statval.toString() == statusIds).toList();
+      baseList = baseList.where((task) => task.statval.toString() == statusIds).toList();
     }
 
     _filteredBeforeSearch = baseList;
 
-    /// ---- RE-APPLY SEARCH TEXT (if user already typed something) ----
+    /// ---- RE-APPLY SEARCH TEXT ----
     if (search.text.trim().isNotEmpty) {
       searchTask(search.text.trim());
     } else {
       _filterUserData = List<TaskData>.from(_filteredBeforeSearch);
+      notifyListeners();
     }
-
-    notifyListeners();
   }
 
-/// ✅ FIXED SEARCH: searches only WITHIN
-
-  Future<void> editTaskType(context,String id) async {
+  Future<void> editTaskType(context, String id) async {
     try {
       Map<String, String> data = {
         "action": updateTaskType,
         "id": id,
-        "meta_id":"7",
-        "value":typeCtr.text.trim(),
+        "meta_id": "7",
+        "value": typeCtr.text.trim(),
         "created_by": localData.storage.read("id"),
         "platform": localData.storage.read("platform").toString(),
         "cos_id": localData.storage.read("cos_id").toString(),
         "log_file": localData.storage.read("mobile_number").toString(),
       };
-      final response =await _taskRepo.addType(data);
-      print(data.toString());
-      print(response.toString());
-      if (response.toString().contains("This type already exits")){
-        utils.showWarningToast(context,text: "This type already exits");
+      final response = await _taskRepo.addType(data);
+      _log(data.toString());
+      _log(response.toString());
+      if (response.toString().contains("This type already exits")) {
+        utils.showWarningToast(context, text: "This type already exits");
         taskCtr.reset();
-      }else if (response["status_code"]==200){
-        utils.showSuccessToast(context: context,text: constValue.updated);
+      } else if (response["status_code"] == 200) {
+        utils.showSuccessToast(context: context, text: constValue.updated);
         getTaskType(true);
         Navigator.pop(context);
         taskCtr.reset();
-      }else {
+      } else {
         utils.showErrorToast(context: context);
         taskCtr.reset();
       }
@@ -5292,29 +4277,30 @@ class TaskProvider with ChangeNotifier {
     }
     notifyListeners();
   }
+
   Future<void> insertTaskStatus(context) async {
     try {
       Map<String, String> data = {
         "action": addTaskType,
-        "meta_id":"8",
-        "value":typeCtr.text.trim(),
+        "meta_id": "8",
+        "value": typeCtr.text.trim(),
         "created_by": localData.storage.read("id"),
         "platform": localData.storage.read("platform").toString(),
         "cos_id": localData.storage.read("cos_id").toString(),
         "log_file": localData.storage.read("mobile_number").toString(),
       };
-      final response =await _taskRepo.addType(data);
-      print(data.toString());
-      print(response.toString());
-      if (response.toString().contains("already exits")){
-        utils.showWarningToast(context,text: "This status already exits");
+      final response = await _taskRepo.addType(data);
+      _log(data.toString());
+      _log(response.toString());
+      if (response.toString().contains("already exits")) {
+        utils.showWarningToast(context, text: "This status already exits");
         taskCtr.reset();
-      }else if (response["status_code"]==200){
-        utils.showSuccessToast(context: context,text: constValue.success);
+      } else if (response["status_code"] == 200) {
+        utils.showSuccessToast(context: context, text: constValue.success);
         getTaskStatuses();
         Navigator.pop(context);
         taskCtr.reset();
-      }else {
+      } else {
         utils.showErrorToast(context: context);
         taskCtr.reset();
       }
@@ -5325,21 +4311,22 @@ class TaskProvider with ChangeNotifier {
     }
     notifyListeners();
   }
-  void deleteStatus(context,String id) async {
+
+  void deleteStatus(context, String id) async {
     try {
       Map data = {
-        "action":delete,
-        "ops":"type",
-        "id":id,
-        "meta_id":"8",
-        "updated_by":localData.storage.read("id"),
+        "action": delete,
+        "ops": "type",
+        "id": id,
+        "meta_id": "8",
+        "updated_by": localData.storage.read("id"),
         "platform": localData.storage.read("platform"),
         "cos_id": localData.storage.read("cos_id"),
       };
       final response = await _taskRepo.addType(data);
-      if (response["status_code"]==200) {
-        utils.showSuccessToast(context: context,text: constValue.deleted);
-        if(!kIsWeb){
+      if (response["status_code"] == 200) {
+        utils.showSuccessToast(context: context, text: constValue.deleted);
+        if (!kIsWeb) {
           await LocalDatabase.deleteTaskStatusById(id);
         }
         getTaskStatuses();
@@ -5356,30 +4343,31 @@ class TaskProvider with ChangeNotifier {
     }
     notifyListeners();
   }
-  Future<void> editTaskStatus(context,String id) async {
+
+  Future<void> editTaskStatus(context, String id) async {
     try {
       Map<String, String> data = {
         "action": updateTaskType,
         "id": id,
-        "meta_id":"8",
-        "value":typeCtr.text.trim(),
+        "meta_id": "8",
+        "value": typeCtr.text.trim(),
         "created_by": localData.storage.read("id"),
         "platform": localData.storage.read("platform").toString(),
         "cos_id": localData.storage.read("cos_id").toString(),
         "log_file": localData.storage.read("mobile_number").toString(),
       };
-      final response =await _taskRepo.addType(data);
-      print(data.toString());
-      print(response.toString());
-      if (response.toString().contains("already exits")){
-        utils.showWarningToast(context,text: "This status already exits");
+      final response = await _taskRepo.addType(data);
+      _log(data.toString());
+      _log(response.toString());
+      if (response.toString().contains("already exits")) {
+        utils.showWarningToast(context, text: "This status already exits");
         taskCtr.reset();
-      }else if (response["status_code"]==200){
-        utils.showSuccessToast(context: context,text: constValue.updated);
+      } else if (response["status_code"] == 200) {
+        utils.showSuccessToast(context: context, text: constValue.updated);
         getTaskStatuses();
         Navigator.pop(context);
         taskCtr.reset();
-      }else {
+      } else {
         utils.showErrorToast(context: context);
         taskCtr.reset();
       }
@@ -5390,6 +4378,7 @@ class TaskProvider with ChangeNotifier {
     }
     notifyListeners();
   }
+
   Future<void> getAdminUsers() async {
     try {
       Map data = {
@@ -5400,37 +4389,43 @@ class TaskProvider with ChangeNotifier {
 
       final response = await _taskRepo.getAdminUsers(data);
 
-      print("ADMIN RESPONSE: $response");
-      print("ADMIN RESPONSE LENGTH: ${response.length}");
+      _log("ADMIN RESPONSE LENGTH: ${response.length}");
 
       if (response.isNotEmpty) {
-        print("FIRST ADMIN: ${response.first}");
-        print("FIRST ADMIN ID: ${response.first["id"]}");
-
-        List<String> adminIds = response
-            .map<String>((user) => user["id"].toString())
-            .toList();
+        List<String> adminIds =
+        response.map<String>((user) => user["id"].toString()).toList();
 
         await localData.storage.write("admin_ids", adminIds);
 
-        print("SAVED ADMIN IDS: ${localData.storage.read("admin_ids")}");
+        _log("SAVED ADMIN IDS: ${localData.storage.read("admin_ids")}");
       } else {
-        print("No admin users found");
+        _log("No admin users found");
       }
     } catch (e) {
-      print("Get Users Error: $e");
+      _log("Get Users Error: $e");
     }
 
     notifyListeners();
   }
 
-
+  // ===========================================================================
+  // TASK TIMERS
+  // ===========================================================================
   Map<String, TaskTimer> taskTimers = {};
   Timer? _uiTicker;
 
+  /// Ticks every second. It does NOT bump dataVersion, so
+  /// Selector<TaskProvider, int>(dataVersion) in view_task does not rebuild.
+  ///  - Timer widgets should listen to `tickNotifier` (ValueListenableBuilder).
+  ///  - `super.notifyListeners()` is kept only so OLD screens that still use
+  ///    Consumer/watch for the timer text (e.g. TaskDetails) keep working.
+  ///    Once every timer text is wrapped in a ValueListenableBuilder you can
+  ///    delete that line.
   void _startUiTicker() {
     _uiTicker ??= Timer.periodic(const Duration(seconds: 1), (_) {
-      notifyListeners();
+      if (_isDisposed) return;
+      tickNotifier.value++;
+      super.notifyListeners(); // no dataVersion bump
     });
   }
 
@@ -5472,11 +4467,13 @@ class TaskProvider with ChangeNotifier {
       }
       t.isRunning = false;
       t.startTime = null;
-      t.isCompleted = true; // 👈 mark completed, so UI knows not to touch it
+      t.isCompleted = true;
       _stopUiTickerIfNoneRunning();
     }
   }
-  Future<void> insertTaskLogHistory(context, {required String id, required String level}) async {
+
+  Future<void> insertTaskLogHistory(context,
+      {required String id, required String level}) async {
     try {
       showDialog(
         context: context,
@@ -5488,9 +4485,11 @@ class TaskProvider with ChangeNotifier {
                 children: [
                   const CustomText(text: "Loading", colors: Colors.grey, size: 15, isBold: true),
                   10.height,
-                  const CustomText(text: "Please Wait", colors: Colors.grey, size: 15, isBold: true),
+                  const CustomText(
+                      text: "Please Wait", colors: Colors.grey, size: 15, isBold: true),
                   20.height,
-                  LoadingAnimationWidget.staggeredDotsWave(color: colorsConst.secondary, size: 25),
+                  LoadingAnimationWidget.staggeredDotsWave(
+                      color: colorsConst.secondary, size: 25),
                 ],
               ),
             ),
@@ -5506,13 +4505,13 @@ class TaskProvider with ChangeNotifier {
         'log_file': localData.storage.read("mobile_number"),
       };
       final response = await _taskRepo.addType(data);
-      print(data.toString());
+      _log(data.toString());
       log(response.toString());
 
       if (response.toString().contains("200")) {
         utils.showSuccessToast(context: context, text: constValue.updated);
 
-        _updateTimerOnLog(id, level); // 👈 timer update HERE
+        _updateTimerOnLog(id, level);
 
         getAllTask(false);
         Navigator.pop(context);
@@ -5541,6 +4540,10 @@ class TaskProvider with ChangeNotifier {
     _positionSub = null;
     _completeSub?.cancel();
     _completeSub = null;
+    _a2PosSub?.cancel();
+    _a2PosSub = null;
+    _a2CompleteSub?.cancel();
+    _a2CompleteSub = null;
     audioPlayer.stop().catchError((_) {});
     player.stop().catchError((_) {});
     if (_isRecording) {
@@ -5548,6 +4551,7 @@ class TaskProvider with ChangeNotifier {
       record.stop().catchError((_) => null);
     }
     taskTimers.clear();
+    _dateCache.clear();
 
     // filter / date
     _isFilter = false;
@@ -5598,7 +4602,7 @@ class TaskProvider with ChangeNotifier {
     _taskETime = "";
     _changeTaskStatus = "";
     _selectedFiles = [];
-    _selectedPhotos = [];
+    _selectedPhotos.clear();
     _assignList = [];
     for (final item in _assignItems) {
       item['selected'] = false;
@@ -5682,6 +4686,7 @@ class TaskProvider with ChangeNotifier {
     // text controllers
     search.clear();
     search2.clear();
+    taskDescCont.clear();
     taskTitleCont.clear();
     projectNameCont.clear();
     departmentCont.clear();
@@ -5692,38 +4697,31 @@ class TaskProvider with ChangeNotifier {
 
     notifyListeners();
   }
+
+  // ===========================================================================
+  // WAGES
+  // ===========================================================================
   bool isWagesLoading = false;
 
-  static const String _offlineWorkersKey =
-      "offline_wages_workers";
+  static const String _offlineWorkersKey = "offline_wages_workers";
 
-  static const String _offlineWorkKey =
-      "offline_wages_work";
+  static const String _offlineWorkKey = "offline_wages_work";
 
   bool _isWagesSuccess(String response) {
     try {
       final d = json.decode(response);
 
       if (d is Map) {
-        final v = (
-            d['status'] ??
-                d['code'] ??
-                d['success'] ??
-                d['result'] ??
-                ''
-        ).toString().toLowerCase();
+        final v = (d['status'] ?? d['code'] ?? d['success'] ?? d['result'] ?? '')
+            .toString()
+            .toLowerCase();
 
-        return v == '200' ||
-            v == 'success' ||
-            v == 'true' ||
-            v == '1';
+        return v == '200' || v == 'success' || v == 'true' || v == '1';
       }
     } catch (_) {}
 
     return response.contains("200");
   }
-
-
 
   bool isWagesSyncing = false;
 
@@ -5739,27 +4737,19 @@ class TaskProvider with ChangeNotifier {
       final decoded = jsonDecode(value);
 
       if (decoded is List) {
-        return decoded
-            .map((e) => Map<String, dynamic>.from(e))
-            .toList();
+        return decoded.map((e) => Map<String, dynamic>.from(e)).toList();
       }
     } catch (e) {
-      print("GET OFFLINE WORKERS ERROR: $e");
+      _log("GET OFFLINE WORKERS ERROR: $e");
     }
 
     return [];
   }
 
-  Future<void> _saveOfflineWorkers(
-      List<Map<String, dynamic>> workers,
-      )
-  async {
+  Future<void> _saveOfflineWorkers(List<Map<String, dynamic>> workers) async {
     final prefs = await SharedPreferences.getInstance();
 
-    await prefs.setString(
-      _offlineWorkersKey,
-      jsonEncode(workers),
-    );
+    await prefs.setString(_offlineWorkersKey, jsonEncode(workers));
   }
 
   Future<List<Map<String, dynamic>>> _getOfflineWork() async {
@@ -5774,40 +4764,28 @@ class TaskProvider with ChangeNotifier {
       final decoded = jsonDecode(value);
 
       if (decoded is List) {
-        return decoded
-            .map((e) => Map<String, dynamic>.from(e))
-            .toList();
+        return decoded.map((e) => Map<String, dynamic>.from(e)).toList();
       }
     } catch (e) {
-      print("GET OFFLINE WORK ERROR: $e");
+      _log("GET OFFLINE WORK ERROR: $e");
     }
 
     return [];
   }
 
-  Future<void> _saveOfflineWork(
-      List<Map<String, dynamic>> workList,
-      ) async {
+  Future<void> _saveOfflineWork(List<Map<String, dynamic>> workList) async {
     final prefs = await SharedPreferences.getInstance();
 
-    await prefs.setString(
-      _offlineWorkKey,
-      jsonEncode(workList),
-    );
+    await prefs.setString(_offlineWorkKey, jsonEncode(workList));
   }
 
   Future<int> getPendingWagesCount() async {
     try {
       final list = await _getOfflineWork();
 
-      return list
-          .where(
-            (item) =>
-        item["sync_status"]?.toString() == "pending",
-      )
-          .length;
+      return list.where((item) => item["sync_status"]?.toString() == "pending").length;
     } catch (e) {
-      print("PENDING WAGES COUNT ERROR: $e");
+      _log("PENDING WAGES COUNT ERROR: $e");
       return 0;
     }
   }
@@ -5817,17 +4795,13 @@ class TaskProvider with ChangeNotifier {
     return count > 0;
   }
 
-
-
-
-// ---------- ADD WORKER ----------
+  // ---------- ADD WORKER ----------
   Future<bool> addWages({
     required BuildContext context,
     required String empName,
     required String empContact,
     required String rate,
-  })
-  async {
+  }) async {
     bool success = false;
 
     try {
@@ -5835,30 +4809,21 @@ class TaskProvider with ChangeNotifier {
       notifyListeners();
 
       final data = {
-        'created_by':
-        localData.storage.read("id").toString(),
-        'cos_id':
-        localData.storage.read("cos_id").toString(),
+        'created_by': localData.storage.read("id").toString(),
+        'cos_id': localData.storage.read("cos_id").toString(),
         'emp_name': empName.trim(),
         'emp_contact': empContact.trim(),
         'rate': rate.trim(),
         'action': 'insert_wages',
       };
 
-      print(
-        "ADD WAGES DATA: $data",
-      );
+      _log("ADD WAGES DATA: $data");
 
-      final response =
-      await _taskRepo.addWages(data);
+      final response = await _taskRepo.addWages(data);
 
-      print(
-        "ADD WAGES RESPONSE: $response",
-      );
+      _log("ADD WAGES RESPONSE: $response");
 
-      if (_isWagesSuccess(
-        response.toString(),
-      )) {
+      if (_isWagesSuccess(response.toString())) {
         utils.showSuccessToast(
           context: context,
           text: "Worker added successfully",
@@ -5866,19 +4831,12 @@ class TaskProvider with ChangeNotifier {
 
         success = true;
       } else {
-        utils.showErrorToast(
-          context: context,
-        );
+        utils.showErrorToast(context: context);
       }
     } catch (e) {
-      print(
-        "ADD WAGES ERROR: $e",
-      );
+      _log("ADD WAGES ERROR: $e");
 
-      utils.showWarningToast(
-        context,
-        text: e.toString(),
-      );
+      utils.showWarningToast(context, text: e.toString());
     }
 
     isWagesLoading = false;
@@ -5886,42 +4844,30 @@ class TaskProvider with ChangeNotifier {
 
     return success;
   }
-// ---------- FETCH ALL WORKERS ----------
+
+  // ---------- FETCH ALL WORKERS ----------
   Future<List<Map<String, dynamic>>> getWages() async {
     try {
       final data = {
-        'cos_id':
-        localData.storage.read("cos_id").toString(),
-        'user_id':
-        localData.storage.read("id").toString(),
+        'cos_id': localData.storage.read("cos_id").toString(),
+        'user_id': localData.storage.read("id").toString(),
         'action': 'select_wages',
       };
 
-      print(
-        "SELECT WAGES DATA: $data",
-      );
+      _log("SELECT WAGES DATA: $data");
 
-      final response =
-      await _taskRepo.getWages(data);
+      final response = await _taskRepo.getWages(data);
 
-      print(
-        "SELECT WAGES RESPONSE: $response",
-      );
+      _log("SELECT WAGES RESPONSE: $response");
 
-      final decoded =
-      json.decode(response);
+      final decoded = json.decode(response);
 
       List raw = [];
 
       if (decoded is List) {
         raw = decoded;
       } else if (decoded is Map) {
-        for (final key in [
-          'data',
-          'result',
-          'wages',
-          'list',
-        ]) {
+        for (final key in ['data', 'result', 'wages', 'list']) {
           if (decoded[key] is List) {
             raw = decoded[key];
             break;
@@ -5929,36 +4875,25 @@ class TaskProvider with ChangeNotifier {
         }
       }
 
-      final workers = raw
-          .map(
-            (e) =>
-        Map<String, dynamic>.from(e),
-      )
-          .toList();
+      final workers = raw.map((e) => Map<String, dynamic>.from(e)).toList();
 
       if (workers.isNotEmpty) {
-        await _saveOfflineWorkers(
-          workers,
-        );
+        await _saveOfflineWorkers(workers);
       }
 
       return workers;
     } catch (e) {
-      print(
-        "SELECT WAGES ERROR: $e",
-      );
+      _log("SELECT WAGES ERROR: $e");
 
-      final localWorkers =
-      await _getOfflineWorkers();
+      final localWorkers = await _getOfflineWorkers();
 
-      print(
-        "OFFLINE WORKERS LOADED: ${localWorkers.length}",
-      );
+      _log("OFFLINE WORKERS LOADED: ${localWorkers.length}");
 
       return localWorkers;
     }
   }
-// ---------- Status: local pending mudhalla, apparam server ----------
+
+  // ---------- Status: local pending mudhalla, apparam server ----------
   Future<String> getWagesStatus({
     required String taskId,
     required String wageEmpId,
@@ -5987,51 +4922,41 @@ class TaskProvider with ChangeNotifier {
         }
       }
     } catch (e) {
-      print("ONLINE WAGES STATUS ERROR: $e");
+      _log("ONLINE WAGES STATUS ERROR: $e");
     }
 
     return "";
   }
+
   Future<String> checkWagesEntry({
     required String taskId,
     required String wageEmpId,
   }) async {
     try {
       final data = {
-        'created_by':
-        localData.storage.read("id").toString(),
-        'user_id':
-        localData.storage.read("id").toString(),
-        'cos_id':
-        localData.storage.read("cos_id").toString(),
+        'created_by': localData.storage.read("id").toString(),
+        'user_id': localData.storage.read("id").toString(),
+        'cos_id': localData.storage.read("cos_id").toString(),
         'task_id': taskId,
         'wage_emp_id': wageEmpId,
         'action': 'chk_wages_entry',
       };
 
-      print(
-        "CHECK WAGES DATA: $data",
-      );
+      _log("CHECK WAGES DATA: $data");
 
-      final response =
-      await _taskRepo.getWorkDetails(
-        data,
-      );
+      final response = await _taskRepo.getWorkDetails(data);
 
-      print(
-        "CHECK WAGES RESPONSE: $response",
-      );
+      _log("CHECK WAGES RESPONSE: $response");
 
       return response;
     } catch (e) {
-      print(
-        "CHECK WAGES ERROR: $e",
-      );
+      _log("CHECK WAGES ERROR: $e");
 
       return '';
     }
   }
-// ---------- Offline save (ippo OfflineAttendanceService la) ----------
+
+  // ---------- Offline save ----------
   Future<bool> saveOfflineWagesWork({
     required String taskId,
     required String empId,
@@ -6062,10 +4987,10 @@ class TaskProvider with ChangeNotifier {
       );
 
       notifyListeners();
-      print("OFFLINE WAGES SAVED (status $status)");
+      _log("OFFLINE WAGES SAVED (status $status)");
       return true;
     } catch (e) {
-      print("SAVE OFFLINE WAGES ERROR: $e");
+      _log("SAVE OFFLINE WAGES ERROR: $e");
       return false;
     }
   }
@@ -6122,7 +5047,7 @@ class TaskProvider with ChangeNotifier {
       );
       if (success) return true;
     } catch (e) {
-      print("SAVE WAGES CHECK IN ERROR: $e");
+      _log("SAVE WAGES CHECK IN ERROR: $e");
     }
 
     return saveLocal();
@@ -6191,7 +5116,7 @@ class TaskProvider with ChangeNotifier {
       };
 
       final response = await _taskRepo.addWorkDetails(data);
-      print("UPDATE WAGES CHECK OUT RESPONSE: $response");
+      _log("UPDATE WAGES CHECK OUT RESPONSE: $response");
 
       if (_isWagesSuccess(response.toString())) {
         if (context.mounted) {
@@ -6203,11 +5128,12 @@ class TaskProvider with ChangeNotifier {
         return true;
       }
     } catch (e) {
-      print("ONLINE CHECK OUT ERROR: $e");
+      _log("ONLINE CHECK OUT ERROR: $e");
     }
 
     return saveLocal();
   }
+
   Future<bool> updateOfflineWagesCheckOut({
     required String taskId,
     required String empId,
@@ -6226,7 +5152,7 @@ class TaskProvider with ChangeNotifier {
       if (ok) notifyListeners();
       return ok;
     } catch (e) {
-      print("UPDATE OFFLINE CHECKOUT ERROR: $e");
+      _log("UPDATE OFFLINE CHECKOUT ERROR: $e");
       return false;
     }
   }
@@ -6234,17 +5160,18 @@ class TaskProvider with ChangeNotifier {
   Future<String> getOfflineWagesStatus({
     required String taskId,
     required String wageEmpId,
-  })
-  async {
+  }) async {
     try {
       final workList = await _getOfflineWork();
 
-      final records = workList.where(
+      final records = workList
+          .where(
             (item) =>
         item["task_id"]?.toString() == taskId &&
             item["wage_emp_id"]?.toString() == wageEmpId &&
             item["sync_status"]?.toString() == "pending",
-      ).toList();
+      )
+          .toList();
 
       if (records.isEmpty) {
         return "";
@@ -6253,14 +5180,12 @@ class TaskProvider with ChangeNotifier {
       records.sort(
             (a, b) => (a["created_at"] ?? "")
             .toString()
-            .compareTo(
-          (b["created_at"] ?? "").toString(),
-        ),
+            .compareTo((b["created_at"] ?? "").toString()),
       );
 
       return records.last["status"]?.toString() ?? "";
     } catch (e) {
-      print("OFFLINE STATUS ERROR: $e");
+      _log("OFFLINE STATUS ERROR: $e");
       return "";
     }
   }
@@ -6294,11 +5219,11 @@ class TaskProvider with ChangeNotifier {
         'action': 'insert_wages_work_details',
       };
 
-      print("ADD WORK DATA: $data");
+      _log("ADD WORK DATA: $data");
 
       final response = await _taskRepo.addWorkDetails(data);
 
-      print("ADD WORK RESPONSE: $response");
+      _log("ADD WORK RESPONSE: $response");
 
       if (_isWagesSuccess(response.toString())) {
         utils.showSuccessToast(
@@ -6311,7 +5236,7 @@ class TaskProvider with ChangeNotifier {
         utils.showErrorToast(context: context);
       }
     } catch (e) {
-      print("ADD WORK ERROR: $e");
+      _log("ADD WORK ERROR: $e");
     }
 
     return success;
@@ -6325,41 +5250,25 @@ class TaskProvider with ChangeNotifier {
     try {
       final data = {
         'task_id': taskId,
-        'cos_id':
-        localData.storage.read("cos_id").toString(),
-        'user_id':
-        localData.storage.read("id").toString(),
-        'action':
-        'select_wages_work_details',
+        'cos_id': localData.storage.read("cos_id").toString(),
+        'user_id': localData.storage.read("id").toString(),
+        'action': 'select_wages_work_details',
       };
 
-      print(
-        "SELECT WORK DATA: $data",
-      );
+      _log("SELECT WORK DATA: $data");
 
-      final response =
-      await _taskRepo.getWorkDetails(
-        data,
-      );
+      final response = await _taskRepo.getWorkDetails(data);
 
-      print(
-        "SELECT WORK RESPONSE: $response",
-      );
+      _log("SELECT WORK RESPONSE: $response");
 
-      final decoded =
-      json.decode(response);
+      final decoded = json.decode(response);
 
       List raw = [];
 
       if (decoded is List) {
         raw = decoded;
       } else if (decoded is Map) {
-        for (final key in [
-          'data',
-          'result',
-          'work',
-          'list',
-        ]) {
+        for (final key in ['data', 'result', 'work', 'list']) {
           if (decoded[key] is List) {
             raw = decoded[key];
             break;
@@ -6367,77 +5276,46 @@ class TaskProvider with ChangeNotifier {
         }
       }
 
-      onlineData = raw
-          .map(
-            (e) =>
-        Map<String, dynamic>.from(e),
-      )
-          .toList();
+      onlineData = raw.map((e) => Map<String, dynamic>.from(e)).toList();
     } catch (e) {
-      print(
-        "ONLINE WORK DETAILS ERROR: $e",
-      );
+      _log("ONLINE WORK DETAILS ERROR: $e");
     }
 
-    final localList =
-    await _getOfflineWork();
+    final localList = await _getOfflineWork();
 
-    final localDataForTask =
-    localList.where(
+    final localDataForTask = localList
+        .where(
           (item) =>
-      item["task_id"]?.toString() ==
-          taskId &&
-          item["sync_status"]?.toString() ==
-              "pending",
-    ).map(
-          (item) {
-        return {
-          "wage_emp_id":
-          item["wage_emp_id"],
-          "task_id":
-          item["task_id"],
-          "emp_name":
-          item["emp_name"],
-          "emp_contact":
-          item["emp_contact"],
-          "rate":
-          item["rate"],
-          "work_description":
-          item["work_description"],
-          "check_in":
-          item["check_in"],
-          "check_out":
-          item["check_out"],
-          "status":
-          item["status"],
-          "lat":
-          item["lat"],
-          "lng":
-          item["lng"],
-          "created_at":
-          item["created_at"],
-        };
+      item["task_id"]?.toString() == taskId &&
+          item["sync_status"]?.toString() == "pending",
+    )
+        .map(
+          (item) => {
+        "wage_emp_id": item["wage_emp_id"],
+        "task_id": item["task_id"],
+        "emp_name": item["emp_name"],
+        "emp_contact": item["emp_contact"],
+        "rate": item["rate"],
+        "work_description": item["work_description"],
+        "check_in": item["check_in"],
+        "check_out": item["check_out"],
+        "status": item["status"],
+        "lat": item["lat"],
+        "lng": item["lng"],
+        "created_at": item["created_at"],
       },
-    ).toList();
+    )
+        .toList();
 
-    print(
-      "ONLINE WORK COUNT: ${onlineData.length}",
-    );
+    _log("ONLINE WORK COUNT: ${onlineData.length}");
+    _log("LOCAL PENDING WORK COUNT: ${localDataForTask.length}");
 
-    print(
-      "LOCAL PENDING WORK COUNT: ${localDataForTask.length}",
-    );
-
-    final result = [
+    return [
       ...onlineData,
       ...localDataForTask,
     ];
-
-    return result;
   }
-
 }
-
 class TaskTimer {
   DateTime? startTime;
   int accumulatedSeconds;

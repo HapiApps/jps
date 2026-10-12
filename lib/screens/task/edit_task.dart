@@ -78,7 +78,20 @@ class _EditTaskState extends State<EditTask> with SingleTickerProviderStateMixin
                                 Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    20.height,
+                                    10.height,
+                                    CustomTextField(
+                                      width: kIsWeb
+                                          ? webWidth
+                                          : MediaQuery.of(context).size.width * 1.0,
+                                      controller: taskProvider.taskTitleCont,
+                                      text: "${constValue.taskTitle}",
+                                      isRequired: true,
+                                      hintText: "Task Title",
+                                      readOnly: false,
+                                      onTap: () {
+
+                                      },
+                                    ),
                                     Row(
                                       children: [
                                         CustomText(text: "${constValue.taskType}"),
@@ -129,8 +142,8 @@ class _EditTaskState extends State<EditTask> with SingleTickerProviderStateMixin
                                   ],
                                 ),
                                 MaxLineTextField(
-                                  text: "${constValue.taskTitle}",isRequired: true,maxLine: 4,
-                                  controller: taskProvider.taskTitleCont,
+                                  text: "${constValue.taskDesc}",isRequired: false,maxLine: 4,
+                                  controller: taskProvider.taskDescCont,
                                   width: kIsWeb?webWidth:phoneWidth,
                                   textCapitalization: TextCapitalization.sentences,
                                 ),
@@ -249,7 +262,7 @@ class _EditTaskState extends State<EditTask> with SingleTickerProviderStateMixin
                                     utils.showWarningToast(context,text: "${constValue.selectType}");
                                     taskProvider.taskCtr.reset();
                                   } else if (taskProvider.taskTitleCont.text.isEmpty) {
-                                    utils.showWarningToast(context,text: "${constValue.fillDescription}");
+                                    utils.showWarningToast(context,text: "${constValue.fillTitle}");
                                     taskProvider.taskCtr.reset();
                                   } else if (taskProvider.assignedId==""&&(taskProvider.assName==""||taskProvider.assName=="null")) {
                                     _myFocusScopeNode.unfocus();

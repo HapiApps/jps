@@ -1,8 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:developer';
-
-import 'package:animated_splash_screen/animated_splash_screen.dart';
 import 'package:master_code/screens/attendance/offline_attendance.dart';
 import 'package:master_code/source/constant/language_model.dart';
 import 'package:camera/camera.dart';
@@ -27,13 +25,9 @@ import 'package:master_code/screens/leave_management/leave_report.dart';
 import 'package:master_code/screens/log_in.dart';
 import 'package:master_code/screens/task/task_chat.dart';
 import 'package:master_code/screens/task/view_task.dart';
-import 'package:master_code/screens/track/background_task.dart';
 import 'package:master_code/source/constant/assets_constant.dart';
 import 'package:master_code/source/constant/colors_constant.dart';
-import 'package:master_code/source/constant/language_model.dart';
 import 'package:master_code/source/constant/local_data.dart';
-import 'package:master_code/source/extentions/extensions.dart';
-import 'package:master_code/source/utilities/utils.dart';
 import 'package:master_code/view_model/attendance_provider.dart';
 import 'package:master_code/view_model/customer_provider.dart';
 import 'package:master_code/view_model/employee_provider.dart';
@@ -50,8 +44,6 @@ import 'package:master_code/view_model/task_provider.dart';
 import 'package:master_code/view_model/track_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
-// ✅ NEW: offline check-kku (un path-ku match pannu)
 
 import 'component/custom_text.dart';
 import 'firebase_options.dart';
@@ -100,7 +92,6 @@ Future<void> ensureAttendanceLoaded(
     AttendanceProvider attendanceProvider, {
       int maxRetries = 3,
     }) async {
-  // ✅ NEW: Net illana retry pannaadha, oru vaati mattum try pannu
   final online = await OfflineAttendanceService.isOnline();
   if (!online) maxRetries = 1;
 
@@ -183,6 +174,33 @@ Future<String?> setupFirebaseMessaging() async {
   try {
     final FirebaseMessaging messaging = FirebaseMessaging.instance;
 
+    // Token refresh listener (early register) -> server sync
+    messaging.onTokenRefresh.listen(
+          (String newToken) {
+        log("🔄 FCM TOKEN REFRESHED: $newToken");
+        // final ctx = navigatorKey.currentContext;
+        // if (ctx != null) {
+        //   Provider.of<HomeProvider>(ctx, listen: false)
+        //       .syncFcmToken(newToken: newToken);
+        // }
+      },
+      onError: (error) {
+        log("⚠️ FCM token refresh error: $error");
+      },
+    );
+
+    // Foreground-la alert + sound kaattanum (badge venam)
+    // Permission-ku wait pannaama mudhalla set pannidalam
+    await safeCall(
+      'FCM.setForegroundNotificationPresentationOptions',
+          () => messaging.setForegroundNotificationPresentationOptions(
+        alert: true,
+        badge: false,
+        sound: true,
+      ),
+      timeout: const Duration(seconds: 10),
+    );
+
     await safeCall(
       'FCM.setAutoInitEnabled',
           () => messaging.setAutoInitEnabled(true),
@@ -201,37 +219,29 @@ Future<String?> setupFirebaseMessaging() async {
         criticalAlert: false,
         provisional: false,
       ),
-      timeout: const Duration(seconds: 20),
+      timeout: const Duration(seconds: 60),
     );
 
     if (settings == null) {
-      log("❌ Notification permission request failed");
-      return null;
-    }
-
-    log("🔔 Notification authorization: ${settings.authorizationStatus}");
-
-    final AuthorizationStatus status = settings.authorizationStatus;
-    if (status == AuthorizationStatus.denied) {
-      log("❌ Notification permission denied");
-      return null;
-    }
-
-    if (status == AuthorizationStatus.notDetermined) {
-      log("⚠️ Notification permission still not determined");
-      return null;
+      // Timeout / popup-ku user innum respond pannala. Continue pannunga.
+      log("⚠️ Permission result unknown, continuing anyway");
+    } else {
+      log("🔔 Notification authorization: ${settings.authorizationStatus}");
+      if (settings.authorizationStatus == AuthorizationStatus.denied) {
+        log("❌ Notification permission denied");
+        return null;
+      }
     }
 
     /// ------------------------------------------------------
     /// iOS
     /// ------------------------------------------------------
-
     if (!kIsWeb && defaultTargetPlatform == TargetPlatform.iOS) {
       log("🍎 iOS detected");
 
       String? apnsToken;
 
-      for (int attempt = 1; attempt <= 30; attempt++) {
+      for (int attempt = 1; attempt <= 10; attempt++) {
         try {
           apnsToken = await messaging.getAPNSToken();
 
@@ -243,7 +253,7 @@ Future<String?> setupFirebaseMessaging() async {
           log("⚠️ APNS token attempt $attempt failed: $e");
         }
 
-        log("🍎 APNS token not ready. Attempt $attempt/30");
+        log("🍎 APNS token not ready. Attempt $attempt/10");
 
         await Future.delayed(const Duration(seconds: 1));
       }
@@ -264,15 +274,6 @@ Future<String?> setupFirebaseMessaging() async {
       log("❌ FCM TOKEN NOT AVAILABLE");
       return null;
     }
-
-    FirebaseMessaging.instance.onTokenRefresh.listen(
-          (String newToken) {
-        log("🔄 FCM TOKEN REFRESHED: $newToken");
-      },
-      onError: (error) {
-        log("⚠️ FCM token refresh error: $error");
-      },
-    );
 
     return fcmToken;
   } catch (e, st) {
@@ -310,9 +311,10 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
       icon: '@mipmap/ic_launcher',
     );
 
+    // ✅ CHANGED: presentBadge false
     const DarwinNotificationDetails iosDetails = DarwinNotificationDetails(
       presentAlert: true,
-      presentBadge: true,
+      presentBadge: false,
       presentSound: true,
     );
 
@@ -443,9 +445,6 @@ Future<void> setupForegroundTask() async {
       ),
     );
 
-    // ❌ REMOVED: FlutterForegroundTask.setTaskHandler(MyTaskHandler());
-    // This call does NOT belong here. See note above.
-
     log("✅ Foreground task initialized (options set — handler registers on service start)");
   } catch (e, st) {
     log("⚠️ Foreground task initialization failed: $e");
@@ -525,9 +524,10 @@ void setupForegroundFirebaseMessageListener() {
           icon: '@mipmap/ic_launcher',
         );
 
+        // ✅ CHANGED: presentBadge false
         const DarwinNotificationDetails iosDetails = DarwinNotificationDetails(
           presentAlert: true,
-          presentBadge: true,
+          presentBadge: false,
           presentSound: true,
         );
 
@@ -700,11 +700,17 @@ Future<void> main() async {
 
     final String? fcmToken = await setupFirebaseMessaging();
 
-    if (fcmToken != null) {
-      log("🔥 FINAL FCM TOKEN: $fcmToken");
-    } else {
-      log("⚠️ FCM token was not available");
-    }
+    // if (fcmToken != null) {
+    //   log("🔥 FINAL FCM TOKEN: $fcmToken");
+    // } else {
+    //   log("⚠️ FCM token was not available");
+    // }
+
+    unawaited(setupFirebaseMessaging().then((t) {
+      log(t != null
+          ? "🔥 FINAL FCM TOKEN: $t"
+          : "⚠️ FCM token was not available");
+    }));
 
     setupForegroundFirebaseMessageListener();
     setupNotificationOpenedListener();
@@ -778,7 +784,7 @@ class MyApp extends StatelessWidget {
               return ConnectivityWidgetWrapper(
                 color: colorsConst.primary,
                 message: "No internet. Attendance will be saved offline",
-                disableInteraction: false, // ✅ true-va irundhadhu, false-a maathinen
+                disableInteraction: false,
                 child: MediaQuery(
                   data: MediaQuery.of(context).copyWith(
                     textScaler: const TextScaler.linear(1.0),
@@ -852,18 +858,12 @@ class _SplashScreenState extends State<SplashScreen> {
       final AttendanceProvider attendanceProvider =
       Provider.of<AttendanceProvider>(context, listen: false);
 
-      // --------------------------------------------------
       // Attendance
-      // --------------------------------------------------
-
       await ensureAttendanceLoaded(attendanceProvider);
 
       if (!mounted) return;
 
-      // --------------------------------------------------
       // Location
-      // --------------------------------------------------
-
       await safeCall(
         'manageLocation',
             () => locationProvider.manageLocation(context, false),
@@ -872,10 +872,7 @@ class _SplashScreenState extends State<SplashScreen> {
 
       if (!mounted) return;
 
-      // --------------------------------------------------
       // Background initialization
-      // --------------------------------------------------
-
       unawaited(
         safeCall(
           'locationProvider.requestPermissions',
@@ -900,10 +897,7 @@ class _SplashScreenState extends State<SplashScreen> {
         ),
       );
 
-      // --------------------------------------------------
       // Dashboard
-      // --------------------------------------------------
-
       unawaited(
         safeCall(
           'homeProvider.loadFullDashboard',
@@ -918,30 +912,30 @@ class _SplashScreenState extends State<SplashScreen> {
         ),
       );
 
-      // --------------------------------------------------
       // Version
-      // --------------------------------------------------
-
+      // Version
       await safeCall(
         'homeProvider.checkVersion',
             () => homeProvider.checkVersion(),
         timeout: const Duration(seconds: 10),
       );
 
+      // unawaited(
+      //   safeCall(
+      //     'homeProvider.syncFcmToken',
+      //         () => homeProvider.syncFcmToken(),
+      //     timeout: const Duration(seconds: 40),
+      //   ),
+      // );
+
       if (!mounted) return;
 
-      // --------------------------------------------------
       // Small delay so splash is visible
-      // --------------------------------------------------
-
       await Future.delayed(const Duration(milliseconds: 500));
 
       if (!mounted || _navigated) return;
 
-      // --------------------------------------------------
       // Navigate
-      // --------------------------------------------------
-
       await _navigate();
     } catch (e, st) {
       log("❌ Splash initialization failed: $e");

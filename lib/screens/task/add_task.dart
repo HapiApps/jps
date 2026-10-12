@@ -42,7 +42,7 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
   final FocusScopeNode _myFocusScopeNode = FocusScopeNode();
   List sendList = [];
 
-  // ✅ page load ஆகும் வரைக்கும் loader காட்ட
+  // ✅ first time data fetch aagum bodhu mattum loader kaata
   bool _isLoading = true;
 
   var companyId = "";
@@ -52,15 +52,43 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
   void initState() {
     super.initState();
 
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      final taskProvider = Provider.of<TaskProvider>(context, listen: false);
-      final customerProvider =
-      Provider.of<CustomerProvider>(context, listen: false);
+    final taskProvider = Provider.of<TaskProvider>(context, listen: false);
+    final customerProvider =
+    Provider.of<CustomerProvider>(context, listen: false);
 
+    // ✅ data already provider la irundha, first frame lerundhe form kaata
+    // (loader flash aagaadhu)
+    final bool alreadyLoaded = taskProvider.typeList.isNotEmpty &&
+        taskProvider.statusList.isNotEmpty &&
+        customerProvider.customer.isNotEmpty;
+
+    _isLoading = !alreadyLoaded;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       taskProvider.setTodayDate();
+      taskProvider.taskDescCont.clear();
       taskProvider.taskTitleCont.clear();
 
-      // ✅ எல்லா API calls-um ஒரே நேரத்துல parallel-ஆ கிளம்பும்
+      if (alreadyLoaded) {
+        // ✅ loader illama, already irukkura data vechu form set pannu
+        taskProvider.setDefaultType();
+        taskProvider.initValue();
+        _applyDefaultTypeAndStatus(taskProvider);
+
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+        }
+
+        // ✅ silent background refresh (loader illa) - new data irundha
+        // dropdown automatic ah update aagum
+        customerProvider.getAllCustomers(true);
+        taskProvider.getTaskUsers();
+        return;
+      }
+
+      // ✅ first time mattum - ella API calls um parallel ah
       await Future.wait([
         customerProvider.getAllCustomers(true),
         taskProvider.getTaskType(false),
@@ -70,22 +98,9 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
 
       taskProvider.setDefaultType();
       taskProvider.initValue();
+      _applyDefaultTypeAndStatus(taskProvider);
 
-      // ✅ ஏற்கனவே type select ஆகியிருந்தா, அதை overwrite பண்ண வேண்டாம்
-      if (taskProvider.typeList.isNotEmpty && taskProvider.type == null) {
-        taskProvider.changeType(
-          taskProvider.typeList.first["id"].toString(),
-        );
-      }
-
-      // ✅ ஏற்கனவே status select ஆகியிருந்தா, அதை overwrite பண்ண வேண்டாம்
-      if (taskProvider.statusList.isNotEmpty && taskProvider.status == null) {
-        taskProvider.setStatusByName(
-          taskProvider.statusList.first["value"],
-        );
-      }
-
-      // ✅ எல்லாம் load முடிஞ்ச பிறகு தான் form-ஐ காட்டு
+      // ✅ ellam load mudinja piragu thaan form kaata
       if (mounted) {
         setState(() {
           _isLoading = false;
@@ -99,6 +114,21 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
     )..repeat(reverse: true);
 
     animation = Tween<double>(begin: 0.5, end: 1.5).animate(animationController);
+  }
+
+  /// ✅ already select aagiyirundha overwrite pannaadhu
+  void _applyDefaultTypeAndStatus(TaskProvider taskProvider) {
+    if (taskProvider.typeList.isNotEmpty && taskProvider.type == null) {
+      taskProvider.changeType(
+        taskProvider.typeList.first["id"].toString(),
+      );
+    }
+
+    if (taskProvider.statusList.isNotEmpty && taskProvider.status == null) {
+      taskProvider.setStatusByName(
+        taskProvider.statusList.first["value"],
+      );
+    }
   }
 
   @override
@@ -122,7 +152,7 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
                 preferredSize: Size(300, 50),
                 child: CustomAppbar(text: "${constValue.add_Task}"),
               ),
-              // ✅ முழு page-ஐயும் loading state-க்கு ஏத்த switch பண்றது
+              // ✅ loading state ku yethaar pola page switch
               body: _isLoading
                   ? Center(
                 child: CircularProgressIndicator(
@@ -138,8 +168,21 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
                         child: SingleChildScrollView(
                           child: Column(
                             children: [
+                              10.height,
+                              CustomTextField(
+                                width: kIsWeb
+                                    ? webWidth
+                                    : MediaQuery.of(context).size.width * 1.0,
+                                controller: taskProvider.taskTitleCont,
+                                text: "${constValue.taskTitle}",
+                                isRequired: true,
+                                hintText: "Task Title",
+                                readOnly: false,
+                                onTap: () {
+
+                                },
+                              ),
                               //type
-                              20.height,
                               MapDropDown(
                                 isRequired: true,
                                 isRefresh: taskProvider.typeList.isEmpty,
@@ -155,7 +198,6 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
                                 },
                                 dropText: 'value',
                               ),
-
                               Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
@@ -283,18 +325,18 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
                                   onChanged: (value) {},
                                   width: kIsWeb ? webWidth : phoneWidth),
                               MapDropDown(
-                                hintText: "${constValue.status}",
-                                saveValue: taskProvider.status,
-                                list: taskProvider.statusList,
-                                dropText: 'value',
-                                onChanged: (value) {
-                                  taskProvider.changeStatus(value);
-                                },
-                                // width: kIsWeb
-                                //     ? webWidth
-                                //     : MediaQuery.of(context).size.width * 0.42,
+                                  hintText: "${constValue.status}",
+                                  saveValue: taskProvider.status,
+                                  list: taskProvider.statusList,
+                                  dropText: 'value',
+                                  onChanged: (value) {
+                                    taskProvider.changeStatus(value);
+                                  },
+                                  // width: kIsWeb
+                                  //     ? webWidth
+                                  //     : MediaQuery.of(context).size.width * 0.42,
 
-                             // ),
+                                  // ),
                                   width: kIsWeb ? webWidth : phoneWidth),
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -340,7 +382,7 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
                               Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                   CustomText(text: "${constValue.priority}",),
+                                  CustomText(text: "${constValue.priority}",),
                                   5.height,
                                   Row(
                                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -376,9 +418,9 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
                               4.height,
                               MaxLineTextField(
                                 width: kIsWeb ? webWidth : phoneWidth,
-                                text: "${constValue.taskTitle}",
-                                isRequired: true,
-                                controller: taskProvider.taskTitleCont,
+                                text: "${constValue.taskDesc}",
+                                isRequired: false,
+                                controller: taskProvider.taskDescCont,
                                 textCapitalization: TextCapitalization.sentences,
                                 maxLine: 4,
                               ),
@@ -830,7 +872,7 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
                                     taskProvider.taskCtr.reset();
                                   } else if (taskProvider.taskTitleCont.text.isEmpty) {
                                     utils.showWarningToast(context,
-                                        text: "${constValue.fillDescription}");
+                                        text: "${constValue.fillTitle}");
                                     taskProvider.taskCtr.reset();
                                   } else if (taskProvider.assignedId == "") {
                                     utils.showWarningToast(context,

@@ -18,6 +18,15 @@ final Utils utils = Utils._();
 class Utils {
   Utils._();
 
+
+  void navigateAndClear(BuildContext context, Widget Function() pageBuilder) {
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (_) => pageBuilder()),
+          (route) => false,
+    );
+  }
+
   String returnPadLeft(String value){
     var output=value.toString().padLeft(2,"0");
     return output;

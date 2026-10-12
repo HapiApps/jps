@@ -163,10 +163,12 @@ class _AttendanceReportState extends State<AttendanceReport> {
     required String lng1,
     required String lat2,
     required String lng2,
-    required VoidCallback onTap,
+    required VoidCallback onTap, // Map open
+    required VoidCallback onProfileTap, // Employee page
   }) {
     return InkWell(
       onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
       child: Container(
         width: double.infinity,
         margin: const EdgeInsets.symmetric(vertical: 6),
@@ -178,7 +180,7 @@ class _AttendanceReportState extends State<AttendanceReport> {
               color: Colors.black26,
               blurRadius: 8,
               offset: Offset(2, 2),
-            )
+            ),
           ],
         ),
         child: Padding(
@@ -189,21 +191,37 @@ class _AttendanceReportState extends State<AttendanceReport> {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  CircleAvatar(
-                    radius: 15,
-                    backgroundColor: Colors.grey.shade300,
-                    child: SvgPicture.asset(assets.profile, width: 16, height: 16),
+                  InkWell(
+                    onTap: onProfileTap,
+                    borderRadius: BorderRadius.circular(30),
+                    child: CircleAvatar(
+                      radius: 15,
+                      backgroundColor: Colors.grey.shade300,
+                      child: SvgPicture.asset(
+                        assets.profile,
+                        width: 16,
+                        height: 16,
+                      ),
+                    ),
                   ),
                   8.width,
                   Expanded(
                     flex: 2,
-                    child: CustomText(text: name, isBold: true, size: 14),
+                    child: CustomText(
+                      text: name,
+                      isBold: true,
+                      size: 14,
+                    ),
                   ),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        CustomText(text: "In:", size: 11, colors: colorsConst.greyClr),
+                        CustomText(
+                          text: "In:",
+                          size: 11,
+                          colors: colorsConst.greyClr,
+                        ),
                         CustomText(text: inTime, size: 13),
                       ],
                     ),
@@ -212,7 +230,11 @@ class _AttendanceReportState extends State<AttendanceReport> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        CustomText(text: "Out:", size: 11, colors: colorsConst.greyClr),
+                        CustomText(
+                          text: "Out:",
+                          size: 11,
+                          colors: colorsConst.greyClr,
+                        ),
                         CustomText(text: outTime, size: 13),
                       ],
                     ),
@@ -221,7 +243,11 @@ class _AttendanceReportState extends State<AttendanceReport> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        CustomText(text: "Total hrs", size: 11, colors: colorsConst.greyClr),
+                        CustomText(
+                          text: "Total hrs",
+                          size: 11,
+                          colors: colorsConst.greyClr,
+                        ),
                         CustomText(text: totalHrs, size: 13),
                       ],
                     ),
@@ -232,14 +258,23 @@ class _AttendanceReportState extends State<AttendanceReport> {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const SizedBox(width: 38), // aligns under avatar
+                  const SizedBox(width: 38),
                   Expanded(
                     flex: 2,
-                    child: CustomText(text: role, size: 12, colors: colorsConst.greyClr),
+                    child: CustomText(
+                      text: role,
+                      size: 12,
+                      colors: colorsConst.greyClr,
+                    ),
                   ),
                   Expanded(
                     flex: 3,
-                    child: _buildCheckInOutInline(lat1, lng1, lat2, lng2),
+                    child: _buildCheckInOutInline(
+                      lat1,
+                      lng1,
+                      lat2,
+                      lng2,
+                    ),
                   ),
                 ],
               ),
@@ -514,17 +549,29 @@ class _AttendanceReportState extends State<AttendanceReport> {
                                                                         color: Colors.white,
                                                                         borderColor: colorsConst.litGrey,
                                                                       ),
-                                                                      child: DropdownButton(
+                                                                      child: DropdownButton<String>(
                                                                         iconEnabledColor: colorsConst.greyClr,
                                                                         isExpanded: true,
                                                                         underline: const SizedBox(),
                                                                         icon: const Icon(Icons.keyboard_arrow_down_outlined),
-                                                                        value: attProvider.type,
+                                                                        // only use the value if it exists exactly once in the list, otherwise null
+                                                                        value: attProvider.typeList.where((e) => e == attProvider.type).length == 1
+                                                                            ? attProvider.type
+                                                                            : null,
+                                                                        hint: const CustomText(text: "  Select", colors: Colors.grey),
                                                                         onChanged: (value) {
-                                                                          attProvider.changeType(value,localData.storage.read("id"),localData.storage.read("role"),false,widget.empList,context);
+                                                                          if (value == null) return;
+                                                                          attProvider.changeType(
+                                                                            value,
+                                                                            localData.storage.read("id"),
+                                                                            localData.storage.read("role"),
+                                                                            false,
+                                                                            widget.empList,
+                                                                            context,
+                                                                          );
                                                                         },
-                                                                        items: attProvider.typeList.map((list) {
-                                                                          return DropdownMenuItem(
+                                                                        items: attProvider.typeList.toSet().toList().map((list) {
+                                                                          return DropdownMenuItem<String>(
                                                                             value: list,
                                                                             child: CustomText(
                                                                               text: "  $list",
@@ -958,7 +1005,7 @@ class _AttendanceReportState extends State<AttendanceReport> {
                                     perStatus: data.perStatus.toString(),
                                     perReason: data.perReason.toString(),
                                     perTime: data.perTime.toString(),
-                                    perCreatedTs: data.perCreatedTs.toString(),
+                                    perCreatedTs: data.perCreatedTs.toString(), empId: data.salesmanId, active: data.active,
                                   ),
                                   5.height
                                 ],
@@ -1190,7 +1237,7 @@ class _AttendanceReportState extends State<AttendanceReport> {
                                           perStatus: data.perStatus.toString(),
                                           perReason: data.perReason.toString(),
                                           perTime: data.perTime.toString(),
-                                          perCreatedTs: data.perCreatedTs.toString(),
+                                          perCreatedTs: data.perCreatedTs.toString(), empId: data.salesmanId, active: data.active,
                                         ),
                                       ],
                                     ),
@@ -1362,7 +1409,7 @@ class _AttendanceReportState extends State<AttendanceReport> {
                                         perStatus: data.perStatus.toString(),
                                         perReason: data.perReason.toString(),
                                         perTime: data.perTime.toString(),
-                                        perCreatedTs: data.perCreatedTs.toString(),
+                                        perCreatedTs: data.perCreatedTs.toString(), empId: data.salesmanId, active: data.active,
                                       ),
 
                                       5.height
