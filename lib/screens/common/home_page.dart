@@ -300,6 +300,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
 
     return Consumer2<HomeProvider, AttendanceProvider>(
       builder: (context, homeProvider, attPvr, _) {
+        ///Uncomment for JPS
         // int visitActiveCount = homeProvider.activeVisit;
         // int visitPendingsCount = homeProvider.inActiveVisit;
         final int taskPendingCount = _mrInt(homeProvider, "incomplete_count");
@@ -359,7 +360,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                           _buildAttendanceCard(context, homeProvider),
                         10.height,
 
-                        ///Daily Work Report Uncomment for (only for Aswin Fire system)
+                        ///Daily Work Report Uncomment for (only for Aswin Fire system & JPS) ///Uncomment for JPS
                         // InkWell(
                         //   onTap:(){
                         //     utils.navigatePage(context, ()=> DashBoard(child: VisitReport(date1: homeProvider.startDate, date2: homeProvider.endDate,month: homeProvider.month,type: homeProvider.type,)));

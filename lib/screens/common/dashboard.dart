@@ -661,6 +661,7 @@ class _DashBoardState extends State<DashBoard> {
       if (localData.storage.read("role") == "1")
         _PanelItem("${constValue.employee}", assets.employees, 1,
                 () => const DashBoard(child: ViewEmployees())),
+      ///comment for JPS
       _PanelItem(constValue.wages, assets.employees, 16,
               () => const DashBoard(child: WagesWorkerDetailsPage())),
       _PanelItem(constValue.customer, assets.customer, 2,
