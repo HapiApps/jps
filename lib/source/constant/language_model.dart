@@ -126,7 +126,7 @@ class ConstantValues {
     }
   }
 
-  final String appName = "HapiApps";
+  final String appName = "JPS";
   final String checkPdf = "pdf";
   final String rupeeSign = "₹";
 

@@ -1166,16 +1166,17 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>
                       ],
                     ),
                     const Divider(thickness: 2),
-                    Row(
-                      children: [
-                        if ((data.projectName ?? "").trim().isNotEmpty)
-                          _infoBlock("Company", data.projectName ?? ""),
-                        const Spacer(),
-                        WagesAddWorkDetails(
-                          taskId: data.id.toString(),
-                        ),
-                      ],
-                    ),
+                    ///Comment for JPS
+                    // Row(
+                    //   children: [
+                    //     if ((data.projectName ?? "").trim().isNotEmpty)
+                    //       _infoBlock("Company", data.projectName ?? ""),
+                    //     const Spacer(),
+                    //     WagesAddWorkDetails(
+                    //       taskId: data.id.toString(),
+                    //     ),
+                    //   ],
+                    // ),
                     10.height,
                     if (data.name.toString() != "null" && data.name.toString() != "")
                       Row(
