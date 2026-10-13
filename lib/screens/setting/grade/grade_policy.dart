@@ -1,5 +1,5 @@
-import '../../../component/dotted_border.dart';
-import '../../../source/extentions/extensions.dart';
+import 'package:master_code/component/dotted_border.dart';
+import 'package:master_code/source/extentions/extensions.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../../../component/custom_appbar.dart';
@@ -11,7 +11,7 @@ import '../../../source/constant/key_constant.dart';
 import '../../../source/utilities/utils.dart';
 import '../../../view_model/employee_provider.dart';
 import '../../common/dashboard.dart';
-import '../../../view_model/home_provider.dart';
+import 'package:master_code/view_model/home_provider.dart';
 import 'package:provider/provider.dart';
 
 class AllGrade extends StatefulWidget {

@@ -4,8 +4,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:fluttertoast/fluttertoast.dart';
-import '../../component/custom_network_image.dart';
-import '../../source/extentions/extensions.dart';
+import 'package:master_code/component/custom_network_image.dart';
+import 'package:master_code/source/extentions/extensions.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:rounded_loading_button_plus/rounded_loading_button.dart';
@@ -17,6 +17,15 @@ final Utils utils = Utils._();
 
 class Utils {
   Utils._();
+
+
+  void navigateAndClear(BuildContext context, Widget Function() pageBuilder) {
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (_) => pageBuilder()),
+          (route) => false,
+    );
+  }
 
   String returnPadLeft(String value){
     var output=value.toString().padLeft(2,"0");

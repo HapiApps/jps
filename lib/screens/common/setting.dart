@@ -1,7 +1,7 @@
-import '../../screens/grade/grades.dart';
-import '../../source/constant/local_data.dart';
+import 'package:master_code/screens/grade/grades.dart';
+import 'package:master_code/source/constant/local_data.dart';
 import 'package:flutter/material.dart';
-import '../../source/extentions/extensions.dart';
+import 'package:master_code/source/extentions/extensions.dart';
 import 'package:provider/provider.dart';
 import '../../component/animated_drawer.dart';
 import '../../component/custom_appbar.dart';

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/svg.dart';
-import '../../component/maxline_textfield.dart';
-import '../../source/extentions/extensions.dart';
+import 'package:master_code/component/maxline_textfield.dart';
+import 'package:master_code/source/extentions/extensions.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../../component/custom_alert.dart';

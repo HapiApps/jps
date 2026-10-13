@@ -1,11 +1,11 @@
-import '../../component/custom_dropdown.dart';
-import '../../source/constant/colors_constant.dart';
-import '../../source/extentions/extensions.dart';
+import 'package:master_code/component/custom_dropdown.dart';
+import 'package:master_code/source/constant/colors_constant.dart';
+import 'package:master_code/source/extentions/extensions.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import '../../source/utilities/utils.dart';
+import 'package:master_code/source/utilities/utils.dart';
 import 'package:provider/provider.dart';
-import '../../view_model/home_provider.dart';
+import 'package:master_code/view_model/home_provider.dart';
 import '../../component/attendance_detail.dart';
 import '../../component/custom_appbar.dart';
 import '../../component/custom_loading.dart';
@@ -302,7 +302,7 @@ class _UserAttendanceReportState extends State<UserAttendanceReport> {
                                       data.perTime.toString(),
 
                                       perCreatedTs:
-                                      data.perCreatedTs.toString(),
+                                      data.perCreatedTs.toString(), empId: data.salesmanId, active: data.active,
                                     ),
                                   ],
                                 ),

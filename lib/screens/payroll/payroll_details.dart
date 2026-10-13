@@ -1,11 +1,11 @@
-import '../../component/custom_loading.dart';
-import '../../source/extentions/extensions.dart';
+import 'package:master_code/component/custom_loading.dart';
+import 'package:master_code/source/extentions/extensions.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
-import '../../model/payroll/payroll_details_model.dart';
-import '../../view_model/home_provider.dart';
-import '../../view_model/leave_provider.dart';
+import 'package:master_code/model/payroll/payroll_details_model.dart';
+import 'package:master_code/view_model/home_provider.dart';
+import 'package:master_code/view_model/leave_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:rounded_loading_button_plus/rounded_loading_button.dart';
 import '../../component/custom_appbar.dart';

@@ -14,19 +14,19 @@ import 'package:get/get.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
-import '../../component/maxline_textfield.dart';
-import '../../source/styles/decoration.dart';
-import '../../view_model/task_provider.dart';
+import 'package:master_code/component/maxline_textfield.dart';
+import 'package:master_code/source/styles/decoration.dart';
+import 'package:master_code/view_model/task_provider.dart';
 import 'package:open_file/open_file.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:record/record.dart';
-import '../../model/customer/customer_attendance_model.dart';
-import '../../repo/customer_repo.dart';
-import '../../source/extentions/extensions.dart';
+import 'package:master_code/model/customer/customer_attendance_model.dart';
+import 'package:master_code/repo/customer_repo.dart';
+import 'package:master_code/source/extentions/extensions.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:rounded_loading_button_plus/rounded_loading_button.dart';
-import '../../view_model/home_provider.dart';
+import 'package:master_code/view_model/home_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import '../component/custom_loading_button.dart';
 import '../component/custom_text.dart';
@@ -154,10 +154,13 @@ class CustomerProvider with ChangeNotifier{
     required String path,
     required int index,
   }) async {
-    /// ✅ Store comment before clearing controller
+    /// Store comment before clearing controller
     final commentText = disPoint.text.trim();
 
-    /// ✅ 1. INSTANT UI (Optimistic)
+    final String safeAssignedId =
+    (assignedId.isEmpty || assignedId == "null") ? "" : assignedId;
+
+    /// 1. INSTANT UI (Optimistic)
     final tempMessage = CustomerReportModel(
       comments: commentText,
       createdBy: localData.storage.read("id"),
@@ -170,14 +173,16 @@ class CustomerProvider with ChangeNotifier{
 
     _customerReport.add(tempMessage);
     print("index $index");
-    if(index!=-1){
+
+    if (index != -1) {
       final taskProvider = Provider.of<TaskProvider>(context, listen: false);
-      taskProvider.updateTaskComment(index,commentText);
+      taskProvider.updateTaskComment(index, commentText);
       notifyListeners();
     }
     notifyListeners();
+
     try {
-      /// ✅ 2. MINIMAL PAYLOAD
+      /// 2. MINIMAL PAYLOAD
       List<Map<String, String>> customersList = [];
 
       if (path.isNotEmpty) {
@@ -187,22 +192,25 @@ class CustomerProvider with ChangeNotifier{
       }
 
       String jsonString = json.encode(customersList);
+
       Map<String, String> data = {
         "action": taskComments,
         "cos_id": localData.storage.read("cos_id"),
         "task_id": taskId,
         "log_file": localData.storage.read("mobile_number"),
         "created_by": localData.storage.read("id") ?? "0",
-        "comment": commentText, // ✅ use stored comment
+        "comment": commentText,
         "data": jsonString,
       };
 
-      /// ✅ 3. NON-BLOCKING API
+      /// 3. NON-BLOCKING API
       custRepo.taskComments(data, customersList).then((response) async {
         if (response.toString().contains("200")) {
           _recordedAudioPaths.clear();
-          /// mark as synced
-          _customerReport.last.isLocal = false;
+
+          /// FIX: last message illa, namma anuppina message-ah mark pannanum
+          tempMessage.isLocal = false;
+
           /// clear input
           disPoint.clear();
           notifyListeners();
@@ -210,42 +218,86 @@ class CustomerProvider with ChangeNotifier{
           /// scroll bottom
           Provider.of<TaskProvider>(context, listen: false).scrollToBottom();
 
-          /// ✅ notifications
-          Future.delayed(const Duration(milliseconds: 300), () {
-            String role = localData.storage.read("role");
+          /// notifications
+          Future.delayed(const Duration(milliseconds: 300), () async {
+            if (!context.mounted) return;
+
+            final String role = localData.storage.read("role").toString();
+            final String myName = localData.storage.read("f_name").toString();
+
+            final String msg = commentText.isNotEmpty
+                ? commentText
+                : (path.isNotEmpty ? "Sent an audio message" : "");
+
+            debugPrint("NOTIF role=$role "
+                "myId=${localData.storage.read("id")} "
+                "assignedId='$assignedId' safeAssignedId='$safeAssignedId' taskId='$taskId'");
 
             try {
+              final empProvider =
+              Provider.of<EmployeeProvider>(context, listen: false);
+
               if (role == "1") {
-                Provider.of<EmployeeProvider>(context, listen: false)
-                    .sendSomeUserNotification(
-                  "$commentText Added a task feedback ${localData.storage.read("f_name")}",
-                  commentText,
-                  assignedId,
-                  taskId,"",
-                );
+                /// ADMIN comment panna
+
+                // 1) Assigned employee(s)-ku
+                if (safeAssignedId.isNotEmpty) {
+                  empProvider.sendSomeUserNotification(
+                    "$myName added a task feedback",
+                    msg,
+                    safeAssignedId,
+                    taskId,
+                    "",
+                  );
+                }
+
+                // 2) Mattra admin(s)-ku
+                final String adminIds = await empProvider.getAdminIds();
+                if (adminIds.isNotEmpty) {
+                  empProvider.sendSomeUserNotification(
+                    "$myName added a task feedback",
+                    msg,
+                    adminIds, // self id automatic-ah remove aagum
+                    taskId,
+                    "",
+                  );
+                }
               } else {
-                Provider.of<EmployeeProvider>(context, listen: false)
-                    .sendAdminNotification(
-                  "${localData.storage.read("f_name")} replied to task feedback",
-                  commentText,
-                  assignedId,
-                  taskId,
-                  taskId,
-                );
+                /// EMPLOYEE comment panna -> admins-ku
+                final String adminIds = await empProvider.getAdminIds();
+
+                if (adminIds.isNotEmpty) {
+                  empProvider.sendSomeUserNotification(
+                    "$myName replied to task feedback",
+                    msg,
+                    adminIds,
+                    taskId,
+                    "",
+                  );
+                } else {
+                  debugPrint("No admin ids found, fallback to sendAdminNotification");
+                  empProvider.sendAdminNotification(
+                    "$myName replied to task feedback",
+                    msg,
+                    "1",
+                    taskId,
+                    "",
+                  );
+                }
               }
             } catch (e) {
               print("Notification error: $e");
             }
           });
         } else {
-          /// ❌ failed → rollback
+          /// failed -> rollback
           _customerReport.remove(tempMessage);
           notifyListeners();
 
           utils.showErrorToast(context: context);
         }
       }).catchError((e) {
-        /// ❌ error → rollback
+        /// error -> rollback
         _customerReport.remove(tempMessage);
         notifyListeners();
 
@@ -258,7 +310,8 @@ class CustomerProvider with ChangeNotifier{
       utils.showWarningToast(context, text: "Error");
     }
   }
-bool _isVisible=false;
+
+  bool _isVisible=false;
 int _visibleIndex=0;
 bool get isVisible =>_isVisible;
 int get visibleIndex =>_visibleIndex;

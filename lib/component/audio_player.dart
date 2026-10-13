@@ -1,7 +1,7 @@
 import 'dart:io';
 
-import '../../source/constant/colors_constant.dart';
-import '../../source/styles/decoration.dart';
+import 'package:master_code/source/constant/colors_constant.dart';
+import 'package:master_code/source/styles/decoration.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
@@ -26,12 +26,6 @@ class AudioTile extends StatefulWidget {
   State<AudioTile> createState() => _AudioTileState();
 }
 
-class GlobalAudioPlayer {
-  static final AudioPlayer _player = AudioPlayer();
-
-  static AudioPlayer get player => _player;
-}
-
 class _AudioTileState extends State<AudioTile> {
   static _AudioTileState? currentlyPlayingTile;
 
@@ -53,7 +47,6 @@ class _AudioTileState extends State<AudioTile> {
 
     _player.onDurationChanged.listen((duration) {
       if (!mounted) return;
-
       setState(() {
         _duration = duration;
       });
@@ -61,7 +54,6 @@ class _AudioTileState extends State<AudioTile> {
 
     _player.onPositionChanged.listen((position) {
       if (!mounted) return;
-
       setState(() {
         _position = position;
       });
@@ -80,7 +72,8 @@ class _AudioTileState extends State<AudioTile> {
           _isPlaying = false;
           _isLoading = false;
         });
-      } else if (state == PlayerState.stopped) {
+      } else if (state == PlayerState.stopped ||
+          state == PlayerState.completed) {
         setState(() {
           _isPlaying = false;
           _isLoading = false;
@@ -90,105 +83,117 @@ class _AudioTileState extends State<AudioTile> {
         if (currentlyPlayingTile == this) {
           currentlyPlayingTile = null;
         }
-      } else if (state == PlayerState.completed) {
-        setState(() {
-          _isPlaying = false;
-          _isLoading = false;
-          _position = Duration.zero;
-        });
-
-        if (currentlyPlayingTile == this) {
-          currentlyPlayingTile = null;
-        }
-      }
-    });
-
-    _player.onPlayerComplete.listen((event) {
-      if (!mounted) return;
-
-      setState(() {
-        _isPlaying = false;
-        _isLoading = false;
-        _position = Duration.zero;
-      });
-
-      if (currentlyPlayingTile == this) {
-        currentlyPlayingTile = null;
       }
     });
   }
 
   String formatTime(Duration duration) {
     final minutes = duration.inMinutes.toString().padLeft(2, '0');
-
-    final seconds =
-    (duration.inSeconds % 60).toString().padLeft(2, '0');
-
+    final seconds = (duration.inSeconds % 60).toString().padLeft(2, '0');
     return "$minutes:$seconds";
   }
 
-  Future<String> _downloadAudio() async {
+  /// Local phone path-ah nu check pannum
+  bool _isLocalPath(String s) {
+    return s.startsWith('/storage/') ||
+        s.startsWith('/data/') ||
+        s.startsWith('/sdcard/') ||
+        s.startsWith('file://');
+  }
+
+  /// Content-type la irundhu extension kandupidikkum
+  String _extensionFor(http.Response response) {
+    final type = (response.headers['content-type'] ?? '').toLowerCase();
+    if (type.contains('mpeg') || type.contains('mp3')) return 'mp3';
+    if (type.contains('wav')) return 'wav';
+    if (type.contains('aac')) return 'aac';
+    if (type.contains('ogg')) return 'ogg';
+    if (type.contains('webm')) return 'webm';
+    return 'm4a';
+  }
+
+  /// Server la file ready aagala na retry pannum
+  Future<http.Response> _getWithRetry(Uri uri) async {
+    http.Response? last;
+
+    for (int i = 0; i < 4; i++) {
+      try {
+        final res = await http.get(
+          uri,
+          headers: {
+            'Accept': 'audio/*,*/*',
+            // Token venum na inga add pannunga:
+            // 'Authorization': 'Bearer $token',
+          },
+        );
+
+        last = res;
+
+        debugPrint("Audio download try ${i + 1}: status ${res.statusCode}, "
+            "type ${res.headers['content-type']}, bytes ${res.bodyBytes.length}");
+
+        if (res.statusCode == 200 && res.bodyBytes.isNotEmpty) {
+          return res;
+        }
+      } catch (e) {
+        debugPrint("Audio download try ${i + 1} error: $e");
+      }
+
+      await Future.delayed(const Duration(seconds: 1));
+    }
+
+    throw Exception(
+      'Audio not available. Last status: ${last?.statusCode}',
+    );
+  }
+
+  Future<String> _resolveAudioPath() async {
+    String raw = widget.audioUrl.trim();
+
+    // 1) URL ullaye local path irundha (…get_files.php?path=/storage/...)
+    if (raw.contains('path=/storage/') || raw.contains('path=/data/')) {
+      raw = raw.split('path=').last;
+    }
+
+    // 2) Local file na direct-ah play
+    if (_isLocalPath(raw)) {
+      final String localPath =
+      raw.startsWith('file://') ? raw.replaceFirst('file://', '') : raw;
+
+      final File localFile = File(localPath);
+
+      if (await localFile.exists() && await localFile.length() > 0) {
+        debugPrint("Playing local file: $localPath");
+        return localPath;
+      }
+
+      throw Exception('Local audio file not found: $localPath');
+    }
+
+    // 3) Already download pannirundha reuse
     if (_localAudioPath != null) {
       final file = File(_localAudioPath!);
-
       if (await file.exists()) {
         return _localAudioPath!;
       }
     }
 
+    // 4) Server la irundhu download
     final Directory tempDir = await getTemporaryDirectory();
+    final Uri uri = Uri.parse(raw);
 
-    final String fileName =
-        'audio_${DateTime.now().millisecondsSinceEpoch}.m4a';
+    debugPrint("Downloading audio: $raw");
+
+    final response = await _getWithRetry(uri);
+
+    final String ext = _extensionFor(response);
 
     final String filePath =
-        '${tempDir.path}/$fileName';
-
-    final Uri uri = Uri.parse(widget.audioUrl);
-
-    debugPrint("Downloading audio: ${widget.audioUrl}");
-
-    final response = await http.get(
-      uri,
-      headers: {
-        'Accept': 'audio/mp4,audio/*,*/*',
-      },
-    );
-
-    debugPrint(
-      "Audio download status: ${response.statusCode}",
-    );
-
-    debugPrint(
-      "Audio content type: ${response.headers['content-type']}",
-    );
-
-    debugPrint(
-      "Audio bytes: ${response.bodyBytes.length}",
-    );
-
-    if (response.statusCode != 200) {
-      throw Exception(
-        'Audio download failed: ${response.statusCode}',
-      );
-    }
-
-    if (response.bodyBytes.isEmpty) {
-      throw Exception('Downloaded audio is empty');
-    }
+        '${tempDir.path}/audio_${DateTime.now().millisecondsSinceEpoch}.$ext';
 
     final File file = File(filePath);
 
-    await file.writeAsBytes(
-      response.bodyBytes,
-      flush: true,
-    );
-
-    final bool exists = await file.exists();
-
-    if (!exists) {
-      throw Exception('Audio file could not be saved');
-    }
+    await file.writeAsBytes(response.bodyBytes, flush: true);
 
     final int fileSize = await file.length();
 
@@ -198,13 +203,7 @@ class _AudioTileState extends State<AudioTile> {
 
     _localAudioPath = filePath;
 
-    debugPrint(
-      "Audio saved: $filePath",
-    );
-
-    debugPrint(
-      "Local audio size: $fileSize",
-    );
+    debugPrint("Audio saved: $filePath ($fileSize bytes)");
 
     return filePath;
   }
@@ -221,12 +220,17 @@ class _AudioTileState extends State<AudioTile> {
             _isPlaying = false;
           });
         }
-
         return;
       }
 
-      if (currentlyPlayingTile != null &&
-          currentlyPlayingTile != this) {
+      // Already load aagi paused la irundha resume mattum
+      if (_player.state == PlayerState.paused) {
+        await _player.resume();
+        currentlyPlayingTile = this;
+        return;
+      }
+
+      if (currentlyPlayingTile != null && currentlyPlayingTile != this) {
         await currentlyPlayingTile!._stopPlayer();
       }
 
@@ -236,23 +240,12 @@ class _AudioTileState extends State<AudioTile> {
         });
       }
 
-      debugPrint(
-        "Audio URL: ${widget.audioUrl}",
-      );
+      debugPrint("Audio URL: ${widget.audioUrl}");
 
-      final String localPath = await _downloadAudio();
+      final String localPath = await _resolveAudioPath();
 
-      debugPrint(
-        "Playing local audio: $localPath",
-      );
-
-      await _player.stop();
-
-      await _player.setSource(
-        DeviceFileSource(localPath),
-      );
-
-      await _player.resume();
+      await _player.setReleaseMode(ReleaseMode.stop);
+      await _player.play(DeviceFileSource(localPath));
 
       currentlyPlayingTile = this;
 
@@ -263,9 +256,7 @@ class _AudioTileState extends State<AudioTile> {
         });
       }
     } catch (e) {
-      debugPrint(
-        "Audio play error: $e",
-      );
+      debugPrint("Audio play error: $e");
 
       currentlyPlayingTile = null;
 
@@ -295,9 +286,7 @@ class _AudioTileState extends State<AudioTile> {
         });
       }
     } catch (e) {
-      debugPrint(
-        "Audio stop error: $e",
-      );
+      debugPrint("Audio stop error: $e");
     }
   }
 
@@ -339,9 +328,7 @@ class _AudioTileState extends State<AudioTile> {
             ),
           )
               : Icon(
-            _isPlaying
-                ? Icons.pause
-                : Icons.play_arrow,
+            _isPlaying ? Icons.pause : Icons.play_arrow,
             size: 32,
             color: colorsConst.primary,
           ),
@@ -350,9 +337,7 @@ class _AudioTileState extends State<AudioTile> {
           width: 100,
           child: Slider(
             value: currentSeconds,
-            max: maxSeconds > 0
-                ? maxSeconds.toDouble()
-                : 1,
+            max: maxSeconds > 0 ? maxSeconds.toDouble() : 1,
             onChanged: _duration == Duration.zero
                 ? null
                 : (value) async {
@@ -365,9 +350,7 @@ class _AudioTileState extends State<AudioTile> {
           ),
         ),
         Text(
-          _isPlaying
-              ? formatTime(_position)
-              : formatTime(_duration),
+          _isPlaying ? formatTime(_position) : formatTime(_duration),
           style: const TextStyle(
             fontSize: 12,
           ),

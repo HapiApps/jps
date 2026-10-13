@@ -1,16 +1,16 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import '../../component/custom_loading_button.dart';
-import '../../component/custom_textfield.dart';
-import '../../screens/employee/viamap.dart';
-import '../../source/constant/colors_constant.dart';
-import '../../source/constant/key_constant.dart';
-import '../../source/extentions/extensions.dart';
+import 'package:master_code/component/custom_loading_button.dart';
+import 'package:master_code/component/custom_textfield.dart';
+import 'package:master_code/screens/employee/viamap.dart';
+import 'package:master_code/source/constant/colors_constant.dart';
+import 'package:master_code/source/constant/key_constant.dart';
+import 'package:master_code/source/extentions/extensions.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../source/styles/decoration.dart';
-import '../../view_model/home_provider.dart';
+import 'package:master_code/source/styles/decoration.dart';
+import 'package:master_code/view_model/home_provider.dart';
 import 'package:country_picker/country_picker.dart'; // <-- CHANGED: country_picker package
 import '../../component/custom_appbar.dart';
 import '../../component/custom_dropdown.dart';

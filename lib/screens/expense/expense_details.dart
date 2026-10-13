@@ -1,11 +1,11 @@
-import '../../component/app_custom_data_text.dart';
-import '../../component/custom_loading_button.dart';
-import '../../component/dotted_border.dart';
-import '../../model/expense_model.dart';
-import '../../view_model/expense_provider.dart';
+import 'package:master_code/component/app_custom_data_text.dart';
+import 'package:master_code/component/custom_loading_button.dart';
+import 'package:master_code/component/dotted_border.dart';
+import 'package:master_code/model/expense_model.dart';
+import 'package:master_code/view_model/expense_provider.dart';
 import 'package:flutter/foundation.dart';
 import 'package:group_button/group_button.dart';
-import '../../source/extentions/extensions.dart';
+import 'package:master_code/source/extentions/extensions.dart';
 import 'package:flutter/material.dart';
 import 'package:path/path.dart' as p;
 import 'package:provider/provider.dart';

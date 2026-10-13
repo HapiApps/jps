@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import '../../model/project/project_model.dart';
-import '../../source/extentions/extensions.dart';
+import 'package:master_code/model/project/project_model.dart';
+import 'package:master_code/source/extentions/extensions.dart';
 import 'package:provider/provider.dart';
 import '../../component/custom_appbar.dart';
 import '../../component/custom_dropdown.dart';

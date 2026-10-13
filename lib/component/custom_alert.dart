@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../component/custom_loading_button.dart';
-import '../../source/constant/colors_constant.dart';
+import 'package:master_code/component/custom_loading_button.dart';
+import 'package:master_code/source/constant/colors_constant.dart';
 import 'custom_text.dart';
 import 'custom_textfield.dart';
 class CustomAlert extends StatelessWidget {

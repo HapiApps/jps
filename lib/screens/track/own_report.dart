@@ -1,8 +1,8 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
-import '../../screens/track/tracked_location.dart';
-import '../../source/extentions/extensions.dart';
-import '../../source/utilities/utils.dart';
+import 'package:master_code/screens/track/tracked_location.dart';
+import 'package:master_code/source/extentions/extensions.dart';
+import 'package:master_code/source/utilities/utils.dart';
 import 'package:provider/provider.dart';
 import '../../component/custom_appbar.dart';
 import '../../component/custom_loading.dart';

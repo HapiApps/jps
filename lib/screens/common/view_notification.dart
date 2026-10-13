@@ -1,9 +1,9 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:intl/intl.dart';
-import '../../screens/task/view_task.dart';
-import '../../source/constant/local_data.dart';
-import '../../source/extentions/extensions.dart';
+import 'package:master_code/screens/task/view_task.dart';
+import 'package:master_code/source/constant/local_data.dart';
+import 'package:master_code/source/extentions/extensions.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../component/custom_appbar.dart';

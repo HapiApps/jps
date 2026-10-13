@@ -1,12 +1,12 @@
-import '../../../component/custom_loading_button.dart';
-import '../../../view_model/employee_provider.dart';
-import '../../../view_model/home_provider.dart';
-import '../../../view_model/location_provider.dart';
+import 'package:master_code/component/custom_loading_button.dart';
+import 'package:master_code/view_model/employee_provider.dart';
+import 'package:master_code/view_model/home_provider.dart';
+import 'package:master_code/view_model/location_provider.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../source/extentions/extensions.dart';
-import '../../../view_model/customer_provider.dart';
+import 'package:master_code/source/extentions/extensions.dart';
+import 'package:master_code/view_model/customer_provider.dart';
 import '../../../component/custom_appbar.dart';
 import '../../../component/custom_text.dart';
 import '../../../component/custom_textfield.dart';
@@ -334,35 +334,35 @@ class _CusAddVisitState extends State<CusAddVisit>
                                   ],
                                 ),
 
-                              /// ====================== CUSTOMER TYPE ======================
-                              MapDropDown(
-                                isRefresh: taskProvider.cusTypeList.isEmpty,
-                                callback: () {
-                                  closeAllDropdowns();
-                                  if (!kIsWeb) {
-                                    taskProvider.refreshCusType();
-                                  } else {
-                                    taskProvider.getAllCusTypes();
-                                  }
-                                },
-                                width: kIsWeb ? webWidth : phoneWidth,
-                                hintText: constValue.cusType,
-                                list: taskProvider.cusTypeList,
-                                saveValue: taskProvider.selectType != null
-                                    ? taskProvider.selectType['id']
-                                    : null,
-                                onChanged: (value) {
-                                  closeAllDropdowns();
-
-                                  final selected =
-                                  taskProvider.cusTypeList.firstWhere(
-                                        (e) => e['id'] == value,
-                                  );
-
-                                  taskProvider.changeCusType(selected);
-                                },
-                                dropText: 'value',
-                              ),
+                              /// ====================== CUSTOMER TYPE ======================(only for JPS)
+                              // MapDropDown(
+                              //   isRefresh: taskProvider.cusTypeList.isEmpty,
+                              //   callback: () {
+                              //     closeAllDropdowns();
+                              //     if (!kIsWeb) {
+                              //       taskProvider.refreshCusType();
+                              //     } else {
+                              //       taskProvider.getAllCusTypes();
+                              //     }
+                              //   },
+                              //   width: kIsWeb ? webWidth : phoneWidth,
+                              //   hintText: constValue.cusType,
+                              //   list: taskProvider.cusTypeList,
+                              //   saveValue: taskProvider.selectType != null
+                              //       ? taskProvider.selectType['id']
+                              //       : null,
+                              //   onChanged: (value) {
+                              //     closeAllDropdowns();
+                              //
+                              //     final selected =
+                              //     taskProvider.cusTypeList.firstWhere(
+                              //           (e) => e['id'] == value,
+                              //     );
+                              //
+                              //     taskProvider.changeCusType(selected);
+                              //   },
+                              //   dropText: 'value',
+                              // ),
 
                               /// ====================== CUSTOMER MULTI SELECT ======================
                               Consumer<CustomerProvider>(

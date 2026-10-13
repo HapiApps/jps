@@ -7,12 +7,12 @@ import 'package:geocoding/geocoding.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
-import '../../repo/employee_repo.dart';
+import 'package:master_code/repo/employee_repo.dart';
 import 'package:rounded_loading_button_plus/rounded_loading_button.dart';
-import '../../screens/common/fullscreen_photo.dart';
-import '../../screens/log_in.dart';
-import '../../source/extentions/extensions.dart';
-import '../../view_model/home_provider.dart';
+import 'package:master_code/screens/common/fullscreen_photo.dart';
+import 'package:master_code/screens/log_in.dart';
+import 'package:master_code/source/extentions/extensions.dart';
+import 'package:master_code/view_model/home_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../component/custom_text.dart';
 import '../local_database/sqlite.dart';
@@ -1865,34 +1865,64 @@ Future<void> getNotifications({bool markSeen = false}) async {
     }
     notifyListeners();
   }
+
+  Future<String> getAdminIds() async {
+    if (_userData.isEmpty) {
+      await getAllUsers(isRefresh: false);
+    }
+
+    // DEBUG: _userData la enna irukku nu paakka (sari aana aprm remove pannalam)
+    debugPrint("userData count => ${_userData.length}");
+    for (var u in _userData) {
+      debugPrint(
+          "user => id:${u.id} role:${u.role} active:${u.active} name:${u.firstname}");
+    }
+
+    final ids = _userData
+        .where((u) => u.role.toString() == "1")
+        .map((u) => u.id.toString())
+        .where((id) => id.isNotEmpty && id != "null")
+        .toList();
+
+    debugPrint("Admin ids => $ids");
+    return ids.join(",");
+  }
+
   Future<void> sendSomeUserNotification(
       String msgTittle,
       String msgBody,
       String id,
       String purposeId,
-      String taskDate
-      ) async
-  {
-
+      String taskDate,
+      )
+  async {
     try {
-
       String loginId = safeStr(localData.storage.read("id"));
 
-      // Remove self id
-      List<String> idList = id.split(",");
-      idList.remove(loginId);
+      // Remove self id + empty / "null" values
+      List<String> idList = id
+          .split(",")
+          .map((e) => e.trim())
+          .where((e) => e.isNotEmpty && e != "null" && e != loginId)
+          .toList();
       String filteredId = idList.join(",");
+
+      // Yaarukum anuppa illana API call skip pannu
+      if (filteredId.isEmpty) {
+        debugPrint("sendSomeUserNotification skipped: no receiver ids (input: '$id')");
+        return;
+      }
 
       Map<String, dynamic> payload = {
         "action": someUserNotification,
         "msgTittle": msgTittle,
         "msgBody": msgBody,
         "send_by": loginId,
-        "created_by":safeStr(localData.storage.read("id")),
+        "created_by": safeStr(localData.storage.read("id")),
         "id": filteredId,
         "platform": safeStr(localData.storage.read("platform")),
         "purpose_id": purposeId.isNotEmpty ? purposeId : "0",
-        "task_date":taskDate,
+        "task_date": taskDate,
         "task_id": purposeId.isNotEmpty ? purposeId : "0",
         "sender_name": localData.storage.read("f_name"),
       };
@@ -1902,13 +1932,13 @@ Future<void> getNotifications({bool markSeen = false}) async {
       final response = await empRepo.notification(payload);
 
       debugPrint("Notification Response => $response");
-
     } catch (e) {
       debugPrint("Notification Error => $e");
     }
 
     notifyListeners();
   }
+
   Future<void> sendSomeUserTaskNotification(
       String msgTittle,
       String msgBody,
@@ -1953,37 +1983,41 @@ Future<void> getNotifications({bool markSeen = false}) async {
     notifyListeners();
   }
 
-  Future<void> sendAdminNotification(String msgTittle,String msgBody,String role,String purposeId,String assignedId) async
-  {
-    Map<String,String> data = {
-      "action": adminNotification,
-      "msgTittle": msgTittle,
-      "msgBody": msgBody,
-      "role": role.isEmpty?safeStr(localData.storage.read("role")):role,
-      "send_by": safeStr(localData.storage.read("id")),
-      "created_by":safeStr(localData.storage.read("id")),
-      "id": assignedId.isEmpty?safeStr(localData.storage.read("id").toString()):assignedId.toString(),
-      "type": "1",
-      "platform": safeStr(localData.storage.read("platform")),
-      "cos_id": safeStr(localData.storage.read("cos_id")),
-      "purpose_id": purposeId.isNotEmpty ? purposeId : "0",
-    };
+  Future<void> sendAdminNotification(String msgTittle, String msgBody, String role,
+      String purposeId, String assignedId) async {
+    try {
+      Map<String, String> data = {
+        "action": adminNotification,
+        "msgTittle": msgTittle,
+        "msgBody": msgBody,
+        "role": role.isEmpty ? "1" : role,
+        "send_by": safeStr(localData.storage.read("id")),
+        "created_by": safeStr(localData.storage.read("id")),
+        "id": assignedId.isEmpty
+            ? safeStr(localData.storage.read("id"))
+            : assignedId,
+        "type": "1",
+        "platform": safeStr(localData.storage.read("platform")),
+        "cos_id": safeStr(localData.storage.read("cos_id")),
+        "purpose_id": purposeId.isNotEmpty ? purposeId : "0",
+        "task_id": purposeId.isNotEmpty ? purposeId : "0",
+        "sender_name": safeStr(localData.storage.read("f_name")),
+      };
 
-    final response = await empRepo.notification(data);
-    print(response);
-    if(response.isNotEmpty){
-      // utils.showSuccessToast(context: context,text: "Account deleted successfully",);
-      // LocalDatabase.deleteDb();
-      // utils.navigatePage(context,()=>const LoginPage());
-      // loginCtr.reset();
-    }else{
-      // utils.showErrorToast(context: context);
-      // loginCtr.reset();
+      debugPrint("AdminNotif Payload => $data");
+
+      final response = await empRepo.notification(data);
+
+      debugPrint("AdminNotif Response => $response");
+    } catch (e) {
+      debugPrint("AdminNotif Error => $e");
     }
+
     notifyListeners();
   }
 
-  Future<void> sendUserNotification(String msgTittle,String msgBody,String id) async {
+  Future<void> sendUserNotification(String msgTittle,String msgBody,String id)
+  async {
     try {
       Map<String,String> data = {
         "action": userNotification,
@@ -2010,6 +2044,8 @@ Future<void> getNotifications({bool markSeen = false}) async {
     }
     notifyListeners();
   }
+
+
 String addressId="";
 String oldImage="";
 String oldImage2="";

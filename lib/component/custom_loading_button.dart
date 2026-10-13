@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../source/styles/decoration.dart';
+import 'package:master_code/source/styles/decoration.dart';
 import 'package:rounded_loading_button_plus/rounded_loading_button.dart';
 import '../source/constant/colors_constant.dart';
 import '../source/styles/styles.dart';

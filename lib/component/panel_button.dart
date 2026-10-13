@@ -1,12 +1,12 @@
-import '../../component/custom_text.dart';
+import 'package:master_code/component/custom_text.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import '../../source/extentions/extensions.dart';
+import 'package:master_code/source/extentions/extensions.dart';
 
 
 import '../source/styles/decoration.dart';
-import '../../view_model/home_provider.dart';
+import 'package:master_code/view_model/home_provider.dart';
 import 'package:provider/provider.dart';
 
 class PanelButton extends StatelessWidget {

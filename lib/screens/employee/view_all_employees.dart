@@ -1,11 +1,11 @@
-import '../../screens/employee/create_employee.dart';
+import 'package:master_code/screens/employee/create_employee.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import '../../source/constant/assets_constant.dart';
-import '../../source/extentions/extensions.dart';
+import 'package:master_code/source/constant/assets_constant.dart';
+import 'package:master_code/source/extentions/extensions.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../view_model/home_provider.dart';
+import 'package:master_code/view_model/home_provider.dart';
 import '../../component/animated_button.dart';
 import '../../component/custom_appbar.dart';
 import '../../component/custom_loading.dart';

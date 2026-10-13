@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/svg.dart';
-import '../../component/custom_appbar.dart';
-import '../../source/extentions/extensions.dart';
-import '../../view_model/expasy_provider.dart';
+import 'package:master_code/component/custom_appbar.dart';
+import 'package:master_code/source/extentions/extensions.dart';
+import 'package:master_code/view_model/expasy_provider.dart';
 import 'package:provider/provider.dart';
 import '../../component/custom_dropdownfield.dart';
 import '../../component/custom_loading_button.dart';

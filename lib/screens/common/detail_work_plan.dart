@@ -3,8 +3,8 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../../source/constant/colors_constant.dart';
-import '../../source/extentions/extensions.dart';
+import 'package:master_code/source/constant/colors_constant.dart';
+import 'package:master_code/source/extentions/extensions.dart';
 import 'package:open_file/open_file.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';

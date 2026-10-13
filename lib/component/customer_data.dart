@@ -1,9 +1,9 @@
-import '../../source/constant/language_model.dart';
+import 'package:master_code/source/constant/language_model.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import '../../source/constant/assets_constant.dart';
-import '../../source/extentions/extensions.dart';
+import 'package:master_code/source/constant/assets_constant.dart';
+import 'package:master_code/source/extentions/extensions.dart';
 import '../model/customer/customer_model.dart';
 import '../source/constant/colors_constant.dart';
 import '../source/constant/language_model.dart';

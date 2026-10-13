@@ -1,7 +1,6 @@
 import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
-import '../../../source/extentions/int_extensions.dart';
-
+import 'package:master_code/source/extentions/extensions.dart';
 import 'package:provider/provider.dart';
 import 'package:rounded_loading_button_plus/rounded_loading_button.dart';
 import '../../../component/custom_appbar.dart';

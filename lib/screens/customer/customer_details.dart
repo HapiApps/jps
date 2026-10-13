@@ -1,9 +1,9 @@
 import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart';
-import '../../component/custom_loading.dart';
-import '../../model/customer/customer_model.dart';
-import '../../source/extentions/extensions.dart';
-import '../../source/styles/decoration.dart';
+import 'package:master_code/component/custom_loading.dart';
+import 'package:master_code/model/customer/customer_model.dart';
+import 'package:master_code/source/extentions/extensions.dart';
+import 'package:master_code/source/styles/decoration.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../component/app_custom_data_text.dart';

@@ -1,9 +1,9 @@
-import '../../component/custom_loading.dart';
-import '../../component/custom_loading_button.dart';
-import '../../component/custom_textfield.dart';
-import '../../source/extentions/extensions.dart';
-import '../../view_model/home_provider.dart';
-import '../../view_model/location_provider.dart';
+import 'package:master_code/component/custom_loading.dart';
+import 'package:master_code/component/custom_loading_button.dart';
+import 'package:master_code/component/custom_textfield.dart';
+import 'package:master_code/source/extentions/extensions.dart';
+import 'package:master_code/view_model/home_provider.dart';
+import 'package:master_code/view_model/location_provider.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';

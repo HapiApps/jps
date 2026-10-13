@@ -1,14 +1,14 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:developer';
-import '../../view_model/home_provider.dart';
+import 'package:master_code/view_model/home_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:group_button/group_button.dart';
 import 'package:intl/intl.dart';
-import '../../source/constant/colors_constant.dart';
-import '../../source/extentions/extensions.dart';
+import 'package:master_code/source/constant/colors_constant.dart';
+import 'package:master_code/source/extentions/extensions.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
-import '../../view_model/leave_provider.dart';
+import 'package:master_code/view_model/leave_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:rounded_loading_button_plus/rounded_loading_button.dart';
 import 'package:syncfusion_flutter_datepicker/datepicker.dart';
@@ -940,10 +940,9 @@ class AttendanceProvider with ChangeNotifier{
         "st_dt": _startDate,
         "en_dt": _endDate
       };
-      print("data${data}");
+      print("attendance report now data: ${data}");
       final response = await attRepo.getReport(data);
       print("response");
-      print(response);
       if (response.isNotEmpty){
         _getDailyAttendance=response;
         _searchGetDailyAttendance=response;

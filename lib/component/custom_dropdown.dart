@@ -1,6 +1,6 @@
-import '../../source/constant/language_model.dart';
+import 'package:master_code/source/constant/language_model.dart';
 import 'package:flutter/material.dart';
-import '../../source/extentions/extensions.dart';
+import 'package:master_code/source/extentions/extensions.dart';
 import '../source/constant/colors_constant.dart';
 import '../source/constant/language_model.dart';
 import '../source/styles/decoration.dart';

@@ -2,7 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:intl/intl.dart';
-import '../../../source/extentions/extensions.dart';
+import 'package:master_code/source/extentions/extensions.dart';
 import '../../../component/custom_text.dart';
 import '../../../component/dotted_border.dart';
 import '../../../model/customer/customer_report_model.dart';

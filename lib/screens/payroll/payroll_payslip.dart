@@ -1,6 +1,6 @@
 import 'package:flutter/services.dart';
-import '../../source/constant/language_model.dart';
-import '../../view_model/payroll_provider.dart';
+import 'package:master_code/source/constant/language_model.dart';
+import 'package:master_code/view_model/payroll_provider.dart';
 import 'package:number_to_words_english/number_to_words_english.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart';

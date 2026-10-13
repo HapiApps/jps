@@ -1,9 +1,16 @@
 import 'dart:convert';
 import 'dart:developer';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart'as http;
-import '../../source/constant/api.dart';
+import 'package:master_code/source/constant/api.dart';
 
 import '../model/setting/features_model.dart';
+
+void _log(Object? message) {
+  if (!kDebugMode) return;
+  final s = message.toString();
+  debugPrint(s.length > 400 ? '${s.substring(0, 400)}… (${s.length} chars)' : s);
+}
 
 class HomeRepository{
 

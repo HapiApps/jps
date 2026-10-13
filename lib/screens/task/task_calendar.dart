@@ -1,9 +1,9 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
-import '../../screens/task/task_chat.dart';
-import '../../screens/task/task_details.dart';
-import '../../source/extentions/extensions.dart';
+import 'package:master_code/screens/task/task_chat.dart';
+import 'package:master_code/screens/task/task_details.dart';
+import 'package:master_code/source/extentions/extensions.dart';
 import 'package:intl/intl.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
 import '../../component/custom_loading.dart';
@@ -28,6 +28,67 @@ class TaskCalendar extends StatefulWidget {
 class CalendarAppointment extends State<TaskCalendar> {
   final CalendarController _calendarController = CalendarController();
 
+  // ---------------------------------------------------------------------------
+  // PERFORMANCE HELPERS
+  // ---------------------------------------------------------------------------
+
+  /// ✅ DateFormat create panradhu costly. Munnadi ovoru task kum, ovoru build
+  /// kum puthusa create aagitu irundhuchu. Ippo oru dhadava mattum.
+  static final DateFormat _df = DateFormat('dd-MM-yyyy');
+  static final DateFormat _displayDf = DateFormat('dd MMM yyyy');
+
+  /// ✅ parse cache (same date string thirumba thirumba parse aagaadhu)
+  final Map<String, DateTime?> _parseCache = {};
+
+  DateTime? _parse(String? s) {
+    if (s == null) return null;
+    final key = s.trim();
+    if (key.isEmpty || key == "null") return null;
+    return _parseCache.putIfAbsent(key, () {
+      try {
+        return _df.parse(key);
+      } catch (_) {
+        return null;
+      }
+    });
+  }
+
+  int _dayKey(DateTime d) => d.year * 10000 + d.month * 100 + d.day;
+
+  /// ✅ appointment irukkura dates oru Set la. Munnadi ovoru calendar cell kum
+  /// (42 cells) ellaa appointments um scan aagitu irundhuchu.
+  /// Ippo provider data maarina (dataVersion) mattum thirumba build aagum.
+  int _cachedVersion = -1;
+  Set<int> _apptDays = <int>{};
+
+  Set<int> _getApptDays() {
+    final v = widget.taskPvr.dataVersion;
+    if (v != _cachedVersion) {
+      _cachedVersion = v;
+      final set = <int>{};
+      try {
+        final list = widget.taskPvr.dataSource.appointments;
+        if (list != null) {
+          for (final a in list) {
+            if (a is Appointment) {
+              set.add(_dayKey(a.startTime));
+            }
+          }
+        }
+      } catch (_) {
+        // dataSource innum set aagala na empty
+      }
+      _apptDays = set;
+    }
+    return _apptDays;
+  }
+
+  @override
+  void dispose() {
+    _calendarController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     var webWidth = MediaQuery.of(context).size.width * 0.5;
@@ -36,30 +97,35 @@ class CalendarAppointment extends State<TaskCalendar> {
     final DateTime firstDayOfYear = DateTime(now.year - 1, 12, 1);
     final DateTime lastDayOfYear = DateTime(now.year, 12, 31);
 
+    final tp = widget.taskPvr;
+    final String monthPad = utils.returnPadLeft(tp.defaultMonth.toString());
+
     /// ✅ CALCULATE "THIS MONTH" COUNT BASED ON CALENDAR'S CURRENT VISIBLE MONTH
-    /// (uses widget.taskPvr.defaultMonth -> same value used by the list filter below,
-    /// so the count and the list always stay in sync when you scroll to next/prev month)
-    int thisMonthCount = widget.taskPvr.allTasks.where((task) {
-      String dateStr = task.taskDate?.toString() ?? "";
-      if (dateStr.isEmpty) return false;
-      try {
-        DateTime taskDate = DateFormat('dd-MM-yyyy').parse(dateStr);
-        return utils.returnPadLeft(widget.taskPvr.defaultMonth.toString()) ==
-            utils.returnPadLeft(taskDate.month.toString());
-      } catch (_) {
-        return false;
+    /// (same defaultMonth the list uses, so count and list stay in sync)
+    int thisMonthCount = 0;
+    for (final task in tp.allTasks) {
+      final d = _parse(task.taskDate?.toString());
+      if (d != null && monthPad == utils.returnPadLeft(d.month.toString())) {
+        thisMonthCount++;
       }
-    }).length;
+    }
+
+    /// ✅ Month + selected date filter pannina list, ONCE per build.
+    /// Munnadi allTasks full list ku ListView.builder + non-matching ku
+    /// SizedBox return pannitu irundhom (ellaa tasks um build aagum).
+    final List<TaskData> monthTasks = tp.taskList;
+
+    /// ✅ selected filter date, once per build (munnadi ovoru cell kum parse)
+    final DateTime? parsedFilterDate =
+    tp.filterDate.isNotEmpty ? _parse(tp.filterDate) : null;
+
+    final Set<int> apptDays = _getApptDays();
 
     return SafeArea(
       child: Scaffold(
         backgroundColor: colorsConst.bacColor,
-        // appBar: const PreferredSize(
-        //   preferredSize: Size(300, 50),
-        //   child: CustomAppbar(text: "Task Calendar",),
-        // ),
         body: Center(
-          child: widget.taskPvr.refresh == false
+          child: tp.refresh == false
               ? Loading()
               : Column(
             children: [
@@ -75,7 +141,7 @@ class CalendarAppointment extends State<TaskCalendar> {
                             text: "Total Task",
                             colors: colorsConst.secondary),
                         CustomText(
-                          text: "  ${widget.taskPvr.searchAllTasks.length}",
+                          text: "  ${tp.searchAllTasks.length}",
                           colors: colorsConst.primary,
                           isBold: true,
                         )
@@ -86,8 +152,6 @@ class CalendarAppointment extends State<TaskCalendar> {
                         CustomText(
                             text: "This Month",
                             colors: colorsConst.secondary),
-                        /// ✅ FIXED: uses locally calculated thisMonthCount
-                        /// which is always in sync with the visible calendar month
                         CustomText(
                             text: "  $thisMonthCount",
                             colors: colorsConst.appRed,
@@ -98,12 +162,7 @@ class CalendarAppointment extends State<TaskCalendar> {
                 ),
               ),
               10.height,
-              widget.taskPvr.refresh == false
-                  ? const Padding(
-                padding: EdgeInsets.fromLTRB(0, 150, 0, 0),
-                child: Center(child: Loading()),
-              )
-                  : Expanded(
+              Expanded(
                 child: SingleChildScrollView(
                   child: Column(
                     children: [
@@ -129,12 +188,11 @@ class CalendarAppointment extends State<TaskCalendar> {
                               child: TextFormField(
                                 cursorColor: colorsConst.primary,
                                 onChanged: (value) {
-                                  widget.taskPvr
-                                      .searchTask2(value.toString());
+                                  tp.searchTask2(value.toString());
                                 },
                                 textInputAction:
                                 TextInputAction.done,
-                                controller: widget.taskPvr.search2,
+                                controller: tp.search2,
                                 decoration: InputDecoration(
                                   hintText:
                                   "Search Name or ${constValue.customer}",
@@ -143,18 +201,12 @@ class CalendarAppointment extends State<TaskCalendar> {
                                       fontSize: 14),
                                   fillColor: Colors.white,
                                   filled: true,
-                                  // prefixIcon: Icon(Icons.search,color: Colors.grey,),
-                                  suffixIcon: widget
-                                      .taskPvr
-                                      .search2
-                                      .text
+                                  suffixIcon: tp.search2.text
                                       .isNotEmpty
                                       ? GestureDetector(
                                       onTap: () {
-                                        widget.taskPvr.search2
-                                            .clear();
-                                        widget.taskPvr
-                                            .searchTask2("");
+                                        tp.search2.clear();
+                                        tp.searchTask2("");
                                       },
                                       child: Container(
                                           width: 10,
@@ -190,7 +242,6 @@ class CalendarAppointment extends State<TaskCalendar> {
                                       borderRadius:
                                       BorderRadius
                                           .circular(30)),
-                                  // errorStyle: const TextStyle(height:0.05,fontSize: 12),
                                   contentPadding:
                                   const EdgeInsets.fromLTRB(
                                       10, 10, 10, 10),
@@ -205,7 +256,6 @@ class CalendarAppointment extends State<TaskCalendar> {
                                           .circular(30)),
                                   enabledBorder:
                                   OutlineInputBorder(
-                                    // grey.shade300
                                       borderSide: BorderSide(
                                           color: Colors
                                               .grey.shade300),
@@ -222,9 +272,7 @@ class CalendarAppointment extends State<TaskCalendar> {
                       Container(
                         decoration: customDecoration
                             .baseBackgroundDecoration(
-                            color: Colors.white,
-                            // borderColor: colorsConst.litGrey,
-                            radius: 10),
+                            color: Colors.white, radius: 10),
                         width: kIsWeb ? webWidth : phoneWidth,
                         height: 300,
                         child: SfCalendar(
@@ -235,18 +283,15 @@ class CalendarAppointment extends State<TaskCalendar> {
                           todayTextStyle: const TextStyle(
                             color: Colors.white,
                           ),
-                          dataSource: widget.taskPvr.dataSource,
+                          dataSource: tp.dataSource,
                           minDate: firstDayOfYear,
                           maxDate: lastDayOfYear,
-                          // onTap: null,
                           onLongPress: null,
                           onSelectionChanged: null,
-
                           onTap: (CalendarTapDetails value) {
                             if (value.date != null) {
                               final tappedMonth = value.date!.month;
-                              final visibleMonth =
-                                  widget.taskPvr.defaultMonth;
+                              final visibleMonth = tp.defaultMonth;
 
                               if (tappedMonth != visibleMonth) {
                                 _calendarController.displayDate =
@@ -255,44 +300,31 @@ class CalendarAppointment extends State<TaskCalendar> {
                               }
 
                               String selectedDate =
-                              DateFormat('dd-MM-yyyy')
-                                  .format(value.date!);
+                              _df.format(value.date!);
 
-                              /// ✅ ONLY THIS
-                              widget.taskPvr
-                                  .setFilterDate(selectedDate);
-
-                              /// ❌ REMOVE THESE COMPLETELY
-                              // widget.taskPvr.filterDateList(...)
-                              // widget.taskPvr.checkMonth2()
-                              // widget.taskPvr.notifyListeners()
+                              tp.setFilterDate(selectedDate);
                             }
                           },
                           onViewChanged: (details) {
-                            // _calendarController.selectedDate = null;
-                            // _calendarController.displayDate = null;
-                            widget.taskPvr.checkMonth2();
-                            widget.taskPvr.checkMonth(details);
+                            tp.checkMonth2();
+                            tp.checkMonth(details);
                           },
                           monthCellBuilder: (BuildContext context,
                               MonthCellDetails details) {
-                            bool hasAppointments = widget.taskPvr
-                                .hasAppointment(details.date);
-                            bool isSelected = false;
+                            // ✅ O(1) Set lookup (munnadi list scan)
+                            final bool hasAppointments =
+                            apptDays.contains(_dayKey(details.date));
 
-                            if (widget.taskPvr.filterDate != "") {
-                              DateTime parsedFilterDate =
-                              DateFormat('dd-MM-yyyy').parse(
-                                  widget.taskPvr.filterDate);
-                              isSelected = isSameDate(
-                                  details.date, parsedFilterDate);
-                            }
+                            final bool isSelected =
+                                parsedFilterDate != null &&
+                                    isSameDate(
+                                        details.date, parsedFilterDate);
 
-                            // Get the middle date in the visibleDates list to determine current month in view
+                            // Middle date -> current visible month
                             int midIndex =
                                 details.visibleDates.length ~/ 2;
-                            int visibleMonth = details
-                                .visibleDates[midIndex].month;
+                            int visibleMonth =
+                                details.visibleDates[midIndex].month;
 
                             bool isInCurrentMonth =
                                 details.date.month == visibleMonth;
@@ -300,8 +332,7 @@ class CalendarAppointment extends State<TaskCalendar> {
                                 ? colorsConst.greyClr
                                 : isInCurrentMonth
                                 ? Colors.black
-                                : colorsConst
-                                .litGrey; // 👉 other month dates in grey
+                                : colorsConst.litGrey;
 
                             return Container(
                               alignment: Alignment.topLeft,
@@ -315,8 +346,7 @@ class CalendarAppointment extends State<TaskCalendar> {
                               ),
                               child: Center(
                                 child: CustomText(
-                                  text: details.date.day
-                                      .toString(),
+                                  text: details.date.day.toString(),
                                   isBold: true,
                                   colors: hasAppointments
                                       ? Colors.white
@@ -346,102 +376,27 @@ class CalendarAppointment extends State<TaskCalendar> {
                           ),
                         ),
                       ),
-                      widget.taskPvr.allTasks.isEmpty
+
+                      /// ✅ Already filtered list (month + selected date).
+                      /// Match aagura tasks mattum build aagum.
+                      monthTasks.isEmpty
                           ? CustomText(
                         text: "\n\nNo tasks found",
                         colors: colorsConst.secondary,
                         size: 14,
                       )
-                          : (widget.taskPvr.taskList.isEmpty)
-                          ? CustomText(
-                        text: "\n\nNo tasks found",
-                        colors: colorsConst.secondary,
-                        size: 14,
-                      )
-
-                          : widget.taskPvr.allTasks.isNotEmpty
-                          ? SizedBox(
-                        child: ListView.builder(
-                          shrinkWrap: true,
-                          physics:
-                          const NeverScrollableScrollPhysics(),
-                          itemCount: widget
-                              .taskPvr
-                              .allTasks
-                              .length,
-                          itemBuilder:
-                              (context, index) {
-                            TaskData data = widget
-                                .taskPvr
-                                .allTasks[index];
-
-                            /// 🔹 Date safe
-                            String dateStr = data
-                                .taskDate
-                                ?.toString() ??
-                                "";
-
-                            DateTime? dateTime;
-                            try {
-                              if (dateStr
-                                  .isNotEmpty) {
-                                dateTime = DateFormat(
-                                    'dd-MM-yyyy')
-                                    .parse(dateStr);
-                              }
-                            } catch (e) {
-                              print(
-                                  "Invalid Date => $dateStr");
-                              return const SizedBox();
-                            }
-
-                            if (dateTime == null) {
-                              return const SizedBox();
-                            }
-
-                            var st = dateTime;
-
-                            /// 🔹 Month check
-                            bool isSameMonth = utils
-                                .returnPadLeft(widget
-                                .taskPvr
-                                .defaultMonth
-                                .toString()) ==
-                                utils.returnPadLeft(
-                                    st.month
-                                        .toString());
-
-                            /// 🔹 Date filter check
-                            bool isSameDate = widget
-                                .taskPvr
-                                .filterDate ==
-                                data.taskDate
-                                    .toString();
-
-                            /// 🔹 FINAL CONDITION
-                            if ((isSameMonth &&
-                                (widget.taskPvr
-                                    .filterDate ??
-                                    "")
-                                    .isEmpty) ||
-                                (isSameMonth &&
-                                    isSameDate)) {
-                              return dataList(
-                                  kIsWeb
-                                      ? webWidth
-                                      : phoneWidth,
-                                  data,index);
-                            }
-
-                            return const SizedBox();
-                          },
-                        ),
-                      )
-                          : CustomText(
-                        text: "\n\nNo tasks found",
-                        colors:
-                        colorsConst.secondary,
-                        size: 14,
+                          : ListView.builder(
+                        shrinkWrap: true,
+                        physics:
+                        const NeverScrollableScrollPhysics(),
+                        itemCount: monthTasks.length,
+                        itemBuilder: (context, index) {
+                          final TaskData data = monthTasks[index];
+                          return dataList(
+                            kIsWeb ? webWidth : phoneWidth,
+                            data,
+                          );
+                        },
                       ),
                       30.height
                     ],
@@ -461,7 +416,18 @@ class CalendarAppointment extends State<TaskCalendar> {
         date1.day == date2.day;
   }
 
-  Widget dataList(double width, TaskData data, int index) {
+  /// allTasks la intha task oda index (munnadi pola). Tap pannum bodhu mattum
+  /// compute aagum, ovoru item build la illa.
+  int _indexInAllTasks(TaskData data) {
+    final i = widget.taskPvr.allTasks.indexOf(data);
+    return i < 0 ? 0 : i;
+  }
+
+  Widget dataList(double width, TaskData data) {
+    final DateTime? taskDt = _parse(data.taskDate?.toString());
+    final String taskDateText =
+    taskDt != null ? _displayDf.format(taskDt) : "";
+
     return GestureDetector(
       onTap: () {
         utils.navigatePage(
@@ -471,7 +437,8 @@ class CalendarAppointment extends State<TaskCalendar> {
               data: data,
               isDirect: true,
               coId: "0",
-              numberList: const [], index: index,
+              numberList: const [],
+              index: _indexInAllTasks(data),
             ),
           ),
         );
@@ -482,12 +449,7 @@ class CalendarAppointment extends State<TaskCalendar> {
           width: width,
           decoration: BoxDecoration(
             color: colorsConst.primary,
-            borderRadius: BorderRadius.only(
-              topLeft: Radius.circular(10),
-              bottomLeft: Radius.circular(10),
-              topRight: Radius.circular(10),
-              bottomRight: Radius.circular(10),
-            ),
+            borderRadius: const BorderRadius.all(Radius.circular(10)),
           ),
           child: Padding(
             padding: const EdgeInsets.fromLTRB(5, 0, 0, 0),
@@ -540,7 +502,7 @@ class CalendarAppointment extends State<TaskCalendar> {
                               colors: colorsConst.primary,
                             ),
                             5.width,
-                            Icon(Icons.circle, size: 8),
+                            const Icon(Icons.circle, size: 8),
                             5.width,
                             CustomText(text: data.type.toString()),
                           ],
@@ -551,9 +513,7 @@ class CalendarAppointment extends State<TaskCalendar> {
                                 color: colorsConst.greyClr, size: 15),
                             5.width,
                             CustomText(
-                              text: DateFormat("dd MMM yyyy").format(
-                                  DateFormat("dd-MM-yyyy")
-                                      .parse(data.taskDate.toString())),
+                              text: taskDateText,
                               colors: colorsConst.greyClr,
                             ),
                           ],
@@ -580,9 +540,6 @@ class CalendarAppointment extends State<TaskCalendar> {
                           ),
                         IconButton(
                             onPressed: () {
-                              // utils.navigatePage(context, ()=> DashBoard(child: TaskChat(isVisit:false,
-                              //     taskId: data.id.toString(), assignedId: data.assigned.toString(), name: data.creator.toString(), assignedName: data.assignedNames.toString(),)));
-                              //
                               utils.navigatePage(
                                 context,
                                     () => TaskChat(
@@ -593,7 +550,8 @@ class CalendarAppointment extends State<TaskCalendar> {
                                   assignedName: data.assignedNames.toString(),
                                   date1: '',
                                   date2: '',
-                                  type: '', index: index,
+                                  type: '',
+                                  index: _indexInAllTasks(data),
                                 ),
                               );
                             },

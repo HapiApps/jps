@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:developer';
 import 'package:http/http.dart'as http;
-import '../../source/constant/api.dart';
+import 'package:master_code/source/constant/api.dart';
 import '../model/attendance_model.dart';
 
 class AttendanceRepository{

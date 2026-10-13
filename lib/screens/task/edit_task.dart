@@ -1,12 +1,12 @@
-import '../../component/custom_radio_button.dart';
-import '../../component/map_dropdown.dart';
-import '../../model/task/task_data_model.dart';
-import '../../screens/task/search_custom_dropdown.dart' hide MapDropDown;
-import '../../source/extentions/extensions.dart';
-import '../../view_model/customer_provider.dart';
+import 'package:master_code/component/custom_radio_button.dart';
+import 'package:master_code/component/map_dropdown.dart';
+import 'package:master_code/model/task/task_data_model.dart';
+import 'package:master_code/screens/task/search_custom_dropdown.dart' hide MapDropDown;
+import 'package:master_code/source/extentions/extensions.dart';
+import 'package:master_code/view_model/customer_provider.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import '../../view_model/employee_provider.dart';
+import 'package:master_code/view_model/employee_provider.dart';
 import 'package:provider/provider.dart';
 import '../../component/custom_appbar.dart';
 import '../../component/custom_loading_button.dart';
@@ -78,7 +78,20 @@ class _EditTaskState extends State<EditTask> with SingleTickerProviderStateMixin
                                 Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    20.height,
+                                    10.height,
+                                    CustomTextField(
+                                      width: kIsWeb
+                                          ? webWidth
+                                          : MediaQuery.of(context).size.width * 1.0,
+                                      controller: taskProvider.taskTitleCont,
+                                      text: "${constValue.taskTitle}",
+                                      isRequired: true,
+                                      hintText: "Task Title",
+                                      readOnly: false,
+                                      onTap: () {
+
+                                      },
+                                    ),
                                     Row(
                                       children: [
                                         CustomText(text: "${constValue.taskType}"),
@@ -129,8 +142,8 @@ class _EditTaskState extends State<EditTask> with SingleTickerProviderStateMixin
                                   ],
                                 ),
                                 MaxLineTextField(
-                                  text: "${constValue.taskTitle}",isRequired: true,maxLine: 4,
-                                  controller: taskProvider.taskTitleCont,
+                                  text: "${constValue.taskDesc}",isRequired: false,maxLine: 4,
+                                  controller: taskProvider.taskDescCont,
                                   width: kIsWeb?webWidth:phoneWidth,
                                   textCapitalization: TextCapitalization.sentences,
                                 ),
@@ -249,7 +262,7 @@ class _EditTaskState extends State<EditTask> with SingleTickerProviderStateMixin
                                     utils.showWarningToast(context,text: "${constValue.selectType}");
                                     taskProvider.taskCtr.reset();
                                   } else if (taskProvider.taskTitleCont.text.isEmpty) {
-                                    utils.showWarningToast(context,text: "${constValue.fillDescription}");
+                                    utils.showWarningToast(context,text: "${constValue.fillTitle}");
                                     taskProvider.taskCtr.reset();
                                   } else if (taskProvider.assignedId==""&&(taskProvider.assName==""||taskProvider.assName=="null")) {
                                     _myFocusScopeNode.unfocus();

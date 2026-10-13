@@ -2,8 +2,8 @@
 // import 'package:flutter/foundation.dart';
 // import 'package:flutter/services.dart';
 // import 'package:flutter_svg/flutter_svg.dart';
-// import '../../source/constant/assets_constant.dart';
-// import '../../source/extentions/extensions.dart';
+// import 'package:master_code/source/constant/assets_constant.dart';
+// import 'package:master_code/source/extentions/extensions.dart';
 // import 'package:flutter/material.dart';
 // import 'package:provider/provider.dart';
 // import '../../../component/custom_appbar.dart';

@@ -1,8 +1,8 @@
-import '../../source/constant/local_data.dart';
-import '../../source/extentions/extensions.dart';
+import 'package:master_code/source/constant/local_data.dart';
+import 'package:master_code/source/extentions/extensions.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import '../../view_model/home_provider.dart';
+import 'package:master_code/view_model/home_provider.dart';
 import 'package:otp_text_field_v2/otp_field_v2.dart';
 import 'package:provider/provider.dart';
 import '../component/custom_appbar.dart';

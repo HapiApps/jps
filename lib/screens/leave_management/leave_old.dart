@@ -3,9 +3,9 @@
 // import 'package:flutter_svg/svg.dart';
 // import 'package:group_button/group_button.dart';
 // import 'package:intl/intl.dart';
-// import '../../source/extentions/extensions.dart';
-// import '../../source/utilities/utils.dart';
-// import '../../view_model/employee_provider.dart';
+// import 'package:master_code/source/extentions/extensions.dart';
+// import 'package:master_code/source/utilities/utils.dart';
+// import 'package:master_code/view_model/employee_provider.dart';
 // import 'package:provider/provider.dart';
 // import '../../component/animated_button.dart';
 // import '../../component/custom_appbar.dart';

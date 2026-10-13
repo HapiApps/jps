@@ -1,10 +1,10 @@
 import 'package:intl/intl.dart';
-import '../../screens/employee/update_employee.dart';
+import 'package:master_code/screens/employee/update_employee.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:provider/provider.dart';
-import '../../source/extentions/extensions.dart';
+import 'package:master_code/source/extentions/extensions.dart';
 import '../../component/custom_text.dart';
 import '../../model/user_model.dart';
 import '../../source/constant/assets_constant.dart';

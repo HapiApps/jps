@@ -2,9 +2,9 @@ import 'dart:convert';
 import 'dart:developer';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart'as http;
-import '../../model/customer/customer_attendance_model.dart';
-import '../../model/customer/customer_model.dart';
-import '../../source/constant/api.dart';
+import 'package:master_code/model/customer/customer_attendance_model.dart';
+import 'package:master_code/model/customer/customer_model.dart';
+import 'package:master_code/source/constant/api.dart';
 import '../model/customer/customer_report_model.dart';
 import '../model/track/track_model.dart';
 

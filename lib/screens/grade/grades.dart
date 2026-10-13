@@ -1,9 +1,9 @@
-import '../../component/custom_textfield.dart';
-import '../../screens/grade/grade_policy.dart';
-import '../../source/constant/key_constant.dart';
+import 'package:master_code/component/custom_textfield.dart';
+import 'package:master_code/screens/grade/grade_policy.dart';
+import 'package:master_code/source/constant/key_constant.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import '../../source/extentions/extensions.dart';
+import 'package:master_code/source/extentions/extensions.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../component/create_button.dart';

@@ -2,11 +2,11 @@
 // import 'package:flutter/services.dart';
 // import 'package:flutter_speed_dial/flutter_speed_dial.dart';
 // import 'package:flutter_svg/svg.dart';
-// import '../../component/custom_loading_button.dart';
-// import '../../screens/expasy/simple_expense.dart';
-// import '../../source/constant/language_model.dart';
-// import '../../source/extentions/extensions.dart';
-// import '../../view_model/expasy_provider.dart';
+// import 'package:master_code/component/custom_loading_button.dart';
+// import 'package:master_code/screens/expasy/simple_expense.dart';
+// import 'package:master_code/source/constant/language_model.dart';
+// import 'package:master_code/source/extentions/extensions.dart';
+// import 'package:master_code/view_model/expasy_provider.dart';
 // import 'package:provider/provider.dart';
 // import '../../component/custom_appbar.dart';
 // import '../../component/custom_text.dart';

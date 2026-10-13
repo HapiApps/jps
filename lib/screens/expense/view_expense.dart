@@ -1,9 +1,9 @@
 import 'package:flutter_svg/svg.dart';
-import '../../source/constant/language_model.dart';
-import '../../view_model/expense_provider.dart';
+import 'package:master_code/source/constant/language_model.dart';
+import 'package:master_code/view_model/expense_provider.dart';
 import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart';
-import '../../source/extentions/extensions.dart';
+import 'package:master_code/source/extentions/extensions.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../component/animated_button.dart';

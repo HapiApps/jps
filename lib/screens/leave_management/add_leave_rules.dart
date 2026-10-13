@@ -1,9 +1,9 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import '../../source/constant/language_model.dart';
-import '../../source/extentions/extensions.dart';
-import '../../view_model/employee_provider.dart';
-import '../../view_model/leave_provider.dart';
+import 'package:master_code/source/constant/language_model.dart';
+import 'package:master_code/source/extentions/extensions.dart';
+import 'package:master_code/view_model/employee_provider.dart';
+import 'package:master_code/view_model/leave_provider.dart';
 import 'package:provider/provider.dart';
 import '../../component/custom_appbar.dart';
 import '../../component/custom_loading.dart';

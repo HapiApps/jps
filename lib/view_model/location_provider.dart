@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'dart:developer';
-import '../../source/constant/colors_constant.dart';
+import 'package:master_code/source/constant/colors_constant.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';

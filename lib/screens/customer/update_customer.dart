@@ -1,11 +1,11 @@
 import 'package:country_picker/country_picker.dart';
-import '../../view_model/location_provider.dart';
+import 'package:master_code/view_model/location_provider.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_svg/svg.dart';
-import '../../screens/customer/viamap.dart';
-import '../../source/constant/key_constant.dart';
-import '../../source/extentions/extensions.dart';
-import '../../source/styles/decoration.dart';
+import 'package:master_code/screens/customer/viamap.dart';
+import 'package:master_code/source/constant/key_constant.dart';
+import 'package:master_code/source/extentions/extensions.dart';
+import 'package:master_code/source/styles/decoration.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../component/custom_appbar.dart';

@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:developer';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart'as http;
-import '../../source/constant/api.dart';
+import 'package:master_code/source/constant/api.dart';
 
 import '../model/user_model.dart';
 

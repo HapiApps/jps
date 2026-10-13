@@ -1,10 +1,10 @@
 import 'package:flutter/foundation.dart';
-import '../../component/custom_checkbox.dart';
-import '../../component/custom_loading_button.dart';
-import '../../source/extentions/extensions.dart';
+import 'package:master_code/component/custom_checkbox.dart';
+import 'package:master_code/component/custom_loading_button.dart';
+import 'package:master_code/source/extentions/extensions.dart';
 import 'package:flutter/material.dart';
-import '../../view_model/home_provider.dart';
-import '../../view_model/setting_provider.dart';
+import 'package:master_code/view_model/home_provider.dart';
+import 'package:master_code/view_model/setting_provider.dart';
 import 'package:provider/provider.dart';
 import '../../component/custom_appbar.dart';
 import '../../component/custom_text.dart';

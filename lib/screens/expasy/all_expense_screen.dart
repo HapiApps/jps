@@ -1,6 +1,6 @@
 // import 'package:flutter/services.dart';
-// import '../../source/extentions/extensions.dart';
-// import '../../view_model/expasy_provider.dart';
+// import 'package:master_code/source/extentions/extensions.dart';
+// import 'package:master_code/view_model/expasy_provider.dart';
 // import 'package:flutter/foundation.dart';
 // import 'package:flutter/material.dart';
 // import 'package:flutter_svg/svg.dart';

@@ -32,6 +32,9 @@ const String forgotPsd="forgot_password";
 const String home="home_data";
 const String psdOtp="otp";
 
+///Update fcm Notification
+const String updateTokenAction="update_token";
+
 /// EMPLOYEE
 const String signUp = "sign_up";
 const String insertUsers = "insert_users";
@@ -109,7 +112,6 @@ const String userNotification="user_notification";
 const String someUserNotification="hapi_some_user_notification"; // hapiapps only
 const String adminNotification="hapi_admin_notification";   //hapiapps only
 const String seenNotification="update_read_notification";
-
 
 /// PROJECT
 const String addProject="create_project";

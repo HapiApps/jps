@@ -1,8 +1,8 @@
-import '../../component/custom_loading.dart';
-import '../../component/dotted_border.dart';
-import '../../screens/task/task_details.dart';
-import '../../source/extentions/extensions.dart';
-import '../../view_model/location_provider.dart';
+import 'package:master_code/component/custom_loading.dart';
+import 'package:master_code/component/dotted_border.dart';
+import 'package:master_code/screens/task/task_details.dart';
+import 'package:master_code/source/extentions/extensions.dart';
+import 'package:master_code/view_model/location_provider.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';

@@ -1,7 +1,7 @@
-import '../../screens/setting/headings.dart';
-import '../../screens/setting/manage_setting.dart';
-import '../../source/constant/language_model.dart';
-import '../../source/constant/local_data.dart';
+import 'package:master_code/screens/setting/headings.dart';
+import 'package:master_code/screens/setting/manage_setting.dart';
+import 'package:master_code/source/constant/language_model.dart';
+import 'package:master_code/source/constant/local_data.dart';
 import 'package:flutter/material.dart';
 import '../../component/animated_drawer.dart';
 import '../../component/custom_appbar.dart';
