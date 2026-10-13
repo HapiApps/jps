@@ -627,19 +627,19 @@ class _DashBoardState extends State<DashBoard> {
     final role = localData.storage.read("role");
     final lang = LanguageManager.instance.lang;
 
-    final bool roleAccessChanged =
-    !identical(_cachedRoleAccess, homeProvider.roleAccess);
+    // final bool roleAccessChanged =
+    // !identical(_cachedRoleAccess, homeProvider.roleAccess);
     final bool roleChanged = _cachedRole != role;
     final bool langChanged = _cachedLang != lang;
     final bool indexChanged = _cachedSelectedIndex != homeProvider.selectedIndex;
 
     if (_cachedPanelButtons == null ||
-        roleAccessChanged ||
+        // roleAccessChanged ||
         roleChanged ||
         langChanged ||
         indexChanged) {
       _cachedPanelButtons = _buildPanelButtons(context, homeProvider, empPvr);
-      _cachedRoleAccess = homeProvider.roleAccess;
+      // _cachedRoleAccess = homeProvider.roleAccess;
       _cachedRole = role;
       _cachedLang = lang;
       _cachedSelectedIndex = homeProvider.selectedIndex;
@@ -665,10 +665,10 @@ class _DashBoardState extends State<DashBoard> {
               () => const DashBoard(child: WagesWorkerDetailsPage())),
       _PanelItem(constValue.customer, assets.customer, 2,
               () => const DashBoard(child: ViewCustomer())),
-      if (homeProvider.roleAccess
-          .any((f) => f['feature'] == 'Expense' && f['name'] == 'View'))
-        _PanelItem(
-            "Expense", assets.expense, 9, () => const DashBoard(child: ExpensePage())),
+      // if (homeProvider.roleAccess
+      //     .any((f) => f['feature'] == 'Expense' && f['name'] == 'View'))
+      //   _PanelItem(
+      //       "Expense", assets.expense, 9, () => const DashBoard(child: ExpensePage())),
       _PanelItem(
           "${constValue.task}",
           assets.report,

@@ -334,7 +334,7 @@ class _CusAddVisitState extends State<CusAddVisit>
                                   ],
                                 ),
 
-                              /// ====================== CUSTOMER TYPE ======================
+                              /// ====================== CUSTOMER TYPE ======================(only for JPS)
                               // MapDropDown(
                               //   isRefresh: taskProvider.cusTypeList.isEmpty,
                               //   callback: () {
