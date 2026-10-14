@@ -1540,6 +1540,10 @@ String get notificationToken =>_notificationToken;
             .toList(),
       );
 
+      if (!attendanceProvider.attCheck) {
+        attendanceProvider.getMainAttendance();
+      }
+
       // ============================================================
       // LATE + PERMISSION
       // ============================================================

@@ -276,619 +276,613 @@ class _CheckAttendanceState extends State<CheckAttendance> {
           print("isPermissionActive ${isPermissionActive}");
           return
             // attProvider.attCheck==false?const Loading():
-          Column(
-            children: [
-              Container(
-                decoration: customDecoration.baseBackgroundDecoration(
-                    color: Colors.white,radius: 10
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(5.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      SizedBox(
-                        width: screenWidth/2.2,
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                if(attProvider.mainCheckOut == false)
-                                  Row(
-                                    children: [
-                                      GestureDetector(
-                                        onTap: () {
-                                          attProvider.manageSelfie();
-                                        },
-                                        child: Container(
-                                          width: 20,
-                                          height: 20,
-                                          decoration: BoxDecoration(
-                                            color: attProvider.isSelfie ? Color(0xffD9D9D9) :Color(0xffD9D9D9),
-                                            borderRadius: BorderRadius.circular(4),
-                                            border: Border.all(color: Color(0xffD9D9D9), width: 1.2),
+            Column(
+              children: [
+                Container(
+                  decoration: customDecoration.baseBackgroundDecoration(
+                      color: Colors.white,radius: 10
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(5.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        SizedBox(
+                          width: screenWidth/2.2,
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  if(attProvider.mainCheckOut == false)
+                                    Row(
+                                      children: [
+                                        GestureDetector(
+                                          onTap: () {
+                                            attProvider.manageSelfie();
+                                          },
+                                          child: Container(
+                                            width: 20,
+                                            height: 20,
+                                            decoration: BoxDecoration(
+                                              color: attProvider.isSelfie ? Color(0xffD9D9D9) :Color(0xffD9D9D9),
+                                              borderRadius: BorderRadius.circular(4),
+                                              border: Border.all(color: Color(0xffD9D9D9), width: 1.2),
+                                            ),
+                                            child: attProvider.isSelfie
+                                                ? Icon(
+                                              Icons.check,
+                                              size: 14,
+                                              color: colorsConst.primary,
+                                            )
+                                                : null,
                                           ),
-                                          child: attProvider.isSelfie
-                                              ? Icon(
-                                            Icons.check,
-                                            size: 14,
-                                            color: colorsConst.primary,
-                                          )
-                                              : null,
                                         ),
-                                      ),
-                                      const SizedBox(width: 3),
-                                      CustomText(
-                                        //text:  "verify",
-                                        text:  "${constValue.verify}",
+                                        const SizedBox(width: 3),
+                                        CustomText(
+                                          //text:  "verify",
+                                          text:  "${constValue.verify}",
 
-                                        shrink: true,
-                                        size: 11,
-                                        colors: Colors.blue,isBold: true,
-                                      ),
-                                      3.width,
-                                      GestureDetector(
-                                        onTap: attProvider.permissionStatus != "1"
-                                            ? () {
-                                          if (attProvider.mainCheckOut == true) {
-                                            utils.showWarningToast(context,
-                                                text: "Permission cannot be added after marking attendance.");
-                                          } else {
-                                            if (split.last == "2") {
-                                              attProvider.permissionReason.clear();
-                                            }
+                                          shrink: true,
+                                          size: 11,
+                                          colors: Colors.blue,isBold: true,
+                                        ),
+                                        3.width,
+                                        GestureDetector(
+                                          onTap: attProvider.permissionStatus != "1"
+                                              ? () {
+                                            if (attProvider.mainCheckOut == true) {
+                                              utils.showWarningToast(context,
+                                                  text: "Permission cannot be added after marking attendance.");
+                                            } else {
+                                              if (split.last == "2") {
+                                                attProvider.permissionReason.clear();
+                                              }
 
-                                            showDialog(
-                                              context: context,
-                                              barrierDismissible: false,
-                                              builder: (BuildContext context) {
-                                                return AlertDialog(
-                                                  actions: [
-                                                    Center(
-                                                      child: SizedBox(
-                                                        width: kIsWeb
-                                                            ? MediaQuery.of(context).size.width * 0.3
-                                                            : MediaQuery.of(context).size.width * 0.8,
-                                                        child: Column(
-                                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                                          children: [
-                                                            Center(
-                                                              child: CustomText(
-                                                                text: "${constValue.permission}\n",
-                                                                colors: Colors.black,
-                                                                size: 15,
-                                                                isBold: true,
+                                              showDialog(
+                                                context: context,
+                                                barrierDismissible: false,
+                                                builder: (BuildContext context) {
+                                                  return AlertDialog(
+                                                    actions: [
+                                                      Center(
+                                                        child: SizedBox(
+                                                          width: kIsWeb
+                                                              ? MediaQuery.of(context).size.width * 0.3
+                                                              : MediaQuery.of(context).size.width * 0.8,
+                                                          child: Column(
+                                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                                            children: [
+                                                              Center(
+                                                                child: CustomText(
+                                                                  text: "${constValue.permission}\n",
+                                                                  colors: Colors.black,
+                                                                  size: 15,
+                                                                  isBold: true,
+                                                                ),
                                                               ),
-                                                            ),
-                                                            Column(
-                                                              crossAxisAlignment: CrossAxisAlignment.start,
-                                                              children: [
-                                                                Row(
-                                                                  children: [
-                                                                    CustomText(
-                                                                        text: "Reason",
-                                                                        colors: colorsConst.greyClr),
-                                                                    CustomText(
-                                                                        text: "*",
-                                                                        colors: colorsConst.appRed,
-                                                                        size: 20),
-                                                                  ],
-                                                                ),
-                                                                5.height,
-                                                                TextField(
-                                                                  textCapitalization:
-                                                                  TextCapitalization.sentences,
-                                                                  minLines: 1,
-                                                                  maxLines: null,
-                                                                  controller: attProvider.permissionReason,
-                                                                  textInputAction: TextInputAction.done,
-                                                                  decoration: InputDecoration(
-                                                                    hintText: "",
-                                                                    fillColor: Colors.white,
-                                                                    filled: true,
-                                                                    enabledBorder: OutlineInputBorder(
-                                                                      borderSide: BorderSide(
-                                                                          color: Colors.grey.shade300),
-                                                                      borderRadius: BorderRadius.circular(10),
+                                                              Column(
+                                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                                children: [
+                                                                  Row(
+                                                                    children: [
+                                                                      CustomText(
+                                                                          text: "Reason",
+                                                                          colors: colorsConst.greyClr),
+                                                                      CustomText(
+                                                                          text: "*",
+                                                                          colors: colorsConst.appRed,
+                                                                          size: 20),
+                                                                    ],
+                                                                  ),
+                                                                  5.height,
+                                                                  TextField(
+                                                                    textCapitalization:
+                                                                    TextCapitalization.sentences,
+                                                                    minLines: 1,
+                                                                    maxLines: null,
+                                                                    controller: attProvider.permissionReason,
+                                                                    textInputAction: TextInputAction.done,
+                                                                    decoration: InputDecoration(
+                                                                      hintText: "",
+                                                                      fillColor: Colors.white,
+                                                                      filled: true,
+                                                                      enabledBorder: OutlineInputBorder(
+                                                                        borderSide: BorderSide(
+                                                                            color: Colors.grey.shade300),
+                                                                        borderRadius: BorderRadius.circular(10),
+                                                                      ),
+                                                                      focusedBorder: OutlineInputBorder(
+                                                                        borderSide: BorderSide(
+                                                                            color: colorsConst.primary),
+                                                                        borderRadius: BorderRadius.circular(10),
+                                                                      ),
+                                                                      contentPadding: const EdgeInsets.fromLTRB(
+                                                                          10, 10, 10, 10),
                                                                     ),
-                                                                    focusedBorder: OutlineInputBorder(
-                                                                      borderSide: BorderSide(
-                                                                          color: colorsConst.primary),
-                                                                      borderRadius: BorderRadius.circular(10),
+                                                                  ),
+                                                                ],
+                                                              ),
+                                                              20.height,
+
+                                                              Row(
+                                                                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                                                children: [
+                                                                  OutlinedButton(
+                                                                    onPressed: () {
+                                                                      attProvider.permissionReason.clear();
+                                                                      Navigator.pop(context);
+                                                                    },
+                                                                    style: OutlinedButton.styleFrom(
+                                                                      backgroundColor: Colors.grey.shade200,
+                                                                      side:
+                                                                      const BorderSide(color: Colors.white),
                                                                     ),
-                                                                    contentPadding: const EdgeInsets.fromLTRB(
-                                                                        10, 10, 10, 10),
+                                                                    child: CustomText(
+                                                                      text: "Cancel",
+                                                                      colors: colorsConst.secondary,
+                                                                      size: 15,
+                                                                      isBold: true,
+                                                                    ),
                                                                   ),
-                                                                ),
-                                                              ],
-                                                            ),
-                                                            20.height,
+                                                                  OutlinedButton(
+                                                                    onPressed: () async {
+                                                                      if (attProvider.permissionReason.text
+                                                                          .trim()
+                                                                          .isNotEmpty) {
+                                                                        Map<Permission, PermissionStatus>
+                                                                        status = await [
+                                                                          Permission.location,
+                                                                        ].request();
 
-                                                            Row(
-                                                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                                                              children: [
-                                                                OutlinedButton(
-                                                                  onPressed: () {
-                                                                    attProvider.permissionReason.clear();
-                                                                    Navigator.pop(context);
-                                                                  },
-                                                                  style: OutlinedButton.styleFrom(
-                                                                    backgroundColor: Colors.grey.shade200,
-                                                                    side:
-                                                                    const BorderSide(color: Colors.white),
-                                                                  ),
-                                                                  child: CustomText(
-                                                                    text: "Cancel",
-                                                                    colors: colorsConst.secondary,
-                                                                    size: 15,
-                                                                    isBold: true,
-                                                                  ),
-                                                                ),
-                                                                OutlinedButton(
-                                                                  onPressed: () async {
-                                                                    if (attProvider.permissionReason.text
-                                                                        .trim()
-                                                                        .isNotEmpty) {
-                                                                      Map<Permission, PermissionStatus>
-                                                                      status = await [
-                                                                        Permission.location,
-                                                                      ].request();
+                                                                        if (status[Permission.location] ==
+                                                                            PermissionStatus.granted) {
+                                                                          bool isLocationServiceEnabled =
+                                                                          await Geolocator
+                                                                              .isLocationServiceEnabled();
 
-                                                                      if (status[Permission.location] ==
-                                                                          PermissionStatus.granted) {
-                                                                        bool isLocationServiceEnabled =
-                                                                        await Geolocator
-                                                                            .isLocationServiceEnabled();
-
-                                                                        if (!isLocationServiceEnabled) {
-                                                                          utils.showWarningToast(context,
-                                                                              text:
-                                                                              "Location services are disabled. Please enable them.");
-                                                                        } else {
-                                                                          if (locPvr.latitude == "" &&
-                                                                              locPvr.longitude == "") {
-                                                                            utils.showWarningToast(
-                                                                                text: "Check Your Location",
-                                                                                context);
-                                                                            await locPvr.manageLocation(
-                                                                                context, true);
+                                                                          if (!isLocationServiceEnabled) {
+                                                                            utils.showWarningToast(context,
+                                                                                text:
+                                                                                "Location services are disabled. Please enable them.");
                                                                           } else {
-                                                                            if (attProvider.isSelfie == false) {
-                                                                              attProvider.putDailyPermission(
-                                                                                  context,
-                                                                                  "1",
-                                                                                  locPvr.latitude,
-                                                                                  locPvr.longitude);
+                                                                            if (locPvr.latitude == "" &&
+                                                                                locPvr.longitude == "") {
+                                                                              utils.showWarningToast(
+                                                                                  text: "Check Your Location",
+                                                                                  context);
+                                                                              await locPvr.manageLocation(
+                                                                                  context, true);
                                                                             } else {
-                                                                              attProvider.signDialog(
-                                                                                context: context,
-                                                                                img: attProvider.profile,
-                                                                                onTap: (newImg) {
-                                                                                  attProvider
-                                                                                      .profilePick(newImg);
-                                                                                  attProvider.putDailyPermission(
-                                                                                      context,
-                                                                                      "1",
-                                                                                      locPvr.latitude,
-                                                                                      locPvr.longitude);
-                                                                                },
-                                                                              );
+                                                                              if (attProvider.isSelfie == false) {
+                                                                                attProvider.putDailyPermission(
+                                                                                    context,
+                                                                                    "1",
+                                                                                    locPvr.latitude,
+                                                                                    locPvr.longitude);
+                                                                              } else {
+                                                                                attProvider.signDialog(
+                                                                                  context: context,
+                                                                                  img: attProvider.profile,
+                                                                                  onTap: (newImg) {
+                                                                                    attProvider
+                                                                                        .profilePick(newImg);
+                                                                                    attProvider.putDailyPermission(
+                                                                                        context,
+                                                                                        "1",
+                                                                                        locPvr.latitude,
+                                                                                        locPvr.longitude);
+                                                                                  },
+                                                                                );
+                                                                              }
                                                                             }
                                                                           }
+                                                                        } else {
+                                                                          await locPvr.manageLocation(
+                                                                              context, true);
                                                                         }
                                                                       } else {
-                                                                        await locPvr.manageLocation(
-                                                                            context, true);
+                                                                        utils.showWarningToast(context,
+                                                                            text: "Please type a reason");
                                                                       }
-                                                                    } else {
-                                                                      utils.showWarningToast(context,
-                                                                          text: "Please type a reason");
-                                                                    }
-                                                                  },
-                                                                  style: OutlinedButton.styleFrom(
-                                                                    backgroundColor: colorsConst.primary,
-                                                                    side: BorderSide(
-                                                                        color: colorsConst.primary),
+                                                                    },
+                                                                    style: OutlinedButton.styleFrom(
+                                                                      backgroundColor: colorsConst.primary,
+                                                                      side: BorderSide(
+                                                                          color: colorsConst.primary),
+                                                                    ),
+                                                                    child: const CustomText(
+                                                                      text: "Ok",
+                                                                      colors: Colors.white,
+                                                                      size: 15,
+                                                                      isBold: true,
+                                                                    ),
                                                                   ),
-                                                                  child: const CustomText(
-                                                                    text: "Ok",
-                                                                    colors: Colors.white,
-                                                                    size: 15,
-                                                                    isBold: true,
-                                                                  ),
-                                                                ),
-                                                              ],
-                                                            ),
-                                                            40.height,
-                                                          ],
+                                                                ],
+                                                              ),
+                                                              40.height,
+                                                            ],
+                                                          ),
                                                         ),
                                                       ),
-                                                    ),
-                                                  ],
-                                                );
-                                              },
-                                            );
+                                                    ],
+                                                  );
+                                                },
+                                              );
+                                            }
                                           }
-                                        }
-                                            : null,
+                                              : null,
 
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
+                                            decoration: BoxDecoration(
+                                              color: attProvider.permissionStatus != "1"
+                                                  ? Colors.green
+                                                  : Colors.grey.shade400,
+                                              borderRadius: BorderRadius.circular(8),
+                                            ),
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Icon(
+                                                  Icons.lock_clock,
+                                                  size: 14,
+                                                  color: Colors.white,
+                                                ),
+                                                const SizedBox(width: 6),
+                                                CustomText(
+                                                  text: "${constValue.permission}",
+                                                  size: 11,
+                                                  shrink: true,
+                                                  isBold: true,
+                                                  colors: Colors.white,
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+
+                                      ],
+                                    ),
+                                ],
+                              ),
+                              20.height,
+                              Container(
+                                width: MediaQuery.of(context).size.width * 0.9,
+                                height: 35,
+                                child: ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: attProvider.mainCheckOut
+                                        ? Colors.grey
+                                        : attProvider.permissionStatus == "1"
+                                        ? Colors.red
+                                        : getAttendanceColor(),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                  ),
+
+                                  // ✅ FIX: Confirmation dialog + 2nd API call removed.
+                                  // Before: putDailyAttendance was called once (selfie/direct),
+                                  // then again after the empty "Confirmation" dialog.
+                                  // 2nd call saw mainAttendance already = 1 -> sent "2" (check-out)
+                                  // so check-in + check-out happened together.
+                                  // Now: ONLY ONE API call per tap.
+                                  onPressed: attProvider.mainCheckOut
+                                      ? null
+                                      : () async {
+
+                                    if (locPvr.latitude == null ||
+                                        locPvr.longitude == null) {
+                                      utils.showWarningToast(
+                                        context,
+                                        text:
+                                        "Location not available. Please enable GPS and try again.",
+                                      );
+                                      return;
+                                    }
+
+                                    String isOnLeaveValue = homeProvider.mainReportList.isEmpty
+                                        ? "0"
+                                        : homeProvider.mainReportList[0]["is_on_leave"].toString() == "null"
+                                        ? "0"
+                                        : homeProvider.mainReportList[0]["is_on_leave"].toString();
+
+                                    bool isOnLeave = isOnLeaveValue == "1";
+                                    print("isOnLeaveValue${isOnLeaveValue}");
+                                    if (isOnLeave) {
+                                      utils.showWarningToast(
+                                        context,
+                                        text:
+                                        "You are on leave today. Attendance cannot be marked.",
+                                      );
+                                      return;
+                                    }
+
+                                    if (attProvider.permissionStatus == "1") {
+                                      // Permission OUT
+                                      if (attProvider.isSelfie == false) {
+                                        attProvider.putDailyPermission(
+                                          context,
+                                          "2",
+                                          locPvr.latitude,
+                                          locPvr.longitude,
+                                        );
+                                      } else {
+                                        attProvider.signDialog(
+                                          context: context,
+                                          img: attProvider.profile,
+                                          onTap: (newImg) {
+                                            attProvider.profilePick(newImg);
+                                            attProvider.putDailyPermission(
+                                              context,
+                                              "2",
+                                              locPvr.latitude,
+                                              locPvr.longitude,
+                                            );
+                                          },
+                                        );
+                                      }
+                                    } else {
+                                      // Attendance IN / OUT
+                                      // type is calculated ONCE at tap time, so it can't
+                                      // change if provider state updates later.
+                                      final String type =
+                                      attProvider.mainAttendance == 0 ? "1" : "2";
+
+                                      if (attProvider.isSelfie == false) {
+                                        attProvider.putDailyAttendance(
+                                          context,
+                                          type,
+                                          locPvr.latitude,
+                                          locPvr.longitude,
+                                        );
+                                      } else {
+                                        attProvider.signDialog(
+                                          context: context,
+                                          img: attProvider.profile,
+                                          onTap: (newImg) {
+                                            attProvider.profilePick(newImg);
+                                            attProvider.putDailyAttendance(
+                                              context,
+                                              type,
+                                              locPvr.latitude,
+                                              locPvr.longitude,
+                                            );
+                                          },
+                                        );
+                                      }
+                                    }
+                                  },
+
+                                  child: CustomText(
+                                    text:  attProvider.mainCheckOut
+                                        ? constValue.attendMak
+                                        : attProvider.permissionStatus == "1"
+                                        ? constValue.perOut
+                                        : attProvider.mainAttendance == 0
+                                        ? constValue.attendIn
+                                        : constValue.attendOut,
+                                    size: 13,
+                                    isBold: true,
+                                    colors: Colors.white,
+                                    shrink: true,
+                                  ),
+                                ),
+                              )
+                            ],
+                          ),
+                        ),
+                        localData.storage.read("role")=="1"?
+                        Container(
+                            height: 90,
+                            width: screenWidth/2.5,
+                            decoration: customDecoration.baseBackgroundDecoration(
+                                color: Colors.white,radius: 10
+                            ),
+                            child: Center(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Column(
+                                    mainAxisAlignment: MainAxisAlignment.start,
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+
+                                      /// LEAVE APPLIED -> Tab 1 (Leave Created / Applied)
+                                      GestureDetector(
+                                        onTap: () {
+                                          final leaveProvider = Provider.of<LeaveProvider>(context, listen: false);
+                                          leaveProvider.changeIndex(2);
+                                          leaveProvider.setViewLeaveTab(0);
+
+                                          utils.navigatePage(
+                                            context,
+                                                () => const DashBoard(child: LeaveManagementDashboard()),
+                                          );
+                                        },
                                         child: Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
+                                          width: 150,
+                                          height: 32,
+                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
                                           decoration: BoxDecoration(
-                                            color: attProvider.permissionStatus != "1"
-                                                ? Colors.green
-                                                : Colors.grey.shade400,
-                                            borderRadius: BorderRadius.circular(8),
+                                            color: Colors.red.withOpacity(0.12),
+                                            borderRadius: BorderRadius.circular(12),
+                                            border: Border.all(color: Colors.red, width: 1),
                                           ),
                                           child: Row(
-                                            mainAxisSize: MainAxisSize.min,
                                             children: [
-                                              Icon(
-                                                Icons.lock_clock,
-                                                size: 14,
-                                                color: Colors.white,
+                                              Flexible(
+                                                child: CustomText(
+                                                  text: "${constValue.leave_Applided}:",
+                                                  size: 12,
+                                                  colors: Colors.red.shade800,
+                                                  isBold: true,
+                                                  shrink: true,
+                                                ),
                                               ),
-                                              const SizedBox(width: 6),
+                                              const SizedBox(width: 4),
                                               CustomText(
-                                                text: "${constValue.permission}",
-                                                size: 11,
-                                                shrink: true,
+                                                text: homeProvider.mainReportList.isEmpty
+                                                    ? ""
+                                                    : homeProvider.mainReportList[0]["today_apply_leave"].toString(),
+                                                size: 16,
                                                 isBold: true,
-                                                colors: Colors.white,
+                                                colors: Colors.red.shade900,
                                               ),
                                             ],
                                           ),
                                         ),
                                       ),
+                                      const SizedBox(height: 5),
 
+                                      /// ON LEAVE -> Tab 2 (Employees On Leave)
+                                      GestureDetector(
+                                        onTap: () {
+                                          final leaveProvider = Provider.of<LeaveProvider>(context, listen: false);
+                                          leaveProvider.changeIndex(2);
+                                          leaveProvider.setViewLeaveTab(1);
+
+                                          utils.navigatePage(
+                                            context,
+                                                () => const DashBoard(child: LeaveManagementDashboard()),
+                                          );
+                                        },
+                                        child: Container(
+                                          width: 150,
+                                          height: 32,
+                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                                          decoration: BoxDecoration(
+                                            color: Colors.green.withOpacity(0.12),
+                                            borderRadius: BorderRadius.circular(12),
+                                            border: Border.all(color: Colors.green, width: 1),
+                                          ),
+                                          child: Row(
+                                            children: [
+                                              Flexible(
+                                                child: CustomText(
+                                                  text: "${constValue.on_Leave}:",
+                                                  size: 12,
+                                                  colors: Colors.green.shade800,
+                                                  isBold: true,
+                                                  shrink: true,
+                                                ),
+                                              ),
+                                              const SizedBox(width: 4),
+                                              CustomText(
+                                                text: homeProvider.mainReportList.isEmpty
+                                                    ? "0"
+                                                    : "${int.parse(homeProvider.mainReportList[0]["fulldayleave_user"].toString() == "null" ? "0" : homeProvider.mainReportList[0]["fulldayleave_user"].toString()) + int.parse(homeProvider.mainReportList[0]["sessionleave_user"].toString() == "null" ? "0" : homeProvider.mainReportList[0]["sessionleave_user"].toString())}",
+                                                size: 16,
+                                                isBold: true,
+                                                colors: Colors.black,
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
                                     ],
-                                  ),
-                              ],
-                            ),
-                            20.height,
-                            Container(
-                              width: MediaQuery.of(context).size.width * 0.9,
-                              height: 35,
-                              child: ElevatedButton(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: attProvider.mainCheckOut
-                                      ? Colors.grey
-                                      : attProvider.permissionStatus == "1"
-                                      ? Colors.red
-                                      : getAttendanceColor(),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                ),
-
-                                onPressed: attProvider.mainCheckOut
-                                    ? null
-                                    : () async {
-
-                                  if (locPvr.latitude == null ||
-                                      locPvr.longitude == null) {
-                                    utils.showWarningToast(
-                                      context,
-                                      text:
-                                      "Location not available. Please enable GPS and try again.",
-                                    );
-                                    return;
-                                  }
-
-                                  final leaveProvider =
-                                  Provider.of<LeaveProvider>(
-                                    context,
-                                    listen: false,
-                                  );
-
-                                  String isOnLeaveValue = homeProvider.mainReportList.isEmpty
-                                      ? "0"
-                                      : homeProvider.mainReportList[0]["is_on_leave"].toString() == "null"
-                                      ? "0"
-                                      : homeProvider.mainReportList[0]["is_on_leave"].toString();
-
-                                  bool isOnLeave = isOnLeaveValue == "1";
-                                  print("isOnLeaveValue${isOnLeaveValue}");
-                                  if (isOnLeave) {
-                                    utils.showWarningToast(
-                                      context,
-                                      text:
-                                      "You are on leave today. Attendance cannot be marked.",
-                                    );
-                                    return;
-                                  }
-
-                                  String message = "";
-
-                                  if (attProvider.permissionStatus == "1") {
-                                    message =
-                                    "Do you want to mark Permission Out?";
-                                  } else {
-                                    if (attProvider.mainAttendance == 0) {
-                                      message =
-                                      "Do you want to mark Attendance In?";
-                                    } else {
-                                      message =
-                                      "Do you want to mark Attendance Out?";
-                                    }
-                                  }
-
-                                  bool? confirm =
-                                  await showDialog<bool>(
-                                    context: context,
-                                    builder: (context) => AlertDialog(
-                                      title: const Text("Confirmation"),
-                                      content: Text(message),
-                                      actions: [
-                                        TextButton(
-                                          onPressed: () =>
-                                              Navigator.pop(
-                                                  context, false),
-                                          child: const Text("No"),
-                                        ),
-                                        ElevatedButton(
-                                          onPressed: () =>
-                                              Navigator.pop(
-                                                  context, true),
-                                          child: const Text("Yes"),
-                                        ),
-                                      ],
-                                    ),
-                                  );
-
-                                  if (confirm != true) return;
-
-                                  if (attProvider.permissionStatus ==
-                                      "1") {
-                                    attProvider.putDailyPermission(
-                                      context,
-                                      "2",
-                                      locPvr.latitude,
-                                      locPvr.longitude,
-                                    );
-                                  }
-
-                                  else {
-                                    attProvider.putDailyAttendance(
-                                      context,
-                                      attProvider.mainAttendance == 0
-                                          ? "1"
-                                          : "2",
-                                      locPvr.latitude,
-                                      locPvr.longitude,
-                                    );
-                                  }
-                                },
-
-                                child: CustomText(
-                                 text:  attProvider.mainCheckOut
-                                      ? constValue.attendMak
-                                      : attProvider.permissionStatus == "1"
-                                      ? constValue.perOut
-                                      : attProvider.mainAttendance == 0
-                                      ? constValue.attendIn
-                                      : constValue.attendOut,
-                                  size: 13,
-                                 isBold: true,
-                                  colors: Colors.white,
-                                  shrink: true,
-                                ),
-                              ),
-                            )
-                          ],
-                        ),
-                      ),
-                    localData.storage.read("role")=="1"?
-                    Container(
-                        height: 90,
-                        width: screenWidth/2.5,
-                        decoration: customDecoration.baseBackgroundDecoration(
-                            color: Colors.white,radius: 10
-                        ),
-                        child: Center(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Column(
-                                mainAxisAlignment: MainAxisAlignment.start,
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-
-                                  /// LEAVE APPLIED -> Tab 1 (Leave Created / Applied)
-                                  GestureDetector(
-                                    onTap: () {
-                                      final leaveProvider = Provider.of<LeaveProvider>(context, listen: false);
-                                      leaveProvider.changeIndex(2);
-                                      leaveProvider.setViewLeaveTab(0);
-
-                                      utils.navigatePage(
-                                        context,
-                                            () => const DashBoard(child: LeaveManagementDashboard()),
-                                      );
-                                    },
-                                    child: Container(
-                                      width: 150,
-                                      height: 32,
-                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-                                      decoration: BoxDecoration(
-                                        color: Colors.red.withOpacity(0.12),
-                                        borderRadius: BorderRadius.circular(12),
-                                        border: Border.all(color: Colors.red, width: 1),
-                                      ),
-                                      child: Row(
-                                        children: [
-                                          Flexible(
-                                            child: CustomText(
-                                              text: "${constValue.leave_Applided}:",
-                                              size: 12,
-                                              colors: Colors.red.shade800,
-                                              isBold: true,
-                                              shrink: true,
-                                            ),
-                                          ),
-                                          const SizedBox(width: 4),
-                                          CustomText(
-                                            text: homeProvider.mainReportList.isEmpty
-                                                ? ""
-                                                : homeProvider.mainReportList[0]["today_apply_leave"].toString(),
-                                            size: 16,
-                                            isBold: true,
-                                            colors: Colors.red.shade900,
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 5),
-
-                                  /// ON LEAVE -> Tab 2 (Employees On Leave)
-                                  GestureDetector(
-                                    onTap: () {
-                                      final leaveProvider = Provider.of<LeaveProvider>(context, listen: false);
-                                      leaveProvider.changeIndex(2);
-                                      leaveProvider.setViewLeaveTab(1);
-
-                                      utils.navigatePage(
-                                        context,
-                                            () => const DashBoard(child: LeaveManagementDashboard()),
-                                      );
-                                    },
-                                    child: Container(
-                                      width: 150,
-                                      height: 32,
-                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-                                      decoration: BoxDecoration(
-                                        color: Colors.green.withOpacity(0.12),
-                                        borderRadius: BorderRadius.circular(12),
-                                        border: Border.all(color: Colors.green, width: 1),
-                                      ),
-                                      child: Row(
-                                        children: [
-                                          Flexible(
-                                            child: CustomText(
-                                              text: "${constValue.on_Leave}:",
-                                              size: 12,
-                                              colors: Colors.green.shade800,
-                                              isBold: true,
-                                              shrink: true,
-                                            ),
-                                          ),
-                                          const SizedBox(width: 4),
-                                          CustomText(
-                                            text: homeProvider.mainReportList.isEmpty
-                                                ? "0"
-                                                : "${int.parse(homeProvider.mainReportList[0]["fulldayleave_user"].toString() == "null" ? "0" : homeProvider.mainReportList[0]["fulldayleave_user"].toString()) + int.parse(homeProvider.mainReportList[0]["sessionleave_user"].toString() == "null" ? "0" : homeProvider.mainReportList[0]["sessionleave_user"].toString())}",
-                                            size: 16,
-                                            isBold: true,
-                                            colors: Colors.black,
-                                          ),
-                                        ],
-                                      ),
-                                    ),
                                   ),
                                 ],
                               ),
-                            ],
-                          ),
-                        )
-                    ): Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
+                            )
+                        ): Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
 
-                          if(localData.storage.read("role")!="1")
-                            Column(
-                              children: [
+                            if(localData.storage.read("role")!="1")
+                              Column(
+                                children: [
 
-                                CustomText(text: "Tap Here to",colors: ColorsConst.textGrey,),
-                                CustomText(text: "Start Tracking",colors: ColorsConst.textGrey,),
-                                15.height,
-                                GestureDetector(
-                                  onTap: () async {
-                                    if (localData.storage.read("Track") == true) {
-                                      stopTracking(context);
-                                    } else {
-                                      Map<Permission, PermissionStatus> status = await [
-                                        Permission.location,
-                                        Permission.locationAlways,
-                                      ].request();
-
-                                      if (status[Permission.location] != PermissionStatus.granted) {
-                                        utils.showWarningToast(
-                                          context,
-                                          text: "Location permission is required to start tracking.",
-                                        );
-                                        return;
-                                      }
-
-                                      if (locPvr.latitude=="" && locPvr.longitude==""){
-                                        locPvr.manageLocation(context,true);
+                                  CustomText(text: "Tap Here to",colors: ColorsConst.textGrey,),
+                                  CustomText(text: "Start Tracking",colors: ColorsConst.textGrey,),
+                                  15.height,
+                                  GestureDetector(
+                                    onTap: () async {
+                                      if (localData.storage.read("Track") == true) {
+                                        stopTracking(context);
                                       } else {
-                                        startTracking(context, locPvr.latitude, locPvr.longitude);
+                                        Map<Permission, PermissionStatus> status = await [
+                                          Permission.location,
+                                          Permission.locationAlways,
+                                        ].request();
+
+                                        if (status[Permission.location] != PermissionStatus.granted) {
+                                          utils.showWarningToast(
+                                            context,
+                                            text: "Location permission is required to start tracking.",
+                                          );
+                                          return;
+                                        }
+
+                                        if (locPvr.latitude=="" && locPvr.longitude==""){
+                                          locPvr.manageLocation(context,true);
+                                        } else {
+                                          startTracking(context, locPvr.latitude, locPvr.longitude);
+                                        }
                                       }
-                                    }
-                                    setState(() {});
-                                  },
-                                  child: AnimatedContainer(
-                                    duration: const Duration(milliseconds: 200),
-                                    height: 30,
-                                    width: 100,
-                                    decoration: BoxDecoration(
-                                      color: localData.storage.read("Track") == true
-                                          ? Colors.green
-                                          : Colors.grey,
-                                      borderRadius: BorderRadius.circular(30),
-                                    ),
-                                    child: Stack(
-                                      children: [
-                                        Center(
-                                          child: CustomText(
-                                            text: localData.storage.read("Track") == true
-                                                ? 'ON     '
-                                                : '     Tracker Off',
-                                            size: 11, colors: Colors.white,
-                                          ),
-                                        ),
-                                        Align(
-                                          alignment: localData.storage.read("Track") ==
-                                              true ? Alignment.centerRight : Alignment
-                                              .centerLeft,
-                                          child: Container(
-                                            margin: const EdgeInsets.all(3),
-                                            width: 25,
-                                            height: 25,
-                                            decoration: const BoxDecoration(
-                                              color: Colors.white,
-                                              shape: BoxShape.circle,
+                                      setState(() {});
+                                    },
+                                    child: AnimatedContainer(
+                                      duration: const Duration(milliseconds: 200),
+                                      height: 30,
+                                      width: 100,
+                                      decoration: BoxDecoration(
+                                        color: localData.storage.read("Track") == true
+                                            ? Colors.green
+                                            : Colors.grey,
+                                        borderRadius: BorderRadius.circular(30),
+                                      ),
+                                      child: Stack(
+                                        children: [
+                                          Center(
+                                            child: CustomText(
+                                              text: localData.storage.read("Track") == true
+                                                  ? 'ON     '
+                                                  : '     Tracker Off',
+                                              size: 11, colors: Colors.white,
                                             ),
                                           ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),),
-                              ],
-                            ),
-                        ],
-                      ),
-                    ],
+                                          Align(
+                                            alignment: localData.storage.read("Track") ==
+                                                true ? Alignment.centerRight : Alignment
+                                                .centerLeft,
+                                            child: Container(
+                                              margin: const EdgeInsets.all(3),
+                                              width: 25,
+                                              height: 25,
+                                              decoration: const BoxDecoration(
+                                                color: Colors.white,
+                                                shape: BoxShape.circle,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),),
+                                ],
+                              ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-              10.height,
-              localData.storage.read("role")!="1"?
-              LeaveSummaryCard(
-                allowed:" ${ homeProvider.mainReportList.isEmpty ?"0":homeProvider.
-                mainReportList[0]["emp_leave_allowed"].toString()=="null"?"0":
-                homeProvider.mainReportList[0]["emp_leave_allowed"].toString()}",
-                // is_on_leave
-                taken: " ${ homeProvider.mainReportList.isEmpty ?"0":homeProvider.
-                mainReportList[0]["emp_leave_taken"].toString()=="null"?"0":
-                homeProvider.mainReportList[0]["emp_leave_taken"].toString()}",
-              ):SizedBox(),
-            ],
-          );
+                10.height,
+                localData.storage.read("role")!="1"?
+                LeaveSummaryCard(
+                  allowed:" ${ homeProvider.mainReportList.isEmpty ?"0":homeProvider.
+                  mainReportList[0]["emp_leave_allowed"].toString()=="null"?"0":
+                  homeProvider.mainReportList[0]["emp_leave_allowed"].toString()}",
+                  // is_on_leave
+                  taken: " ${ homeProvider.mainReportList.isEmpty ?"0":homeProvider.
+                  mainReportList[0]["emp_leave_taken"].toString()=="null"?"0":
+                  homeProvider.mainReportList[0]["emp_leave_taken"].toString()}",
+                ):SizedBox(),
+              ],
+            );
         });
   }
 }
