@@ -823,7 +823,6 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>
                             ),
                           ),
                           10.width,
-
                           Expanded(
                             child: localData.storage.read("role") == "1"
                                 ? SearchCustomDropdown(
