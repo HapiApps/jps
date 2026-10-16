@@ -177,7 +177,10 @@ class TaskProvider with ChangeNotifier {
   }
 
   void filterList() {
-    if (_startDate.isEmpty || _endDate.isEmpty) return;
+    if (_startDate.isEmpty || _endDate.isEmpty) {
+      notifyListeners();
+      return;
+    }
 
     // Incomplete screen la user date filter apply pannala na date check venaam
     final bool applyDate = !(_incompleteMode && _isFilter != true);
@@ -255,18 +258,43 @@ class TaskProvider with ChangeNotifier {
 
   String _fType = "";
   String get fType => _fType;
+
+  String? _filterTypeId; // dropdown selection for the FILTER only
+  String? get filterTypeId => _filterTypeId;
+
   void checkFilterType(dynamic value) {
-    _type = value;
+    String id = "";
+    String name = "";
 
     if (value == null) {
-      _fType = "";
+      // cleared
     } else if (value is Map) {
-      _fType = value["value"] == "All" ? "" : value["value"].toString();
+      id = (value["id"] ?? "").toString();
+      name = (value["value"] ?? "").toString().trim();
     } else {
-      _fType = value.toString() == "All" ? "" : value.toString();
+      // dropdown gave an id (or a name) -> resolve it from typeList
+      final s = value.toString().trim();
+      final match = typeList.cast<dynamic>().firstWhere(
+            (e) =>
+        e["id"].toString() == s ||
+            e["value"].toString().trim().toLowerCase() == s.toLowerCase(),
+        orElse: () => null,
+      );
+      if (match != null) {
+        id = match["id"].toString();
+        name = match["value"].toString().trim();
+      }
     }
 
-    notifyListeners();
+    if (name.toLowerCase() == "all") {
+      id = "";
+      name = "";
+    }
+
+    _filterTypeId = id.isEmpty ? null : id;
+    _fType = name; // ALWAYS the type NAME, which is what task.type contains
+
+    filterList(); // apply immediately
   }
 
   void filterList2() {
@@ -288,7 +316,8 @@ class TaskProvider with ChangeNotifier {
       final isWithinDateRange =
           !taskDateOnly.isBefore(parsedStartDate) && !taskDateOnly.isAfter(parsedEndDate);
 
-      final isTypeMatch = _fType == "" || _fType == contact.type;
+      final isTypeMatch = _fType.isEmpty ||
+          _fType.toLowerCase() == (contact.type ?? "").toString().trim().toLowerCase();
       final isEmpMatch =
           _userName == "" || contact.assignedNames.toString().contains(_userName);
       final isCusMatch = _companyName == "" || contact.projectName == _companyName;
@@ -301,7 +330,7 @@ class TaskProvider with ChangeNotifier {
 
   void changeName(value) {
     _companyName = value!.companyName.toString();
-    notifyListeners();
+    filterList();
   }
 
   String _stDate = "";
@@ -422,6 +451,7 @@ class TaskProvider with ChangeNotifier {
     _type = null;
     _companyName = "";
     _fType = "";
+    _filterTypeId = null; // NEW
     _filterUserData = _allTasks;
     _userName = "";
     _filterDate = "";
@@ -440,6 +470,7 @@ class TaskProvider with ChangeNotifier {
       _type = null;
       _companyName = "";
       _fType = "";
+      _filterTypeId = null; // NEW
       _filterUserData = _allTasks;
       _userName = "";
       _filterDate = "";
@@ -4192,7 +4223,10 @@ class TaskProvider with ChangeNotifier {
 
     notifyListeners();
   }
-
+  void selectEmployeeFilter(UserModel value) {
+    _assignedNames = value.firstname.toString();
+    notifyListeners();
+  }
   /// Call this whenever date filter / status tab changes
   void applyDateAndStatusFilter() {
     List<TaskData> baseList = List<TaskData>.from(allTasks);
@@ -4562,6 +4596,7 @@ class TaskProvider with ChangeNotifier {
     lStatus = "";
     _companyName = "";
     _fType = "";
+    _filterTypeId = null;
     _filterType = null;
     selectedDate2 = null;
     datesBetween = [];

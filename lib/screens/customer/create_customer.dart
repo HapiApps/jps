@@ -661,49 +661,85 @@ class _CreateCustomerState extends State<CreateCustomer> with TickerProviderStat
                           }),
                       20.height,
                       SizedBox(
-                        width: kIsWeb?webWidth:phoneWidth,
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            CustomLoadingButton(
-                                callback: (){
-                                  custProvider.changeIndex(0);
-                                  _myFocusScopeNode.unfocus();
-                                }, isLoading: false,text: "${constValue.back}",
-                                backgroundColor: Colors.white, textColor: colorsConst.primary,radius: 10,
-                                width: kIsWeb?webWidth/2.1:phoneWidth/2.1),
-                            CustomLoadingButton(
-                              callback: (){
-                                final customer = custProvider.addCustomer.last;
-                                if (customer.name.text.trim().isEmpty) {
-                                  utils.showWarningToast(context, text: "${constValue.fillName} ${constValue.contact} ");
-                                } else if (customer.phone.text.trim().isEmpty) {
-                                  utils.showWarningToast(context, text: "${constValue.contact} ${constValue.phoneNumber}${constValue.fillName} ");
-                                } else if (customer.phone.text.trim().length <8||customer.phone.text.trim().length>12) {
-                                  utils.showWarningToast(context, text: "${constValue.checkPhoneNumber}");
-                                } else if (customer.whatsApp.text.trim().isNotEmpty && customer.whatsApp.text.trim().length <8 ||customer.whatsApp.text.trim().length>12) {
-                                  utils.showWarningToast(context, text: "${constValue.checkWhatsappNumber} ");
-                                } else {
-                                  if(customer.email.text.trim().isEmpty) {
-                                    custProvider.changeIndex(2);
-                                    _myFocusScopeNode.unfocus();
-                                  }else{
-                                    final bool isValid =
-                                    RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$')
-                                        .hasMatch(customer.email.text.trim());
-                                    if(isValid){
-                                      _myFocusScopeNode.unfocus();
-                                      custProvider.changeIndex(2);
-                                    }else{
-                                      utils.showWarningToast(context,text: "${constValue.checkWhatsappNumber}");
-                                    }
-                                  }
-                                }
-                              }, isLoading: false, backgroundColor: colorsConst.primary,
-                              radius: 10, width: kIsWeb?webWidth/2.1:phoneWidth/2.1,text:"${constValue.next}",),
-                          ],
-                        ),
-                      ),
+              width: kIsWeb ? webWidth : phoneWidth,
+              child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+              CustomLoadingButton(
+              callback: () {
+            custProvider.changeIndex(0);
+            _myFocusScopeNode.unfocus();
+            },
+              isLoading: false,
+              text: "${constValue.back}",
+              backgroundColor: Colors.white,
+              textColor: colorsConst.primary,
+              radius: 10,
+              width: kIsWeb ? webWidth / 2.1 : phoneWidth / 2.1,
+            ),
+            CustomLoadingButton(
+              callback: () {
+                final customer = custProvider.addCustomer.last;
+
+                final name = customer.name.text.trim();
+                final phone = customer.phone.text.trim();
+                final whatsapp = customer.whatsApp.text.trim();
+                final email = customer.email.text.trim();
+
+                if (name.isEmpty) {
+                  utils.showWarningToast(
+                    context,
+                    text: "${constValue.fillName} ${constValue.contact}",
+                  );
+                } else if (phone.isEmpty) {
+                  utils.showWarningToast(
+                    context,
+                    text:
+                    "${constValue.contact} ${constValue.phoneNumber}${constValue.fillName}",
+                  );
+                } else if (phone.length < 8 || phone.length > 12) {
+                  utils.showWarningToast(
+                    context,
+                    text: "${constValue.checkPhoneNumber}",
+                  );
+                } else if (
+                whatsapp.isNotEmpty &&
+                    (whatsapp.length < 8 || whatsapp.length > 12)
+                ) {
+                  utils.showWarningToast(
+                    context,
+                    text: "${constValue.checkWhatsappNumber}",
+                  );
+                } else {
+                  if (email.isEmpty) {
+                    _myFocusScopeNode.unfocus();
+                    custProvider.changeIndex(2);
+                  } else {
+                    final bool isValid = RegExp(
+                      r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$',
+                    ).hasMatch(email);
+
+                    if (isValid) {
+                      _myFocusScopeNode.unfocus();
+                      custProvider.changeIndex(2);
+                    } else {
+                      utils.showWarningToast(
+                        context,
+                        text: "Please enter a valid email address",
+                      );
+                    }
+                  }
+                }
+              },
+              isLoading: false,
+              backgroundColor: colorsConst.primary,
+              radius: 10,
+              width: kIsWeb ? webWidth / 2.1 : phoneWidth / 2.1,
+              text: "${constValue.next}",
+            ),
+            ],
+          ),
+        ),
                     ],
                   ):
                   Column(

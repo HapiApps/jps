@@ -510,12 +510,16 @@ void closeVisible(){
         "st_dt": date1,
         "en_dt": date2,
       };
+      debugPrint("Customer Data request send: ${data}");
       final response =await custRepo.getCustomers(data);
       if (response.isNotEmpty) {
         _customerData=response;
         _filterCustomerData=response;
         _searchCustomerDate=response;
         _cusRefresh=true;
+
+        debugPrint("CustomerData in getCustomer Provider: ${_filterCustomerData}");
+
       } else {
         _cusRefresh=true;
       }
@@ -524,6 +528,7 @@ void closeVisible(){
     }
     notifyListeners();
   }
+
   String date1="${DateTime.now().day.toString().padLeft(2,"0")}-${DateTime.now().month.toString().padLeft(2,"0")}-${DateTime.now().year}";
   String date2="${DateTime.now().add(const Duration(days: 1)).day.toString().padLeft(2,"0")}-${DateTime.now().add(const Duration(days: 1)).month.toString().padLeft(2,"0")}-${DateTime.now().add(const Duration(days: 1)).year}";
 List lineAtt=[];

@@ -26,6 +26,7 @@ import '../../component/expand_text.dart';
 import '../../component/search_drop_down.dart';
 import '../../model/customer/customer_model.dart';
 import '../../model/task/task_data_model.dart';
+import '../../model/user_model.dart';
 import '../../source/constant/assets_constant.dart';
 import '../../source/constant/colors_constant.dart';
 import '../../source/constant/language_model.dart';
@@ -646,12 +647,20 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>
       builder: (context) {
         return Consumer3<TaskProvider, CustomerProvider, EmployeeProvider>(
           builder: (context, taskProvider, cusPvr, empProvider, _) {
-            return AlertDialog(
-              actions: [
-                SizedBox(
-                  width: kIsWeb
-                      ? MediaQuery.of(context).size.width * 0.3
-                      : MediaQuery.of(context).size.width * 0.9,
+            final screenW = MediaQuery.of(context).size.width;
+            final screenH = MediaQuery.of(context).size.height;
+
+            return Dialog(
+              backgroundColor: Colors.white,
+              insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxWidth: kIsWeb ? screenW * 0.3 : screenW * 0.9,
+                  maxHeight: screenH * 0.85,
+                ),
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -822,7 +831,11 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>
                                   ? ""
                                   : taskProvider.assignedNames,
                               valueList: empProvider.activeEmps,
-                              onChanged: (value) {},
+                              onChanged: (value) {
+                                if (value is UserModel) {
+                                  taskProvider.selectEmployeeFilter(value);
+                                }
+                              },
                               width: double.infinity,
                             )
                                 : const SizedBox(),
@@ -842,7 +855,7 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>
                                   size: 12,
                                 ),
                                 MapDropDown(
-                                  saveValue: taskProvider.type,
+                                  saveValue: taskProvider.filterTypeId, // CHANGED (was taskProvider.type)
                                   hintText: constValue.type,
                                   isHint: false,
                                   onChanged: (value) {
@@ -910,7 +923,7 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>
                             callback: () {
                               taskProvider.initFilterValue(false);
                               taskProvider.filterList();
-                              taskProvider.applyDateAndStatusFilter();
+                              taskProvider.updateFilteredBeforeSearch(taskProvider.filterUserData);
                               _resetPaging();
                               Navigator.of(context, rootNavigator: true).pop();
                             },
@@ -922,8 +935,8 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>
                       20.height,
                     ],
                   ),
-                )
-              ],
+                ),
+              ),
             );
           },
         );

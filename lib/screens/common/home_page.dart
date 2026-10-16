@@ -154,6 +154,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
           employeeProvider.userData.isNotEmpty &&
           customerProvider.customer.isNotEmpty;
 
+      debugPrint("Customer Data:  ${customerProvider.customer}");
+
       if (!fresh) {
         await _waitUntilVisible();
         if (!mounted || !_isHomePageActive) return;
@@ -632,6 +634,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                             ),
                           ),
                         ),
+
+                        10.height,
 
                         if (homeProvider.roleAccess.any((f) =>
                         f['feature'] == 'Task Management' &&
