@@ -312,25 +312,25 @@ class CustomerProvider with ChangeNotifier{
   }
 
   bool _isVisible=false;
-int _visibleIndex=0;
-bool get isVisible =>_isVisible;
-int get visibleIndex =>_visibleIndex;
-void visible(int index){
-  if(_isVisible==true){
-    _isVisible=false;
-    _isVisible=true;
-  }else if(_isVisible==true){
-    _isVisible=false;
-  }else{
-    _isVisible=true;
+  int _visibleIndex=0;
+  bool get isVisible =>_isVisible;
+  int get visibleIndex =>_visibleIndex;
+  void visible(int index){
+    if(_isVisible==true){
+      _isVisible=false;
+      _isVisible=true;
+    }else if(_isVisible==true){
+      _isVisible=false;
+    }else{
+      _isVisible=true;
+    }
+    _visibleIndex=index;
+    notifyListeners();
   }
-  _visibleIndex=index;
-  notifyListeners();
-}
-void closeVisible(){
-  _isVisible=false;
-  notifyListeners();
-}
+  void closeVisible(){
+    _isVisible=false;
+    notifyListeners();
+  }
   var sendList=[];
 
   void setValue(String id){
@@ -510,12 +510,16 @@ void closeVisible(){
         "st_dt": date1,
         "en_dt": date2,
       };
+      debugPrint("Customer Data request send: ${data}");
       final response =await custRepo.getCustomers(data);
       if (response.isNotEmpty) {
         _customerData=response;
         _filterCustomerData=response;
         _searchCustomerDate=response;
         _cusRefresh=true;
+
+        debugPrint("CustomerData in getCustomer Provider: ${_filterCustomerData}");
+
       } else {
         _cusRefresh=true;
       }
@@ -524,9 +528,10 @@ void closeVisible(){
     }
     notifyListeners();
   }
+
   String date1="${DateTime.now().day.toString().padLeft(2,"0")}-${DateTime.now().month.toString().padLeft(2,"0")}-${DateTime.now().year}";
   String date2="${DateTime.now().add(const Duration(days: 1)).day.toString().padLeft(2,"0")}-${DateTime.now().add(const Duration(days: 1)).month.toString().padLeft(2,"0")}-${DateTime.now().add(const Duration(days: 1)).year}";
-List lineAtt=[];
+  List lineAtt=[];
 
   String today() {
     final now = DateTime.now();
@@ -536,15 +541,15 @@ List lineAtt=[];
   }
 
   late GoogleMapController googleMapController;
-final List<Marker> _marker =[];
-List<Marker> get marker =>_marker;
-Future<void> mapAddress() async {
-  if(search2.text!=""){
-    try{
-      List<Location> locations = await locationFromAddress(search2.text);
-      googleMapController.animateCamera
-        (CameraUpdate.newCameraPosition(CameraPosition
-        (target: LatLng(locations[0].latitude,locations[0].longitude),zoom: 20)));
+  final List<Marker> _marker =[];
+  List<Marker> get marker =>_marker;
+  Future<void> mapAddress() async {
+    if(search2.text!=""){
+      try{
+        List<Location> locations = await locationFromAddress(search2.text);
+        googleMapController.animateCamera
+          (CameraUpdate.newCameraPosition(CameraPosition
+          (target: LatLng(locations[0].latitude,locations[0].longitude),zoom: 20)));
         _marker.add(
           Marker(
             markerId: const MarkerId("1"),
@@ -552,39 +557,39 @@ Future<void> mapAddress() async {
             infoWindow: InfoWindow(title: search2.text),
             icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueViolet
             ),),);
-      List<Placemark> placeMark=await placemarkFromCoordinates(locations[0].latitude,locations[0].longitude);
-      Placemark place = placeMark[0];
-      address.text=place.street.toString();
-      comArea.text="${place.subLocality.toString()}${place.thoroughfare.toString()==""?"":",${place.thoroughfare}"==""?"":place.thoroughfare.toString()}";
-      city.text=place.locality.toString();
-      country.text=place.country.toString();
-      pinCode.text=place.postalCode.toString();
-      state=place.administrativeArea.toString();
-    }catch(e){
+        List<Placemark> placeMark=await placemarkFromCoordinates(locations[0].latitude,locations[0].longitude);
+        Placemark place = placeMark[0];
+        address.text=place.street.toString();
+        comArea.text="${place.subLocality.toString()}${place.thoroughfare.toString()==""?"":",${place.thoroughfare}"==""?"":place.thoroughfare.toString()}";
+        city.text=place.locality.toString();
+        country.text=place.country.toString();
+        pinCode.text=place.postalCode.toString();
+        state=place.administrativeArea.toString();
+      }catch(e){
+      }
     }
+    notifyListeners();
   }
-  notifyListeners();
-}
 
-void clearAddress(context,String lat,String lng){
-  _clear=!_clear;
-if(_clear==true){
-  getAdd(double.parse(lat),double.parse(lng));
-}else{
-  address.clear();
-  comArea.clear();
-  city.clear();
-  country.clear();
-  pinCode.clear();
-  state = null;
-}
-  notifyListeners();
-}
-void changeState(dynamic value){
-  state = value;
-  _update = true;
-  notifyListeners();
-}
+  void clearAddress(context,String lat,String lng){
+    _clear=!_clear;
+    if(_clear==true){
+      getAdd(double.parse(lat),double.parse(lng));
+    }else{
+      address.clear();
+      comArea.clear();
+      city.clear();
+      country.clear();
+      pinCode.clear();
+      state = null;
+    }
+    notifyListeners();
+  }
+  void changeState(dynamic value){
+    state = value;
+    _update = true;
+    notifyListeners();
+  }
   void changeCusType(dynamic value){
     _type = value;
     _update = true;
@@ -625,13 +630,13 @@ void changeState(dynamic value){
     localData.storage.write("visit_id", callType);
     notifyListeners();
   }
-void changeCallType(dynamic value){
-  callType = value; // Map ah store pannunga
-  var list = [];
-  list.add(value);
-  localData.storage.write("visit_id", list[0]["id"]);
-  notifyListeners();
-}
+  void changeCallType(dynamic value){
+    callType = value; // Map ah store pannunga
+    var list = [];
+    list.add(value);
+    localData.storage.write("visit_id", list[0]["id"]);
+    notifyListeners();
+  }
 
   Future<void> getCustomerDetail(String id, bool isUpdate, bool isRefresh) async {
     if (isRefresh == true) {
@@ -792,7 +797,7 @@ void changeCallType(dynamic value){
     }
     notifyListeners();
   }
-void searchCustomerReport(String value){
+  void searchCustomerReport(String value){
     final suggestions=_searchCustomerReport.where(
             (user){
           final comFName=user.companyName.toString().toLowerCase();
@@ -890,10 +895,10 @@ void searchCustomerReport(String value){
   List<AddCmtImg> _addImg = <AddCmtImg>[];
   List<AddCmtImg> get addImg =>_addImg;
 
-int _listItem=0;
-int get listItem=>_listItem;
+  int _listItem=0;
+  int get listItem=>_listItem;
   dynamic state,_type,leadType,leadStatus,callType,selectCustomer;
- dynamic get type=> _type;
+  dynamic get type=> _type;
   var leadCategoryList=[],callList=[],cmtTypeList=[],cusTypeList=[];
   var stateList = [
     "Andaman and Nicobar Islands",
@@ -949,13 +954,13 @@ int get listItem=>_listItem;
   TextEditingController emgNo = TextEditingController();
   final RoundedLoadingButtonController addCtr =RoundedLoadingButtonController();
 
- bool required = false,status1 = false,status2 = false,status3 = false;
- var statusType = "1";
- void changeRole(String role,int index){
-   _update = true;
-   addCustomer[index].roleC=role;
-   notifyListeners();
- }
+  bool required = false,status1 = false,status2 = false,status3 = false;
+  var statusType = "1";
+  void changeRole(String role,int index){
+    _update = true;
+    addCustomer[index].roleC=role;
+    notifyListeners();
+  }
   void initValues(){
     _showIndex=0;
     _type=null;
@@ -1066,7 +1071,7 @@ int get listItem=>_listItem;
     leadCategoryList=storedLeads;
     if(leadCategoryList.isNotEmpty){
       leadType=leadCategoryList[0];
-  }
+    }
     notifyListeners();
   }
   Future<void> getVisit() async {
@@ -1186,10 +1191,10 @@ int get listItem=>_listItem;
     notifyListeners();
   }
   void addImgList(context){
-     if(_addImg.last.img==""){
-       utils.showWarningToast(context,text: "Please upload file");
-     }else{
-       _addImg.add(AddCmtImg(
+    if(_addImg.last.img==""){
+      utils.showWarningToast(context,text: "Please upload file");
+    }else{
+      _addImg.add(AddCmtImg(
           img: ''));
     }
     notifyListeners();
@@ -1295,46 +1300,46 @@ int get listItem=>_listItem;
     }
     notifyListeners();
   }
-void mainCustomer(int index){
+  void mainCustomer(int index){
     _update=true;
-  if(_addCustomer.length==1){
+    if(_addCustomer.length==1){
 
-  }else{
-    if(_addCustomer[index].isMain==false){
-      for (int i = 0; i < _addCustomer.length; i++) {
-        _addCustomer[i].isMain=false;
-      }
-      _addCustomer[index].isMain=true;
     }else{
-      _addCustomer[index].isMain=false;
+      if(_addCustomer[index].isMain==false){
+        for (int i = 0; i < _addCustomer.length; i++) {
+          _addCustomer[i].isMain=false;
+        }
+        _addCustomer[index].isMain=true;
+      }else{
+        _addCustomer[index].isMain=false;
+      }
     }
-  }
-  notifyListeners();
-}
-void copyNumber(int index){
-  _update=true;
-  _addCustomer[index].isWhatsapp=!_addCustomer[index].isWhatsapp;
-  if(_addCustomer[index].isWhatsapp==true){
-    _addCustomer[index].whatsApp.text=_addCustomer[index].phone.text;
-  }else{
-    _addCustomer[index].whatsApp.text="";
-  }
     notifyListeners();
-}
-void changeNumber(int index){
-  _update=true;
-  if(_addCustomer[index].isWhatsapp==true){
-    _addCustomer[index].whatsApp.text=_addCustomer[index].phone.text;
   }
+  void copyNumber(int index){
+    _update=true;
+    _addCustomer[index].isWhatsapp=!_addCustomer[index].isWhatsapp;
+    if(_addCustomer[index].isWhatsapp==true){
+      _addCustomer[index].whatsApp.text=_addCustomer[index].phone.text;
+    }else{
+      _addCustomer[index].whatsApp.text="";
+    }
     notifyListeners();
-}
-void removeCheck(int index){
-  _update=true;
-  if(_addCustomer[index].phone.text!=_addCustomer[index].whatsApp.text){
-    _addCustomer[index].isWhatsapp=false;
   }
+  void changeNumber(int index){
+    _update=true;
+    if(_addCustomer[index].isWhatsapp==true){
+      _addCustomer[index].whatsApp.text=_addCustomer[index].phone.text;
+    }
     notifyListeners();
-}
+  }
+  void removeCheck(int index){
+    _update=true;
+    if(_addCustomer[index].phone.text!=_addCustomer[index].whatsApp.text){
+      _addCustomer[index].isWhatsapp=false;
+    }
+    notifyListeners();
+  }
   String _img1="";
   String _imgName1="";
   List<int> _imgList1=[];
@@ -1372,28 +1377,28 @@ void removeCheck(int index){
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [
                         if(!kIsWeb)
-                        GestureDetector(
-                          onTap: ()async{
-                            var imgData = await Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                    builder: (context) => const CameraWidget(
-                                      cameraPosition: CameraType.front,
-                                    )));
-                            if (!context.mounted) return;
-                            Navigator.pop(context);
-                            if (imgData != null) {
-                              onTap(imgData);
-                            }
-                          },
-                          child: Column(
-                            children: [
-                              SvgPicture.asset(assets.cam),
-                              5.height,
-                              const CustomText(text: "Camera")
-                            ],
+                          GestureDetector(
+                            onTap: ()async{
+                              var imgData = await Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (context) => const CameraWidget(
+                                        cameraPosition: CameraType.front,
+                                      )));
+                              if (!context.mounted) return;
+                              Navigator.pop(context);
+                              if (imgData != null) {
+                                onTap(imgData);
+                              }
+                            },
+                            child: Column(
+                              children: [
+                                SvgPicture.asset(assets.cam),
+                                5.height,
+                                const CustomText(text: "Camera")
+                              ],
+                            ),
                           ),
-                        ),
                         GestureDetector(
                           onTap: () async {
                             Navigator.pop(context);
@@ -1458,7 +1463,7 @@ void removeCheck(int index){
     _img2 = imgData;
     notifyListeners();
   }
-Future<void> insertCustomer(context,String lat,String lng) async {
+  Future<void> insertCustomer(context,String lat,String lng) async {
     try {
       List<Map<String, String>> customersList = [];
       for (int i = 0; i < _addCustomer.length; i++) {
@@ -1623,83 +1628,83 @@ Future<void> insertCustomer(context,String lat,String lng) async {
     }
     notifyListeners();
   }
-dynamic _selectType;
-dynamic get selectType=>_selectType;
+  dynamic _selectType;
+  dynamic get selectType=>_selectType;
 
-String _selectReview="Complete";
-String get selectReview=>_selectReview;
-List<CustomerReportModel> _customerReport = <CustomerReportModel>[];
-List<CustomerAttendanceModel> _customerAttendanceReport = <CustomerAttendanceModel>[];
-List<CustomerReportModel> _searchCustomerReport = <CustomerReportModel>[];
-List<CustomerReportModel> get customerReport=>_customerReport;
-List<CustomerAttendanceModel> get customerAttendanceReport=>_customerAttendanceReport;
+  String _selectReview="Complete";
+  String get selectReview=>_selectReview;
+  List<CustomerReportModel> _customerReport = <CustomerReportModel>[];
+  List<CustomerAttendanceModel> _customerAttendanceReport = <CustomerAttendanceModel>[];
+  List<CustomerReportModel> _searchCustomerReport = <CustomerReportModel>[];
+  List<CustomerReportModel> get customerReport=>_customerReport;
+  List<CustomerAttendanceModel> get customerAttendanceReport=>_customerAttendanceReport;
   void changeType(dynamic value) {
     _selectType = value;
     localData.storage.write("type_id", value["id"].toString());
     notifyListeners();
   }
-void changeReview(dynamic value){
-  _selectReview=value.toString();
-  notifyListeners();
-}
-void initComment(List coList,String type){
-  disPoint.clear();
-  points.clear();
-  _selectType=null;
-  notifyListeners();
-  if(cmtTypeList.isEmpty){
+  void changeReview(dynamic value){
+    _selectReview=value.toString();
+    notifyListeners();
+  }
+  void initComment(List coList,String type){
+    disPoint.clear();
+    points.clear();
     _selectType=null;
-  }else{
-    var matchedType = cmtTypeList.firstWhere(
-          (item) =>
-      item["value"]
-          .toString()
-          .trim()
-          .toLowerCase() ==
-          type.toString().trim().toLowerCase(),
-      orElse: () => cmtTypeList[0] as Map<String, String>,
-    );
-
-    _selectType = matchedType;
-    localData.storage.write("type_id", matchedType["id"]);
-  }
-
-  if(callList.isEmpty){
-    callType=null;
-  }else{
-    callType=null;
-    callType=callList[0];
-    localData.storage.write("visit_id",callList[0]["id"]);
     notifyListeners();
-  }
-  if(leadCategoryList.isEmpty){
-    leadType=null;
-  }else{
-    leadType=null;
-    leadType=leadCategoryList[0];
-    localData.storage.write("lead_id",leadCategoryList[0]["id"]);
+    if(cmtTypeList.isEmpty){
+      _selectType=null;
+    }else{
+      var matchedType = cmtTypeList.firstWhere(
+            (item) =>
+        item["value"]
+            .toString()
+            .trim()
+            .toLowerCase() ==
+            type.toString().trim().toLowerCase(),
+        orElse: () => cmtTypeList[0] as Map<String, String>,
+      );
 
-    selectCustomer=null;
-    if(coList.isNotEmpty){
-      selectCustomer=coList[0];
-      localData.storage.write("c_id",coList[0]["id"]);
-      localData.storage.write("c_no",coList[0]["no"]);
-      localData.storage.write("c_name",coList[0]["name"]);
+      _selectType = matchedType;
+      localData.storage.write("type_id", matchedType["id"]);
     }
+
+    if(callList.isEmpty){
+      callType=null;
+    }else{
+      callType=null;
+      callType=callList[0];
+      localData.storage.write("visit_id",callList[0]["id"]);
+      notifyListeners();
+    }
+    if(leadCategoryList.isEmpty){
+      leadType=null;
+    }else{
+      leadType=null;
+      leadType=leadCategoryList[0];
+      localData.storage.write("lead_id",leadCategoryList[0]["id"]);
+
+      selectCustomer=null;
+      if(coList.isNotEmpty){
+        selectCustomer=coList[0];
+        localData.storage.write("c_id",coList[0]["id"]);
+        localData.storage.write("c_no",coList[0]["no"]);
+        localData.storage.write("c_name",coList[0]["name"]);
+      }
+      notifyListeners();
+    }
+
+    commentDate.text="${DateTime.now().day.toString().padLeft(2,"0")}-${DateTime.now().month.toString().padLeft(2,"0")}-${DateTime.now().year}";
     notifyListeners();
   }
-
-  commentDate.text="${DateTime.now().day.toString().padLeft(2,"0")}-${DateTime.now().month.toString().padLeft(2,"0")}-${DateTime.now().year}";
-  notifyListeners();
-}
-void initCmtValues(){
-  disPoint.clear();
-  _selectedFiles.clear();
-  _recordedAudioPaths.clear();
-  _selectedPhotos.clear();
-  _isRecording = false;
-  notifyListeners();
-}
+  void initCmtValues(){
+    disPoint.clear();
+    _selectedFiles.clear();
+    _recordedAudioPaths.clear();
+    _selectedPhotos.clear();
+    _isRecording = false;
+    notifyListeners();
+  }
   Future<void> addComment({
     context,
     required String createdBy,
@@ -1824,7 +1829,7 @@ void initCmtValues(){
     }
   }
   Future<void> getAllComments(String id,String contId) async {
-  _cmtRefresh=false;
+    _cmtRefresh=false;
     _customerReport.clear();
     notifyListeners();
     try {
@@ -1850,8 +1855,8 @@ void initCmtValues(){
     }
     notifyListeners();
   }
-Future<void> getEmployeeHistory(String id) async {
-  _cmtRefresh=false;
+  Future<void> getEmployeeHistory(String id) async {
+    _cmtRefresh=false;
     _customerReport.clear();
     notifyListeners();
     try {
@@ -1876,7 +1881,7 @@ Future<void> getEmployeeHistory(String id) async {
     }
     notifyListeners();
   }
-Future<void> getEmpComments() async {
+  Future<void> getEmpComments() async {
     _refresh=false;
     _customerReport.clear();
     notifyListeners();
@@ -1918,7 +1923,7 @@ Future<void> getEmpComments() async {
         "cos_id": localData.storage.read("cos_id"),
         "cus_id": "0"
       };
-       print(data.toString());
+      print(data.toString());
       final response =await custRepo.getComments(data);
       if (response.isNotEmpty) {
         _customerReport=response;
@@ -1932,7 +1937,7 @@ Future<void> getEmpComments() async {
     }
     notifyListeners();
   }
-Future<void> getAttendance(String id) async {
+  Future<void> getAttendance(String id) async {
     _refresh=false;
     _customerAttendanceReport.clear();
     notifyListeners();
@@ -1959,7 +1964,7 @@ Future<void> getAttendance(String id) async {
     }
     notifyListeners();
   }
-TextEditingController date= TextEditingController(text: "${DateTime.now().day.toString().padLeft(2,"0")}-${DateTime.now().month.toString().padLeft(2,"0")}-${DateTime.now().year.toString()}");
+  TextEditingController date= TextEditingController(text: "${DateTime.now().day.toString().padLeft(2,"0")}-${DateTime.now().month.toString().padLeft(2,"0")}-${DateTime.now().year.toString()}");
   List _countReport = [];
   List get countReport => _countReport;
   String _startDate = "";
@@ -2239,10 +2244,10 @@ TextEditingController date= TextEditingController(text: "${DateTime.now().day.to
     _user="";
     notifyListeners();
   }
-void manageFilter(value){
+  void manageFilter(value){
     _filter=value;
     notifyListeners();
-}
+  }
   bool _filter=false;
   bool get filter=>_filter;
   dynamic _filterType;
@@ -2555,9 +2560,9 @@ void manageFilter(value){
     }
     notifyListeners();
   }
-List<TrackingModel> _reportData = <TrackingModel>[];
-List<TrackingModel> get reportData => _reportData;
-Future<void> getTrackReport(String id,bool isMonthly) async {
+  List<TrackingModel> _reportData = <TrackingModel>[];
+  List<TrackingModel> get reportData => _reportData;
+  Future<void> getTrackReport(String id,bool isMonthly) async {
     _reportData.clear();
     _refresh=false;
     notifyListeners();
@@ -2584,10 +2589,10 @@ Future<void> getTrackReport(String id,bool isMonthly) async {
       _refresh=true;
     }
     notifyListeners();
-}
+  }
 
-final List<Marker> _liveMarker =[];
-List<Marker> get liveMarker =>_liveMarker;
+  final List<Marker> _liveMarker =[];
+  List<Marker> get liveMarker =>_liveMarker;
   Future<BitmapDescriptor> createCustomMarkerFromNetwork(String? imageUrl) async {
     if (imageUrl == null || imageUrl.isEmpty) {
       ByteData data = await rootBundle.load('assets/images/map_track.png'); // Ensure asset exists
@@ -2746,14 +2751,14 @@ List<Marker> get liveMarker =>_liveMarker;
     }
   }
   Future<void> pickCamera(BuildContext context) async {
-      var imgData = await Navigator.push(
-          context,
-          MaterialPageRoute(
-              builder: (context) => const CameraWidget(
-                cameraPosition: CameraType.back,
-              )));
-      _selectedPhotos.add(imgData);
-      notifyListeners();
+    var imgData = await Navigator.push(
+        context,
+        MaterialPageRoute(
+            builder: (context) => const CameraWidget(
+              cameraPosition: CameraType.back,
+            )));
+    _selectedPhotos.add(imgData);
+    notifyListeners();
   }
   String formatFileSize(int bytes) {
     double kb = bytes / 1024;
@@ -2874,7 +2879,7 @@ List<Marker> get liveMarker =>_liveMarker;
           _recordedAudioPaths[0] =
               AddAudioModel(audioPath: path, second: _recordingDuration, time: _recordingTime);
         }
-      log("_recordedAudioPaths : ${_recordedAudioPaths.length}");
+        log("_recordedAudioPaths : ${_recordedAudioPaths.length}");
         await loadAudioDuration(path);
       }
     } catch (e) {
@@ -3085,8 +3090,8 @@ List<Marker> get liveMarker =>_liveMarker;
     enDt=DateTime.now();
     _startDate = DateFormat('dd-MM-yyyy').format(stDt);
     _endDate = DateFormat('dd-MM-yyyy').format(enDt);
-   // getVisitReport(context);
-   // getEmpWiseReport(context);
+    // getVisitReport(context);
+    // getEmpWiseReport(context);
     notifyListeners();
   }
   void yesterdayVisit(BuildContext context) {
@@ -3235,7 +3240,7 @@ List<Marker> get liveMarker =>_liveMarker;
   List<Map<String, dynamic>> groupedList = [];
   List<Map<String, dynamic>> groupedList2 = [];
   List<UserModel> employeeList = []; // எல்லா employee list
-   List<Map<String, dynamic>> finalList = []; // UIக்கு use ஆகும் list
+  List<Map<String, dynamic>> finalList = []; // UIக்கு use ஆகும் list
   void prepareFinalEmpList(BuildContext context) {
     final empProvider = Provider.of<EmployeeProvider>(context, listen: false);
     List employeeList = empProvider.filterUserData;
@@ -4572,19 +4577,19 @@ List<Marker> get liveMarker =>_liveMarker;
                                 /// DATA ROWS
                                 for (var item in templateList)
                                   emailRow(
-                                    context,
-                                    templateName: item.templateName,
-                                    msg: item.message,
-                                    subject: item.subject,
-                                    id: item.id,
-                                    onChanged: (value){
-                                      setState((){
-                                        isTemplate = false;
-                                        emailSubjectCtr.text = item.subject.toString().replaceAll('\n', ' ');
-                                        emailMessageCtr.text = item.message.toString();
-                                        emailQuotationCtr.text = item.templateName.toString();
-                                      });
-                                    }
+                                      context,
+                                      templateName: item.templateName,
+                                      msg: item.message,
+                                      subject: item.subject,
+                                      id: item.id,
+                                      onChanged: (value){
+                                        setState((){
+                                          isTemplate = false;
+                                          emailSubjectCtr.text = item.subject.toString().replaceAll('\n', ' ');
+                                          emailMessageCtr.text = item.message.toString();
+                                          emailQuotationCtr.text = item.templateName.toString();
+                                        });
+                                      }
                                   ),
                               ],
                             ),
@@ -5008,7 +5013,7 @@ List<Marker> get liveMarker =>_liveMarker;
         "c_ids", list.map((e) => e["id"].toString()).toList());
     localData.storage.write(
         "c_nos", list.map((e) => e["no"].toString()).toList());
-print("customer all is${localData.storage.read("c_ids")}");
+    print("customer all is${localData.storage.read("c_ids")}");
     notifyListeners();
   }
 
@@ -5055,7 +5060,7 @@ print("customer all is${localData.storage.read("c_ids")}");
     var res = jsonDecode(response);
 
     print("✅ Add Customer Decoded Response: $res");
-   addcustomerCtr.reset();
+    addcustomerCtr.reset();
     return res["status"] == true;
   }
 
