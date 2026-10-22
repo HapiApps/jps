@@ -29,12 +29,13 @@ class CustomerTaskAttendance extends StatefulWidget {
 class _CustomerTaskAttendanceState extends State<CustomerTaskAttendance> {
   Map<String, String> addressMap1 = {}; // key = "lat,lng"
   Map<String, String> addressMap2 = {}; // key = "lat,lng"
+  final Geocoding geocodingService = Geocoding();
 
   Future<void> resolveAddress1(double lat, double lng) async {
     String key = "$lat,$lng";
     if (!addressMap1.containsKey(key)) {
       try {
-        List<Placemark> placeMark = await placemarkFromCoordinates(lat, lng);
+        List<Placemark> placeMark = await geocodingService.placemarkFromCoordinates(lat, lng);
         Placemark place = placeMark[0];
 
         String stateFull = place.administrativeArea ?? '';
@@ -60,7 +61,7 @@ class _CustomerTaskAttendanceState extends State<CustomerTaskAttendance> {
     String key = "$lat,$lng";
     if (!addressMap2.containsKey(key)) {
       try {
-        List<Placemark> placeMark = await placemarkFromCoordinates(lat, lng);
+        List<Placemark> placeMark = await geocodingService.placemarkFromCoordinates(lat, lng);
         Placemark place = placeMark[0];
 
         String stateFull = place.administrativeArea ?? '';

@@ -21,6 +21,7 @@ class CheckLocation extends StatefulWidget {
 
 class _CheckLocationState extends State<CheckLocation> {
   final List<Marker> _marker =[];
+  final Geocoding geocodingService = Geocoding();
   double lat1=0.0;
   double lat2=0.0;
   double lng1=0.0;
@@ -78,7 +79,7 @@ class _CheckLocationState extends State<CheckLocation> {
     super.initState();
   }
   void getAddress(double lat, double lng, double lat2, double lng2) async {
-    List<Placemark> placeMark = await placemarkFromCoordinates(lat, lng);
+    List<Placemark> placeMark = await geocodingService.placemarkFromCoordinates(lat, lng);
     Placemark place = placeMark[0];
 
     setState(() {
@@ -95,7 +96,7 @@ class _CheckLocationState extends State<CheckLocation> {
 
     // Second address
     if (lat2 != 0.0 && lng2 != 0.0) {
-      List<Placemark> placeMark2 = await placemarkFromCoordinates(lat2, lng2);
+      List<Placemark> placeMark2 = await geocodingService.placemarkFromCoordinates(lat2, lng2);
       Placemark place2 = placeMark2[0];
       setState(() {
         address2 = [

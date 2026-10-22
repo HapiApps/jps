@@ -408,6 +408,7 @@ class CustomerProvider with ChangeNotifier{
   String selectedCompanyId = "";
   String selectedCompanyName = "";
   List<Map<String, dynamic>> sendLists = [];
+  final Geocoding geocodingService = Geocoding();
 
   void setSendList(List<Map<String, dynamic>> list) {
     sendLists = list;
@@ -546,7 +547,7 @@ class CustomerProvider with ChangeNotifier{
   Future<void> mapAddress() async {
     if(search2.text!=""){
       try{
-        List<Location> locations = await locationFromAddress(search2.text);
+        List<Location> locations = await geocodingService.locationFromAddress(search2.text);
         googleMapController.animateCamera
           (CameraUpdate.newCameraPosition(CameraPosition
           (target: LatLng(locations[0].latitude,locations[0].longitude),zoom: 20)));
@@ -557,7 +558,7 @@ class CustomerProvider with ChangeNotifier{
             infoWindow: InfoWindow(title: search2.text),
             icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueViolet
             ),),);
-        List<Placemark> placeMark=await placemarkFromCoordinates(locations[0].latitude,locations[0].longitude);
+        List<Placemark> placeMark=await geocodingService.placemarkFromCoordinates(locations[0].latitude,locations[0].longitude);
         Placemark place = placeMark[0];
         address.text=place.street.toString();
         comArea.text="${place.subLocality.toString()}${place.thoroughfare.toString()==""?"":",${place.thoroughfare}"==""?"":place.thoroughfare.toString()}";
@@ -1179,7 +1180,7 @@ class CustomerProvider with ChangeNotifier{
     notifyListeners();
   }
   void getAdd(double lat,double lng) async {
-    List<Placemark> placeMark=await placemarkFromCoordinates(lat,lng);
+    List<Placemark> placeMark=await geocodingService.placemarkFromCoordinates(lat,lng);
     Placemark place = placeMark[0];
     address.text=place.street.toString();
     comArea.text="${place.subLocality.toString()}${place.thoroughfare.toString()==""?"":",${place.thoroughfare}"==""?"":place.thoroughfare.toString()}";
@@ -2653,7 +2654,7 @@ class CustomerProvider with ChangeNotifier{
       if (response.isNotEmpty) {
         for (var i = 0; i < dataList.length; i++) {
           DateTime dateTime = DateTime.parse(dataList[i]["created_ts"]);
-          List<Placemark> placeMark = await placemarkFromCoordinates(
+          List<Placemark> placeMark = await geocodingService.placemarkFromCoordinates(
             double.parse(dataList[i]["lat"]),
             double.parse(dataList[i]["lng"]),
           );

@@ -28,10 +28,12 @@ late TabController tabController;
 late GoogleMapController googleMapController;
 final List<Marker> _marker =[];
 List<Marker> get marker =>_marker;
+final Geocoding geocodingService = Geocoding();
+
 Future<void> mapAddress() async {
   if(search.text!=""){
     try{
-      List<Location> locations = await locationFromAddress(search.text);
+      List<Location> locations = await geocodingService.locationFromAddress(search.text);
       googleMapController.animateCamera
         (CameraUpdate.newCameraPosition(CameraPosition
         (target: LatLng(locations[0].latitude,locations[0].longitude),zoom: 20)));
@@ -42,7 +44,7 @@ Future<void> mapAddress() async {
           infoWindow: InfoWindow(title: search.text),
           icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueViolet
           ),),);
-      List<Placemark> placeMark=await placemarkFromCoordinates(locations[0].latitude,locations[0].longitude);
+      List<Placemark> placeMark=await geocodingService.placemarkFromCoordinates(locations[0].latitude,locations[0].longitude);
       Placemark place = placeMark[0];
       presentStreet.text=place.street.toString();
       presentArea.text="${place.subLocality.toString()}${place.thoroughfare.toString()==""?"":",${place.thoroughfare}"==""?"":place.thoroughfare.toString()}";
@@ -208,7 +210,7 @@ void setValue(ProjectModel data){
   notifyListeners();
 }
 Future<void> getAdd(double lat,double lng) async {
-  List<Placemark> placeMark=await placemarkFromCoordinates(lat,lng);
+  List<Placemark> placeMark=await geocodingService.placemarkFromCoordinates(lat,lng);
   Placemark place = placeMark[0];
   presentDoNo.text=place.street.toString();
   presentStreet.text=place.subLocality.toString();
@@ -224,7 +226,7 @@ double longitude=0.0;
 
 Future<void> checkProjectAddress(context,{bool? isUpdate = false,String? id}) async {
   try{
-    List<Location> presentLocations = await locationFromAddress
+    List<Location> presentLocations = await geocodingService.locationFromAddress
       ("${presentDoNo.text.trim()},${presentStreet.text.trim()},${presentArea.text.trim()},${presentCity.text.trim()}");
     latitude=presentLocations[0].latitude;
     longitude=presentLocations[0].longitude;

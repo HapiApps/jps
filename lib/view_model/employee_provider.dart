@@ -29,6 +29,8 @@ import '../source/utilities/utils.dart';
 
 class EmployeeProvider with ChangeNotifier{
 final EmployeeRepository empRepo = EmployeeRepository();
+final Geocoding geocodingService = Geocoding();
+
 // <-- ADDED
 String selectedCountryCode = "+91";
 String selectedCountryFlag = "🇮🇳";
@@ -163,7 +165,6 @@ TextEditingController blood = TextEditingController();
 
   final RoundedLoadingButtonController signCtr =RoundedLoadingButtonController();
 void datePick({required BuildContext context, required String date,required bool isStartDate}) {
-  DateTime dateTime = DateTime.now();
   final parsedDate = DateFormat('dd-MM-yyyy').parse(date);
   final now = DateTime.now();
   DateTime initDate = DateTime(
@@ -511,7 +512,7 @@ void profilePick(String imgData){
 // String get latitude=>_latitude;
 // String get longitude=>_longitude;
 Future<void> getAdd(double lat,double lng) async {
-  List<Placemark> placeMark=await placemarkFromCoordinates(lat,lng);
+  List<Placemark> placeMark=await geocodingService.placemarkFromCoordinates(lat,lng);
   Placemark place = placeMark[0];
   doorNo.text=place.street.toString();
   streetName.text=place.subLocality.toString();
@@ -954,7 +955,7 @@ List<Marker> get marker =>_marker;
   Future<void> mapAddress() async {
   if(search.text!=""){
     try{
-      List<Location> locations = await locationFromAddress(search.text);
+      List<Location> locations = await geocodingService.locationFromAddress(search.text);
       googleMapController.animateCamera
         (CameraUpdate.newCameraPosition(CameraPosition
         (target: LatLng(locations[0].latitude,locations[0].longitude),zoom: 20)));
@@ -965,7 +966,7 @@ List<Marker> get marker =>_marker;
           infoWindow: InfoWindow(title: search.text),
           icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueViolet
           ),),);
-      List<Placemark> placeMark=await placemarkFromCoordinates(locations[0].latitude,locations[0].longitude);
+      List<Placemark> placeMark=await geocodingService.placemarkFromCoordinates(locations[0].latitude,locations[0].longitude);
       Placemark place = placeMark[0];
       doorNo.text=place.street.toString();
       comArea.text="${place.subLocality.toString()}${place.thoroughfare.toString()==""?"":",${place.thoroughfare}"==""?"":place.thoroughfare.toString()}";

@@ -59,7 +59,7 @@ dependencies:
   flutter_image_compress:
   sqflite:
   geolocator: ^13.0.1
-  geocoding:
+  geocoding: ^5.0.0
   permission_handler: 12.0.1
   path_provider:
   url_launcher:

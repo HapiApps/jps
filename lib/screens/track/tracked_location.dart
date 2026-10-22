@@ -16,6 +16,7 @@ class TrackedLocation extends StatefulWidget {
 class _TrackedLocationState extends State<TrackedLocation> {
   late GoogleMapController _googleMapController;
   MarkerId? firstMarkerId;  // Store the first marker ID
+  final Geocoding geocodingService = Geocoding();
 
   @override
   void initState() {
@@ -24,7 +25,7 @@ class _TrackedLocationState extends State<TrackedLocation> {
   }
 
   Future<String> _getAddress(double lat, double lng) async {
-    List<Placemark> placeMarks = await placemarkFromCoordinates(lat, lng);
+    List<Placemark> placeMarks = await geocodingService.placemarkFromCoordinates(lat, lng);
     Placemark place = placeMarks[0];
     return "${place.street}, ${place.administrativeArea}, ${place.locality}, ${place.postalCode}, ${place.country}"; // Customize as needed
   }

@@ -105,6 +105,7 @@ class _AttendanceReportState extends State<AttendanceReport> {
   }
 
   /// ✅ reverse-geocodes a lat/lng pair (from backend data) into an area name
+  final Geocoding geocodingService = Geocoding();
   Future<String> _getAreaName(String lat, String lng) async {
     try {
       if (lat.isEmpty || lng.isEmpty) return "-";
@@ -116,7 +117,7 @@ class _AttendanceReportState extends State<AttendanceReport> {
       if (latitude == null || longitude == null) return "-";
 
       List<Placemark> placemarks =
-      await placemarkFromCoordinates(latitude, longitude);
+      await geocodingService.placemarkFromCoordinates(latitude, longitude);
 
       String result = "-";
       if (placemarks.isNotEmpty) {
