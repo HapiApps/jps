@@ -1236,6 +1236,28 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>
                       ],
                     ),
                     const Divider(thickness: 2),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            CircleAvatar(backgroundColor: data.expenseReportCount.toString()=="0"?colorsConst.red2:colorsConst.green2,radius: 4,),
+                            2.width,
+                            CustomText(text: "Expense",colors: data.expenseReportCount.toString()=="0"?colorsConst.red2:colorsConst.green2,isItalic: true,),
+                            10.width,
+                            TextButton(
+                                onPressed: (){
+                                  _myFocusScopeNode.unfocus();
+                                  utils.navigatePage(context, ()=> DashBoard(child: CreateExpense(taskId: data.id.toString(),data: data,coId: "",numberList: const [], companyName: data.projectName.toString(), type: data.type.toString(), desc: data.taskTitle.toString(),
+                                      date: data.taskDate.toString())));
+                                },
+                                child: CustomText(text: "Add Expense",colors: colorsConst.blueClr,)),
+                          ],
+                        ),
+                      ],
+                    ),    // only for aci
+
+                    const Divider(thickness: 2,),
 
                     /// CREATED / UPDATED
                     Row(

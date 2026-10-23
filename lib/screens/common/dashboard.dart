@@ -668,8 +668,8 @@ class _DashBoardState extends State<DashBoard> {
               () => const DashBoard(child: ViewCustomer())),
       // if (homeProvider.roleAccess
       //     .any((f) => f['feature'] == 'Expense' && f['name'] == 'View'))
-      //   _PanelItem(
-      //       "Expense", assets.expense, 9, () => const DashBoard(child: ExpensePage())),
+        _PanelItem(
+            "Expense", assets.expense, 9, () => const DashBoard(child: ExpensePage())),
       _PanelItem(
           "${constValue.task}",
           assets.report,
