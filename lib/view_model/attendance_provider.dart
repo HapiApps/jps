@@ -551,21 +551,7 @@ class AttendanceProvider with ChangeNotifier{
   // }
   Future<void> getMainAttendance({bool fromReport = false}) async {
     try {
-
-      if (!fromReport) {
-        _attCheck = false;
-        _mainCheckOut = false;
-        _isPermission = false;
-        _mainAttendance = 0;
-        _totalHrs = "";
-        _permissionStatus = "";
-      }
-
-      String reasonSave = "";
-
-      notifyListeners();
-
-      Map data = {
+      final Map data = {
         "action": getAllData,
         "search_type": "user_attendance",
         "id": localData.storage.read("id"),
@@ -573,144 +559,102 @@ class AttendanceProvider with ChangeNotifier{
       };
 
       final response = await attRepo.getAttendance(data);
-
       log(data.toString());
       log(response.toString());
 
+      // Reset AFTER response, so the button never flickers back to "Check In"
+      if (!fromReport) {
+        _mainCheckOut = false;
+        _isPermission = false;
+        _mainAttendance = 0;
+        _totalHrs = "";
+        _permissionStatus = "";
+      }
+
       if (response.isNotEmpty) {
+        final String today = DateFormat('dd-MMM-yyyy').format(DateTime.now());
+        final String myId = localData.storage.read("id").toString();
 
-        DateTime now = DateTime.now();
-        String formattedDate = DateFormat('dd-MMM-yyyy').format(now);
-
-        /// CURRENT USER மட்டும்
-        var userData = response.firstWhere(
-              (e) =>
-          e["salesman_id"].toString() ==
-              localData.storage.read("id").toString(),
+        final userData = response.firstWhere(
+              (e) => e["salesman_id"].toString() == myId,
           orElse: () => null,
         );
 
         if (userData != null) {
+          // server may send "29-Sep-2026,29-Sep-2026" (in + out)
+          final bool isToday = userData["date"]
+              .toString()
+              .split(",")
+              .any((d) => d.trim() == today);
 
-          if (formattedDate == userData["date"]) {
+          if (isToday) {
+            final String status = userData["status"].toString();
+            final List<String> times = (userData["time"]?.toString() ?? "")
+                .split(",")
+                .map((e) => e.trim())
+                .toList();
 
             /// CHECKOUT
-            _mainCheckOut =
-                userData["status"].toString().contains("2");
+            _mainCheckOut = status.contains("2");
 
-            /// ATTENDANCE STATUS
-            if (userData["status"].toString() == "1" ||
-                userData["status"].toString() == "1,2") {
+            /// ATTENDANCE STATUS (covers "1", "1,2", "2,1")
+            if (status.contains("1")) {
               _mainAttendance = 1;
             }
 
-            /// IN + OUT
-            if (userData["status"].toString().contains("1,2")) {
-
-              _inTime = userData["time"].split(",")[0];
-              _outTime = userData["time"].split(",")[1];
-
-              _totalHrs =
-                  getTimeDifferenceBetween(_inTime, _outTime);
-
-            }
-
-            /// OUT + IN
-            else if (userData["status"].toString().contains("2,1")) {
-
-              _outTime = userData["time"].split(",")[0];
-              _inTime = userData["time"].split(",")[1];
-
-              _totalHrs =
-                  getTimeDifferenceBetween(_outTime, _inTime);
-
-            }
-
-            /// ONLY IN
-            else {
-
-              if (userData["time"] != null &&
-                  userData["time"].toString().isNotEmpty) {
-
-                _inTime = userData["time"].split(",")[0];
-
+            /// TIMES
+            if (status.contains("1,2")) {
+              _inTime = times[0];
+              _outTime = times.length > 1 ? times[1] : "-";
+              if (times.length > 1) {
+                _totalHrs = getTimeDifferenceBetween(_inTime, _outTime);
               }
-
+            } else if (status.contains("2,1")) {
+              _outTime = times[0];
+              _inTime = times.length > 1 ? times[1] : times[0];
+              if (times.length > 1) {
+                _totalHrs = getTimeDifferenceBetween(_outTime, _inTime);
+              }
+            } else if (times.isNotEmpty && times[0].isNotEmpty) {
+              _inTime = times[0];
             }
 
-            /// -------------------------
-            /// PERMISSION STATUS
-            /// -------------------------
-
-            String perStatus =
-            userData["per_status"].toString();
-
-            reasonSave =
-                userData["per_reason"].toString();
+            /// PERMISSION
+            final String perStatus = userData["per_status"].toString();
+            final String reasonSave = userData["per_reason"].toString();
 
             if (!fromReport) {
-
               if (perStatus != "null" && perStatus.isNotEmpty) {
-
-                List splitStatus = perStatus.split(",");
-
-                /// LAST STATUS மட்டும்
-                _permissionStatus = splitStatus.last;
-
+                _permissionStatus = perStatus.split(",").last;
                 _isPermission = _permissionStatus == "1";
-
               } else {
-
                 _permissionStatus = "";
                 _isPermission = false;
-
               }
 
-            }
-
-            /// PERMISSION REASON
-            if (!fromReport) {
               if (reasonSave != "null" && reasonSave.isNotEmpty) {
-
-                List splitReason = reasonSave.split(",");
-
-                permissionReason.text = splitReason.last;
-
+                permissionReason.text = reasonSave.split(",").last;
               }
             }
-
-            /// DEBUG
-            print("permissionStatus = $_permissionStatus");
-            print("isPermission = $_isPermission");
 
             /// LATE COUNT
-            getLateCount(
-              "${DateTime.now().day.toString().padLeft(2,"0")}-${DateTime.now().month.toString().padLeft(2,"0")}-${DateTime.now().year}",
-              "${DateTime.now().day.toString().padLeft(2,"0")}-${DateTime.now().month.toString().padLeft(2,"0")}-${DateTime.now().year}",
-            );
-
+            final String t =
+                "${DateTime.now().day.toString().padLeft(2, "0")}-${DateTime.now().month.toString().padLeft(2, "0")}-${DateTime.now().year}";
+            getLateCount(t, t);
           }
-
         }
-
         _attCheck = true;
-
       } else {
-
         _totalHrs = "";
         _permissionStatus = "";
         _attCheck = true;
-
       }
-
     } catch (e) {
       print("Attendance Error: $e");
-      _totalHrs = "";
-      _permissionStatus = "";
       _attCheck = true;
     }
 
-    if (!fromReport) applyPendingState(); // ✅ ithu mattum puthu line
+    if (!fromReport) applyPendingState();
 
     notifyListeners();
   }
@@ -1320,7 +1264,7 @@ class AttendanceProvider with ChangeNotifier{
   String get endDate => _endDate;
   DateTime stDt = DateTime.now();
   DateTime enDt = DateTime.now().add(const Duration(days: 1));
-PickerDateRange? selectedDate;
+  PickerDateRange? selectedDate;
   List<DateTime> datesBetween = [];
   String betweenDates="";
   void sorting(context) {
@@ -1368,7 +1312,7 @@ PickerDateRange? selectedDate;
     _startDate = DateFormat('dd-MM-yyyy').format(stDt);
     _endDate = DateFormat('dd-MM-yyyy').format(stDt);
     if(localData.storage.read("role")!="1"){
-     getAttendanceReport(id,);
+      getAttendanceReport(id,);
       getAbsentAttendanceReport(id);
       Provider.of<LeaveProvider>(context, listen: false).allLeaves(_startDate,_endDate,true,localData.storage.read("role"),localData.storage.read("id"));
     }
@@ -1479,7 +1423,7 @@ PickerDateRange? selectedDate;
     _startDate = DateFormat('dd-MM-yyyy').format(stDt);
     _endDate = DateFormat('dd-MM-yyyy').format(enDt);
     if(localData.storage.read("role")!="1"){
-     // getAttendanceReport(id);
+      // getAttendanceReport(id);
     }
     notifyListeners();
   }
@@ -1492,93 +1436,93 @@ PickerDateRange? selectedDate;
       getAttendanceReport(localData.storage.read("id"));
     }
   }
-void showDatePickerDialog(BuildContext context,List<UserModel>? list) {
-  selectedDate=null;
-  datesBetween = [];
-  betweenDates="";
-  showDialog(
-    context: context,
-    builder: (BuildContext context) {
-      return AlertDialog(
-        title: CustomText(text: '   Select Date',colors: colorsConst.secondary,isBold: true,),
-        content: SizedBox(
-          height: 300, // Adjust height as needed
-          width: 300, // Adjust width as needed
-          child: SfDateRangePicker(
-            minDate: DateTime.now().subtract(const Duration(days: 365)),
-            maxDate: DateTime.now(),
-            onSelectionChanged: (DateRangePickerSelectionChangedArgs args) {
-              selectedDate = args.value;
-              _startDate="";
-              _endDate="";
-              if(selectedDate?.endDate!=null){
-                print("start end");
-                _startDate="${selectedDate?.startDate?.day.toString().padLeft(2,"0")}"
-                    "-${selectedDate?.startDate?.month.toString().padLeft(2,"0")}"
-                    "-${selectedDate?.startDate?.year.toString()}";
+  void showDatePickerDialog(BuildContext context,List<UserModel>? list) {
+    selectedDate=null;
+    datesBetween = [];
+    betweenDates="";
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: CustomText(text: '   Select Date',colors: colorsConst.secondary,isBold: true,),
+          content: SizedBox(
+            height: 300, // Adjust height as needed
+            width: 300, // Adjust width as needed
+            child: SfDateRangePicker(
+              minDate: DateTime.now().subtract(const Duration(days: 365)),
+              maxDate: DateTime.now(),
+              onSelectionChanged: (DateRangePickerSelectionChangedArgs args) {
+                selectedDate = args.value;
+                _startDate="";
+                _endDate="";
+                if(selectedDate?.endDate!=null){
+                  print("start end");
+                  _startDate="${selectedDate?.startDate?.day.toString().padLeft(2,"0")}"
+                      "-${selectedDate?.startDate?.month.toString().padLeft(2,"0")}"
+                      "-${selectedDate?.startDate?.year.toString()}";
 
-                _endDate="${selectedDate?.endDate?.day.toString().padLeft(2,"0")}"
-                    "-${selectedDate?.endDate?.month.toString().padLeft(2,"0")}"
-                    "-${selectedDate?.endDate?.year.toString()}";
-              }else{
-                print("end");
-                _startDate="${selectedDate?.startDate?.day.toString().padLeft(2,"0")}"
-                    "-${selectedDate?.startDate?.month.toString().padLeft(2,"0")}"
-                    "-${selectedDate?.startDate?.year.toString()}";
-                _endDate="${selectedDate?.startDate?.day.toString().padLeft(2,"0")}"
-                    "-${selectedDate?.startDate?.month.toString().padLeft(2,"0")}"
-                    "-${selectedDate?.startDate?.year.toString()}";
-                if(_startDate=="${DateTime.now().day.toString().padLeft(2,"0")}-${DateTime.now().month.toString().padLeft(2,"0")}-${DateTime.now().year}"){
-                  _decrease=true;
-                  _increase=false;
-                }
-              }
-            },
-            selectionMode: DateRangePickerSelectionMode.range,
-          ),
-        ),
-        actions: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              CustomText(text: 'Click and drag to select multiple dates',colors: colorsConst.primary,),
-            ],
-          ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              TextButton(
-                child: const CustomText(text:'Cancel',colors: Colors.grey,isBold: true,),
-                onPressed: () {
-                  Navigator.of(context).pop();
-                },
-              ),
-              TextButton(
-                child: CustomText(text: 'OK',colors: colorsConst.primary,isBold: true,),
-                onPressed: () {
-                  if (selectedDate != null) {
-                    datesBetween = getDatesInRange(
-                      selectedDate!.startDate!,
-                      selectedDate!.endDate ?? selectedDate!.startDate!,
-                    );
+                  _endDate="${selectedDate?.endDate?.day.toString().padLeft(2,"0")}"
+                      "-${selectedDate?.endDate?.month.toString().padLeft(2,"0")}"
+                      "-${selectedDate?.endDate?.year.toString()}";
+                }else{
+                  print("end");
+                  _startDate="${selectedDate?.startDate?.day.toString().padLeft(2,"0")}"
+                      "-${selectedDate?.startDate?.month.toString().padLeft(2,"0")}"
+                      "-${selectedDate?.startDate?.year.toString()}";
+                  _endDate="${selectedDate?.startDate?.day.toString().padLeft(2,"0")}"
+                      "-${selectedDate?.startDate?.month.toString().padLeft(2,"0")}"
+                      "-${selectedDate?.startDate?.year.toString()}";
+                  if(_startDate=="${DateTime.now().day.toString().padLeft(2,"0")}-${DateTime.now().month.toString().padLeft(2,"0")}-${DateTime.now().year}"){
+                    _decrease=true;
+                    _increase=false;
                   }
-                  DateFormat dateFormat = DateFormat('dd-MM-yyyy');
-
-                  List<String> formattedDates = datesBetween.map((date) => dateFormat.format(date)).toList();
-                  betweenDates = formattedDates.join(' || ');
-                  applyFilter(list);
-                  notifyListeners();
-                  Navigator.of(context).pop();
-                },
-              ),
-            ],
+                }
+              },
+              selectionMode: DateRangePickerSelectionMode.range,
+            ),
           ),
-        ],
-      );
-    },
-  );
-  notifyListeners();
-}
+          actions: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                CustomText(text: 'Click and drag to select multiple dates',colors: colorsConst.primary,),
+              ],
+            ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                TextButton(
+                  child: const CustomText(text:'Cancel',colors: Colors.grey,isBold: true,),
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                ),
+                TextButton(
+                  child: CustomText(text: 'OK',colors: colorsConst.primary,isBold: true,),
+                  onPressed: () {
+                    if (selectedDate != null) {
+                      datesBetween = getDatesInRange(
+                        selectedDate!.startDate!,
+                        selectedDate!.endDate ?? selectedDate!.startDate!,
+                      );
+                    }
+                    DateFormat dateFormat = DateFormat('dd-MM-yyyy');
+
+                    List<String> formattedDates = datesBetween.map((date) => dateFormat.format(date)).toList();
+                    betweenDates = formattedDates.join(' || ');
+                    applyFilter(list);
+                    notifyListeners();
+                    Navigator.of(context).pop();
+                  },
+                ),
+              ],
+            ),
+          ],
+        );
+      },
+    );
+    notifyListeners();
+  }
   List<DateTime> getDatesInRange(DateTime start, DateTime end) {
     List<DateTime> days = [];
     for (int i = 0; i <= end.difference(start).inDays; i++) {
@@ -1752,7 +1696,12 @@ void showDatePickerDialog(BuildContext context,List<UserModel>? list) {
   //     "cos_id": localData.storage.read("cos_id"),
   //   };
   //
-  //   final response = await attRepo.addAttendance(requestData, _profile);
+  //   dynamic response;
+  //     try {
+  //       response = await attRepo.addAttendance(requestData, _profile);
+  //     } catch (e) {
+  //       response = {};
+  //     }
   //   log(response.toString());
   //
   //   if (response.isNotEmpty) {
@@ -1829,6 +1778,9 @@ void showDatePickerDialog(BuildContext context,List<UserModel>? list) {
   bool _syncing = false;
   bool get isSyncing => _syncing;
 
+  bool _isMarking = false;
+  bool _isMarkingPermission = false;
+
   /// 1️⃣ Pure API call. Dialog/toast illa. Online + sync rendukkum use aagum.
   Future<bool> _sendAttendance({
     required String status,
@@ -1861,7 +1813,12 @@ void showDatePickerDialog(BuildContext context,List<UserModel>? list) {
         }
       }
 
-      final response = await attRepo.addAttendance(requestData, _profile);
+      dynamic response;
+      try {
+        response = await attRepo.addAttendance(requestData, _profile);
+      } catch (e) {
+        response = {};
+      }
       log(response.toString());
       return response.isNotEmpty;
     } catch (e) {
@@ -2047,8 +2004,10 @@ void showDatePickerDialog(BuildContext context,List<UserModel>? list) {
       String status,
       String? lat,
       String? lng,
-      )
-  async {
+      ) async {
+    // Block double tap / selfie + button race
+    if (_isMarking) return;
+
     // Location validation
     if (lat == null ||
         lng == null ||
@@ -2063,65 +2022,71 @@ void showDatePickerDialog(BuildContext context,List<UserModel>? list) {
       return;
     }
 
-    // Net illana offline save
-    final online = await OfflineAttendanceService.isOnline();
-    if (!online) {
-      await saveOffline(context, "attendance", status, lat, lng);
-      return;
-    }
+    _isMarking = true;
+    try {
+      // Net illana offline save
+      final online = await OfflineAttendanceService.isOnline();
+      if (!online) {
+        await saveOffline(context, "attendance", status, lat, lng);
+        return;
+      }
 
-    // Pending irundha muthala athai sync pannu (order maaraama irukka)
-    if (OfflineAttendanceService.hasPending) {
-      await syncPending(context);
-    }
-    if (!context.mounted) return;
+      // Pending irundha muthala sync pannu
+      if (OfflineAttendanceService.hasPending) {
+        await syncPending(context);
+      }
+      if (!context.mounted) return;
 
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Center(
-            child: Column(
-              children: [
-                const CustomText(
-                    text: "Attendance Marking",
-                    colors: Colors.grey,
-                    size: 15,
-                    isBold: true),
-                10.height,
-                const CustomText(
-                    text: "Please Wait",
-                    colors: Colors.grey,
-                    size: 15,
-                    isBold: true),
-                20.height,
-                LoadingAnimationWidget.staggeredDotsWave(
-                    color: colorsConst.secondary, size: 25),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-
-    final ok = await _sendAttendance(status: status, lat: lat, lng: lng);
-
-    if (context.mounted && Navigator.canPop(context)) {
-      Navigator.pop(context);
-    }
-    if (!context.mounted) return;
-
-    if (ok) {
-      utils.showSuccessToast(
-        text: status == "1" ? "Check In Successfully" : "Check Out Successfully",
+      showDialog(
         context: context,
+        barrierDismissible: false,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: Center(
+              child: Column(
+                children: [
+                  const CustomText(
+                      text: "Attendance Marking",
+                      colors: Colors.grey,
+                      size: 15,
+                      isBold: true),
+                  10.height,
+                  const CustomText(
+                      text: "Please Wait",
+                      colors: Colors.grey,
+                      size: 15,
+                      isBold: true),
+                  20.height,
+                  LoadingAnimationWidget.staggeredDotsWave(
+                      color: colorsConst.secondary, size: 25),
+                ],
+              ),
+            ),
+          );
+        },
       );
-      _refreshAfterAttendance(context);
-    } else {
-      utils.showErrorToast(context: context);
+
+      final ok = await _sendAttendance(status: status, lat: lat, lng: lng);
+
+      if (context.mounted && Navigator.canPop(context)) {
+        Navigator.pop(context);
+      }
+      if (!context.mounted) return;
+
+      if (ok) {
+        utils.showSuccessToast(
+          text: status == "1" ? "Check In Successfully" : "Check Out Successfully",
+          context: context,
+        );
+        _refreshAfterAttendance(context);
+      } else {
+        utils.showErrorToast(context: context);
+      }
+    } finally {
+      _isMarking = false;
     }
   }
+
   Future<void> syncPending(BuildContext context, {bool manual = false}) async {
     if (_syncing) return;
 
@@ -2313,6 +2278,9 @@ void showDatePickerDialog(BuildContext context,List<UserModel>? list) {
   final TextEditingController permissionReason=TextEditingController();
   Future putDailyPermission(context, String status, String lat, String lng) async {
 
+    if (_isMarkingPermission) return;
+    _isMarkingPermission = true;
+
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -2358,7 +2326,12 @@ void showDatePickerDialog(BuildContext context,List<UserModel>? list) {
       "cos_id": localData.storage.read("cos_id"),
     };
 
-    final response = await attRepo.addAttendance(requestData, _profile);
+    dynamic response;
+    try {
+      response = await attRepo.addAttendance(requestData, _profile);
+    } catch (e) {
+      response = {};
+    }
     log(response.toString());
 
     if (response.isNotEmpty) {
@@ -2389,7 +2362,7 @@ void showDatePickerDialog(BuildContext context,List<UserModel>? list) {
       notifyListeners();
 
       /// REFRESH DATA
-     // Provider.of<HomeProvider>(context, listen: false).getMainReport(false);
+      // Provider.of<HomeProvider>(context, listen: false).getMainReport(false);
       Provider.of<HomeProvider>(context, listen: false).loadFullDashboard(context);
       getAttendanceReport(localData.storage.read("id"));
       getMainAttendance();
@@ -2409,6 +2382,7 @@ void showDatePickerDialog(BuildContext context,List<UserModel>? list) {
       Navigator.pop(context);
 
     }
+    _isMarkingPermission = false;
   }
   void resetOnLogout() {
     final now = DateTime.now();
