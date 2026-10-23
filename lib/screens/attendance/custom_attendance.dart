@@ -207,8 +207,6 @@ class _CheckAttendanceState extends State<CheckAttendance> {
       trackCtr.locationList.clear();
     }
 
-
-
     await localData.storage.write("Track", false);
 
     if (!mounted) return;
