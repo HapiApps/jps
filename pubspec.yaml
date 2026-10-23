@@ -149,7 +149,6 @@ flutter:
   assets:
     - assets/images/
     - assets/images/logo/
-    - assets/images/app_logo/
     - assets/images/panel/
     - assets/images/dashboard/
     - assets/images/emp/
