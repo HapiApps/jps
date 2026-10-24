@@ -320,7 +320,7 @@ class ConstantValues {
 
   String get users => _t("Employees", "பணியாளர்கள்", "कर्मचारी");
 
-  String get addTask => _t("Add Task", "பணி சேர்க்க", "कार्य जोड़ें");
+  String get assignTasks => _t("Assign Tasks", "பணிகளை ஒதுக்க", "कार्य सौंपें");
 
   String get createEmployee =>
       _t("Create Employee", "பணியாளர் உருவாக்க", "कर्मचारी बनाएं");
@@ -609,6 +609,10 @@ class ConstantValues {
 
   String get add_Task => _t("Add Task", "பணி சேர்க்க", "कार्य जोड़ें");
 
+  String get taskOverview => _t("TASK OVERVIEW", "பணிகளின் கண்ணோட்டம்", "कार्य अवलोकन",);
+
+  String get taskCount => _t("Total Tasks", "மொத்த பணிகள்", "कुल कार्य",);
+
   String get assigned => _t("Assigned", "ஒதுக்கப்பட்டது", "सौंपा गया");
 
   String get started => _t("Started", "தொடங்கியது", "शुरू हुआ");
@@ -730,7 +734,7 @@ class ConstantValues {
       _t("Select Type", "வகையைத் தேர்ந்தெடுக்கவும்", "प्रकार चुनें");
 
   // ---------------- Task details ----------------
-  String get viewTask => _t("View Task", "பணியைப் பார்க்க", "कार्य देखें");
+  String get viewTask => _t("Tasks", "பணிகள்", "कार्य");
 
   String get editTask => _t("Edit Task", "பணியைத் திருத்து", "कार्य संपादित करें");
 

@@ -31,6 +31,7 @@ import '../leave_management/leave_report.dart';
 import '../payroll/payroll_dashboard.dart';
 import '../project/view_all_project.dart';
 import '../task/view_task.dart';
+import '../task/view_task_new.dart';
 import '../task/wages_employee_details.dart';
 import 'home_page.dart';
 
@@ -675,7 +676,7 @@ class _DashBoardState extends State<DashBoard> {
           assets.report,
           10,
               () => DashBoard(
-              child: ViewTask(
+              child: ViewTaskPage(
                   date1: homeProvider.startDate,
                   date2: homeProvider.endDate,
                   type: homeProvider.type))),

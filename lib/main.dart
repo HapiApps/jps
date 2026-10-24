@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:developer';
 import 'package:master_code/screens/attendance/offline_attendance.dart';
+import 'package:master_code/screens/task/view_task_new.dart';
 import 'package:master_code/source/constant/language_model.dart';
 import 'package:camera/camera.dart';
 import 'package:connectivity_wrapper/connectivity_wrapper.dart';
@@ -368,7 +369,7 @@ void handleNotificationNavigation(Map<String, dynamic> data) {
     if (page.contains("task")) {
       nav.push(MaterialPageRoute(
         builder: (_) => DashBoard(
-          child: ViewTask(date1: today(), date2: today(), type: "Today"),
+          child: ViewTaskPage(date1: today(), date2: today(), type: "Today"),
         ),
       ));
       return;
@@ -581,7 +582,7 @@ void setupNotificationOpenedListener() {
 
       if (title.contains("task")) {
         nav.push(MaterialPageRoute(
-          builder: (_) => ViewTask(
+          builder: (_) => ViewTaskPage(
             date1: taskDate,
             date2: taskDate,
             type: taskDate.isEmpty ? "today" : "",

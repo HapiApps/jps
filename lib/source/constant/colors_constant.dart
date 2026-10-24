@@ -98,4 +98,7 @@ final Color primary=  const Color(0xff1976D2); /// hapiapps red
   static const Color background = Color(0xFFF5F6F8);
   static const Color background2 = Color(0xFFE8E8E7);
 
+  ///New Added Colors
+  static const Color appBlack = Color(0xFF111827);
+
 }

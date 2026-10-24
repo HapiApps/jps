@@ -33,6 +33,7 @@ import '../attendance/custom_attendance.dart';
 import '../customer/visit/add_visit.dart';
 import '../customer/visit_report/visits_report.dart';
 import '../task/add_task.dart';
+import '../task/view_task_new.dart';
 import 'add_day_work_plan.dart';
 import 'detail_work_plan.dart';
 import '../task/view_task.dart';
@@ -1296,7 +1297,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
         utils.navigatePage(
             context,
                 () => DashBoard(
-                child: ViewTask(
+                child: ViewTaskPage(
                     date1: homeProvider.startDate,
                     date2: homeProvider.endDate,
                     type: homeProvider.type)));

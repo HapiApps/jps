@@ -139,7 +139,7 @@ final List<Widget> _mainContents = [
   const Setting(),
   const Center(child: CustomText(text: "Help")),
   const ExpensePage(),
-  // ViewTask(date1: _startDate, date2: _endDate),
+  // ViewTaskPage(date1: _startDate, date2: _endDate),
 ];
 List<Widget> get mainContents =>_mainContents;
 // void showType(int type){

@@ -17,6 +17,7 @@ import '../../view_model/employee_provider.dart';
 import '../../view_model/leave_provider.dart';
 import '../leave_management/leave_dashboard.dart';
 import '../leave_management/leave_report.dart';
+import '../task/view_task_new.dart';
 import 'dashboard.dart';
 import '../customer/visit_report/visits_report.dart';
 import '../task/task_chat.dart';
@@ -270,7 +271,7 @@ class _ViewNotificationState extends State<ViewNotification> with SingleTickerPr
                                 utils.navigatePage(
                                   context,
                                       () => DashBoard(
-                                    child: ViewTask(
+                                    child: ViewTaskPage(
                                       date1: taskDate,
                                       date2: taskDate,
                                       type: "Today",

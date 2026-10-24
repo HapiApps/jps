@@ -35,6 +35,7 @@ import '../screens/attendance/offline_attendance.dart';
 import '../screens/common/camera.dart';
 import '../screens/common/dashboard.dart';
 import '../screens/task/view_task.dart';
+import '../screens/task/view_task_new.dart';
 import '../source/constant/api.dart';
 import '../source/constant/colors_constant.dart';
 import '../source/constant/language_model.dart';
@@ -2782,7 +2783,7 @@ class TaskProvider with ChangeNotifier {
         utils.navigatePage(
           context,
               () => DashBoard(
-            child: ViewTask(
+            child: ViewTaskPage(
               date1: homeProvider.startDate,
               date2: homeProvider.endDate,
               type: homeProvider.type,
@@ -2929,7 +2930,7 @@ class TaskProvider with ChangeNotifier {
         utils.navigatePage(
           context,
               () => DashBoard(
-            child: ViewTask(
+            child: ViewTaskPage(
               date1: home.startDate,
               date2: home.endDate,
               type: home.type,
