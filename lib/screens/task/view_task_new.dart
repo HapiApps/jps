@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/gestures.dart';
@@ -46,6 +47,12 @@ import 'add_wages_work_details.dart';
 /// ---------------------------------------------------------------------------
 /// PARENT: loads all data ONCE (dropdown data + task list).
 /// The child tab (ViewfilterUserData) does NOT call any API in initState.
+///
+/// PERF CHANGES:
+///  * No Selector around the whole screen any more (it rebuilt appbar,
+///    overview, tabbar and both tabs on every dataVersion bump).
+///  * Calendar tab is built only AFTER the tab animation finishes and is then
+///    kept alive -> tab switch is smooth and instant the 2nd time.
 /// ---------------------------------------------------------------------------
 class ViewTaskPage extends StatefulWidget {
   final String date1;
@@ -61,14 +68,27 @@ class _ViewTaskState extends State<ViewTaskPage> with SingleTickerProviderStateM
   final FocusScopeNode _myFocusScopeNode = FocusScopeNode();
   late TabController tabController;
 
+  // Calendar is heavy -> build it lazily, after the tab animation completes.
+  bool _calendarReady = false;
+  bool _calendarScheduled = false;
+
+  void _onTabChange() {
+    _myFocusScopeNode.unfocus();
+    if (tabController.index == 1 && !_calendarReady && !_calendarScheduled) {
+      _calendarScheduled = true;
+      Future.delayed(const Duration(milliseconds: 320), () {
+        if (!mounted) return;
+        setState(() => _calendarReady = true);
+      });
+    }
+  }
+
   @override
   void initState() {
     super.initState();
     if (kDebugMode) debugPrint('>>> ViewTask initState');
     tabController = TabController(length: 2, vsync: this);
-    tabController.addListener(() {
-      _myFocusScopeNode.unfocus();
-    });
+    tabController.addListener(_onTabChange);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
@@ -124,172 +144,193 @@ class _ViewTaskState extends State<ViewTaskPage> with SingleTickerProviderStateM
 
   @override
   Widget build(BuildContext context) {
+    final taskProvider = context.read<TaskProvider>();
+    final homeProvider = context.read<HomeProvider>();
     var webHeight = MediaQuery.of(context).size.width * 0.5;
     var phoneHeight = MediaQuery.of(context).size.width * 0.95;
 
-    // Only TaskProvider triggers rebuild. HomeProvider is read once (no listen).
-    // Selector: rebuilds ONLY when provider data really changes (dataVersion).
-    // The 1-second timer ticker no longer rebuilds the whole task list.
-    return Selector<TaskProvider, int>(
-        selector: (_, p) => p.dataVersion,
-        builder: (context, _, __) {
-          final taskProvider = context.read<TaskProvider>();
-          final homeProvider = context.read<HomeProvider>();
+    return FocusScope(
+      node: _myFocusScopeNode,
+      child: Padding(
+        padding: const EdgeInsets.all(5.0),
+        child: Scaffold(
+          backgroundColor: colorsConst.bacColor,
+          appBar: PreferredSize(
+            preferredSize: const Size(300, 50),
+            child: MyAppbar(
+              text: "${constValue.viewTask}",
+              callback: () {
+                _myFocusScopeNode.unfocus();
+                homeProvider.updateIndex(0);
+                utils.navigateAndClear(context, () => const DashBoard(child: HomePage()));
+              },
+              isLoading: taskProvider.isAddTaskLoading,
+              buttonCallback: () async {
+                if (taskProvider.isAddTaskLoading) return; // double-tap block
 
-          return FocusScope(
-            node: _myFocusScopeNode,
-            child: Scaffold(
-              backgroundColor: colorsConst.bacColor,
-              appBar: PreferredSize(
-                preferredSize: const Size(300, 50),
-                child: MyAppbar(
-                  text: "${constValue.viewTask}",
-                  callback: () {
-                    _myFocusScopeNode.unfocus();
-                    homeProvider.updateIndex(0);
-                    utils.navigateAndClear(context, () => const DashBoard(child: HomePage()));
-                  },
-                  isLoading: taskProvider.isAddTaskLoading,
-                  buttonCallback: () async {
-                    if (taskProvider.isAddTaskLoading) return; // double-tap block
+                setState(() {
+                  taskProvider.isAddTaskLoading = true;
+                });
 
-                    setState(() {
-                      taskProvider.isAddTaskLoading = true;
-                    });
+                taskProvider.typeList.removeWhere((e) => e['value'] == 'All');
 
-                    taskProvider.typeList.removeWhere((e) => e['value'] == 'All');
+                if (taskProvider.assignedNames.isEmpty) {
+                  await taskProvider.getTaskUsers();
+                }
 
-                    if (taskProvider.assignedNames.isEmpty) {
-                      await taskProvider.getTaskUsers();
-                    }
+                if (!mounted) return;
 
-                    if (!mounted) return;
+                setState(() {
+                  taskProvider.isAddTaskLoading = false;
+                });
 
-                    setState(() {
-                      taskProvider.isAddTaskLoading = false;
-                    });
-
-                    utils.navigatePage(
-                      context,
-                          () => const DashBoard(child: AddTask()),
-                    );
-                  },
-                ),
-              ),
-              body: PopScope(
-                canPop: false,
-                onPopInvoked: (bool didPop) {
-                  _myFocusScopeNode.unfocus();
-                  homeProvider.updateIndex(0);
-                  if (!didPop) {
-                    utils.navigateAndClear(context, () => const DashBoard(child: HomePage()));
-                  }
-                },
-                child: Center(
-                  child: SizedBox(
-                    width: kIsWeb ? webHeight : phoneHeight,
-                    child: Column(
-                      children: [
-                        DateFilterDropdown(
-                          initialType: widget.type,
-                          onChanged: (r) {
-                            final taskProvider = context.read<TaskProvider>();
-                            taskProvider.initFilterValue(true, date1: r.startDate, date2: r.endDate, type: r.type);
-                            taskProvider.getAllIncompleteTask(true, date1: r.startDate, date2: r.endDate, type: r.type);
-                          },
-                        ),
-                        20.height,
-                        TaskOverviewCard(
-                          title: constValue.taskOverview,
-                           totalLabel: constValue.taskCount,
-                           completed: 145,
-                           pending: 32,
-                           overdue: 15,
-                        ),
-                        20.height,
-                        Container(
-                          height: 50,
-                          decoration: customDecoration.baseBackgroundDecoration(
-                            color: Colors.white,
-                            radius: 30,
-                          ),
-                          child: AnimatedBuilder(
-                            animation: tabController,
-                            builder: (context, _) {
-                              final isTasksActive = tabController.index == 0;
-                              final isCalendarActive = tabController.index == 1;
-
-                              return TabBar(
-                                controller: tabController,
-                                indicator: customDecoration.baseBackgroundDecoration(
-                                  radius: 30,
-                                  color: colorsConst.primary,
-                                ),
-                                indicatorSize: TabBarIndicatorSize.tab,
-                                dividerColor: Colors.transparent,
-                                tabs: [
-                                  // ---------- Tab 1: Tasks ----------
-                                  Tab(
-                                    child: Row(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                        SvgPicture.asset(
-                                          isTasksActive
-                                              ? "assets/images/task_active.svg"
-                                              : "assets/images/task_icon.svg",
-                                        ),
-                                        10.width,
-                                        CustomText(
-                                          text: "Tasks",
-                                          isBold: true,
-                                          colors: isTasksActive ? Colors.white : Colors.black,
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-
-                                  // ---------- Tab 2: Calendar ----------
-                                  Tab(
-                                    child: Row(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                        SvgPicture.asset(
-                                          isCalendarActive
-                                              ? "assets/images/calender_active.svg"
-                                              : "assets/images/task_calender.svg",
-                                        ),
-                                        10.width,
-                                        CustomText(
-                                          text: "Calendar",
-                                          isBold: true,
-                                          colors: isCalendarActive ? Colors.white : Colors.black,
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              );
-                            },
-                          ),
-                        ),
-                        Expanded(
-                              child: TabBarView(
-                                controller: tabController,
-                                children: [
-                                  // ViewfilterUserData(
-                                  //     date1: widget.date1, date2: widget.date2, type: widget.type),
-                                  // TaskCalendar(taskPvr: taskProvider),
-                                ],
-                              ),
-                            ),
-                      ],
+                utils.navigatePage(
+                  context,
+                      () => const DashBoard(child: AddTask()),
+                );
+              },
+            ),
+          ),
+          body: PopScope(
+            canPop: false,
+            onPopInvoked: (bool didPop) {
+              _myFocusScopeNode.unfocus();
+              homeProvider.updateIndex(0);
+              if (!didPop) {
+                utils.navigateAndClear(context, () => const DashBoard(child: HomePage()));
+              }
+            },
+            child: Center(
+              child: SizedBox(
+                width: kIsWeb ? webHeight : phoneHeight,
+                child: Column(
+                  children: [
+                    DateFilterDropdown(
+                      initialType: widget.type,
+                      onChanged: (r) {
+                        final tp = context.read<TaskProvider>();
+                        tp.initFilterValue(true, date1: r.startDate, date2: r.endDate, type: r.type);
+                        tp.getAllIncompleteTask(true, date1: r.startDate, date2: r.endDate, type: r.type);
+                      },
                     ),
-                  ),
+                    const SizedBox(height: 12),
+                    RepaintBoundary(
+                      child: TaskOverviewCard(
+                        title: constValue.taskOverview,
+                        totalLabel: constValue.taskCount,
+                        completed: 145,
+                        pending: 32,
+                        overdue: 15,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Container(
+                      height: 50,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(30),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.06),
+                            blurRadius: 10,
+                            offset: const Offset(0, 3),
+                          ),
+                        ],
+                      ),
+                      child: AnimatedBuilder(
+                        animation: tabController,
+                        builder: (context, _) {
+                          final isTasksActive = tabController.index == 0;
+                          final isCalendarActive = tabController.index == 1;
+
+                          return TabBar(
+                            controller: tabController,
+
+                            indicatorPadding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 4,
+                            ),
+
+                            indicator: customDecoration.baseBackgroundDecoration(
+                              radius: 30,
+                              color: colorsConst.primary,
+                            ),
+
+                            indicatorSize: TabBarIndicatorSize.tab,
+                            dividerColor: Colors.transparent,
+                            tabs: [
+                              // ---------- Tab 1: Tasks ----------
+                              Tab(
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    SvgPicture.asset(
+                                      isTasksActive
+                                          ? "assets/images/task_active.svg"
+                                          : "assets/images/task_icon.svg",
+                                    ),
+                                    10.width,
+                                    CustomText(
+                                      text: "Tasks",
+                                      isBold: true,
+                                      colors: isTasksActive ? Colors.white : ColorsConst.greyText,
+                                    ),
+                                  ],
+                                ),
+                              ),
+
+                              // ---------- Tab 2: Calendar ----------
+                              Tab(
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    SvgPicture.asset(
+                                      isCalendarActive
+                                          ? "assets/images/calender_active.svg"
+                                          : "assets/images/task_calender.svg",
+                                    ),
+                                    10.width,
+                                    CustomText(
+                                      text: "Calendar",
+                                      isBold: true,
+                                      colors: isCalendarActive ? Colors.white : ColorsConst.greyText,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          );
+                        },
+                      ),
+                    ),
+                    Expanded(
+                      child: TabBarView(
+                        controller: tabController,
+                        children: [
+                          ViewfilterUserData(
+                              date1: widget.date1, date2: widget.date2, type: widget.type),
+
+                          // Calendar: lazy + keep-alive + own Selector
+                          _calendarReady
+                              ? _KeepAlive(
+                            child: Selector<TaskProvider, int>(
+                              selector: (_, p) => p.dataVersion,
+                              builder: (ctx, _, __) =>
+                                  TaskCalendar(taskPvr: ctx.read<TaskProvider>()),
+                            ),
+                          )
+                              : const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
-          );
-        });
+          ),
+        ),
+      ),
+    );
   }
 
   _DataSource _getDataSource() {
@@ -298,9 +339,38 @@ class _ViewTaskState extends State<ViewTaskPage> with SingleTickerProviderStateM
   }
 }
 
+/// Keeps a tab page alive so it is not rebuilt every time the tab is switched.
+class _KeepAlive extends StatefulWidget {
+  final Widget child;
+  const _KeepAlive({required this.child});
+
+  @override
+  State<_KeepAlive> createState() => _KeepAliveState();
+}
+
+class _KeepAliveState extends State<_KeepAlive> with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
+  Widget build(BuildContext context) {
+    super.build(context);
+    return widget.child;
+  }
+}
+
+/// Small immutable style holder for the chips on the card.
+class _ChipStyle {
+  final String label;
+  final Color bg;
+  final Color fg;
+  final IconData icon;
+  const _ChipStyle(this.label, this.bg, this.fg, this.icon);
+}
+
 /// ---------------------------------------------------------------------------
 /// CHILD TAB: only shows the data. NO API calls here.
-/// Lazy loading: first 15 tasks kaatum, scroll panna innum 15 15 ah add aagum.
+/// Lazy loading: first 15 tasks, scroll panna innum 15 15 ah add aagum.
 /// ---------------------------------------------------------------------------
 class ViewfilterUserData extends StatefulWidget {
   final String date1;
@@ -317,14 +387,41 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>
     with AutomaticKeepAliveClientMixin {
   final FocusScopeNode _myFocusScopeNode = FocusScopeNode();
 
-  // ✅ lazy loading
+  // lazy loading
   final ScrollController _scrollController = ScrollController();
   static const int _pageSize = 15;
   int _visibleCount = _pageSize;
   bool _isLoadingMore = false;
+  int _total = 0;
+
+  // local "Overdue" tab (no provider change needed)
+  bool _overdueOnly = false;
+
+  // search debounce
+  Timer? _debounce;
+
+  // cached formatters / parsed dates (avoid re-creating per card)
+  static final DateFormat _dueFmt = DateFormat('dd MMM yyyy');
+  static final List<DateFormat> _parseFmts = [
+    DateFormat('dd-MM-yyyy'),
+    DateFormat('dd/MM/yyyy'),
+    DateFormat('d-M-yyyy'),
+    DateFormat('d/M/yyyy'),
+  ];
+  final Map<String, DateTime?> _dateCache = {};
+
+  static const List<Color> _avatarColors = [
+    Color(0xff0B5FB5),
+    Color(0xff3B82F6),
+    Color(0xffF59E0B),
+    Color(0xff10B981),
+    Color(0xff8B5CF6),
+    Color(0xffEF4444),
+    Color(0xff14B8A6),
+  ];
 
   @override
-  bool get wantKeepAlive => true; // tab switch panna list rebuild / reset aagaadhu
+  bool get wantKeepAlive => true;
 
   @override
   void initState() {
@@ -335,9 +432,7 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>
   void _onScroll() {
     if (_isLoadingMore) return;
     if (!_scrollController.hasClients) return;
-
-    final total = context.read<TaskProvider>().filterUserData.length;
-    if (_visibleCount >= total) return;
+    if (_visibleCount >= _total) return;
 
     if (_scrollController.position.pixels >=
         _scrollController.position.maxScrollExtent - 300) {
@@ -352,7 +447,7 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>
     }
   }
 
-  // ✅ search / filter / tab maathum bodhu thirumba first 15 ku reset
+  // search / filter / tab maathum bodhu thirumba first 15 ku reset
   void _resetPaging() {
     if (!mounted) return;
     setState(() => _visibleCount = _pageSize);
@@ -362,259 +457,318 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>
   @override
   void dispose() {
     if (kDebugMode) debugPrint('>>> ViewfilterUserData dispose');
+    _debounce?.cancel();
     _scrollController.dispose();
     _myFocusScopeNode.dispose();
     super.dispose();
   }
 
+  // -------------------------------------------------------------------------
+  // helpers
+  // -------------------------------------------------------------------------
+  DateTime? _parseDate(String? s) {
+    if (s == null) return null;
+    final t = s.trim();
+    if (t.isEmpty) return null;
+    if (_dateCache.containsKey(t)) return _dateCache[t];
+
+    DateTime? result;
+    final iso = DateTime.tryParse(t);
+    if (iso != null) {
+      result = DateTime(iso.year, iso.month, iso.day);
+    } else {
+      for (final f in _parseFmts) {
+        try {
+          result = f.parseStrict(t);
+          break;
+        } catch (_) {}
+      }
+    }
+    _dateCache[t] = result;
+    return result;
+  }
+
+  bool _isOverdue(TaskData d) {
+    if ((d.statval ?? "") == "Completed") return false;
+    final due = _parseDate(d.taskDate);
+    if (due == null) return false;
+    final now = DateTime.now();
+    return due.isBefore(DateTime(now.year, now.month, now.day));
+  }
+
+  String _initials(String name) {
+    final p = name.trim().split(RegExp(r'\s+'));
+    if (p.isEmpty || p.first.isEmpty) return "?";
+    if (p.length == 1) {
+      return p.first.substring(0, math.min(2, p.first.length)).toUpperCase();
+    }
+    return (p[0][0] + p[1][0]).toUpperCase();
+  }
+
+  _ChipStyle _statusStyle(String s) {
+    switch (s) {
+      case "Completed":
+        return const _ChipStyle(
+            "Completed", Color(0xffE7F6EC), Color(0xff1FAF38), Icons.check_circle_outline);
+      case "Started":
+        return const _ChipStyle(
+            "Started", Color(0xffE8F1FD), Color(0xff1A6FD1), Icons.play_circle_outline);
+      case "Overdue":
+        return const _ChipStyle(
+            "Overdue", Color(0xffFDECEC), Color(0xffE5383B), Icons.error_outline);
+      case "Assigned":
+        return const _ChipStyle(
+            "Assigned", Color(0xffEEEBFD), Color(0xff5B4BDB), Icons.assignment_ind_outlined);
+      default:
+        return _ChipStyle(
+            s.isEmpty ? "-" : s, const Color(0xffF1F2F4), const Color(0xff6B7280), Icons.circle_outlined);
+    }
+  }
+
+  _ChipStyle _priorityStyle(String level) {
+    switch (level) {
+      case "High":
+        return const _ChipStyle(
+            "High Priority", Color(0xffFEE9EC), Color(0xffE5383B), Icons.circle);
+      case "Immediate":
+        return const _ChipStyle(
+            "Immediate", Color(0xffF6EAFE), Color(0xffB35CFF), Icons.circle);
+      default:
+        return const _ChipStyle(
+            "Normal", Color(0xffF1EAFE), Color(0xff7C3AED), Icons.circle);
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // BUILD
+  // -------------------------------------------------------------------------
   @override
   Widget build(BuildContext context) {
     super.build(context); // required for keep-alive
     if (kDebugMode) debugPrint('>>> ViewfilterUserData rebuild');
-    var webHeight = MediaQuery.of(context).size.width * 0.5;
-    var phoneHeight = MediaQuery.of(context).size.width * 0.95;
 
-    // Only TaskProvider triggers rebuild (Location/Home providers removed).
+    // Only TaskProvider triggers rebuild.
     // Selector: rebuilds ONLY when provider data really changes (dataVersion).
-    // The 1-second timer ticker no longer rebuilds the whole task list.
     return Selector<TaskProvider, int>(
         selector: (_, p) => p.dataVersion,
         builder: (context, _, __) {
           final taskProvider = context.read<TaskProvider>();
-          final homeProvider = context.read<HomeProvider>();
+
+          final allData = taskProvider.filterUserData;
+          final list = _overdueOnly ? allData.where((e) => _isOverdue(e)).toList() : allData;
+          _total = list.length;
+
+          final noData = _overdueOnly
+              ? list.isEmpty
+              : (list.isEmpty || (taskProvider.statusId != "" && taskProvider.matched == 0));
 
           return FocusScope(
             node: _myFocusScopeNode,
-            child: Scaffold(
-              backgroundColor: const Color(0xffEAEAEA),
-              body: taskProvider.viewRefresh == false
+            child: ColoredBox(
+              color: const Color(0xffF3F4F6),
+              child: taskProvider.viewRefresh == false
                   ? const Loading()
                   : Column(
                 children: [
-                  10.height,
+                  const SizedBox(height: 10),
+                  /// SEARCH + FILTER + DOWNLOAD
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Container(
-                        width: kIsWeb ? webHeight / 1.2 : phoneHeight / 1.4,
-                        decoration: customDecoration.baseBackgroundDecoration(
-                          radius: 30,
-                          color: colorsConst.primary,
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Container(
-                              width: kIsWeb ? webHeight / 1.5 : phoneHeight / 1.8,
-                              height: 45,
-                              decoration: customDecoration.baseBackgroundDecoration(
-                                radius: 30,
-                                color: Colors.transparent,
+                      Expanded(
+                        child: Container(
+                          height: 44,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(24),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.05),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
                               ),
-                              child: TextFormField(
-                                controller: taskProvider.search,
-                                cursorColor: colorsConst.primary,
-                                style: const TextStyle(
-                                  color: Colors.black,
-                                  fontSize: 14,
-                                ),
-                                onChanged: (value) {
-                                  _resetPaging();
-                                  Future.microtask(() {
-                                    taskProvider.searchTask(value);
-                                  });
-                                },
-                                decoration: InputDecoration(
-                                  hintText: "Search Name or ${constValue.customer}",
-                                  hintStyle: TextStyle(
-                                    color: colorsConst.primary,
-                                    fontSize: 14,
-                                  ),
-                                  fillColor: Colors.white,
-                                  filled: true,
-                                  prefixIcon: const Icon(
-                                    Icons.search,
-                                    color: Colors.grey,
-                                  ),
-                                  suffixIcon: taskProvider.search.text.isNotEmpty
-                                      ? IconButton(
-                                    icon: const Icon(
-                                      Icons.close_rounded,
-                                      color: Colors.grey,
-                                    ),
-                                    onPressed: () {
-                                      taskProvider.search.clear();
-                                      taskProvider.searchTask("");
-                                      _resetPaging();
-                                    },
-                                  )
-                                      : null,
-                                  contentPadding: const EdgeInsets.symmetric(
-                                    horizontal: 20,
-                                    vertical: 14,
-                                  ),
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(30),
-                                    borderSide: BorderSide.none,
-                                  ),
-                                  enabledBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(30),
-                                    borderSide: BorderSide(
-                                      color: Colors.grey.shade300,
-                                    ),
-                                  ),
-                                  focusedBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(30),
-                                    borderSide: BorderSide(
-                                      color: colorsConst.primary,
-                                      width: 1.5,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                            InkWell(
-                              onTap: () {
-                                _myFocusScopeNode.unfocus();
-                                // lazy load: filter dialog ku mattum thevai
-                                final cust = context.read<CustomerProvider>();
-                                final emp = context.read<EmployeeProvider>();
-                                if (cust.customer.isEmpty) cust.getAllCustomers(true);
-                                if (emp.activeEmps.isEmpty) emp.getAllUsers(isRefresh: false);
-                                if (!taskProvider.typeList.any((e) => e['value'] == 'All')) {
-                                  taskProvider.typeList.insert(0, {
-                                    "id": "",
-                                    "value": "All",
-                                  });
-                                }
-                                _showFilterDialog();
-                              },
-                              child: const Padding(
-                                padding: EdgeInsets.all(6.0),
-                                child: Icon(
-                                  Icons.filter_alt,
-                                  size: 27,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ),
-                            5.width
-                          ],
-                        ),
-                      ),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          // Admin -> full report | Employee -> only assigned (same call)
-                          InkWell(
-                            onTap: () async {
-                              taskProvider.downloadAllOnlyEmpTask(context);
-                            },
-                            borderRadius: BorderRadius.circular(12),
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: const [
-                                Icon(
-                                  Icons.download_rounded,
-                                  size: 27,
-                                  color: Colors.red,
-                                ),
-                                SizedBox(height: 5),
-                                Text(
-                                  "Task",
-                                  style: TextStyle(
-                                    color: Colors.black,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 12,
-                                  ),
-                                )
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          InkWell(
-                            onTap: () async {
-                              await taskProvider.downloadAllTaskComment(context);
-                            },
-                            borderRadius: BorderRadius.circular(12),
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: const [
-                                Icon(
-                                  Icons.download_rounded,
-                                  size: 27,
-                                  color: Colors.red,
-                                ),
-                                SizedBox(width: 8),
-                                Text(
-                                  "Comments",
-                                  style: TextStyle(
-                                    color: Colors.black,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 12,
-                                  ),
-                                )
-                              ],
-                            ),
-                          )
-                        ],
-                      ),
-                    ],
-                  ),
-                  10.height,
-                  Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        /// STATUS TABS
-                        SizedBox(
-                          height: 40,
-                          child: ListView(
-                            scrollDirection: Axis.horizontal,
-                            children: [
-                              _statusTab(taskProvider, "All", ""),
-                              _statusTab(taskProvider, "Assigned", "Assigned"),
-                              _statusTab(taskProvider, "Started", "Started"),
-                              _statusTab(taskProvider, "Completed", "Completed"),
                             ],
                           ),
-                        ),
-                        10.height,
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            CustomText(
-                              text: taskProvider.isFilter != true
-                                  ? "Today: ${taskProvider.startDate}"
-                                  : "",
-                            ),
-                            if (taskProvider.isFilter == true)
-                              Text(
-                                "Total Tasks : ${taskProvider.filterUserData.length}",
-                                style: const TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.black54,
+                          child: SizedBox(
+                            height: 44,
+                            child: TextFormField(
+                              controller: taskProvider.search,
+                              cursorColor: colorsConst.primary,
+                              style: const TextStyle(color: Colors.black, fontSize: 14),
+                              onChanged: (value) {
+                                _debounce?.cancel();
+                                _debounce = Timer(const Duration(milliseconds: 300), () {
+                                  if (!mounted) return;
+                                  _resetPaging();
+                                  taskProvider.searchTask(value);
+                                });
+                              },
+                              decoration: InputDecoration(
+                                hintText: "Search employee, customer, task",
+                                hintStyle: const TextStyle(
+                                  color: ColorsConst.greyText,
+                                  fontSize: 15,
+                                ),
+                                fillColor: Colors.white,
+                                filled: true,
+                                isDense: true,
+                                // prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                                prefixIcon: Padding(
+                                  padding: const EdgeInsets.all(13.0),
+                                  child: SvgPicture.asset("assets/images/task/task_search_icon.svg", width: 10, height: 10,),
+                                ),
+                                suffixIcon: ValueListenableBuilder<TextEditingValue>(
+                                  valueListenable: taskProvider.search,
+                                  builder: (_, v, __) {
+                                    if (v.text.isEmpty) return const SizedBox.shrink();
+                                    return IconButton(
+                                      icon: const Icon(
+                                        Icons.close_rounded,
+                                        color: Colors.grey,
+                                        size: 20,
+                                      ),
+                                      onPressed: () {
+                                        _debounce?.cancel();
+                                        taskProvider.search.clear();
+                                        taskProvider.searchTask("");
+                                        _resetPaging();
+                                      },
+                                    );
+                                  },
+                                ),
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 10,
+                                ),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(24),
+                                  borderSide: BorderSide.none,
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(24),
+                                  borderSide: BorderSide.none,
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(24),
+                                  borderSide: BorderSide(
+                                    color: colorsConst.primary,
+                                    width: 1.5,
+                                  ),
                                 ),
                               ),
-                          ],
+                            ),
+                          ),
                         ),
-                        6.height,
+                      ),
+                      const SizedBox(width: 8),
+
+                      // FILTER
+                      InkWell(
+                        borderRadius: BorderRadius.circular(22),
+                        onTap: () {
+                          _myFocusScopeNode.unfocus();
+                          final cust = context.read<CustomerProvider>();
+                          final emp = context.read<EmployeeProvider>();
+                          if (cust.customer.isEmpty) cust.getAllCustomers(true);
+                          if (emp.activeEmps.isEmpty) emp.getAllUsers(isRefresh: false);
+                          if (!taskProvider.typeList.any((e) => e['value'] == 'All')) {
+                            taskProvider.typeList.insert(0, {
+                              "id": "",
+                              "value": "All",
+                            });
+                          }
+                          _showFilterDialog();
+                        },
+                        child: Container(
+                          width: 44,
+                          height: 44,
+                          decoration: BoxDecoration(
+                            color: colorsConst.primary,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.tune, color: Colors.white, size: 22),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+
+                      // DOWNLOAD (Admin -> full report | Employee -> only assigned)x
+                      // PopupMenuButton<int>(
+                      //   tooltip: "Download",
+                      //   color: Colors.white,
+                      //   shape: RoundedRectangleBorder(
+                      //       borderRadius: BorderRadius.circular(12)),
+                      //   onSelected: (v) async {
+                      //     if (v == 0) {
+                      //       taskProvider.downloadAllOnlyEmpTask(context);
+                      //     } else {
+                      //       await taskProvider.downloadAllTaskComment(context);
+                      //     }
+                      //   },
+                      //   itemBuilder: (_) => const [
+                      //     PopupMenuItem(value: 0, child: Text("Download Tasks")),
+                      //     PopupMenuItem(value: 1, child: Text("Download Comments")),
+                      //   ],
+                      //   child: Container(
+                      //     width: 44,
+                      //     height: 44,
+                      //     decoration: BoxDecoration(
+                      //       color: Colors.white,
+                      //       shape: BoxShape.circle,
+                      //       border: Border.all(color: Colors.grey.shade300),
+                      //     ),
+                      //     child: const Icon(Icons.download_rounded,
+                      //         color: Colors.red, size: 22),
+                      //   ),
+                      // ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  /// STATUS TABS
+                  SizedBox(
+                    height: 36,
+                    child: ListView(
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                      children: [
+                        _statusTab(taskProvider, "All", ""),
+                        _statusTab(taskProvider, "Assigned", "Assigned"),
+                        _statusTab(taskProvider, "Started", "Started"),
+                        _statusTab(taskProvider, "Completed", "Completed"),
+                        _overdueTab(taskProvider),
                       ],
                     ),
                   ),
-                  taskProvider.filterUserData.isEmpty ||
-                      (taskProvider.statusId != "" && taskProvider.matched == 0)
-                      ? Column(
-                    children: [
-                      100.height,
-                      CustomText(text: "No Task Found", colors: colorsConst.greyClr)
-                    ],
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 8, 12, 2),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          taskProvider.isFilter != true
+                              ? "Today: ${taskProvider.startDate}"
+                              : "",
+                          style: const TextStyle(fontSize: 12, color: Colors.black54),
+                        ),
+                        if (taskProvider.isFilter == true)
+                          Text(
+                            "Total Tasks : ${list.length}",
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.black54,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                  /// LIST
+                  noData
+                      ? Padding(
+                    padding: const EdgeInsets.only(top: 100),
+                    child: CustomText(
+                        text: "No Task Found", colors: colorsConst.greyClr),
                   )
                       : Expanded(
                     child: Builder(builder: (context) {
-                      final total = taskProvider.filterUserData.length;
+                      final total = list.length;
                       final visible = _visibleCount > total ? total : _visibleCount;
                       final hasMore = visible < total;
 
@@ -622,10 +776,10 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>
                         controller: _scrollController,
                         physics: const ClampingScrollPhysics(),
                         cacheExtent: 600,
+                        padding: const EdgeInsets.only(bottom: 60),
                         addAutomaticKeepAlives: false,
                         itemCount: hasMore ? visible + 1 : visible,
                         itemBuilder: (context, index) {
-                          // ✅ last la loader kaatu
                           if (index == visible) {
                             return const Padding(
                               padding: EdgeInsets.symmetric(vertical: 20),
@@ -633,60 +787,22 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>
                                 child: SizedBox(
                                   width: 24,
                                   height: 24,
-                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                  child:
+                                  CircularProgressIndicator(strokeWidth: 2),
                                 ),
                               ),
                             );
                           }
 
-                          final sortedData = taskProvider.filterUserData;
-                          final data = sortedData[index];
-                          String timestamp = data.createdTs.toString();
-                          DateTime dateTime = DateTime.parse(timestamp);
+                          final data = list[index];
+                          // real index in provider list (for details/chat)
+                          final realIndex = _overdueOnly
+                              ? taskProvider.filterUserData.indexOf(data)
+                              : index;
 
-                          DateTime today = DateTime.now();
-                          String headerText;
-
-                          if (dateTime.year == today.year &&
-                              dateTime.month == today.month &&
-                              dateTime.day == today.day) {
-                            headerText = "Today";
-                          } else if (dateTime
-                              .isAfter(today.subtract(const Duration(days: 1))) &&
-                              dateTime.isBefore(today)) {
-                            headerText = "Yesterday";
-                          } else {
-                            headerText =
-                            "${dateTime.day}/${dateTime.month}/${dateTime.year}";
-                          }
-
-                          String createdBy =
-                              "${dateTime.day}/${dateTime.month}/${dateTime.year}";
-
-                          final showDateHeader = index == 0 ||
-                              createdBy != getCreatedDate(sortedData[index - 1]);
-                          return Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              if (showDateHeader)
-                                Padding(
-                                  padding: const EdgeInsets.fromLTRB(8, 0, 0, 0),
-                                  child: CustomText(
-                                    text: headerText,
-                                    colors: colorsConst.greyClr,
-                                    size: 13,
-                                    isBold: true,
-                                  ),
-                                ),
-                              // ✅ RepaintBoundary -> scroll smooth ah irukka
-                              RepaintBoundary(
-                                child: KeyedSubtree(
-                                  key: ValueKey('task_${data.id}'),
-                                  child: _taskCard(data, taskProvider, homeProvider, index),
-                                ),
-                              ),
-                              if (index == visible - 1 && !hasMore) 50.height,
-                            ],
+                          return RepaintBoundary(
+                            key: ValueKey('task_${data.id}'),
+                            child: _taskCard(data, realIndex),
                           );
                         },
                       );
@@ -710,290 +826,476 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>
           builder: (context, taskProvider, cusPvr, empProvider, _) {
             final screenW = MediaQuery.of(context).size.width;
             final screenH = MediaQuery.of(context).size.height;
+            final isAdmin = localData.storage.read("role") == "1";
 
+            // ---------------- layout constants ----------------
+            const double fieldH = 44;
+            const double rowGap = 16;
+            const double colGap = 12;
+            const Color borderClr = Color(0xffD9DCE1);
+
+            // ---------------- local helpers ----------------
+            BoxDecoration boxDeco() => BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: borderClr),
+            );
+
+            // label on top + fixed 44px field below
+            Widget field(String label, Widget child) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: colorsConst.greyClr,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  SizedBox(height: fieldH, width: double.infinity, child: child),
+                ],
+              );
+            }
+
+            Widget dateBox(String text, VoidCallback onTap) {
+              return InkWell(
+                borderRadius: BorderRadius.circular(10),
+                onTap: onTap,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  decoration: boxDeco(),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          text,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontSize: 13, color: Colors.black),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      SvgPicture.asset(assets.calendar2),
+                    ],
+                  ),
+                ),
+              );
+            }
+
+            // ---- tries several getters, then falls back to the model's toJson/toMap ----
+            // (once you know the real field, e.g. (e as UserModel).firstName, use that)
+            String pick(List<dynamic Function()> getters) {
+              for (final g in getters) {
+                try {
+                  final v = g();
+                  if (v != null && v.toString().trim().isNotEmpty) {
+                    return v.toString();
+                  }
+                } catch (_) {}
+              }
+              return '';
+            }
+
+            Map? asMap(dynamic e) {
+              try {
+                final m = e.toJson();
+                if (m is Map) return m;
+              } catch (_) {}
+              try {
+                final m = e.toMap();
+                if (m is Map) return m;
+              } catch (_) {}
+              return null;
+            }
+
+            // first non-empty value whose key contains any of the hints
+            String fromMap(dynamic e, List<String> hints) {
+              final m = asMap(e);
+              if (m == null) return '';
+              for (final h in hints) {
+                for (final k in m.keys) {
+                  final v = m[k];
+                  if (k.toString().toLowerCase().contains(h) &&
+                      v != null &&
+                      v.toString().trim().isNotEmpty) {
+                    return v.toString();
+                  }
+                }
+              }
+              return '';
+            }
+
+            String empName(dynamic e) {
+              final s = pick([
+                    () => e.name,
+                    () => e.userName,
+                    () => e.firstName,
+                    () => e.empName,
+                    () => e.fullName,
+                    () => e.employeeName,
+              ]);
+              return s.isNotEmpty ? s : fromMap(e, ['name']);
+            }
+
+            String empId(dynamic e) {
+              final s = pick([
+                    () => e.id,
+                    () => e.userId,
+                    () => e.empId,
+                    () => e.employeeId,
+              ]);
+              if (s.isNotEmpty) return s;
+              final m = asMap(e);
+              return (m?['id'] ?? m?['user_id'] ?? m?['userId'] ?? '').toString();
+            }
+
+            String custName(dynamic e) {
+              final s = pick([
+                    () => e.companyName,
+                    () => e.name,
+                    () => e.customerName,
+                    () => e.company,
+              ]);
+              return s.isNotEmpty ? s : fromMap(e, ['company', 'name']);
+            }
+
+            // DEBUG: shows what the employee model really contains (check Run/Debug console)
+            if (kDebugMode && empProvider.activeEmps.isNotEmpty) {
+              final first = empProvider.activeEmps.first;
+              debugPrint('EMP SAMPLE -> type: ${first.runtimeType}, map: ${asMap(first)}, '
+                  'name: ${empName(first)}, id: ${empId(first)}');
+            }
+
+            // ---- uniform dropdown: same height / font / icon / single line ----
+            Widget uniformDropdown({
+              required String hint,
+              required dynamic value,
+              required List<DropdownMenuItem<dynamic>> items,
+              required ValueChanged<dynamic> onChanged,
+              bool hintIsValue = false, // show hint text in black (selected text)
+            }) {
+              return Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                decoration: boxDeco(),
+                child: Center(
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<dynamic>(
+                      value: value,
+                      isExpanded: true,
+                      isDense: true,
+                      menuMaxHeight: 300,
+                      borderRadius: BorderRadius.circular(10),
+                      dropdownColor: Colors.white,
+                      icon: const Icon(Icons.keyboard_arrow_down_outlined, size: 22),
+                      hint: Text(
+                        hint,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: hintIsValue ? Colors.black : Colors.grey,
+                        ),
+                      ),
+                      items: items,
+                      onChanged: onChanged,
+                    ),
+                  ),
+                ),
+              );
+            }
+
+            Text itemText(String t) => Text(
+              t,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontSize: 13, color: Colors.black),
+            );
+
+            // find the item that matches current provider value (or null)
+            dynamic findWhere(List list, bool Function(dynamic) test) {
+              for (final e in list) {
+                if (test(e)) return e;
+              }
+              return null;
+            }
+
+            void clearAndClose() {
+              taskProvider.initFilterValue(true,
+                  date1: widget.date1, date2: widget.date2, type: widget.type);
+              _resetPaging();
+              Navigator.of(context, rootNavigator: true).pop();
+            }
+
+            // ---------------- data ----------------
+            final dateRangeItems = taskProvider.filterTypeList.toSet().toList();
+            final typeItems = taskProvider.typeList.toSet().toList();
+
+            // ---------------- fields (2 per row) ----------------
+            final fields = <Widget>[
+              field(
+                "From Date",
+                dateBox(
+                  taskProvider.startDate,
+                      () => taskProvider.filterPick(
+                    context: context,
+                    isStartDate: true,
+                    date: taskProvider.startDate,
+                  ),
+                ),
+              ),
+              field(
+                "To Date",
+                dateBox(
+                  taskProvider.endDate,
+                      () => taskProvider.filterPick(
+                    context: context,
+                    isStartDate: false,
+                    date: taskProvider.endDate,
+                  ),
+                ),
+              ),
+
+              // ---- Select Date Range ----
+              field(
+                "Select Date Range",
+                uniformDropdown(
+                  hint: 'Select',
+                  value: dateRangeItems.contains(taskProvider.filterType)
+                      ? taskProvider.filterType
+                      : null,
+                  items: dateRangeItems
+                      .map<DropdownMenuItem<dynamic>>(
+                        (e) => DropdownMenuItem<dynamic>(
+                      value: e,
+                      child: itemText(e.toString()),
+                    ),
+                  )
+                      .toList(),
+                  onChanged: (v) {
+                    if (v != null) taskProvider.changeFilterType(v);
+                  },
+                ),
+              ),
+
+              // ---- Employee (multi select with checkbox, menu stays open) ----
+              if (isAdmin)
+                field(
+                  "Employee Name",
+                  uniformDropdown(
+                    hint: taskProvider.assignedId == ""
+                        ? "Select employee"
+                        : taskProvider.assignedNames,
+                    hintIsValue: taskProvider.assignedId != "",
+                    value: null,
+                    items: empProvider.activeEmps
+                        .map<DropdownMenuItem<dynamic>>((e) {
+                      return DropdownMenuItem<dynamic>(
+                        value: e,
+                        enabled: false, // keeps menu open on tap
+                        child: StatefulBuilder(
+                          builder: (ctx, setMenu) {
+                            final checked = taskProvider.assignedId
+                                .toString()
+                                .split(',')
+                                .map((x) => x.trim())
+                                .contains(empId(e));
+                            void toggle() {
+                              taskProvider.selectEmployeeFilter(e);
+                              setMenu(() {});
+                            }
+
+                            return InkWell(
+                              onTap: toggle,
+                              child: Row(
+                                children: [
+                                  SizedBox(
+                                    width: 24,
+                                    height: 24,
+                                    child: Checkbox(
+                                      value: checked,
+                                      onChanged: (_) => toggle(),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Expanded(child: itemText(empName(e))),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
+                      );
+                    }).toList(),
+                    onChanged: (_) {}, // must be non-null so dropdown stays enabled
+                  ),
+                ),
+
+              // ---- Task type ----
+              field(
+                constValue.type,
+                uniformDropdown(
+                  hint: constValue.type,
+                  value: findWhere(
+                    typeItems,
+                        (e) =>
+                    e['id'].toString() ==
+                        taskProvider.filterTypeId.toString(), // <-- adjust 'id'
+                  ),
+                  items: typeItems
+                      .map<DropdownMenuItem<dynamic>>(
+                        (e) => DropdownMenuItem<dynamic>(
+                      value: e,
+                      child: itemText(e['value'].toString()),
+                    ),
+                  )
+                      .toList(),
+                  onChanged: (v) {
+                    if (v != null) {
+                      taskProvider.checkFilterType(v['id']); // <-- adjust if it needs whole map
+                    }
+                  },
+                ),
+              ),
+
+              // ---- Company ----
+              field(
+                constValue.companyName,
+                cusPvr.customer.isEmpty
+                    ? Container(
+                  decoration: boxDeco(),
+                  child: const Center(
+                    child: SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  ),
+                )
+                    : uniformDropdown(
+                  hint: constValue.companyName,
+                  value: findWhere(
+                    cusPvr.customer,
+                        (e) =>
+                    taskProvider.companyName.isNotEmpty &&
+                        custName(e) == taskProvider.companyName,
+                  ),
+                  items: cusPvr.customer
+                      .map<DropdownMenuItem<dynamic>>(
+                        (e) => DropdownMenuItem<dynamic>(
+                      value: e,
+                      child: itemText(custName(e)),
+                    ),
+                  )
+                      .toList(),
+                  onChanged: (v) {
+                    if (v is CustomerModel?) {
+                      taskProvider.changeName(v);
+                    }
+                  },
+                ),
+              ),
+            ];
+
+            // pair up into rows (odd last field takes full width)
+            final rows = <Widget>[];
+            for (int i = 0; i < fields.length; i += 2) {
+              if (i > 0) rows.add(const SizedBox(height: rowGap));
+              rows.add(
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(child: fields[i]),
+                    if (i + 1 < fields.length) ...[
+                      const SizedBox(width: colGap),
+                      Expanded(child: fields[i + 1]),
+                    ],
+                  ],
+                ),
+              );
+            }
+
+            // ---------------- dialog ----------------
             return Dialog(
               backgroundColor: Colors.white,
-              insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              insetPadding:
+              const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+              shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
               child: ConstrainedBox(
                 constraints: BoxConstraints(
                   maxWidth: kIsWeb ? screenW * 0.3 : screenW * 0.9,
                   maxHeight: screenH * 0.85,
                 ),
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      20.height,
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          70.width,
-                          const CustomText(
-                            text: 'Filters',
-                            colors: Colors.black,
-                            size: 16,
-                            isBold: true,
-                          ),
-                          30.width,
-                          InkWell(
-                            onTap: () {
-                              taskProvider.initFilterValue(true,
-                                  date1: widget.date1, date2: widget.date2, type: widget.type);
-                              _resetPaging();
-                              Navigator.of(context, rootNavigator: true).pop();
-                            },
-                            child: SvgPicture.asset(assets.cancel),
-                          )
-                        ],
+                      SizedBox(
+                        height: 32,
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            const Text(
+                              'Filters',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.black,
+                              ),
+                            ),
+                            Align(
+                              alignment: Alignment.centerRight,
+                              child: InkWell(
+                                onTap: clearAndClose,
+                                child: SvgPicture.asset(assets.cancel),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                      20.height,
+                      const SizedBox(height: 20),
+
+                      ...rows,
+
+                      const SizedBox(height: 24),
+
                       Row(
                         children: [
                           Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                CustomText(
-                                  text: "From Date",
-                                  colors: colorsConst.greyClr,
-                                  size: 12,
-                                ),
-                                InkWell(
-                                  onTap: () {
-                                    taskProvider.filterPick(
-                                      context: context,
-                                      isStartDate: true,
-                                      date: taskProvider.startDate,
-                                    );
-                                  },
-                                  child: Container(
-                                    height: 30,
-                                    width: double.infinity,
-                                    decoration: customDecoration.baseBackgroundDecoration(
-                                      color: Colors.white,
-                                      radius: 5,
-                                      borderColor: colorsConst.litGrey,
-                                    ),
-                                    child: Row(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                        Expanded(
-                                          child: CustomText(
-                                            text: taskProvider.startDate,
-                                          ),
-                                        ),
-                                        5.width,
-                                        SvgPicture.asset(assets.calendar2),
-                                      ],
-                                    ),
-                                  ),
-                                )
-                              ],
-                            ),
-                          ),
-                          10.width,
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                CustomText(
-                                  text: "To Date",
-                                  colors: colorsConst.greyClr,
-                                  size: 12,
-                                ),
-                                InkWell(
-                                  onTap: () {
-                                    taskProvider.filterPick(
-                                      context: context,
-                                      isStartDate: false,
-                                      date: taskProvider.endDate,
-                                    );
-                                  },
-                                  child: Container(
-                                    height: 30,
-                                    width: double.infinity,
-                                    decoration: customDecoration.baseBackgroundDecoration(
-                                      color: Colors.white,
-                                      radius: 5,
-                                      borderColor: colorsConst.litGrey,
-                                    ),
-                                    child: Row(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                        Expanded(
-                                          child: CustomText(
-                                            text: taskProvider.endDate,
-                                          ),
-                                        ),
-                                        5.width,
-                                        SvgPicture.asset(assets.calendar2),
-                                      ],
-                                    ),
-                                  ),
-                                )
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                      10.height,
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                CustomText(
-                                  text: "Select Date Range",
-                                  colors: colorsConst.greyClr,
-                                  size: 12,
-                                ),
-                                Container(
-                                  height: 30,
-                                  decoration: customDecoration.baseBackgroundDecoration(
-                                    radius: 5,
-                                    color: Colors.white,
-                                    borderColor: colorsConst.litGrey,
-                                  ),
-                                  child: DropdownButton<String>(
-                                    value: taskProvider.filterTypeList
-                                        .contains(taskProvider.filterType)
-                                        ? taskProvider.filterType
-                                        : null,
-                                    isExpanded: true,
-                                    underline: const SizedBox(),
-                                    icon: const Icon(Icons.keyboard_arrow_down_outlined),
-                                    onChanged: (value) {
-                                      if (value != null) {
-                                        taskProvider.changeFilterType(value);
-                                      }
-                                    },
-                                    items: taskProvider.filterTypeList
-                                        .toSet()
-                                        .map<DropdownMenuItem<String>>((list) {
-                                      return DropdownMenuItem<String>(
-                                        value: list,
-                                        child: CustomText(text: "  $list"),
-                                      );
-                                    }).toList(),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          10.width,
-                          Expanded(
-                            child: localData.storage.read("role") == "1"
-                                ? SearchCustomDropdown(
-                              text: "Employee Name",
-                              hintText: taskProvider.assignedId == ""
-                                  ? ""
-                                  : taskProvider.assignedNames,
-                              valueList: empProvider.activeEmps,
-                              onChanged: (value) {
-                                if (value is UserModel) {
-                                  taskProvider.selectEmployeeFilter(value);
-                                }
-                              },
+                            child: CustomBtn(
                               width: double.infinity,
-                            )
-                                : const SizedBox(),
-                          ),
-                        ],
-                      ),
-                      10.height,
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                CustomText(
-                                  text: constValue.type,
-                                  colors: colorsConst.greyClr,
-                                  size: 12,
-                                ),
-                                MapDropDown(
-                                  saveValue: taskProvider.filterTypeId, // CHANGED (was taskProvider.type)
-                                  hintText: constValue.type,
-                                  isHint: false,
-                                  onChanged: (value) {
-                                    taskProvider.checkFilterType(value);
-                                  },
-                                  dropText: 'value',
-                                  list: taskProvider.typeList.toSet().toList(),
-                                ),
-                              ],
+                              text: 'Clear All',
+                              callback: clearAndClose,
+                              bgColor: Colors.grey.shade200,
+                              textColor: Colors.black,
                             ),
                           ),
-                          10.width,
+                          const SizedBox(width: colGap),
                           Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                CustomText(
-                                  text: constValue.companyName,
-                                  colors: colorsConst.greyClr,
-                                  size: 12,
-                                ),
-                                cusPvr.customer.isEmpty
-                                    ? const SizedBox(
-                                  height: 30,
-                                  child: Center(
-                                    child: CircularProgressIndicator(strokeWidth: 2),
-                                  ),
-                                )
-                                    : CustomerDropdown(
-                                  text: taskProvider.companyName.isEmpty
-                                      ? constValue.companyName
-                                      : taskProvider.companyName,
-                                  isRequired: false,
-                                  hintText: false,
-                                  employeeList: cusPvr.customer,
-                                  onChanged: (CustomerModel? value) {
-                                    taskProvider.changeName(value);
-                                  },
-                                  size: double.infinity,
-                                ),
-                              ],
+                            child: CustomBtn(
+                              width: double.infinity,
+                              text: 'Apply Filters',
+                              callback: () {
+                                taskProvider.initFilterValue(false);
+                                taskProvider.filterList();
+                                taskProvider.updateFilteredBeforeSearch(
+                                    taskProvider.filterUserData);
+                                _resetPaging();
+                                Navigator.of(context, rootNavigator: true).pop();
+                              },
+                              bgColor: colorsConst.primary,
+                              textColor: Colors.white,
                             ),
                           ),
                         ],
                       ),
-                      20.height,
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          CustomBtn(
-                            width: 100,
-                            text: 'Clear All',
-                            callback: () {
-                              taskProvider.initFilterValue(true,
-                                  date1: widget.date1, date2: widget.date2, type: widget.type);
-                              _resetPaging();
-                              Navigator.of(context, rootNavigator: true).pop();
-                            },
-                            bgColor: Colors.grey.shade200,
-                            textColor: Colors.black,
-                          ),
-                          CustomBtn(
-                            width: 100,
-                            text: 'Apply Filters',
-                            callback: () {
-                              taskProvider.initFilterValue(false);
-                              taskProvider.filterList();
-                              taskProvider.updateFilteredBeforeSearch(taskProvider.filterUserData);
-                              _resetPaging();
-                              Navigator.of(context, rootNavigator: true).pop();
-                            },
-                            bgColor: colorsConst.primary,
-                            textColor: Colors.white,
-                          ),
-                        ],
-                      ),
-                      20.height,
                     ],
                   ),
                 ),
@@ -1005,17 +1307,35 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>
     );
   }
 
+  // -------------------------------------------------------------------------
+  // STATUS TABS
+  // -------------------------------------------------------------------------
   Widget _statusTab(TaskProvider taskProvider, String text, String id) {
-    bool isSelected = taskProvider.statusIds == id;
+    final isSelected = !_overdueOnly && taskProvider.statusIds == id;
+    return _chipButton(text, isSelected, () {
+      if (_overdueOnly) setState(() => _overdueOnly = false);
+      taskProvider.changeFilterStatusTab(id);
+      _resetPaging();
+    });
+  }
 
+  Widget _overdueTab(TaskProvider taskProvider) {
+    return _chipButton("Overdue", _overdueOnly, () {
+      setState(() => _overdueOnly = true);
+      if (taskProvider.statusIds != "") {
+        taskProvider.changeFilterStatusTab("");
+      }
+      _resetPaging();
+    });
+  }
+
+  Widget _chipButton(String text, bool isSelected, VoidCallback onTap) {
     return InkWell(
-      onTap: () {
-        taskProvider.changeFilterStatusTab(id);
-        _resetPaging();
-      },
+      borderRadius: BorderRadius.circular(20),
+      onTap: onTap,
       child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 5),
-        padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
+        margin: const EdgeInsets.symmetric(horizontal: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 16),
         decoration: BoxDecoration(
           color: isSelected ? colorsConst.primary : Colors.white,
           borderRadius: BorderRadius.circular(20),
@@ -1024,628 +1344,84 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>
           ),
         ),
         child: Center(
-          child: Text(
-            text,
-            style: TextStyle(
-              color: isSelected ? Colors.white : Colors.black,
-              fontWeight: FontWeight.bold,
-              fontSize: 12,
-            ),
+          child: CustomText(
+            text: text,
+              colors: isSelected ? Colors.white : Colors.black,
+              isBold: true,
+              size: 12,
           ),
         ),
       ),
     );
   }
 
-  Widget _taskCard(
-      TaskData data, TaskProvider taskPvr, HomeProvider homeProvider, int index) {
-    Color priorityBg;
-    Color priorityTextColor;
-    String priorityText;
-    switch (data.level.toString()) {
-      case "High":
-        priorityBg = const Color(0xffFEF2F2);
-        priorityTextColor = Colors.red;
-        priorityText = "High";
-        break;
-      case "Normal":
-        priorityBg = const Color(0xffF2F6FE);
-        priorityTextColor = const Color(0xff1A85DB);
-        priorityText = "Normal";
-        break;
-      case "Immediate":
-        priorityBg = const Color(0xffFBF2FE);
-        priorityTextColor = const Color(0xffB35CFF);
-        priorityText = "Immediate";
-        break;
-      default:
-        priorityBg = const Color(0xffF2F6FE);
-        priorityTextColor = Colors.grey;
-        priorityText = "Normal";
-    }
-
-    final formattedNames = formatAssignedNames(data.assignedNames);
-    String fullName = formattedNames.split('+').first.trim();
-    String displayName =
-    fullName.length > 15 ? "${fullName.substring(0, 15)}..." : fullName;
-
-    return Padding(
-      padding: const EdgeInsets.all(8.0),
-      child: GestureDetector(
-        onTap: () {
-          _myFocusScopeNode.unfocus();
-          Provider.of<HomeProvider>(context, listen: false).panelClose();
-          utils.navigatePage(
-            context,
-                () => DashBoard(
-              child: TaskDetails(
-                data: data,
-                isDirect: true,
-                coId: "0",
-                numberList: const [],
-                index: index,
-              ),
-            ),
-          );
-        },
-        child: Container(
-          margin: const EdgeInsets.only(bottom: 16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(18),
-          ),
-          child: Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(13),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    /// TITLE + wages + edit
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: ExpandableText(
-                            text: data.taskTitle ?? "",
-                            trimLines: 2,
-                            fontSize: 14,
-                            isBold: true,
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        InkWell(
-                          onTap: () {
-                            utils.navigatePage(
-                              context,
-                                  () => DashBoard(
-                                child: EditTask(
-                                  data: data,
-                                  isDirect: false,
-                                  numberList: [],
-                                ),
-                              ),
-                            );
-                          },
-                          child: const Icon(
-                            Icons.edit,
-                            size: 20,
-                            color: Colors.red,
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                      ],
-                    ),
-                    5.height,
-                    if (data.taskDesc != null && data.taskDesc!.trim().isNotEmpty)
-                      CustomText(
-                        text: data.taskDesc!,
-                        size: 12,
-                      ),
-                    5.height,
-                    /// ASSIGNED USERS
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        // GestureDetector instead of TapGestureRecognizer
-                        // (no recognizer created on every build -> no leak)
-                        Flexible(
-                            child: GestureDetector(
-                              onTap: () {
-                                showDialog(
-                                  context: context,
-                                  builder: (context) {
-                                    return AlertDialog(
-                                      title: const Text("Assigned User"),
-                                      content: Text(fullName),
-                                      actions: [
-                                        TextButton(
-                                          onPressed: () => Navigator.pop(context),
-                                          child: const Text("Close"),
-                                        ),
-                                      ],
-                                    );
-                                  },
-                                );
-                              },
-                              child: RichText(
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                text: TextSpan(
-                                  children: [
-                                    TextSpan(
-                                      text: displayName,
-                                      style: const TextStyle(
-                                        color: Color(0xff007AAE),
-                                        fontSize: 15,
-                                      ),
-                                    ),
-                                    if (formattedNames.contains('+'))
-                                      TextSpan(
-                                        text: " +${formattedNames.split('+').last.trim()}",
-                                        style: const TextStyle(
-                                          color: Color(0xff007AAE),
-                                          fontSize: 11,
-                                        ),
-                                      ),
-                                    if (formattedNames.contains('+'))
-                                      const TextSpan(
-                                        text: " oths",
-                                        style: TextStyle(
-                                          color: Color(0xff007AAE),
-                                          fontSize: 11,
-                                        ),
-                                      ),
-                                  ],
-                                ),
-                              ),
-                            )),
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(0, 0, 2, 0),
-                          child: Container(height: 16, width: 2, color: Colors.grey),
-                        ),
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            _statusChip(
-                              data.statval ?? "",
-                              data.statval == "Completed"
-                                  ? const Color(0xff1FAF38)
-                                  : const Color(0xff007AAE),
-                              Colors.white,
-                            ),
-                            2.width,
-                            Container(
-                              padding:
-                              const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-                              decoration: BoxDecoration(
-                                color: priorityBg,
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: Row(
-                                children: [
-                                  Icon(Icons.circle, size: 8, color: priorityTextColor),
-                                  const SizedBox(width: 6),
-                                  CustomText(
-                                    text: priorityText,
-                                    colors: priorityTextColor,
-                                    size: 13,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                    const Divider(thickness: 2),
-                    ///Comment for JPS
-                    Row(
-                      children: [
-                        if ((data.projectName ?? "").trim().isNotEmpty)
-                          _infoBlock("Company", data.projectName ?? ""),
-                        const Spacer(),
-                        WagesAddWorkDetails(
-                          taskId: data.id.toString(),
-                        ),
-                      ],
-                    ),
-                    10.height,
-                    if (data.name.toString() != "null" && data.name.toString() != "")
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              CustomText(
-                                text: "Customer",
-                                size: 12,
-                                colors: const Color(0xff7E7E7E),
-                                isBold: true,
-                              ),
-                              CustomText(
-                                text: data.name ?? '',
-                                size: 14,
-                                isBold: true,
-                              ),
-                            ],
-                          ),
-                          Row(
-                            children: [
-                              CustomText(text: data.phoneNo ?? '', size: 14),
-                              5.width,
-                              GestureDetector(
-                                onTap: () {
-                                  utils.makingPhoneCall(ph: data.phoneNo.toString());
-                                },
-                                child: const Icon(Icons.call, color: Colors.blue),
-                              )
-                            ],
-                          )
-                        ],
-                      ),
-
-                    /// Task type + Task date
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _infoBlock("Task type", data.type ?? ""),
-                        _infoBlock("Task Date", data.taskDate ?? ""),
-                      ],
-                    ),
-                    const Divider(thickness: 2),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Row(
-                          children: [
-                            CircleAvatar(backgroundColor: data.expenseReportCount.toString()=="0"?colorsConst.red2:colorsConst.green2,radius: 4,),
-                            2.width,
-                            CustomText(text: "Expense",colors: data.expenseReportCount.toString()=="0"?colorsConst.red2:colorsConst.green2,isItalic: true,),
-                            10.width,
-                            TextButton(
-                                onPressed: (){
-                                  _myFocusScopeNode.unfocus();
-                                  utils.navigatePage(context, ()=> DashBoard(child: CreateExpense(taskId: data.id.toString(),data: data,coId: "",numberList: const [], companyName: data.projectName.toString(), type: data.type.toString(), desc: data.taskTitle.toString(),
-                                      date: data.taskDate.toString())));
-                                },
-                                child: CustomText(text: "Add Expense",colors: colorsConst.blueClr,)),
-                          ],
-                        ),
-                      ],
-                    ),    // only for aci
-
-                    const Divider(thickness: 2,),
-
-                    /// CREATED / UPDATED
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                CustomText(
-                                  text: "Created:  ",
-                                  colors: const Color(0xff7E7E7E),
-                                  size: 13,
-                                  isBold: true,
-                                ),
-                                CustomText(
-                                  text: data.creator.toString(),
-                                  colors: Colors.black,
-                                  size: 13,
-                                  isBold: true,
-                                ),
-                              ],
-                            ),
-                            CustomText(
-                              text: formatDateTime(data.createdTs.toString()),
-                              colors: Colors.black,
-                              size: 12,
-                            ),
-                          ],
-                        ),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                CustomText(
-                                  text: "Updated :  ",
-                                  colors: const Color(0xff7E7E7E),
-                                  size: 13,
-                                  isBold: true,
-                                ),
-                                CustomText(
-                                  text: data.updatedByName == null
-                                      ? "-"
-                                      : data.updatedByName.toString(),
-                                  colors: Colors.black,
-                                  size: 13,
-                                  isBold: true,
-                                ),
-                              ],
-                            ),
-                            CustomText(
-                              text: formatDateTime(data.updatedTs.toString()),
-                              colors: Colors.black,
-                              size: 12,
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                    const Divider(thickness: 2),
-
-                    /// COMMENTS
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Row(
-                            children: [
-                              const Icon(
-                                Icons.message,
-                                color: Colors.red,
-                                size: 18,
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                (data.commentCount ?? "").toString().isNotEmpty
-                                    ? "(${data.commentCount}) - "
-                                    : "No comments",
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                              Expanded(
-                                child: RichText(
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  text: TextSpan(
-                                    style: const TextStyle(
-                                      color: Colors.black,
-                                      fontSize: 13,
-                                    ),
-                                    children: [
-                                      TextSpan(
-                                        text: data.lastComment ?? "",
-                                      ),
-                                      if (data.lastCommentBy != null &&
-                                          data.lastCommentBy.toString().trim().isNotEmpty)
-                                        TextSpan(
-                                          text: " (last comment by ${data.lastCommentBy})",
-                                          style: TextStyle(
-                                            color: Colors.red.shade900,
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                        ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        GestureDetector(
-                          onTap: () async {
-                            final result = await Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => DashBoard(
-                                  child: TaskChat(
-                                    isVisit: false,
-                                    taskId: data.id.toString(),
-                                    assignedId: data.assigned.toString(),
-                                    name: data.creator.toString(),
-                                    assignedName: data.assignedNames.toString(),
-                                    date1: widget.date1,
-                                    date2: widget.date2,
-                                    type: widget.type,
-                                    index: index,
-                                  ),
-                                ),
-                              ),
-                            );
-
-                            if (result == true) {
-                              if (!mounted) return;
-                              Provider.of<TaskProvider>(
-                                context,
-                                listen: false,
-                              ).getAllTask(false);
-                            }
-                          },
-                          child: const Icon(
-                            Icons.message_outlined,
-                            size: 20,
-                            color: Colors.green,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
+  // -------------------------------------------------------------------------
+  // NAVIGATION
+  // -------------------------------------------------------------------------
+  void _openDetails(TaskData data, int index) {
+    _myFocusScopeNode.unfocus();
+    Provider.of<HomeProvider>(context, listen: false).panelClose();
+    utils.navigatePage(
+      context,
+          () => DashBoard(
+        child: TaskDetails(
+          data: data,
+          isDirect: true,
+          coId: "0",
+          numberList: const [],
+          index: index,
         ),
       ),
     );
   }
 
-  Widget taskButton(TaskProvider taskPvr, String id, String status) {
-    switch (status) {
-      case "Complete":
-        return Row(
-          children: [
-            CustomLoadingButton(
-                callback: () async {
-                  taskPvr.changeStatusT("Completed");
-                  taskPvr.changeStatus({"id": "3", "value": "Completed"});
-                  taskPvr.updateChanges();
-                  await taskPvr.insertTaskLogHistory(context, id: id, level: "Completed");
-                },
-                isLoading: false,
-                backgroundColor: colorsConst.pink,
-                radius: 50,
-                height: 30,
-                width: 70,
-                text: "Start"),
-            10.width,
-            CustomLoadingButton(
-                callback: () {
-                  taskPvr.insertTaskLogHistory(context, id: id, level: "Complete");
-                },
-                isLoading: false,
-                backgroundColor: Colors.green,
-                radius: 50,
-                height: 30,
-                width: 100,
-                text: "Complete"),
-          ],
-        );
-      case "Pending":
-        return Row(
-          children: [
-            CustomLoadingButton(
-                callback: () {
-                  taskPvr.insertTaskLogHistory(context, id: id, level: "Start");
-                },
-                isLoading: false,
-                backgroundColor: colorsConst.pink,
-                radius: 50,
-                height: 30,
-                width: 70,
-                text: "Start"),
-            10.width,
-            CustomLoadingButton(
-                callback: () {
-                  taskPvr.insertTaskLogHistory(context, id: id, level: "Complete");
-                },
-                isLoading: false,
-                backgroundColor: Colors.green,
-                radius: 50,
-                height: 30,
-                width: 100,
-                text: "Complete"),
-          ],
-        );
-      case "Start":
-        return Row(
-          children: [
-            CustomLoadingButton(
-              callback: () {
-                taskPvr.insertTaskLogHistory(context, id: id, level: "Hold");
-              },
-              isLoading: false,
-              backgroundColor: Colors.blue,
-              radius: 50,
-              height: 30,
-              width: 70,
-              text: "Hold",
-            ),
-            10.width,
-            CustomLoadingButton(
-                callback: () {
-                  taskPvr.insertTaskLogHistory(context, id: id, level: "Complete");
-                },
-                isLoading: false,
-                backgroundColor: Colors.green,
-                radius: 50,
-                height: 30,
-                width: 100,
-                text: "Complete"),
-          ],
-        );
-      case "Hold":
-        return CustomLoadingButton(
-            callback: () {
-              taskPvr.insertTaskLogHistory(context, id: id, level: "Start");
-            },
-            isLoading: false,
-            backgroundColor: colorsConst.red1,
-            radius: 50,
-            height: 30,
-            width: 100,
-            text: "Resume");
-      case "Completed":
-        return const Text(
-          "✓ Task Completed",
-          style: TextStyle(
-            color: Colors.green,
-            fontWeight: FontWeight.bold,
+  Future<void> _openChat(TaskData data, int index) async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => DashBoard(
+          child: TaskChat(
+            isVisit: false,
+            taskId: data.id.toString(),
+            assignedId: data.assigned.toString(),
+            name: data.creator.toString(),
+            assignedName: data.assignedNames.toString(),
+            date1: widget.date1,
+            date2: widget.date2,
+            type: widget.type,
+            index: index,
           ),
-        );
-      default:
-        return const SizedBox();
+        ),
+      ),
+    );
+
+    if (result == true) {
+      if (!mounted) return;
+      Provider.of<TaskProvider>(context, listen: false).getAllTask(false);
     }
   }
 
-  String formatDateTime(String? date) {
-    if (date == null || date.isEmpty) return "";
-    final parsedDate = DateTime.tryParse(date);
-    if (parsedDate == null) return "";
-    return DateFormat('dd-MM-yyyy h:mm a').format(parsedDate);
-  }
-
-  String formatAssignedNames(String? names) {
-    if (names == null || names.trim().isEmpty) return "";
-
-    List<String> nameList = names.split(',').map((e) => e.trim()).toList();
-
-    if (nameList.length <= 4) {
-      return nameList.join(', ');
-    }
-
-    final firstFour = nameList.take(4).join(', ');
-    final remainingCount = nameList.length - 4;
-
-    return "$firstFour +$remainingCount";
-  }
-
-  Widget _statusChip(String text, Color bg, Color txt) {
+  // -------------------------------------------------------------------------
+  // COMPACT TASK CARD
+  // -------------------------------------------------------------------------
+  Widget _pill(_ChipStyle s) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(20),
+        color: s.bg,
+        borderRadius: BorderRadius.circular(8),
       ),
-      child: CustomText(
-        text: text,
-        colors: txt,
-        size: 11,
-      ),
-    );
-  }
-
-  /// GoogleFonts.lato REMOVED -> uses bundled 'Lato' font (no runtime font load)
-  Widget _infoBlock(String title, String value) {
-    return RichText(
-      text: TextSpan(
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          TextSpan(
-            text: "$title\n",
-            style: const TextStyle(
-              fontFamily: 'Lato',
-              fontSize: 12,
-              color: Color(0xff7E7E7E),
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          TextSpan(
-            text: value,
-            style: const TextStyle(
-              fontFamily: 'Lato',
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
-              color: Colors.black,
+          Icon(s.icon, size: s.icon == Icons.circle ? 7 : 11, color: s.fg),
+          const SizedBox(width: 4),
+          Text(
+            s.label,
+            style: TextStyle(
+              fontSize: 10.5,
+              fontWeight: FontWeight.w600,
+              color: s.fg,
             ),
           ),
         ],
@@ -1653,10 +1429,237 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>
     );
   }
 
-  String getCreatedDate(data) {
-    final timestamp = data.createdTs.toString();
-    final dateTime = DateTime.parse(timestamp);
-    return "${dateTime.day}/${dateTime.month}/${dateTime.year}";
+  Widget _metaItem(
+      IconData icon,
+      String text, {
+        Widget? customIcon,
+      }) {
+    return Flexible(
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          customIcon ??
+              Icon(
+                icon,
+                size: 14,
+                color: ColorsConst.greyText,
+                fontWeight: FontWeight.bold,
+              ),
+          const SizedBox(width: 4),
+          Flexible(
+            child: CustomText(
+              text: text,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+                size: 12,
+                colors: ColorsConst.greyText,
+              isBold: true,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _taskCard(TaskData data, int index) {
+    final overdue = _isOverdue(data);
+    final statusText = overdue ? "Overdue" : (data.statval ?? "");
+    final statusStyle = _statusStyle(statusText);
+    final priorityStyle = _priorityStyle(data.level.toString());
+
+    // due date
+    final dueDate = _parseDate(data.taskDate);
+    final dueText = dueDate != null ? _dueFmt.format(dueDate) : (data.taskDate ?? "");
+
+    // assigned user
+    final names = (data.assignedNames ?? "")
+        .toString()
+        .split(',')
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toList();
+    final firstName = names.isEmpty ? "-" : names.first;
+    final extra = names.length > 1 ? names.length - 1 : 0;
+    final avatarColor = _avatarColors[firstName.hashCode.abs() % _avatarColors.length];
+
+    final cc = (data.commentCount ?? "").toString();
+    final commentText = cc.isEmpty ? "0" : cc;
+
+    final type = (data.type ?? "").toString();
+    final company = (data.projectName ?? "").toString();
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () => _openDetails(data, index),
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xffE9ECF0)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              /// chips + DUE
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Wrap(
+                      spacing: 6,
+                      runSpacing: 4,
+                      children: [_pill(statusStyle), _pill(priorityStyle)],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      const Text(
+                        "DUE",
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 0.4,
+                          color: Color(0xff6B7280),
+                        ),
+                      ),
+                      Text(
+                        dueText,
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w800,
+                          color: overdue ? Colors.red : ColorsConst.appBlack,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              10.height,
+              /// title
+              Text(
+                data.taskTitle ?? "",
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xff14151F),
+                ),
+              ),
+              10.height,
+              /// type + company
+              if (type.isNotEmpty || company.isNotEmpty)
+                Row(
+                  children: [
+                    if (type.isNotEmpty)
+                      _metaItem(Icons.sell_outlined, type),
+
+                    if (type.isNotEmpty && company.isNotEmpty)
+                      const SizedBox(width: 12),
+
+                    if (company.isNotEmpty)
+                      _metaItem(
+                        Icons.apartment,
+                        company,
+                        customIcon: SvgPicture.asset(
+                          'assets/images/task/company_icon.svg',
+                          width: 14,
+                          height: 14,
+                          fit: BoxFit.contain,
+                          placeholderBuilder: (context) =>
+                          const Icon(Icons.apartment, size: 14),
+                        ),
+                      ),
+                  ],
+                ),
+              15.height,
+              /// assigned + comments + view details
+              Row(
+                children: [
+                  CircleAvatar(
+                    radius: 14,
+                    backgroundColor: avatarColor,
+                    child: Text(
+                      _initials(firstName),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            firstName,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xff14151F),
+                            ),
+                          ),
+                        ),
+                        if (extra > 0)
+                          Padding(
+                            padding: const EdgeInsets.only(left: 4),
+                            child: Text(
+                              "+$extra",
+                              style: const TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xff007AAE),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                  GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () => _openChat(data, index),
+                    child: Padding(
+                      padding: const EdgeInsets.all(4),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.chat_bubble_outline,
+                              size: 16, color: Color(0xff6B7280)),
+                          const SizedBox(width: 4),
+                          Text(
+                            commentText,
+                            style: const TextStyle(fontSize: 12, color: Color(0xff4B5563)),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  const Text(
+                    "View Details",
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xff0B5FB5),
+                    ),
+                  ),
+                  const Icon(Icons.keyboard_arrow_right, size: 16, color: Color(0xff0B5FB5)),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
 

@@ -17,7 +17,7 @@ class CustomText extends StatelessWidget {
     this.isBold = false,
     this.isItalic = false,
     this.shrink = true,
-    this.maxLines = 1,
+    this.maxLines = 1,  TextOverflow? overflow,
   });
 
   @override
