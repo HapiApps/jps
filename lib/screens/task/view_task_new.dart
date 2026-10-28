@@ -67,6 +67,7 @@ class ViewTaskPage extends StatefulWidget {
 class _ViewTaskState extends State<ViewTaskPage> with SingleTickerProviderStateMixin {
   final FocusScopeNode _myFocusScopeNode = FocusScopeNode();
   late TabController tabController;
+  final GlobalKey<_ViewfilterUserDataState> _listKey = GlobalKey<_ViewfilterUserDataState>();
 
   // Calendar is heavy -> build it lazily, after the tab animation completes.
   bool _calendarReady = false;
@@ -117,20 +118,32 @@ class _ViewTaskState extends State<ViewTaskPage> with SingleTickerProviderStateM
         custProvider.getCommentType();
       }
 
-      // Task list + filter -> ONLY HERE (not in the child)
-      taskProvider.initFilterValue(
-        true,
-        date1: widget.date1,
-        date2: widget.date2,
-        type: widget.type,
-      );
       taskProvider.dataSource = _getDataSource();
-      taskProvider.getAllIncompleteTask(
-        true,
+
+      taskProvider.applyDateRange(
         date1: widget.date1,
         date2: widget.date2,
         type: widget.type,
       );
+
+      if (kDebugMode) {
+        debugPrint('>>> LOAD d1=${widget.date1} d2=${widget.date2} type=${widget.type} '
+            'start=${taskProvider.startDate} end=${taskProvider.endDate}');
+      }
+
+      if (kDebugMode) {
+        debugPrint('>>> LOAD d1=${widget.date1} d2=${widget.date2} type=${widget.type} '
+            'start=${taskProvider.startDate} end=${taskProvider.endDate} '
+            'count=${taskProvider.filterUserData.length}');
+      }
+
+      // taskProvider.dataSource = _getDataSource();
+      // taskProvider.getAllIncompleteTask(
+      //   true,
+      //   date1: widget.date1,
+      //   date2: widget.date2,
+      //   type: widget.type,
+      // );
     });
   }
 
@@ -208,19 +221,28 @@ class _ViewTaskState extends State<ViewTaskPage> with SingleTickerProviderStateM
                     DateFilterDropdown(
                       initialType: widget.type,
                       onChanged: (r) {
-                        final tp = context.read<TaskProvider>();
-                        tp.initFilterValue(true, date1: r.startDate, date2: r.endDate, type: r.type);
-                        tp.getAllIncompleteTask(true, date1: r.startDate, date2: r.endDate, type: r.type);
+                        context.read<TaskProvider>().applyDateRange(
+                          date1: r.startDate.toString(),
+                          date2: r.endDate.toString(),
+                          type: r.type.toString(),
+                        );
+                        _listKey.currentState?._resetPaging(); // list back to top / first 15
                       },
                     ),
                     const SizedBox(height: 12),
                     RepaintBoundary(
-                      child: TaskOverviewCard(
-                        title: constValue.taskOverview,
-                        totalLabel: constValue.taskCount,
-                        completed: 145,
-                        pending: 32,
-                        overdue: 15,
+                      child: Selector<TaskProvider, int>(
+                        selector: (_, p) => p.dataVersion,
+                        builder: (ctx, _, __) {
+                          final o = ctx.read<TaskProvider>().overview;
+                          return TaskOverviewCard(
+                            title: constValue.taskOverview,
+                            totalLabel: constValue.taskCount,
+                            completed: o.completed,
+                            pending: o.pending,
+                            overdue: o.overdue,
+                          );
+                        },
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -308,6 +330,7 @@ class _ViewTaskState extends State<ViewTaskPage> with SingleTickerProviderStateM
                         controller: tabController,
                         children: [
                           ViewfilterUserData(
+                              key: _listKey,
                               date1: widget.date1, date2: widget.date2, type: widget.type),
 
                           // Calendar: lazy + keep-alive + own Selector
@@ -819,6 +842,10 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>
   // FILTER DIALOG
   // -------------------------------------------------------------------------
   void _showFilterDialog() {
+    final tp = context.read<TaskProvider>();
+    final snapshot = tp.filterSnapshot(); // restore this if dialog is dismissed
+    bool committed = false; // true after Apply / Clear All
+
     showDialog(
       context: context,
       builder: (context) {
@@ -834,14 +861,12 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>
             const double colGap = 12;
             const Color borderClr = Color(0xffD9DCE1);
 
-            // ---------------- local helpers ----------------
             BoxDecoration boxDeco() => BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(10),
               border: Border.all(color: borderClr),
             );
 
-            // label on top + fixed 44px field below
             Widget field(String label, Widget child) {
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -863,7 +888,7 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>
               );
             }
 
-            Widget dateBox(String text, VoidCallback onTap) {
+            Widget dateBox(String text, VoidCallback onTap, {bool isHint = false}) {
               return InkWell(
                 borderRadius: BorderRadius.circular(10),
                 onTap: onTap,
@@ -877,7 +902,10 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>
                           text,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(fontSize: 13, color: Colors.black),
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: isHint ? Colors.grey : Colors.black,
+                          ),
                         ),
                       ),
                       const SizedBox(width: 6),
@@ -888,8 +916,7 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>
               );
             }
 
-            // ---- tries several getters, then falls back to the model's toJson/toMap ----
-            // (once you know the real field, e.g. (e as UserModel).firstName, use that)
+            // ---- name extraction helpers ----
             String pick(List<dynamic Function()> getters) {
               for (final g in getters) {
                 try {
@@ -902,83 +929,26 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>
               return '';
             }
 
-            Map? asMap(dynamic e) {
-              try {
-                final m = e.toJson();
-                if (m is Map) return m;
-              } catch (_) {}
-              try {
-                final m = e.toMap();
-                if (m is Map) return m;
-              } catch (_) {}
-              return null;
-            }
+            String empName(dynamic e) => pick([
+                  () => e.firstname,
+                  () => e.name,
+                  () => e.userName,
+                  () => e.firstName,
+            ]);
 
-            // first non-empty value whose key contains any of the hints
-            String fromMap(dynamic e, List<String> hints) {
-              final m = asMap(e);
-              if (m == null) return '';
-              for (final h in hints) {
-                for (final k in m.keys) {
-                  final v = m[k];
-                  if (k.toString().toLowerCase().contains(h) &&
-                      v != null &&
-                      v.toString().trim().isNotEmpty) {
-                    return v.toString();
-                  }
-                }
-              }
-              return '';
-            }
+            String custName(dynamic e) => pick([
+                  () => e.companyName,
+                  () => e.name,
+                  () => e.customerName,
+                  () => e.company,
+            ]);
 
-            String empName(dynamic e) {
-              final s = pick([
-                    () => e.name,
-                    () => e.userName,
-                    () => e.firstName,
-                    () => e.empName,
-                    () => e.fullName,
-                    () => e.employeeName,
-              ]);
-              return s.isNotEmpty ? s : fromMap(e, ['name']);
-            }
-
-            String empId(dynamic e) {
-              final s = pick([
-                    () => e.id,
-                    () => e.userId,
-                    () => e.empId,
-                    () => e.employeeId,
-              ]);
-              if (s.isNotEmpty) return s;
-              final m = asMap(e);
-              return (m?['id'] ?? m?['user_id'] ?? m?['userId'] ?? '').toString();
-            }
-
-            String custName(dynamic e) {
-              final s = pick([
-                    () => e.companyName,
-                    () => e.name,
-                    () => e.customerName,
-                    () => e.company,
-              ]);
-              return s.isNotEmpty ? s : fromMap(e, ['company', 'name']);
-            }
-
-            // DEBUG: shows what the employee model really contains (check Run/Debug console)
-            if (kDebugMode && empProvider.activeEmps.isNotEmpty) {
-              final first = empProvider.activeEmps.first;
-              debugPrint('EMP SAMPLE -> type: ${first.runtimeType}, map: ${asMap(first)}, '
-                  'name: ${empName(first)}, id: ${empId(first)}');
-            }
-
-            // ---- uniform dropdown: same height / font / icon / single line ----
+            // ---- uniform dropdown ----
             Widget uniformDropdown({
               required String hint,
               required dynamic value,
               required List<DropdownMenuItem<dynamic>> items,
               required ValueChanged<dynamic> onChanged,
-              bool hintIsValue = false, // show hint text in black (selected text)
             }) {
               return Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -997,10 +967,7 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>
                         hint,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: hintIsValue ? Colors.black : Colors.grey,
-                        ),
+                        style: const TextStyle(fontSize: 13, color: Colors.grey),
                       ),
                       items: items,
                       onChanged: onChanged,
@@ -1017,7 +984,6 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>
               style: const TextStyle(fontSize: 13, color: Colors.black),
             );
 
-            // find the item that matches current provider value (or null)
             dynamic findWhere(List list, bool Function(dynamic) test) {
               for (final e in list) {
                 if (test(e)) return e;
@@ -1025,39 +991,152 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>
               return null;
             }
 
-            void clearAndClose() {
-              taskProvider.initFilterValue(true,
-                  date1: widget.date1, date2: widget.date2, type: widget.type);
-              _resetPaging();
-              Navigator.of(context, rootNavigator: true).pop();
+            // ---------------- EMPLOYEE MULTI-SELECT (bottom sheet) ----------------
+            void openEmployeeSheet() {
+              showModalBottomSheet(
+                context: context,
+                isScrollControlled: true,
+                backgroundColor: Colors.white,
+                shape: const RoundedRectangleBorder(
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                ),
+                builder: (sheetCtx) {
+                  return StatefulBuilder(
+                    builder: (ctx, setSheet) {
+                      final list = empProvider.activeEmps;
+                      return SafeArea(
+                        child: ConstrainedBox(
+                          constraints: BoxConstraints(maxHeight: screenH * 0.7),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.fromLTRB(20, 16, 12, 8),
+                                child: Row(
+                                  children: [
+                                    const Expanded(
+                                      child: Text(
+                                        'Select Employees',
+                                        style: TextStyle(
+                                            fontSize: 16, fontWeight: FontWeight.w700),
+                                      ),
+                                    ),
+                                    TextButton(
+                                      onPressed: () {
+                                        taskProvider.clearEmployeeFilter();
+                                        setSheet(() {});
+                                      },
+                                      child: const Text('Clear'),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const Divider(height: 1),
+                              Flexible(
+                                child: ListView.builder(
+                                  shrinkWrap: true,
+                                  itemCount: list.length,
+                                  itemBuilder: (_, i) {
+                                    final e = list[i];
+                                    return CheckboxListTile(
+                                      dense: true,
+                                      value: taskProvider.isEmployeeSelected(e),
+                                      controlAffinity: ListTileControlAffinity.leading,
+                                      title: itemText(empName(e)),
+                                      onChanged: (_) {
+                                        taskProvider.selectEmployeeFilter(e);
+                                        setSheet(() {});
+                                      },
+                                    );
+                                  },
+                                ),
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
+                                child: SizedBox(
+                                  width: double.infinity,
+                                  height: 44,
+                                  child: ElevatedButton(
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: colorsConst.primary,
+                                      foregroundColor: Colors.white,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                    ),
+                                    onPressed: () => Navigator.pop(sheetCtx),
+                                    child: const Text('Done'),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  );
+                },
+              );
+            }
+
+            // FIX: use the FILTER's selected employees (not Add-Task `assignedNames`)
+            Widget employeeField() {
+              final hasSel = taskProvider.hasEmployeeFilter;
+              return InkWell(
+                borderRadius: BorderRadius.circular(10),
+                onTap: openEmployeeSheet,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  decoration: boxDeco(),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          hasSel ? taskProvider.filterEmpNames : "Select employee",
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: hasSel ? Colors.black : Colors.grey,
+                          ),
+                        ),
+                      ),
+                      const Icon(Icons.keyboard_arrow_down_outlined, size: 22),
+                    ],
+                  ),
+                ),
+              );
             }
 
             // ---------------- data ----------------
             final dateRangeItems = taskProvider.filterTypeList.toSet().toList();
             final typeItems = taskProvider.typeList.toSet().toList();
+            final dateOn = taskProvider.dateFilterOn;
 
             // ---------------- fields (2 per row) ----------------
             final fields = <Widget>[
               field(
                 "From Date",
                 dateBox(
-                  taskProvider.startDate,
+                  dateOn ? taskProvider.startDate : 'All dates',
                       () => taskProvider.filterPick(
                     context: context,
                     isStartDate: true,
                     date: taskProvider.startDate,
                   ),
+                  isHint: !dateOn,
                 ),
               ),
               field(
                 "To Date",
                 dateBox(
-                  taskProvider.endDate,
+                  dateOn ? taskProvider.endDate : 'All dates',
                       () => taskProvider.filterPick(
                     context: context,
                     isStartDate: false,
                     date: taskProvider.endDate,
                   ),
+                  isHint: !dateOn,
                 ),
               ),
 
@@ -1066,7 +1145,7 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>
                 "Select Date Range",
                 uniformDropdown(
                   hint: 'Select',
-                  value: dateRangeItems.contains(taskProvider.filterType)
+                  value: dateOn && dateRangeItems.contains(taskProvider.filterType)
                       ? taskProvider.filterType
                       : null,
                   items: dateRangeItems
@@ -1083,57 +1162,8 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>
                 ),
               ),
 
-              // ---- Employee (multi select with checkbox, menu stays open) ----
-              if (isAdmin)
-                field(
-                  "Employee Name",
-                  uniformDropdown(
-                    hint: taskProvider.assignedId == ""
-                        ? "Select employee"
-                        : taskProvider.assignedNames,
-                    hintIsValue: taskProvider.assignedId != "",
-                    value: null,
-                    items: empProvider.activeEmps
-                        .map<DropdownMenuItem<dynamic>>((e) {
-                      return DropdownMenuItem<dynamic>(
-                        value: e,
-                        enabled: false, // keeps menu open on tap
-                        child: StatefulBuilder(
-                          builder: (ctx, setMenu) {
-                            final checked = taskProvider.assignedId
-                                .toString()
-                                .split(',')
-                                .map((x) => x.trim())
-                                .contains(empId(e));
-                            void toggle() {
-                              taskProvider.selectEmployeeFilter(e);
-                              setMenu(() {});
-                            }
-
-                            return InkWell(
-                              onTap: toggle,
-                              child: Row(
-                                children: [
-                                  SizedBox(
-                                    width: 24,
-                                    height: 24,
-                                    child: Checkbox(
-                                      value: checked,
-                                      onChanged: (_) => toggle(),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 10),
-                                  Expanded(child: itemText(empName(e))),
-                                ],
-                              ),
-                            );
-                          },
-                        ),
-                      );
-                    }).toList(),
-                    onChanged: (_) {}, // must be non-null so dropdown stays enabled
-                  ),
-                ),
+              // ---- Employee ----
+              if (isAdmin) field("Employee Name", employeeField()),
 
               // ---- Task type ----
               field(
@@ -1142,9 +1172,7 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>
                   hint: constValue.type,
                   value: findWhere(
                     typeItems,
-                        (e) =>
-                    e['id'].toString() ==
-                        taskProvider.filterTypeId.toString(), // <-- adjust 'id'
+                        (e) => e['id'].toString() == taskProvider.filterTypeId.toString(),
                   ),
                   items: typeItems
                       .map<DropdownMenuItem<dynamic>>(
@@ -1155,9 +1183,7 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>
                   )
                       .toList(),
                   onChanged: (v) {
-                    if (v != null) {
-                      taskProvider.checkFilterType(v['id']); // <-- adjust if it needs whole map
-                    }
+                    if (v != null) taskProvider.checkFilterType(v); // whole map
                   },
                 ),
               ),
@@ -1193,9 +1219,7 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>
                   )
                       .toList(),
                   onChanged: (v) {
-                    if (v is CustomerModel?) {
-                      taskProvider.changeName(v);
-                    }
+                    if (v != null) taskProvider.changeName(v);
                   },
                 ),
               ),
@@ -1222,10 +1246,8 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>
             // ---------------- dialog ----------------
             return Dialog(
               backgroundColor: Colors.white,
-              insetPadding:
-              const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-              shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
               child: ConstrainedBox(
                 constraints: BoxConstraints(
                   maxWidth: kIsWeb ? screenW * 0.3 : screenW * 0.9,
@@ -1252,8 +1274,10 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>
                             ),
                             Align(
                               alignment: Alignment.centerRight,
+                              // X = just close (changes are reverted in .then below)
                               child: InkWell(
-                                onTap: clearAndClose,
+                                onTap: () =>
+                                    Navigator.of(context, rootNavigator: true).pop(),
                                 child: SvgPicture.asset(assets.cancel),
                               ),
                             ),
@@ -1272,7 +1296,16 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>
                             child: CustomBtn(
                               width: double.infinity,
                               text: 'Clear All',
-                              callback: clearAndClose,
+                              callback: () {
+                                committed = true;
+                                taskProvider.resetFilters(
+                                  date1: widget.date1,
+                                  date2: widget.date2,
+                                  type: widget.type,
+                                );
+                                _resetPaging();
+                                Navigator.of(context, rootNavigator: true).pop();
+                              },
                               bgColor: Colors.grey.shade200,
                               textColor: Colors.black,
                             ),
@@ -1283,10 +1316,8 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>
                               width: double.infinity,
                               text: 'Apply Filters',
                               callback: () {
-                                taskProvider.initFilterValue(false);
-                                taskProvider.filterList();
-                                taskProvider.updateFilteredBeforeSearch(
-                                    taskProvider.filterUserData);
+                                committed = true;
+                                taskProvider.applyFilters();
                                 _resetPaging();
                                 Navigator.of(context, rootNavigator: true).pop();
                               },
@@ -1304,7 +1335,13 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>
           },
         );
       },
-    );
+    ).then((_) {
+      // closed without Apply / Clear -> undo the live preview
+      if (!committed && mounted) {
+        tp.restoreFilterSnapshot(snapshot);
+        _resetPaging();
+      }
+    });
   }
 
   // -------------------------------------------------------------------------
