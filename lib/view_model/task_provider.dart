@@ -145,6 +145,8 @@ class TaskProvider with ChangeNotifier {
   String get companyName => _companyName;
 
   bool _dateFilterOn = false; // true only after user picks a date (top dropdown / dialog)
+  // bool get dateFilterOn => _dateFilterOn;
+
   bool get dateFilterOn => _dateFilterOn;
 
   void setFilterDate(String value) {
@@ -164,20 +166,38 @@ class TaskProvider with ChangeNotifier {
     }
   }
 
+  bool _overdueTab = false;
+  bool get overdueTab => _overdueTab;
+
   void changeFilterStatusTab(String id) {
+    _overdueTab = false;
     _statusIds = id;
     filterList();
   }
 
-  void setDefaultType() {
+  void setOverdueTab() {
+    _overdueTab = true;
+    _statusIds = "";
+    filterList();
+  }
+
+  void setDefaultType() {          // <- thirumba add pannadhu
     if (typeList.isNotEmpty && (type == null || type.toString().isEmpty)) {
       _type = typeList.first["id"].toString();
       notifyListeners();
     }
   }
 
-  List<TaskData> _baseFiltered() {
-    final bool applyDate = _dateFilterOn || !_incompleteMode;
+  bool _isOverdueTask(TaskData t) {
+    if ((t.statval ?? "").toString().trim() == "Completed") return false;
+    final d = _parseTaskDate(t.taskDate);
+    if (d == null) return false;
+    final now = DateTime.now();
+    return d.isBefore(DateTime(now.year, now.month, now.day));
+  }
+
+     List<TaskData> _baseFiltered({bool ignoreDate = false}) {
+       final bool applyDate = !ignoreDate && _dateFilterOn;
 
     DateTime? from;
     DateTime? to;
@@ -198,6 +218,7 @@ class TaskProvider with ChangeNotifier {
     final selectedCompany = _companyName.trim().toLowerCase();
 
     return _searchAllTasks.where((t) {
+      if (_mineOnly && !isMyTask(t)) return false;
       if (fromD != null && toD != null) {
         final d = _parseTaskDate(t.taskDate);
         if (d == null) return false;
@@ -218,12 +239,14 @@ class TaskProvider with ChangeNotifier {
   }
 
   void filterList() {
-    final base = _baseFiltered();
+    final base = _baseFiltered(ignoreDate: _overdueTab);
     final status = _statusIds.trim();
     final q = search.text.trim().toLowerCase();
 
     _filterUserData = base.where((t) {
-      if (status.isNotEmpty && (t.statval ?? "").toString().trim() != status) {
+      if (_overdueTab) {
+        if (!_isOverdueTask(t)) return false;
+      } else if (status.isNotEmpty && (t.statval ?? "").toString().trim() != status) {
         return false;
       }
       if (q.isNotEmpty) {
@@ -236,6 +259,37 @@ class TaskProvider with ChangeNotifier {
     }).toList();
 
     notifyListeners();
+  }
+
+  // ---- "My tasks" mode (logged-in user's own tasks only) ----
+  bool _mineOnly = false;
+  bool get mineOnly => _mineOnly;
+
+  void setMineOnly(bool v) {
+    if (_mineOnly == v) return;
+    _mineOnly = v;
+    filterList(); // list + overview + calendar refresh
+  }
+
+  /// true if this task is assigned to the logged-in user
+  bool isMyTask(TaskData t) {
+    final myId = (localData.storage.read("id") ?? "").toString().trim();
+    final myName = (localData.storage.read("f_name") ?? "").toString().trim().toLowerCase();
+
+    final ids = t.assigned
+        .toString()
+        .split(',')
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toList();
+    if (myId.isNotEmpty && myId != "null" && ids.contains(myId)) return true;
+
+    if (myName.isEmpty) return false;
+    return t.assignedNames
+        .toString()
+        .split(',')
+        .map((e) => e.trim().toLowerCase())
+        .contains(myName);
   }
 
   String _fType = "";
@@ -440,6 +494,7 @@ class TaskProvider with ChangeNotifier {
     _endDate = date2;
     search.clear();
     _dateFilterOn = false;
+    _mineOnly = false;
     filterList();
   }
 
@@ -460,11 +515,19 @@ class TaskProvider with ChangeNotifier {
       _startDate = date1!;
       _endDate = date2!;
       search.clear();
+      _overdueTab = false;
+      _mineOnly = false;
 
       _dateFilterOn = false;
     }
     search.clear();
     notifyListeners();
+  }
+
+  void clearDateFilter() {
+    _dateFilterOn = false;
+    _filterType = null;
+    filterList();
   }
 
   void filterPick({required BuildContext context, required String date, required bool isStartDate}) {
@@ -514,15 +577,18 @@ class TaskProvider with ChangeNotifier {
       yesterday();
     } else if (_filterType == "Last 7 Days") {
       last7Days();
-    } else if (_filterType == "Last 30 Days") {
-      last30Days();
-    } else if (_filterType == "This Week") {
-      thisWeek();
-    } else if (_filterType == "This Month") {
-      thisMonth();
-    } else if (_filterType == "Last 3 months") {
-      last3Month();
     }
+    // else if (_filterType == "Last 30 Days") {
+    //   last30Days();
+    // } else if (_filterType == "This Week") {
+    //   thisWeek();
+    // }
+    else if (_filterType == "This Month") {
+      thisMonth();
+    }
+    // else if (_filterType == "Last 3 months") {
+    //   last3Month();
+    // }
     notifyListeners();
   }
 
@@ -606,10 +672,10 @@ class TaskProvider with ChangeNotifier {
     "Today",
     "Yesterday",
     "Last 7 Days",
-    "Last 30 Days",
-    "This Week",
+    // "Last 30 Days",
+    // "This Week",
     "This Month",
-    "Last 3 months"
+    // "Last 3 months"
   ];
   dynamic _user;
   dynamic get user => _user;
@@ -3191,10 +3257,76 @@ class TaskProvider with ChangeNotifier {
   List<TaskData> _filterUserData = <TaskData>[];
   List<TaskData> get filterUserData => _filterUserData;
 
+  /// Tasks used by the calendar: respects mine / type / employee / company,
+  /// but NOT the date range, status tab or search, so task dates always show.
+  List<TaskData> get calendarTasks => _baseFiltered(ignoreDate: true);
+
+  /// Safe rebuild of the Syncfusion data source (clear -> add -> reset notify)
+  void _syncCalendarSource(List<TaskData> list) {
+    try {
+      final apps = <Appointment>[];
+      for (final t in list) {
+        final d = _parseTaskDate(t.taskDate);
+        if (d == null) continue;
+        apps.add(Appointment(
+          startTime: d,
+          endTime: d,
+          subject: t.statval.toString(),
+          color: colorsConst.red2,
+        ));
+      }
+      dataSource.appointments!.clear();
+      dataSource.appointments!.addAll(apps);
+      dataSource.notifyListeners(
+          CalendarDataSourceAction.reset, dataSource.appointments!);
+    } catch (e) {
+      _log("Calendar sync error: $e");
+    }
+  }
+
+  /// Common post-processing for getAllTask / getAllIncompleteTask
+  void _applyTaskResponse(List<TaskData> response) {
+    final monthPad = utils.returnPadLeft(defaultMonth.toString());
+
+    for (final r in response) {
+      final id = r.id.toString();
+      final totalSeconds = int.tryParse(r.totalHours.toString()) ?? 0;
+      final status = r.workStatus.toString();
+
+      taskTimers[id] = TaskTimer(
+        accumulatedSeconds: totalSeconds,
+        isRunning: status == "Start",
+        startTime: status == "Start" ? DateTime.now() : null,
+        isCompleted: (status == "Completed" || status == "Complete"),
+      );
+      if (status == "Start") _startUiTicker();
+
+      final parsedDate = _parseTaskDate(r.taskDate);
+      if (parsedDate == null) continue;
+      if (monthPad == utils.returnPadLeft(parsedDate.month.toString())) {
+        _thisMonthLeave = "1";
+      }
+    }
+
+    _syncCalendarSource(response);
+
+    for (final r in response) {
+      if (r.isChecked.toString() == "1") {
+        _checkAtt = r.id.toString();
+        _checkAttName = r.projectName.toString();
+        break;
+      }
+    }
+
+    filterList();
+  }
+
   Future<void> getAllTask(bool isRefresh, {String? date1, String? date2, String? type}) async {
     _log("=====  getAllTask START =====");
-       // (stops "refresh after comment/chat" from switching to all-tasks + today-only):
-     if (!isRefresh && _incompleteMode) { return getAllIncompleteTask(false); }
+    // stops "refresh after comment/chat" from switching to all-tasks + today-only
+    if (!isRefresh && _incompleteMode) {
+      return getAllIncompleteTask(false);
+    }
     _incompleteMode = false;
     _checkAtt = "";
     _checkAttName = "";
@@ -3214,9 +3346,10 @@ class TaskProvider with ChangeNotifier {
       _searchAllTasks.clear();
       _filterUserData.clear();
 
-      dataSource.appointments!.clear();
+      _syncCalendarSource(const []);
 
       _viewRefresh = false;
+      notifyListeners();
     }
 
     try {
@@ -3237,56 +3370,9 @@ class TaskProvider with ChangeNotifier {
 
         _log("_allTasks length : ${_allTasks.length}");
 
-        final List<Appointment> newApps = [];
-        final monthPad = utils.returnPadLeft(defaultMonth.toString());
-
-        for (var i = 0; i < response.length; i++) {
-          String? dateStr = response[i].taskDate;
-
-          String id = response[i].id.toString();
-          int totalSeconds = int.tryParse(response[i].totalHours.toString()) ?? 0;
-          String status = response[i].workStatus.toString();
-
-          taskTimers[id] = TaskTimer(
-            accumulatedSeconds: totalSeconds,
-            isRunning: status == "Start",
-            startTime: status == "Start" ? DateTime.now() : null,
-            isCompleted: (status == "Completed" || status == "Complete"),
-          );
-
-          if (status == "Start") {
-            _startUiTicker();
-          }
-
-          final parsedDate = _parseTaskDate(dateStr);
-          if (parsedDate == null) continue;
-
-          newApps.add(Appointment(
-            startTime: parsedDate,
-            endTime: parsedDate,
-            subject: response[i].statval.toString(),
-            color: colorsConst.red2,
-          ));
-
-          if (monthPad == utils.returnPadLeft(parsedDate.month.toString())) {
-            _thisMonthLeave = "1";
-          }
-        }
-
-        if (newApps.isNotEmpty) {
-          dataSource.appointments!.addAll(newApps);
-          dataSource.notifyListeners(CalendarDataSourceAction.add, newApps);
-        }
-
-        for (var i = 0; i < response.length; i++) {
-          if (response[i].isChecked.toString() == "1") {
-            _checkAtt = response[i].id.toString();
-            _checkAttName = response[i].projectName.toString();
-            break;
-          }
-        }
-
-        filterList();
+        _applyTaskResponse(response);
+        _viewRefresh = true;
+      } else {
         _viewRefresh = true;
       }
     } catch (e) {
@@ -3327,7 +3413,7 @@ class TaskProvider with ChangeNotifier {
       _searchAllTasks.clear();
       _filterUserData.clear();
 
-      dataSource.appointments!.clear();
+      _syncCalendarSource(const []);
 
       _viewRefresh = false;
     }
@@ -3373,56 +3459,7 @@ class TaskProvider with ChangeNotifier {
         _searchAllTasks = response;
         _filterUserData = response;
 
-        final List<Appointment> newApps = [];
-        final monthPad = utils.returnPadLeft(defaultMonth.toString());
-
-        for (var i = 0; i < response.length; i++) {
-          String? dateStr = response[i].taskDate;
-
-          String id = response[i].id.toString();
-          int totalSeconds = int.tryParse(response[i].totalHours.toString()) ?? 0;
-          String status = response[i].workStatus.toString();
-
-          taskTimers[id] = TaskTimer(
-            accumulatedSeconds: totalSeconds,
-            isRunning: status == "Start",
-            startTime: status == "Start" ? DateTime.now() : null,
-            isCompleted: (status == "Completed" || status == "Complete"),
-          );
-
-          if (status == "Start") {
-            _startUiTicker();
-          }
-
-          final parsedDate = _parseTaskDate(dateStr);
-          if (parsedDate == null) continue;
-
-          newApps.add(Appointment(
-            startTime: parsedDate,
-            endTime: parsedDate,
-            subject: response[i].statval.toString(),
-            color: colorsConst.red2,
-          ));
-
-          if (monthPad == utils.returnPadLeft(parsedDate.month.toString())) {
-            _thisMonthLeave = "1";
-          }
-        }
-
-        if (newApps.isNotEmpty) {
-          dataSource.appointments!.addAll(newApps);
-          dataSource.notifyListeners(CalendarDataSourceAction.add, newApps);
-        }
-
-        for (var i = 0; i < response.length; i++) {
-          if (response[i].isChecked.toString() == "1") {
-            _checkAtt = response[i].id.toString();
-            _checkAttName = response[i].projectName.toString();
-            break;
-          }
-        }
-
-        filterList();
+        _applyTaskResponse(response);
         _viewRefresh = true;
       } else {
         _viewRefresh = true;
@@ -4217,23 +4254,21 @@ class TaskProvider with ChangeNotifier {
 
   /// Real numbers for the Task Overview card (respects date/type/employee/company)
   TaskOverviewData get overview {
-    final list = _baseFiltered();
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    int completed = 0, overdue = 0, pending = 0;
-    for (final t in list) {
+    final inRange = _baseFiltered();
+    final allDates = _baseFiltered(ignoreDate: true);
+
+    int completed = 0, pending = 0, overdue = 0;
+    for (final t in inRange) {
       if ((t.statval ?? "").toString().trim() == "Completed") {
         completed++;
-        continue;
-      }
-      final d = _parseTaskDate(t.taskDate);
-      if (d != null && d.isBefore(today)) {
-        overdue++;
-      } else {
+      } else if (!_isOverdueTask(t)) {
         pending++;
       }
     }
-    return TaskOverviewData(list.length, completed, pending, overdue);
+    for (final t in allDates) {
+      if (_isOverdueTask(t)) overdue++;
+    }
+    return TaskOverviewData(completed + pending + overdue, completed, pending, overdue);
   }
 
   // ===========================================================================
@@ -4630,6 +4665,9 @@ class TaskProvider with ChangeNotifier {
     _dateCache.clear();
 
     _dateFilterOn = false;
+
+    _overdueTab = false;
+    _mineOnly = false;
 
     // filter / date
     _isFilter = false;

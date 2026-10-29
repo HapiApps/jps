@@ -43,6 +43,7 @@ import '../common/dashboard.dart';
 import '../common/home_page.dart';
 import '../expense/create_expense.dart';
 import 'add_wages_work_details.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 /// ---------------------------------------------------------------------------
 /// PARENT: loads all data ONCE (dropdown data + task list).
@@ -53,6 +54,10 @@ import 'add_wages_work_details.dart';
 ///    overview, tabbar and both tabs on every dataVersion bump).
 ///  * Calendar tab is built only AFTER the tab animation finishes and is then
 ///    kept alive -> tab switch is smooth and instant the 2nd time.
+///
+/// UI CHANGES (match design screenshot, 393dp base):
+///  * 16dp side margin on the whole body (children use zero side padding).
+///  * Task overview, tab bar, search, chips, cards and calendar re-measured.
 /// ---------------------------------------------------------------------------
 class ViewTaskPage extends StatefulWidget {
   final String date1;
@@ -120,30 +125,13 @@ class _ViewTaskState extends State<ViewTaskPage> with SingleTickerProviderStateM
 
       taskProvider.dataSource = _getDataSource();
 
-      taskProvider.applyDateRange(
+      taskProvider.initFilterValue(
+        true,
         date1: widget.date1,
         date2: widget.date2,
         type: widget.type,
       );
-
-      if (kDebugMode) {
-        debugPrint('>>> LOAD d1=${widget.date1} d2=${widget.date2} type=${widget.type} '
-            'start=${taskProvider.startDate} end=${taskProvider.endDate}');
-      }
-
-      if (kDebugMode) {
-        debugPrint('>>> LOAD d1=${widget.date1} d2=${widget.date2} type=${widget.type} '
-            'start=${taskProvider.startDate} end=${taskProvider.endDate} '
-            'count=${taskProvider.filterUserData.length}');
-      }
-
-      // taskProvider.dataSource = _getDataSource();
-      // taskProvider.getAllIncompleteTask(
-      //   true,
-      //   date1: widget.date1,
-      //   date2: widget.date2,
-      //   type: widget.type,
-      // );
+      taskProvider.getAllTask(true);
     });
   }
 
@@ -159,13 +147,12 @@ class _ViewTaskState extends State<ViewTaskPage> with SingleTickerProviderStateM
   Widget build(BuildContext context) {
     final taskProvider = context.read<TaskProvider>();
     final homeProvider = context.read<HomeProvider>();
-    var webHeight = MediaQuery.of(context).size.width * 0.5;
-    var phoneHeight = MediaQuery.of(context).size.width * 0.95;
+    final webWidth = MediaQuery.of(context).size.width * 0.5;
 
     return FocusScope(
       node: _myFocusScopeNode,
       child: Padding(
-        padding: const EdgeInsets.all(5.0),
+        padding: EdgeInsets.zero, // was 5
         child: Scaffold(
           backgroundColor: colorsConst.bacColor,
           appBar: PreferredSize(
@@ -215,138 +202,119 @@ class _ViewTaskState extends State<ViewTaskPage> with SingleTickerProviderStateM
             },
             child: Center(
               child: SizedBox(
-                width: kIsWeb ? webHeight : phoneHeight,
-                child: Column(
-                  children: [
-                    DateFilterDropdown(
-                      initialType: widget.type,
-                      onChanged: (r) {
-                        context.read<TaskProvider>().applyDateRange(
-                          date1: r.startDate.toString(),
-                          date2: r.endDate.toString(),
-                          type: r.type.toString(),
-                        );
-                        _listKey.currentState?._resetPaging(); // list back to top / first 15
-                      },
-                    ),
-                    const SizedBox(height: 12),
-                    RepaintBoundary(
-                      child: Selector<TaskProvider, int>(
-                        selector: (_, p) => p.dataVersion,
-                        builder: (ctx, _, __) {
-                          final o = ctx.read<TaskProvider>().overview;
-                          return TaskOverviewCard(
-                            title: constValue.taskOverview,
-                            totalLabel: constValue.taskCount,
-                            completed: o.completed,
-                            pending: o.pending,
-                            overdue: o.overdue,
-                          );
-                        },
+                width: kIsWeb ? webWidth : double.infinity,
+                child: Padding(
+                  // 16dp side margin (screenshot)
+                  padding: EdgeInsets.symmetric(horizontal: kIsWeb ? 0 : 16),
+                  child: Column(
+                    children: [
+                      _TopDateFilter(onChanged: () => _listKey.currentState?._resetPaging()),
+                      const SizedBox(height: 12),
+                      // Swipe: page 1 = all tasks, page 2 = logged-in admin's own tasks
+                      RepaintBoundary(
+                        child: _OverviewSwitcher(
+                          isAdmin: localData.storage.read("role").toString() == "1",
+                          onChanged: (mine) {
+                            context.read<TaskProvider>().setMineOnly(mine);
+                            _listKey.currentState?._resetPaging();
+                          },
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 12),
-                    Container(
-                      height: 50,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(30),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.06),
-                            blurRadius: 10,
-                            offset: const Offset(0, 3),
-                          ),
-                        ],
-                      ),
-                      child: AnimatedBuilder(
-                        animation: tabController,
-                        builder: (context, _) {
-                          final isTasksActive = tabController.index == 0;
-                          final isCalendarActive = tabController.index == 1;
-
-                          return TabBar(
-                            controller: tabController,
-
-                            indicatorPadding: const EdgeInsets.symmetric(
-                              horizontal: 6,
-                              vertical: 4,
+                      const SizedBox(height: 12),
+                      Container(
+                        height: 46, // was 50
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(30),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.06),
+                              blurRadius: 10,
+                              offset: const Offset(0, 3),
                             ),
+                          ],
+                        ),
+                        child: AnimatedBuilder(
+                          animation: tabController,
+                          builder: (context, _) {
+                            final isTasksActive = tabController.index == 0;
+                            final isCalendarActive = tabController.index == 1;
 
-                            indicator: customDecoration.baseBackgroundDecoration(
-                              radius: 30,
-                              color: colorsConst.primary,
-                            ),
-
-                            indicatorSize: TabBarIndicatorSize.tab,
-                            dividerColor: Colors.transparent,
-                            tabs: [
-                              // ---------- Tab 1: Tasks ----------
-                              Tab(
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    SvgPicture.asset(
-                                      isTasksActive
-                                          ? "assets/images/task_active.svg"
-                                          : "assets/images/task_icon.svg",
-                                    ),
-                                    10.width,
-                                    CustomText(
-                                      text: "Tasks",
-                                      isBold: true,
-                                      colors: isTasksActive ? Colors.white : ColorsConst.greyText,
-                                    ),
-                                  ],
-                                ),
+                            return TabBar(
+                              controller: tabController,
+                              indicatorPadding: const EdgeInsets.all(4), // was symmetric(6,4)
+                              indicator: customDecoration.baseBackgroundDecoration(
+                                radius: 30,
+                                color: colorsConst.primary,
                               ),
-
-                              // ---------- Tab 2: Calendar ----------
-                              Tab(
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    SvgPicture.asset(
-                                      isCalendarActive
-                                          ? "assets/images/calender_active.svg"
-                                          : "assets/images/task_calender.svg",
-                                    ),
-                                    10.width,
-                                    CustomText(
-                                      text: "Calendar",
-                                      isBold: true,
-                                      colors: isCalendarActive ? Colors.white : ColorsConst.greyText,
-                                    ),
-                                  ],
+                              indicatorSize: TabBarIndicatorSize.tab,
+                              dividerColor: Colors.transparent,
+                              tabs: [
+                                // ---------- Tab 1: Tasks ----------
+                                Tab(
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      SvgPicture.asset(
+                                        isTasksActive
+                                            ? "assets/images/task_active.svg"
+                                            : "assets/images/task_icon.svg",
+                                      ),
+                                      8.width, // was 10
+                                      CustomText(
+                                        text: "Tasks",
+                                        isBold: true,
+                                        size: 15,
+                                        colors: isTasksActive ? Colors.white : ColorsConst.greyText,
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                              ),
-                            ],
-                          );
-                        },
-                      ),
-                    ),
-                    Expanded(
-                      child: TabBarView(
-                        controller: tabController,
-                        children: [
-                          ViewfilterUserData(
-                              key: _listKey,
-                              date1: widget.date1, date2: widget.date2, type: widget.type),
 
-                          // Calendar: lazy + keep-alive + own Selector
-                          _calendarReady
-                              ? _KeepAlive(
-                            child: Selector<TaskProvider, int>(
-                              selector: (_, p) => p.dataVersion,
-                              builder: (ctx, _, __) =>
-                                  TaskCalendar(taskPvr: ctx.read<TaskProvider>()),
-                            ),
-                          )
-                              : const Center(child: CircularProgressIndicator(strokeWidth: 2)),
-                        ],
+                                // ---------- Tab 2: Calendar ----------
+                                Tab(
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      SvgPicture.asset(
+                                        isCalendarActive
+                                            ? "assets/images/calender_active.svg"
+                                            : "assets/images/task_calender.svg",
+                                      ),
+                                      8.width, // was 10
+                                      CustomText(
+                                        text: "Calendar",
+                                        isBold: true,
+                                        size: 15,
+                                        colors: isCalendarActive ? Colors.white : ColorsConst.greyText,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            );
+                          },
+                        ),
                       ),
-                    ),
-                  ],
+                      Expanded(
+                        child: TabBarView(
+                          controller: tabController,
+                          children: [
+                            ViewfilterUserData(
+                                key: _listKey,
+                                date1: widget.date1,
+                                date2: widget.date2,
+                                type: widget.type),
+
+                            // Calendar: lazy + keep-alive + own Selector
+                            _calendarReady
+                                ? const _KeepAlive(child: _TaskCalendarTab())
+                                : const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -391,9 +359,27 @@ class _ChipStyle {
   const _ChipStyle(this.label, this.bg, this.fg, this.icon);
 }
 
+/// Display text only. Logic / API still use the English status value.
+String _localStatus(String s) {
+  switch (s.trim()) {
+    case "Completed":
+      return constValue.taskCompleted;
+    case "Started":
+      return constValue.taskStarted;
+    case "Overdue":
+      return constValue.taskOverdue;
+    case "Assigned":
+      return constValue.taskAssigned;
+    case "Pending":
+      return constValue.taskPending;
+    default:
+      return s;
+  }
+}
+
 /// ---------------------------------------------------------------------------
 /// CHILD TAB: only shows the data. NO API calls here.
-/// Lazy loading: first 15 tasks, scroll panna innum 15 15 ah add aagum.
+/// Lazy loading: first 15 tasks, then 15 more as you scroll.
 /// ---------------------------------------------------------------------------
 class ViewfilterUserData extends StatefulWidget {
   final String date1;
@@ -470,7 +456,7 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>
     }
   }
 
-  // search / filter / tab maathum bodhu thirumba first 15 ku reset
+  // reset to first 15 whenever search / filter / tab changes
   void _resetPaging() {
     if (!mounted) return;
     setState(() => _visibleCount = _pageSize);
@@ -511,6 +497,86 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>
     return result;
   }
 
+  // -------------------------------------------------------------------------
+  // CUSTOMER CALL
+  // -------------------------------------------------------------------------
+  // company name -> phone (only non-empty results are cached)
+  final Map<String, String> _phoneCache = {};
+
+  /// Tries the usual field names on a model (TaskData / customer model).
+  /// >>> If your model uses another name, add it to the list below. <<<
+  String _readPhone(dynamic o) {
+    final getters = <dynamic Function()>[
+          () => o.customerMobile,
+          () => o.customerMobileNo,
+          () => o.customerNumber,
+          () => o.mobile,
+          () => o.mobileNo,
+          () => o.mobileNumber,
+          () => o.phone,
+          () => o.phoneNumber,
+          () => o.contactNo,
+          () => o.contactNumber,
+          () => o.companyMobile,
+          () => o.number,
+    ];
+    for (final g in getters) {
+      try {
+        final v = g();
+        if (v == null) continue;
+        final t = v.toString().trim();
+        if (t.isEmpty || t == "null" || t == "0") continue;
+        // several numbers "98.., 97.." -> first one
+        final first = t.split(RegExp(r'[,/;]')).first.trim();
+        final cleaned = first.replaceAll(RegExp(r'[^0-9+]'), '');
+        if (cleaned.length >= 6) return cleaned;
+      } catch (_) {}
+    }
+    return "";
+  }
+
+  /// 1) number on the task itself, 2) fallback: look up the customer by company name
+  String _phoneFor(TaskData d) {
+    final direct = _readPhone(d);
+    if (direct.isNotEmpty) return direct;
+
+    final company = (d.projectName ?? "").toString().trim();
+    if (company.isEmpty) return "";
+    final cached = _phoneCache[company];
+    if (cached != null) return cached;
+
+    try {
+      final customers = context.read<CustomerProvider>().customer;
+      for (final c in customers) {
+        String name = "";
+        try {
+          name = (c as dynamic).companyName.toString().trim();
+        } catch (_) {}
+        if (name.toLowerCase() == company.toLowerCase()) {
+          final p = _readPhone(c);
+          if (p.isNotEmpty) {
+            _phoneCache[company] = p;
+            return p;
+          }
+        }
+      }
+    } catch (_) {}
+    return "";
+  }
+
+  Future<void> _callCustomer(String phone) async {
+    _myFocusScopeNode.unfocus();
+    final uri = Uri(scheme: 'tel', path: phone);
+    try {
+      final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
+      if (!ok && mounted) {
+        utils.showWarningToast(context, text: "Unable to open dialer");
+      }
+    } catch (_) {
+      if (mounted) utils.showWarningToast(context, text: "Unable to open dialer");
+    }
+  }
+
   bool _isOverdue(TaskData d) {
     if ((d.statval ?? "") == "Completed") return false;
     final due = _parseDate(d.taskDate);
@@ -531,20 +597,20 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>
   _ChipStyle _statusStyle(String s) {
     switch (s) {
       case "Completed":
-        return const _ChipStyle(
-            "Completed", Color(0xffE7F6EC), Color(0xff1FAF38), Icons.check_circle_outline);
-      case "Started":
-        return const _ChipStyle(
-            "Started", Color(0xffE8F1FD), Color(0xff1A6FD1), Icons.play_circle_outline);
-      case "Overdue":
-        return const _ChipStyle(
-            "Overdue", Color(0xffFDECEC), Color(0xffE5383B), Icons.error_outline);
-      case "Assigned":
-        return const _ChipStyle(
-            "Assigned", Color(0xffEEEBFD), Color(0xff5B4BDB), Icons.assignment_ind_outlined);
-      default:
         return _ChipStyle(
-            s.isEmpty ? "-" : s, const Color(0xffF1F2F4), const Color(0xff6B7280), Icons.circle_outlined);
+            _localStatus("Completed"), Color(0xffE7F6EC), Color(0xff1FAF38), Icons.check_circle_outline);
+      case "Started":
+        return _ChipStyle(
+            _localStatus("Started"), Color(0xffE8F1FD), Color(0xff1A6FD1), Icons.schedule);
+      case "Overdue":
+        return _ChipStyle(
+            _localStatus("Overdue"), Color(0xffFDECEC), Color(0xffE5383B), Icons.adjust);
+      case "Assigned":
+        return _ChipStyle(
+            _localStatus("Assigned"), Color(0xffE8F1FD), Color(0xff1A6FD1), Icons.adjust);
+      default:
+        return _ChipStyle(s.isEmpty ? "-" : _localStatus(s), const Color(0xffF1F2F4),
+            const Color(0xff6B7280), Icons.circle_outlined);
     }
   }
 
@@ -570,7 +636,6 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>
     super.build(context); // required for keep-alive
     if (kDebugMode) debugPrint('>>> ViewfilterUserData rebuild');
 
-    // Only TaskProvider triggers rebuild.
     // Selector: rebuilds ONLY when provider data really changes (dataVersion).
     return Selector<TaskProvider, int>(
         selector: (_, p) => p.dataVersion,
@@ -593,13 +658,14 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>
                   ? const Loading()
                   : Column(
                 children: [
-                  const SizedBox(height: 10),
-                  /// SEARCH + FILTER + DOWNLOAD
+                  const SizedBox(height: 16), // was 10 (tab bar -> search)
+
+                  /// SEARCH + FILTER
                   Row(
                     children: [
                       Expanded(
                         child: Container(
-                          height: 44,
+                          height: 40, // was 44
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(24),
                             boxShadow: [
@@ -611,7 +677,7 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>
                             ],
                           ),
                           child: SizedBox(
-                            height: 44,
+                            height: 40,
                             child: TextFormField(
                               controller: taskProvider.search,
                               cursorColor: colorsConst.primary,
@@ -633,10 +699,13 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>
                                 fillColor: Colors.white,
                                 filled: true,
                                 isDense: true,
-                                // prefixIcon: const Icon(Icons.search, color: Colors.grey),
                                 prefixIcon: Padding(
                                   padding: const EdgeInsets.all(13.0),
-                                  child: SvgPicture.asset("assets/images/task/task_search_icon.svg", width: 10, height: 10,),
+                                  child: SvgPicture.asset(
+                                    "assets/images/task/task_search_icon.svg",
+                                    width: 10,
+                                    height: 10,
+                                  ),
                                 ),
                                 suffixIcon: ValueListenableBuilder<TextEditingValue>(
                                   valueListenable: taskProvider.search,
@@ -681,7 +750,7 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>
                           ),
                         ),
                       ),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: 10), // was 8
 
                       // FILTER
                       InkWell(
@@ -701,87 +770,36 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>
                           _showFilterDialog();
                         },
                         child: Container(
-                          width: 44,
-                          height: 44,
+                          width: 40, // was 44
+                          height: 40,
                           decoration: BoxDecoration(
                             color: colorsConst.primary,
                             shape: BoxShape.circle,
                           ),
-                          child: const Icon(Icons.tune, color: Colors.white, size: 22),
+                          child: const Icon(Icons.tune, color: Colors.white, size: 20),
                         ),
                       ),
-                      const SizedBox(width: 8),
-
-                      // DOWNLOAD (Admin -> full report | Employee -> only assigned)x
-                      // PopupMenuButton<int>(
-                      //   tooltip: "Download",
-                      //   color: Colors.white,
-                      //   shape: RoundedRectangleBorder(
-                      //       borderRadius: BorderRadius.circular(12)),
-                      //   onSelected: (v) async {
-                      //     if (v == 0) {
-                      //       taskProvider.downloadAllOnlyEmpTask(context);
-                      //     } else {
-                      //       await taskProvider.downloadAllTaskComment(context);
-                      //     }
-                      //   },
-                      //   itemBuilder: (_) => const [
-                      //     PopupMenuItem(value: 0, child: Text("Download Tasks")),
-                      //     PopupMenuItem(value: 1, child: Text("Download Comments")),
-                      //   ],
-                      //   child: Container(
-                      //     width: 44,
-                      //     height: 44,
-                      //     decoration: BoxDecoration(
-                      //       color: Colors.white,
-                      //       shape: BoxShape.circle,
-                      //       border: Border.all(color: Colors.grey.shade300),
-                      //     ),
-                      //     child: const Icon(Icons.download_rounded,
-                      //         color: Colors.red, size: 22),
-                      //   ),
-                      // ),
                     ],
                   ),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 14),
+
                   /// STATUS TABS
                   SizedBox(
-                    height: 36,
+                    height: 30, // was 36
                     child: ListView(
                       scrollDirection: Axis.horizontal,
-                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                      padding: EdgeInsets.zero,
                       children: [
-                        _statusTab(taskProvider, "All", ""),
-                        _statusTab(taskProvider, "Assigned", "Assigned"),
-                        _statusTab(taskProvider, "Started", "Started"),
-                        _statusTab(taskProvider, "Completed", "Completed"),
+                        _statusTab(taskProvider, constValue.taskAll, ""),
+                        _statusTab(taskProvider, constValue.taskAssigned, "Assigned"),
+                        _statusTab(taskProvider, constValue.taskStarted, "Started"),
+                        _statusTab(taskProvider, constValue.taskCompleted, "Completed"),
                         _overdueTab(taskProvider),
                       ],
                     ),
                   ),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(12, 8, 12, 2),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          taskProvider.isFilter != true
-                              ? "Today: ${taskProvider.startDate}"
-                              : "",
-                          style: const TextStyle(fontSize: 12, color: Colors.black54),
-                        ),
-                        if (taskProvider.isFilter == true)
-                          Text(
-                            "Total Tasks : ${list.length}",
-                            style: const TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.black54,
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
+                  const SizedBox(height: 14),
+
                   /// LIST
                   noData
                       ? Padding(
@@ -810,8 +828,7 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>
                                 child: SizedBox(
                                   width: 24,
                                   height: 24,
-                                  child:
-                                  CircularProgressIndicator(strokeWidth: 2),
+                                  child: CircularProgressIndicator(strokeWidth: 2),
                                 ),
                               ),
                             );
@@ -1079,7 +1096,7 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>
               );
             }
 
-            // FIX: use the FILTER's selected employees (not Add-Task `assignedNames`)
+            // uses the FILTER's selected employees (not Add-Task `assignedNames`)
             Widget employeeField() {
               final hasSel = taskProvider.hasEmployeeFilter;
               return InkWell(
@@ -1357,11 +1374,9 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>
   }
 
   Widget _overdueTab(TaskProvider taskProvider) {
-    return _chipButton("Overdue", _overdueOnly, () {
+    return _chipButton(constValue.taskOverdue, _overdueOnly, () {
       setState(() => _overdueOnly = true);
-      if (taskProvider.statusIds != "") {
-        taskProvider.changeFilterStatusTab("");
-      }
+      taskProvider.setOverdueTab();
       _resetPaging();
     });
   }
@@ -1371,21 +1386,23 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>
       borderRadius: BorderRadius.circular(20),
       onTap: onTap,
       child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 4),
+        margin: const EdgeInsets.only(right: 8),
         padding: const EdgeInsets.symmetric(horizontal: 16),
         decoration: BoxDecoration(
           color: isSelected ? colorsConst.primary : Colors.white,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isSelected ? colorsConst.primary : Colors.grey.shade300,
+            color: isSelected ? colorsConst.primary : const Color(0xffD9DCE1),
           ),
         ),
         child: Center(
-          child: CustomText(
-            text: text,
-              colors: isSelected ? Colors.white : Colors.black,
-              isBold: true,
-              size: 12,
+          child: Text(
+            text,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+              color: isSelected ? Colors.white : const Color(0xff6B7280),
+            ),
           ),
         ),
       ),
@@ -1442,6 +1459,7 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>
   // COMPACT TASK CARD
   // -------------------------------------------------------------------------
   Widget _pill(_ChipStyle s) {
+    final showIcon = s.icon != Icons.circle; // priority pills have no icon
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
@@ -1451,8 +1469,10 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(s.icon, size: s.icon == Icons.circle ? 7 : 11, color: s.fg),
-          const SizedBox(width: 4),
+          if (showIcon) ...[
+            Icon(s.icon, size: 11, color: s.fg),
+            const SizedBox(width: 4),
+          ],
           Text(
             s.label,
             style: TextStyle(
@@ -1478,9 +1498,8 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>
           customIcon ??
               Icon(
                 icon,
-                size: 14,
+                size: 15, // was 14
                 color: ColorsConst.greyText,
-                fontWeight: FontWeight.bold,
               ),
           const SizedBox(width: 4),
           Flexible(
@@ -1488,9 +1507,9 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>
               text: text,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-                size: 12,
-                colors: ColorsConst.greyText,
-              isBold: true,
+              size: 13, // was 12
+              colors: ColorsConst.greyText,
+              isBold: false, // was true
             ),
           ),
         ],
@@ -1524,14 +1543,15 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>
 
     final type = (data.type ?? "").toString();
     final company = (data.projectName ?? "").toString();
+    final phone = _phoneFor(data);
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+      padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 6), // was h8 v5
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: () => _openDetails(data, index),
         child: Container(
-          padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+          padding: const EdgeInsets.fromLTRB(12, 12, 12, 12), // was 14,12,14,12
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(16),
@@ -1566,60 +1586,59 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>
                       ),
                       Text(
                         dueText,
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w800,
-                          color: overdue ? Colors.red : ColorsConst.appBlack,
+                          color: ColorsConst.appBlack, // always dark (screenshot)
                         ),
                       ),
                     ],
                   ),
                 ],
               ),
-              10.height,
+              4.height, // was 10 (chips -> title)
+
               /// title
               Text(
                 data.taskTitle ?? "",
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
-                  fontSize: 16,
+                  fontSize: 18, // was 16
                   fontWeight: FontWeight.w700,
                   color: Color(0xff14151F),
                 ),
               ),
-              10.height,
+              4.height, // was 10 (title -> type/company)
+
               /// type + company
               if (type.isNotEmpty || company.isNotEmpty)
                 Row(
                   children: [
-                    if (type.isNotEmpty)
-                      _metaItem(Icons.sell_outlined, type),
-
-                    if (type.isNotEmpty && company.isNotEmpty)
-                      const SizedBox(width: 12),
-
+                    if (type.isNotEmpty) _metaItem(Icons.sell_outlined, type),
+                    if (type.isNotEmpty && company.isNotEmpty) const SizedBox(width: 10),
                     if (company.isNotEmpty)
                       _metaItem(
                         Icons.apartment,
                         company,
                         customIcon: SvgPicture.asset(
                           'assets/images/task/company_icon.svg',
-                          width: 14,
-                          height: 14,
+                          width: 15,
+                          height: 15,
                           fit: BoxFit.contain,
                           placeholderBuilder: (context) =>
-                          const Icon(Icons.apartment, size: 14),
+                          const Icon(Icons.apartment, size: 15),
                         ),
                       ),
                   ],
                 ),
-              15.height,
+              12.height, // was 15 (meta -> assigned row)
+
               /// assigned + comments + view details
               Row(
                 children: [
                   CircleAvatar(
-                    radius: 14,
+                    radius: 15, // was 14
                     backgroundColor: avatarColor,
                     child: Text(
                       _initials(firstName),
@@ -1680,9 +1699,25 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>
                       ),
                     ),
                   ),
-                  const SizedBox(width: 10),
-                  const Text(
-                    "View Details",
+                  if (phone.isNotEmpty) ...[
+                    const SizedBox(width: 6),
+                    GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () => _callCustomer(phone),
+                      child: Container(
+                        width: 28,
+                        height: 28,
+                        decoration: const BoxDecoration(
+                          color: Color(0xffE7F6EC),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.call, size: 15, color: Color(0xff1FAF38)),
+                      ),
+                    ),
+                  ],
+                  SizedBox(width: phone.isNotEmpty ? 10 : 16),
+                  Text(
+                    constValue.viewDetailsText,
                     style: TextStyle(
                       fontSize: 12.5,
                       fontWeight: FontWeight.w600,
@@ -1703,6 +1738,109 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>
 class _DataSource extends CalendarDataSource {
   _DataSource(List<Appointment> source) {
     appointments = source;
+  }
+}
+
+/// ---------------------------------------------------------------------------
+/// Swipeable overview (admin only):
+///   page 1 -> "Task Overview"    : all tasks (as before)
+///   page 2 -> "My Task Overview" : only tasks assigned to the logged-in admin
+/// Swiping also switches the task list + calendar below to "my tasks".
+/// Non-admin users just see the normal single card.
+/// ---------------------------------------------------------------------------
+class _OverviewSwitcher extends StatefulWidget {
+  final bool isAdmin;
+  final ValueChanged<bool> onChanged; // true = my tasks only
+  const _OverviewSwitcher({required this.isAdmin, required this.onChanged});
+
+  @override
+  State<_OverviewSwitcher> createState() => _OverviewSwitcherState();
+}
+
+class _OverviewSwitcherState extends State<_OverviewSwitcher> {
+  bool _mine = false;
+  int _dir = 1; // 1 = new card enters from right, -1 = from left
+
+  void _go(bool mine) {
+    if (!widget.isAdmin || mine == _mine) return;
+    _dir = mine ? 1 : -1;
+    widget.onChanged(mine); // update provider first
+    setState(() => _mine = mine);
+  }
+
+  Widget _dot(bool active) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      margin: const EdgeInsets.symmetric(horizontal: 3),
+      width: active ? 18 : 6,
+      height: 6,
+      decoration: BoxDecoration(
+        color: active ? colorsConst.primary : const Color(0xffD1D5DB),
+        borderRadius: BorderRadius.circular(3),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Selector<TaskProvider, int>(
+      selector: (_, p) => p.dataVersion,
+      builder: (ctx, _, __) {
+        final o = ctx.read<TaskProvider>().overview;
+
+        final card = TaskOverviewCard(
+          key: ValueKey(_mine),
+          title: _mine ? constValue.myTaskOverview : constValue.taskOverview,
+          totalLabel: constValue.taskCount,
+          completed: o.completed,
+          pending: o.pending,
+          overdue: o.overdue,
+        );
+
+        if (!widget.isAdmin) return card;
+
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            GestureDetector(
+              behavior: HitTestBehavior.translucent,
+              onHorizontalDragEnd: (d) {
+                final v = d.primaryVelocity ?? 0;
+                if (v < -200) {
+                  _go(true); // swipe left -> my tasks
+                } else if (v > 200) {
+                  _go(false); // swipe right -> all tasks
+                }
+              },
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 250),
+                transitionBuilder: (child, anim) {
+                  final incoming = child.key == ValueKey(_mine);
+                  final begin = Offset((incoming ? _dir : -_dir) * 0.25, 0);
+                  return FadeTransition(
+                    opacity: anim,
+                    child: SlideTransition(
+                      position: Tween<Offset>(begin: begin, end: Offset.zero).animate(anim),
+                      child: child,
+                    ),
+                  );
+                },
+                child: card,
+              ),
+            ),
+            const SizedBox(height: 8),
+            GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () => _go(!_mine),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [_dot(!_mine), _dot(_mine)],
+              ),
+            ),
+          ],
+        );
+      },
+    );
   }
 }
 
@@ -1746,10 +1884,10 @@ class TaskOverviewCard extends StatelessWidget {
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(15),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(30),
+        borderRadius: BorderRadius.circular(24),
         boxShadow: const [
           BoxShadow(
             color: Colors.black12,
@@ -1761,102 +1899,105 @@ class TaskOverviewCard extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              /// LEFT: title + total
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title.toUpperCase(),
-                      style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 0.3,
-                        color: _titleGrey,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    FittedBox(
-                      fit: BoxFit.scaleDown,
-                      alignment: Alignment.centerLeft,
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.baseline,
-                        textBaseline: TextBaseline.alphabetic,
-                        children: [
-                          Text(
-                            "$totalCount",
-                            style: const TextStyle(
-                              fontSize: 46,
-                              fontWeight: FontWeight.w800,
-                              color: _dark,
-                              height: 1.1,
-                            ),
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            totalLabel,
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w500,
-                              color: _titleGrey,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 10),
-
-              /// RIGHT: donut with % in center
-              SizedBox(
-                width: 84,
-                height: 84,
-                child: TweenAnimationBuilder<double>(
-                  tween: Tween(begin: 0, end: 1),
-                  duration: const Duration(milliseconds: 700),
-                  curve: Curves.easeOutCubic,
-                  builder: (context, t, _) {
-                    return CustomPaint(
-                      painter: _DonutPainter(
-                        completed: completed,
-                        pending: pending,
-                        overdue: overdue,
-                        completedColor: completedColor,
-                        pendingColor: pendingColor,
-                        overdueColor: overdueColor,
-                        progress: t,
-                      ),
-                      child: Center(
-                        child: Text(
-                          "$percent%",
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w800,
-                            color: _dark,
-                          ),
+          SizedBox(
+            height: 60,
+            child: Row(
+              children: [
+                /// LEFT: title + total
+                Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title.toUpperCase(),
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 0.2,
+                          color: _titleGrey,
                         ),
                       ),
-                    );
-                  },
+                      const SizedBox(height: 4),
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.baseline,
+                          textBaseline: TextBaseline.alphabetic,
+                          children: [
+                            Text(
+                              "$totalCount",
+                              style: const TextStyle(
+                                fontSize: 34,
+                                fontWeight: FontWeight.w700,
+                                color: _dark,
+                                height: 1.1,
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              totalLabel,
+                              style: const TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w500,
+                                color: _titleGrey,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+                const SizedBox(width: 10),
+
+                /// RIGHT: donut with % in center
+                SizedBox(
+                  width: 60, // was 84
+                  height: 60,
+                  child: TweenAnimationBuilder<double>(
+                    tween: Tween(begin: 0, end: 1),
+                    duration: const Duration(milliseconds: 700),
+                    curve: Curves.easeOutCubic,
+                    builder: (context, t, _) {
+                      return CustomPaint(
+                        painter: _DonutPainter(
+                          completed: completed,
+                          pending: pending,
+                          overdue: overdue,
+                          completedColor: completedColor,
+                          pendingColor: pendingColor,
+                          overdueColor: overdueColor,
+                          progress: t,
+                        ),
+                        child: Center(
+                          child: Text(
+                            "$percent%",
+                            style: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                              color: _dark,
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
           ),
           const SizedBox(height: 16),
 
           /// TILES
           Row(
             children: [
-              Expanded(child: _tile("COMPLETED", completed, completedColor)),
+              Expanded(child: _tile(constValue.taskCompleted.toUpperCase(), completed, completedColor)),
               const SizedBox(width: 10),
-              Expanded(child: _tile("PENDING", pending, pendingColor)),
+              Expanded(child: _tile(constValue.taskPending.toUpperCase(), pending, pendingColor)),
               const SizedBox(width: 10),
-              Expanded(child: _tile("OVERDUE", overdue, overdueColor)),
+              Expanded(child: _tile(constValue.taskOverdue.toUpperCase(), overdue, overdueColor)),
             ],
           ),
         ],
@@ -1866,10 +2007,10 @@ class TaskOverviewCard extends StatelessWidget {
 
   Widget _tile(String label, int value, Color color) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(12, 12, 8, 12),
+      padding: const EdgeInsets.fromLTRB(10, 8, 8, 8),
       decoration: BoxDecoration(
         color: _tileBg,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1877,8 +2018,8 @@ class TaskOverviewCard extends StatelessWidget {
           Row(
             children: [
               Container(
-                width: 9,
-                height: 9,
+                width: 6,
+                height: 6,
                 decoration: BoxDecoration(color: color, shape: BoxShape.circle),
               ),
               const SizedBox(width: 6),
@@ -1889,27 +2030,812 @@ class TaskOverviewCard extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     fontSize: 11,
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.w500,
                     color: _titleGrey,
                   ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 2),
           FittedBox(
             fit: BoxFit.scaleDown,
             alignment: Alignment.centerLeft,
             child: Text(
               "$value",
               style: const TextStyle(
-                fontSize: 26,
-                fontWeight: FontWeight.w800,
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
                 color: _dark,
               ),
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _TopDateFilter extends StatelessWidget {
+  final VoidCallback onChanged;
+  const _TopDateFilter({required this.onChanged});
+
+  static final DateFormat _df = DateFormat('dd-MM-yyyy'); // provider format
+  static final DateFormat _show = DateFormat('dd MMM yyyy'); // display format
+  static const String _all = '__all__';
+  static const String _custom = '__custom__';
+
+  DateTime _parse(String s, DateTime fallback) {
+    try {
+      return _df.parse(s);
+    } catch (_) {
+      return fallback;
+    }
+  }
+
+  // ---------------- small popup for custom range ----------------
+  Future<void> _pickCustom(BuildContext context, TaskProvider tp) async {
+    final now = DateTime.now();
+    DateTime from = tp.dateFilterOn ? _parse(tp.startDate, now) : now;
+    DateTime to = tp.dateFilterOn ? _parse(tp.endDate, now) : now;
+
+    await showDialog(
+      context: context,
+      builder: (dCtx) {
+        return StatefulBuilder(
+          builder: (dCtx, setD) {
+            Future<void> pick(bool isFrom) async {
+              final d = await showDatePicker(
+                context: dCtx,
+                initialDate: isFrom ? from : to,
+                firstDate: DateTime(2020),
+                lastDate: DateTime(now.year + 2),
+              );
+              if (d == null) return;
+              setD(() {
+                if (isFrom) {
+                  from = d;
+                  if (to.isBefore(from)) to = from;
+                } else {
+                  to = d;
+                  if (from.isAfter(to)) from = to;
+                }
+              });
+            }
+
+            Widget dateBox(String label, DateTime value, bool isFrom) {
+              return Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      label,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: colorsConst.greyClr,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    InkWell(
+                      borderRadius: BorderRadius.circular(10),
+                      onTap: () => pick(isFrom),
+                      child: Container(
+                        height: 44,
+                        padding: const EdgeInsets.symmetric(horizontal: 10),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: const Color(0xffD9DCE1)),
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                _show.format(value),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(fontSize: 13, color: Colors.black),
+                              ),
+                            ),
+                            Icon(Icons.calendar_today_outlined,
+                                size: 16, color: colorsConst.primary),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }
+
+            return Dialog(
+              backgroundColor: Colors.white,
+              insetPadding: const EdgeInsets.symmetric(horizontal: 24),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 360),
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(18, 18, 18, 14),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const Text(
+                        'Custom Range',
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                      ),
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          dateBox('From Date', from, true),
+                          const SizedBox(width: 12),
+                          dateBox('To Date', to, false),
+                        ],
+                      ),
+                      const SizedBox(height: 18),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextButton(
+                              onPressed: () => Navigator.pop(dCtx),
+                              child: const Text('Cancel'),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: colorsConst.primary,
+                                foregroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                              ),
+                              onPressed: () {
+                                tp.applyDateRange(
+                                  date1: _df.format(from),
+                                  date2: _df.format(to),
+                                  type: "Custom",
+                                );
+                                onChanged();
+                                Navigator.pop(dCtx);
+                              },
+                              child: const Text('Apply'),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  // ---------------- full readable date text (right side) ----------------
+  String _subText(TaskProvider tp) {
+    if (!tp.dateFilterOn) return "Showing all dates";
+    final now = DateTime.now();
+    final s = _parse(tp.startDate, now);
+    final e = _parse(tp.endDate, now);
+    if (s.year == e.year && s.month == e.month && s.day == e.day) {
+      return DateFormat('EEEE, MMMM d yyyy').format(s);
+    }
+    return "${_show.format(s)}  to  ${_show.format(e)}";
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Selector<TaskProvider, int>(
+      selector: (_, p) => p.dataVersion,
+      builder: (ctx, _, __) {
+        final tp = ctx.read<TaskProvider>();
+        final on = tp.dateFilterOn;
+        final isPreset = tp.filterTypeList.contains(tp.filterType);
+        // label only shows the NAME; real dates are shown on the right
+        final label = !on ? 'All Dates' : (isPreset ? tp.filterType.toString() : 'Custom');
+
+        PopupMenuItem<String> item(String value, String text, bool selected) {
+          return PopupMenuItem<String>(
+            value: value,
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    text,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                      color: selected ? colorsConst.primary : Colors.black,
+                    ),
+                  ),
+                ),
+                if (selected) Icon(Icons.check, size: 18, color: colorsConst.primary),
+              ],
+            ),
+          );
+        }
+
+        return Row(
+          children: [
+            PopupMenuButton<String>(
+              color: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              onSelected: (v) {
+                if (v == _all) {
+                  tp.clearDateFilter();
+                  onChanged();
+                } else if (v == _custom) {
+                  _pickCustom(ctx, tp);
+                } else {
+                  tp.changeFilterType(v);
+                  tp.applyFilters();
+                  onChanged();
+                }
+              },
+              itemBuilder: (_) => [
+                item(_all, 'All Dates', !on),
+                ...tp.filterTypeList.map<PopupMenuItem<String>>(
+                      (e) => item(e.toString(), e.toString(), on && tp.filterType == e),
+                ),
+                item(_custom, 'Custom', on && !isPreset),
+              ],
+              child: Container(
+                padding: const EdgeInsets.fromLTRB(7, 6, 12, 6), // was h10 v8
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(26),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.06),
+                      blurRadius: 10,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 30, // was 36
+                      height: 30,
+                      decoration: BoxDecoration(
+                        color: colorsConst.primary.withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Icon(Icons.calendar_today_outlined,
+                          size: 16, color: colorsConst.primary),
+                    ),
+                    const SizedBox(width: 10),
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 120),
+                      child: Text(
+                        label,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 15, // was 16
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xff14151F),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    const Icon(Icons.keyboard_arrow_down_rounded, size: 22),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                _subText(tp),
+                textAlign: TextAlign.right,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontSize: 14, color: Colors.black87),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _TaskCalendarTab extends StatefulWidget {
+  const _TaskCalendarTab();
+
+  @override
+  State<_TaskCalendarTab> createState() => _TaskCalendarTabState();
+}
+
+class _TaskCalendarTabState extends State<_TaskCalendarTab> {
+  static const Color _blue = Color(0xff0B5FB5);
+  static const Color _sunBlue = Color(0xff0B5FB5); // same blue as screenshot
+  static const Color _dark = Color(0xff14151F);
+  static const Color _grey = Color(0xff6B7280);
+  static const Color _outGrey = Color(0xff9CA3AF);
+  static const Color _mark = Color(0xff7C3AED); // underline for days having tasks
+
+  // screenshot has no underline under task days; set true to show them
+  // static const bool _showMarks = false;
+
+  static final List<DateFormat> _fmts = [
+    DateFormat('dd-MM-yyyy'),
+    DateFormat('dd/MM/yyyy'),
+    DateFormat('d-M-yyyy'),
+    DateFormat('d/M/yyyy'),
+  ];
+  static const List<Color> _avatarColors = [
+    Color(0xff3B82F6),
+    Color(0xffF59E0B),
+    Color(0xff10B981),
+    Color(0xff8B5CF6),
+    Color(0xffEF4444),
+    Color(0xff14B8A6),
+    Color(0xff0B5FB5),
+  ];
+  static const List<String> _weekdays = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+
+  final Map<String, DateTime?> _dateCache = {};
+  late DateTime _month; // first day of visible month
+  late DateTime _selected;
+
+  int _cacheVersion = -1;
+  Map<int, List<TaskData>> _byDay = {};
+
+  @override
+  void initState() {
+    super.initState();
+    final now = DateTime.now();
+    _selected = DateTime(now.year, now.month, now.day);
+    _month = DateTime(now.year, now.month, 1);
+  }
+
+  // ---------------------------------------------------------------- helpers
+  DateTime? _parse(String? s) {
+    if (s == null) return null;
+    final t = s.trim();
+    if (t.isEmpty) return null;
+    if (_dateCache.containsKey(t)) return _dateCache[t];
+    DateTime? r;
+    final iso = DateTime.tryParse(t);
+    if (iso != null) {
+      r = DateTime(iso.year, iso.month, iso.day);
+    } else {
+      for (final f in _fmts) {
+        try {
+          r = f.parseStrict(t);
+          break;
+        } catch (_) {}
+      }
+    }
+    _dateCache[t] = r;
+    return r;
+  }
+
+  int _key(DateTime d) => d.year * 10000 + d.month * 100 + d.day;
+
+  void _rebuildIndex(TaskProvider tp) {
+    if (_cacheVersion == tp.dataVersion) return;
+    _cacheVersion = tp.dataVersion;
+    final map = <int, List<TaskData>>{};
+    for (final t in tp.calendarTasks) {
+      final d = _parse(t.taskDate);
+      if (d == null) continue;
+      map.putIfAbsent(_key(d), () => []).add(t);
+    }
+    _byDay = map;
+  }
+
+  String _initials(String name) {
+    final p = name.trim().split(RegExp(r'\s+')).where((e) => e.isNotEmpty).toList();
+    if (p.isEmpty) return "?";
+    if (p.length == 1) return p.first[0].toUpperCase();
+    return (p[0][0] + p[1][0]).toUpperCase();
+  }
+
+  bool _isOverdue(TaskData t) {
+    if ((t.statval ?? "").toString().trim() == "Completed") return false;
+    final d = _parse(t.taskDate);
+    if (d == null) return false;
+    final n = DateTime.now();
+    return d.isBefore(DateTime(n.year, n.month, n.day));
+  }
+
+  Color _dayDotColor(List<TaskData> tasks) {
+    bool allDone = true;
+    for (final t in tasks) {
+      if (_isOverdue(t)) return const Color(0xffE5383B);
+      if ((t.statval ?? "").toString().trim() != "Completed") allDone = false;
+    }
+    return allDone ? const Color(0xff1FAF38) : const Color(0xffF59E0B);
+  }
+
+  void _open(TaskData t, TaskProvider tp) {
+    Provider.of<HomeProvider>(context, listen: false).panelClose();
+    int idx = tp.filterUserData.indexOf(t);
+    if (idx < 0) idx = 0;
+    utils.navigatePage(
+      context,
+          () => DashBoard(
+        child: TaskDetails(
+          data: t,
+          isDirect: true,
+          coId: "0",
+          numberList: const [],
+          index: idx,
+        ),
+      ),
+    );
+  }
+
+  // ------------------------------------------------------------------ build
+  @override
+  Widget build(BuildContext context) {
+    return Selector<TaskProvider, int>(
+      selector: (_, p) => p.dataVersion,
+      builder: (ctx, _, __) {
+        final tp = ctx.read<TaskProvider>();
+        _rebuildIndex(tp);
+        final dayTasks = _byDay[_key(_selected)] ?? const <TaskData>[];
+
+        return ListView(
+          physics: const ClampingScrollPhysics(),
+          padding: const EdgeInsets.fromLTRB(0, 16, 0, 60),
+          children: [
+            _calendarCard(),
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: const [
+                _LegendDot(Color(0xffE5383B), 'Overdue'),
+                SizedBox(width: 16),
+                _LegendDot(Color(0xffF59E0B), 'Pending'),
+                SizedBox(width: 16),
+                _LegendDot(Color(0xff1FAF38), 'Completed'),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Padding(
+              padding: EdgeInsets.zero, // was horizontal 6
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    "Tasks – ${DateFormat('MMMM d').format(_selected)}",
+                    style: const TextStyle(
+                      fontSize: 18, // was 16
+                      fontWeight: FontWeight.w700,
+                      color: _dark,
+                    ),
+                  ),
+                  Text(
+                    "${dayTasks.length} ${dayTasks.length == 1 ? 'task' : 'tasks'}",
+                    style: const TextStyle(fontSize: 15, color: _grey), // was 13
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12), // was 10
+            if (dayTasks.isEmpty)
+              const Padding(
+                padding: EdgeInsets.only(top: 40),
+                child: Center(
+                  child: Text(
+                    "No tasks on this day",
+                    style: TextStyle(fontSize: 13, color: _grey),
+                  ),
+                ),
+              )
+            else
+              ...dayTasks.map((t) => _taskTile(t, tp)),
+          ],
+        );
+      },
+    );
+  }
+
+  // ---------------------------------------------------------- calendar card
+  Widget _calendarCard() {
+    final daysInMonth = DateUtils.getDaysInMonth(_month.year, _month.month);
+    final leading = _month.weekday % 7; // SUN = 0
+    final rows = ((leading + daysInMonth) / 7).ceil();
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(22),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.06),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.fromLTRB(10, 0, 10, 10), // was (10,8,10,12)
+      child: Column(
+        children: [
+          // month header
+          SizedBox(
+            height: 56,
+            child: Row(
+              children: [
+                const SizedBox(width: 12),
+                IconButton(
+                  constraints: const BoxConstraints.tightFor(width: 40, height: 40),
+                  padding: EdgeInsets.zero,
+                  icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 14, color: _dark),
+                  onPressed: () =>
+                      setState(() => _month = DateTime(_month.year, _month.month - 1, 1)),
+                ),
+                Expanded(
+                  child: Center(
+                    child: Text(
+                      DateFormat('MMMM yyyy').format(_month),
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                        color: _dark,
+                      ),
+                    ),
+                  ),
+                ),
+                IconButton(
+                  constraints: const BoxConstraints.tightFor(width: 40, height: 40),
+                  padding: EdgeInsets.zero,
+                  icon: const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: _dark),
+                  onPressed: () =>
+                      setState(() => _month = DateTime(_month.year, _month.month + 1, 1)),
+                ),
+                const SizedBox(width: 12),
+              ],
+            ),
+          ),
+          const Divider(height: 1, color: Color(0xffE9ECF0)),
+          const SizedBox(height: 12),
+
+          // weekday labels
+          Row(
+            children: _weekdays
+                .map(
+                  (w) => Expanded(
+                child: Center(
+                  child: Text(
+                    w,
+                    style: const TextStyle(
+                      fontSize: 12, // was 10
+                      fontWeight: FontWeight.w500,
+                      letterSpacing: 0.6,
+                      color: Color(0xff374151),
+                    ),
+                  ),
+                ),
+              ),
+            )
+                .toList(),
+          ),
+          const SizedBox(height: 8),
+
+          // day grid
+          for (int r = 0; r < rows; r++)
+            Row(
+              children: [
+                for (int c = 0; c < 7; c++)
+                  Expanded(
+                    child: _dayCell(
+                      DateTime(_month.year, _month.month, 1 - leading + r * 7 + c),
+                    ),
+                  ),
+              ],
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _dayCell(DateTime d) {
+    final inMonth = d.month == _month.month;
+    final isSel = DateUtils.isSameDay(d, _selected);
+    final isToday = DateUtils.isSameDay(d, DateTime.now());
+
+    // dots only for current-month days (other-month days stay quiet)
+    final dayTasks = inMonth ? _byDay[_key(d)] : null;
+    final hasTasks = dayTasks != null && dayTasks.isNotEmpty;
+
+    Color textColor;
+    if (isSel) {
+      textColor = Colors.white;
+    } else if (!inMonth) {
+      textColor = _outGrey.withOpacity(0.6);
+    } else if (isToday) {
+      textColor = _blue;
+    } else {
+      textColor = _dark;
+    }
+
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => setState(() {
+        _selected = d;
+        if (!inMonth) _month = DateTime(d.year, d.month, 1);
+      }),
+      child: SizedBox(
+        height: 48, // more breathing room between rows
+        child: Center(
+          child: Container(
+            width: 34,
+            height: 34,
+            decoration: BoxDecoration(
+              color: isSel ? _blue : Colors.transparent,
+              shape: BoxShape.circle,
+              border: (isToday && !isSel) ? Border.all(color: _blue, width: 1.5) : null,
+            ),
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                Text(
+                  "${d.day}",
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: (isSel || isToday) ? FontWeight.w600 : FontWeight.w400,
+                    color: textColor,
+                  ),
+                ),
+                if (hasTasks)
+                  Positioned(
+                    bottom: 2,
+                    child: Container(
+                      width: 4,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: isSel ? Colors.white : _dayDotColor(dayTasks),
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // -------------------------------------------------------------- task tile
+  Widget _taskTile(TaskData t, TaskProvider tp) {
+    final names = (t.assignedNames ?? "")
+        .toString()
+        .split(',')
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toList();
+    final first = names.isEmpty ? "-" : names.first;
+    final extra = names.length > 1 ? names.length - 1 : 0;
+    final avatar = _avatarColors[first.hashCode.abs() % _avatarColors.length];
+
+    final overdue = _isOverdue(t);
+    final status = overdue ? "Overdue" : (t.statval ?? "").toString().trim();
+
+    Color bg, fg;
+    IconData icon;
+    switch (status) {
+      case "Completed":
+        bg = const Color(0xffE7F6EC);
+        fg = const Color(0xff1FAF38);
+        icon = Icons.check_circle_outline;
+        break;
+      case "Started":
+        bg = const Color(0xffFFF4E5);
+        fg = const Color(0xffD97706);
+        icon = Icons.play_circle_outline;
+        break;
+      case "Overdue":
+        bg = const Color(0xffFDECEC);
+        fg = const Color(0xffE5383B);
+        icon = Icons.error_outline;
+        break;
+      default: // Assigned & others
+        bg = const Color(0xffE8F1FD);
+        fg = const Color(0xff1A6FD1);
+        icon = Icons.adjust;
+    }
+
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => _open(t, tp),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12), // was 10
+        padding: const EdgeInsets.all(16), // was (14,14,12,14)
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(24), // was 20
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            CircleAvatar(
+              radius: 20, // was 22
+              backgroundColor: avatar,
+              child: Text(
+                _initials(first),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 15, // was 14
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+            const SizedBox(width: 10), // was 12
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    t.taskTitle ?? "",
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 18, // was 16
+                      fontWeight: FontWeight.w600,
+                      color: _dark,
+                    ),
+                  ),
+                  const SizedBox(height: 2), // was 4
+                  Row(
+                    children: [
+                      const Icon(Icons.person_outline, size: 16, color: _grey),
+                      const SizedBox(width: 4),
+                      Flexible(
+                        child: Text(
+                          extra > 0 ? "$first  +$extra" : first,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontSize: 14, color: _grey),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+              decoration: BoxDecoration(
+                color: bg,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(icon, size: 12, color: fg),
+                  const SizedBox(width: 4),
+                  Text(
+                    status.isEmpty ? "-" : _localStatus(status),
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: fg,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1940,7 +2866,7 @@ class _DonutPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    const stroke = 12.0;
+    const stroke = 7.0; // was 12.0
     final center = Offset(size.width / 2, size.height / 2);
     final radius = (math.min(size.width, size.height) - stroke) / 2;
     final rect = Rect.fromCircle(center: center, radius: radius);
@@ -2022,4 +2948,26 @@ class _Seg {
   final int value;
   final Color color;
   _Seg(this.value, this.color);
+}
+
+class _LegendDot extends StatelessWidget {
+  final Color color;
+  final String label;
+  const _LegendDot(this.color, this.label);
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 6,
+          height: 6,
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        ),
+        const SizedBox(width: 5),
+        Text(label, style: const TextStyle(fontSize: 12, color: Color(0xff6B7280))),
+      ],
+    );
+  }
 }

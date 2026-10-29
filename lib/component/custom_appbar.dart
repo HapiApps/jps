@@ -3,7 +3,6 @@ import 'package:master_code/source/extentions/extensions.dart';
 
 import '../source/constant/colors_constant.dart';
 import '../source/constant/local_data.dart';
-import 'create_button.dart';
 import 'custom_text.dart';
 
 class CustomAppbar extends StatelessWidget {
@@ -14,7 +13,8 @@ class CustomAppbar extends StatelessWidget {
     this.isMain = false,
     this.isButton,
     this.buttonCallback,
-    this.isLoading = false, // ✅ NEW: shows spinner instead of + button
+    this.isLoading = false,
+    this.showVersion = true, // version venaam na false kudunga
   });
 
   final String text;
@@ -22,10 +22,45 @@ class CustomAppbar extends StatelessWidget {
   final VoidCallback? buttonCallback;
   final bool? isMain;
   final bool? isButton;
-  final bool isLoading; // ✅ NEW
+  final bool isLoading;
+  final bool showVersion;
+
+  // + button / spinner: fixed size, vertically centered
+  Widget _actionButton() {
+    return Center(
+      child: SizedBox(
+        width: 36,
+        height: 36,
+        child: isLoading
+            ? Padding(
+          padding: const EdgeInsets.all(8),
+          child: CircularProgressIndicator(
+            strokeWidth: 2,
+            color: colorsConst.primary,
+          ),
+        )
+            : Material(
+          color: colorsConst.primary,
+          shape: const CircleBorder(),
+          elevation: 2,
+          child: InkWell(
+            customBorder: const CircleBorder(),
+            onTap: buttonCallback,
+            child: const Icon(
+              Icons.add,
+              color: Colors.white,
+              size: 22,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
+    final bool showAction = isButton == true && buttonCallback != null;
+
     return SafeArea(
       child: Material(
         elevation: 5,
@@ -44,17 +79,15 @@ class CustomAppbar extends StatelessWidget {
                 size: 14,
                 isBold: true,
               ),
-              Padding(
-                padding: const EdgeInsets.only(
-                  top: 8.0,
-                  left: 4,
+              if (showVersion)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8.0, left: 4),
+                  child: CustomText(
+                    text: "V ${localData.versionNumber}",
+                    colors: Colors.grey,
+                    size: 9,
+                  ),
                 ),
-                child: CustomText(
-                  text: "V ${localData.versionNumber}",
-                  colors: Colors.grey,
-                  size: 9,
-                ),
-              ),
             ],
           ),
           leading: isMain == false
@@ -74,27 +107,10 @@ class CustomAppbar extends StatelessWidget {
           )
               : null,
           actions: [
-            if (isButton == true)
-            // ✅ FIX: show spinner while loading, block re-tap, else show + button
-              isLoading
-                  ? Padding(
-                padding: const EdgeInsets.symmetric(vertical: 5),
-                child: AspectRatio(
-                  aspectRatio: 1, // ✅ FIX: forces perfect square, no stretch
-                  child: SizedBox(
-                    width: 6,
-                    height: 3,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 1.8,
-                      color: colorsConst.primary,
-                    ),
-                  ),
-                ),
-              )
-                  : CreateButton(
-                callback: buttonCallback!,
-              ),
-            20.width,
+            if (showAction) ...[
+              _actionButton(),
+              16.width,
+            ],
           ],
         ),
       ),

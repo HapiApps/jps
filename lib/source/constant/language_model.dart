@@ -611,6 +611,23 @@ class ConstantValues {
 
   String get taskOverview => _t("TASK OVERVIEW", "பணிகளின் கண்ணோட்டம்", "कार्य अवलोकन",);
 
+  String get myTaskOverview => _t("MY TASK OVERVIEW", "எனது பணிகளின் கண்ணோட்டம்", "मेरा कार्य अवलोकन",);
+
+// ---- task status / labels ----
+  String get taskAll => _t("All", "அனைத்தும்", "सभी",);
+
+  String get taskAssigned => _t("Assigned", "ஒதுக்கப்பட்டது", "सौंपा गया",);
+
+  String get taskStarted => _t("Started", "தொடங்கியது", "शुरू किया",);
+
+  String get taskCompleted => _t("Completed", "முடிந்தது", "पूर्ण",);
+
+  String get taskPending => _t("Pending", "நிலுவையில்", "लंबित",);
+
+  String get taskOverdue => _t("Overdue", "தாமதம்", "अतिदेय",);
+
+  String get viewDetailsText => _t("View Details", "விவரங்களைக் காண்க", "विवरण देखें",);
+
   String get taskCount => _t("Total Tasks", "மொத்த பணிகள்", "कुल कार्य",);
 
   String get assigned => _t("Assigned", "ஒதுக்கப்பட்டது", "सौंपा गया");
