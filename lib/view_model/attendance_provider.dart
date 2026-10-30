@@ -1264,7 +1264,7 @@ class AttendanceProvider with ChangeNotifier{
   String get endDate => _endDate;
   DateTime stDt = DateTime.now();
   DateTime enDt = DateTime.now().add(const Duration(days: 1));
-PickerDateRange? selectedDate;
+  PickerDateRange? selectedDate;
   List<DateTime> datesBetween = [];
   String betweenDates="";
   void sorting(context) {
@@ -1312,7 +1312,7 @@ PickerDateRange? selectedDate;
     _startDate = DateFormat('dd-MM-yyyy').format(stDt);
     _endDate = DateFormat('dd-MM-yyyy').format(stDt);
     if(localData.storage.read("role")!="1"){
-     getAttendanceReport(id,);
+      getAttendanceReport(id,);
       getAbsentAttendanceReport(id);
       Provider.of<LeaveProvider>(context, listen: false).allLeaves(_startDate,_endDate,true,localData.storage.read("role"),localData.storage.read("id"));
     }
@@ -1423,7 +1423,7 @@ PickerDateRange? selectedDate;
     _startDate = DateFormat('dd-MM-yyyy').format(stDt);
     _endDate = DateFormat('dd-MM-yyyy').format(enDt);
     if(localData.storage.read("role")!="1"){
-     // getAttendanceReport(id);
+      // getAttendanceReport(id);
     }
     notifyListeners();
   }
@@ -1436,93 +1436,93 @@ PickerDateRange? selectedDate;
       getAttendanceReport(localData.storage.read("id"));
     }
   }
-void showDatePickerDialog(BuildContext context,List<UserModel>? list) {
-  selectedDate=null;
-  datesBetween = [];
-  betweenDates="";
-  showDialog(
-    context: context,
-    builder: (BuildContext context) {
-      return AlertDialog(
-        title: CustomText(text: '   Select Date',colors: colorsConst.secondary,isBold: true,),
-        content: SizedBox(
-          height: 300, // Adjust height as needed
-          width: 300, // Adjust width as needed
-          child: SfDateRangePicker(
-            minDate: DateTime.now().subtract(const Duration(days: 365)),
-            maxDate: DateTime.now(),
-            onSelectionChanged: (DateRangePickerSelectionChangedArgs args) {
-              selectedDate = args.value;
-              _startDate="";
-              _endDate="";
-              if(selectedDate?.endDate!=null){
-                print("start end");
-                _startDate="${selectedDate?.startDate?.day.toString().padLeft(2,"0")}"
-                    "-${selectedDate?.startDate?.month.toString().padLeft(2,"0")}"
-                    "-${selectedDate?.startDate?.year.toString()}";
+  void showDatePickerDialog(BuildContext context,List<UserModel>? list) {
+    selectedDate=null;
+    datesBetween = [];
+    betweenDates="";
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: CustomText(text: '   Select Date',colors: colorsConst.secondary,isBold: true,),
+          content: SizedBox(
+            height: 300, // Adjust height as needed
+            width: 300, // Adjust width as needed
+            child: SfDateRangePicker(
+              minDate: DateTime.now().subtract(const Duration(days: 365)),
+              maxDate: DateTime.now(),
+              onSelectionChanged: (DateRangePickerSelectionChangedArgs args) {
+                selectedDate = args.value;
+                _startDate="";
+                _endDate="";
+                if(selectedDate?.endDate!=null){
+                  print("start end");
+                  _startDate="${selectedDate?.startDate?.day.toString().padLeft(2,"0")}"
+                      "-${selectedDate?.startDate?.month.toString().padLeft(2,"0")}"
+                      "-${selectedDate?.startDate?.year.toString()}";
 
-                _endDate="${selectedDate?.endDate?.day.toString().padLeft(2,"0")}"
-                    "-${selectedDate?.endDate?.month.toString().padLeft(2,"0")}"
-                    "-${selectedDate?.endDate?.year.toString()}";
-              }else{
-                print("end");
-                _startDate="${selectedDate?.startDate?.day.toString().padLeft(2,"0")}"
-                    "-${selectedDate?.startDate?.month.toString().padLeft(2,"0")}"
-                    "-${selectedDate?.startDate?.year.toString()}";
-                _endDate="${selectedDate?.startDate?.day.toString().padLeft(2,"0")}"
-                    "-${selectedDate?.startDate?.month.toString().padLeft(2,"0")}"
-                    "-${selectedDate?.startDate?.year.toString()}";
-                if(_startDate=="${DateTime.now().day.toString().padLeft(2,"0")}-${DateTime.now().month.toString().padLeft(2,"0")}-${DateTime.now().year}"){
-                  _decrease=true;
-                  _increase=false;
-                }
-              }
-            },
-            selectionMode: DateRangePickerSelectionMode.range,
-          ),
-        ),
-        actions: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              CustomText(text: 'Click and drag to select multiple dates',colors: colorsConst.primary,),
-            ],
-          ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              TextButton(
-                child: const CustomText(text:'Cancel',colors: Colors.grey,isBold: true,),
-                onPressed: () {
-                  Navigator.of(context).pop();
-                },
-              ),
-              TextButton(
-                child: CustomText(text: 'OK',colors: colorsConst.primary,isBold: true,),
-                onPressed: () {
-                  if (selectedDate != null) {
-                    datesBetween = getDatesInRange(
-                      selectedDate!.startDate!,
-                      selectedDate!.endDate ?? selectedDate!.startDate!,
-                    );
+                  _endDate="${selectedDate?.endDate?.day.toString().padLeft(2,"0")}"
+                      "-${selectedDate?.endDate?.month.toString().padLeft(2,"0")}"
+                      "-${selectedDate?.endDate?.year.toString()}";
+                }else{
+                  print("end");
+                  _startDate="${selectedDate?.startDate?.day.toString().padLeft(2,"0")}"
+                      "-${selectedDate?.startDate?.month.toString().padLeft(2,"0")}"
+                      "-${selectedDate?.startDate?.year.toString()}";
+                  _endDate="${selectedDate?.startDate?.day.toString().padLeft(2,"0")}"
+                      "-${selectedDate?.startDate?.month.toString().padLeft(2,"0")}"
+                      "-${selectedDate?.startDate?.year.toString()}";
+                  if(_startDate=="${DateTime.now().day.toString().padLeft(2,"0")}-${DateTime.now().month.toString().padLeft(2,"0")}-${DateTime.now().year}"){
+                    _decrease=true;
+                    _increase=false;
                   }
-                  DateFormat dateFormat = DateFormat('dd-MM-yyyy');
-
-                  List<String> formattedDates = datesBetween.map((date) => dateFormat.format(date)).toList();
-                  betweenDates = formattedDates.join(' || ');
-                  applyFilter(list);
-                  notifyListeners();
-                  Navigator.of(context).pop();
-                },
-              ),
-            ],
+                }
+              },
+              selectionMode: DateRangePickerSelectionMode.range,
+            ),
           ),
-        ],
-      );
-    },
-  );
-  notifyListeners();
-}
+          actions: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                CustomText(text: 'Click and drag to select multiple dates',colors: colorsConst.primary,),
+              ],
+            ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                TextButton(
+                  child: const CustomText(text:'Cancel',colors: Colors.grey,isBold: true,),
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                ),
+                TextButton(
+                  child: CustomText(text: 'OK',colors: colorsConst.primary,isBold: true,),
+                  onPressed: () {
+                    if (selectedDate != null) {
+                      datesBetween = getDatesInRange(
+                        selectedDate!.startDate!,
+                        selectedDate!.endDate ?? selectedDate!.startDate!,
+                      );
+                    }
+                    DateFormat dateFormat = DateFormat('dd-MM-yyyy');
+
+                    List<String> formattedDates = datesBetween.map((date) => dateFormat.format(date)).toList();
+                    betweenDates = formattedDates.join(' || ');
+                    applyFilter(list);
+                    notifyListeners();
+                    Navigator.of(context).pop();
+                  },
+                ),
+              ],
+            ),
+          ],
+        );
+      },
+    );
+    notifyListeners();
+  }
   List<DateTime> getDatesInRange(DateTime start, DateTime end) {
     List<DateTime> days = [];
     for (int i = 0; i <= end.difference(start).inDays; i++) {
@@ -1775,11 +1775,29 @@ void showDatePickerDialog(BuildContext context,List<UserModel>? list) {
 //   import '../source/utilities/offline_attendance_service.dart';
 // =====================================================================
 
+  // =====================================================================
+  // ✅ CHANGED BLOCK START  (offline sync / attendance fix)
+  // =====================================================================
+
   bool _syncing = false;
   bool get isSyncing => _syncing;
 
   bool _isMarking = false;
   bool _isMarkingPermission = false;
+
+  /// Last reason a sync failed (shown in the toast, useful for debugging).
+  String _lastSyncError = "";
+  String get lastSyncError => _lastSyncError;
+
+  /// A server reply counts as success only if it is non-empty AND does not
+  /// say error/failed. Adjust the list to match what your PHP returns.
+  bool _isSuccessResponse(dynamic response) {
+    if (response is! Map || response.isEmpty) return false;
+    const bad = ["error", "failed", "fail", "false", "0"];
+    final status = response["status"]?.toString().toLowerCase();
+    if (status != null && bad.contains(status)) return false;
+    return true;
+  }
 
   /// 1️⃣ Pure API call. Dialog/toast illa. Online + sync rendukkum use aagum.
   Future<bool> _sendAttendance({
@@ -1790,20 +1808,24 @@ void showDatePickerDialog(BuildContext context,List<UserModel>? list) {
     String? empId, // offline entry-oda emp id
   }) async {
     try {
-      Map<String, String> requestData = {
+      // .toString() on every value: storage can return int in production,
+      // and a Map<String,String> literal would throw a TypeError otherwise.
+      final String uid = (empId ?? localData.storage.read("id"))?.toString() ?? "";
+
+      final Map<String, String> requestData = {
         "action": empAttendance,
-        "log_file": localData.storage.read("mobile_number"),
-        "salesman_id": empId ?? localData.storage.read("id"),
+        "log_file": localData.storage.read("mobile_number")?.toString() ?? "",
+        "salesman_id": uid,
         "lat": lat,
         "lng": lng,
         "img": "",
         "status": status,
-        "cos_id": localData.storage.read("cos_id"),
+        "cos_id": localData.storage.read("cos_id")?.toString() ?? "",
       };
 
       // Offline entry na actual time + emp_id anuppu
       if (markedAt != null) {
-        requestData["emp_id"] = empId ?? localData.storage.read("id").toString();
+        requestData["emp_id"] = uid;
         requestData["is_offline"] = "1";
 
         if (status == "1") {
@@ -1816,20 +1838,22 @@ void showDatePickerDialog(BuildContext context,List<UserModel>? list) {
       dynamic response;
       try {
         response = await attRepo.addAttendance(requestData, _profile);
-      } catch (e) {
+      } catch (e, st) {
+        log("ATT ERROR: $e\n$st");
         response = {};
       }
-      log(response.toString());
-      return response.isNotEmpty;
-    } catch (e) {
-      log("sendAttendance error: $e");
+      log("ATT RES: $response");
+      return _isSuccessResponse(response);
+    } catch (e, st) {
+      log("sendAttendance error: $e\n$st");
       return false;
     }
   }
 
   /// 2️⃣ Wages + attendance JSON-a server-ku anuppu
   // item -> Map illa List<Map> rendume accept pannum
-  Future<bool> _sendOfflineWages(dynamic input) async {
+  // CHANGED: returns SyncResult (ok / retry / message) instead of bool
+  Future<SyncResult> _sendOfflineWages(dynamic input) async {
     try {
       List<Map<String, dynamic>> toList(dynamic raw) {
         if (raw is Map) {
@@ -1856,7 +1880,11 @@ void showDatePickerDialog(BuildContext context,List<UserModel>? list) {
         if (v.isEmpty) return "";
         if (v.contains("-")) return v;
         final t = v.split(":").length == 2 ? "$v:00" : v;
-        return "${markedAt.substring(0, 10)} $t";
+        // CHANGED: guard substring so a short markedAt can't throw RangeError
+        final datePart = markedAt.length >= 10
+            ? markedAt.substring(0, 10)
+            : DateTime.now().toString().substring(0, 10);
+        return "$datePart $t";
       }
 
       final String userId = localData.storage.read("id")?.toString() ?? "";
@@ -1924,7 +1952,7 @@ void showDatePickerDialog(BuildContext context,List<UserModel>? list) {
 
       if (attendanceRows.isEmpty && wagesRows.isEmpty) {
         log("sendOfflineWages: empty entry, skipping");
-        return true; // empty entry-a delete panna true
+        return const SyncResult(true, false, "empty entry"); // empty entry-a delete panna ok
       }
 
       final Map<String, dynamic> body = {
@@ -1937,12 +1965,14 @@ void showDatePickerDialog(BuildContext context,List<UserModel>? list) {
 
       log("wages request: ${jsonEncode(body)}");
 
-      final ok = await attRepo.insertOfflineWages(body);
-      log("wages sync: $ok");
-      return ok;
-    } catch (e) {
-      log("sendOfflineWages error: $e");
-      return false;
+      final r = await attRepo.insertOfflineWagesResult(body);
+      log("wages sync: $r");
+      return r;
+    } catch (e, st) {
+      // Bad local data (not a network problem) -> retry=false so it counts
+      // toward maxRejects instead of blocking the queue forever.
+      log("sendOfflineWages error: $e\n$st");
+      return SyncResult(false, false, "Local data error: $e");
     }
   }
   void _refreshAfterAttendance(BuildContext context) {
@@ -1963,6 +1993,7 @@ void showDatePickerDialog(BuildContext context,List<UserModel>? list) {
   }
 
   /// 4️⃣ Offline-la save
+  /// CHANGED: optional [message] so the caller can say WHY it was queued
   Future<void> saveOffline(
       BuildContext context,
       String kind,
@@ -1970,6 +2001,7 @@ void showDatePickerDialog(BuildContext context,List<UserModel>? list) {
       String lat,
       String lng, {
         String? reason,
+        String? message,
       }) async {
     await OfflineAttendanceService.add(
       kind: kind,
@@ -1993,7 +2025,7 @@ void showDatePickerDialog(BuildContext context,List<UserModel>? list) {
     if (context.mounted) {
       utils.showSuccessToast(
         context: context,
-        text: "No internet. Saved offline, will sync later.",
+        text: message ?? "No internet. Saved offline, will sync later.",
       );
     }
   }
@@ -2031,11 +2063,26 @@ void showDatePickerDialog(BuildContext context,List<UserModel>? list) {
         return;
       }
 
-      // Pending irundha muthala sync pannu
+      // CHANGED: Pending irundha muthala SILENT-a sync pannu (no error toast here)
       if (OfflineAttendanceService.hasPending) {
-        await syncPending(context);
+        await syncPending(context, silent: true);
       }
       if (!context.mounted) return;
+
+      // CHANGED: earlier attendance entries still stuck na, indha tap-a
+      // server-ku direct-a anuppaadha (check-out before check-in reject aagum).
+      // Queue-la pinnadi save pannu, order maaraadhu.
+      if (OfflineAttendanceService.attendancePendingCount > 0) {
+        await saveOffline(
+          context,
+          "attendance",
+          status,
+          lat,
+          lng,
+          message: "Saved. Earlier entries are still pending, will sync in order.",
+        );
+        return;
+      }
 
       showDialog(
         context: context,
@@ -2087,8 +2134,18 @@ void showDatePickerDialog(BuildContext context,List<UserModel>? list) {
     }
   }
 
-  Future<void> syncPending(BuildContext context, {bool manual = false}) async {
+  /// CHANGED: [silent] = no error toast (used when called from putDailyAttendance).
+  /// A server-rejected item no longer blocks the whole queue.
+  Future<void> syncPending(
+      BuildContext context, {
+        bool manual = false,
+        bool silent = false,
+      }) async {
     if (_syncing) return;
+
+    // Remove entries nothing can upload (e.g. kind == "permission"),
+    // otherwise they keep the pending count above zero forever.
+    await OfflineAttendanceService.purgeUnsupported();
 
     if (!OfflineAttendanceService.hasPending) {
       if (manual && context.mounted) {
@@ -2105,44 +2162,75 @@ void showDatePickerDialog(BuildContext context,List<UserModel>? list) {
     }
 
     _syncing = true;
+    _lastSyncError = "";
     notifyListeners();
 
     int synced = 0;
+    int dropped = 0;
     bool failed = false;
+    bool stop = false; // network/server down -> stop, try again later
 
     try {
-      // 1) Attendance / permission
+      // 1) Attendance entries
       for (final item in OfflineAttendanceService.getAll()) {
         final kind = item["kind"]?.toString();
-        bool ok;
+        final id = item["id"].toString();
 
+        final SyncResult r;
         if (kind == "attendance") {
-          ok = await _sendOfflineAttendance(item);
-        }  else if (kind == "wages") {
-          ok = await _sendOfflineWages(item);
+          r = await _sendOfflineAttendance(item);
+        } else if (kind == "wages") {
+          r = await _sendOfflineWages(item);
         } else {
           continue;
         }
 
-        if (ok) {
-          await OfflineAttendanceService.remove(item["id"].toString());
+        if (r.ok) {
+          await OfflineAttendanceService.remove(id);
           synced++;
-        } else {
+        } else if (r.retry) {
+          // Network / 5xx / timeout: keep item, stop, try again later.
           failed = true;
+          _lastSyncError = r.message;
+          stop = true;
           break;
+        } else {
+          // Server REJECTED this item: count it, don't block the rest.
+          failed = true;
+          _lastSyncError = r.message;
+          final n = await OfflineAttendanceService.markAttemptFailed(id,
+              wages: false, error: r.message);
+          if (n >= OfflineAttendanceService.maxRejects) {
+            log("DROP attendance item $id after $n rejects: ${r.message}");
+            await OfflineAttendanceService.remove(id);
+            dropped++;
+          }
         }
       }
 
       // 2) Wages (thani list)
-      if (!failed) {
+      if (!stop) {
         for (final item in OfflineAttendanceService.getAllWages()) {
-          final ok = await _sendOfflineWages(item);
-          if (ok) {
-            await OfflineAttendanceService.removeWage(item["id"].toString());
+          final id = item["id"].toString();
+          final r = await _sendOfflineWages(item);
+
+          if (r.ok) {
+            await OfflineAttendanceService.removeWage(id);
             synced++;
+          } else if (r.retry) {
+            failed = true;
+            _lastSyncError = r.message;
+            break;
           } else {
             failed = true;
-            break;
+            _lastSyncError = r.message;
+            final n = await OfflineAttendanceService.markAttemptFailed(id,
+                wages: true, error: r.message);
+            if (n >= OfflineAttendanceService.maxRejects) {
+              log("DROP wages item $id after $n rejects: ${r.message}");
+              await OfflineAttendanceService.removeWage(id);
+              dropped++;
+            }
           }
         }
       }
@@ -2161,11 +2249,24 @@ void showDatePickerDialog(BuildContext context,List<UserModel>? list) {
       );
       _refreshAfterAttendance(context);
     }
-    if (failed) {
-      utils.showErrorToast(context: context);
+
+    if (dropped > 0 && !silent) {
+      utils.showWarningToast(
+        context,
+        text: "$dropped entries were rejected by the server and removed.",
+      );
+    }
+
+    if (failed && !silent) {
+      if (_lastSyncError.isNotEmpty) {
+        utils.showWarningToast(context, text: "Sync failed: $_lastSyncError");
+      } else {
+        utils.showErrorToast(context: context);
+      }
     }
   }
-  Future<bool> _sendOfflineAttendance(Map<String, dynamic> item) {
+  // CHANGED: returns SyncResult
+  Future<SyncResult> _sendOfflineAttendance(Map<String, dynamic> item) {
     final status = item["status"]?.toString() ?? "1";
     final markedAt = item["markedAt"]?.toString() ?? "";
 
@@ -2212,6 +2313,10 @@ void showDatePickerDialog(BuildContext context,List<UserModel>? list) {
       }
     }
   }
+
+  // =====================================================================
+  // ✅ CHANGED BLOCK END
+  // =====================================================================
 
   // Future putWorkDone(context) async {
   //   showDialog(
@@ -2314,16 +2419,17 @@ void showDatePickerDialog(BuildContext context,List<UserModel>? list) {
       },
     );
 
+    // CHANGED: .toString() on storage values (int in production -> TypeError)
     Map<String, String> requestData = {
       "action": empPermission,
-      "log_file": localData.storage.read("mobile_number"),
-      "salesman_id": localData.storage.read("id"),
+      "log_file": localData.storage.read("mobile_number")?.toString() ?? "",
+      "salesman_id": localData.storage.read("id")?.toString() ?? "",
       "permission_reason": permissionReason.text.trim(),
       "lat": lat,
       "lng": lng,
       "img": "",
       "status": status,
-      "cos_id": localData.storage.read("cos_id"),
+      "cos_id": localData.storage.read("cos_id")?.toString() ?? "",
     };
 
     dynamic response;
@@ -2362,7 +2468,7 @@ void showDatePickerDialog(BuildContext context,List<UserModel>? list) {
       notifyListeners();
 
       /// REFRESH DATA
-     // Provider.of<HomeProvider>(context, listen: false).getMainReport(false);
+      // Provider.of<HomeProvider>(context, listen: false).getMainReport(false);
       Provider.of<HomeProvider>(context, listen: false).loadFullDashboard(context);
       getAttendanceReport(localData.storage.read("id"));
       getMainAttendance();

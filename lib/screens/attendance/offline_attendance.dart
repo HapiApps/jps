@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'dart:developer' show log;
-import 'dart:io';
 
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/foundation.dart';
@@ -10,6 +9,10 @@ import '../../source/constant/local_data.dart';
 class OfflineAttendanceService {
   static const String _key = "pending_attendance";
   static const String _wagesKey = "pending_wages";
+
+  static const Set<String> _supportedKinds = {"attendance", "wages"};
+
+  static const int maxRejects = 3;
 
   // ------------------------------------------------------------------
   // Reactive pending count
@@ -62,7 +65,7 @@ class OfflineAttendanceService {
   static List<Map<String, dynamic>> getAll() => _read(_key);
 
   static Future<void> add({
-    required String kind, // "attendance" / "permission"
+    required String kind, // "attendance"
     required String status, // "1" = in, "2" = out
     required String lat,
     required String lng,
@@ -82,6 +85,8 @@ class OfflineAttendanceService {
       "lng": lng,
       "reason": reason ?? "",
       "markedAt": now,
+      "retries": 0,
+      "lastError": "",
     });
 
     await _write(_key, list);
@@ -103,7 +108,7 @@ class OfflineAttendanceService {
     required String lat,
     required String lng,
     String status = "1", // 1 = in, 2 = out
-    bool includeAttendance = true, // wages mattum na false kudunga
+    bool includeAttendance = true,
   }) async {
     final list = getAllWages();
     final empId = localData.storage.read("id")?.toString() ?? "";
@@ -160,6 +165,8 @@ class OfflineAttendanceService {
       "wagesData": finalWages,
       "attendanceData": finalAttendance,
       "markedAt": nowStr,
+      "retries": 0,
+      "lastError": "",
     };
 
     log("addWages FULL ENTRY SAVED: ${jsonEncode(entry)}");
@@ -174,14 +181,13 @@ class OfflineAttendanceService {
   }
 
   // ------------------------------------------------------------------
-  // WAGES WORK (task + worker) helpers   <-- NEW
+  // WAGES WORK (task + worker) helpers
   // ------------------------------------------------------------------
   static Map<String, dynamic> _wagesOf(Map<String, dynamic> e) {
     final w = e["wagesData"];
     return w is Map ? Map<String, dynamic>.from(w) : {};
   }
 
-  /// Indha task + worker-ku pending status: "1" (check-in), "2" (done), "" (illa)
   static String wagesStatus(String taskId, String empId) {
     final list = getAllWages();
     for (int i = list.length - 1; i >= 0; i--) {
@@ -194,8 +200,6 @@ class OfflineAttendanceService {
     return "";
   }
 
-  /// Pending check-in entry-ah check-out-oda serthu update pannum.
-  /// Check-in entry illana false return pannum.
   static Future<bool> updateWagesCheckOut({
     required String taskId,
     required String empId,
@@ -222,6 +226,41 @@ class OfflineAttendanceService {
   }
 
   // ------------------------------------------------------------------
+  // NEW: retry tracking + cleanup (used by AttendanceProvider.syncPending)
+  // ------------------------------------------------------------------
+  static Future<int> markAttemptFailed(
+      String id, {
+        required bool wages,
+        String? error,
+      }) async {
+    final key = wages ? _wagesKey : _key;
+    final list = _read(key);
+
+    for (int i = 0; i < list.length; i++) {
+      if (list[i]["id"]?.toString() == id) {
+        final retries = (int.tryParse(list[i]["retries"]?.toString() ?? "0") ?? 0) + 1;
+        list[i]["retries"] = retries;
+        list[i]["lastError"] = error ?? "";
+        await _write(key, list);
+        return retries;
+      }
+    }
+    return 0;
+  }
+
+  static Future<int> purgeUnsupported() async {
+    final list = getAll();
+    final keep =
+    list.where((e) => _supportedKinds.contains(e["kind"]?.toString())).toList();
+    final removed = list.length - keep.length;
+    if (removed > 0) {
+      log("OFFLINE: purged $removed unsupported entries");
+      await _write(_key, keep);
+    }
+    return removed;
+  }
+
+  // ------------------------------------------------------------------
   // Common
   // ------------------------------------------------------------------
   static int get attendancePendingCount => getAll().length;
@@ -235,20 +274,15 @@ class OfflineAttendanceService {
   static Future<bool> isOnline() async {
     try {
       final result = await Connectivity().checkConnectivity();
-
       if (result.contains(ConnectivityResult.none)) return false;
-
-      if (kIsWeb) return true;
-
-      final response = await InternetAddress.lookup('google.com')
-          .timeout(const Duration(seconds: 3));
-
-      return response.isNotEmpty && response.first.rawAddress.isNotEmpty;
+      return true;
     } catch (e) {
       log("ONLINE CHECK ERROR => $e");
-      return false;
+      // If we can't tell, try the real request instead of saving offline.
+      return true;
     }
   }
+
   // ---------------- CACHE (server data local copy) ----------------
   static const String _workersCacheKey = "workers_cache";
   static String _workCacheKey(String taskId) => "work_cache_$taskId";
@@ -264,7 +298,6 @@ class OfflineAttendanceService {
   static List<Map<String, dynamic>> getWorkCache(String taskId) =>
       _read(_workCacheKey(taskId));
 
-  /// Indha task-ku sync aagaadha entries
   static List<Map<String, dynamic>> pendingWagesForTask(String taskId) {
     return getAllWages()
         .where((e) => _wagesOf(e)["task_id"]?.toString() == taskId)

@@ -635,6 +635,11 @@ Future<void> main() async {
   await LanguageManager.instance.loadSavedLanguage();
   await safeCall('GetStorage.init', () => GetStorage.init());
 
+  await safeCall('OfflineAttendance.init', () async {
+    await OfflineAttendanceService.purgeUnsupported();
+    OfflineAttendanceService.refreshCount();
+  });
+
   bool homeScreen = false;
 
   await safeCall('SharedPreferences', () async {
