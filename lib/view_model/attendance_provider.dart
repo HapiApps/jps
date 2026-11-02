@@ -1789,6 +1789,8 @@ class AttendanceProvider with ChangeNotifier{
   String _lastSyncError = "";
   String get lastSyncError => _lastSyncError;
 
+  String _lastAttError = "";
+
   /// A server reply counts as success only if it is non-empty AND does not
   /// say error/failed. Adjust the list to match what your PHP returns.
   bool _isSuccessResponse(dynamic response) {
@@ -1804,12 +1806,11 @@ class AttendanceProvider with ChangeNotifier{
     required String status,
     required String lat,
     required String lng,
-    String? markedAt, // offline-la poduna time: "2026-09-29 10:15:30"
-    String? empId, // offline entry-oda emp id
+    String? markedAt,
+    String? empId,
   }) async {
+    _lastAttError = "";
     try {
-      // .toString() on every value: storage can return int in production,
-      // and a Map<String,String> literal would throw a TypeError otherwise.
       final String uid = (empId ?? localData.storage.read("id"))?.toString() ?? "";
 
       final Map<String, String> requestData = {
@@ -1823,11 +1824,9 @@ class AttendanceProvider with ChangeNotifier{
         "cos_id": localData.storage.read("cos_id")?.toString() ?? "",
       };
 
-      // Offline entry na actual time + emp_id anuppu
       if (markedAt != null) {
         requestData["emp_id"] = uid;
         requestData["is_offline"] = "1";
-
         if (status == "1") {
           requestData["check_in"] = markedAt;
         } else {
@@ -1835,17 +1834,34 @@ class AttendanceProvider with ChangeNotifier{
         }
       }
 
+      log("ATT REQ: $requestData");
+
       dynamic response;
       try {
         response = await attRepo.addAttendance(requestData, _profile);
       } catch (e, st) {
         log("ATT ERROR: $e\n$st");
+        _lastAttError = e.toString();
         response = {};
       }
       log("ATT RES: $response");
-      return _isSuccessResponse(response);
+
+      final ok = _isSuccessResponse(response);
+      if (!ok && _lastAttError.isEmpty) {
+        if (response is Map && response.isNotEmpty) {
+          _lastAttError = (response["message"] ??
+              response["msg"] ??
+              response["error"] ??
+              response.toString())
+              .toString();
+        } else {
+          _lastAttError = "Empty response from server";
+        }
+      }
+      return ok;
     } catch (e, st) {
       log("sendAttendance error: $e\n$st");
+      _lastAttError = e.toString();
       return false;
     }
   }
@@ -2258,11 +2274,12 @@ class AttendanceProvider with ChangeNotifier{
     }
 
     if (failed && !silent) {
-      if (_lastSyncError.isNotEmpty) {
-        utils.showWarningToast(context, text: "Sync failed: $_lastSyncError");
-      } else {
-        utils.showErrorToast(context: context);
-      }
+      utils.showWarningToast(
+        context,
+        text: _lastSyncError.isNotEmpty
+            ? "Sync failed: $_lastSyncError"
+            : "Sync failed. Server did not return a reason (check logs).",
+      );
     }
   }
   // CHANGED: returns SyncResult
@@ -2285,6 +2302,7 @@ class AttendanceProvider with ChangeNotifier{
       },
     });
   }
+
 // `saveWages` maara vendaam. Adhu already:
 //   online  -> _sendOfflineWages(item) (direct API)
 //   offline -> OfflineAttendanceService.addWages(...) (ippo thani "pending_wages" list-la save aagum)

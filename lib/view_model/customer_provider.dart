@@ -160,6 +160,14 @@ class CustomerProvider with ChangeNotifier{
     final String safeAssignedId =
     (assignedId.isEmpty || assignedId == "null") ? "" : assignedId;
 
+    /// ✅ Providers-ah mudhalayae eduthuduvom (context valid-ah irukkum bodhu).
+    /// Later API response vara time-la screen close aagiruntha kooda
+    /// notification anuppa mudiyum.
+    final TaskProvider taskProvider =
+    Provider.of<TaskProvider>(context, listen: false);
+    final EmployeeProvider empProvider =
+    Provider.of<EmployeeProvider>(context, listen: false);
+
     /// 1. INSTANT UI (Optimistic)
     final tempMessage = CustomerReportModel(
       comments: commentText,
@@ -175,7 +183,6 @@ class CustomerProvider with ChangeNotifier{
     print("index $index");
 
     if (index != -1) {
-      final taskProvider = Provider.of<TaskProvider>(context, listen: false);
       taskProvider.updateTaskComment(index, commentText);
       notifyListeners();
     }
@@ -216,11 +223,12 @@ class CustomerProvider with ChangeNotifier{
           notifyListeners();
 
           /// scroll bottom
-          Provider.of<TaskProvider>(context, listen: false).scrollToBottom();
+          taskProvider.scrollToBottom();
 
           /// notifications
           Future.delayed(const Duration(milliseconds: 300), () async {
-            if (!context.mounted) return;
+            // ❌ REMOVED: if (!context.mounted) return;
+            //    (admin udane chat-ah vittu poitha notification skip aagum)
 
             final String role = localData.storage.read("role").toString();
             final String myName = localData.storage.read("f_name").toString();
@@ -229,32 +237,45 @@ class CustomerProvider with ChangeNotifier{
                 ? commentText
                 : (path.isNotEmpty ? "Sent an audio message" : "");
 
+            /// ✅ Assigned employee ids-ah task-la irundhe edukkurom
+            /// (screen-la irundhu vara assignedId empty/wrong-ah irukkalam)
+            String taskAssignedIds = "";
+            try {
+              final t = taskProvider.searchAllTasks
+                  .firstWhere((e) => e.id.toString() == taskId);
+              taskAssignedIds = t.assigned.toString();
+            } catch (_) {}
+
+            if (taskAssignedIds.isEmpty || taskAssignedIds == "null") {
+              taskAssignedIds = safeAssignedId;
+            }
+
             debugPrint("NOTIF role=$role "
                 "myId=${localData.storage.read("id")} "
-                "assignedId='$assignedId' safeAssignedId='$safeAssignedId' taskId='$taskId'");
+                "assignedId='$assignedId' safeAssignedId='$safeAssignedId' "
+                "resolved='$taskAssignedIds' taskId='$taskId'");
 
             try {
-              final empProvider =
-              Provider.of<EmployeeProvider>(context, listen: false);
-
               if (role == "1") {
                 /// ADMIN comment panna
 
                 // 1) Assigned employee(s)-ku
-                if (safeAssignedId.isNotEmpty) {
-                  empProvider.sendSomeUserNotification(
+                if (taskAssignedIds.isNotEmpty) {
+                  await empProvider.sendSomeUserNotification(
                     "$myName added a task feedback",
                     msg,
-                    safeAssignedId,
+                    taskAssignedIds,
                     taskId,
                     "",
                   );
+                } else {
+                  debugPrint("⚠️ No assigned ids found for taskId=$taskId");
                 }
 
                 // 2) Mattra admin(s)-ku
                 final String adminIds = await empProvider.getAdminIds();
                 if (adminIds.isNotEmpty) {
-                  empProvider.sendSomeUserNotification(
+                  await empProvider.sendSomeUserNotification(
                     "$myName added a task feedback",
                     msg,
                     adminIds, // self id automatic-ah remove aagum
@@ -267,7 +288,7 @@ class CustomerProvider with ChangeNotifier{
                 final String adminIds = await empProvider.getAdminIds();
 
                 if (adminIds.isNotEmpty) {
-                  empProvider.sendSomeUserNotification(
+                  await empProvider.sendSomeUserNotification(
                     "$myName replied to task feedback",
                     msg,
                     adminIds,
@@ -276,7 +297,7 @@ class CustomerProvider with ChangeNotifier{
                   );
                 } else {
                   debugPrint("No admin ids found, fallback to sendAdminNotification");
-                  empProvider.sendAdminNotification(
+                  await empProvider.sendAdminNotification(
                     "$myName replied to task feedback",
                     msg,
                     "1",

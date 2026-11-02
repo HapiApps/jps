@@ -1509,7 +1509,7 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>
               overflow: TextOverflow.ellipsis,
               size: 13, // was 12
               colors: ColorsConst.greyText,
-              isBold: false, // was true
+              isBold: true, // was true
             ),
           ),
         ],
@@ -1615,7 +1615,19 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>
               if (type.isNotEmpty || company.isNotEmpty)
                 Row(
                   children: [
-                    if (type.isNotEmpty) _metaItem(Icons.sell_outlined, type),
+                    if (type.isNotEmpty)
+                      _metaItem(
+                        Icons.sell_outlined, // fallback icon
+                        type,
+                        customIcon: SvgPicture.asset(
+                          'assets/images/task/task_type_icon.svg',
+                          width: 15,
+                          height: 15,
+                          fit: BoxFit.contain,
+                          placeholderBuilder: (context) =>
+                          const Icon(Icons.sell_outlined, size: 15),
+                        ),
+                      ),
                     if (type.isNotEmpty && company.isNotEmpty) const SizedBox(width: 10),
                     if (company.isNotEmpty)
                       _metaItem(
@@ -1795,6 +1807,8 @@ class _OverviewSwitcherState extends State<_OverviewSwitcher> {
           completed: o.completed,
           pending: o.pending,
           overdue: o.overdue,
+          // My Task -> blue theme color, normal Task -> null (white gradient)
+          themeColor: _mine ? Theme.of(context).primaryColor : null, // or AppColors.primary
         );
 
         if (!widget.isAdmin) return card;
@@ -1860,6 +1874,10 @@ class TaskOverviewCard extends StatelessWidget {
   final Color pendingColor;
   final Color overdueColor;
 
+  /// Optional override for the mild background tint.
+  /// null -> uses Theme.of(context).primaryColor
+  final Color? themeColor;
+
   const TaskOverviewCard({
     super.key,
     required this.completed,
@@ -1868,6 +1886,7 @@ class TaskOverviewCard extends StatelessWidget {
     this.total,
     required this.title,
     required this.totalLabel,
+    this.themeColor,
     this.completedColor = const Color(0xff009B48),
     this.pendingColor = const Color(0xff0B5FB5),
     this.overdueColor = const Color(0xffEE3A43),
@@ -1875,19 +1894,53 @@ class TaskOverviewCard extends StatelessWidget {
 
   static const Color _titleGrey = Color(0xff5B6070);
   static const Color _dark = Color(0xff14151F);
-  static const Color _tileBg = Color(0xffF6F7F9);
+  static const Color _defaultTileBg = Color(0xffF6F7F9);
 
   @override
   Widget build(BuildContext context) {
     final totalCount = total ?? (completed + pending + overdue);
     final percent = totalCount == 0 ? 0 : (completed / totalCount * 100).round();
 
-    return Container(
+    // Resolve tint color: explicit themeColor -> app primary color -> none
+    final Color? tint = themeColor;
+
+    // Card background gradient
+    final Gradient cardGradient = tint == null
+        ? const LinearGradient(
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+      colors: [Color(0xffFFFFFF), Color(0xffEEF0F4)], // white -> mild grey
+    )
+        : LinearGradient(
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+      colors: [
+        Color.alphaBlend(tint.withAlpha(10), Colors.white),
+        Color.alphaBlend(tint.withAlpha(40), Colors.white),
+      ],
+    );
+
+    final Color tileBg = tint == null
+        ? const Color(0xffFFFFFF).withAlpha(200)
+        : Colors.white.withAlpha(170);
+
+    final Color borderColor =
+    tint == null ? const Color(0xffE3E6EC) : tint.withAlpha(60);
+
+    // Mild tinted colors derived from theme color
+    final Color cardBg = tint == null
+        ? Colors.white
+        : Color.alphaBlend(tint.withAlpha(22), Colors.white); // ~9%
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeOut,
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        gradient: cardGradient,
         borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: borderColor, width: 1),
         boxShadow: const [
           BoxShadow(
             color: Colors.black12,
@@ -1911,11 +1964,11 @@ class TaskOverviewCard extends StatelessWidget {
                     children: [
                       Text(
                         title.toUpperCase(),
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
                           letterSpacing: 0.2,
-                          color: _titleGrey,
+                          color: tint ?? _titleGrey,
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -1954,7 +2007,7 @@ class TaskOverviewCard extends StatelessWidget {
 
                 /// RIGHT: donut with % in center
                 SizedBox(
-                  width: 60, // was 84
+                  width: 60,
                   height: 60,
                   child: TweenAnimationBuilder<double>(
                     tween: Tween(begin: 0, end: 1),
@@ -1993,11 +2046,11 @@ class TaskOverviewCard extends StatelessWidget {
           /// TILES
           Row(
             children: [
-              Expanded(child: _tile(constValue.taskCompleted.toUpperCase(), completed, completedColor)),
+              Expanded(child: _tile(constValue.taskCompleted.toUpperCase(), completed, completedColor, tileBg)),
               const SizedBox(width: 10),
-              Expanded(child: _tile(constValue.taskPending.toUpperCase(), pending, pendingColor)),
+              Expanded(child: _tile(constValue.taskPending.toUpperCase(), pending, pendingColor, tileBg)),
               const SizedBox(width: 10),
-              Expanded(child: _tile(constValue.taskOverdue.toUpperCase(), overdue, overdueColor)),
+              Expanded(child: _tile(constValue.taskOverdue.toUpperCase(), overdue, overdueColor, tileBg)),
             ],
           ),
         ],
@@ -2005,11 +2058,11 @@ class TaskOverviewCard extends StatelessWidget {
     );
   }
 
-  Widget _tile(String label, int value, Color color) {
+  Widget _tile(String label, int value, Color color, Color bg) {
     return Container(
       padding: const EdgeInsets.fromLTRB(10, 8, 8, 8),
       decoration: BoxDecoration(
-        color: _tileBg,
+        color: bg,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(

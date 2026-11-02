@@ -16,11 +16,15 @@ import '../../view_model/home_provider.dart';
 import 'package:excel/excel.dart' as excel_pkg;
 
 class DailyReportStatusPage extends StatefulWidget {
-final int initialTab;
+  final int initialTab;
+  final DateTime? initialStart;
+  final DateTime? initialEnd;
 
 const DailyReportStatusPage({
-super.key,
-this.initialTab = 0,
+  super.key,
+  this.initialTab = 0,
+  this.initialStart,
+  this.initialEnd,
 });
 
 @override
@@ -45,6 +49,9 @@ localData.storage.read("f_name")?.toString().trim() ?? "";
 @override
 void initState() {
 super.initState();
+
+startDate = widget.initialStart ?? DateTime.now();
+endDate = widget.initialEnd ?? DateTime.now();
 
 tabController = TabController(
 length: 2,

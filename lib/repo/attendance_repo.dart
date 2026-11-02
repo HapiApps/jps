@@ -121,20 +121,30 @@ class AttendanceRepository {
 
       log('ATT URL ....$phpFile');
       log('ATT FIELDS ....${request.fields}');
-      log('ATT FILES ....${request.files.length}');
       log('ATT STATUS ....${result.statusCode}');
       log('ATT RESULT ....${result.body}');
 
       if (result.statusCode != 200) {
-        return <String, dynamic>{};
+        return {"status": "error", "message": "HTTP ${result.statusCode}"};
       }
 
       final decoded = _safeDecode(result.body);
+
       if (decoded is Map) return Map<String, dynamic>.from(decoded);
-      return <String, dynamic>{};
+
+      // PHP sometimes returns a list like [ {...} ]
+      if (decoded is List && decoded.isNotEmpty) {
+        final first = decoded.first;
+        if (first is Map) return Map<String, dynamic>.from(first);
+        return {"data": decoded};
+      }
+
+      return {"status": "error", "message": "Empty response from server"};
+    } on TimeoutException {
+      throw Exception("Timeout. Server did not respond.");
     } catch (e, st) {
       log('ATT ERROR ....$e\n$st');
-      throw Exception('Failed to work flow');
+      throw Exception("Attendance request error: $e");
     }
   }
 

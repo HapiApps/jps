@@ -288,6 +288,23 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   int _mrInt(HomeProvider h, String key) => int.tryParse(_mr(h, key)) ?? 0;
 
   // ---------------------------------------------------------------------------
+  // Daily Work Plan status page open pannitu, back vandha udane dashboard reload
+  // ---------------------------------------------------------------------------
+  Future<void> _openWorkPlanStatus(
+      BuildContext context, HomeProvider homeProvider, int tab) async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => DailyReportStatusPage(initialTab: tab),
+      ),
+    );
+
+    // Back vandha apram reload
+    if (!mounted) return;
+    await homeProvider.loadFullDashboard(context);
+  }
+
+  // ---------------------------------------------------------------------------
   // BUILD
   //
   // Consumer2: HomeProvider + AttendanceProvider mattum. Customer / Employee /
@@ -860,29 +877,13 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
           /// SUBMITTED / NOT SUBMITTED (role 1)
           if (localData.storage.read("role") == "1")
             GestureDetector(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => DailyReportStatusPage(
-                      initialTab: 0, // Submitted
-                    ),
-                  ),
-                );
-              },
+              onTap: () => _openWorkPlanStatus(context, homeProvider, 0), // Submitted
               child: Row(
                 children: [
                   /// SUBMITTED
                   Expanded(
                     child: GestureDetector(
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => DailyReportStatusPage(initialTab: 0),
-                          ),
-                        );
-                      },
+                      onTap: () => _openWorkPlanStatus(context, homeProvider, 0),
                       child: Container(
                         height: 42,
                         padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -906,14 +907,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                   /// NOT SUBMITTED
                   Expanded(
                     child: GestureDetector(
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => DailyReportStatusPage(initialTab: 1),
-                          ),
-                        );
-                      },
+                      onTap: () => _openWorkPlanStatus(context, homeProvider, 1),
                       child: Container(
                         height: 42,
                         padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -1011,14 +1005,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                 flex: 4,
                 child: InkWell(
                   borderRadius: BorderRadius.circular(10),
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => DailyReportStatusPage(initialTab: 0),
-                      ),
-                    );
-                  },
+                  onTap: () => _openWorkPlanStatus(context, homeProvider, 0),
                   child: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(

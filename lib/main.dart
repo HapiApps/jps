@@ -69,6 +69,26 @@ const InitializationSettings initializationSettings = InitializationSettings(
   iOS: initializationSettingsIOS,
 );
 
+/// ==========================================================
+/// PENDING NOTIFICATION (killed-state / not-yet-ready navigator)
+/// ==========================================================
+Map<String, dynamic>? pendingNotificationData;
+
+/// Merges FCM `notification` block into data so title/body are never empty.
+Map<String, dynamic> normalizeMessage(RemoteMessage m) {
+  final d = Map<String, dynamic>.from(m.data);
+  if ((d['title'] ?? '').toString().isEmpty) d['title'] = m.notification?.title ?? '';
+  if ((d['body'] ?? '').toString().isEmpty) d['body'] = m.notification?.body ?? '';
+  return d;
+}
+
+/// Called after the user reaches the Dashboard (so splash can't overwrite it).
+void consumePendingNotification() {
+  final data = pendingNotificationData;
+  pendingNotificationData = null;
+  if (data != null) handleNotificationNavigation(data);
+}
+
 Future<T?> safeCall<T>(
     String tag,
     Future<T> Function() action, {
@@ -344,64 +364,65 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   }
 }
 
+/// ==========================================================
+/// SINGLE NOTIFICATION ROUTER
+/// (used by: local notification tap, background tap, killed-state launch)
+/// ==========================================================
 void handleNotificationNavigation(Map<String, dynamic> data) {
   try {
-    final String page = (data['title'] ?? '').toString().toLowerCase();
-    final String role = localData.storage.read("role") ?? "";
-    log("PAGE VALUE: $page");
-
     final NavigatorState? nav = navigatorKey.currentState;
 
     if (nav == null) {
-      log("⚠️ NAVIGATOR NULL");
+      log("⚠️ NAVIGATOR NULL → saved as pending");
+      pendingNotificationData = data; // try again later
       return;
     }
 
-    if (page.contains("expenses added to task")) {
-      nav.push(MaterialPageRoute(
-        builder: (_) => DashBoard(
-          child: ViewExpense(tab: false, date1: today(), date2: today(), type: "Today"),
-        ),
+    final String title = (data['title'] ?? '').toString().toLowerCase();
+    final String body = (data['body'] ?? '').toString().toLowerCase();
+    final String type = (data['type'] ?? '').toString().toLowerCase(); // if backend adds it
+    final String role = (localData.storage.read("role") ?? "").toString();
+    final String taskDate = (data['task_date'] ?? today()).toString();
+
+    log("PAGE VALUE: title=$title body=$body type=$type");
+
+    void open(Widget page) =>
+        nav.push(MaterialPageRoute(builder: (_) => DashBoard(child: page)));
+
+    bool has(String s) => type == s || title.contains(s) || body.contains(s);
+
+    if (has("expenses added to task")) {
+      open(ViewExpense(tab: false, date1: today(), date2: today(), type: "Today"));
+    } else if (has("feedback")) {
+      open(TaskChat(
+        isVisit: false,
+        taskId: (data['task_id'] ?? data['purpose_id'] ?? '').toString(),
+        assignedId: "",
+        assignedName: "",
+        name: (data['name'] ?? '').toString(),
+        date1: taskDate,
+        date2: taskDate,
+        type: '',
+        index: -1,
       ));
-      return;
-    }
-
-    if (page.contains("task")) {
-      nav.push(MaterialPageRoute(
-        builder: (_) => DashBoard(
-          child: ViewTaskPage(date1: today(), date2: today(), type: "Today"),
-        ),
+    } else if (has("visit report")) {
+      open(VisitReport(
+        date1: today(),
+        date2: today(),
+        month: DateFormat("MMM yyyy").format(DateTime.now()),
+        type: "Today",
       ));
-      return;
+    } else if (has("daily work plan")) {
+      open(DailyReportStatusPage());
+    } else if (has("leave") || body.contains("requested")) {
+      open(role == "1"
+          ? LeaveManagementDashboard()
+          : ViewMyLeaves(date1: today(), date2: today(), isDirect: true));
+    } else if (has("task")) {
+      open(ViewTaskPage(date1: taskDate, date2: taskDate, type: "Today"));
+    } else {
+      log("⚠️ NO MATCH: title=$title body=$body type=$type");
     }
-
-    if (page.contains("leave")) {
-      nav.push(MaterialPageRoute(
-        builder: (_) => DashBoard(
-          child: role == "1"
-              ? LeaveManagementDashboard()
-              : ViewMyLeaves(date1: today(), date2: today(), isDirect: true),
-        ),
-      ));
-      return;
-    }
-
-    if (page.contains("visit report added") ||
-        page.contains("comments added to visit report")) {
-      nav.push(MaterialPageRoute(
-        builder: (_) => DashBoard(
-          child: VisitReport(
-            date1: today(),
-            date2: today(),
-            month: DateFormat("MMM yyyy").format(DateTime.now()),
-            type: "Today",
-          ),
-        ),
-      ));
-      return;
-    }
-
-    log("⚠️ NO MATCH FOUND FOR PAGE: $page");
   } catch (e, st) {
     log("⚠️ handleNotificationNavigation failed: $e");
     log("⚠️ STACK: $st");
@@ -537,13 +558,15 @@ void setupForegroundFirebaseMessageListener() {
           iOS: iosDetails,
         );
 
+        // payload now uses normalizeMessage so title/body are always present
+        // (works even when backend sends a `notification` block)
         if (title.contains("A new task has been assigned")) {
           await flutterLocalNotificationsPlugin.show(
             message.hashCode,
             messageText,
             "Created by $name .Task",
             platformDetails,
-            payload: jsonEncode(message.data),
+            payload: jsonEncode(normalizeMessage(message)),
           );
         } else {
           await flutterLocalNotificationsPlugin.show(
@@ -551,7 +574,7 @@ void setupForegroundFirebaseMessageListener() {
             messageText,
             title,
             platformDetails,
-            payload: jsonEncode(message.data),
+            payload: jsonEncode(normalizeMessage(message)),
           );
         }
       });
@@ -562,63 +585,11 @@ void setupForegroundFirebaseMessageListener() {
   });
 }
 
+/// Background tap (app in background, user taps FCM notification)
 void setupNotificationOpenedListener() {
   FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
     try {
-      final String taskDate = message.data['task_date'] ??
-          DateFormat('dd-MM-yyyy').format(DateTime.now());
-
-      final String title =
-      (message.notification?.title ?? message.data['title'] ?? '').toString().toLowerCase();
-      final String body =
-      (message.notification?.body ?? message.data['body'] ?? '').toString().toLowerCase();
-
-      final NavigatorState? nav = navigatorKey.currentState;
-
-      if (nav == null) {
-        log("⚠️ Navigator not ready");
-        return;
-      }
-
-      if (title.contains("task")) {
-        nav.push(MaterialPageRoute(
-          builder: (_) => ViewTaskPage(
-            date1: taskDate,
-            date2: taskDate,
-            type: taskDate.isEmpty ? "today" : "",
-          ),
-        ));
-      }
-
-      if (body.contains("daily work plan")) {
-        nav.push(MaterialPageRoute(builder: (_) => DailyReportStatusPage()));
-      }
-
-      if (body.contains("requested")) {
-        nav.push(MaterialPageRoute(builder: (_) => ViewMyLeaves()));
-      }
-
-      if (title.contains("visit report")) {
-        nav.push(MaterialPageRoute(
-          builder: (_) => VisitReport(date1: today(), date2: today(), month: "", type: "Today"),
-        ));
-      }
-
-      if (title.contains("feedback")) {
-        nav.push(MaterialPageRoute(
-          builder: (_) => TaskChat(
-            isVisit: false,
-            taskId: '',
-            assignedId: "",
-            assignedName: "",
-            name: '',
-            date1: '',
-            date2: '',
-            type: '',
-            index: -1,
-          ),
-        ));
-      }
+      handleNotificationNavigation(normalizeMessage(message));
     } catch (e, st) {
       log("⚠️ onMessageOpenedApp failed: $e");
       log("⚠️ STACK: $st");
@@ -712,11 +683,17 @@ Future<void> main() async {
     //   log("⚠️ FCM token was not available");
     // }
 
-    unawaited(setupFirebaseMessaging().then((t) {
-      log(t != null
-          ? "🔥 FINAL FCM TOKEN: $t"
-          : "⚠️ FCM token was not available");
-    }));
+    // ❌ Duplicate call removed (it requested permission + registered
+    //    onTokenRefresh listener a second time). Kept here as comment:
+    // unawaited(setupFirebaseMessaging().then((t) {
+    //   log(t != null
+    //       ? "🔥 FINAL FCM TOKEN: $t"
+    //       : "⚠️ FCM token was not available");
+    // }));
+
+    log(fcmToken != null
+        ? "🔥 FINAL FCM TOKEN: $fcmToken"
+        : "⚠️ FCM token was not available");
 
     setupForegroundFirebaseMessageListener();
     setupNotificationOpenedListener();
@@ -738,10 +715,26 @@ Future<void> main() async {
     );
 
     if (initialMessage != null) {
-      log("🚀 App launched from notification");
+      log("🚀 App launched from FCM notification");
+      pendingNotificationData = normalizeMessage(initialMessage!);
+    } else {
+      // Killed app + user tapped a LOCAL notification (shown by background handler)
+      await safeCall('getNotificationAppLaunchDetails', () async {
+        final launch =
+        await flutterLocalNotificationsPlugin.getNotificationAppLaunchDetails();
+        final payload = launch?.notificationResponse?.payload;
 
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        handleNotificationNavigation(initialMessage!.data);
+        if (launch?.didNotificationLaunchApp == true &&
+            payload != null &&
+            payload.isNotEmpty) {
+          log("🚀 App launched from local notification");
+          try {
+            pendingNotificationData =
+            Map<String, dynamic>.from(jsonDecode(payload));
+          } catch (e) {
+            log("⚠️ Launch payload decode failed: $e");
+          }
+        }
       });
     }
   }
@@ -977,6 +970,8 @@ class _SplashScreenState extends State<SplashScreen> {
       if (storedVersion != currentVersion) {
         log("➡️ Version mismatch → Login");
 
+        pendingNotificationData = null; // user must log in again
+
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(
             builder: (_) => const LoginPage(),
@@ -997,10 +992,17 @@ class _SplashScreenState extends State<SplashScreen> {
           ),
         );
 
+        // Open the notification page ON TOP of the dashboard
+        // (after the splash replacement is finished, so it can't be overwritten)
+        WidgetsBinding.instance
+            .addPostFrameCallback((_) => consumePendingNotification());
+
         return;
       }
 
       log("➡️ Default → Login");
+
+      pendingNotificationData = null; // not logged in
 
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
@@ -1019,6 +1021,8 @@ class _SplashScreenState extends State<SplashScreen> {
     if (!mounted || _navigated) return;
 
     _navigated = true;
+
+    pendingNotificationData = null;
 
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(

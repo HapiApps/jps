@@ -56,92 +56,92 @@ import 'package:http/http.dart' as http;
 
 import 'location_provider.dart';
 class HomeProvider with ChangeNotifier{
-final HomeRepository homeRepo = HomeRepository();
-void _log(Object? message) {
-  if (!kDebugMode) return;
-  final s = message.toString();
-  debugPrint(s.length > 400 ? '${s.substring(0, 400)}… (${s.length} chars)' : s);
-}
-final sidebarController = SidebarXController(selectedIndex: 0, extended: true);
+  final HomeRepository homeRepo = HomeRepository();
+  void _log(Object? message) {
+    if (!kDebugMode) return;
+    final s = message.toString();
+    debugPrint(s.length > 400 ? '${s.substring(0, 400)}… (${s.length} chars)' : s);
+  }
+  final sidebarController = SidebarXController(selectedIndex: 0, extended: true);
 
-Future<void> deleteCacheDir() async {
-  final cacheDir = await getTemporaryDirectory();
+  Future<void> deleteCacheDir() async {
+    final cacheDir = await getTemporaryDirectory();
 
-  if (cacheDir.existsSync()) {
-    // Delete all files and directories in the cache directory
-    for (final entity in cacheDir.listSync()) {
-      // Exclude deletion of database and image files
-      if (entity is File && !entity.path.endsWith('.db') && !entity.path.endsWith('.jpg')) {
-        entity.deleteSync();
-      } else if (entity is Directory) {
-        entity.deleteSync(recursive: true);
+    if (cacheDir.existsSync()) {
+      // Delete all files and directories in the cache directory
+      for (final entity in cacheDir.listSync()) {
+        // Exclude deletion of database and image files
+        if (entity is File && !entity.path.endsWith('.db') && !entity.path.endsWith('.jpg')) {
+          entity.deleteSync();
+        } else if (entity is Directory) {
+          entity.deleteSync(recursive: true);
+        }
       }
-    }
 
-    if (cacheDir.listSync().isEmpty) {
-      // log('Cache directory cleared successfully.');
+      if (cacheDir.listSync().isEmpty) {
+        // log('Cache directory cleared successfully.');
+      } else {
+        // log('Failed to clear cache directory completely.');
+      }
     } else {
-      // log('Failed to clear cache directory completely.');
+      // log('Cache directory does not exist.');
     }
-  } else {
-    // log('Cache directory does not exist.');
   }
-}
-Future<void> deleteAppDir() async {
-  final appDir = await getApplicationSupportDirectory();
+  Future<void> deleteAppDir() async {
+    final appDir = await getApplicationSupportDirectory();
 
-  if(appDir.existsSync()){
-    appDir.deleteSync(recursive: true);
-    if (!appDir.existsSync()) {
-      // log('App directory cleared successfully.');
+    if(appDir.existsSync()){
+      appDir.deleteSync(recursive: true);
+      if (!appDir.existsSync()) {
+        // log('App directory cleared successfully.');
+      } else {
+        // log('Failed to clear app directory.');
+      }
     } else {
-      // log('Failed to clear app directory.');
+      // log('App directory does not exist.');
     }
-  } else {
-    // log('App directory does not exist.');
   }
-}
-bool _isOpen = false;
-bool get isOpen  => _isOpen;
+  bool _isOpen = false;
+  bool get isOpen  => _isOpen;
 
-void changeButton(){
-  _isOpen=!_isOpen;
-  notifyListeners();
-}void panelClose(){
-  _isOpen=false;
-  notifyListeners();
-}
+  void changeButton(){
+    _isOpen=!_isOpen;
+    notifyListeners();
+  }void panelClose(){
+    _isOpen=false;
+    notifyListeners();
+  }
 
-void updateIndex(int index){
-  _selectedIndex=index;
-  notifyListeners();
-}
-int _empType=0;
-int get empType =>_empType;
-int _cusType=0;
-int get cusType =>_cusType;
-int _mainType=0;
-int get mainType =>_mainType;
-int _expType=0;
-int get expType =>_expType;
-int _taskType=0;
-int get taskype =>_taskType;
-int _noAttendanceCount = 0;
-int get noAttendanceCount => _noAttendanceCount;
-final List<Widget> _mainContents = [
-  const HomePage(),
-  const ViewEmployees(),
-  const ViewCustomer(),
-  const TrackingLive(),
-  // const AttendanceReport(),
-  const ReportDashboard(),
-  const Center(child: CustomText(text: "Notifications")),
-  const Setting(),
-  const Center(child: CustomText(text: "Help")),
-  const ExpensePage(),
-  // ViewTaskPage(date1: _startDate, date2: _endDate),
-];
-List<Widget> get mainContents =>_mainContents;
+  void updateIndex(int index){
+    _selectedIndex=index;
+    notifyListeners();
+  }
+  int _empType=0;
+  int get empType =>_empType;
+  int _cusType=0;
+  int get cusType =>_cusType;
+  int _mainType=0;
+  int get mainType =>_mainType;
+  int _expType=0;
+  int get expType =>_expType;
+  int _taskType=0;
+  int get taskype =>_taskType;
+  int _noAttendanceCount = 0;
+  int get noAttendanceCount => _noAttendanceCount;
+  final List<Widget> _mainContents = [
+    const HomePage(),
+    const ViewEmployees(),
+    const ViewCustomer(),
+    const TrackingLive(),
+    // const AttendanceReport(),
+    const ReportDashboard(),
+    const Center(child: CustomText(text: "Notifications")),
+    const Setting(),
+    const Center(child: CustomText(text: "Help")),
+    const ExpensePage(),
+    // ViewTaskPage(date1: _startDate, date2: _endDate),
+  ];
+  List<Widget> get mainContents =>_mainContents;
 // void showType(int type){
 //   _empType=type;
 //   notifyListeners();
@@ -219,11 +219,11 @@ List<Widget> get mainContents =>_mainContents;
 //  NewEmpReport(id: id!, name: name!,);
 // }
 
-int _selectedIndex=0;
-int get selectedIndex =>_selectedIndex;
+  int _selectedIndex=0;
+  int get selectedIndex =>_selectedIndex;
 
-int  platformId = 0;
-void checkPlatform()  {
+  int  platformId = 0;
+  void checkPlatform()  {
     if (kIsWeb) {
       log('Running on the web');
       platformId=3;
@@ -249,18 +249,18 @@ void checkPlatform()  {
     localData.storage.write("platform", platformId);
   }
 
-String _usingVersion = "0";
-String _currentVersion = "";
-String _currentAPK = "";
-String get usingVersion =>_usingVersion;
-String get currentVersion =>_currentVersion;
-String get currentAPK =>_currentAPK;
-void updateLater(){
-  _versionActive = true;
-  _updateAvailable = false;
-  notifyListeners();
-}
-checkForUpdates(bool login,context) async {
+  String _usingVersion = "0";
+  String _currentVersion = "";
+  String _currentAPK = "";
+  String get usingVersion =>_usingVersion;
+  String get currentVersion =>_currentVersion;
+  String get currentAPK =>_currentAPK;
+  void updateLater(){
+    _versionActive = true;
+    _updateAvailable = false;
+    notifyListeners();
+  }
+  checkForUpdates(bool login,context) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     _usingVersion= prefs.getString('appVersion') ?? "0";
     if (_usingVersion != localData.versionNumber) {
@@ -271,49 +271,49 @@ checkForUpdates(bool login,context) async {
     log(prefs.getString('appVersion').toString());
     log(prefs.getBool('loginscreen').toString());
   }
-/// Login
-bool _isEyeOpen = true;
-bool _isEyeOpen2 = true;
-bool _rememberMe = false;
-bool _versionCheck = false;
-bool _versionActive = false;
-bool _updateAvailable = false;
-bool get isEyeOpen =>_isEyeOpen;
-bool get isEyeOpen2 =>_isEyeOpen2;
-bool get rememberMe =>_rememberMe;
-bool get versionCheck =>_versionCheck;
-bool get versionActive =>_versionActive;
-bool get updateAvailable =>_updateAvailable;
-void manageEye(){
-  _isEyeOpen=!_isEyeOpen;
-  notifyListeners();
-}
-void manageEye2(){
-  _isEyeOpen2=!_isEyeOpen2;
-  notifyListeners();
-}
-Future<void> remember(bool isClick) async {
-  if(isClick==true){
-    _rememberMe=!_rememberMe;
+  /// Login
+  bool _isEyeOpen = true;
+  bool _isEyeOpen2 = true;
+  bool _rememberMe = false;
+  bool _versionCheck = false;
+  bool _versionActive = false;
+  bool _updateAvailable = false;
+  bool get isEyeOpen =>_isEyeOpen;
+  bool get isEyeOpen2 =>_isEyeOpen2;
+  bool get rememberMe =>_rememberMe;
+  bool get versionCheck =>_versionCheck;
+  bool get versionActive =>_versionActive;
+  bool get updateAvailable =>_updateAvailable;
+  void manageEye(){
+    _isEyeOpen=!_isEyeOpen;
+    notifyListeners();
   }
-  if(_rememberMe==true){
-    final prefs =await SharedPreferences.getInstance();
-    prefs.setString("mobileNumber", loginNumber.text);
-    prefs.setString("password", loginPassword.text);
-  }else{
-    final prefs =await SharedPreferences.getInstance();
-    prefs.setString("password", "");
-    prefs.setString("mobileNumber", "");
+  void manageEye2(){
+    _isEyeOpen2=!_isEyeOpen2;
+    notifyListeners();
   }
-  notifyListeners();
-}
-TextEditingController loginNumber = TextEditingController();
-TextEditingController loginPassword = TextEditingController();
-TextEditingController forgotPassword1 = TextEditingController();
-TextEditingController forgotPassword2 = TextEditingController();
-final RoundedLoadingButtonController loginCtr =RoundedLoadingButtonController();
-final RoundedLoadingButtonController forgotCtr =RoundedLoadingButtonController();
-final RoundedLoadingButtonController checkCtr =RoundedLoadingButtonController();
+  Future<void> remember(bool isClick) async {
+    if(isClick==true){
+      _rememberMe=!_rememberMe;
+    }
+    if(_rememberMe==true){
+      final prefs =await SharedPreferences.getInstance();
+      prefs.setString("mobileNumber", loginNumber.text);
+      prefs.setString("password", loginPassword.text);
+    }else{
+      final prefs =await SharedPreferences.getInstance();
+      prefs.setString("password", "");
+      prefs.setString("mobileNumber", "");
+    }
+    notifyListeners();
+  }
+  TextEditingController loginNumber = TextEditingController();
+  TextEditingController loginPassword = TextEditingController();
+  TextEditingController forgotPassword1 = TextEditingController();
+  TextEditingController forgotPassword2 = TextEditingController();
+  final RoundedLoadingButtonController loginCtr =RoundedLoadingButtonController();
+  final RoundedLoadingButtonController forgotCtr =RoundedLoadingButtonController();
+  final RoundedLoadingButtonController checkCtr =RoundedLoadingButtonController();
 
   Future<void> checkLoginValues(String number) async {
     final prefs =await SharedPreferences.getInstance();
@@ -329,73 +329,73 @@ final RoundedLoadingButtonController checkCtr =RoundedLoadingButtonController();
   }
 
 
-/// Version
-Future<void> checkVersion() async {
-  try {
-    // notifyListeners();
-    Map data = {
-      "action": getAllData,
-      "search_type":"version_check",
-      "version":localData.versionNumber,
-      "cos_id":localData.storage.read("cos_id"),
-      "platform":localData.storage.read("platform")
-    };
-    final response = await homeRepo.selectDataList(data);
-    if (response.isNotEmpty){
-      _currentVersion=response[0]["current_version"];
-      _currentAPK=response[0]["current_url"];
-      _versionCheck=true;
-      if(localData.versionNumber==currentVersion){
-        _versionActive=true;
-      }else if(response[0]["active"]=="1"){
-        _updateAvailable=true;
-      }else{
-        _versionActive=false;
-        _updateAvailable=false;
+  /// Version
+  Future<void> checkVersion() async {
+    try {
+      // notifyListeners();
+      Map data = {
+        "action": getAllData,
+        "search_type":"version_check",
+        "version":localData.versionNumber,
+        "cos_id":localData.storage.read("cos_id"),
+        "platform":localData.storage.read("platform")
+      };
+      final response = await homeRepo.selectDataList(data);
+      if (response.isNotEmpty){
+        _currentVersion=response[0]["current_version"];
+        _currentAPK=response[0]["current_url"];
+        _versionCheck=true;
+        if(localData.versionNumber==currentVersion){
+          _versionActive=true;
+        }else if(response[0]["active"]=="1"){
+          _updateAvailable=true;
+        }else{
+          _versionActive=false;
+          _updateAvailable=false;
+        }
       }
-    }
-    else {
+      else {
+        _versionCheck=true;
+      }
+    } catch (e) {
       _versionCheck=true;
     }
-  } catch (e) {
-    _versionCheck=true;
+    notifyListeners();
   }
-  notifyListeners();
-}
-bool _refresh=true;
-bool get refresh =>_refresh;
+  bool _refresh=true;
+  bool get refresh =>_refresh;
 
-String _date=DateFormat('MMM d, yyyy').format(DateTime.now());
-String get date =>_date;
-String _time=DateFormat('hh:mm a').format(DateTime.now());
-String get time =>_time;
+  String _date=DateFormat('MMM d, yyyy').format(DateTime.now());
+  String get date =>_date;
+  String _time=DateFormat('hh:mm a').format(DateTime.now());
+  String get time =>_time;
 
 
-void check(){
-  _date=DateFormat('MMM d, yyyy').format(DateTime.now());
-  _time=DateFormat('hh:mm a').format(DateTime.now());
-  notifyListeners();
-}
+  void check(){
+    _date=DateFormat('MMM d, yyyy').format(DateTime.now());
+    _time=DateFormat('hh:mm a').format(DateTime.now());
+    notifyListeners();
+  }
 
-List _roleEmp=[];
-final List<Color> _roleEmpColor=[
-const Color(0XFF01BED3),
-const Color(0xffFFAE00),
-const Color(0xff2B9EE5),
-const Color(0xff2B9EE5),
-const Color(0xff2B9EE5),
-const Color(0xff2B9EE5),
-const Color(0xff2B9EE5),
-const Color(0xff2B9EE5),
-const Color(0xff2B9EE5),
-const Color(0xff2B9EE5),
-const Color(0xff2B9EE5),
-const Color(0xff2B9EE5),
-const Color(0xff2B9EE5),
-const Color(0xff2B9EE5),
-];
-List get roleEmp =>_roleEmp;
-List<Color> get roleEmpColor =>_roleEmpColor;
+  List _roleEmp=[];
+  final List<Color> _roleEmpColor=[
+    const Color(0XFF01BED3),
+    const Color(0xffFFAE00),
+    const Color(0xff2B9EE5),
+    const Color(0xff2B9EE5),
+    const Color(0xff2B9EE5),
+    const Color(0xff2B9EE5),
+    const Color(0xff2B9EE5),
+    const Color(0xff2B9EE5),
+    const Color(0xff2B9EE5),
+    const Color(0xff2B9EE5),
+    const Color(0xff2B9EE5),
+    const Color(0xff2B9EE5),
+    const Color(0xff2B9EE5),
+    const Color(0xff2B9EE5),
+  ];
+  List get roleEmp =>_roleEmp;
+  List<Color> get roleEmpColor =>_roleEmpColor;
 // Future<void> roleEmployees() async {
 //   try {
 //     _roleEmp.clear();
@@ -424,8 +424,8 @@ List<Color> get roleEmpColor =>_roleEmpColor;
 //   }
 //   notifyListeners();
 // }
-/// Login
-Future<void> verifyUser(context) async {
+  /// Login
+  Future<void> verifyUser(context) async {
     try {
       Map data = {
         "action": getAllData,
@@ -446,9 +446,9 @@ Future<void> verifyUser(context) async {
       checkCtr.reset();
     }
     notifyListeners();
-}
-String _notificationToken="";
-String get notificationToken =>_notificationToken;
+  }
+  String _notificationToken="";
+  String get notificationToken =>_notificationToken;
 
   Future<void> getToken() async {
     try {
@@ -932,52 +932,53 @@ String get notificationToken =>_notificationToken;
 //     }
 //     notifyListeners();
 // }
+
   List _mainReportList=[];
   List get mainReportList => _mainReportList;
 
-  Future<void> getMainReport(bool isRefresh) async {
-    if(isRefresh==true){
-      _refresh=false;
-      _mainReportList.clear();
-      notifyListeners();
-    }
-    try {
-      Map data = {
-        "action": getAllData,
-        "search_type": "main_report",
-        "id": localData.storage.read("id"),
-        "role": localData.storage.read("role"),
-        "cos_id": localData.storage.read("cos_id"),
-        "date1": _startDate,
-        "date2": _endDate,
-        "date3": _startDateM,
-        "date4": _endDateM
-      };
-      final response =await homeRepo.getDashboardReport(data);
-      print(data);
-      print(response);
-      if (response.isNotEmpty) {
-        // _incompleteCount=response[0]["incomplete_count"];
-        // _completeCount=response[0]["complete_count"];
-        // _totalCount=response[0]["total_tasks"];
-        // _totalAtt=response[0]["total_attendance"];
-
-        _mainReportList=response;
-        _mainReportList=response;
-        localData.storage.write("conveyance_amount",response[0]['conveyance_amount'].toString()=="null"||response[0]['conveyance_amount'].toString()==""?"0":response[0]['conveyance_amount'].toString());
-        localData.storage.write("travel_amount",response[0]['travel_amount'].toString()=="null"||response[0]['travel_amount'].toString()==""?"0":response[0]['travel_amount'].toString());
-        localData.storage.write("da_amount",response[0]['da_amount'].toString()=="null"||response[0]['da_amount'].toString()==""?"0":response[0]['da_amount'].toString());
-        _refresh=true;
-      }else{
-        _mainReportList=[];
-        _refresh=true;
-      }
-    } catch (e) {
-      _mainReportList=[];
-      _refresh=true;
-    }
-    notifyListeners();
-  }
+  // Future<void> getMainReport(bool isRefresh) async {
+  //   if(isRefresh==true){
+  //     _refresh=false;
+  //     _mainReportList.clear();
+  //     notifyListeners();
+  //   }
+  //   try {
+  //     Map data = {
+  //       "action": getAllData,
+  //       "search_type": "main_report",
+  //       "id": localData.storage.read("id"),
+  //       "role": localData.storage.read("role"),
+  //       "cos_id": localData.storage.read("cos_id"),
+  //       "date1": _startDate,
+  //       "date2": _endDate,
+  //       "date3": _startDateM,
+  //       "date4": _endDateM
+  //     };
+  //     final response =await homeRepo.getDashboardReport(data);
+  //     print(data);
+  //     print(response);
+  //     if (response.isNotEmpty) {
+  //       // _incompleteCount=response[0]["incomplete_count"];
+  //       // _completeCount=response[0]["complete_count"];
+  //       // _totalCount=response[0]["total_tasks"];
+  //       // _totalAtt=response[0]["total_attendance"];
+  //
+  //       _mainReportList=response;
+  //       _mainReportList=response;
+  //       localData.storage.write("conveyance_amount",response[0]['conveyance_amount'].toString()=="null"||response[0]['conveyance_amount'].toString()==""?"0":response[0]['conveyance_amount'].toString());
+  //       localData.storage.write("travel_amount",response[0]['travel_amount'].toString()=="null"||response[0]['travel_amount'].toString()==""?"0":response[0]['travel_amount'].toString());
+  //       localData.storage.write("da_amount",response[0]['da_amount'].toString()=="null"||response[0]['da_amount'].toString()==""?"0":response[0]['da_amount'].toString());
+  //       _refresh=true;
+  //     }else{
+  //       _mainReportList=[];
+  //       _refresh=true;
+  //     }
+  //   } catch (e) {
+  //     _mainReportList=[];
+  //     _refresh=true;
+  //   }
+  //   notifyListeners();
+  // }
 
 
   String _totalV="0";
@@ -991,56 +992,58 @@ String get notificationToken =>_notificationToken;
 
 
 
-  Future<void> getDashboardReport(bool isRefresh) async {
-    inActiveVisit=0;
-    activeVisit=0;
-    if(isRefresh==true){
-      _totalV="0";
-      _vRefresh=false;
-      _visitCount.clear();
-    }
-    notifyListeners();
-    try {
-      Map data = {
-        "action": getAllData,
-        "search_type": "dashboard_main_report",
-        "id": localData.storage.read("id"),
-        "role": localData.storage.read("role"),
-        "cos_id": localData.storage.read("cos_id"),
-        "date1": _startDate,
-        "date2": _endDate
-      };
-      print("Input....$data}");
-      final response =await homeRepo.getDashboardReport(data);
-      if (response.isNotEmpty) {
-        print("response....${response}");
-        _visitCount=response;
-        var store=0;
-        inActiveVisit=0;
-        activeVisit=0;
-        for(var i=0;i<response.length;i++){
-          store+=int.parse(response[i]["total_count"]);
-          if(response[i]["total_count"].toString()=="0"){
-            inActiveVisit++;
-          }else{
-            activeVisit++;
-          }
-        }
-        _totalV=store.toString();
-        _vRefresh=true;
-      }else{
-        _visitCount=[];
-        _vRefresh=true;
-      }
-      _vRefresh=true;
-      notifyListeners();
-    } catch (e) {
-      _visitCount=[];
-      _vRefresh=true;
-      notifyListeners();
-    }
-    notifyListeners();
-  }
+  // Future<void> getDashboardReport(bool isRefresh) async {
+  //   inActiveVisit=0;
+  //   activeVisit=0;
+  //   if(isRefresh==true){
+  //     _totalV="0";
+  //     _vRefresh=false;
+  //     _visitCount.clear();
+  //   }
+  //   notifyListeners();
+  //   try {
+  //     Map data = {
+  //       "action": getAllData,
+  //       "search_type": "dashboard_main_report",
+  //       "id": localData.storage.read("id"),
+  //       "role": localData.storage.read("role"),
+  //       "cos_id": localData.storage.read("cos_id"),
+  //       "date1": _startDate,
+  //       "date2": _endDate
+  //     };
+  //     print("Input....$data}");
+  //     final response =await homeRepo.getDashboardReport(data);
+  //     if (response.isNotEmpty) {
+  //       print("response....${response}");
+  //       _visitCount=response;
+  //       var store=0;
+  //       inActiveVisit=0;
+  //       activeVisit=0;
+  //       for(var i=0;i<response.length;i++){
+  //         store+=int.parse(response[i]["total_count"]);
+  //         if(response[i]["total_count"].toString()=="0"){
+  //           inActiveVisit++;
+  //         }else{
+  //           activeVisit++;
+  //         }
+  //       }
+  //       _totalV=store.toString();
+  //       _vRefresh=true;
+  //     }else{
+  //       _visitCount=[];
+  //       _vRefresh=true;
+  //     }
+  //     _vRefresh=true;
+  //     notifyListeners();
+  //   } catch (e) {
+  //     _visitCount=[];
+  //     _vRefresh=true;
+  //     notifyListeners();
+  //   }
+  //   notifyListeners();
+  // }
+
+
   List<WorkPlanModelDetails> workPlanList = [];
   bool workPlanRefresh = false;
 
@@ -1086,12 +1089,8 @@ String get notificationToken =>_notificationToken;
     }
   }
 
-  Future<void> updateWorkStatus(
-      bool isRefresh,
-      String detailId,
-      String workStatus,
-      BuildContext context
-      ) async {
+  Future<void> updateWorkStatus(bool isRefresh, String detailId, String workStatus,
+      BuildContext context, {String? start, String? end}) async {
     if (isRefresh == true) {
       workPlanRefresh = false;
     }
@@ -1110,10 +1109,11 @@ String get notificationToken =>_notificationToken;
       if (response.isNotEmpty && response[0]["status"] == true) {
         workPlanRefresh = true;
 
-        String startDate = DateFormat("yyyy-MM-dd").format(DateTime.now());
-        String endDate = DateTime.now().toIso8601String().split("T")[0];
+        final String s = start ?? DateFormat("yyyy-MM-dd").format(DateTime.now());
+        final String e = end ?? s;
+        await getWorkPlanList(true, s, e);
 
-        await getWorkPlanList(true, startDate,endDate);
+        // await getWorkPlanList(true, startDate,endDate);
         final homeProvider = Provider.of<HomeProvider>(context, listen: false);
         homeProvider.checkThisMonth();
         homeProvider.loadFullDashboard(context);
@@ -1231,6 +1231,7 @@ String get notificationToken =>_notificationToken;
 
   bool get isHomePageActive => _isHomePageActive;
   bool _isDashboardLoading = false;
+  bool _reloadQueued = false;   // 👈 NEW: running la irukkum bodhu vandha reload request-ah queue panna
   int _loadCallCount = 0;
   int _loadCompleteCount = 0;
 
@@ -1382,8 +1383,9 @@ String get notificationToken =>_notificationToken;
     // ============================================================
 
     if (_isDashboardLoading) {
+      _reloadQueued = true; // 👈 skip pannama queue pannu
       print(
-        "⏭️ Call #$thisCallId SKIPPED — "
+        "⏭️ Call #$thisCallId QUEUED — "
             "Previous loadFullDashboard() is still running",
       );
 
@@ -1659,8 +1661,16 @@ String get notificationToken =>_notificationToken;
       if (_isHomePageActive) {
         notifyListeners();
       }
+
+      // 👇 NEW: running la irundhappo vandha call-ah ippo run pannu
+      if (_reloadQueued && _isHomePageActive && context.mounted) {
+        _reloadQueued = false;
+        Future.microtask(() => loadFullDashboard(context));
+      }
     }
   }
+
+
   // Future<void> loadDashboard(BuildContext context) async {
   //   _refresh = false;
   //   notifyListeners();
@@ -1814,7 +1824,7 @@ String get notificationToken =>_notificationToken;
   }
 
   Future<void> forgotPassword(context) async {
-  try{
+    try{
       Map data = {
         "action":forgotPsd,
         "mobile_number":loginNumber.text.trim(),
@@ -1834,15 +1844,15 @@ String get notificationToken =>_notificationToken;
         utils.showErrorToast(context: context);
         forgotCtr.reset();
       }
-  }catch(e){
-    utils.showErrorToast(context: context);
-    forgotCtr.reset();
+    }catch(e){
+      utils.showErrorToast(context: context);
+      forgotCtr.reset();
+    }
+    notifyListeners();
   }
-      notifyListeners();
-}
 
   Future<void> checkNumber(context) async {
-  try{
+    try{
       Map data = {
         "action":forgotPsd,
         "mobile_number":loginNumber.text.trim(),
@@ -1868,16 +1878,16 @@ String get notificationToken =>_notificationToken;
         }
         utils.navigatePage(context,()=>const Otp());
       }
-  }catch(e){
-    if(isRelease==true){
-      sentOtpNumber('$countryDial${loginNumber.text}',context);
-    }else{
-      utils.showSuccessToast(context:context,text: "OTP Sent");
+    }catch(e){
+      if(isRelease==true){
+        sentOtpNumber('$countryDial${loginNumber.text}',context);
+      }else{
+        utils.showSuccessToast(context:context,text: "OTP Sent");
+      }
+      utils.navigatePage(context,()=>const Otp());
     }
-    utils.navigatePage(context,()=>const Otp());
+    notifyListeners();
   }
-      notifyListeners();
-}
 
   Future<void> verifyOtp(BuildContext context) async {
     if(isRelease==true) {
@@ -1887,13 +1897,13 @@ String get notificationToken =>_notificationToken;
           builder: (BuildContext context){
             return AlertDialog(
               title: Center(
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    CustomText(text: "Verifying OTP",colors: colorsConst.primary,size: 15,isBold: true,),
-                    CircularProgressIndicator(color: colorsConst.appGreen,)
-                  ],
-                )
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      CustomText(text: "Verifying OTP",colors: colorsConst.primary,size: 15,isBold: true,),
+                      CircularProgressIndicator(color: colorsConst.appGreen,)
+                    ],
+                  )
               ),
             );
           }
@@ -1911,40 +1921,40 @@ String get notificationToken =>_notificationToken;
       }
     }
     else{
-        if (otp=='123456') {
-          log("success  login");
-          utils.showSuccessToast(context: context,text: "Verified Successfully",);
-          utils.navigatePage(context,()=>const ForgotPassword());
-        } else {
-          log("failed");
-          utils.showErrorToast(context: context);
-          Navigator.pop(context);
-        }
+      if (otp=='123456') {
+        log("success  login");
+        utils.showSuccessToast(context: context,text: "Verified Successfully",);
+        utils.navigatePage(context,()=>const ForgotPassword());
+      } else {
+        log("failed");
+        utils.showErrorToast(context: context);
+        Navigator.pop(context);
+      }
     }
   }
 
 
-Future<void> deleteUseAccount(context) async {
-      Map data = {
-        "action":deleteAccount,
-        "log_file":localData.storage.read("mobile_number"),
-        "user_id":localData.storage.read("id")??"0",
-        "mobile_number":localData.storage.read("mobile_number"),
-        "cos_id":localData.storage.read("cos_id"),
-        "platform":localData.storage.read("platform"),
-      };
-      final response = await homeRepo.forgotPwd(data);
-      if(response.isNotEmpty){
-        utils.showSuccessToast(context: context,text: "Account deleted successfully",);
-        LocalDatabase.deleteDb();
-        utils.navigatePage(context,()=>const LoginPage());
-        loginCtr.reset();
-      }else{
-        utils.showErrorToast(context: context);
-        loginCtr.reset();
-      }
-      notifyListeners();
-}
+  Future<void> deleteUseAccount(context) async {
+    Map data = {
+      "action":deleteAccount,
+      "log_file":localData.storage.read("mobile_number"),
+      "user_id":localData.storage.read("id")??"0",
+      "mobile_number":localData.storage.read("mobile_number"),
+      "cos_id":localData.storage.read("cos_id"),
+      "platform":localData.storage.read("platform"),
+    };
+    final response = await homeRepo.forgotPwd(data);
+    if(response.isNotEmpty){
+      utils.showSuccessToast(context: context,text: "Account deleted successfully",);
+      LocalDatabase.deleteDb();
+      utils.navigatePage(context,()=>const LoginPage());
+      loginCtr.reset();
+    }else{
+      utils.showErrorToast(context: context);
+      loginCtr.reset();
+    }
+    notifyListeners();
+  }
 
 
 
@@ -2014,7 +2024,7 @@ Future<void> deleteUseAccount(context) async {
     checkThisMonth();
     if (reloadDashboard) loadFullDashboard(context);
     // getMainReport(false);
- //   getDashboardReport(false);
+    //   getDashboardReport(false);
     Provider.of<AttendanceProvider>(context, listen: false).getLateCount(_startDate,_endDate);
 
     Provider.of<AttendanceProvider>(context, listen: false).initDate(id:localData.storage.read("id"),role:localData.storage.read("role"),isRefresh:true,date1:_startDate,date2:_endDate,type:"");
@@ -2312,6 +2322,7 @@ Future<void> deleteUseAccount(context) async {
     stopAutoRefresh();
     _isHomePageActive = false;
     _isDashboardLoading = false;
+    _reloadQueued = false;   // 👈 NEW
     _loadCallCount = 0;
     _loadCompleteCount = 0;
     _timerTickCount = 0;
