@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../component/custom_loading.dart';
 import '../../component/custom_loading_button.dart';
 import '../../component/maxline_textfield.dart';
 import '../../component/multi_dropdown.dart';
@@ -22,6 +23,7 @@ class DayWorkPlanPage extends StatefulWidget {
 class _DayWorkPlanPageState extends State<DayWorkPlanPage> {
   List<WorkPlanModel> workPlans = [];
   final ScrollController _scrollController = ScrollController();
+  bool _isLoading = true;
 
   @override
   void initState() {
@@ -30,10 +32,19 @@ class _DayWorkPlanPageState extends State<DayWorkPlanPage> {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final custProvider =
       Provider.of<CustomerProvider>(context, listen: false);
-      await custProvider.getAllCustomers(true);
+
+      // 👇 NEW: API fail aanaalum loading-la stuck aagaama irukka
+      try {
+        await custProvider.getAllCustomers(true);
+      } catch (e) {
+        debugPrint("Customer load error: $e");
+      }
+
+      if (!mounted) return; // 👈 NEW
 
       setState(() {
         workPlans.add(WorkPlanModel());
+        _isLoading = false; // 👈 NEW
       });
     });
   }
@@ -124,11 +135,13 @@ class _DayWorkPlanPageState extends State<DayWorkPlanPage> {
             actions: [
               IconButton(
                 icon: Icon(Icons.add, color: colorsConst.primary, size: 20),
-                onPressed: addNewPlan,
+                onPressed: _isLoading ? null : addNewPlan, // 👈 NEW: loading time-la disable
               ),
             ],
           ),
-          body: Center(
+          body: _isLoading
+              ? const Center(child: Loading()) // 👈 NEW
+              : Center(
             child: SizedBox(
               width: mainWidth,
               child: Column(

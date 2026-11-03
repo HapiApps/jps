@@ -125,6 +125,13 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
         _isInitialLoading = false;
       }
 
+      // 👇 NEW: old HomePage dispose aagi provider-ah "inactive" nu maathittaa,
+      // thirumba activate pannitu dashboard-ah reload pannum
+      if (mounted && _isHomePageActive && !homeProvider.isHomePageActive) {
+        homeProvider.setHomePageActive(true, context);
+        await homeProvider.loadFullDashboard(context);
+      }
+
       if (!mounted || !_isHomePageActive) return;
 
       // ---------------- 2) Reports (dashboard dup reload ILLA) ----------------

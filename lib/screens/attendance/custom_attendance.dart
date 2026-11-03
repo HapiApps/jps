@@ -276,6 +276,115 @@ class _CheckAttendanceState extends State<CheckAttendance> {
 
           print("permissionStatus  ${attProvider.permissionStatus}");
           print("isPermissionActive ${isPermissionActive}");
+
+          /// ✅ NEW: Aswin build -> swipe attendance + auto selfie (no verify checkbox)
+          final bool isAswin =
+          constValue.appName.toString().toLowerCase().contains("aswin");
+
+          /// ✅ NEW: Common attendance / permission-out handler.
+          /// [forceSelfie] = true  -> always open the selfie camera first (Aswin swipe)
+          /// [forceSelfie] = false -> old behaviour (selfie only if verify checkbox ticked)
+          Future<void> markAttendance({required bool forceSelfie}) async {
+            if (locPvr.latitude == null ||
+                locPvr.longitude == null) {
+              utils.showWarningToast(
+                context,
+                text:
+                "Location not available. Please enable GPS and try again.",
+              );
+              return;
+            }
+
+            String isOnLeaveValue = homeProvider.mainReportList.isEmpty
+                ? "0"
+                : homeProvider.mainReportList[0]["is_on_leave"].toString() == "null"
+                ? "0"
+                : homeProvider.mainReportList[0]["is_on_leave"].toString();
+
+            bool isOnLeave = isOnLeaveValue == "1";
+            print("isOnLeaveValue${isOnLeaveValue}");
+            if (isOnLeave) {
+              utils.showWarningToast(
+                context,
+                text:
+                "You are on leave today. Attendance cannot be marked.",
+              );
+              return;
+            }
+
+            final bool needSelfie = forceSelfie || attProvider.isSelfie == true;
+
+            if (attProvider.permissionStatus == "1") {
+              // Permission OUT
+              if (!needSelfie) {
+                attProvider.putDailyPermission(
+                  context,
+                  "2",
+                  locPvr.latitude,
+                  locPvr.longitude,
+                );
+              } else {
+                attProvider.signDialog(
+                  context: context,
+                  img: attProvider.profile,
+                  onTap: (newImg) {
+                    attProvider.profilePick(newImg);
+                    attProvider.putDailyPermission(
+                      context,
+                      "2",
+                      locPvr.latitude,
+                      locPvr.longitude,
+                    );
+                  },
+                );
+              }
+            } else {
+              // Attendance IN / OUT
+              // type is calculated ONCE at tap time, so it can't
+              // change if provider state updates later.
+              final String type =
+              attProvider.mainAttendance == 0 ? "1" : "2";
+
+              if (!needSelfie) {
+                attProvider.putDailyAttendance(
+                  context,
+                  type,
+                  locPvr.latitude,
+                  locPvr.longitude,
+                );
+              } else {
+                attProvider.signDialog(
+                  context: context,
+                  img: attProvider.profile,
+                  onTap: (newImg) {
+                    attProvider.profilePick(newImg);
+                    attProvider.putDailyAttendance(
+                      context,
+                      type,
+                      locPvr.latitude,
+                      locPvr.longitude,
+                    );
+                  },
+                );
+              }
+            }
+          }
+
+          /// ✅ NEW: button label + colour shared by normal button & swipe button
+          final String attendBtnText = attProvider.mainCheckOut
+              ? constValue.attendMak
+              : attProvider.permissionStatus == "1"
+              ? constValue.perOut
+              : attProvider.mainAttendance == 0
+              ? constValue.attendIn
+              : constValue.attendOut;
+
+          final Color attendBtnColor = attProvider.mainCheckOut
+              ? Colors.grey
+              : attProvider.permissionStatus == "1"
+              ? Colors.red
+              : getAttendanceColor();
+
           return
             // attProvider.attCheck==false?const Loading():
             Column(
@@ -300,37 +409,40 @@ class _CheckAttendanceState extends State<CheckAttendance> {
                                   if(attProvider.mainCheckOut == false)
                                     Row(
                                       children: [
-                                        GestureDetector(
-                                          onTap: () {
-                                            attProvider.manageSelfie();
-                                          },
-                                          child: Container(
-                                            width: 20,
-                                            height: 20,
-                                            decoration: BoxDecoration(
-                                              color: attProvider.isSelfie ? Color(0xffD9D9D9) :Color(0xffD9D9D9),
-                                              borderRadius: BorderRadius.circular(4),
-                                              border: Border.all(color: Color(0xffD9D9D9), width: 1.2),
+                                        /// ✅ CHANGED: verify checkbox hidden for Aswin
+                                        if(!isAswin) ...[
+                                          GestureDetector(
+                                            onTap: () {
+                                              attProvider.manageSelfie();
+                                            },
+                                            child: Container(
+                                              width: 20,
+                                              height: 20,
+                                              decoration: BoxDecoration(
+                                                color: attProvider.isSelfie ? Color(0xffD9D9D9) :Color(0xffD9D9D9),
+                                                borderRadius: BorderRadius.circular(4),
+                                                border: Border.all(color: Color(0xffD9D9D9), width: 1.2),
+                                              ),
+                                              child: attProvider.isSelfie
+                                                  ? Icon(
+                                                Icons.check,
+                                                size: 14,
+                                                color: colorsConst.primary,
+                                              )
+                                                  : null,
                                             ),
-                                            child: attProvider.isSelfie
-                                                ? Icon(
-                                              Icons.check,
-                                              size: 14,
-                                              color: colorsConst.primary,
-                                            )
-                                                : null,
                                           ),
-                                        ),
-                                        const SizedBox(width: 3),
-                                        CustomText(
-                                          //text:  "verify",
-                                          text:  "${constValue.verify}",
+                                          const SizedBox(width: 3),
+                                          CustomText(
+                                            //text:  "verify",
+                                            text:  "${constValue.verify}",
 
-                                          shrink: true,
-                                          size: 11,
-                                          colors: Colors.blue,isBold: true,
-                                        ),
-                                        3.width,
+                                            shrink: true,
+                                            size: 11,
+                                            colors: Colors.blue,isBold: true,
+                                          ),
+                                          3.width,
+                                        ],
                                         GestureDetector(
                                           onTap: attProvider.permissionStatus != "1"
                                               ? () {
@@ -550,7 +662,20 @@ class _CheckAttendanceState extends State<CheckAttendance> {
                                 ],
                               ),
                               20.height,
-                              Container(
+
+                              /// ✅ NEW: Aswin -> Swipe button (selfie opens automatically,
+                              /// attendance is marked right after the selfie).
+                              /// Everyone else -> existing button (unchanged behaviour).
+                              isAswin
+                                  ? SwipeAttendanceButton(
+                                text: attendBtnText,
+                                color: attendBtnColor,
+                                enabled: !attProvider.mainCheckOut,
+                                onSwipe: () {
+                                  markAttendance(forceSelfie: true);
+                                },
+                              )
+                                  : Container(
                                 width: MediaQuery.of(context).size.width * 0.9,
                                 height: 35,
                                 child: ElevatedButton(
@@ -574,88 +699,9 @@ class _CheckAttendanceState extends State<CheckAttendance> {
                                   onPressed: attProvider.mainCheckOut
                                       ? null
                                       : () async {
-
-                                    if (locPvr.latitude == null ||
-                                        locPvr.longitude == null) {
-                                      utils.showWarningToast(
-                                        context,
-                                        text:
-                                        "Location not available. Please enable GPS and try again.",
-                                      );
-                                      return;
-                                    }
-
-                                    String isOnLeaveValue = homeProvider.mainReportList.isEmpty
-                                        ? "0"
-                                        : homeProvider.mainReportList[0]["is_on_leave"].toString() == "null"
-                                        ? "0"
-                                        : homeProvider.mainReportList[0]["is_on_leave"].toString();
-
-                                    bool isOnLeave = isOnLeaveValue == "1";
-                                    print("isOnLeaveValue${isOnLeaveValue}");
-                                    if (isOnLeave) {
-                                      utils.showWarningToast(
-                                        context,
-                                        text:
-                                        "You are on leave today. Attendance cannot be marked.",
-                                      );
-                                      return;
-                                    }
-
-                                    if (attProvider.permissionStatus == "1") {
-                                      // Permission OUT
-                                      if (attProvider.isSelfie == false) {
-                                        attProvider.putDailyPermission(
-                                          context,
-                                          "2",
-                                          locPvr.latitude,
-                                          locPvr.longitude,
-                                        );
-                                      } else {
-                                        attProvider.signDialog(
-                                          context: context,
-                                          img: attProvider.profile,
-                                          onTap: (newImg) {
-                                            attProvider.profilePick(newImg);
-                                            attProvider.putDailyPermission(
-                                              context,
-                                              "2",
-                                              locPvr.latitude,
-                                              locPvr.longitude,
-                                            );
-                                          },
-                                        );
-                                      }
-                                    } else {
-                                      // Attendance IN / OUT
-                                      // type is calculated ONCE at tap time, so it can't
-                                      // change if provider state updates later.
-                                      final String type =
-                                      attProvider.mainAttendance == 0 ? "1" : "2";
-
-                                      if (attProvider.isSelfie == false) {
-                                        attProvider.putDailyAttendance(
-                                          context,
-                                          type,
-                                          locPvr.latitude,
-                                          locPvr.longitude,
-                                        );
-                                      } else {
-                                        attProvider.signDialog(
-                                          context: context,
-                                          img: attProvider.profile,
-                                          onTap: (newImg) {
-                                            attProvider.profilePick(newImg);
-                                            attProvider.putDailyAttendance(
-                                              context,
-                                              type,
-                                              locPvr.latitude,
-                                              locPvr.longitude,
-                                            );
-                                          },
-                                        );
-                                      }
-                                    }
+                                    // ✅ CHANGED: logic moved to markAttendance()
+                                    // (same flow as before: selfie only if verify is ticked)
+                                    await markAttendance(forceSelfie: false);
                                   },
 
                                   child: CustomText(
@@ -886,5 +932,180 @@ class _CheckAttendanceState extends State<CheckAttendance> {
               ],
             );
         });
+  }
+}
+
+
+/// ✅ NEW: Custom swipe button used for Aswin build.
+/// - Solid (slightly darker) track so the white text is always readable
+/// - Big bold label (size 14), no chevrons / no clutter
+/// - White round thumb with coloured icon (">>" double arrow by default, tick when swiped)
+/// - Swipe >= 85% triggers [onSwipe], then the thumb resets automatically
+class SwipeAttendanceButton extends StatefulWidget {
+  final String text;
+  final Color color;
+  final bool enabled;
+  final double height;
+  final IconData icon;
+  final VoidCallback onSwipe;
+
+  const SwipeAttendanceButton({
+    super.key,
+    required this.text,
+    required this.color,
+    required this.onSwipe,
+    this.enabled = true,
+    this.height = 40,
+    this.icon = Icons.keyboard_double_arrow_right_rounded,
+  });
+
+  @override
+  State<SwipeAttendanceButton> createState() => _SwipeAttendanceButtonState();
+}
+
+class _SwipeAttendanceButtonState extends State<SwipeAttendanceButton> {
+  double _pos = 0;
+  bool _dragging = false;
+  bool _done = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final double h = widget.height;
+    const double pad = 4;
+    final double thumb = h - pad * 2;
+
+    // darker shade of the state colour -> white text has strong contrast
+    final Color base = widget.enabled
+        ? Color.lerp(widget.color, Colors.black, 0.18)!
+        : Colors.grey.shade600;
+
+    return LayoutBuilder(
+      builder: (context, c) {
+        final double w = c.maxWidth.isFinite
+            ? c.maxWidth
+            : MediaQuery.of(context).size.width * 0.45;
+        final double maxDrag = (w - thumb - pad * 2).clamp(1.0, double.infinity);
+        final double progress = (_pos / maxDrag).clamp(0.0, 1.0);
+        final Duration anim =
+        _dragging ? Duration.zero : const Duration(milliseconds: 250);
+
+        return Container(
+          width: w,
+          height: h,
+          decoration: BoxDecoration(
+            color: base,
+            borderRadius: BorderRadius.circular(h / 2),
+            boxShadow: [
+              BoxShadow(
+                color: base.withOpacity(0.35),
+                blurRadius: 6,
+                offset: const Offset(0, 3),
+              ),
+            ],
+          ),
+          child: Stack(
+            alignment: Alignment.centerLeft,
+            children: [
+              /// light fill that follows the thumb
+              AnimatedContainer(
+                duration: anim,
+                width: _pos + thumb + pad * 2,
+                height: h,
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.18),
+                  borderRadius: BorderRadius.circular(h / 2),
+                ),
+              ),
+
+              /// label (big + bold + clearly visible)
+              Positioned.fill(
+                child: Padding(
+                  padding: EdgeInsets.only(left: thumb + pad * 2, right: 12),
+                  child: Center(
+                    child: Opacity(
+                      opacity: (1 - progress * 1.3).clamp(0.0, 1.0),
+                      child: Text(
+                        widget.text,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.3,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+
+              /// thumb
+              AnimatedPositioned(
+                duration: anim,
+                curve: Curves.easeOut,
+                left: pad + _pos,
+                top: pad,
+                child: GestureDetector(
+                  onHorizontalDragStart: widget.enabled && !_done
+                      ? (_) => setState(() => _dragging = true)
+                      : null,
+                  onHorizontalDragUpdate: widget.enabled && !_done
+                      ? (d) => setState(() {
+                    _pos = (_pos + d.delta.dx).clamp(0.0, maxDrag);
+                  })
+                      : null,
+                  onHorizontalDragEnd: widget.enabled && !_done
+                      ? (_) {
+                    if (progress >= 0.85) {
+                      setState(() {
+                        _dragging = false;
+                        _pos = maxDrag;
+                        _done = true;
+                      });
+                      widget.onSwipe();
+                      Future.delayed(const Duration(milliseconds: 700), () {
+                        if (!mounted) return;
+                        setState(() {
+                          _pos = 0;
+                          _done = false;
+                        });
+                      });
+                    } else {
+                      setState(() {
+                        _dragging = false;
+                        _pos = 0;
+                      });
+                    }
+                  }
+                      : null,
+                  child: Container(
+                    width: thumb,
+                    height: thumb,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.25),
+                          blurRadius: 4,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Icon(
+                      _done ? Icons.check_rounded : widget.icon,
+                      color: base,
+                      size: thumb * 0.72,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 }

@@ -2813,7 +2813,8 @@ void changeStatus(bool value){
   Future<void> workPlanSubmit(
       BuildContext context,
       List<WorkPlanModel> workPlans,
-      ) async {
+      )
+  async {
     isSaving = true;
     notifyListeners();
 
@@ -2878,8 +2879,8 @@ void changeStatus(bool value){
           debugPrint("Notification failed: $e");
         }
 
-        final homeProvider = Provider.of<HomeProvider>(context, listen: false);
-        homeProvider.loadFullDashboard(context);
+        // final homeProvider = Provider.of<HomeProvider>(context, listen: false);
+        // homeProvider.loadFullDashboard(context);
 
         Navigator.pop(context, true);
       } else {

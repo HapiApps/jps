@@ -1232,6 +1232,7 @@ class HomeProvider with ChangeNotifier{
   bool get isHomePageActive => _isHomePageActive;
   bool _isDashboardLoading = false;
   bool _reloadQueued = false;   // 👈 NEW: running la irukkum bodhu vandha reload request-ah queue panna
+  BuildContext? _queuedContext; // 👈 NEW: queue panna call oda context (popped page context use aagaama irukka)
   int _loadCallCount = 0;
   int _loadCompleteCount = 0;
 
@@ -1384,6 +1385,7 @@ class HomeProvider with ChangeNotifier{
 
     if (_isDashboardLoading) {
       _reloadQueued = true; // 👈 skip pannama queue pannu
+      _queuedContext = context; // 👈 NEW
       print(
         "⏭️ Call #$thisCallId QUEUED — "
             "Previous loadFullDashboard() is still running",
@@ -1663,9 +1665,17 @@ class HomeProvider with ChangeNotifier{
       }
 
       // 👇 NEW: running la irundhappo vandha call-ah ippo run pannu
-      if (_reloadQueued && _isHomePageActive && context.mounted) {
-        _reloadQueued = false;
-        Future.microtask(() => loadFullDashboard(context));
+      if (_reloadQueued && _isHomePageActive) {
+        final BuildContext? nextCtx =
+        (_queuedContext != null && _queuedContext!.mounted)
+            ? _queuedContext
+            : _refreshContext;
+
+        if (nextCtx != null && nextCtx.mounted) {
+          _reloadQueued = false;
+          _queuedContext = null;
+          Future.microtask(() => loadFullDashboard(nextCtx));
+        }
       }
     }
   }
@@ -2323,6 +2333,7 @@ class HomeProvider with ChangeNotifier{
     _isHomePageActive = false;
     _isDashboardLoading = false;
     _reloadQueued = false;   // 👈 NEW
+    _queuedContext = null;   // 👈 NEW
     _loadCallCount = 0;
     _loadCompleteCount = 0;
     _timerTickCount = 0;
