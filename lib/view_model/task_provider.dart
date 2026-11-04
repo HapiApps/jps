@@ -40,6 +40,7 @@ import '../source/constant/api.dart';
 import '../source/constant/colors_constant.dart';
 import '../source/constant/language_model.dart';
 import '../source/constant/local_data.dart';
+import '../source/utilities/voice_transcribe_service.dart';
 import 'employee_provider.dart';
 import 'home_provider.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
@@ -2447,7 +2448,44 @@ class TaskProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  // ===== VOICE TO TEXT =====
+  final Map<String, String> transcripts = {};
+  final Map<String, bool> transcribing = {};
+
+  Future<void> convertToText(BuildContext context, String path) async {
+    if (transcribing[path] == true) return;
+    transcribing[path] = true;
+    notifyListeners();
+    try {
+      final text = await VoiceTranscribeService.transcribe(path);
+      transcripts[path] = text;
+    } catch (e) {
+      _log("convertToText error: $e");
+      if (context.mounted) {
+        utils.showWarningToast(context,
+            text: e.toString().replaceFirst('Exception: ', ''));
+      }
+    } finally {
+      transcribing[path] = false;
+      notifyListeners();
+    }
+  }
+
+  /// transcript-a description la add pannum
+  void addTranscriptToDescription(String path) {
+    final t = transcripts[path];
+    if (t == null || t.isEmpty) return;
+    final current = taskDescCont.text.trim();
+    taskDescCont.text = current.isEmpty ? t : "$current\n$t";
+    taskDescCont.selection =
+        TextSelection.collapsed(offset: taskDescCont.text.length);
+    notifyListeners();
+  }
+
   void removeAudio(int index) {
+    final p = _recordedAudioPaths[index].audioPath;
+    transcripts.remove(p);
+    transcribing.remove(p);
     _recordedAudioPaths.removeAt(index);
     notifyListeners();
   }
@@ -2659,6 +2697,8 @@ class TaskProvider with ChangeNotifier {
     _isRecording = false;
     _selectedFiles.clear();
     _recordedAudioPaths.clear();
+    transcripts.clear();
+    transcribing.clear();
     selectedPhotos.clear();
     taskDescCont.clear();
     taskTitleCont.clear();
@@ -2803,6 +2843,8 @@ class TaskProvider with ChangeNotifier {
         );
 
         taskCtr.reset();
+        transcripts.clear();
+        transcribing.clear();
         getAllTask(true);
 
         if (!context.mounted) return;
@@ -4745,6 +4787,8 @@ class TaskProvider with ChangeNotifier {
     currentIndex = -1;
     audioList = [];
     _recordedAudioPaths = [];
+    transcripts.clear();
+    transcribing.clear();
     _videos.clear();
 
     // loading flags

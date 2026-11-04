@@ -22,7 +22,6 @@ import '../../model/customer/customer_model.dart';
 import '../../source/constant/assets_constant.dart';
 import '../../source/constant/colors_constant.dart';
 import '../../source/constant/language_model.dart';
-import '../../source/constant/language_model.dart';
 import '../../source/styles/decoration.dart';
 import '../../source/utilities/utils.dart';
 import '../../view_model/task_provider.dart';
@@ -57,7 +56,6 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
     Provider.of<CustomerProvider>(context, listen: false);
 
     // ✅ data already provider la irundha, first frame lerundhe form kaata
-    // (loader flash aagaadhu)
     final bool alreadyLoaded = taskProvider.typeList.isNotEmpty &&
         taskProvider.statusList.isNotEmpty &&
         customerProvider.customer.isNotEmpty;
@@ -70,7 +68,6 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
       taskProvider.taskTitleCont.clear();
 
       if (alreadyLoaded) {
-        // ✅ loader illama, already irukkura data vechu form set pannu
         taskProvider.setDefaultType();
         taskProvider.initValue();
         _applyDefaultTypeAndStatus(taskProvider);
@@ -81,8 +78,7 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
           });
         }
 
-        // ✅ silent background refresh (loader illa) - new data irundha
-        // dropdown automatic ah update aagum
+        // ✅ silent background refresh
         customerProvider.getAllCustomers(true);
         taskProvider.getTaskUsers();
         return;
@@ -100,7 +96,6 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
       taskProvider.initValue();
       _applyDefaultTypeAndStatus(taskProvider);
 
-      // ✅ ellam load mudinja piragu thaan form kaata
       if (mounted) {
         setState(() {
           _isLoading = false;
@@ -148,11 +143,10 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
             node: _myFocusScopeNode,
             child: Scaffold(
               backgroundColor: colorsConst.bacColor,
-              appBar:  PreferredSize(
+              appBar: PreferredSize(
                 preferredSize: Size(300, 50),
                 child: CustomAppbar(text: "${constValue.add_Task}"),
               ),
-              // ✅ loading state ku yethaar pola page switch
               body: _isLoading
                   ? Center(
                 child: CircularProgressIndicator(
@@ -178,9 +172,7 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
                                 isRequired: true,
                                 hintText: "Task Title",
                                 readOnly: false,
-                                onTap: () {
-
-                                },
+                                onTap: () {},
                               ),
                               //type
                               MapDropDown(
@@ -268,8 +260,8 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
                                               });
 
                                               if (tempList.isNotEmpty) {
-                                                custProvider
-                                                    .setMultiSelectedCustomers([tempList[0]]);
+                                                custProvider.setMultiSelectedCustomers(
+                                                    [tempList[0]]);
                                               }
                                             }
 
@@ -286,7 +278,8 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
 
                                           List<Map<String, dynamic>> tempList = [];
 
-                                          var idList = value.customerId.toString().split("||");
+                                          var idList =
+                                          value.customerId.toString().split("||");
                                           var usersList =
                                           value.firstName.toString().split("||");
                                           var phoneList =
@@ -332,17 +325,11 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
                                   onChanged: (value) {
                                     taskProvider.changeStatus(value);
                                   },
-                                  // width: kIsWeb
-                                  //     ? webWidth
-                                  //     : MediaQuery.of(context).size.width * 0.42,
-
-                                  // ),
                                   width: kIsWeb ? webWidth : phoneWidth),
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-
                                   Padding(
                                     padding: const EdgeInsets.only(top: 4.0, left: 4),
                                     child: CustomTextField(
@@ -356,7 +343,8 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
                                       onTap: () {
                                         _myFocusScopeNode.unfocus();
                                         taskProvider.datePick(
-                                            context: context, date: taskProvider.taskDt);
+                                            context: context,
+                                            date: taskProvider.taskDt);
                                       },
                                     ),
                                   ),
@@ -373,7 +361,8 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
                                       onTap: () {
                                         _myFocusScopeNode.unfocus();
                                         taskProvider.datePick(
-                                            context: context, date: taskProvider.taskEt);
+                                            context: context,
+                                            date: taskProvider.taskEt);
                                       },
                                     ),
                                   ),
@@ -382,7 +371,9 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
                               Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  CustomText(text: "${constValue.priority}",),
+                                  CustomText(
+                                    text: "${constValue.priority}",
+                                  ),
                                   5.height,
                                   Row(
                                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -427,9 +418,9 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
                               if (!kIsWeb)
                                 SizedBox(
                                   width: kIsWeb ? webWidth : phoneWidth,
-                                  child:  Row(
+                                  child: Row(
                                     crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [CustomText(text:"${constValue.notes}")],
+                                    children: [CustomText(text: "${constValue.notes}")],
                                   ),
                                 ),
                               SizedBox(
@@ -455,7 +446,8 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
                                           child: Container(
                                             width: kIsWeb ? webWidth : phoneWidth,
                                             height: 60,
-                                            decoration: customDecoration.baseBackgroundDecoration(
+                                            decoration:
+                                            customDecoration.baseBackgroundDecoration(
                                                 color: Colors.white,
                                                 radius: 10,
                                                 borderColor: colorsConst.litGrey),
@@ -479,11 +471,13 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
                                                             CrossAxisAlignment.start,
                                                             children: [
                                                               10.height,
-                                                              CustomText(text: file['name']),
+                                                              CustomText(
+                                                                  text: file['name']),
                                                               5.height,
                                                               CustomText(
                                                                 text: file['size'],
-                                                                colors: colorsConst.greyClr,
+                                                                colors:
+                                                                colorsConst.greyClr,
                                                                 size: 10,
                                                               )
                                                             ],
@@ -499,7 +493,8 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
                                                             title2: "Delete this photo?",
                                                             callback: () {
                                                               Navigator.pop(context);
-                                                              taskProvider.removeFile(index);
+                                                              taskProvider
+                                                                  .removeFile(index);
                                                             },
                                                             isLoading: false);
                                                       },
@@ -526,7 +521,6 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
                                     }),
                               ),
                               10.height,
-                              ///
                               if (!kIsWeb)
                                 SizedBox(
                                   width: kIsWeb ? webWidth : phoneWidth,
@@ -541,7 +535,8 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
                                         child: Container(
                                           width: kIsWeb ? webWidth : phoneWidth / 1.5,
                                           height: 70,
-                                          decoration: customDecoration.baseBackgroundDecoration(
+                                          decoration:
+                                          customDecoration.baseBackgroundDecoration(
                                               color: Colors.white,
                                               radius: 10,
                                               borderColor: colorsConst.litGrey),
@@ -627,6 +622,10 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
                                         ),
                                       ],
                                     )),
+
+                              // =====================================================
+                              // ✅ AUDIO LIST + CONVERT TO TEXT
+                              // =====================================================
                               SizedBox(
                                 width: kIsWeb ? webWidth : phoneWidth,
                                 child: ListView.builder(
@@ -635,140 +634,219 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
                                     physics: const ScrollPhysics(),
                                     itemCount: taskProvider.recordedAudioPaths.length,
                                     itemBuilder: (context, index) {
+                                      final audio =
+                                      taskProvider.recordedAudioPaths[index];
+                                      final path = audio.audioPath;
+                                      final isConverting =
+                                          taskProvider.transcribing[path] == true;
+                                      final transcript = taskProvider.transcripts[path];
+
                                       return Padding(
                                         padding: const EdgeInsets.fromLTRB(0, 10, 0, 0),
-                                        child: Row(
-                                          mainAxisAlignment: taskProvider
-                                              .recordedAudioPaths.isNotEmpty &&
-                                              taskProvider.isRecording == false
-                                              ? MainAxisAlignment.spaceAround
-                                              : MainAxisAlignment.center,
+                                        child: Column(
                                           children: [
-                                            Container(
-                                              width:
-                                              kIsWeb ? webWidth / 1.5 : phoneWidth / 1.3,
-                                              height: 65,
-                                              decoration:
-                                              customDecoration.baseBackgroundDecoration(
-                                                color: Colors.white,
-                                                radius: 10,
-                                              ),
-                                              child: Row(
-                                                mainAxisAlignment:
-                                                MainAxisAlignment.spaceBetween,
-                                                children: [
-                                                  /// PLAY BUTTON
-                                                  IconButton(
-                                                    onPressed: () {
-                                                      if (taskProvider
-                                                          .recordedAudioPaths[index].play) {
-                                                        taskProvider
-                                                            .recordedAudioPaths[index]
-                                                            .play = false;
-                                                        taskProvider.stopAudio();
-                                                      } else {
-                                                        taskProvider
-                                                            .recordedAudioPaths[index]
-                                                            .play = true;
-
-                                                        taskProvider.audioPlayer
-                                                            .seek(Duration.zero);
-
-                                                        taskProvider.playAudio(
-                                                          taskProvider
-                                                              .recordedAudioPaths[index]
-                                                              .audioPath,
-                                                          index,
-                                                        );
-                                                      }
-                                                    },
-                                                    icon: Icon(
-                                                      taskProvider.recordedAudioPaths[index]
-                                                          .play
-                                                          ? Icons.pause
-                                                          : Icons.play_arrow,
-                                                      size: 30,
-                                                      color: taskProvider
-                                                          .recordedAudioPaths[index].play
-                                                          ? colorsConst.primary
-                                                          : colorsConst.litGrey,
-                                                    ),
+                                            // ---------- audio row ----------
+                                            Row(
+                                              mainAxisAlignment: taskProvider
+                                                  .recordedAudioPaths.isNotEmpty &&
+                                                  taskProvider.isRecording == false
+                                                  ? MainAxisAlignment.spaceAround
+                                                  : MainAxisAlignment.center,
+                                              children: [
+                                                Container(
+                                                  width: kIsWeb
+                                                      ? webWidth / 1.5
+                                                      : phoneWidth / 1.3,
+                                                  height: 65,
+                                                  decoration: customDecoration
+                                                      .baseBackgroundDecoration(
+                                                    color: Colors.white,
+                                                    radius: 10,
                                                   ),
-
-                                                  /// SLIDER
-                                                  SizedBox(
-                                                    width: kIsWeb
-                                                        ? webWidth / 1.5
-                                                        : phoneWidth / 2.1,
-                                                    child: Slider(
-                                                      activeColor: colorsConst.primary,
-                                                      inactiveColor: colorsConst.litGrey,
-                                                      onChanged: (value) {
-                                                        final duration = taskProvider
-                                                            .recordedAudioPaths[index]
-                                                            .duration;
-
-                                                        if (duration.inMilliseconds == 0) {
-                                                          return;
-                                                        }
-
-                                                        final positionValue =
-                                                            value * duration.inMilliseconds;
-
-                                                        taskProvider.audioPlayer.seek(
-                                                          Duration(
-                                                              milliseconds:
-                                                              positionValue.round()),
-                                                        );
-                                                      },
-                                                      value: (taskProvider
-                                                          .recordedAudioPaths[index]
-                                                          .duration
-                                                          .inMilliseconds >
-                                                          0)
-                                                          ? taskProvider
-                                                          .recordedAudioPaths[index]
-                                                          .position
-                                                          .inMilliseconds /
-                                                          taskProvider
-                                                              .recordedAudioPaths[index]
-                                                              .duration
-                                                              .inMilliseconds
-                                                          : 0.0,
-                                                    ),
-                                                  ),
-
-                                                  /// TIME
-                                                  Row(
+                                                  child: Row(
+                                                    mainAxisAlignment:
+                                                    MainAxisAlignment.spaceBetween,
                                                     children: [
-                                                      CustomText(
-                                                        text: taskProvider
-                                                            .recordedAudioPaths[index]
-                                                            .second
-                                                            .toStringAsFixed(2),
-                                                        colors: colorsConst.greyClr,
-                                                        size: 13,
+                                                      /// PLAY BUTTON
+                                                      IconButton(
+                                                        onPressed: () {
+                                                          if (audio.play) {
+                                                            audio.play = false;
+                                                            taskProvider.stopAudio();
+                                                          } else {
+                                                            audio.play = true;
+                                                            taskProvider.audioPlayer
+                                                                .seek(Duration.zero);
+                                                            taskProvider.playAudio(
+                                                              audio.audioPath,
+                                                              index,
+                                                            );
+                                                          }
+                                                        },
+                                                        icon: Icon(
+                                                          audio.play
+                                                              ? Icons.pause
+                                                              : Icons.play_arrow,
+                                                          size: 30,
+                                                          color: audio.play
+                                                              ? colorsConst.primary
+                                                              : colorsConst.litGrey,
+                                                        ),
                                                       ),
-                                                      5.width,
+
+                                                      /// SLIDER
+                                                      SizedBox(
+                                                        width: kIsWeb
+                                                            ? webWidth / 1.5
+                                                            : phoneWidth / 2.1,
+                                                        child: Slider(
+                                                          activeColor:
+                                                          colorsConst.primary,
+                                                          inactiveColor:
+                                                          colorsConst.litGrey,
+                                                          onChanged: (value) {
+                                                            final duration =
+                                                                audio.duration;
+                                                            if (duration
+                                                                .inMilliseconds ==
+                                                                0) {
+                                                              return;
+                                                            }
+                                                            final positionValue = value *
+                                                                duration.inMilliseconds;
+                                                            taskProvider.audioPlayer
+                                                                .seek(
+                                                              Duration(
+                                                                  milliseconds:
+                                                                  positionValue
+                                                                      .round()),
+                                                            );
+                                                          },
+                                                          value: (audio.duration
+                                                              .inMilliseconds >
+                                                              0)
+                                                              ? audio.position
+                                                              .inMilliseconds /
+                                                              audio.duration
+                                                                  .inMilliseconds
+                                                              : 0.0,
+                                                        ),
+                                                      ),
+
+                                                      /// TIME
+                                                      Row(
+                                                        children: [
+                                                          CustomText(
+                                                            text: audio.second
+                                                                .toStringAsFixed(2),
+                                                            colors: colorsConst.greyClr,
+                                                            size: 13,
+                                                          ),
+                                                          5.width,
+                                                        ],
+                                                      ),
                                                     ],
                                                   ),
-                                                ],
-                                              ),
+                                                ),
+                                                2.width,
+                                                IconButton(
+                                                    onPressed: () {
+                                                      utils.customDialog(
+                                                          context: context,
+                                                          title: "Do you want to",
+                                                          title2: "Delete this audio?",
+                                                          callback: () {
+                                                            Navigator.pop(context);
+                                                            taskProvider
+                                                                .removeAudio(index);
+                                                          },
+                                                          isLoading: false);
+                                                    },
+                                                    icon: SvgPicture.asset(
+                                                        assets.deleteValue)),
+                                              ],
                                             ),
-                                            2.width,
-                                            IconButton(
-                                                onPressed: () {
-                                                  utils.customDialog(
-                                                      context: context,
-                                                      title: "Do you want to",
-                                                      title2: "Delete this audio?",
-                                                      callback: () {
-                                                        Navigator.pop(context);
-                                                        taskProvider.removeAudio(index);
-                                                      },
-                                                      isLoading: false);
-                                                },
-                                                icon: SvgPicture.asset(assets.deleteValue)),
+
+                                            // ---------- ✅ Convert to text button ----------
+                                            if (!taskProvider.isRecording)
+                                              Align(
+                                                alignment: Alignment.centerLeft,
+                                                child: TextButton.icon(
+                                                  onPressed: isConverting
+                                                      ? null
+                                                      : () => taskProvider
+                                                      .convertToText(context, path),
+                                                  icon: isConverting
+                                                      ? SizedBox(
+                                                    width: 14,
+                                                    height: 14,
+                                                    child:
+                                                    CircularProgressIndicator(
+                                                      strokeWidth: 2,
+                                                      color: colorsConst.primary,
+                                                    ),
+                                                  )
+                                                      : Icon(Icons.text_fields,
+                                                      size: 18,
+                                                      color: colorsConst.primary),
+                                                  label: CustomText(
+                                                    text: isConverting
+                                                        ? "Converting..."
+                                                        : (transcript == null
+                                                        ? "Convert to text"
+                                                        : "Convert again"),
+                                                    colors: colorsConst.primary,
+                                                    size: 13,
+                                                  ),
+                                                ),
+                                              ),
+
+                                            // ---------- ✅ Transcript box ----------
+                                            if (transcript != null &&
+                                                transcript.isNotEmpty)
+                                              Container(
+                                                width: kIsWeb ? webWidth : phoneWidth,
+                                                margin: const EdgeInsets.only(top: 4),
+                                                padding: const EdgeInsets.all(10),
+                                                decoration: customDecoration
+                                                    .baseBackgroundDecoration(
+                                                  color: Colors.white,
+                                                  radius: 10,
+                                                  borderColor: colorsConst.litGrey,
+                                                ),
+                                                child: Column(
+                                                  crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                                  children: [
+                                                    SelectableText(
+                                                      transcript,
+                                                      style: const TextStyle(
+                                                          fontSize: 13),
+                                                    ),
+                                                    Row(
+                                                      mainAxisAlignment:
+                                                      MainAxisAlignment.end,
+                                                      children: [
+                                                        TextButton(
+                                                          onPressed: () {
+                                                            Clipboard.setData(
+                                                                ClipboardData(
+                                                                    text: transcript));
+                                                          },
+                                                          child: const Text("Copy"),
+                                                        ),
+                                                        TextButton(
+                                                          onPressed: () => taskProvider
+                                                              .addTranscriptToDescription(
+                                                              path),
+                                                          child: const Text(
+                                                              "Add to description"),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
                                           ],
                                         ),
                                       );
@@ -813,7 +891,8 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
                                               child: ClipRRect(
                                                 borderRadius: BorderRadius.circular(10),
                                                 child: Image.file(
-                                                  File(taskProvider.selectedPhotos[index]),
+                                                  File(taskProvider
+                                                      .selectedPhotos[index]),
                                                   fit: BoxFit.cover,
                                                 ),
                                               ),
@@ -880,7 +959,8 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
                                     taskProvider.taskCtr.reset();
                                   } else {
                                     _myFocusScopeNode.unfocus();
-                                    taskProvider.addTask(context: context, id: companyId);
+                                    taskProvider.addTask(
+                                        context: context, id: companyId);
                                   }
                                 },
                                 controller: taskProvider.taskCtr),

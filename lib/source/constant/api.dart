@@ -6,8 +6,11 @@
 const String domain="https://thirumald.hapirides.in";
 const bool isRelease=false;
 
-const _geminiUrl =
+const geminiUrl =
     'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent';
+
+final String geminiKey = '';
+
 
 const String path="ACI";
 const String scriptFile="script.php";

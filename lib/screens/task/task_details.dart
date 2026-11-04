@@ -23,6 +23,7 @@ import '../../source/constant/colors_constant.dart';
 import '../../source/constant/local_data.dart';
 import '../../source/styles/decoration.dart';
 import '../../source/utilities/utils.dart';
+import '../../source/utilities/voice_transcribe_service.dart';
 import '../../view_model/expense_provider.dart';
 import '../../view_model/task_provider.dart';
 import '../common/dashboard.dart';
@@ -72,6 +73,10 @@ class _TaskDetailsState extends State<TaskDetails>
   Duration currentPosition = Duration.zero;
   Duration networkCurrent = Duration.zero;
   Duration networkTotal = Duration.zero;
+
+  // ===== VOICE TO TEXT (url -> transcript) =====
+  final Map<String, String> _transcripts = {};
+  final Map<String, bool> _transcribing = {};
 
   @override
   void initState() {
@@ -191,7 +196,6 @@ class _TaskDetailsState extends State<TaskDetails>
       await taskProvider.getStatusHistory(widget.data.id.toString());
 
       // ✅ History load aanadhukku apram, latest status-ah provider-ku sync pannum
-      // (idhu illa na provider pazhaiya status-la (Assigned) stuck aagidum)
       final latest = _latestHistoryStatus(taskProvider);
       if (latest != null) {
         taskProvider.lStatus = latest;
@@ -245,6 +249,102 @@ class _TaskDetailsState extends State<TaskDetails>
     _audioPlayer.dispose();
     _listAudioPlayer.dispose();
     super.dispose();
+  }
+
+  // ===========================================================================
+  // VOICE TO TEXT
+  // ===========================================================================
+  Future<void> _convertToText(String url) async {
+    if (_transcribing[url] == true) return;
+    setState(() => _transcribing[url] = true);
+    try {
+      final text = await VoiceTranscribeService.transcribeUrl(url);
+      if (!mounted) return;
+      setState(() => _transcripts[url] = text);
+    } catch (e) {
+      debugPrint("convertToText error: $e");
+      if (!mounted) return;
+      utils.showWarningToast(context,
+          text: e.toString().replaceFirst('Exception: ', ''));
+    } finally {
+      if (mounted) setState(() => _transcribing[url] = false);
+    }
+  }
+
+  /// Convert button + transcript box (voice note / chat voice kezha show aagum)
+  Widget _convertSection(String url) {
+    final isConverting = _transcribing[url] == true;
+    final transcript = _transcripts[url];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Align(
+          alignment: Alignment.centerLeft,
+          child: TextButton.icon(
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              minimumSize: const Size(0, 30),
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            onPressed: isConverting ? null : () => _convertToText(url),
+            icon: isConverting
+                ? SizedBox(
+              width: 14,
+              height: 14,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: colorsConst.primary,
+              ),
+            )
+                : Icon(Icons.text_fields, size: 18, color: colorsConst.primary),
+            label: CustomText(
+              text: isConverting
+                  ? "Converting..."
+                  : (transcript == null ? "Convert to text" : "Convert again"),
+              colors: colorsConst.primary,
+              size: 13,
+            ),
+          ),
+        ),
+        if (transcript != null && transcript.isNotEmpty)
+          Container(
+            width: double.infinity,
+            margin: const EdgeInsets.only(top: 2, bottom: 6),
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: Colors.grey.shade50,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: Colors.grey.shade300),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SelectableText(
+                  transcript,
+                  style: const TextStyle(fontSize: 13, color: Colors.black),
+                ),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 6),
+                      minimumSize: const Size(0, 28),
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                    onPressed: () {
+                      Clipboard.setData(ClipboardData(text: transcript));
+                      utils.showSuccessToast(
+                          context: context, text: "Copied");
+                    },
+                    child: const Text("Copy"),
+                  ),
+                ),
+              ],
+            ),
+          ),
+      ],
+    );
   }
 
   /// ✅ History-la irukkura LATEST status (created_ts vachi, list position vachi illa)
@@ -419,8 +519,6 @@ class _TaskDetailsState extends State<TaskDetails>
     var phoneWidth = MediaQuery.of(context).size.width * 0.9;
 
     // ✅ Selector (dataVersion): provider data really maarina mattum rebuild.
-    // Munnadi Provider.of(context) + Consumer rendum irundhadhu -> task timer
-    // oodinaa ovoru second um indha full page rebuild aagum.
     return Selector<TaskProvider, int>(
         selector: (_, p) => p.dataVersion,
         builder: (context, _, __) {
@@ -906,18 +1004,28 @@ class _TaskDetailsState extends State<TaskDetails>
                                         ),
                                       );
                                     }),
+
+                              // ✅ VOICE NOTES + CONVERT TO TEXT
                               if (type == "2" && voiceList.isNotEmpty)
                                 ListView.builder(
                                     itemCount: voiceList.length,
                                     shrinkWrap: true,
                                     physics: const NeverScrollableScrollPhysics(),
                                     itemBuilder: (context, index) {
+                                      final String voiceUrl =
+                                          '$imageFile?path=${voiceList[index]}';
                                       return SizedBox(
                                         width: kIsWeb ? webWidth : phoneWidth,
-                                        child: AudioTile(
-                                            key: ValueKey(voiceList[index]),
-                                            audioUrl:
-                                            '$imageFile?path=${voiceList[index]}'),
+                                        child: Column(
+                                          crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                          children: [
+                                            AudioTile(
+                                                key: ValueKey(voiceList[index]),
+                                                audioUrl: voiceUrl),
+                                            _convertSection(voiceUrl),
+                                          ],
+                                        ),
                                       );
                                     }),
                               Divider(
@@ -1433,6 +1541,12 @@ class _TaskDetailsState extends State<TaskDetails>
                                                             Colors.black,
                                                           ),
                                                         ),
+
+                                                        // ✅ CONVERT TO TEXT (chat voice)
+                                                        if (isAudio)
+                                                          _convertSection(
+                                                              audioUrl),
+
                                                         const SizedBox(height: 3),
                                                         Text(
                                                           msg.firstname.toString(),
