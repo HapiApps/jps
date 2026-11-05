@@ -40,15 +40,23 @@ class _ViewEmployeesState extends State<ViewEmployees>
 
     _tabController = TabController(length: 2, vsync: this);
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       final locationProvider =
       Provider.of<LocationProvider>(context, listen: false);
       final employeeProvider =
       Provider.of<EmployeeProvider>(context, listen: false);
-      Provider.of<EmployeeProvider>(context, listen: false).getAllUsers();
-      locationProvider.manageLocation(context, false);
+
+      // 1. Load users first, so filters work on real data
+      await employeeProvider.getAllUsers();
+
+      // The screen may have been closed while loading
+      if (!mounted) return;
+
+      // 2. Then set up filters
       employeeProvider.initFilterValue(true);
       employeeProvider.getGrades(true);
+
+      locationProvider.manageLocation(context, false);
 
       if (!kIsWeb) {
         employeeProvider.getAllRoles();
@@ -74,6 +82,248 @@ class _ViewEmployeesState extends State<ViewEmployees>
     super.dispose();
   }
 
+  /// Date box used for "From Date" / "To Date" in the filter dialog
+  Widget _dateBox({
+    required BuildContext context,
+    required EmployeeProvider empProvider,
+    required String label,
+    required String value,
+    required bool isStartDate,
+    required double width,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        CustomText(text: label, colors: colorsConst.greyClr, size: 12),
+        InkWell(
+          onTap: () {
+            empProvider.datePick(
+              context: context,
+              isStartDate: isStartDate,
+              date: value,
+            );
+          },
+          child: Container(
+            height: 30,
+            width: width,
+            decoration: customDecoration.baseBackgroundDecoration(
+              color: Colors.white,
+              radius: 5,
+              borderColor: colorsConst.litGrey,
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                CustomText(text: value),
+                5.width,
+                SvgPicture.asset(assets.calendar2),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Filter dialog
+  void _showFilterDialog(double webWidth, double phoneWidth) {
+    _myFocusScopeNode.unfocus();
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return Consumer<EmployeeProvider>(
+          builder: (context, empProvider, _) {
+            final fullWidth = kIsWeb ? webWidth / 1.2 : phoneWidth / 1.2;
+            final halfWidth = kIsWeb ? webWidth / 2.5 : phoneWidth / 2.5;
+
+            return AlertDialog(
+              actions: [
+                SizedBox(
+                  width: fullWidth,
+                  child: Column(
+                    children: [
+                      20.height,
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          70.width,
+                          const CustomText(
+                            text: 'Filters',
+                            colors: Colors.black,
+                            size: 16,
+                            isBold: true,
+                          ),
+                          30.width,
+                          InkWell(
+                            onTap: () {
+                              Navigator.of(context, rootNavigator: true).pop();
+                            },
+                            child: SvgPicture.asset(assets.cancel),
+                          )
+                        ],
+                      ),
+                      20.height,
+
+                      /// DATE RANGE
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          _dateBox(
+                            context: context,
+                            empProvider: empProvider,
+                            label: "From Date",
+                            value: empProvider.startDate,
+                            isStartDate: true,
+                            width: halfWidth,
+                          ),
+                          _dateBox(
+                            context: context,
+                            empProvider: empProvider,
+                            label: "To Date",
+                            value: empProvider.endDate,
+                            isStartDate: false,
+                            width: halfWidth,
+                          ),
+                        ],
+                      ),
+
+                      10.height,
+
+                      /// SELECT DATE RANGE DROPDOWN
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          CustomText(
+                            text: "Select Date Range",
+                            colors: colorsConst.greyClr,
+                            size: 12,
+                          ),
+                          Container(
+                            height: 30,
+                            width: fullWidth,
+                            decoration: customDecoration.baseBackgroundDecoration(
+                              radius: 5,
+                              color: Colors.white,
+                              borderColor: colorsConst.litGrey,
+                            ),
+                            child: DropdownButton(
+                              iconEnabledColor: colorsConst.greyClr,
+                              isExpanded: true,
+                              underline: const SizedBox(),
+                              icon: const Icon(
+                                  Icons.keyboard_arrow_down_outlined),
+                              value: empProvider.type,
+                              onChanged: (value) {
+                                empProvider.changeType(value);
+                              },
+                              items: empProvider.typeList.map((list) {
+                                return DropdownMenuItem(
+                                  value: list,
+                                  child: CustomText(
+                                    text: "  $list",
+                                    colors: Colors.black,
+                                    isBold: false,
+                                  ),
+                                );
+                              }).toList(),
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      10.height,
+
+                      /// ROLE
+                      MapDropDown(
+                        isRefresh: empProvider.roleValues.isEmpty,
+                        callback: () {
+                          empProvider.refreshRoles();
+                        },
+                        isHint: true,
+                        width: fullWidth,
+                        isRequired: true,
+                        hintText: "Role",
+                        list: empProvider.roleValues,
+                        saveValue: empProvider.role,
+                        onChanged: (Object? value) {
+                          empProvider.changeRole(value);
+                        },
+                        dropText: 'role',
+                      ),
+                      10.height,
+
+                      /// CLEAR & APPLY BUTTONS
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          CustomBtn(
+                            width: 100,
+                            text: 'Clear All',
+                            callback: () {
+                              // resets role, dates, status, search and the list
+                              empProvider.initFilterValue(true);
+                              Navigator.of(context, rootNavigator: true).pop();
+                            },
+                            bgColor: Colors.grey.shade200,
+                            textColor: Colors.black,
+                          ),
+                          CustomBtn(
+                            width: 100,
+                            text: 'Apply Filters',
+                            callback: () {
+                              empProvider.initFilterValue(false);
+                              empProvider.filterList();
+                              Navigator.of(context, rootNavigator: true).pop();
+                            },
+                            bgColor: colorsConst.primary,
+                            textColor: Colors.white,
+                          ),
+                        ],
+                      ),
+                      20.height,
+                    ],
+                  ),
+                )
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _employeeList(
+      List employees,
+      String emptyText,
+      ) {
+    if (employees.isEmpty) {
+      return Center(
+        child: CustomText(
+          text: emptyText,
+          colors: colorsConst.greyClr,
+        ),
+      );
+    }
+    return ListView.builder(
+      itemCount: employees.length,
+      itemBuilder: (context, index) {
+        final employeeData = employees[index];
+        return Column(
+          children: [
+            EmpData(
+              showDateHeader: false,
+              employeeData: employeeData,
+              dayOfWeek: "",
+              focusScope: _myFocusScopeNode,
+            ),
+            if (index == employees.length - 1) 70.height,
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     var webWidth = MediaQuery.of(context).size.width * 0.5;
@@ -87,7 +337,6 @@ class _ViewEmployeesState extends State<ViewEmployees>
 
     return Consumer2<EmployeeProvider, HomeProvider>(
         builder: (context, empProvider, homeProvider, _) {
-
           final activeList = empProvider.filterUserData
               .where((e) => e.active.toString() == "1")
               .toList()
@@ -154,25 +403,31 @@ class _ViewEmployeesState extends State<ViewEmployees>
                                   ),
                                   child: Row(
                                     children: [
-
                                       /// Search Field
                                       Expanded(
                                         child: Container(
                                           margin: const EdgeInsets.all(4),
                                           decoration: BoxDecoration(
                                             color: Colors.white,
-                                            borderRadius: BorderRadius.circular(30),
+                                            borderRadius:
+                                            BorderRadius.circular(30),
                                           ),
-                                          child:TextField(
+                                          child: TextField(
                                             controller: empProvider.search,
-                                            style: const TextStyle(color: Colors.black, fontSize: 16),
+                                            style: const TextStyle(
+                                                color: Colors.black,
+                                                fontSize: 16),
                                             cursorColor: Colors.black,
                                             decoration: const InputDecoration(
                                               hintText: "Search Name or No",
-                                              hintStyle: TextStyle(color: Colors.grey),
-                                              prefixIcon: Icon(Icons.search, color: Colors.grey),
+                                              hintStyle:
+                                              TextStyle(color: Colors.grey),
+                                              prefixIcon: Icon(Icons.search,
+                                                  color: Colors.grey),
                                               border: InputBorder.none,
-                                              contentPadding: EdgeInsets.symmetric(vertical: 15),
+                                              contentPadding:
+                                              EdgeInsets.symmetric(
+                                                  vertical: 15),
                                             ),
                                             onChanged: (value) {
                                               empProvider.searchUser(value);
@@ -183,344 +438,8 @@ class _ViewEmployeesState extends State<ViewEmployees>
 
                                       /// Filter Button
                                       InkWell(
-                                        onTap: () {
-                                          _myFocusScopeNode.unfocus();
-
-                                          showDialog(
-                                            context: context,
-                                            builder: (context) {
-                                              return Consumer<EmployeeProvider>(
-                                                builder: (context, empProvider, _) {
-                                                  return AlertDialog(
-                                                    actions: [
-                                                      SizedBox(
-                                                        width: kIsWeb
-                                                            ? webWidth / 1.2
-                                                            : phoneWidth / 1.2,
-                                                        child: Column(
-                                                          children: [
-                                                            20.height,
-                                                            Row(
-                                                              mainAxisAlignment:
-                                                              MainAxisAlignment
-                                                                  .spaceBetween,
-                                                              children: [
-                                                                70.width,
-                                                                const CustomText(
-                                                                  text: 'Filters',
-                                                                  colors:
-                                                                  Colors.black,
-                                                                  size: 16,
-                                                                  isBold: true,
-                                                                ),
-                                                                30.width,
-                                                                InkWell(
-                                                                  onTap: () {
-                                                                    Navigator.of(
-                                                                        context,
-                                                                        rootNavigator:
-                                                                        true)
-                                                                        .pop();
-                                                                  },
-                                                                  child: SvgPicture
-                                                                      .asset(assets
-                                                                      .cancel),
-                                                                )
-                                                              ],
-                                                            ),
-                                                            20.height,
-
-                                                            /// DATE RANGE
-                                                            Row(
-                                                              mainAxisAlignment:
-                                                              MainAxisAlignment
-                                                                  .spaceEvenly,
-                                                              children: [
-                                                                Column(
-                                                                  crossAxisAlignment:
-                                                                  CrossAxisAlignment
-                                                                      .start,
-                                                                  children: [
-                                                                    CustomText(
-                                                                      text:
-                                                                      "From Date",
-                                                                      colors:
-                                                                      colorsConst
-                                                                          .greyClr,
-                                                                      size: 12,
-                                                                    ),
-                                                                    InkWell(
-                                                                      onTap: () {
-                                                                        empProvider
-                                                                            .datePick(
-                                                                          context:
-                                                                          context,
-                                                                          isStartDate:
-                                                                          true,
-                                                                          date: empProvider
-                                                                              .startDate,
-                                                                        );
-                                                                      },
-                                                                      child:
-                                                                      Container(
-                                                                        height: 30,
-                                                                        width: kIsWeb
-                                                                            ? webWidth /
-                                                                            2.5
-                                                                            : phoneWidth /
-                                                                            2.5,
-                                                                        decoration:
-                                                                        customDecoration
-                                                                            .baseBackgroundDecoration(
-                                                                          color: Colors
-                                                                              .white,
-                                                                          radius: 5,
-                                                                          borderColor:
-                                                                          colorsConst
-                                                                              .litGrey,
-                                                                        ),
-                                                                        child: Row(
-                                                                          mainAxisAlignment:
-                                                                          MainAxisAlignment
-                                                                              .center,
-                                                                          children: [
-                                                                            CustomText(
-                                                                                text:
-                                                                                empProvider.startDate),
-                                                                            5.width,
-                                                                            SvgPicture
-                                                                                .asset(
-                                                                              assets
-                                                                                  .calendar2,
-                                                                            ),
-                                                                          ],
-                                                                        ),
-                                                                      ),
-                                                                    )
-                                                                  ],
-                                                                ),
-                                                                Column(
-                                                                  crossAxisAlignment:
-                                                                  CrossAxisAlignment
-                                                                      .start,
-                                                                  children: [
-                                                                    CustomText(
-                                                                      text: "To Date",
-                                                                      colors:
-                                                                      colorsConst
-                                                                          .greyClr,
-                                                                      size: 12,
-                                                                    ),
-                                                                    InkWell(
-                                                                      onTap: () {
-                                                                        empProvider
-                                                                            .datePick(
-                                                                          context:
-                                                                          context,
-                                                                          isStartDate:
-                                                                          false,
-                                                                          date: empProvider
-                                                                              .endDate,
-                                                                        );
-                                                                      },
-                                                                      child:
-                                                                      Container(
-                                                                        height: 30,
-                                                                        width: kIsWeb
-                                                                            ? webWidth /
-                                                                            2.5
-                                                                            : phoneWidth /
-                                                                            2.5,
-                                                                        decoration:
-                                                                        customDecoration
-                                                                            .baseBackgroundDecoration(
-                                                                          color: Colors
-                                                                              .white,
-                                                                          radius: 5,
-                                                                          borderColor:
-                                                                          colorsConst
-                                                                              .litGrey,
-                                                                        ),
-                                                                        child: Row(
-                                                                          mainAxisAlignment:
-                                                                          MainAxisAlignment
-                                                                              .center,
-                                                                          children: [
-                                                                            CustomText(
-                                                                                text:
-                                                                                empProvider.endDate),
-                                                                            5.width,
-                                                                            SvgPicture
-                                                                                .asset(
-                                                                              assets
-                                                                                  .calendar2,
-                                                                            ),
-                                                                          ],
-                                                                        ),
-                                                                      ),
-                                                                    )
-                                                                  ],
-                                                                ),
-                                                              ],
-                                                            ),
-
-                                                            10.height,
-
-                                                            /// SELECT DATE RANGE DROPDOWN
-                                                            Column(
-                                                              crossAxisAlignment:
-                                                              CrossAxisAlignment
-                                                                  .start,
-                                                              children: [
-                                                                CustomText(
-                                                                  text:
-                                                                  "Select Date Range",
-                                                                  colors: colorsConst
-                                                                      .greyClr,
-                                                                  size: 12,
-                                                                ),
-                                                                Container(
-                                                                  height: 30,
-                                                                  width: kIsWeb
-                                                                      ? webWidth /
-                                                                      1.2
-                                                                      : phoneWidth /
-                                                                      1.2,
-                                                                  decoration:
-                                                                  customDecoration
-                                                                      .baseBackgroundDecoration(
-                                                                    radius: 5,
-                                                                    color:
-                                                                    Colors.white,
-                                                                    borderColor:
-                                                                    colorsConst
-                                                                        .litGrey,
-                                                                  ),
-                                                                  child:
-                                                                  DropdownButton(
-                                                                    iconEnabledColor:
-                                                                    colorsConst
-                                                                        .greyClr,
-                                                                    isExpanded: true,
-                                                                    underline:
-                                                                    const SizedBox(),
-                                                                    icon: const Icon(
-                                                                        Icons
-                                                                            .keyboard_arrow_down_outlined),
-                                                                    value:
-                                                                    empProvider
-                                                                        .type,
-                                                                    onChanged:
-                                                                        (value) {
-                                                                      empProvider
-                                                                          .changeType(
-                                                                          value);
-                                                                    },
-                                                                    items: empProvider
-                                                                        .typeList
-                                                                        .map((list) {
-                                                                      return DropdownMenuItem(
-                                                                        value: list,
-                                                                        child:
-                                                                        CustomText(
-                                                                          text:
-                                                                          "  $list",
-                                                                          colors: Colors
-                                                                              .black,
-                                                                          isBold:
-                                                                          false,
-                                                                        ),
-                                                                      );
-                                                                    }).toList(),
-                                                                  ),
-                                                                ),
-                                                              ],
-                                                            ),
-
-                                                            10.height,
-
-                                                            MapDropDown(
-                                                              isRefresh: empProvider.roleValues.isEmpty?true:false,
-                                                              callback: (){
-                                                                empProvider.refreshRoles();
-                                                              },
-                                                              isHint: true,
-                                                              width: kIsWeb
-                                                                  ? webWidth /
-                                                                  1.2
-                                                                  : phoneWidth /
-                                                                  1.2,
-                                                              isRequired: true,
-                                                              hintText: "Role",
-                                                              list: empProvider.roleValues,
-                                                              saveValue: empProvider.role,
-                                                              onChanged: (Object? value) {
-                                                                empProvider.changeRole(value);
-                                                              },
-                                                              dropText: 'role',),
-                                                            10.height,
-
-
-                                                            /// CLEAR & APPLY BUTTONS
-                                                            Row(
-                                                              mainAxisAlignment:
-                                                              MainAxisAlignment
-                                                                  .spaceEvenly,
-                                                              children: [
-                                                                CustomBtn(
-                                                                  width: 100,
-                                                                  text: 'Clear All',
-                                                                  callback: () {
-                                                                    empProvider
-                                                                        .initFilterValue(
-                                                                        true);
-                                                                    empProvider.clearRole();
-                                                                    Navigator.of(
-                                                                        context,
-                                                                        rootNavigator:
-                                                                        true)
-                                                                        .pop();
-                                                                  },
-                                                                  bgColor: Colors
-                                                                      .grey.shade200,
-                                                                  textColor:
-                                                                  Colors.black,
-                                                                ),
-                                                                CustomBtn(
-                                                                  width: 100,
-                                                                  text:
-                                                                  'Apply Filters',
-                                                                  callback: () {
-                                                                    empProvider
-                                                                        .initFilterValue(
-                                                                        false);
-                                                                    empProvider
-                                                                        .filterList();
-                                                                    Navigator.of(
-                                                                        context,
-                                                                        rootNavigator:
-                                                                        true)
-                                                                        .pop();
-                                                                  },
-                                                                  bgColor:
-                                                                  colorsConst
-                                                                      .primary,
-                                                                  textColor:
-                                                                  Colors.white,
-                                                                ),
-                                                              ],
-                                                            ),
-                                                            20.height,
-                                                          ],
-                                                        ),
-                                                      )
-                                                    ],
-                                                  );
-                                                },
-                                              );
-                                            },
-                                          );
-                                        },
+                                        onTap: () => _showFilterDialog(
+                                            webWidth, phoneWidth),
                                         child: Container(
                                           width: 60,
                                           alignment: Alignment.center,
@@ -537,8 +456,6 @@ class _ViewEmployeesState extends State<ViewEmployees>
                               ),
                             ],
                           ),
-
-
 
                           10.height,
 
@@ -559,7 +476,9 @@ class _ViewEmployeesState extends State<ViewEmployees>
                               unselectedLabelColor: Colors.black,
                               tabs: [
                                 Tab(text: "Active (${activeList.length})"),
-                                Tab(text: "Inactive (${inactiveList.length})"),
+                                Tab(
+                                    text:
+                                    "Inactive (${inactiveList.length})"),
                               ],
                             ),
                           ),
@@ -571,59 +490,10 @@ class _ViewEmployeesState extends State<ViewEmployees>
                             child: TabBarView(
                               controller: _tabController,
                               children: [
-                                /// ---------------- ACTIVE TAB ----------------
-                                activeList.isEmpty
-                                    ? Center(
-                                  child: CustomText(
-                                    text: "No Active Employees Found",
-                                    colors: colorsConst.greyClr,
-                                  ),
-                                )
-                                    : ListView.builder(
-                                  itemCount: activeList.length,
-                                  itemBuilder: (context, index) {
-                                    final employeeData = activeList[index];
-
-                                    return Column(
-                                      children: [
-                                        EmpData(
-                                          showDateHeader: false, // ✅ no date header
-                                          employeeData: employeeData,
-                                          dayOfWeek: "", // ✅ not needed
-                                          focusScope: _myFocusScopeNode,
-                                        ),
-                                        if (index == activeList.length - 1) 70.height,
-                                      ],
-                                    );
-                                  },
-                                ),
-
-                                /// ---------------- INACTIVE TAB ----------------
-                                inactiveList.isEmpty
-                                    ? Center(
-                                  child: CustomText(
-                                    text: "No Inactive Employees Found",
-                                    colors: colorsConst.greyClr,
-                                  ),
-                                )
-                                    : ListView.builder(
-                                  itemCount: inactiveList.length,
-                                  itemBuilder: (context, index) {
-                                    final employeeData = inactiveList[index];
-
-                                    return Column(
-                                      children: [
-                                        EmpData(
-                                          showDateHeader: false, // ✅ no date header
-                                          employeeData: employeeData,
-                                          dayOfWeek: "", // ✅ not needed
-                                          focusScope: _myFocusScopeNode,
-                                        ),
-                                        if (index == inactiveList.length - 1) 70.height,
-                                      ],
-                                    );
-                                  },
-                                ),
+                                _employeeList(
+                                    activeList, "No Active Employees Found"),
+                                _employeeList(inactiveList,
+                                    "No Inactive Employees Found"),
                               ],
                             ),
                           ),
