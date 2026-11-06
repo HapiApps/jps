@@ -23,7 +23,6 @@ import '../../model/leave/leave_model.dart';
 import '../../model/user_model.dart';
 import '../../source/constant/assets_constant.dart';
 import '../../source/constant/language_model.dart';
-import '../../source/constant/language_model.dart';
 import '../../source/constant/local_data.dart';
 import '../../source/styles/decoration.dart';
 import '../../view_model/attendance_provider.dart';
@@ -38,6 +37,7 @@ class AttendanceReport extends StatefulWidget {
   final String type;
   final String showType;
   final List<UserModel> empList;
+
   const AttendanceReport({super.key,required this.date1, required this.date2, required this.type, required this.showType, required this.empList});
 
   @override
@@ -48,8 +48,77 @@ class _AttendanceReportState extends State<AttendanceReport> {
   final FocusScopeNode _myFocusScopeNode = FocusScopeNode();
   late String showType;
 
+  /// ✅ Apply / Clear filter pannumbothu loading kaattura flag
+  bool isFilterLoading = false;
+
   /// ✅ cache so repeated lat,lng pairs aren't re-geocoded
   final Map<String, String> _areaCache = {};
+
+  /// ✅ Apply Filters: ippo thaan backend call aagum (selection la illa)
+  Future<void> _applyFilters(
+      AttendanceProvider att, LeaveProvider lev, dynamic user) async {
+    if (!mounted) return;
+    setState(() => isFilterLoading = true);
+
+    try {
+      final String uid = (user ?? "").toString();
+      final String role = localData.storage.read("role").toString();
+
+      att.search.clear();
+      lev.search2.clear();
+
+      att.changeFilter();
+      lev.changeFilter();
+
+      await Future.wait([
+        att.getAttendanceReport(uid),
+        att.getAbsentAttendanceReport(uid),
+      ]);
+
+      if (role == "1") {
+        await lev.allLeaves(att.startDate, att.endDate, true, role, uid);
+      } else {
+        await lev.myLeaves(att.startDate, att.endDate, true, uid);
+      }
+    } catch (e) {
+      print("Filter Error: $e");
+    } finally {
+      if (mounted) setState(() => isFilterLoading = false);
+    }
+  }
+
+  /// ✅ Clear All: reset + fetch with loading
+  Future<void> _clearFilters(AttendanceProvider att, LeaveProvider lev) async {
+    if (!mounted) return;
+    setState(() => isFilterLoading = true);
+
+    try {
+      att.initDate(
+        id: localData.storage.read("id"),
+        role: localData.storage.read("role"),
+        isRefresh: false,
+        date1: widget.date1,
+        date2: widget.date2,
+        type: widget.type,
+      );
+      await Future.wait([
+        att.getAttendanceReport(localData.storage.read("id")),
+        att.getAbsentAttendanceReport(localData.storage.read("id")),
+      ]);
+      lev.changeFilter();
+      await lev.allSpecificLeaves(
+        att.startDate,
+        att.endDate,
+        true,
+        localData.storage.read("role"),
+        localData.storage.read("id"),
+      );
+    } catch (e) {
+      print("Clear Error: $e");
+    } finally {
+      if (mounted) setState(() => isFilterLoading = false);
+    }
+  }
 
   @override
   void initState() {
@@ -100,7 +169,7 @@ class _AttendanceReportState extends State<AttendanceReport> {
   @override
   void dispose() {
     _myFocusScopeNode.dispose();
-   Provider.of<HomeProvider>(context, listen: false).stopAutoRefresh();
+    Provider.of<HomeProvider>(context, listen: false).stopAutoRefresh();
     super.dispose();
   }
 
@@ -286,12 +355,414 @@ class _AttendanceReportState extends State<AttendanceReport> {
     );
   }
 
+  // ==========================================================================
+  // ✅ FILTER DIALOG (original design, alignment cleaned) + SEARCHABLE EMPLOYEE
+  // ==========================================================================
+
+  /// dialog open aagumbothu irundha From/To date (preset type kum date kum match aagudha nu check panna)
+  String? _baseStart;
+  String? _baseEnd;
+
+  /// dialog open aagumbothu munnadiye custom date apply panni irundha
+  bool _forceCustom = false;
+
+  /// Apply pannumbothu user custom From/To date select pannirundhaa (outside chips ku)
+  bool _appliedCustom = false;
+
+  /// ✅ From/To date manually maathirundha "Today" nu kaattaama "Custom Range" nu kaattum
+  bool _showCustom(AttendanceProvider att) {
+    if (_forceCustom) return true;
+    if (_baseStart == null || _baseEnd == null) return false;
+    return att.startDate != _baseStart || att.endDate != _baseEnd;
+  }
+
+  /// label + field (same size / same gap everywhere)
+  Widget _dialogField({
+    required String label,
+    required double width,
+    required Widget child,
+    VoidCallback? onTap,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        CustomText(text: label, colors: colorsConst.greyClr, size: 12),
+        6.height,
+        InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(5),
+          child: Container(
+            height: 40,
+            width: width,
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            decoration: customDecoration.baseBackgroundDecoration(
+              radius: 5,
+              color: Colors.white,
+              borderColor: colorsConst.litGrey,
+            ),
+            child: child,
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// ✅ opens the filter dialog (called from the filter icon)
+  void _openFilterDialog(
+      AttendanceProvider attProvider,
+      EmployeeProvider empProvider,
+      LeaveProvider levPvr,
+      ) {
+    _myFocusScopeNode.unfocus();
+
+    // ✅ list illana mattum load pannu (dialog open aagumbothu reset aagaama irukka)
+    if (empProvider.filterUserData.isEmpty) {
+      empProvider.getAllUsers();
+    }
+
+    // ✅ snapshot: Apply pannaama close pannaa restore panna
+    final oldStart = attProvider.startDate;
+    final oldEnd = attProvider.endDate;
+    final oldType = attProvider.type;
+    final oldUser = attProvider.user;
+    final oldUserName = attProvider.userName;
+    bool applied = false;
+
+    _baseStart = attProvider.startDate;
+    _baseEnd = attProvider.endDate;
+    _forceCustom = _appliedCustom;
+
+    final double webWidth = MediaQuery.of(context).size.width * 0.5;
+    final double phoneWidth = MediaQuery.of(context).size.width * 0.95;
+    final double fieldW = kIsWeb ? webWidth / 2.7 : phoneWidth / 2.7;
+
+    showDialog(
+      context: context,
+      builder: (dialogCtx) {
+        return Consumer<AttendanceProvider>(
+          builder: (_, custProvider, __) {
+            // type maathunaa (base null) -> ippo irukkura date ah base ah edukkurom
+            if (_baseStart == null || _baseEnd == null) {
+              _baseStart = custProvider.startDate;
+              _baseEnd = custProvider.endDate;
+            }
+            final bool isCustom = _showCustom(custProvider);
+
+            // ✅ date picker app theme color la varanum -> Theme wrap pannitu
+            // datePick ku themedCtx (Theme ku keela irukkura context) pass panrom
+            return Theme(
+              data: Theme.of(dialogCtx).copyWith(
+                colorScheme: Theme.of(dialogCtx).colorScheme.copyWith(
+                  primary: colorsConst.primary,
+                  onPrimary: Colors.white,
+                  surface: Colors.white,
+                  onSurface: Colors.black,
+                ),
+                textButtonTheme: TextButtonThemeData(
+                  style: TextButton.styleFrom(foregroundColor: colorsConst.primary),
+                ),
+              ),
+              child: Builder(builder: (themedCtx) {
+                return AlertDialog(
+                  scrollable: true,
+                  contentPadding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
+                  content: SizedBox(
+                    width: kIsWeb ? webWidth : phoneWidth,
+                    child: Column(
+                      children: [
+                        20.height,
+
+                        // ---------- Header (title center, close right) ----------
+                        Row(
+                          children: [
+                            const SizedBox(width: 24),
+                            const Expanded(
+                              child: Center(
+                                child: CustomText(
+                                  text: 'Filters',
+                                  colors: Colors.black,
+                                  size: 16,
+                                  isBold: true,
+                                ),
+                              ),
+                            ),
+                            InkWell(
+                              onTap: () {
+                                Navigator.of(dialogCtx, rootNavigator: true).pop();
+                              },
+                              child: SvgPicture.asset(assets.cancel),
+                            ),
+                          ],
+                        ),
+                        20.height,
+
+                        // ---------- From / To date ----------
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _dialogField(
+                              label: "From Date",
+                              width: fieldW,
+                              onTap: () {
+                                custProvider.datePick(
+                                  context: themedCtx,
+                                  isStartDate: true,
+                                  date: attProvider.startDate,
+                                );
+                              },
+                              child: Row(
+                                children: [
+                                  Expanded(child: CustomText(text: custProvider.startDate)),
+                                  SvgPicture.asset(assets.calendar2),
+                                ],
+                              ),
+                            ),
+                            _dialogField(
+                              label: "To Date",
+                              width: fieldW,
+                              onTap: () {
+                                custProvider.datePick(
+                                  context: themedCtx,
+                                  isStartDate: false,
+                                  date: attProvider.endDate,
+                                );
+                              },
+                              child: Row(
+                                children: [
+                                  Expanded(child: CustomText(text: custProvider.endDate)),
+                                  SvgPicture.asset(assets.calendar2),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        16.height,
+
+                        // ---------- Employee (SEARCHABLE) / Date range ----------
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // ✅ small searchable dropdown (dialog kulla thaan open aagum)
+                            Consumer<EmployeeProvider>(
+                              builder: (_, emp, __) {
+                                return _EmployeeSearchDropdown(
+                                  width: fieldW,
+                                  users: emp.filterUserData,
+                                  selectedId: (custProvider.user ?? "").toString(),
+                                  selectedName: custProvider.userName,
+                                  onSelected: (u) =>
+                                      attProvider.selectUser(dialogCtx, u, widget.empList),
+                                );
+                              },
+                            ),
+                            _dialogField(
+                              label: "Select Date Range",
+                              width: fieldW,
+                              child: DropdownButton<String>(
+                                iconEnabledColor: colorsConst.greyClr,
+                                isExpanded: true,
+                                underline: const SizedBox(),
+                                icon: const Icon(Icons.keyboard_arrow_down_outlined),
+                                menuMaxHeight: 300,
+                                // From/To manually maathirundha value null -> "Custom Range" nu kaattum
+                                // illana only use the value if it exists exactly once in the list
+                                value: (!isCustom &&
+                                    attProvider.typeList.where((e) => e == attProvider.type).length == 1)
+                                    ? attProvider.type
+                                    : null,
+                                hint: CustomText(
+                                  text: isCustom ? "Custom Range" : "Select",
+                                  colors: isCustom ? Colors.black : Colors.grey,
+                                ),
+                                onChanged: (value) {
+                                  if (value == null) return;
+                                  attProvider.changeType(
+                                    value,
+                                    localData.storage.read("id"),
+                                    localData.storage.read("role"),
+                                    false,
+                                    widget.empList,
+                                    context,
+                                  );
+                                  // preset select pannitaanga -> custom flag reset
+                                  _forceCustom = false;
+                                  _baseStart = null;
+                                  _baseEnd = null;
+                                },
+                                items: attProvider.typeList.toSet().toList().map((list) {
+                                  return DropdownMenuItem<String>(
+                                    value: list,
+                                    child: CustomText(
+                                      text: list,
+                                      colors: Colors.black,
+                                      isBold: false,
+                                    ),
+                                  );
+                                }).toList(),
+                              ),
+                            ),
+                          ],
+                        ),
+                        24.height,
+
+                        // ---------- Buttons ----------
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: [
+                            CustomBtn(
+                              width: 100,
+                              text: 'Clear All',
+                              callback: () {
+                                applied = true;
+                                _appliedCustom = false;
+                                _forceCustom = false;
+                                Navigator.of(dialogCtx, rootNavigator: true).pop();
+                                _clearFilters(attProvider, levPvr);
+                              },
+                              bgColor: Colors.grey.shade200,
+                              textColor: Colors.black,
+                            ),
+                            CustomBtn(
+                              width: 100,
+                              text: 'Apply Filters',
+                              callback: () {
+                                applied = true;
+                                // custom date select pannirundhaa outside chips ku theriyanum
+                                _appliedCustom = _showCustom(custProvider);
+                                // pop-ku munnadi user-a capture pannunga
+                                final selectedUser = custProvider.user;
+                                Navigator.of(dialogCtx, rootNavigator: true).pop();
+                                _applyFilters(attProvider, levPvr, selectedUser);
+                              },
+                              bgColor: colorsConst.primary,
+                              textColor: Colors.white,
+                            ),
+                          ],
+                        ),
+                        20.height,
+                      ],
+                    ),
+                  ),
+                );
+              }),
+            );
+          },
+        );
+      },
+    ).then((_) {
+      // ✅ Apply pannaama close pannaa old values restore
+      if (!applied) {
+        attProvider.restoreFilter(
+          start: oldStart,
+          end: oldEnd,
+          type: oldType,
+          user: oldUser,
+          userName: oldUserName,
+        );
+      }
+    });
+  }
+
+  // ==========================================================================
+  // ✅ MAP (thani page illa) -> same page la dialog aa open aagum.
+  // Map mela employee details + check in / check out time card kaattum.
+  // Android / iOS / Web ellathukum same.
+  // ==========================================================================
+  void _openMapDialog({
+    required String lat1,
+    required String lng1,
+    required String lat2,
+    required String lng2,
+    required String name,
+    required String role,
+    required String date,
+    required String inTime,
+    required String outTime,
+    required String totalHrs,
+  }) {
+    final Size size = MediaQuery.of(context).size;
+    final double w = kIsWeb ? size.width * 0.6 : size.width * 0.95;
+    final double h = size.height * 0.8;
+
+    showDialog(
+      context: context,
+      builder: (dialogCtx) {
+        return Dialog(
+          insetPadding: const EdgeInsets.all(12),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          clipBehavior: Clip.antiAlias,
+          child: SizedBox(
+            width: w,
+            height: h,
+            child: Stack(
+              children: [
+                // map (existing CheckLocation widget -> dialog kulla embed)
+                Positioned.fill(
+                  child: CheckLocation(
+                    lat1: lat1,
+                    long1: lng1,
+                    lat2: lat2,
+                    long2: lng2,
+                  ),
+                ),
+                // close button
+                Positioned(
+                  top: 8,
+                  right: 8,
+                  child: InkWell(
+                    onTap: () => Navigator.of(dialogCtx, rootNavigator: true).pop(),
+                    borderRadius: BorderRadius.circular(20),
+                    child: Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(color: Colors.black26, blurRadius: 6),
+                        ],
+                      ),
+                      child: const Icon(Icons.close, size: 18, color: Colors.black),
+                    ),
+                  ),
+                ),
+                // employee + check in/out card
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  child: _MapInfoCard(
+                    name: name,
+                    role: role,
+                    date: date,
+                    inTime: inTime,
+                    outTime: outTime,
+                    totalHrs: totalHrs,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     var webWidth=MediaQuery.of(context).size.width * 0.5;
     var phoneWidth=MediaQuery.of(context).size.width * 0.95;
     return Consumer4<AttendanceProvider,EmployeeProvider,HomeProvider,LeaveProvider>
       (builder: (context,attProvider,empProvider,homeProvider,levPvr,_){
+      // ✅ filters (date + employee) ellaa tab layum correct aa apply aaga, list ah inga filter pannrom
+      final List<AttendanceModel> presentList = _userFiltered(attProvider);
+      final List<dynamic> absentList = _filteredAbsent(attProvider);
+      final List<LeaveModel> leaveList = _filteredLeaves(attProvider, levPvr);
+      final int fullDayCount =
+          leaveList.where((e) => e.dayType.toString() == "1").length;
+      final int halfDayCount =
+          leaveList.where((e) => e.dayType.toString() == "0.5").length;
       return FocusScope(
         node: _myFocusScopeNode,
         child: SafeArea(
@@ -396,270 +867,15 @@ class _AttendanceReportState extends State<AttendanceReport> {
                                       ),
                                     ),
                                     InkWell(
-                                      onTap: (){
-                                        _myFocusScopeNode.unfocus();
-                                        showDialog(
-                                          context: context,
-                                          builder: (context) {
-                                            return Consumer<AttendanceProvider>(
-                                              builder: (context, custProvider, _) {
-                                                return AlertDialog(
-                                                  actions: [
-                                                    SizedBox(
-                                                      width: kIsWeb?webWidth:phoneWidth,
-                                                      child: Column(
-                                                        children: [
-                                                          20.height,
-                                                          Row(
-                                                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                                            children: [
-                                                              70.width,
-                                                              const CustomText(
-                                                                text: 'Filters',
-                                                                colors: Colors.black,
-                                                                size: 16,
-                                                                isBold: true,
-                                                              ),
-                                                              30.width,
-                                                              InkWell(
-                                                                onTap: () {
-                                                                  Navigator.of(context, rootNavigator: true).pop();
-                                                                },
-                                                                child: SvgPicture.asset(assets.cancel),
-                                                              )
-                                                            ],
-                                                          ),
-                                                          20.height,
-                                                          Row(
-                                                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                                                            children: [
-                                                              Column(
-                                                                crossAxisAlignment: CrossAxisAlignment.start,
-                                                                children: [
-                                                                  CustomText(
-                                                                    text: "From Date",
-                                                                    colors: colorsConst.greyClr,
-                                                                    size: 12,
-                                                                  ),
-                                                                  InkWell(
-                                                                    onTap: () {
-                                                                      custProvider.datePick(
-                                                                        context: context,
-                                                                        isStartDate: true,
-                                                                        date: attProvider.startDate,
-                                                                      );
-                                                                    },
-                                                                    child: Container(
-                                                                      height: 30,
-                                                                      width: kIsWeb?webWidth/2.7:phoneWidth/2.7,
-                                                                      decoration: customDecoration.baseBackgroundDecoration(
-                                                                        color: Colors.white,
-                                                                        radius: 5,
-                                                                        borderColor: colorsConst.litGrey,
-                                                                      ),
-                                                                      child: Row(
-                                                                        mainAxisAlignment: MainAxisAlignment.center,
-                                                                        children: [
-                                                                          CustomText(text: custProvider.startDate),
-                                                                          5.width,
-                                                                          SvgPicture.asset(assets.calendar2),
-                                                                        ],
-                                                                      ),
-                                                                    ),
-                                                                  )
-                                                                ],
-                                                              ),
-                                                              Column(
-                                                                crossAxisAlignment: CrossAxisAlignment.start,
-                                                                children: [
-                                                                  CustomText(
-                                                                    text: "To Date",
-                                                                    colors: colorsConst.greyClr,
-                                                                    size: 12,
-                                                                  ),
-                                                                  InkWell(
-                                                                    onTap: () {
-                                                                      custProvider.datePick(
-                                                                        context: context,
-                                                                        isStartDate: false,
-                                                                        date: attProvider.endDate,
-                                                                      );
-                                                                    },
-                                                                    child: Container(
-                                                                      height: 30,
-                                                                      width: kIsWeb?webWidth/2.7:phoneWidth/2.7,
-                                                                      decoration: customDecoration.baseBackgroundDecoration(
-                                                                        color: Colors.white,
-                                                                        radius: 5,
-                                                                        borderColor: colorsConst.litGrey,
-                                                                      ),
-                                                                      child: Row(
-                                                                        mainAxisAlignment: MainAxisAlignment.center,
-                                                                        children: [
-                                                                          CustomText(text: custProvider.endDate),
-                                                                          5.width,
-                                                                          SvgPicture.asset(assets.calendar2),
-                                                                        ],
-                                                                      ),
-                                                                    ),
-                                                                  )
-                                                                ],
-                                                              ),
-                                                            ],
-                                                          ),
-                                                          10.height,
-                                                          Row(
-                                                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                                                            children: [
-                                                              Column(
-                                                                crossAxisAlignment: CrossAxisAlignment.start,
-                                                                children: [
-                                                                  CustomText(
-                                                                    text: "Employee Name",
-                                                                    colors: colorsConst.greyClr,
-                                                                    size: 12,
-                                                                  ),
-                                                                  EmployeeDropdown(
-                                                                    callback: (){
-                                                                      empProvider.getAllUsers();
-                                                                    },
-                                                                    text: attProvider.userName,
-                                                                    employeeList: empProvider.filterUserData,
-                                                                    onChanged: (UserModel? value) {
-                                                                      attProvider.selectUser(context,value!,widget.empList);
-                                                                    },
-                                                                    size: kIsWeb?webWidth/2.7:phoneWidth/2.7,
-                                                                  ),
-                                                                ],
-                                                              ),
-                                                              Padding(
-                                                                padding: EdgeInsets.fromLTRB(0, empProvider.filterUserData.isEmpty?20:0, 0, 0),
-                                                                child: Column(
-                                                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                                                  children: [
-                                                                    CustomText(
-                                                                      text: "Select Date Range",
-                                                                      colors: colorsConst.greyClr,
-                                                                      size: 12,
-                                                                    ),
-                                                                    Container(
-                                                                      height: 40,
-                                                                      width: kIsWeb?webWidth/2.7:phoneWidth/2.7,
-                                                                      decoration: customDecoration.baseBackgroundDecoration(
-                                                                        radius: 5,
-                                                                        color: Colors.white,
-                                                                        borderColor: colorsConst.litGrey,
-                                                                      ),
-                                                                      child: DropdownButton<String>(
-                                                                        iconEnabledColor: colorsConst.greyClr,
-                                                                        isExpanded: true,
-                                                                        underline: const SizedBox(),
-                                                                        icon: const Icon(Icons.keyboard_arrow_down_outlined),
-                                                                        // only use the value if it exists exactly once in the list, otherwise null
-                                                                        value: attProvider.typeList.where((e) => e == attProvider.type).length == 1
-                                                                            ? attProvider.type
-                                                                            : null,
-                                                                        hint: const CustomText(text: "  Select", colors: Colors.grey),
-                                                                        onChanged: (value) {
-                                                                          if (value == null) return;
-                                                                          attProvider.changeType(
-                                                                            value,
-                                                                            localData.storage.read("id"),
-                                                                            localData.storage.read("role"),
-                                                                            false,
-                                                                            widget.empList,
-                                                                            context,
-                                                                          );
-                                                                        },
-                                                                        items: attProvider.typeList.toSet().toList().map((list) {
-                                                                          return DropdownMenuItem<String>(
-                                                                            value: list,
-                                                                            child: CustomText(
-                                                                              text: "  $list",
-                                                                              colors: Colors.black,
-                                                                              isBold: false,
-                                                                            ),
-                                                                          );
-                                                                        }).toList(),
-                                                                      ),
-                                                                    ),
-                                                                  ],
-                                                                ),
-                                                              ),
-                                                            ],
-                                                          ),
-                                                          20.height,
-                                                          Row(
-                                                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                                                            children: [
-                                                              CustomBtn(
-                                                                width: 100,
-                                                                text: 'Clear All',
-                                                                callback: () {
-                                                                  attProvider.initDate(id:localData.storage.read("id"),role:localData.storage.read("role"),isRefresh: false,date1:widget.date1,date2:widget.date2,type:widget.type);
-                                                                  attProvider.getAttendanceReport(localData.storage.read("id"));
-                                                                  attProvider.getAbsentAttendanceReport(localData.storage.read("id"));
-                                                                  levPvr.changeFilter();
-                                                                  levPvr.allSpecificLeaves(attProvider.startDate,attProvider.endDate,true,localData.storage.read("role"),localData.storage.read("id"));
-                                                                  Navigator.of(context, rootNavigator: true).pop();
-                                                                },
-                                                                bgColor: Colors.grey.shade200,
-                                                                textColor: Colors.black,
-                                                              ),
-                                                              CustomBtn(
-                                                                width: 100,
-                                                                text: 'Apply Filters',
-                                                                callback: () {
-
-                                                                  attProvider.search.clear();
-                                                                  levPvr.search2.clear();
-
-                                                                  attProvider.changeFilter();
-                                                                  levPvr.changeFilter();
-
-                                                                  attProvider.getAttendanceReport(custProvider.user);
-                                                                  attProvider.getAbsentAttendanceReport(custProvider.user);
-                                                                  print("FILTER DATE : ${attProvider.startDate} to ${attProvider.endDate} ${attProvider.user}");
-                                                                  String role = localData.storage.read("role").toString();
-
-                                                                  if (role == "1") {
-                                                                    if (attProvider.user.isEmpty) {
-                                                                      levPvr.allLeaves(attProvider.startDate, attProvider.endDate, true, role,
-                                                                          custProvider.user);
-                                                                    } else {
-                                                                      levPvr.allLeaves(attProvider.startDate, attProvider.endDate, true, role,
-                                                                          custProvider.user);
-                                                                    }
-                                                                  } else {
-                                                                    levPvr.myLeaves(attProvider.startDate, attProvider.endDate, true,
-                                                                        custProvider.user);
-                                                                  }
-
-                                                                  Navigator.of(context, rootNavigator: true).pop();
-                                                                },
-                                                                bgColor: colorsConst.primary,
-                                                                textColor: Colors.white,
-                                                              )
-                                                            ],
-                                                          ),
-                                                          20.height,
-                                                        ],
-                                                      ),
-                                                    )
-                                                  ],
-                                                );
-                                              },
-                                            );
-                                          },
-                                        );
-                                      },
+                                      // ✅ filter dialog ippo _openFilterDialog la irukku
+                                      onTap: () => _openFilterDialog(attProvider, empProvider, levPvr),
                                       child: Padding(
                                         padding: const EdgeInsets.all(6.0),
                                         child: Icon(
-                                        Icons.filter_alt,
-                                        size: 27,
-                                        color: Colors.white,
-                                      ),
+                                          Icons.filter_alt,
+                                          size: 27,
+                                          color: Colors.white,
+                                        ),
                                       ),
                                     ),5.width
                                   ],
@@ -770,14 +986,38 @@ class _AttendanceReportState extends State<AttendanceReport> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               if(attProvider.filter==true)
-                                CustomText(text: "Filter Selected",colors:colorsConst.greyClr,size: 14,),10.height,
-                              Row(
-                                crossAxisAlignment: CrossAxisAlignment.end,
-                                mainAxisAlignment: MainAxisAlignment.end,
-                                children: [
-                                  CustomText(text: "Total Records: ",colors:colorsConst.greyClr,size: 14,),
-                                  CustomText(text: showType=="Leave"?levPvr.myLevSearch.length.toString():showType=="Late"?attProvider.lateCountShow.toString():showType=="Absent"?attProvider.noAttendanceList.length.toString():showType=="Present"?attProvider.getDailyAttendance.length.toString():attProvider.permisCount.toString(),colors:colorsConst.primary,size: 14,),
-                                ],
+                                CustomText(text: "Filter Selected",colors:colorsConst.greyClr,size: 14,),
+                              Expanded(
+                                child: Wrap(
+                                  alignment: WrapAlignment.end,
+                                  crossAxisAlignment: WrapCrossAlignment.center,
+                                  spacing: 14,
+                                  runSpacing: 4,
+                                  children: [
+                                    // ✅ Full / Half day count ippo Total Records line la
+                                    if(showType=="Leave") ...[
+                                      CustomText(
+                                        text: "Full Day: ${fullDayCount.toString().padLeft(2, "0")}",
+                                        size: 13,
+                                        isBold: true,
+                                        colors: const Color(0xff7E7E7E),
+                                      ),
+                                      CustomText(
+                                        text: "Half Day: ${halfDayCount.toString().padLeft(2, "0")}",
+                                        size: 13,
+                                        isBold: true,
+                                        colors: const Color(0xff7E7E7E),
+                                      ),
+                                    ],
+                                    Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        CustomText(text: "Total Records: ",colors:colorsConst.greyClr,size: 14,),
+                                        CustomText(text: showType=="Leave"?leaveList.length.toString():showType=="Late"?attProvider.lateCountShow.toString():showType=="Absent"?absentList.length.toString():showType=="Present"?presentList.length.toString():attProvider.permisCount.toString(),colors:colorsConst.primary,size: 14,),
+                                      ],
+                                    ),
+                                  ],
+                                ),
                               ),
                             ],
                           ),
@@ -786,14 +1026,18 @@ class _AttendanceReportState extends State<AttendanceReport> {
                         if(attProvider.filter==true)
                           Row(
                             children: [
-                              if (attProvider.startDate != attProvider.endDate)
-                                if (attProvider.startDate.isNotEmpty &&
-                                    attProvider.endDate.isNotEmpty)
-                                  _filterChip(
-                                    "${attProvider.startDate} - ${attProvider.endDate}",
-                                  ),
+                              // ✅ custom From/To date select pannirundha same-day aanaalum date chip kaattum
+                              if (attProvider.startDate.isNotEmpty &&
+                                  attProvider.endDate.isNotEmpty &&
+                                  (attProvider.startDate != attProvider.endDate || _appliedCustom))
+                                _filterChip(
+                                  attProvider.startDate == attProvider.endDate
+                                      ? attProvider.startDate
+                                      : "${attProvider.startDate} - ${attProvider.endDate}",
+                                ),
 
-                              if (attProvider.type.isNotEmpty && attProvider.type!="null")
+                              // ✅ custom date apply pannirundha "Today" maathiri preset type chip kaattaadhu
+                              if (!_appliedCustom && attProvider.type.isNotEmpty && attProvider.type!="null")
                                 _filterChip(attProvider.type),
 
                               if (attProvider.userName.isNotEmpty)
@@ -878,20 +1122,21 @@ class _AttendanceReportState extends State<AttendanceReport> {
                             ],
                           ),
                         ),
-                        attProvider.refresh == false ?
+                        // ✅ isFilterLoading add pannirukku
+                        (attProvider.refresh == false || isFilterLoading) ?
                         const Padding(
                           padding: EdgeInsets.all(100.0),
                           child: Loading(),
                         ):
                         attProvider.selectedIndex==0&&
-                            attProvider.getDailyAttendance.isNotEmpty?
+                            presentList.isNotEmpty?
                         Flexible(
                           child: ListView.builder(
-                            itemCount: attProvider.getDailyAttendance.length,
+                            itemCount: presentList.length,
                             itemBuilder: (context, index) {
 
                               final sortedData =
-                              List<AttendanceModel>.from(attProvider.getDailyAttendance);
+                              List<AttendanceModel>.from(_userFiltered(attProvider));
 
                               sortedData.sort((a, b) {
 
@@ -907,33 +1152,15 @@ class _AttendanceReportState extends State<AttendanceReport> {
 
                               AttendanceModel data = sortedData[index];
 
-                              String inTime = "-";
-                              String outTime = "-";
-                              String timeD = "-";
-
-                              List<String> timeList = (data.time ?? "").split(",");
-
-                              List<String> latList = (data.lats ?? "").split(",");
-                              List<String> lngList = (data.lngs ?? "").split(",");
-
-                              if (timeList.length > 1) {
-
-                                if (data.status.toString().contains("1,2")) {
-                                  inTime  = timeList[0];
-                                  outTime = timeList[1];
-                                }
-                                else if (data.status.toString().contains("2,1")) {
-                                  inTime  = timeList[1];
-                                  outTime = timeList[0];
-                                }
-
-                                if(inTime != "-" && outTime != "-") {
-                                  timeD = attProvider.timeDifference("$inTime,$outTime");
-                                }
-
-                              } else if (timeList.isNotEmpty) {
-                                inTime = timeList[0];
-                              }
+                              // ✅ earlier time = In, later time = Out (lat/lng um pair aa move aagum)
+                              final parts = _splitAttendance(data, attProvider);
+                              final String inTime  = parts.inTime;
+                              final String outTime = parts.outTime;
+                              final String timeD   = parts.timeD;
+                              final String lat1 = parts.lat1;
+                              final String lng1 = parts.lng1;
+                              final String lat2 = parts.lat2;
+                              final String lng2 = parts.lng2;
 
                               String timestamp = data.createdTs.toString();
                               List<String> times = timestamp.split(',');
@@ -950,17 +1177,6 @@ class _AttendanceReportState extends State<AttendanceReport> {
                               }
 
                               final showDateHeader = index == 0 || createdBy != prevCreatedBy;
-
-                              String lat1 = latList.isNotEmpty ? latList[0] : "";
-                              String lng1 = lngList.isNotEmpty ? lngList[0] : "";
-                              String lat2 = "";
-                              String lng2 = "";
-                              if (data.status.toString().contains("2")
-                                  && latList.length > 1
-                                  && lngList.length > 1) {
-                                lat2 = latList[1];
-                                lng2 = lngList[1];
-                              }
 
                               return Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -995,12 +1211,18 @@ class _AttendanceReportState extends State<AttendanceReport> {
                                     outLng: lng2,
 
                                     callback: () {
-                                      utils.navigatePage(context, () => CheckLocation(
+                                      _openMapDialog(
                                         lat1: lat1,
-                                        long1: lng1,
+                                        lng1: lng1,
                                         lat2: lat2,
-                                        long2: lng2,
-                                      ));
+                                        lng2: lng2,
+                                        name: data.firstname.toString(),
+                                        role: data.role.toString(),
+                                        date: data.date.toString(),
+                                        inTime: inTime,
+                                        outTime: outTime,
+                                        totalHrs: timeD,
+                                      );
                                     },
 
                                     perStatus: data.perStatus.toString(),
@@ -1015,12 +1237,12 @@ class _AttendanceReportState extends State<AttendanceReport> {
                           ),
                         ):
                         attProvider.selectedIndex==1&&
-                            attProvider.noAttendanceList.isNotEmpty?
+                            absentList.isNotEmpty?
                         Flexible(
                           child: ListView.builder(
-                            itemCount: attProvider.noAttendanceList.length,
+                            itemCount: absentList.length,
                             itemBuilder: (context, index) {
-                              var data = attProvider.noAttendanceList[index];
+                              var data = absentList[index];
                               String? timestamp = data.missingDate?.toString();
 
                               if (timestamp == null || timestamp.isEmpty || timestamp == "null") {
@@ -1044,10 +1266,10 @@ class _AttendanceReportState extends State<AttendanceReport> {
                               }
 
                               String createdBy = "${dateTime.day}/${dateTime.month}/${dateTime.year}";
-                              final showDateHeader = index == 0 || createdBy != getCreatedDate(attProvider.noAttendanceList[index - 1]);
+                              final showDateHeader = index == 0 || createdBy != getCreatedDate(absentList[index - 1]);
 
                               return Padding(
-                                padding: EdgeInsets.fromLTRB(0, 10, 0, index == attProvider.noAttendanceList.length - 1 ? 30 : 0),
+                                padding: EdgeInsets.fromLTRB(0, 10, 0, index == absentList.length - 1 ? 30 : 0),
                                 child: Column(
                                   children: [
                                     if (showDateHeader)
@@ -1097,7 +1319,7 @@ class _AttendanceReportState extends State<AttendanceReport> {
                             builder: (context) {
 
                               final sortedData =
-                              List<AttendanceModel>.from(attProvider.getDailyAttendance);
+                              List<AttendanceModel>.from(_userFiltered(attProvider));
 
                               sortedData.sort((a, b) {
                                 DateTime aTime =
@@ -1107,21 +1329,10 @@ class _AttendanceReportState extends State<AttendanceReport> {
                                 return bTime.compareTo(aTime);
                               });
 
+                              // ✅ earlier time = In nu eduthu late check pannrom
                               final lateList = sortedData.where((data) {
-                                List<String> timeList = (data.time ?? "").split(",");
-                                String inT = "-";
-
-                                if (timeList.length > 1) {
-                                  if (data.status.toString().contains("1,2")) {
-                                    inT = timeList[0];
-                                  } else if (data.status.toString().contains("2,1")) {
-                                    inT = timeList[1];
-                                  }
-                                } else if (timeList.isNotEmpty) {
-                                  inT = timeList[0];
-                                }
-
-                                return isLate(inT);
+                                final p = _splitAttendance(data, attProvider);
+                                return isLate(p.inTime);
                               }).toList();
 
                               if (lateList.isEmpty) {
@@ -1137,28 +1348,17 @@ class _AttendanceReportState extends State<AttendanceReport> {
 
                                   AttendanceModel data = lateList[index];
 
-                                  String inTime = "-";
-                                  String outTime = "-";
-                                  String timeD = "-";
-
-                                  List<String> timeList = (data.time ?? "").split(",");
-                                  List<String> latList = (data.lats ?? "").split(",");
-                                  List<String> lngList = (data.lngs ?? "").split(",");
-
-                                  if (timeList.length > 1) {
-                                    if (data.status.toString().contains("1,2")) {
-                                      inTime = timeList[0];
-                                      outTime = timeList[1];
-                                    } else if (data.status.toString().contains("2,1")) {
-                                      inTime = timeList[1];
-                                      outTime = timeList[0];
-                                    }
-                                    if (inTime != "-" && outTime != "-") {
-                                      timeD = attProvider.timeDifference("$inTime,$outTime");
-                                    }
-                                  } else if (timeList.isNotEmpty) {
-                                    inTime = timeList[0];
-                                  }
+                                  // ✅ compute lat/lng OUTSIDE the callback so they can be passed
+                                  // into AttendanceDetails (for the area-name display) AND used
+                                  // inside the map-icon tap callback.
+                                  final parts = _splitAttendance(data, attProvider);
+                                  final String inTime  = parts.inTime;
+                                  final String outTime = parts.outTime;
+                                  final String timeD   = parts.timeD;
+                                  final String lat1 = parts.lat1;
+                                  final String lng1 = parts.lng1;
+                                  final String lat2 = parts.lat2;
+                                  final String lng2 = parts.lng2;
 
                                   String timestamp = data.createdTs.toString();
                                   List<String> times = timestamp.split(',');
@@ -1175,22 +1375,6 @@ class _AttendanceReportState extends State<AttendanceReport> {
                                   }
 
                                   final showDateHeader = index == 0 || createdBy != prevCreatedBy;
-
-                                  // ✅ compute lat/lng OUTSIDE the callback so they can be passed
-                                  // into AttendanceDetails (for the area-name display) AND used
-                                  // inside the map-icon tap callback.
-                                  String lat1 = latList.isNotEmpty ? latList[0] : "";
-                                  String lng1 = lngList.isNotEmpty ? lngList[0] : "";
-
-                                  String lat2 = "";
-                                  String lng2 = "";
-
-                                  if (data.status.toString().contains("2") &&
-                                      latList.length > 1 &&
-                                      lngList.length > 1) {
-                                    lat2 = latList[1];
-                                    lng2 = lngList[1];
-                                  }
 
                                   return Padding(
                                     padding: EdgeInsets.fromLTRB(
@@ -1227,12 +1411,18 @@ class _AttendanceReportState extends State<AttendanceReport> {
                                           outLng: lng2,
 
                                           callback: () {
-                                            utils.navigatePage(context, () => CheckLocation(
+                                            _openMapDialog(
                                               lat1: lat1,
-                                              long1: lng1,
+                                              lng1: lng1,
                                               lat2: lat2,
-                                              long2: lng2,
-                                            ));
+                                              lng2: lng2,
+                                              name: data.firstname.toString(),
+                                              role: data.role.toString(),
+                                              date: data.date.toString(),
+                                              inTime: inTime,
+                                              outTime: outTime,
+                                              totalHrs: timeD,
+                                            );
                                           },
 
                                           perStatus: data.perStatus.toString(),
@@ -1249,9 +1439,9 @@ class _AttendanceReportState extends State<AttendanceReport> {
                           ),
                         ):
                         attProvider.selectedIndex==3&&
-                            levPvr.myLevSearch.isNotEmpty?
+                            leaveList.isNotEmpty?
                         Flexible(
-                            child: itemBuilder(levPvr.myLevSearch,levPvr)):
+                            child: itemBuilder(leaveList,levPvr)):
                         attProvider.selectedIndex == 4 &&
                             attProvider.permisCount != 0
                             ? Flexible(
@@ -1289,49 +1479,15 @@ class _AttendanceReportState extends State<AttendanceReport> {
                                 itemBuilder: (context, index) {
                                   AttendanceModel data = filteredList[index];
 
-                                  var inTime = "-";
-                                  var outTime = "-";
-                                  var timeD = "-";
-
-                                  final times = (data.time ?? "").split(",");
-
-                                  if (data.status.toString().contains("1,2")) {
-                                    inTime = times.isNotEmpty ? times[0].trim() : "-";
-                                    outTime = times.length > 1 ? times[1].trim() : "-";
-
-                                    if (inTime != "-" && outTime != "-") {
-                                      timeD = attProvider.timeDifferences(inTime, outTime);
-                                    }
-                                  } else if (data.status.toString().contains("2,1")) {
-                                    inTime = times.length > 1 ? times[1].trim() : "-";
-                                    outTime = times.isNotEmpty ? times[0].trim() : "-";
-
-                                    if (inTime != "-" && outTime != "-") {
-                                      timeD = attProvider.timeDifferences(inTime, outTime);
-                                    }
-                                  } else {
-                                    inTime = times.isNotEmpty ? times[0].trim() : "-";
-                                    outTime = "-";
-                                    timeD = "-";
-                                  }
-
-                                  List<String> lat =
-                                      data.lats?.toString().split(",") ?? [];
-                                  List<String> lng =
-                                      data.lngs?.toString().split(",") ?? [];
-
-                                  String lat1 = lat.isNotEmpty ? lat[0] : "";
-                                  String lng1 = lng.isNotEmpty ? lng[0] : "";
-
-                                  String lat2 =
-                                  (lat.length > 1 && data.status.toString().contains("2"))
-                                      ? lat[1]
-                                      : "";
-
-                                  String lng2 =
-                                  (lng.length > 1 && data.status.toString().contains("2"))
-                                      ? lng[1]
-                                      : "";
+                                  // ✅ earlier time = In, later time = Out (lat/lng um pair aa move aagum)
+                                  final parts = _splitAttendance(data, attProvider);
+                                  final String inTime  = parts.inTime;
+                                  final String outTime = parts.outTime;
+                                  final String timeD   = parts.timeD;
+                                  final String lat1 = parts.lat1;
+                                  final String lng1 = parts.lng1;
+                                  final String lat2 = parts.lat2;
+                                  final String lng2 = parts.lng2;
 
                                   String timestamp = data.createdTs.toString();
                                   List<String> createdTimes = timestamp.split(',');
@@ -1399,12 +1555,18 @@ class _AttendanceReportState extends State<AttendanceReport> {
                                         outLng: lng2,
 
                                         callback: () {
-                                          utils.navigatePage(context, () => CheckLocation(
+                                          _openMapDialog(
                                             lat1: lat1,
-                                            long1: lng1,
+                                            lng1: lng1,
                                             lat2: lat2,
-                                            long2: lng2,
-                                          ));
+                                            lng2: lng2,
+                                            name: data.firstname.toString(),
+                                            role: data.role.toString(),
+                                            date: data.date.toString(),
+                                            inTime: inTime,
+                                            outTime: outTime,
+                                            totalHrs: timeD,
+                                          );
                                         },
 
                                         perStatus: data.perStatus.toString(),
@@ -1449,12 +1611,6 @@ class _AttendanceReportState extends State<AttendanceReport> {
     sortedData.sort((a, b) =>
         DateTime.parse(b.startDate.toString())
             .compareTo(DateTime.parse(a.startDate.toString())));
-
-    final fullDayCount =
-        sortedData.where((e) => e.dayType.toString() == "1").length;
-
-    final halfDayCount =
-        sortedData.where((e) => e.dayType.toString() == "0.5").length;
 
     return ListView.builder(
       itemCount: sortedData.length,
@@ -1509,34 +1665,7 @@ class _AttendanceReportState extends State<AttendanceReport> {
           width: kIsWeb ? webWidth : phoneWidth,
           child: Column(
             children: [
-              if (index == 0) ...[
-                10.height,
-                SizedBox(
-                  width: kIsWeb ? webWidth : phoneWidth,
-                  child: Row(
-                    mainAxisAlignment:
-                    MainAxisAlignment.end,
-                    children: [
-                      CustomText(
-                        text:
-                        "Full Day: ${fullDayCount.toString().padLeft(2, "0")}",
-                        size: 13,
-                        isBold: true,
-                        colors: const Color(0xff7E7E7E),
-                      ),
-                      20.width,
-                      CustomText(
-                        text:
-                        "Half Day: ${halfDayCount.toString().padLeft(2, "0")}",
-                        size: 13,
-                        isBold: true,
-                        colors: const Color(0xff7E7E7E),
-                      ),
-                    ],
-                  ),
-                ),
-                10.height,
-              ],
+              if (index == 0) 10.height,
 
               SizedBox(
                 width: kIsWeb ? webWidth : phoneWidth,
@@ -1720,6 +1849,128 @@ class _AttendanceReportState extends State<AttendanceReport> {
       return false;
     }
   }
+
+  DateTime? _parseT(String s) {
+    try {
+      return DateFormat("hh:mm a").parse(s.trim());
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// time / lat / lng ah pair pannitu, earlier time = In, later time = Out
+  _AttParts _splitAttendance(AttendanceModel data, AttendanceProvider att) {
+    final times = (data.time ?? "").split(",").map((e) => e.trim()).toList();
+    final lats  = (data.lats ?? "").split(",").map((e) => e.trim()).toList();
+    final lngs  = (data.lngs ?? "").split(",").map((e) => e.trim()).toList();
+
+    final entries = <_TimeEntry>[];
+    for (int i = 0; i < times.length; i++) {
+      if (times[i].isEmpty || times[i] == "null" || times[i] == "-") continue;
+      entries.add(_TimeEntry(
+        times[i],
+        i < lats.length ? lats[i] : "",
+        i < lngs.length ? lngs[i] : "",
+        _parseT(times[i]),
+      ));
+    }
+
+    // ellaa time um parse aanaa mattum sort pannu
+    if (entries.length > 1 && entries.every((e) => e.dt != null)) {
+      entries.sort((a, b) => a.dt!.compareTo(b.dt!));
+    }
+
+    if (entries.isEmpty) {
+      return _AttParts("-", "-", "-", "", "", "", "");
+    }
+
+    final _TimeEntry inE = entries.first;
+    final _TimeEntry? outE = entries.length > 1 ? entries[1] : null;
+
+    String timeD = "-";
+    if (outE != null) {
+      timeD = att.timeDifference("${inE.time},${outE.time}");
+    }
+
+    return _AttParts(
+      inE.time,
+      outE?.time ?? "-",
+      timeD,
+      inE.lat,
+      inE.lng,
+      outE?.lat ?? "",
+      outE?.lng ?? "",
+    );
+  }
+
+  // ==========================================================================
+  // ✅ FILTER HELPERS (date + employee) - provider list la entha data vandhaalum
+  // UI la selected From/To date & employee ku match aaganum
+  // ==========================================================================
+  DateTime? _parseDay(String? v) {
+    if (v == null) return null;
+    final String t = v.trim();
+    if (t.isEmpty || t == "null") return null;
+    final String d = t.split(' ')[0].split('T')[0];
+    final DateTime? iso = DateTime.tryParse(d);
+    if (iso != null) return DateTime(iso.year, iso.month, iso.day);
+    for (final f in const ["dd-MM-yyyy", "dd/MM/yyyy", "dd MMM yyyy"]) {
+      try {
+        final x = DateFormat(f).parseStrict(d);
+        return DateTime(x.year, x.month, x.day);
+      } catch (_) {}
+    }
+    return null;
+  }
+
+  bool _nameMatch(String? a, String selected) {
+    final String n = (a ?? "").trim().toLowerCase();
+    final String s2 = selected.trim().toLowerCase();
+    if (s2.isEmpty) return true;
+    if (n.isEmpty) return false;
+    return n == s2 || n.contains(s2) || s2.contains(n);
+  }
+
+  /// Present / Late: selected employee mattum
+  List<AttendanceModel> _userFiltered(AttendanceProvider att) {
+    final String u = (att.user ?? "").toString().trim();
+    if (u.isEmpty || u == "null") {
+      return List<AttendanceModel>.from(att.getDailyAttendance);
+    }
+    return att.getDailyAttendance
+        .where((e) => e.salesmanId.toString() == u)
+        .toList();
+  }
+
+  /// Absent: From/To date + employee
+  List<dynamic> _filteredAbsent(AttendanceProvider att) {
+    final DateTime? fs = _parseDay(att.startDate);
+    final DateTime? fe = _parseDay(att.endDate);
+    return att.noAttendanceList.where((d) {
+      if (fs != null && fe != null) {
+        final DateTime? md = _parseDay(d.missingDate?.toString());
+        if (md != null && (md.isBefore(fs) || md.isAfter(fe))) return false;
+      }
+      return _nameMatch(d.firstname?.toString(), att.userName);
+    }).toList();
+  }
+
+  /// Leave: From/To date (overlap) + employee
+  List<LeaveModel> _filteredLeaves(AttendanceProvider att, LeaveProvider lev) {
+    final DateTime? fs = _parseDay(att.startDate);
+    final DateTime? fe = _parseDay(att.endDate);
+    return lev.myLevSearch.where((l) {
+      if (fs != null && fe != null) {
+        final DateTime? ls = _parseDay(l.startDate?.toString());
+        if (ls != null) {
+          final DateTime le = _parseDay(l.endDate?.toString()) ?? ls;
+          if (le.isBefore(fs) || ls.isAfter(fe)) return false;
+        }
+      }
+      return _nameMatch(l.fName?.toString(), att.userName);
+    }).toList();
+  }
+
   String formatCreatedDate(DateTime dateTime) {
     DateTime now = DateTime.now();
     DateTime today = DateTime(now.year, now.month, now.day);
@@ -1751,4 +2002,318 @@ class _AttendanceReportState extends State<AttendanceReport> {
       ),
     );
   }
+}
+
+/// ✅ small inline searchable dropdown.
+/// Field tap panna adhe field search box aa maarum, keela chinna list varum (dialog kullayae).
+class _EmployeeSearchDropdown extends StatefulWidget {
+  final double width;
+  final Iterable<UserModel> users;
+  final String selectedId;
+  final String selectedName;
+  final ValueChanged<UserModel> onSelected;
+
+  const _EmployeeSearchDropdown({
+    required this.width,
+    required this.users,
+    required this.selectedId,
+    required this.selectedName,
+    required this.onSelected,
+  });
+
+  @override
+  State<_EmployeeSearchDropdown> createState() => _EmployeeSearchDropdownState();
+}
+
+class _EmployeeSearchDropdownState extends State<_EmployeeSearchDropdown> {
+  final TextEditingController _search = TextEditingController();
+  bool _open = false;
+
+  @override
+  void dispose() {
+    _search.dispose();
+    super.dispose();
+  }
+
+  void _close() {
+    setState(() {
+      _open = false;
+      _search.clear();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // duplicate id irundha problem aagum, so unique-a vachukkurom
+    final Map<String, UserModel> unique = {};
+    for (final u in widget.users) {
+      unique[u.id.toString()] = u;
+    }
+    final String q = _search.text.trim().toLowerCase();
+    final List<UserModel> filtered = unique.values
+        .where((u) => u.firstname.toString().toLowerCase().contains(q))
+        .toList();
+    final bool hasName = widget.selectedName.isNotEmpty;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        CustomText(text: "Employee Name", colors: colorsConst.greyClr, size: 12),
+        6.height,
+        Container(
+          height: 40,
+          width: widget.width,
+          padding: const EdgeInsets.symmetric(horizontal: 8),
+          decoration: customDecoration.baseBackgroundDecoration(
+            radius: 5,
+            color: Colors.white,
+            borderColor: _open ? colorsConst.primary : colorsConst.litGrey,
+          ),
+          child: _open
+              ? Row(
+            children: [
+              Icon(Icons.search, size: 18, color: colorsConst.greyClr),
+              4.width,
+              Expanded(
+                child: TextField(
+                  controller: _search,
+                  autofocus: true,
+                  cursorColor: colorsConst.primary,
+                  style: const TextStyle(fontSize: 13),
+                  onChanged: (_) => setState(() {}),
+                  decoration: const InputDecoration(
+                    isDense: true,
+                    border: InputBorder.none,
+                    hintText: "Search",
+                    hintStyle: TextStyle(fontSize: 13, color: Colors.grey),
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                ),
+              ),
+              InkWell(
+                onTap: _close,
+                child: Icon(Icons.close, size: 16, color: colorsConst.greyClr),
+              ),
+            ],
+          )
+              : InkWell(
+            onTap: () => setState(() => _open = true),
+            child: Row(
+              children: [
+                Expanded(
+                  child: CustomText(
+                    text: hasName ? widget.selectedName : "Select",
+                    colors: hasName ? Colors.black : Colors.grey,
+                  ),
+                ),
+                Icon(Icons.keyboard_arrow_down_outlined,
+                    size: 20, color: colorsConst.greyClr),
+              ],
+            ),
+          ),
+        ),
+        if (_open)
+          Container(
+            width: widget.width,
+            margin: const EdgeInsets.only(top: 4),
+            constraints: const BoxConstraints(maxHeight: 150),
+            decoration: customDecoration.baseBackgroundDecoration(
+              radius: 5,
+              color: Colors.white,
+              borderColor: colorsConst.litGrey,
+            ),
+            child: filtered.isEmpty
+                ? const Padding(
+              padding: EdgeInsets.all(10),
+              child: CustomText(
+                text: "No employee found",
+                size: 12,
+                colors: Colors.grey,
+              ),
+            )
+                : ListView.builder(
+              shrinkWrap: true,
+              padding: EdgeInsets.zero,
+              itemCount: filtered.length,
+              itemBuilder: (_, i) {
+                final u = filtered[i];
+                final bool selected = widget.selectedId == u.id.toString();
+                return InkWell(
+                  onTap: () {
+                    widget.onSelected(u);
+                    _close();
+                  },
+                  child: Container(
+                    width: double.infinity,
+                    color: selected ? Colors.grey.shade100 : null,
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+                    child: CustomText(
+                      text: u.firstname.toString(),
+                      size: 13,
+                      colors: Colors.black,
+                      isBold: selected,
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+/// ✅ Map mela kaattura employee + check in/out card
+class _MapInfoCard extends StatelessWidget {
+  final String name;
+  final String role;
+  final String date;
+  final String inTime;
+  final String outTime;
+  final String totalHrs;
+
+  const _MapInfoCard({
+    required this.name,
+    required this.role,
+    required this.date,
+    required this.inTime,
+    required this.outTime,
+    required this.totalHrs,
+  });
+
+  String _clean(String v) {
+    final t = v.trim();
+    return (t.isEmpty || t == "null") ? "-" : t;
+  }
+
+  /// office time 9:00 AM ku apram check in na "Late"
+  bool get _isLate {
+    try {
+      final f = DateFormat("hh:mm a");
+      return f.parse(inTime.trim()).isAfter(f.parse("09:00 AM"));
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Widget _cell(String label, String value, {bool late = false}) {
+    return Expanded(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              CustomText(text: label, size: 11, colors: colorsConst.greyClr),
+              if (late) ...[
+                4.width,
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFF3E0),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: const Text(
+                    "Late",
+                    style: TextStyle(
+                      fontSize: 9,
+                      color: Color(0xFFE65100),
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+          4.height,
+          CustomText(
+            text: value,
+            size: 14,
+            isBold: true,
+            colors: late ? const Color(0xFFE65100) : Colors.black,
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final String out = _clean(outTime);
+    final String total = out == "-" ? "-" : _clean(totalHrs);
+
+    return Container(
+      margin: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: const [
+          BoxShadow(color: Colors.black26, blurRadius: 10, offset: Offset(0, 3)),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ---------- employee ----------
+          Row(
+            children: [
+              CircleAvatar(
+                radius: 18,
+                backgroundColor: Colors.grey.shade300,
+                child: SvgPicture.asset(assets.profile, width: 18, height: 18),
+              ),
+              10.width,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    CustomText(
+                      text: _clean(name),
+                      size: 14,
+                      isBold: true,
+                      colors: Colors.black,
+                    ),
+                    if (_clean(role) != "-") ...[
+                      2.height,
+                      CustomText(
+                        text: _clean(role),
+                        size: 12,
+                        colors: colorsConst.blueClr,
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              if (_clean(date) != "-")
+                CustomText(text: _clean(date), size: 12, colors: colorsConst.greyClr),
+            ],
+          ),
+          12.height,
+          Divider(height: 1, color: Colors.grey.shade300),
+          12.height,
+          // ---------- check in / out / total ----------
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _cell("Check In", _clean(inTime), late: _isLate),
+              _cell("Check Out", out),
+              _cell("Total Hrs", total),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TimeEntry {
+  final String time, lat, lng;
+  final DateTime? dt;
+  _TimeEntry(this.time, this.lat, this.lng, this.dt);
+}
+
+class _AttParts {
+  final String inTime, outTime, timeD, lat1, lng1, lat2, lng2;
+  _AttParts(this.inTime, this.outTime, this.timeD, this.lat1, this.lng1, this.lat2, this.lng2);
 }

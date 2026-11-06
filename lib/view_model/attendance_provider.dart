@@ -306,7 +306,7 @@ class AttendanceProvider with ChangeNotifier{
     }else{
 
     }
-    applyFilter(list);
+    // applyFilter(list);
     notifyListeners();
   }
 // void selectDate(String type){
@@ -681,9 +681,25 @@ class AttendanceProvider with ChangeNotifier{
   void selectUser(context,UserModel value,List<UserModel>? list){
     _user=value.id;
     _userName=value.firstname.toString();
-    applyFilter(list);
+    // applyFilter(list);
     notifyListeners();
   }
+
+  void restoreFilter({
+    required String start,
+    required String end,
+    required dynamic type,
+    required dynamic user,
+    required String userName,
+  }) {
+    _startDate = start;
+    _endDate = end;
+    _type = type;
+    _user = user;
+    _userName = userName;
+    notifyListeners();
+  }
+
   List<AttendanceModel> _getDailyAttendance = <AttendanceModel>[];
   List<AttendanceModel> _getUserAttendance = <AttendanceModel>[];
   List<AttendanceModel> _searchGetDailyAttendance = <AttendanceModel>[];
@@ -1407,23 +1423,16 @@ class AttendanceProvider with ChangeNotifier{
     notifyListeners();
   }
 
-  void last3Month(String id ,String role,bool? isRefresh) {
-    // DateTime now = DateTime.now();
-    // DateTime stDt = DateTime(now.year, now.month - 2, now.day);
-    // DateTime enDt = now;
-    //
-    // _startDate = DateFormat('dd-MM-yyyy').format(stDt);
-    // _endDate = DateFormat('dd-MM-yyyy').format(enDt);
+  void last3Month(String id, String role, bool? isRefresh) {
     DateTime now = DateTime.now();
-
-// Subtract 3 months from today
     DateTime stDt = DateTime(now.year, now.month - 3, now.day);
     DateTime enDt = now;
 
     _startDate = DateFormat('dd-MM-yyyy').format(stDt);
     _endDate = DateFormat('dd-MM-yyyy').format(enDt);
-    if(localData.storage.read("role")!="1"){
-      // getAttendanceReport(id);
+    if (localData.storage.read("role") != "1") {
+      getAttendanceReport(id);
+      getAbsentAttendanceReport(id);
     }
     notifyListeners();
   }
