@@ -29,7 +29,9 @@ import '../source/utilities/utils.dart';
 
 class EmployeeProvider with ChangeNotifier {
   final EmployeeRepository empRepo = EmployeeRepository();
-  final Geocoding geocodingService = Geocoding();
+  // ✅ CHANGED: lazy instance. Geocoding() is created only on first use,
+  // so it never runs on Flutter Web (all usages are guarded by !kIsWeb).
+  late final Geocoding geocodingService = Geocoding();
 
   String selectedCountryCode = "+91";
   String selectedCountryFlag = "🇮🇳";
@@ -551,21 +553,28 @@ class EmployeeProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  // ✅ CHANGED: skips on web,
+  // and is wrapped in try/catch so it can never crash the provider.
   Future<void> getAdd(double lat, double lng) async {
-    List<Placemark> placeMark =
-    await geocodingService.placemarkFromCoordinates(lat, lng);
-    Placemark place = placeMark[0];
-    doorNo.text = place.street.toString();
-    streetName.text = place.subLocality.toString();
-    comArea.text = place.thoroughfare.toString() == ""
-        ? ""
-        : ",${place.thoroughfare}" == ""
-        ? ""
-        : place.thoroughfare.toString();
-    city.text = place.locality.toString();
-    country.text = place.country.toString();
-    pinCode.text = place.postalCode.toString();
-    state = place.administrativeArea.toString();
+    if (kIsWeb) return; // geocoding package has no web support
+    try {
+      List<Placemark> placeMark = await geocodingService.placemarkFromCoordinates(lat, lng);
+      if (placeMark.isEmpty) return;
+      Placemark place = placeMark[0];
+      doorNo.text = place.street.toString();
+      streetName.text = place.subLocality.toString();
+      comArea.text = place.thoroughfare.toString() == ""
+          ? ""
+          : ",${place.thoroughfare}" == ""
+          ? ""
+          : place.thoroughfare.toString();
+      city.text = place.locality.toString();
+      country.text = place.country.toString();
+      pinCode.text = place.postalCode.toString();
+      state = place.administrativeArea.toString();
+    } catch (e) {
+      log("getAdd failed: $e");
+    }
     notifyListeners();
   }
 
@@ -1000,11 +1009,12 @@ class EmployeeProvider with ChangeNotifier {
   final List<Marker> _marker = [];
   List<Marker> get marker => _marker;
 
+  // ✅ CHANGED: skips on web (geocoding has no web support)
+  // and skips on web.
   Future<void> mapAddress() async {
-    if (search.text != "") {
+    if (search.text != "" && !kIsWeb) {
       try {
-        List<Location> locations =
-        await geocodingService.locationFromAddress(search.text);
+        List<Location> locations = await geocodingService.locationFromAddress(search.text);
         googleMapController.animateCamera(CameraUpdate.newCameraPosition(
             CameraPosition(
                 target: LatLng(locations[0].latitude, locations[0].longitude),
@@ -1018,8 +1028,7 @@ class EmployeeProvider with ChangeNotifier {
                 BitmapDescriptor.hueViolet),
           ),
         );
-        List<Placemark> placeMark = await geocodingService
-            .placemarkFromCoordinates(
+        List<Placemark> placeMark = await geocodingService.placemarkFromCoordinates(
             locations[0].latitude, locations[0].longitude);
         Placemark place = placeMark[0];
         doorNo.text = place.street.toString();

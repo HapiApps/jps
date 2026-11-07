@@ -115,6 +115,10 @@ dependencies:
   syncfusion_flutter_pdfviewer:
   syncfusion_flutter_pdf:
   flutter_file_dialog: ^3.0.2
+  #web map
+  flutter_map: ^8.3.2
+  latlong2: ^0.10.1
+
 dev_dependencies:
   flutter_launcher_icons:
   # ❌ REMOVED: flutter_localizations was here before — it belongs in

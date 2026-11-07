@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:master_code/screens/common/home_page.dart';
 import 'package:flutter/foundation.dart';
@@ -47,6 +49,9 @@ class AttendanceReport extends StatefulWidget {
 class _AttendanceReportState extends State<AttendanceReport> {
   final FocusScopeNode _myFocusScopeNode = FocusScopeNode();
   late String showType;
+
+  /// ✅ ADDED: cached so dispose() never calls Provider.of on a deactivated context
+  late final HomeProvider _homeProvider;
 
   /// ✅ Apply / Clear filter pannumbothu loading kaattura flag
   bool isFilterLoading = false;
@@ -123,39 +128,41 @@ class _AttendanceReportState extends State<AttendanceReport> {
   @override
   void initState() {
     showType = widget.showType;
+    // ✅ ADDED: cache provider for dispose()
+    _homeProvider = Provider.of<HomeProvider>(context, listen: false);
     check();
-    Future.delayed(Duration.zero, () {;
-    if (!mounted) return;
-    print(Provider.of<EmployeeProvider>(context, listen: false).userData.length);
-    Provider.of<AttendanceProvider>(context, listen: false).initDate(id:localData.storage.read("id"),role:localData.storage.read("role"),isRefresh:true,date1:widget.date1,date2:widget.date2,type:widget.type);
-    Provider.of<HomeProvider>(context, listen: false).loadFullDashboard(context);
-    Provider.of<AttendanceProvider>(context, listen: false).getAbsentAttendanceReport(localData.storage.read("id"));
-    String today = DateFormat('yyyy-MM-dd').format(DateTime.now());
-    Provider.of<LeaveProvider>(context, listen: false).allAttendLeaves(
-      today, today, true,
-      localData.storage.read("role"),
-      localData.storage.read("id"),
-    );
-
+    Future.delayed(Duration.zero, () {
+      if (!mounted) return;
+      print(Provider.of<EmployeeProvider>(context, listen: false).userData.length);
+      Provider.of<AttendanceProvider>(context, listen: false).initDate(id:localData.storage.read("id"),role:localData.storage.read("role"),isRefresh:true,date1:widget.date1,date2:widget.date2,type:widget.type);
+      Provider.of<HomeProvider>(context, listen: false).loadFullDashboard(context);
+      Provider.of<AttendanceProvider>(context, listen: false).getAbsentAttendanceReport(localData.storage.read("id"));
+      String today = DateFormat('yyyy-MM-dd').format(DateTime.now());
+      Provider.of<LeaveProvider>(context, listen: false).allAttendLeaves(
+        today, today, true,
+        localData.storage.read("role"),
+        localData.storage.read("id"),
+      );
     });
     super.initState();
   }
+
+  // ✅ CHANGED: no setState inside initState
   void check(){
-    setState(() {
-      if(showType=="Present"){
-        Provider.of<AttendanceProvider>(context, listen: false).selectedIndex=0;
-      }else if(showType=="Absent"){
-        Provider.of<AttendanceProvider>(context, listen: false).selectedIndex=1;
-      }else if(showType=="Late"){
-        Provider.of<AttendanceProvider>(context, listen: false).selectedIndex=2;
-      }else if(showType=="Leave"){
-        Provider.of<AttendanceProvider>(context, listen: false).selectedIndex=3;
-      }else if(showType=="Permission"){
-        Provider.of<AttendanceProvider>(context, listen: false).selectedIndex=4;
-      }else{
-        Provider.of<AttendanceProvider>(context, listen: false).selectedIndex=0;
-      }
-    });
+    final att = Provider.of<AttendanceProvider>(context, listen: false);
+    if(showType=="Present"){
+      att.selectedIndex=0;
+    }else if(showType=="Absent"){
+      att.selectedIndex=1;
+    }else if(showType=="Late"){
+      att.selectedIndex=2;
+    }else if(showType=="Leave"){
+      att.selectedIndex=3;
+    }else if(showType=="Permission"){
+      att.selectedIndex=4;
+    }else{
+      att.selectedIndex=0;
+    }
   }
   var reportTypeList = [
     "All",
@@ -165,35 +172,147 @@ class _AttendanceReportState extends State<AttendanceReport> {
     "Leave",
     "Permission",
   ];
+  /// ✅ web-la content width: romba kuruga (50%) irukkaama, romba perusaavum pogaama
+  double _webContentWidth(BuildContext context) {
+    final double w = MediaQuery.of(context).size.width;
+    double c = w * 0.6;
+    if (c < 720) c = 720;
+    if (c > 1000) c = 1000;
+    if (c > w * 0.95) c = w * 0.95;
+    return c;
+  }
+
+  /// ✅ search pill (blue bar + search box + filter icon)
+  /// web  -> available width ku Expanded (overflow aagaadhu)
+  /// phone -> original fixed width (munnadi maathiriye)
+  Widget _buildSearchPill(AttendanceProvider attProvider,
+      EmployeeProvider empProvider, LeaveProvider levPvr, double phoneWidth) {
+    final Widget searchField = Container(
+      width: kIsWeb ? null : phoneWidth / 1.5,
+      height: 45,
+      decoration: customDecoration.baseBackgroundDecoration(
+        radius: 30,
+        color: Colors.transparent,
+      ),
+      child: TextFormField(
+        cursorColor: colorsConst.primary,
+        onChanged: (value) {
+          attProvider.searchAttendanceReport(value.toString());
+          levPvr.searchReport(value.toString());
+        },
+        textInputAction: TextInputAction.done,
+        controller: attProvider.search,
+        decoration: InputDecoration(
+          hintText: "Search Name or ${constValue.customer}",
+          hintStyle: TextStyle(color: colorsConst.primary, fontSize: 14),
+          fillColor: Colors.white,
+          filled: true,
+          prefixIcon: const Icon(Icons.search, color: Colors.grey),
+          suffixIcon: attProvider.search.text.isNotEmpty
+              ? GestureDetector(
+              onTap: () {
+                attProvider.search.clear();
+                attProvider.searchAttendanceReport("");
+                levPvr.searchReport("");
+              },
+              child: Container(
+                  width: 10,
+                  height: 10,
+                  color: Colors.transparent,
+                  child: Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: SvgPicture.asset(assets.cancel2),
+                  )))
+              : null,
+          errorStyle: const TextStyle(fontSize: 12.0, height: 0.20),
+          focusedBorder: OutlineInputBorder(
+              borderSide: BorderSide(color: colorsConst.primary),
+              borderRadius: BorderRadius.circular(30)),
+          focusedErrorBorder: OutlineInputBorder(
+              borderSide: BorderSide(color: colorsConst.primary),
+              borderRadius: BorderRadius.circular(30)),
+          contentPadding: const EdgeInsets.fromLTRB(10, 10, 10, 10),
+          errorBorder: OutlineInputBorder(
+              borderSide: const BorderSide(color: Colors.transparent),
+              borderRadius: BorderRadius.circular(30)),
+          enabledBorder: OutlineInputBorder(
+              borderSide: BorderSide(color: Colors.grey.shade300),
+              borderRadius: BorderRadius.circular(30)),
+        ),
+      ),
+    );
+
+    return Container(
+      width: kIsWeb ? null : phoneWidth / 1.2,
+      decoration: customDecoration.baseBackgroundDecoration(
+        radius: 30,
+        color: colorsConst.primary,
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          kIsWeb ? Expanded(child: searchField) : searchField,
+          InkWell(
+            onTap: () => _openFilterDialog(attProvider, empProvider, levPvr),
+            child: const Padding(
+              padding: EdgeInsets.all(6.0),
+              child: Icon(Icons.filter_alt, size: 27, color: Colors.white),
+            ),
+          ),
+          5.width,
+        ],
+      ),
+    );
+  }
+
   bool isLoading = false;
   @override
   void dispose() {
     _myFocusScopeNode.dispose();
-    Provider.of<HomeProvider>(context, listen: false).stopAutoRefresh();
+    // ✅ CHANGED: use cached provider (Provider.of in dispose throws)
+    _homeProvider.stopAutoRefresh();
     super.dispose();
   }
 
   /// ✅ reverse-geocodes a lat/lng pair (from backend data) into an area name
-  final Geocoding geocodingService = Geocoding();
+  /// mobile -> geocoding package, web -> Nominatim (OpenStreetMap)
+  /// `late final` -> Geocoding() is created only on first use,
+  /// so it never runs on Flutter Web (the usage below is guarded by kIsWeb).
+  late final Geocoding geocodingService = Geocoding();
   Future<String> _getAreaName(String lat, String lng) async {
     try {
       if (lat.isEmpty || lng.isEmpty) return "-";
       final String key = "$lat,$lng";
       if (_areaCache.containsKey(key)) return _areaCache[key]!;
 
-      double? latitude = double.tryParse(lat);
-      double? longitude = double.tryParse(lng);
+      final double? latitude = double.tryParse(lat);
+      final double? longitude = double.tryParse(lng);
       if (latitude == null || longitude == null) return "-";
 
-      List<Placemark> placemarks =
-      await geocodingService.placemarkFromCoordinates(latitude, longitude);
-
       String result = "-";
-      if (placemarks.isNotEmpty) {
-        Placemark place = placemarks.first;
-        String area = "${place.subLocality ?? ''} ${place.locality ?? ''}".trim();
-        result = area.isNotEmpty ? area : (place.name ?? "-");
+
+      if (kIsWeb) {
+        final res = await http.get(Uri.parse(
+            'https://nominatim.openstreetmap.org/reverse?format=jsonv2'
+                '&lat=$latitude&lon=$longitude&zoom=16&addressdetails=1&accept-language=en'));
+        if (res.statusCode == 200) {
+          final Map<String, dynamic> a =
+          (jsonDecode(res.body)['address'] ?? {}) as Map<String, dynamic>;
+          final String sub = (a['suburb'] ?? a['neighbourhood'] ?? a['city_district'] ?? '').toString();
+          final String city = (a['city'] ?? a['town'] ?? a['village'] ?? a['county'] ?? '').toString();
+          final String area = "$sub, $city".replaceAll(RegExp(r'^, |, $'), '').trim();
+          if (area.isNotEmpty && area != ",") result = area;
+        }
+      } else {
+        final List<Placemark> placemarks =
+        await geocodingService.placemarkFromCoordinates(latitude, longitude);
+        if (placemarks.isNotEmpty) {
+          final Placemark place = placemarks.first;
+          final String area = "${place.subLocality ?? ''} ${place.locality ?? ''}".trim();
+          result = area.isNotEmpty ? area : (place.name ?? "-");
+        }
       }
+
       _areaCache[key] = result;
       return result;
     } catch (e) {
@@ -415,9 +534,12 @@ class _AttendanceReportState extends State<AttendanceReport> {
       ) {
     _myFocusScopeNode.unfocus();
 
-    // ✅ list illana mattum load pannu (dialog open aagumbothu reset aagaama irukka)
-    if (empProvider.filterUserData.isEmpty) {
-      empProvider.getAllUsers();
+    // ✅ CHANGED: load only when nothing is available, and WITHOUT clearing
+    // the existing lists (isRefresh:false)
+    if (empProvider.userData.isEmpty &&
+        empProvider.filterUserData.isEmpty &&
+        widget.empList.isEmpty) {
+      empProvider.getAllUsers(isRefresh: false);
     }
 
     // ✅ snapshot: Apply pannaama close pannaa restore panna
@@ -544,18 +666,16 @@ class _AttendanceReportState extends State<AttendanceReport> {
                           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // ✅ small searchable dropdown (dialog kulla thaan open aagum)
-                            Consumer<EmployeeProvider>(
-                              builder: (_, emp, __) {
-                                return _EmployeeSearchDropdown(
-                                  width: fieldW,
-                                  users: emp.filterUserData,
-                                  selectedId: (custProvider.user ?? "").toString(),
-                                  selectedName: custProvider.userName,
-                                  onSelected: (u) =>
-                                      attProvider.selectUser(dialogCtx, u, widget.empList),
-                                );
-                              },
+                            // ✅ CHANGED: picker reads the employee list LIVE
+                            // (userData -> filterUserData -> widget.empList)
+                            _EmployeeSearchDropdown(
+                              width: fieldW,
+                              emp: empProvider,
+                              fallback: widget.empList,
+                              selectedId: (custProvider.user ?? "").toString(),
+                              selectedName: custProvider.userName,
+                              onSelected: (u) =>
+                                  attProvider.selectUser(dialogCtx, u, widget.empList),
                             ),
                             _dialogField(
                               label: "Select Date Range",
@@ -667,9 +787,11 @@ class _AttendanceReportState extends State<AttendanceReport> {
 
   // ==========================================================================
   // ✅ MAP (thani page illa) -> same page la dialog aa open aagum.
-  // Map mela employee details + check in / check out time card kaattum.
+  // ✅ CHANGED: Info card ippo map KULLA, KEELA (bottom) overlay-a irukkum.
+  // Close button map mela top-right la irukkum.
   // Android / iOS / Web ellathukum same.
   // ==========================================================================
+
   void _openMapDialog({
     required String lat1,
     required String lng1,
@@ -684,64 +806,84 @@ class _AttendanceReportState extends State<AttendanceReport> {
   }) {
     final Size size = MediaQuery.of(context).size;
     final double w = kIsWeb ? size.width * 0.6 : size.width * 0.95;
-    final double h = size.height * 0.8;
+    final double h = size.height * 0.85;
+
+    final Future<String> inArea = _getAreaName(lat1, lng1);
+    final Future<String> outArea =
+    (lat2.trim().isNotEmpty && lng2.trim().isNotEmpty)
+        ? _getAreaName(lat2, lng2)
+        : Future.value("");
 
     showDialog(
       context: context,
       builder: (dialogCtx) {
+        // map + overlays (close button top, info card bottom)
+        final Widget mapStack = Stack(
+          children: [
+            // ---------- Map (full dialog) ----------
+            Positioned.fill(
+              child: CheckLocation(
+                lat1: lat1,
+                long1: lng1,
+                lat2: lat2,
+                long2: lng2,
+                embedded: true,
+              ),
+            ),
+
+            // ---------- Close button (top right, map mela) ----------
+            Positioned(
+              top: 10,
+              right: 10,
+              child: InkWell(
+                onTap: () => Navigator.of(dialogCtx, rootNavigator: true).pop(),
+                borderRadius: BorderRadius.circular(20),
+                child: Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(color: Colors.black26, blurRadius: 6),
+                    ],
+                  ),
+                  child: const Icon(Icons.close, size: 20, color: Colors.black),
+                ),
+              ),
+            ),
+
+            // ---------- Info card (map kulla, keela) ----------
+            Positioned(
+              left: 10,
+              right: 10,
+              bottom: 10,
+              child: _MapInfoCard(
+                name: name,
+                role: role,
+                date: date,
+                inTime: inTime,
+                outTime: outTime,
+                totalHrs: totalHrs,
+                inArea: inArea,
+                outArea: outArea,
+              ),
+            ),
+          ],
+        );
+
         return Dialog(
           insetPadding: const EdgeInsets.all(12),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-          clipBehavior: Clip.antiAlias,
+          clipBehavior: kIsWeb ? Clip.none : Clip.antiAlias,
           child: SizedBox(
             width: w,
             height: h,
-            child: Stack(
-              children: [
-                // map (existing CheckLocation widget -> dialog kulla embed)
-                Positioned.fill(
-                  child: CheckLocation(
-                    lat1: lat1,
-                    long1: lng1,
-                    lat2: lat2,
-                    long2: lng2,
-                  ),
-                ),
-                // close button
-                Positioned(
-                  top: 8,
-                  right: 8,
-                  child: InkWell(
-                    onTap: () => Navigator.of(dialogCtx, rootNavigator: true).pop(),
-                    borderRadius: BorderRadius.circular(20),
-                    child: Container(
-                      padding: const EdgeInsets.all(6),
-                      decoration: const BoxDecoration(
-                        color: Colors.white,
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(color: Colors.black26, blurRadius: 6),
-                        ],
-                      ),
-                      child: const Icon(Icons.close, size: 18, color: Colors.black),
-                    ),
-                  ),
-                ),
-                // employee + check in/out card
-                Positioned(
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  child: _MapInfoCard(
-                    name: name,
-                    role: role,
-                    date: date,
-                    inTime: inTime,
-                    outTime: outTime,
-                    totalHrs: totalHrs,
-                  ),
-                ),
-              ],
+            // web-la Clip.none thevai (map platform view issue) -> mobile la mattum ClipRRect
+            child: kIsWeb
+                ? mapStack
+                : ClipRRect(
+              borderRadius: BorderRadius.circular(14),
+              child: mapStack,
             ),
           ),
         );
@@ -751,7 +893,7 @@ class _AttendanceReportState extends State<AttendanceReport> {
 
   @override
   Widget build(BuildContext context) {
-    var webWidth=MediaQuery.of(context).size.width * 0.5;
+    var webWidth=_webContentWidth(context);
     var phoneWidth=MediaQuery.of(context).size.width * 0.95;
     return Consumer4<AttendanceProvider,EmployeeProvider,HomeProvider,LeaveProvider>
       (builder: (context,attProvider,empProvider,homeProvider,levPvr,_){
@@ -796,90 +938,11 @@ class _AttendanceReportState extends State<AttendanceReport> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Container(
-                                width:phoneWidth/1.2,
-                                decoration: customDecoration.baseBackgroundDecoration(
-                                  radius: 30,
-                                  color: colorsConst.primary,
-                                ),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Container(
-                                      width: attProvider.selectedIndex==0?phoneWidth/1.5:phoneWidth/1.5,
-                                      height: 45,
-                                      decoration: customDecoration.baseBackgroundDecoration(
-                                        radius: 30,
-                                        color: Colors.transparent,
-                                      ),
-                                      child: TextFormField(
-                                        cursorColor: colorsConst.primary,
-                                        onChanged: (value) {
-                                          attProvider.searchAttendanceReport(value.toString());
-                                          levPvr.searchReport(value.toString());
-                                        },
-                                        textInputAction: TextInputAction.done,
-                                        controller: attProvider.search,
-                                        decoration: InputDecoration(
-                                          hintText:"Search Name or ${constValue.customer}",
-                                          hintStyle: TextStyle(
-                                              color: colorsConst.primary,
-                                              fontSize: 14
-                                          ),
-                                          fillColor: Colors.white,
-                                          filled: true,
-                                          prefixIcon: Icon(Icons.search,color: Colors.grey,),
-                                          suffixIcon: attProvider.search.text.isNotEmpty?
-                                          GestureDetector(
-                                              onTap: (){
-                                                attProvider.search.clear();
-                                                attProvider.searchAttendanceReport("");
-                                                levPvr.searchReport("");
-                                              },
-                                              child: Container(
-                                                  width: 10,height: 10,color: Colors.transparent,
-                                                  child: Padding(
-                                                    padding: const EdgeInsets.all(8.0),
-                                                    child: SvgPicture.asset(assets.cancel2),
-                                                  ))):null,
-                                          errorStyle: const TextStyle(
-                                            fontSize: 12.0,
-                                            height: 0.20,
-                                          ),
-                                          focusedBorder: OutlineInputBorder(
-                                              borderSide:  BorderSide(color: colorsConst.primary),
-                                              borderRadius: BorderRadius.circular(30)
-                                          ),
-                                          focusedErrorBorder: OutlineInputBorder(
-                                              borderSide: BorderSide(color: colorsConst.primary),
-                                              borderRadius: BorderRadius.circular(30)
-                                          ),
-                                          contentPadding:const EdgeInsets.fromLTRB(10, 10, 10, 10),
-                                          errorBorder: OutlineInputBorder(
-                                              borderSide:  const BorderSide(color: Colors.transparent),
-                                              borderRadius: BorderRadius.circular(30)
-                                          ),
-                                          enabledBorder: OutlineInputBorder(
-                                              borderSide:  BorderSide(color: Colors.grey.shade300),
-                                              borderRadius: BorderRadius.circular(30)
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                    InkWell(
-                                      // ✅ filter dialog ippo _openFilterDialog la irukku
-                                      onTap: () => _openFilterDialog(attProvider, empProvider, levPvr),
-                                      child: Padding(
-                                        padding: const EdgeInsets.all(6.0),
-                                        child: Icon(
-                                          Icons.filter_alt,
-                                          size: 27,
-                                          color: Colors.white,
-                                        ),
-                                      ),
-                                    ),5.width
-                                  ],
-                                ),),
+                              // ✅ web-la Expanded -> overflow aagaadhu, phone-la original width
+                              kIsWeb
+                                  ? Expanded(child: _buildSearchPill(attProvider, empProvider, levPvr, phoneWidth))
+                                  : _buildSearchPill(attProvider, empProvider, levPvr, phoneWidth),
+                              if (kIsWeb) 12.width,
                               GestureDetector(
                                 onTap: () async {
                                   if (isLoading) return;
@@ -889,34 +952,28 @@ class _AttendanceReportState extends State<AttendanceReport> {
                                   });
 
                                   try {
-                                    if (attProvider.userName != "") {
-                                      await excelReports.downloadAttendanceExcelReport(
-                                        context,
-                                        stDate: attProvider.startDate,
-                                        enDate: attProvider.endDate,
-                                      );
-                                    } else {
-                                      await excelReports.downloadAttendanceExcelReport(
-                                        context,
-                                        stDate: attProvider.startDate,
-                                        enDate: attProvider.endDate,
-                                      );
-                                    }
+                                    await excelReports.downloadAttendanceExcelReport(
+                                      context,
+                                      stDate: attProvider.startDate,
+                                      enDate: attProvider.endDate,
+                                    );
                                   } catch (e) {
                                     print("Download Error: $e");
                                   } finally {
-                                    setState(() {
-                                      isLoading = false;
-                                    });
+                                    if (mounted) {
+                                      setState(() {
+                                        isLoading = false;
+                                      });
+                                    }
                                   }
                                 },
                                 child: isLoading
-                                    ? SizedBox(
+                                    ? const SizedBox(
                                   width: 27,
                                   height: 27,
                                   child: CircularProgressIndicator(strokeWidth: 2),
                                 )
-                                    : Icon(
+                                    : const Icon(
                                   Icons.download_rounded,
                                   size: 27,
                                   color: Colors.red,
@@ -944,34 +1001,28 @@ class _AttendanceReportState extends State<AttendanceReport> {
                                   });
 
                                   try {
-                                    if (attProvider.userName != "") {
-                                      await excelReports.downloadAttendanceExcelReport(
-                                        context,
-                                        stDate: attProvider.startDate,
-                                        enDate: attProvider.endDate,
-                                      );
-                                    } else {
-                                      await excelReports.downloadAttendanceExcelReport(
-                                        context,
-                                        stDate: attProvider.startDate,
-                                        enDate: attProvider.endDate,
-                                      );
-                                    }
+                                    await excelReports.downloadAttendanceExcelReport(
+                                      context,
+                                      stDate: attProvider.startDate,
+                                      enDate: attProvider.endDate,
+                                    );
                                   } catch (e) {
                                     print("Download Error: $e");
                                   } finally {
-                                    setState(() {
-                                      isLoading = false;
-                                    });
+                                    if (mounted) {
+                                      setState(() {
+                                        isLoading = false;
+                                      });
+                                    }
                                   }
                                 },
                                 child: isLoading
-                                    ? SizedBox(
+                                    ? const SizedBox(
                                   width: 27,
                                   height: 27,
                                   child: CircularProgressIndicator(strokeWidth: 2),
                                 )
-                                    : Icon(
+                                    : const Icon(
                                   Icons.download_rounded,
                                   size: 27,
                                   color: Colors.red,
@@ -1024,30 +1075,34 @@ class _AttendanceReportState extends State<AttendanceReport> {
                         ),
                         10.height,
                         if(attProvider.filter==true)
-                          Row(
-                            children: [
-                              // ✅ custom From/To date select pannirundha same-day aanaalum date chip kaattum
-                              if (attProvider.startDate.isNotEmpty &&
-                                  attProvider.endDate.isNotEmpty &&
-                                  (attProvider.startDate != attProvider.endDate || _appliedCustom))
-                                _filterChip(
-                                  attProvider.startDate == attProvider.endDate
-                                      ? attProvider.startDate
-                                      : "${attProvider.startDate} - ${attProvider.endDate}",
-                                ),
+                          SizedBox(
+                            width: double.infinity,
+                            child: Wrap(
+                              runSpacing: 5,
+                              children: [
+                                // ✅ custom From/To date select pannirundha same-day aanaalum date chip kaattum
+                                if (attProvider.startDate.isNotEmpty &&
+                                    attProvider.endDate.isNotEmpty &&
+                                    (attProvider.startDate != attProvider.endDate || _appliedCustom))
+                                  _filterChip(
+                                    attProvider.startDate == attProvider.endDate
+                                        ? attProvider.startDate
+                                        : "${attProvider.startDate} - ${attProvider.endDate}",
+                                  ),
 
-                              // ✅ custom date apply pannirundha "Today" maathiri preset type chip kaattaadhu
-                              if (!_appliedCustom && attProvider.type.isNotEmpty && attProvider.type!="null")
-                                _filterChip(attProvider.type),
+                                // ✅ custom date apply pannirundha "Today" maathiri preset type chip kaattaadhu
+                                if (!_appliedCustom && attProvider.type.isNotEmpty && attProvider.type!="null")
+                                  _filterChip(attProvider.type),
 
-                              if (attProvider.userName.isNotEmpty)
-                                _filterChip(attProvider.userName),
+                                if (attProvider.userName.isNotEmpty)
+                                  _filterChip(attProvider.userName),
 
-                            ],
+                              ],
+                            ),
                           ),
                         15.height,
                         Padding(
-                          padding: const EdgeInsets.only(left: 12.0),
+                          padding: EdgeInsets.only(left: kIsWeb ? 0 : 12.0),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
@@ -1604,7 +1659,7 @@ class _AttendanceReportState extends State<AttendanceReport> {
     return "${dateTime.day}/${dateTime.month}/${dateTime.year}";
   }
   Widget itemBuilder(List<LeaveModel> dataList, LeaveProvider levProvider) {
-    var webWidth = MediaQuery.of(context).size.width * 0.7;
+    var webWidth = _webContentWidth(context);
     var phoneWidth = MediaQuery.of(context).size.width * 0.95;
 
     final sortedData = List<LeaveModel>.from(dataList);
@@ -1990,13 +2045,13 @@ class _AttendanceReportState extends State<AttendanceReport> {
       padding: const EdgeInsets.fromLTRB(0, 0, 5, 0),
       child: Container(
         decoration: BoxDecoration(
-          color: Color(0xff353535),
+          color: const Color(0xff353535),
           borderRadius: BorderRadius.circular(5),
         ),
         child: Padding(
           padding: const EdgeInsets.all(8.0),
           child: CustomText(
-            text:text,colors: Color(0xffF5F5F5),size: 12,
+            text:text,colors: const Color(0xffF5F5F5),size: 12,
           ),
         ),
       ),
@@ -2004,105 +2059,65 @@ class _AttendanceReportState extends State<AttendanceReport> {
   }
 }
 
-/// ✅ small inline searchable dropdown.
-/// Field tap panna adhe field search box aa maarum, keela chinna list varum (dialog kullayae).
-class _EmployeeSearchDropdown extends StatefulWidget {
+/// ✅ Employee field. Tap -> opens a small picker dialog (search + list).
+/// Nothing expands inside the filter dialog, so it can't turn blank on web.
+class _EmployeeSearchDropdown extends StatelessWidget {
   final double width;
-  final Iterable<UserModel> users;
+  final EmployeeProvider emp;
+  final List<UserModel> fallback;
   final String selectedId;
   final String selectedName;
   final ValueChanged<UserModel> onSelected;
 
   const _EmployeeSearchDropdown({
     required this.width,
-    required this.users,
+    required this.emp,
+    required this.fallback,
     required this.selectedId,
     required this.selectedName,
     required this.onSelected,
   });
 
-  @override
-  State<_EmployeeSearchDropdown> createState() => _EmployeeSearchDropdownState();
-}
+  Future<void> _openPicker(BuildContext context) async {
+    final UserModel? picked = await showDialog<UserModel>(
+      context: context,
+      builder: (_) => _EmployeePickerDialog(
+        emp: emp,
+        fallback: fallback,
+        selectedId: selectedId,
+      ),
+    );
 
-class _EmployeeSearchDropdownState extends State<_EmployeeSearchDropdown> {
-  final TextEditingController _search = TextEditingController();
-  bool _open = false;
-
-  @override
-  void dispose() {
-    _search.dispose();
-    super.dispose();
-  }
-
-  void _close() {
-    setState(() {
-      _open = false;
-      _search.clear();
-    });
+    if (picked != null && context.mounted) {
+      onSelected(picked);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    // duplicate id irundha problem aagum, so unique-a vachukkurom
-    final Map<String, UserModel> unique = {};
-    for (final u in widget.users) {
-      unique[u.id.toString()] = u;
-    }
-    final String q = _search.text.trim().toLowerCase();
-    final List<UserModel> filtered = unique.values
-        .where((u) => u.firstname.toString().toLowerCase().contains(q))
-        .toList();
-    final bool hasName = widget.selectedName.isNotEmpty;
-
+    final bool hasName = selectedName.isNotEmpty;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         CustomText(text: "Employee Name", colors: colorsConst.greyClr, size: 12),
         6.height,
-        Container(
-          height: 40,
-          width: widget.width,
-          padding: const EdgeInsets.symmetric(horizontal: 8),
-          decoration: customDecoration.baseBackgroundDecoration(
-            radius: 5,
-            color: Colors.white,
-            borderColor: _open ? colorsConst.primary : colorsConst.litGrey,
-          ),
-          child: _open
-              ? Row(
-            children: [
-              Icon(Icons.search, size: 18, color: colorsConst.greyClr),
-              4.width,
-              Expanded(
-                child: TextField(
-                  controller: _search,
-                  autofocus: true,
-                  cursorColor: colorsConst.primary,
-                  style: const TextStyle(fontSize: 13),
-                  onChanged: (_) => setState(() {}),
-                  decoration: const InputDecoration(
-                    isDense: true,
-                    border: InputBorder.none,
-                    hintText: "Search",
-                    hintStyle: TextStyle(fontSize: 13, color: Colors.grey),
-                    contentPadding: EdgeInsets.zero,
-                  ),
-                ),
-              ),
-              InkWell(
-                onTap: _close,
-                child: Icon(Icons.close, size: 16, color: colorsConst.greyClr),
-              ),
-            ],
-          )
-              : InkWell(
-            onTap: () => setState(() => _open = true),
+        InkWell(
+          onTap: () => _openPicker(context),
+          borderRadius: BorderRadius.circular(5),
+          child: Container(
+            height: 40,
+            width: width,
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            decoration: customDecoration.baseBackgroundDecoration(
+              radius: 5,
+              color: Colors.white,
+              borderColor: colorsConst.litGrey,
+            ),
             child: Row(
               children: [
                 Expanded(
                   child: CustomText(
-                    text: hasName ? widget.selectedName : "Select",
+                    text: hasName ? selectedName : "Select",
                     colors: hasName ? Colors.black : Colors.grey,
                   ),
                 ),
@@ -2112,58 +2127,178 @@ class _EmployeeSearchDropdownState extends State<_EmployeeSearchDropdown> {
             ),
           ),
         ),
-        if (_open)
-          Container(
-            width: widget.width,
-            margin: const EdgeInsets.only(top: 4),
-            constraints: const BoxConstraints(maxHeight: 150),
-            decoration: customDecoration.baseBackgroundDecoration(
-              radius: 5,
-              color: Colors.white,
-              borderColor: colorsConst.litGrey,
-            ),
-            child: filtered.isEmpty
-                ? const Padding(
-              padding: EdgeInsets.all(10),
-              child: CustomText(
-                text: "No employee found",
-                size: 12,
-                colors: Colors.grey,
-              ),
-            )
-                : ListView.builder(
-              shrinkWrap: true,
-              padding: EdgeInsets.zero,
-              itemCount: filtered.length,
-              itemBuilder: (_, i) {
-                final u = filtered[i];
-                final bool selected = widget.selectedId == u.id.toString();
-                return InkWell(
-                  onTap: () {
-                    widget.onSelected(u);
-                    _close();
-                  },
-                  child: Container(
-                    width: double.infinity,
-                    color: selected ? Colors.grey.shade100 : null,
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
-                    child: CustomText(
-                      text: u.firstname.toString(),
-                      size: 13,
-                      colors: Colors.black,
-                      isBold: selected,
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
       ],
     );
   }
 }
 
-/// ✅ Map mela kaattura employee + check in/out card
+/// ✅ Picker dialog. Reads the employee list LIVE from the provider, so it
+/// updates when the list finishes loading. Falls back to the list passed
+/// into the page.
+class _EmployeePickerDialog extends StatefulWidget {
+  final EmployeeProvider emp;
+  final List<UserModel> fallback;
+  final String selectedId;
+  const _EmployeePickerDialog({
+    required this.emp,
+    required this.fallback,
+    required this.selectedId,
+  });
+
+  @override
+  State<_EmployeePickerDialog> createState() => _EmployeePickerDialogState();
+}
+
+class _EmployeePickerDialogState extends State<_EmployeePickerDialog> {
+  final TextEditingController _search = TextEditingController();
+
+  /// full list first, then the (possibly narrowed) filter list, then fallback
+  List<UserModel> _source() {
+    if (widget.emp.userData.isNotEmpty) return widget.emp.userData;
+    if (widget.emp.filterUserData.isNotEmpty) return widget.emp.filterUserData;
+    return widget.fallback;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    if (_source().isEmpty) {
+      // load without clearing anything
+      widget.emp.getAllUsers(isRefresh: false);
+    }
+  }
+
+  @override
+  void dispose() {
+    _search.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final double w = MediaQuery.of(context).size.width;
+
+    return Dialog(
+      backgroundColor: Colors.white,
+      insetPadding: const EdgeInsets.all(16),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: SizedBox(
+        width: kIsWeb ? 380 : w * 0.85,
+        height: 420,
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            children: [
+              Row(
+                children: [
+                  const Expanded(
+                    child: CustomText(
+                        text: "Select Employee", size: 15, isBold: true),
+                  ),
+                  InkWell(
+                    onTap: () => Navigator.of(context).pop(),
+                    child: const Icon(Icons.close, size: 20),
+                  ),
+                ],
+              ),
+              10.height,
+              TextField(
+                controller: _search,
+                autofocus: true,
+                cursorColor: colorsConst.primary,
+                style: const TextStyle(fontSize: 13),
+                onChanged: (_) => setState(() {}),
+                decoration: InputDecoration(
+                  isDense: true,
+                  hintText: "Search",
+                  prefixIcon: const Icon(Icons.search, size: 18),
+                  contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                  enabledBorder: OutlineInputBorder(
+                    borderSide: BorderSide(color: colorsConst.litGrey),
+                    borderRadius: BorderRadius.circular(5),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderSide: BorderSide(color: colorsConst.primary),
+                    borderRadius: BorderRadius.circular(5),
+                  ),
+                ),
+              ),
+              8.height,
+              Expanded(
+                // rebuilds when the provider's list changes (e.g. finishes loading)
+                child: AnimatedBuilder(
+                  animation: widget.emp,
+                  builder: (_, __) {
+                    final src = _source();
+
+                    // unique by id, skip empty / "null" names, sort A-Z
+                    final Map<String, UserModel> unique = {};
+                    for (final u in src) {
+                      final n = u.firstname.toString().trim();
+                      if (n.isEmpty || n == "null") continue;
+                      unique[u.id.toString()] = u;
+                    }
+                    final String q = _search.text.trim().toLowerCase();
+                    final List<UserModel> filtered = unique.values
+                        .where((u) =>
+                        u.firstname.toString().toLowerCase().contains(q))
+                        .toList()
+                      ..sort((a, b) => a.firstname
+                          .toString()
+                          .toLowerCase()
+                          .compareTo(b.firstname.toString().toLowerCase()));
+
+                    // still loading the list
+                    if (src.isEmpty && !widget.emp.empRefresh) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+
+                    if (filtered.isEmpty) {
+                      return const Center(
+                        child: CustomText(
+                            text: "No employee found",
+                            size: 12,
+                            colors: Colors.grey),
+                      );
+                    }
+
+                    return ListView.builder(
+                      itemCount: filtered.length,
+                      itemBuilder: (_, i) {
+                        final u = filtered[i];
+                        final bool selected =
+                            widget.selectedId == u.id.toString();
+                        return InkWell(
+                          onTap: () => Navigator.of(context).pop(u),
+                          child: Container(
+                            width: double.infinity,
+                            color: selected ? Colors.grey.shade100 : null,
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 10),
+                            child: CustomText(
+                              text: u.firstname.toString(),
+                              size: 13,
+                              colors: Colors.black,
+                              isBold: selected,
+                            ),
+                          ),
+                        );
+                      },
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// ✅ Map KULLA (keela) overlay-a kaattura employee + check in/out + area card
+/// ✅ CHANGED: close button remove (map mela top-right la irukku),
+/// floating card decoration (rounded + shadow)
 class _MapInfoCard extends StatelessWidget {
   final String name;
   final String role;
@@ -2171,6 +2306,8 @@ class _MapInfoCard extends StatelessWidget {
   final String inTime;
   final String outTime;
   final String totalHrs;
+  final Future<String>? inArea;
+  final Future<String>? outArea;
 
   const _MapInfoCard({
     required this.name,
@@ -2179,6 +2316,8 @@ class _MapInfoCard extends StatelessWidget {
     required this.inTime,
     required this.outTime,
     required this.totalHrs,
+    this.inArea,
+    this.outArea,
   });
 
   String _clean(String v) {
@@ -2196,7 +2335,32 @@ class _MapInfoCard extends StatelessWidget {
     }
   }
 
-  Widget _cell(String label, String value, {bool late = false}) {
+  Widget _area(Future<String>? f) {
+    if (f == null) return const SizedBox.shrink();
+    return FutureBuilder<String>(
+      future: f,
+      builder: (_, snap) {
+        final String t = snap.hasData ? snap.data! : "...";
+        if (t.isEmpty || t == "-") return const SizedBox.shrink();
+        return Padding(
+          padding: const EdgeInsets.only(top: 3),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(Icons.location_on, size: 12, color: colorsConst.greyClr),
+              2.width,
+              Expanded(
+                child: CustomText(text: t, size: 11, colors: colorsConst.greyClr),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _cell(String label, String value,
+      {bool late = false, Future<String>? area}) {
     return Expanded(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -2231,6 +2395,7 @@ class _MapInfoCard extends StatelessWidget {
             isBold: true,
             colors: late ? const Color(0xFFE65100) : Colors.black,
           ),
+          _area(area),
         ],
       ),
     );
@@ -2242,13 +2407,17 @@ class _MapInfoCard extends StatelessWidget {
     final String total = out == "-" ? "-" : _clean(totalHrs);
 
     return Container(
-      margin: const EdgeInsets.all(12),
       padding: const EdgeInsets.all(14),
+      // ✅ CHANGED: floating card look (map mela overlay)
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(12),
         boxShadow: const [
-          BoxShadow(color: Colors.black26, blurRadius: 10, offset: Offset(0, 3)),
+          BoxShadow(
+            color: Colors.black26,
+            blurRadius: 10,
+            offset: Offset(0, 3),
+          ),
         ],
       ),
       child: Column(
@@ -2296,8 +2465,8 @@ class _MapInfoCard extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _cell("Check In", _clean(inTime), late: _isLate),
-              _cell("Check Out", out),
+              _cell("Check In", _clean(inTime), late: _isLate, area: inArea),
+              _cell("Check Out", out, area: out == "-" ? null : outArea),
               _cell("Total Hrs", total),
             ],
           ),

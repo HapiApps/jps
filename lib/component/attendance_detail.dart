@@ -358,16 +358,15 @@ class AttendanceDetails extends StatelessWidget {
       ),
     );
 
+    // ✅ CHANGED: geocoding web-la work aagaadhu, so web-la lat,lng-a
+    // (4 decimal) kaattrom. "In: -" maathiri empty-a theriyaadhu.
     Widget areaLine(String label, String? lat, String? lng) {
       return Padding(
         padding: const EdgeInsets.only(top: 2),
-        child: FutureBuilder<String>(
-          future: _getAreaName(lat!, lng!),
-          builder: (c, s) => CustomText(
-            text: "$label: ${s.hasData ? s.data! : '...'}",
-            size: 12,
-            colors: colorsConst.greyClr,
-          ),
+        child: CustomText(
+          text: "$label: ${_fmtCoord(lat)}, ${_fmtCoord(lng)}",
+          size: 12,
+          colors: colorsConst.greyClr,
         ),
       );
     }
@@ -399,8 +398,9 @@ class AttendanceDetails extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   // ---------- LEFT: employee / date ----------
+                  // ✅ CHANGED: 200 -> 180 (times ku konjam adhigam idam)
                   SizedBox(
-                    width: 200,
+                    width: 180,
                     child: (isAdmin && isName == true)
                         ? InkWell(
                       onTap: () {
@@ -459,6 +459,7 @@ class AttendanceDetails extends StatelessWidget {
                       ],
                     ),
                   ),
+                  8.width,
                   _mapIcon(callback),
                 ],
               ),
@@ -585,9 +586,18 @@ class AttendanceDetails extends StatelessWidget {
   }
 }
 
+/// ✅ lat/lng-a 4 decimal-ku short pannum (web-la area name illaama kaattradhukku)
+String _fmtCoord(String? v) {
+  final double? d = double.tryParse((v ?? "").trim());
+  return d == null ? "-" : d.toStringAsFixed(4);
+}
+
 /// ✅ reverse-geocodes a lat/lng pair into "SubLocality, Locality"
+/// (top-level final = lazy; web-la _getAreaName first-ye return aagum, so Geocoding() create aagaadhu)
 final Geocoding geocodingService = Geocoding();
 Future<String> _getAreaName(String lat, String lng) async {
+  // ✅ ADDED: geocoding package has no web support
+  if (kIsWeb) return "-";
   try {
     if (lat.isEmpty || lng.isEmpty) return "-";
     final String key = "$lat,$lng";
@@ -605,9 +615,6 @@ Future<String> _getAreaName(String lat, String lng) async {
       final Placemark place = placemarks.first;
       final String sub = (place.subLocality ?? '').trim();
       final String loc = (place.locality ?? '').trim();
-
-      // "SubbaihPuram Thoothukudi" -> "SubbaihPuram, Thoothukudi"
-      // (same name rendu thadava vandha oru thadavai mattum)
       final String area = [sub, loc]
           .where((e) => e.isNotEmpty)
           .toSet()

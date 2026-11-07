@@ -1,3 +1,6 @@
+import 'package:flutter/foundation.dart';
+import 'package:flutter_map/flutter_map.dart' as fm;
+import 'package:latlong2/latlong.dart' as ll;
 import 'package:master_code/component/custom_text.dart';
 import 'package:master_code/source/constant/colors_constant.dart';
 import 'package:master_code/source/extentions/extensions.dart';
@@ -14,117 +17,303 @@ class CheckLocation extends StatefulWidget {
   final String lat2;
   final String long2;
   final bool? addressShow;
-  const CheckLocation({super.key, required this.lat1, required this.long1, required this.lat2, required this.long2, this.addressShow});
+
+  /// true -> only the map (no Scaffold / AppBar). Used inside the dialog.
+  final bool embedded;
+
+  const CheckLocation({
+    super.key,
+    required this.lat1,
+    required this.long1,
+    required this.lat2,
+    required this.long2,
+    this.addressShow,
+    this.embedded = false,
+  });
+
   @override
   State<CheckLocation> createState() => _CheckLocationState();
 }
 
 class _CheckLocationState extends State<CheckLocation> {
-  final List<Marker> _marker =[];
-  final Geocoding geocodingService = Geocoding();
-  double lat1=0.0;
-  double lat2=0.0;
-  double lng1=0.0;
-  double lng2=0.0;
+  final List<Marker> _marker = [];
+
+  // lazy: Geocoding() is never created on web
+  late final Geocoding geocodingService = Geocoding();
+
+  double lat1 = 0.0;
+  double lat2 = 0.0;
+  double lng1 = 0.0;
+  double lng2 = 0.0;
   String address1 = '';
   String address2 = '';
+
+  GoogleMapController? _googleMapController;
+
+  // web (flutter_map) controller
+  final fm.MapController _webController = fm.MapController();
+
+  bool get _hasIn => !(lat1 == 0.0 && lng1 == 0.0);
+  bool get _hasOut => lat2 != 0.0 && lng2 != 0.0;
+
   @override
   void initState() {
-    dynamic latitude1;
-    if(widget.lat1!="") {
-      latitude1=double.parse(widget.lat1);
-    }
-    dynamic latitude2;
-    if(widget.lat2.toString().contains(".")) {
-      latitude2=double.parse(widget.lat2);
-    }
-    dynamic longitude1;
-    if(widget.long1!="") {
-      longitude1=double.parse(widget.long1);
-    }
-    dynamic longitude2;
-    if(widget.long2.toString().contains(".")) {
-      longitude2 =double.parse(widget.long2);
-    }
-    if(latitude1!=null) {
-      lat1=latitude1;
-    }
-    if(latitude2!=null) {
-      lat2=latitude2;
-    }
-    if(longitude1!=null) {
-      lng1=longitude1;
-    }
-    if(longitude2!=null) {
-      lng2=longitude2;
-    }
-    _marker.addAll(
-        [
-          Marker(
-            markerId: const MarkerId("1"),
-            position:LatLng(lat1,lng1),
-            infoWindow: const InfoWindow(title:"Check In"),
-            icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen
-            ),),
-          if(lat2!=0.0&&lng2!=0.0)
-          Marker(
-            markerId: const MarkerId("1"),
-            position:LatLng(lat2,lng2),
-            infoWindow: const InfoWindow(title:"Check Out"),
-            icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed
-            ),),
-        ]
-      );
-    getAddress(lat1,lng1,lat2,lng2);
     super.initState();
-  }
-  void getAddress(double lat, double lng, double lat2, double lng2) async {
-    List<Placemark> placeMark = await geocodingService.placemarkFromCoordinates(lat, lng);
-    Placemark place = placeMark[0];
 
-    setState(() {
-      address1 = [
-        place.street,
-        place.subLocality,
-        place.thoroughfare,
-        place.locality,
-        place.administrativeArea,
-        place.postalCode,
-        place.country,
-      ].where((e) => e != null && e.isNotEmpty).join(", ");
-    });
+    lat1 = double.tryParse(widget.lat1.trim()) ?? 0.0;
+    lng1 = double.tryParse(widget.long1.trim()) ?? 0.0;
+    lat2 = double.tryParse(widget.lat2.trim()) ?? 0.0;
+    lng2 = double.tryParse(widget.long2.trim()) ?? 0.0;
 
-    // Second address
-    if (lat2 != 0.0 && lng2 != 0.0) {
-      List<Placemark> placeMark2 = await geocodingService.placemarkFromCoordinates(lat2, lng2);
-      Placemark place2 = placeMark2[0];
-      setState(() {
-        address2 = [
-          place2.street,
-          place2.subLocality,
-          place2.thoroughfare,
-          place2.locality,
-          place2.administrativeArea,
-          place2.postalCode,
-          place2.country,
-        ].where((e) => e != null && e.isNotEmpty).join(", ");
-      });
+    // Google markers are needed only on Android / iOS
+    if (!kIsWeb) {
+      _marker.add(
+        Marker(
+          markerId: const MarkerId("1"),
+          position: LatLng(lat1, lng1),
+          infoWindow: const InfoWindow(title: "Check In"),
+          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
+        ),
+      );
+      if (_hasOut) {
+        _marker.add(
+          Marker(
+            markerId: const MarkerId("2"),
+            position: LatLng(lat2, lng2),
+            infoWindow: const InfoWindow(title: "Check Out"),
+            icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
+          ),
+        );
+      }
     }
 
-    // print("Address 1: $address1");
-    // print("Address 2: $address2");
+    getAddress(lat1, lng1, lat2, lng2);
+  }
 
-    // You can now use address1 and address2 as needed
+  String _join(Placemark p) => [
+    p.street,
+    p.subLocality,
+    p.thoroughfare,
+    p.locality,
+    p.administrativeArea,
+    p.postalCode,
+    p.country,
+  ].where((e) => e != null && e.isNotEmpty).join(", ");
+
+  Future<void> getAddress(
+      double lat, double lng, double lat2, double lng2) async {
+    // geocoding package has no web support
+    if (kIsWeb) return;
+    try {
+      final p1 = await geocodingService.placemarkFromCoordinates(lat, lng);
+      if (!mounted) return;
+      if (p1.isNotEmpty) setState(() => address1 = _join(p1[0]));
+
+      if (lat2 != 0.0 && lng2 != 0.0) {
+        final p2 = await geocodingService.placemarkFromCoordinates(lat2, lng2);
+        if (!mounted) return;
+        if (p2.isNotEmpty) setState(() => address2 = _join(p2[0]));
+      }
+    } catch (e) {
+      debugPrint("getAddress failed: $e");
+    }
   }
 
   @override
   void dispose() {
-    _googleMapController.dispose();
+    _googleMapController?.dispose();
+    _webController.dispose();
     super.dispose();
   }
-  late GoogleMapController _googleMapController;
+
+  // ==========================================================================
+  // WEB map: flutter_map + OpenStreetMap (no API key, no script tag)
+  // ==========================================================================
+  Widget _webMap() {
+    if (!_hasIn) {
+      return Container(
+        color: Colors.grey.shade200,
+        alignment: Alignment.center,
+        child: CustomText(
+          text: "Location not available",
+          size: 14,
+          colors: colorsConst.greyClr,
+        ),
+      );
+    }
+
+    final p1 = ll.LatLng(lat1, lng1);
+    final ll.LatLng? p2 = _hasOut ? ll.LatLng(lat2, lng2) : null;
+
+    final fm.MapOptions options = p2 != null
+        ? fm.MapOptions(
+      // fit both points; extra bottom padding for the info card
+      initialCameraFit: fm.CameraFit.bounds(
+        bounds: fm.LatLngBounds(p1, p2),
+        padding: const EdgeInsets.fromLTRB(60, 70, 60, 200),
+        maxZoom: 17,
+      ),
+      minZoom: 3,
+      maxZoom: 19,
+    )
+        : fm.MapOptions(
+      initialCenter: p1,
+      initialZoom: 16,
+      minZoom: 3,
+      maxZoom: 19,
+    );
+
+    return Stack(
+      children: [
+        fm.FlutterMap(
+          mapController: _webController,
+          options: options,
+          children: [
+            fm.TileLayer(
+              urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+              userAgentPackageName: 'com.yourcompany.yourapp', // TODO: your package name
+            ),
+            if (p2 != null)
+              fm.PolylineLayer(
+                polylines: [
+                  fm.Polyline(
+                    points: [p1, p2],
+                    strokeWidth: 3,
+                    color: Colors.blue,
+                  ),
+                ],
+              ),
+            fm.MarkerLayer(
+              markers: [
+                fm.Marker(
+                  point: p1,
+                  width: 40,
+                  height: 40,
+                  alignment: Alignment.topCenter,
+                  child: const Icon(Icons.location_on,
+                      color: Colors.green, size: 38),
+                ),
+                if (p2 != null)
+                  fm.Marker(
+                    point: p2,
+                    width: 40,
+                    height: 40,
+                    alignment: Alignment.topCenter,
+                    child: const Icon(Icons.location_on,
+                        color: Colors.red, size: 38),
+                  ),
+              ],
+            ),
+            // OSM attribution is required by their tile policy
+            const fm.RichAttributionWidget(
+              alignment: fm.AttributionAlignment.bottomLeft,
+              attributions: [
+                fm.TextSourceAttribution('OpenStreetMap contributors'),
+              ],
+            ),
+          ],
+        ),
+
+        // zoom buttons (right side, below the dialog close button)
+        Positioned(
+          top: 56,
+          right: 10,
+          child: Column(
+            children: [
+              _zoomBtn(Icons.add, () {
+                final c = _webController.camera;
+                _webController.move(c.center, c.zoom + 1);
+              }),
+              6.height,
+              _zoomBtn(Icons.remove, () {
+                final c = _webController.camera;
+                _webController.move(c.center, c.zoom - 1);
+              }),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _zoomBtn(IconData icon, VoidCallback onTap) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(6),
+      child: Container(
+        width: 32,
+        height: 32,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(6),
+          boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 4)],
+        ),
+        child: Icon(icon, size: 20, color: Colors.black87),
+      ),
+    );
+  }
+
+  // ==========================================================================
+  // MOBILE map: Google Maps (unchanged)
+  // ==========================================================================
+  Widget _googleMap() {
+    return GoogleMap(
+      myLocationButtonEnabled: false,
+      zoomControlsEnabled: true,
+      initialCameraPosition:
+      CameraPosition(target: LatLng(lat1, lng1), zoom: 12),
+      markers: Set<Marker>.of(_marker),
+      onMapCreated: (controller) => _googleMapController = controller,
+    );
+  }
+
+  Widget _mapBody(BuildContext context) {
+    return Stack(
+      children: [
+        Positioned.fill(child: kIsWeb ? _webMap() : _googleMap()),
+        if (widget.addressShow == true)
+          Positioned(
+            bottom: 10,
+            left: 20,
+            right: 20,
+            child: Container(
+              width: MediaQuery.of(context).size.width * 0.85,
+              decoration: customDecoration.baseBackgroundDecoration(
+                  color: Colors.white, radius: 10),
+              child: Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Column(
+                  children: [
+                    5.height,
+                    CustomText(
+                        text: "Check In",
+                        colors: colorsConst.greyClr,
+                        isBold: true),
+                    5.height,
+                    CustomText(text: address1),
+                    5.height,
+                    if (address2 != "") ...[
+                      CustomText(
+                          text: "Check Out",
+                          colors: colorsConst.greyClr,
+                          isBold: true),
+                      5.height,
+                      CustomText(text: address2),
+                      5.height,
+                    ],
+                  ],
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    if (widget.embedded) return _mapBody(context);
+
     return SafeArea(
       child: Scaffold(
         backgroundColor: Colors.white,
@@ -132,127 +321,7 @@ class _CheckLocationState extends State<CheckLocation> {
           preferredSize: Size(300, 70),
           child: CustomAppbar(text: "Location"),
         ),
-        body: Stack(
-          children: [
-            20.height,
-            GoogleMap(
-              myLocationButtonEnabled: false,
-              zoomControlsEnabled: true,
-              initialCameraPosition:CameraPosition(target:LatLng(lat1,lng1),
-                  zoom: 12),
-              markers: Set<Marker>.of(_marker),
-              onMapCreated: (controller)=>_googleMapController=controller,
-            ),
-            if(widget.addressShow==true)
-            Positioned(
-              bottom: 10,left: 20,right: 20,
-             child:
-             //    child: widget.img1=="null"&&widget.img2=="null"?
-             // Center(child: Container(
-             //   width: 200,
-             //   height: 50,
-             //   decoration: customDecoration.baseBackgroundDecoration(
-             //     color: Colors.grey.shade50,
-             //     radius: 5
-             //   ),
-             //    child: const Center(child: CustomText(text: "No Images Found",colors: Colors.black,size: 15,)))):
-            Container(
-              // height: 100,
-              width: MediaQuery.of(context).size.width*0.85,
-              decoration: customDecoration.baseBackgroundDecoration(color: Colors.white,radius: 10),
-              // child: Row(
-              //   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              //   children: [
-              //     if(widget.img1!="null")
-              //       InkWell(
-              //         onTap: (){
-              //           Get.to(FullScreen(image: widget.img1, isNetwork: true));
-              //         },
-              //         child: Column(
-              //           children: [
-              //             CustomText(text: "IN - ${widget.inTime}",colors: Colors.grey,size: 13,),
-              //             Container(
-              //               height: 130,
-              //               width: 130,
-              //               decoration: BoxDecoration(
-              //                   borderRadius: BorderRadius.circular(10)
-              //               ),
-              //               child: CachedNetworkImage(
-              //                   imageUrl: widget.img1,fit:BoxFit.cover ,
-              //                   imageBuilder: (context, imageProvider) =>
-              //                       Container(
-              //                         decoration: BoxDecoration(
-              //                           borderRadius: BorderRadius.circular(5),
-              //                           image: DecorationImage(
-              //                             image: imageProvider,
-              //                             fit: BoxFit.cover,
-              //                             // colorFilter:
-              //                             // ColorFilter.mode(Colors.red, BlendMode.colorBurn)
-              //                           ),
-              //                         ),
-              //                       ),
-              //                   errorWidget: (context,url,error)=>const Center(child: Icon(Icons.error),),
-              //                   placeholder: (context,url)=>const Loading()
-              //               ),
-              //             ),
-              //           ],
-              //         ),
-              //       ),
-              //     if(widget.img2!="null")
-              //       InkWell(
-              //         onTap: (){
-              //           Get.to(FullScreen(image: widget.img2, isNetwork: true));
-              //         },
-              //         child: Column(
-              //           children: [
-              //             CustomText(text: "OUT - ${widget.outTime}",colors: Colors.grey,size: 13,),
-              //             Container(
-              //               height: 130,
-              //               width: 130,
-              //               decoration: BoxDecoration(
-              //                   borderRadius: BorderRadius.circular(10)
-              //               ),
-              //               child: CachedNetworkImage(
-              //                   imageUrl: widget.img2,fit:BoxFit.cover ,
-              //                   imageBuilder: (context, imageProvider) =>
-              //                       Container(
-              //                         decoration: BoxDecoration(
-              //                           borderRadius: BorderRadius.circular(5),
-              //                           image: DecorationImage(
-              //                             image: imageProvider,
-              //                             fit: BoxFit.cover,
-              //                             // colorFilter:
-              //                             // ColorFilter.mode(Colors.red, BlendMode.colorBurn)
-              //                           ),
-              //                         ),
-              //                       ),
-              //                   errorWidget: (context,url,error)=>const Center(child: Icon(Icons.error),),
-              //                   placeholder: (context,url)=>const Loading()
-              //               ),
-              //             ),
-              //           ],
-              //         ),
-              //       )
-              //   ],
-              // ),
-              child: Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Column(
-                  children: [
-                    5.height,
-                    CustomText(text: "Check In",colors: colorsConst.greyClr,isBold: true,),5.height,
-                    CustomText(text: address1),5.height,
-                    if(address2!="")
-                    CustomText(text: "Check Out",colors: colorsConst.greyClr,isBold: true),5.height,
-                    if(address2!="")
-                    CustomText(text: address2),5.height,
-                  ],
-                ),
-              ),
-            )
-            )
-          ],
-        ),
+        body: _mapBody(context),
       ),
     );
   }
