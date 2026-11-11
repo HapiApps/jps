@@ -266,6 +266,33 @@ class _AttendanceReportState extends State<AttendanceReport> {
   }
 
   bool isLoading = false;
+
+  Future<void> _downloadReport(AttendanceProvider att, LeaveProvider lev) async {
+    if (isLoading) return;
+    setState(() => isLoading = true);
+    try {
+      final String role = localData.storage.read("role").toString();
+      final String uid = localData.storage.read("id").toString();
+
+      if (role == "1") {
+        await lev.allLeaves(att.startDate, att.endDate, true, role, uid);
+      } else {
+        await lev.myLeaves(att.startDate, att.endDate, true, uid);
+      }
+
+      await excelReports.downloadAttendanceExcelReport(
+        context,
+        stDate: att.startDate,
+        enDate: att.endDate,
+        leaves: List.from(lev.myLevSearch),
+      );
+    } catch (e) {
+      print("Download Error: $e");
+    } finally {
+      if (mounted) setState(() => isLoading = false);
+    }
+  }
+
   @override
   void dispose() {
     _myFocusScopeNode.dispose();
@@ -944,29 +971,7 @@ class _AttendanceReportState extends State<AttendanceReport> {
                                   : _buildSearchPill(attProvider, empProvider, levPvr, phoneWidth),
                               if (kIsWeb) 12.width,
                               GestureDetector(
-                                onTap: () async {
-                                  if (isLoading) return;
-
-                                  setState(() {
-                                    isLoading = true;
-                                  });
-
-                                  try {
-                                    await excelReports.downloadAttendanceExcelReport(
-                                      context,
-                                      stDate: attProvider.startDate,
-                                      enDate: attProvider.endDate,
-                                    );
-                                  } catch (e) {
-                                    print("Download Error: $e");
-                                  } finally {
-                                    if (mounted) {
-                                      setState(() {
-                                        isLoading = false;
-                                      });
-                                    }
-                                  }
-                                },
+                                onTap: () => _downloadReport(attProvider, levPvr),
                                 child: isLoading
                                     ? const SizedBox(
                                   width: 27,
@@ -977,7 +982,8 @@ class _AttendanceReportState extends State<AttendanceReport> {
                                   Icons.download_rounded,
                                   size: 27,
                                   color: Colors.red,
-                                ),),
+                                ),
+                              ),
                             ],
                           ),
                         if(localData.storage.read("role") !="1")
@@ -993,29 +999,7 @@ class _AttendanceReportState extends State<AttendanceReport> {
                                     }, width: kIsWeb?webWidth:phoneWidth),
                               ), 20.width,
                               GestureDetector(
-                                onTap: () async {
-                                  if (isLoading) return;
-
-                                  setState(() {
-                                    isLoading = true;
-                                  });
-
-                                  try {
-                                    await excelReports.downloadAttendanceExcelReport(
-                                      context,
-                                      stDate: attProvider.startDate,
-                                      enDate: attProvider.endDate,
-                                    );
-                                  } catch (e) {
-                                    print("Download Error: $e");
-                                  } finally {
-                                    if (mounted) {
-                                      setState(() {
-                                        isLoading = false;
-                                      });
-                                    }
-                                  }
-                                },
+                                onTap: () => _downloadReport(attProvider, levPvr),
                                 child: isLoading
                                     ? const SizedBox(
                                   width: 27,
@@ -1026,7 +1010,8 @@ class _AttendanceReportState extends State<AttendanceReport> {
                                   Icons.download_rounded,
                                   size: 27,
                                   color: Colors.red,
-                                ),),
+                                ),
+                              ),
                             ],
                           ),
                         10.height,

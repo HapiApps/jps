@@ -25,8 +25,9 @@ class ExcelReports {
   final CustomerRepository custRepo = CustomerRepository();
 
   /// ================= ATTENDANCE RULES (change here if rules change) =================
-  static const int _officeStartMin = 9 * 60;       // 09:00 AM  ("Late By" is counted from here)
-  static const int _graceEndMin = 9 * 60 + 10;     // 09:10 AM  (late only AFTER this)
+  static const int _officeStartMin = 9 * 60;       // 09:00 AM
+  static const int _graceEndMin = 9 * 60 + 10;     // 09:10 AM  (inga varaikum late illa)
+  static const int _graceLimitMin = 9 * 60 + 15;   // 09:15 AM  (09:11-09:15 -> grace minus, 09:16+ -> full)
   static const int _permHalfDayLimitMin = 4 * 60;  // permission > 4 hrs -> half day leave
 
   Future<void> exportAttendanceToExcel(context,
@@ -240,8 +241,11 @@ class ExcelReports {
     }
   }
 
+  /// ✅ CHANGED: `leaves` (applied leave list) vaangum
   Future<void> downloadAttendanceExcelReport(context,
-      {required String stDate, required String enDate}) async {
+      {required String stDate,
+        required String enDate,
+        List leaves = const []}) async {
     try {
       Map data = {
         "action": getAllData,
@@ -259,7 +263,7 @@ class ExcelReports {
         await exportAttendanceSingleSheetExcel(
           context,
           attendanceList: response,
-          leaveList: [],
+          leaveList: leaves, // ✅ CHANGED (was [])
           startDate: stDate,
           endDate: enDate,
         );
@@ -274,16 +278,27 @@ class ExcelReports {
 
   /// ==========================================================================
   /// ATTENDANCE REPORT (ONE sheet)
-  ///  - employee-wise day-by-day detail (Late By, 4 hrs rule ...)
-  ///  - OVERALL SUMMARY at the BOTTOM:
-  ///        Month + Working Days, then Employee | Leave | Permission
+  ///  - OVERALL SUMMARY at the TOP:
+  ///        Month + Working Days, then
+  ///        Employee Name | Leave Taken | Leave Deducted | Permission Taken
+  ///  - employee-wise day-by-day detail below it
+  ///
+  /// ✅ FIX: SUMMARY + DETAILS rendum ONE in-memory buffer-la collect aagum.
+  ///  Nothing is written to the sheet until the very end. Then the buffer is
+  ///  flushed in ascending row / col order (all cells first, merges last),
+  ///  so file order == row order and the summary is ALWAYS on top
+  ///  (monthly or short date range, both).
   ///
   /// RULES
-  ///  - Grace time 09:10 AM. Late only when check-in is AFTER 09:10.
-  ///  - "Late By" = check-in time minus 09:00 AM.
-  ///  - Permission up to 4 hrs  -> stays Permission.
-  ///  - Permission above 4 hrs  -> every 4 hrs = 0.5 Half Day Leave,
-  ///    remaining stays Permission (6 hrs = Half Day + 2 hrs Permission).
+  ///  - Check-in 09:10 varaikum -> late illa, permission illa (grace).
+  ///  - 09:11 - 09:15  -> permission = check-in - 09:10   (9:12 -> 2 mins)
+  ///  - 09:16 and above -> permission = check-in - 09:00  (9:20 -> 20 mins, grace minus illa)
+  ///  - Applied permission (eg 9:00-9:30) -> grace minus pannaama apdiye.
+  ///  - Applied permission late time-a cover pannirundha double count aagaadhu.
+  ///  - Permission > 4 hrs -> every 4 hrs = 0.5 Half Day Leave.
+  ///  - Check-in illa (past date, leave apply illa) -> detail-la Absent,
+  ///    SUMMARY-la Leave Taken-la serum.
+  ///  - Leave apply pannirundha (check-in illanaalum) -> Leave.
   /// ==========================================================================
   Future<void> exportAttendanceSingleSheetExcel(
       context, {
@@ -294,7 +309,7 @@ class ExcelReports {
       }) async {
     try {
       var excel = Excel.createExcel();
-      // ONE sheet only: employee details first, overall summary at the bottom
+      // ONE sheet only: overall summary on TOP, employee details below it
       Sheet sheet = excel["Sheet1"];
 
       /// ================= HELPERS =================
@@ -354,6 +369,47 @@ class ExcelReports {
           } catch (_) {}
         }
         return 0;
+      }
+
+      /// endha date format vandhaalum -> DateTime (time illaama)
+      DateTime? toDay(dynamic v) {
+        final t = v?.toString().trim() ?? "";
+        if (t.isEmpty || t == "null") return null;
+        final p = t.split(' ')[0].split('T')[0];
+        final iso = DateTime.tryParse(p);
+        if (iso != null) return DateTime(iso.year, iso.month, iso.day);
+        for (final f in ["dd-MM-yyyy", "dd/MM/yyyy"]) {
+          try {
+            final x = DateFormat(f).parseStrict(p);
+            return DateTime(x.year, x.month, x.day);
+          } catch (_) {}
+        }
+        return null;
+      }
+
+      /// normalized "yyyy-MM-dd" key
+      String dayKey(dynamic v) {
+        final x = toDay(v);
+        return x == null ? "" : DateFormat('yyyy-MM-dd').format(x);
+      }
+
+      /// employee + date-ku applied leave irundha {days, reason}
+      Map<String, dynamic>? findLeave(String emp, String d) {
+        final day = toDay(d);
+        if (day == null) return null;
+        for (final l in leaveList) {
+          if ((l.fName ?? "").toString().trim().toLowerCase() !=
+              emp.trim().toLowerCase()) continue;
+          final s = toDay(l.startDate);
+          if (s == null) continue;
+          final e = toDay(l.endDate) ?? s;
+          if (day.isBefore(s) || day.isAfter(e)) continue;
+          return {
+            "days": l.dayType.toString() == "0.5" ? 0.5 : 1.0,
+            "reason": (l.reason ?? "Leave").toString(),
+          };
+        }
+        return null;
       }
 
       /// Oru employee + oru naal-ku ella permission (In, Out) pairs.
@@ -488,6 +544,15 @@ class ExcelReports {
         verticalAlign: VerticalAlign.Center,
       );
 
+      /// Absent (no check-in) row (light red)
+      CellStyle absentStyle = CellStyle(
+        bold: true,
+        backgroundColorHex: "#FFC7CE",
+        fontColorHex: "#9C0006",
+        horizontalAlign: HorizontalAlign.Center,
+        verticalAlign: VerticalAlign.Center,
+      );
+
       /// Late / permission->half-day row (light orange)
       CellStyle lateStyle = CellStyle(
         bold: false,
@@ -503,11 +568,49 @@ class ExcelReports {
 
       for (var item in attendanceList) {
         if (item["firstname"] != null) employeeSet.add(item["firstname"]);
-        if (item["date"] != null) dateSet.add(item["date"]);
+        final k = dayKey(item["date"]);
+        if (k.isNotEmpty) dateSet.add(k);
+      }
+      // leave-la irukkuravangalayum serkkirom
+      for (final l in leaveList) {
+        final n = (l.fName ?? "").toString();
+        if (n.isNotEmpty && n != "null") employeeSet.add(n);
       }
 
       List<String> employees = employeeSet.toList()..sort();
-      List<String> dates = dateSet.toList()..sort();
+
+      /// start..end ellaa naalum (attendance row illanaalum)
+      DateTime? parseRange(String v) {
+        try {
+          return DateFormat('dd-MM-yyyy').parseStrict(v);
+        } catch (_) {
+          return DateTime.tryParse(v);
+        }
+      }
+
+      List<String> dates = [];
+      final DateTime? rs = parseRange(startDate);
+      final DateTime? re = parseRange(endDate);
+      if (rs != null && re != null && !re.isBefore(rs)) {
+        for (var x = DateTime(rs.year, rs.month, rs.day);
+        !x.isAfter(re);
+        x = DateTime(x.year, x.month, x.day + 1)) {
+          dates.add(DateFormat('yyyy-MM-dd').format(x));
+        }
+      } else {
+        dates = dateSet.toList()..sort();
+      }
+
+      /// employee + naal -> andha naal-ku vara ella rows
+      final Map<String, List<Map<String, dynamic>>> rowsByEmpDay = {};
+      for (final item in attendanceList) {
+        final n = (item["firstname"] ?? "").toString();
+        final k = dayKey(item["date"]);
+        if (n.isEmpty || k.isEmpty) continue;
+        rowsByEmpDay
+            .putIfAbsent("$n|$k", () => [])
+            .add(Map<String, dynamic>.from(item));
+      }
 
       /// WORKING DAYS = total days in range - (Sunday / 3rd Saturday)
       int totalDaysInRange = dates.length;
@@ -522,319 +625,17 @@ class ExcelReports {
 
       const int lastCol = 15; // last column index of the detail table
 
-      int rowIndex = 0;
-
-      for (String emp in employees) {
-        /// ================= TITLE ROW =================
-        sheet
-            .cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: rowIndex))
-            .value =
-        "$emp - Employee ( $startDate to $endDate ) Attendance Report";
-        sheet.merge(
-          CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: rowIndex),
-          CellIndex.indexByColumnRow(columnIndex: lastCol, rowIndex: rowIndex),
-        );
-        sheet
-            .cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: rowIndex))
-            .cellStyle = titleStyle;
-        rowIndex++;
-
-        /// ================= WORKING DAYS ROW =================
-        sheet
-            .cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: rowIndex))
-            .value =
-        "Total Days: $totalDaysInRange   |   Week Off (Sun/3rd Sat): $weekOffDaysCount   |   Working Days: $workingDaysCount   |   Grace: 09:10 AM";
-        sheet.merge(
-          CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: rowIndex),
-          CellIndex.indexByColumnRow(columnIndex: lastCol, rowIndex: rowIndex),
-        );
-        sheet
-            .cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: rowIndex))
-            .cellStyle = totalStyle;
-        rowIndex++;
-
-        /// ================= HEADER ROW =================
-        List headers = [
-          "Date", // 0
-          "Present", // 1
-          "In_Time", // 2
-          "Out_Time", // 3
-          "Work Hours", // 4
-          "Absent", // 5
-          "Late", // 6
-          "Late By", // 7
-          "Permission", // 8
-          "Permission_In", // 9
-          "Permission_Out", // 10
-          "Permission Hours", // 11 (after half-day conversion)
-          "Half Day (Perm)", // 12
-          "Permission Reason", // 13
-          "Leave", // 14
-          "Leave Reason", // 15
-        ];
-
-        for (int col = 0; col < headers.length; col++) {
-          var c = sheet.cell(
-              CellIndex.indexByColumnRow(columnIndex: col, rowIndex: rowIndex));
-          c.value = headers[col];
-          c.cellStyle = headerStyle;
-        }
-        rowIndex++;
-
-        int totalPresent = 0;
-        int totalAbsent = 0;
-        int totalLateDays = 0;
-        int totalLateMinutes = 0;
-        int totalPermission = 0;
-        double totalHalfDay = 0;
-        double totalLeave = 0;
-        int totalWorkMinutes = 0;
-        int totalPermissionMinutes = 0;
-
-        /// ================= DATE LOOP =================
-        for (String d in dates) {
-          Map<String, dynamic>? record;
-          try {
-            record = attendanceList.firstWhere(
-                  (e) => e["firstname"] == emp && e["date"] == d,
-            );
-          } catch (e) {
-            record = null;
-          }
-
-          int present = 0;
-          int absent = 0;
-          int late = 0;
-          int lateMinutes = 0;
-          int permission = 0;
-          double leaveCount = 0;
-          double halfDayLeave = 0;
-          String reason = "-";
-
-          String inTime = "-";
-          String outTime = "-";
-          String perIn = "-";
-          String perOut = "-";
-          String perReason = "-";
-
-          Map<String, dynamic> weekendInfo = getWeekendInfo(d);
-          bool isWeekend = weekendInfo["isWeekend"] as bool;
-          String weekendLabel = weekendInfo["label"] as String;
-
-          /// true only when the employee actually applied leave on a working day
-          bool isAppliedLeave = false;
-
-          if (isWeekend) {
-            // Sunday / 3rd Saturday -> week off
-            leaveCount = 1;
-            reason = weekendLabel;
-          } else if (record != null) {
-            present = int.tryParse(record["present"]?.toString() ?? "0") ?? 0;
-            absent = int.tryParse(record["absent"]?.toString() ?? "0") ?? 0;
-
-            permission = int.tryParse(
-                record["permission"]?.toString() == "0" ? "0" : "1") ??
-                0;
-
-            leaveCount =
-                double.tryParse(record["leave_count"]?.toString() ?? "0") ?? 0;
-
-            reason = record["reason"]?.toString() ?? "-";
-
-            inTime = record["in_time"]?.toString() ?? "-";
-            outTime = record["out_time"]?.toString() ?? "-";
-
-            /// if Out_Time was saved same as In_Time -> not checked out yet
-            if (outTime == inTime) {
-              outTime = "-";
-            }
-
-            perIn = record["per_in"]?.toString() ?? "-";
-            perOut = record["per_out"]?.toString() ?? "-";
-            perReason = record["permission_reason"]?.toString() ?? "-";
-
-            if (leaveCount > 0) {
-              isAppliedLeave = true;
-            }
-          }
-
-          /// ================= LATE (grace till 09:10) =================
-          int inMin = timeToMinutes(inTime);
-          int outMin = timeToMinutes(outTime);
-
-          if (!isWeekend && !isAppliedLeave && inMin > _graceEndMin) {
-            late = 1;
-            lateMinutes = inMin - _officeStartMin;
-          }
-
-          /// ================= WORK HOURS =================
-          int workMinutes = 0;
-          if (inMin > 0 && outMin > 0 && outMin > inMin) {
-            workMinutes = outMin - inMin;
-          }
-
-          /// ================= PERMISSION (4 hrs rule) =================
-          // andha employee + andha naal-ku vara ella rows (first row mattum illa)
-          final List<Map<String, dynamic>> dayRows = attendanceList
-              .where((e) => e["firstname"] == emp && e["date"] == d)
-              .map<Map<String, dynamic>>((e) => Map<String, dynamic>.from(e))
-              .toList();
-
-          final List<List<String>> permPairs = getPermissionPairs(dayRows);
-
-          int permissionMinutes = 0; // ella permission-um serthu
-          for (final p in permPairs) {
-            final a = anyTimeToMinutes(p[0]);
-            final b = anyTimeToMinutes(p[1]);
-            // 5 mins-ku kammi (thappa apply panni udane off) ignore
-            if (a > 0 && b > a + 5) permissionMinutes += (b - a);
-          }
-
-          // sheet-la kaattura In / Out (rendu permission irundha " / " vechu)
-          final List<List<String>> validPairs = permPairs
-              .where((p) =>
-          anyTimeToMinutes(p[0]) > 0 &&
-              anyTimeToMinutes(p[1]) > anyTimeToMinutes(p[0]) + 5)
-              .toList();
-          if (validPairs.isNotEmpty) {
-            perIn = validPairs.map((p) => formatTime12(p[0])).join(" / ");
-            perOut = validPairs.map((p) => formatTime12(p[1])).join(" / ");
-          }
-
-          int permissionCounted = permissionMinutes; // after half-day conversion
-          if (permissionMinutes > _permHalfDayLimitMin) {
-            while (permissionCounted > _permHalfDayLimitMin) {
-              halfDayLeave += 0.5;
-              permissionCounted -= _permHalfDayLimitMin;
-            }
-            permission = permissionCounted > 0 ? 1 : 0;
-          }
-
-          String permissionHoursDisplay =
-          (permissionMinutes > 0 && permissionCounted > 0)
-              ? minutesToHourFormat(permissionCounted)
-              : "-";
-
-          String permissionReasonDisplay = perReason;
-          if (halfDayLeave > 0) {
-            permissionReasonDisplay =
-            "$perReason (Total ${minutesToHourFormat(permissionMinutes)} -> Half Day + ${minutesToHourFormat(permissionCounted)} Permission)";
-          }
-
-          String workHoursDisplay =
-          workMinutes > 0 ? minutesToHourFormat(workMinutes) : "-";
-
-          totalWorkMinutes += workMinutes;
-          totalPermissionMinutes += permissionCounted;
-
-          /// ================= FILL ROW =================
-          void put(int col, dynamic v) {
-            sheet
-                .cell(CellIndex.indexByColumnRow(
-                columnIndex: col, rowIndex: rowIndex))
-                .value = v;
-          }
-
-          put(0, formatDate(d));
-          put(1, present);
-          put(2, formatTime12(inTime));
-          put(3, formatTime12(outTime));
-          put(4, workHoursDisplay);
-          put(5, absent);
-          put(6, late);
-          put(7, late == 1 ? durationText(lateMinutes) : "-");
-          put(8, permission);
-          put(9, formatTime12(perIn));
-          put(10, formatTime12(perOut));
-          put(11, permissionHoursDisplay);
-          put(12, numOut(halfDayLeave));
-          put(13, permissionReasonDisplay);
-          put(14, numOut(leaveCount));
-          put(15, reason);
-
-          /// Priority: Weekend -> Applied Leave -> Late / HalfDay -> Normal
-          CellStyle rowStyle = isWeekend
-              ? weekOffStyle
-              : (isAppliedLeave
-              ? leaveStyle
-              : ((late == 1 || halfDayLeave > 0) ? lateStyle : normalStyle));
-
-          for (int col = 0; col <= lastCol; col++) {
-            sheet
-                .cell(CellIndex.indexByColumnRow(
-                columnIndex: col, rowIndex: rowIndex))
-                .cellStyle = rowStyle;
-          }
-
-          rowIndex++;
-
-          totalPresent += present;
-          totalAbsent += absent;
-          totalLateDays += late;
-          totalLateMinutes += lateMinutes;
-          totalPermission += permission;
-          totalHalfDay += halfDayLeave;
-
-          // only APPLIED leaves (not Sunday / 3rd Saturday week-off)
-          if (isAppliedLeave) {
-            totalLeave += leaveCount;
-          }
-        }
-
-        /// ================= TOTAL ROW =================
-        void putTotal(int col, dynamic v) {
-          var c = sheet.cell(
-              CellIndex.indexByColumnRow(columnIndex: col, rowIndex: rowIndex));
-          c.value = v;
-          c.cellStyle = totalStyle;
-        }
-
-        for (int col = 0; col <= lastCol; col++) {
-          putTotal(col, "");
-        }
-        putTotal(0, "Total");
-        putTotal(1, totalPresent);
-        putTotal(4, minutesToHourFormat(totalWorkMinutes));
-        putTotal(5, totalAbsent);
-        putTotal(6, totalLateDays);
-        putTotal(7, durationText(totalLateMinutes));
-        putTotal(8, totalPermission);
-        putTotal(11, minutesToHourFormat(totalPermissionMinutes));
-        putTotal(12, numOut(totalHalfDay));
-        putTotal(14, numOut(totalLeave));
-
-        rowIndex++;
-        rowIndex++; // gap row
-
-        /// ================= collect for Summary =================
-        summaryRows.add({
-          "name": emp,
-          "leave": totalLeave,
-          "halfDay": totalHalfDay,
-          "permMinutes": totalPermissionMinutes,
-        });
-      }
-
       /// ======================================================================
-      /// ============ SUMMARY (same sheet, at the BOTTOM) =====================
+      /// ============ SUMMARY (TOP of the sheet) ==============================
       /// ======================================================================
+      const int summaryColEnd = 10; // summary spans columns A..K
+      const int summaryDataStart = 3; // banner(0) + title(1) + header(2)
+      final int detailStartRow = summaryDataStart + employees.length + 2;
 
-      // title:
-      //  - full month select pannirundha -> "September2026"
-      //  - veru date range (eg 01-15)    -> "01 Sep 2026 - 15 Sep 2026"
-      //  - single day                    -> "15 Sep 2026"
       String monthTitle;
       try {
-        DateTime parseDmy(String v) {
-          try {
-            return DateFormat('dd-MM-yyyy').parseStrict(v);
-          } catch (_) {
-            return DateTime.parse(v);
-          }
-        }
-
-        final DateTime s = parseDmy(startDate);
-        final DateTime e = parseDmy(endDate);
+        final DateTime s = parseRange(startDate)!;
+        final DateTime e = parseRange(endDate)!;
 
         final bool isFullMonth = s.day == 1 &&
             s.year == e.year &&
@@ -874,6 +675,14 @@ class ExcelReports {
 
       final Border thin = Border(borderStyle: BorderStyle.Thin);
 
+      CellStyle bannerStyle = CellStyle(
+        bold: true,
+        fontSize: 14,
+        backgroundColorHex: "#45377D",
+        fontColorHex: "#FFFFFF",
+        horizontalAlign: HorizontalAlign.Center,
+        verticalAlign: VerticalAlign.Center,
+      );
       CellStyle sTitleLeft = CellStyle(
         bold: true,
         fontSize: 14,
@@ -898,6 +707,17 @@ class ExcelReports {
         topBorder: thin,
         bottomBorder: thin,
       );
+      CellStyle sHeader = CellStyle(
+        bold: true,
+        backgroundColorHex: "#45377D",
+        fontColorHex: "#FFFFFF",
+        horizontalAlign: HorizontalAlign.Center,
+        verticalAlign: VerticalAlign.Center,
+        leftBorder: thin,
+        rightBorder: thin,
+        topBorder: thin,
+        bottomBorder: thin,
+      );
       CellStyle sCell = CellStyle(
         backgroundColorHex: "#FFFBEA",
         horizontalAlign: HorizontalAlign.Left,
@@ -908,46 +728,105 @@ class ExcelReports {
         bottomBorder: thin,
       );
 
-      /// merged block: value -> startCol, merge startCol..endCol, style all cells
-      void putBlock(Sheet target, int row, int startCol, int endCol,
-          String value, CellStyle style) {
-        target
-            .cell(CellIndex.indexByColumnRow(columnIndex: startCol, rowIndex: row))
-            .value = value;
-        if (endCol > startCol) {
-          target.merge(
-            CellIndex.indexByColumnRow(columnIndex: startCol, rowIndex: row),
-            CellIndex.indexByColumnRow(columnIndex: endCol, rowIndex: row),
-          );
+      /// ======================================================================
+      /// ============ BUFFER (summary + details rendum idhula thaan) ==========
+      /// row -> col -> [value, style]
+      /// ======================================================================
+      final Map<int, Map<int, List<dynamic>>> cellBuf = {};
+      final List<List<int>> mergeBuf = []; // [row, fromCol, toCol]
+
+      List<dynamic> slot(int row, int col) => cellBuf
+          .putIfAbsent(row, () => <int, List<dynamic>>{})
+          .putIfAbsent(col, () => <dynamic>[null, null]);
+
+      void bufVal(int row, int col, dynamic v) {
+        slot(row, col)[0] = v;
+      }
+
+      void bufStyle(int row, int col, CellStyle s) {
+        slot(row, col)[1] = s;
+      }
+
+      void bufMerge(int row, int fromCol, int toCol) {
+        mergeBuf.add([row, fromCol, toCol]);
+      }
+
+      /// buffer -> sheet. ALWAYS ascending row, ascending col.
+      /// Ella cell-um ezhuthina PIRAGU thaan merge pannum.
+      void flushBuffer(Sheet target) {
+        final List<int> rowKeys = cellBuf.keys.toList()..sort();
+        for (final r in rowKeys) {
+          final Map<int, List<dynamic>> cols = cellBuf[r]!;
+          final List<int> colKeys = cols.keys.toList()..sort();
+          for (final c in colKeys) {
+            final List<dynamic> e = cols[c]!;
+            final cell = target.cell(
+                CellIndex.indexByColumnRow(columnIndex: c, rowIndex: r));
+            if (e[0] != null) cell.value = e[0];
+            if (e[1] != null) cell.cellStyle = e[1] as CellStyle;
+          }
         }
-        for (int c = startCol; c <= endCol; c++) {
-          target
-              .cell(CellIndex.indexByColumnRow(columnIndex: c, rowIndex: row))
-              .cellStyle = style;
+        final sortedMerges = [...mergeBuf]
+          ..sort((a, b) =>
+          a[0] != b[0] ? a[0].compareTo(b[0]) : a[1].compareTo(b[1]));
+        for (final m in sortedMerges) {
+          target.merge(
+            CellIndex.indexByColumnRow(columnIndex: m[1], rowIndex: m[0]),
+            CellIndex.indexByColumnRow(columnIndex: m[2], rowIndex: m[0]),
+          );
         }
       }
 
-      /// Summary columns: Name = A..C | Leave = D..F | Permission = G..I
-      void writeSummary(Sheet target, int startRow) {
-        putBlock(target, startRow, 0, 5, monthTitle, sTitleLeft);
-        putBlock(target, startRow, 6, 8, "Working Days: $workingDaysCount",
-            sTitleRight);
+      /// merged block (BUFFER-ku mattum ezhuthum, sheet-ah direct-a touch pannaadhu)
+      void putBlock(int row, int startCol, int endCol, String value,
+          CellStyle style) {
+        bufVal(row, startCol, value);
+        for (int c = startCol; c <= endCol; c++) {
+          bufStyle(row, c, style);
+        }
+        if (endCol > startCol) bufMerge(row, startCol, endCol);
+      }
 
-        int r = startRow + 1;
+      /// Summary columns:
+      ///  Employee Name  = A..C
+      ///  Leave Taken    = D..F
+      ///  Leave Deducted = G..H  (blank for now)
+      ///  Permission Taken = I..K
+      void writeSummary() {
+        // banner
+        putBlock(0, 0, summaryColEnd,
+            "OVERALL SUMMARY ( $startDate to $endDate )", bannerStyle);
+
+        // month + working days
+        putBlock(1, 0, 5, monthTitle, sTitleLeft);
+        putBlock(1, 6, summaryColEnd,
+            "Working Days: $workingDaysCount", sTitleRight);
+
+        // column headers
+        putBlock(2, 0, 2, "Employee Name", sHeader);
+        putBlock(2, 3, 5, "Leave Taken", sHeader);
+        putBlock(2, 6, 7, "Leave Deducted", sHeader);
+        putBlock(2, 8, summaryColEnd, "Permission Taken", sHeader);
+
+        // one row per employee
+        int r = summaryDataStart;
         for (final s in summaryRows) {
           // total leave = applied leave + half day(s) from permission > 4 hrs
-          final double totalLeaveDays =
-              (s["leave"] as double) + (s["halfDay"] as double);
+          //             + check-in illatha (absent) naatkal
+          final double totalLeaveDays = (s["leave"] as double) +
+              (s["halfDay"] as double) +
+              (s["absentLeave"] as int).toDouble();
 
-          putBlock(target, r, 0, 2, s["name"].toString(), sCell);
-          putBlock(target, r, 3, 5, leaveText(totalLeaveDays), sCell);
-          putBlock(target, r, 6, 8,
+          putBlock(r, 0, 2, s["name"].toString(), sCell);
+          putBlock(r, 3, 5, leaveText(totalLeaveDays), sCell);
+          putBlock(r, 6, 7, "", sCell); // Leave Deducted (later)
+          putBlock(r, 8, summaryColEnd,
               permissionText(s["permMinutes"] as int), sCell);
           r++;
         }
       }
 
-      // column widths (detail table-ku; summary merged cells-la fit aagum)
+      // column widths
       const List<double> colWidths = [
         14, 9, 11, 11, 12, 9, 9, 12, 11, 14, 14, 18, 14, 34, 9, 34
       ];
@@ -955,29 +834,351 @@ class ExcelReports {
         sheet.setColWidth(i, colWidths[i]);
       }
 
-      // highlighted banner above the summary (A..I merge)
-      final int bannerRow = rowIndex + 1;
-      CellStyle bannerStyle = CellStyle(
-        bold: true,
-        fontSize: 14,
-        backgroundColorHex: "#45377D",
-        fontColorHex: "#FFFFFF",
-        horizontalAlign: HorizontalAlign.Center,
-        verticalAlign: VerticalAlign.Center,
-      );
-      sheet
-          .cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: bannerRow))
-          .value = "OVERALL SUMMARY ( $startDate to $endDate )";
-      sheet.merge(
-        CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: bannerRow),
-        CellIndex.indexByColumnRow(columnIndex: 8, rowIndex: bannerRow),
-      );
-      sheet
-          .cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: bannerRow))
-          .cellStyle = bannerStyle;
+      /// ======================================================================
+      /// ============ EMPLOYEE DETAILS (below the summary) ====================
+      /// ======================================================================
+      int rowIndex = detailStartRow;
+      final DateTime nowDt = DateTime.now();
+      final DateTime todayStart = DateTime(nowDt.year, nowDt.month, nowDt.day);
 
-      // summary table (Month + Working Days, then Employee | Leave | Permission)
-      writeSummary(sheet, bannerRow + 1);
+      for (String emp in employees) {
+        /// ================= TITLE ROW =================
+        bufVal(rowIndex, 0,
+            "$emp - Employee ( $startDate to $endDate ) Attendance Report");
+        bufMerge(rowIndex, 0, lastCol);
+        bufStyle(rowIndex, 0, titleStyle);
+        rowIndex++;
+
+        /// ================= WORKING DAYS ROW =================
+        bufVal(rowIndex, 0,
+            "Total Days: $totalDaysInRange   |   Week Off (Sun/3rd Sat): $weekOffDaysCount   |   Working Days: $workingDaysCount   |   Grace: 09:10 AM");
+        bufMerge(rowIndex, 0, lastCol);
+        bufStyle(rowIndex, 0, totalStyle);
+        rowIndex++;
+
+        /// ================= HEADER ROW =================
+        List headers = [
+          "Date", // 0
+          "Present", // 1
+          "In_Time", // 2
+          "Out_Time", // 3
+          "Work Hours", // 4
+          "Absent", // 5
+          "Late", // 6
+          "Late By", // 7
+          "Permission", // 8
+          "Permission_In", // 9
+          "Permission_Out", // 10
+          "Permission Hours", // 11 (after half-day conversion)
+          "Half Day (Perm)", // 12
+          "Permission Reason", // 13
+          "Leave", // 14
+          "Leave Reason", // 15
+        ];
+
+        for (int col = 0; col < headers.length; col++) {
+          bufVal(rowIndex, col, headers[col]);
+          bufStyle(rowIndex, col, headerStyle);
+        }
+        rowIndex++;
+
+        int totalPresent = 0;
+        int totalAbsent = 0;
+        int totalAbsentAsLeave = 0; // check-in illatha naatkal (summary-la Leave)
+        int totalLateDays = 0;
+        int totalLateMinutes = 0;
+        int totalPermission = 0;
+        double totalHalfDay = 0;
+        double totalLeave = 0;
+        int totalWorkMinutes = 0;
+        int totalPermissionMinutes = 0;
+
+        /// ================= DATE LOOP =================
+        for (String d in dates) {
+          final List<Map<String, dynamic>> dayRows =
+              rowsByEmpDay["$emp|$d"] ?? const [];
+          final Map<String, dynamic>? record =
+          dayRows.isNotEmpty ? dayRows.first : null;
+
+          int present = 0;
+          int absent = 0;
+          int late = 0;
+          int lateMinutes = 0;
+          int permission = 0;
+          double leaveCount = 0;
+          double halfDayLeave = 0;
+          String reason = "-";
+
+          String inTime = "-";
+          String outTime = "-";
+          String perIn = "-";
+          String perOut = "-";
+          String perReason = "-";
+
+          Map<String, dynamic> weekendInfo = getWeekendInfo(d);
+          bool isWeekend = weekendInfo["isWeekend"] as bool;
+          String weekendLabel = weekendInfo["label"] as String;
+
+          /// true only when the employee actually applied leave on a working day
+          bool isAppliedLeave = false;
+
+          /// check-in illa + leave apply illa -> Absent (summary-la Leave)
+          bool isNoCheckInDay = false;
+
+          if (isWeekend) {
+            // Sunday / 3rd Saturday -> week off
+            leaveCount = 1;
+            reason = weekendLabel;
+          } else if (record != null) {
+            present = int.tryParse(record["present"]?.toString() ?? "0") ?? 0;
+            absent = int.tryParse(record["absent"]?.toString() ?? "0") ?? 0;
+
+            permission = int.tryParse(
+                record["permission"]?.toString() == "0" ? "0" : "1") ??
+                0;
+
+            leaveCount =
+                double.tryParse(record["leave_count"]?.toString() ?? "0") ?? 0;
+
+            reason = record["reason"]?.toString() ?? "-";
+
+            inTime = record["in_time"]?.toString() ?? "-";
+            outTime = record["out_time"]?.toString() ?? "-";
+
+            /// if Out_Time was saved same as In_Time -> not checked out yet
+            if (outTime == inTime) {
+              outTime = "-";
+            }
+
+            perIn = record["per_in"]?.toString() ?? "-";
+            perOut = record["per_out"]?.toString() ?? "-";
+            perReason = record["permission_reason"]?.toString() ?? "-";
+
+            if (leaveCount > 0) {
+              isAppliedLeave = true;
+            }
+          }
+
+          int inMin = timeToMinutes(inTime);
+          int outMin = timeToMinutes(outTime);
+
+          /// ================= LEAVE / ABSENT (check-in illa) =================
+          if (!isWeekend) {
+            // 1) leave apply pannirundha (check-in illanaalum) -> Leave
+            final lv = findLeave(emp, d);
+            if (lv != null && leaveCount == 0) {
+              leaveCount = lv["days"] as double;
+              reason = lv["reason"].toString();
+              isAppliedLeave = true;
+            }
+
+            // 2) check-in illa + leave apply illa + past date -> Absent
+            //    (detail-la Absent, summary-la Leave Taken-la serum)
+            final DateTime? dayDt = DateTime.tryParse(d);
+            final bool isPast = dayDt != null && dayDt.isBefore(todayStart);
+            // API-la absent = 1 vandhaalum (innaiku naal-um) count aagum
+            if (!isAppliedLeave && inMin == 0 && (absent == 1 || isPast)) {
+              isNoCheckInDay = true;
+              absent = 1;
+            }
+
+            // full day leave = absent illa
+            if (leaveCount >= 1) absent = 0;
+          }
+
+          /// ================= LATE (grace 09:10, rule 09:15) =================
+          /// 09:10 varaikum -> 0
+          /// 09:11 - 09:15  -> check-in - 09:10
+          /// 09:16 +        -> check-in - 09:00 (grace minus illa)
+          final int lateStart =
+          inMin <= _graceLimitMin ? _graceEndMin : _officeStartMin;
+          int lateRaw = 0;
+          if (!isWeekend &&
+              !(isAppliedLeave && leaveCount >= 1) &&
+              inMin > _graceEndMin) {
+            lateRaw = inMin - lateStart;
+          }
+
+          /// ================= WORK HOURS =================
+          int workMinutes = 0;
+          if (inMin > 0 && outMin > 0 && outMin > inMin) {
+            workMinutes = outMin - inMin;
+          }
+
+          /// ================= PERMISSION =================
+          final List<List<String>> permPairs = getPermissionPairs(dayRows);
+
+          int permissionMinutes = 0; // applied permission (grace minus illa)
+          for (final p in permPairs) {
+            final a = anyTimeToMinutes(p[0]);
+            final b = anyTimeToMinutes(p[1]);
+            // 5 mins-ku kammi (thappa apply panni udane off) ignore
+            if (a > 0 && b > a + 5) permissionMinutes += (b - a);
+          }
+
+          // applied permission already cover panna late time-a double count panna koodathu
+          int lateCovered = 0;
+          if (lateRaw > 0) {
+            for (final p in permPairs) {
+              final a = anyTimeToMinutes(p[0]);
+              final b = anyTimeToMinutes(p[1]);
+              if (a <= 0 || b <= a + 5) continue;
+              final from = a > lateStart ? a : lateStart;
+              final to = b < inMin ? b : inMin;
+              if (to > from) lateCovered += (to - from);
+            }
+          }
+          final int latePermMinutes =
+          (lateRaw - lateCovered) > 0 ? (lateRaw - lateCovered) : 0;
+
+          if (lateRaw > 0) {
+            late = 1;
+            lateMinutes = lateRaw;
+          }
+          if (latePermMinutes > 0) {
+            permissionMinutes += latePermMinutes; // late time = permission
+          }
+
+          // sheet-la kaattura In / Out (rendu permission irundha " / " vechu)
+          final List<List<String>> validPairs = permPairs
+              .where((p) =>
+          anyTimeToMinutes(p[0]) > 0 &&
+              anyTimeToMinutes(p[1]) > anyTimeToMinutes(p[0]) + 5)
+              .toList();
+          if (latePermMinutes > 0) {
+            validPairs.add([
+              inMin <= _graceLimitMin ? "09:10:00" : "09:00:00",
+              inTime
+            ]);
+          }
+          if (validPairs.isNotEmpty) {
+            perIn = validPairs.map((p) => formatTime12(p[0])).join(" / ");
+            perOut = validPairs.map((p) => formatTime12(p[1])).join(" / ");
+          }
+
+          int permissionCounted = permissionMinutes; // after half-day conversion
+          while (permissionCounted > _permHalfDayLimitMin) {
+            halfDayLeave += 0.5;
+            permissionCounted -= _permHalfDayLimitMin;
+          }
+          permission = permissionCounted > 0 ? 1 : 0;
+
+          String permissionHoursDisplay =
+          (permissionMinutes > 0 && permissionCounted > 0)
+              ? minutesToHourFormat(permissionCounted)
+              : "-";
+
+          String permissionReasonDisplay = perReason;
+          if (latePermMinutes > 0) {
+            final lateTxt = "Late (${durationText(latePermMinutes)})";
+            permissionReasonDisplay = (perReason == "-" || perReason.isEmpty)
+                ? lateTxt
+                : "$perReason + $lateTxt";
+          }
+          if (halfDayLeave > 0) {
+            permissionReasonDisplay =
+            "$permissionReasonDisplay (Total ${minutesToHourFormat(permissionMinutes)} -> Half Day + ${minutesToHourFormat(permissionCounted)} Permission)";
+          }
+
+          String workHoursDisplay =
+          workMinutes > 0 ? minutesToHourFormat(workMinutes) : "-";
+
+          totalWorkMinutes += workMinutes;
+          totalPermissionMinutes += permissionCounted;
+
+          /// ================= FILL ROW (buffered) =================
+          void put(int col, dynamic v) => bufVal(rowIndex, col, v);
+
+          put(0, formatDate(d));
+          put(1, present);
+          put(2, formatTime12(inTime));
+          put(3, formatTime12(outTime));
+          put(4, workHoursDisplay);
+          put(5, absent);
+          put(6, late);
+          put(7, late == 1 ? durationText(lateMinutes) : "-");
+          put(8, permission);
+          put(9, formatTime12(perIn));
+          put(10, formatTime12(perOut));
+          put(11, permissionHoursDisplay);
+          put(12, numOut(halfDayLeave));
+          put(13, permissionReasonDisplay);
+          put(14, numOut(leaveCount));
+          put(15, reason);
+
+          /// Priority: Weekend -> Applied Leave -> Absent -> Late / HalfDay -> Normal
+          CellStyle rowStyle = isWeekend
+              ? weekOffStyle
+              : (isAppliedLeave
+              ? leaveStyle
+              : (isNoCheckInDay
+              ? absentStyle
+              : ((late == 1 || halfDayLeave > 0)
+              ? lateStyle
+              : normalStyle)));
+
+          for (int col = 0; col <= lastCol; col++) {
+            bufStyle(rowIndex, col, rowStyle);
+          }
+
+          rowIndex++;
+
+          totalPresent += present;
+          totalAbsent += absent;
+          if (isNoCheckInDay) totalAbsentAsLeave += 1;
+          totalLateDays += late;
+          totalLateMinutes += lateMinutes;
+          totalPermission += permission;
+          totalHalfDay += halfDayLeave;
+
+          // only APPLIED leaves (not Sunday / 3rd Saturday week-off)
+          if (isAppliedLeave) {
+            totalLeave += leaveCount;
+          }
+        }
+
+        /// ================= TOTAL ROW (buffered) =================
+        void putTotal(int col, dynamic v) {
+          bufVal(rowIndex, col, v);
+          bufStyle(rowIndex, col, totalStyle);
+        }
+
+        for (int col = 0; col <= lastCol; col++) {
+          putTotal(col, "");
+        }
+        putTotal(0, "Total");
+        putTotal(1, totalPresent);
+        putTotal(4, minutesToHourFormat(totalWorkMinutes));
+        putTotal(5, totalAbsent);
+        putTotal(6, totalLateDays);
+        putTotal(7, durationText(totalLateMinutes));
+        putTotal(8, totalPermission);
+        putTotal(11, minutesToHourFormat(totalPermissionMinutes));
+        putTotal(12, numOut(totalHalfDay));
+        putTotal(14, numOut(totalLeave));
+
+        rowIndex++;
+        rowIndex++; // gap row
+
+        /// ================= collect for Summary =================
+        summaryRows.add({
+          "name": emp,
+          "leave": totalLeave,
+          "halfDay": totalHalfDay,
+          "absentLeave": totalAbsentAsLeave,
+          "permMinutes": totalPermissionMinutes,
+        });
+      }
+
+      /// ======================================================================
+      /// ✅ ORDER MATTERS:
+      ///   1) summary -> buffer (rows 0..n)   [summaryRows ippo fill aagiduchu]
+      ///   2) buffer (summary + details) -> sheet, sorted row order
+      /// ======================================================================
+      print("EXCEL v3: summaryRows=${summaryRows.length}, employees=${employees.length}, detailStartRow=$detailStartRow, bufferedRows=${cellBuf.length}");
+      writeSummary(); // summary -> buffer
+      flushBuffer(sheet); // summary + details, ellam sorted row order-la
+      print("EXCEL v3: sheet.maxRows=${sheet.maxRows}");
 
       /// ================= SAVE / DOWNLOAD =================
       final bytes = excel.encode();
