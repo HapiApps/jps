@@ -24,6 +24,9 @@ import '../source/constant/api.dart';
 import '../source/constant/local_data.dart';
 import '../source/utilities/utils.dart';
 
+/// Innaiku user-ku irukkura leave nilai
+enum LeaveBlock { none, fullDay, firstHalf, secondHalf }
+
 class AttendanceProvider with ChangeNotifier{
   final AttendanceRepository attRepo = AttendanceRepository();
   final EmployeeRepository empRepo = EmployeeRepository();
@@ -62,29 +65,6 @@ class AttendanceProvider with ChangeNotifier{
   List<AttendanceModel> get noAttendanceList=>_noAttendanceList;
   List<AttendanceModel> get noAttendanceList2=>_noAttendanceList2;
 
-//   void checkType(context) {
-//     _noAttendanceList.clear();
-//     final empProvider = Provider.of<EmployeeProvider>(context, listen: false);
-//     _refresh=false;
-// print(_getDailyAttendance[0].salesmanId);
-// print(empProvider.userData[0].id);
-//     for (var emp in empProvider.userData) {
-//       // check if this employee has attendance
-//       bool hasAttendance = _getDailyAttendance.any(
-//         (att) => att.salesmanId == emp.id,
-//       );
-//
-//       // if not found, add to noAttendanceList
-//       if (!hasAttendance) {
-//         _noAttendanceList.add(emp);
-//       }
-//     }
-//
-//     // store or print
-//     // print("Employees without attendance: ${_noAttendanceList.length}");
-//     _noAttendanceList.sort((a, b) => a.firstname!.toLowerCase().compareTo(b.firstname!.toLowerCase()));
-//     notifyListeners();
-//   }
   void setAttendanceData(List<AttendanceModel> data) {
     _getDailyAttendance = data;
     _searchGetDailyAttendance = data;
@@ -115,58 +95,10 @@ class AttendanceProvider with ChangeNotifier{
   String get showDate6=>_showDate6;
   bool _filter=false;
   bool get filter=>_filter;
-// void filterList(){
-//   _filter=true;
-//   _getDailyAttendance = _searchGetDailyAttendance.where((contact){
-//     final empProviderDate1 = _startDate; // Start Date
-//     final empProviderDate2 = _endDate; // End Date
-//     final dateFormat = DateFormat('dd-MM-yyyy');
-//     // print(contact.createdTs.toString());
-//
-//     String timestamp =contact.createdTs.toString();
-//     List<String> times = timestamp.split(',');
-//     DateTime startTime = DateTime.parse(times[0]);
-//
-//     DateTime  createdTsDate = startTime;
-//     final parsedDate1 = dateFormat.tryParse(empProviderDate1);
-//     final parsedDate2 = dateFormat.tryParse(empProviderDate2);
-//     // print("///....../ ${createdTsDate}");
-//     bool isWithinDateRange =
-//         createdTsDate.isAfter(parsedDate1!.subtract(const Duration(days: 1))) &&
-//             createdTsDate.isBefore(parsedDate2!.add(const Duration(days: 1)));
-//     return isWithinDateRange;
-//   }).toList();
-//   // print("//// ${_startDate}");
-//   // print("//// ${_endDate}");
-//   // print("//// ${_filterCustomerData.length}");
-//   notifyListeners();
-// }
+
   List<UserModel> _userData=[];
   List<UserModel> get userData => _userData;
 
-  // Future<void> getAllUsers({bool? isRefresh=true}) async {
-  //   _userData.clear();
-  //   notifyListeners();
-  //   try {
-  //     Map data = {
-  //       "action": getAllData,
-  //       "search_type": "allusers",
-  //       "cos_id":localData.storage.read("cos_id"),
-  //       "role":localData.storage.read("role"),
-  //     };
-  //     final response =await empRepo.getUsers(data);
-  //     // print("response.toString()");
-  //     // print(response.toString());
-  //     if (response.isNotEmpty) {
-  //       _userData=response;
-  //       _refresh = true;
-  //     } else {
-  //     }
-  //   } catch (e) {
-  //     log(e.toString());
-  //   }
-  //   notifyListeners();
-  // }
   void changeFilter(){
     _filter=true;
     notifyListeners();
@@ -183,8 +115,6 @@ class AttendanceProvider with ChangeNotifier{
 
       DateTime  createdTsDate = startTime;
       final createdDateOnly = DateTime(createdTsDate.year, createdTsDate.month, createdTsDate.day);
-      // print("Dates...... ${_startDate}-${_endDate}");
-      // print("Created ts......${contact.createdTs.toString()}");
 
       final isWithinDateRange = !createdDateOnly.isBefore(parsedDate1) && !createdDateOnly.isAfter(parsedDate2);
 
@@ -199,10 +129,6 @@ class AttendanceProvider with ChangeNotifier{
     notifyListeners();
   }
 
-// bool _daily=false,_week=false,_monthR=false;
-// bool get daily=>_daily;
-// bool get week=>_week;
-// bool get monthR=>_monthR;
   dynamic _start,_end,year,lastDate,reason,_type;
   void initValues(){
     DateTime selected = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
@@ -232,14 +158,7 @@ class AttendanceProvider with ChangeNotifier{
     _showDate3=startOfWeekString;
     _showDate4=endOfWeekString;
   }
-  // String timeDifference (String dateTimeString1,String dateTimeString2) {
-  //   DateTime startTime = DateTime.parse(dateTimeString1);
-  //   DateTime endTime = DateTime.parse(dateTimeString2);
-  //
-  //   Duration difference = endTime.difference(startTime);
-  //
-  //   return difference.inHours==0?"${difference.inMinutes} Mins":"${difference.inHours} Hrs";
-  // }
+
   String timeDifference(String timeRange) {
     // Split the two times
     List<String> parts = timeRange.split(',');
@@ -309,20 +228,11 @@ class AttendanceProvider with ChangeNotifier{
     // applyFilter(list);
     notifyListeners();
   }
-// void selectDate(String type){
-//   if(type=="1"){
-//
-//   }else{
-//
-//   }
-//   notifyListeners();
-// }
+
   bool _check=false;
   bool _attCheck=false;
   bool _refresh=false;
   int _mainAttendance=0;
-  // String _permissionStatus = "";
-  // String get permissionStatus=>_permissionStatus;
   bool get mainCheckOut=>_mainCheckOut;
   bool get check=>_check;
   bool get attCheck=>_attCheck;
@@ -331,224 +241,7 @@ class AttendanceProvider with ChangeNotifier{
   String _inTime = "", _outTime = "-";
   String get inTime=>_inTime;
   String get outTime=>_outTime;
-  // Future<void> getMainAttendance() async {
-  //   try {
-  //   _attCheck = false;
-  //   _mainCheckOut = false;
-  //   _isPermission = false;
-  //   _mainAttendance = 0;
-  //   _totalHrs="";
-  //   _permissionStatus="";
-  //   String reasonSave="";
-  //   notifyListeners();
-  //   Map data = {
-  //     "action": getAllData,
-  //     "search_type": "user_attendance",
-  //     "id": localData.storage.read("id"),
-  //     // "role": localData.storage.read("role"),
-  //     "cos_id":localData.storage.read("cos_id"),
-  //   };
-  //   final response = await attRepo.getAttendance(data);
-  //   log(data.toString());
-  //   log(response.toString());
-  //   log(response.first["status"].toString());
-  //   log(response.first["status"].toString().contains("2").toString());
-  //   if (response.isNotEmpty){
-  //     DateTime now = DateTime.now();
-  //     String formattedDate = DateFormat('dd-MMM-yyyy').format(now);
-  //
-  //
-  //     if(formattedDate==response.first["date"]){
-  //       _mainCheckOut=response.first["status"].toString().contains("2")?true:false;
-  //       if((response.first["status"].toString()=="1")||(response.first["status"].toString()=="1,2")){
-  //         _mainAttendance = 1;
-  //       }else{
-  //
-  //       }
-  //       if (response.first["status"].toString().contains("1,2")) {
-  //         _inTime = response.first["time"].split(",")[0];
-  //         _outTime = response.first["time"].split(",")[1];
-  //         _totalHrs=getTimeDifferenceBetween(_inTime,outTime);
-  //
-  //         _permissionStatus=response.first["per_status"].toString()=="null"?"":response.first["per_status"];
-  //         reasonSave=response.first["per_reason"]=="null"?"":response.first["per_reason"];
-  //         var split =_permissionStatus.toString().split(",");
-  //         var split2 =reasonSave.toString().split(",");
-  //         if(split.last=="1"){
-  //           _isPermission=true;
-  //           permissionReason.text=split2.last;
-  //         }else{
-  //           _isPermission=false;
-  //         }
-  //       }
-  //       else if (response.first["status"].toString().contains("2,1")) {
-  //         _outTime = response.first["time"].split(",")[0];
-  //         _inTime = response.first["time"].split(",")[1];
-  //         _totalHrs=getTimeDifferenceBetween(outTime,_inTime);
-  //         _permissionStatus=response.first["per_status"]=="null"?"":response.first["per_status"];
-  //         reasonSave=response.first["per_reason"]=="null"?"":response.first["per_reason"];
-  //         var split =_permissionStatus.toString().split(",");
-  //         var split2 =reasonSave.toString().split(",");
-  //         if(split.last=="1"){
-  //           _isPermission=true;
-  //           permissionReason.text=split2.last;
-  //         }else{
-  //           _isPermission=false;
-  //         }
-  //       }
-  //       else {
-  //         _inTime = response.first["time"].split(",")[0];
-  //         _permissionStatus=response.first["per_status"].toString()=="null"?"":response.first["per_status"].toString();
-  //         reasonSave=response.first["per_reason"].toString()=="null"?"":response.first["per_reason"].toString();
-  //         var split =_permissionStatus.toString().split(",");
-  //         var split2 =reasonSave.toString().split(",");
-  //         if(split.last=="1"){
-  //           _isPermission=true;
-  //           permissionReason.text=split2.last;
-  //         }else{
-  //           _isPermission=false;
-  //         }
-  //         print("_isPermission.........$_permissionStatus");
-  //         print("_isPermission.........$_isPermission");
-  //       }
-  //       getLateCount("${DateTime.now().day.toString().padLeft(2,"0")}-${DateTime.now().month.toString().padLeft(2,"0")}-${DateTime.now().year}","${DateTime.now().day.toString().padLeft(2,"0")}-${DateTime.now().month.toString().padLeft(2,"0")}-${DateTime.now().year}");
-  //     }
-  //     _attCheck = true;
-  //   }else {
-  //     _totalHrs="";
-  //     _permissionStatus="";
-  //     _attCheck = true;
-  //   }
-  //   } catch (e) {
-  //     _totalHrs="";
-  //     _permissionStatus="";
-  //     _attCheck = true;
-  //   }
-  //   notifyListeners();
-  // }
 
-
-
-  // void setMainAttendanceFromDashboard(List responseAttendance,
-  //     {bool fromReport = false})
-  // {
-  //
-  //   try {
-  //     if (!fromReport) {
-  //       _attCheck = false;
-  //       _mainCheckOut = false;
-  //       _isPermission = false;
-  //       _mainAttendance = 0;
-  //       _totalHrs = "";
-  //       _permissionStatus = "";
-  //     }
-  //
-  //     String reasonSave = "";
-  //
-  //     if (responseAttendance.isNotEmpty) {
-  //       DateTime now = DateTime.now();
-  //       String formattedDate = DateFormat('dd-MMM-yyyy').format(now);
-  //
-  //       /// CURRENT USER மட்டும்
-  //       var userData = responseAttendance.firstWhere(
-  //             (e) =>
-  //         e["salesman_id"].toString() ==
-  //             localData.storage.read("id").toString(),
-  //         orElse: () => null,
-  //       );
-  //
-  //       if (userData != null) {
-  //         if (formattedDate == userData["date"]) {
-  //           /// CHECKOUT
-  //           _mainCheckOut = userData["status"].toString().contains("2");
-  //
-  //           /// ATTENDANCE STATUS
-  //           if (userData["status"].toString() == "1" ||
-  //               userData["status"].toString() == "1,2") {
-  //             _mainAttendance = 1;
-  //           }
-  //
-  //           /// IN + OUT
-  //           if (userData["status"].toString().contains("1,2")) {
-  //             _inTime = userData["time"].split(",")[0];
-  //             _outTime = userData["time"].split(",")[1];
-  //
-  //             _totalHrs = getTimeDifferenceBetween(_inTime, _outTime);
-  //           }
-  //
-  //           /// OUT + IN
-  //           else if (userData["status"].toString().contains("2,1")) {
-  //             _outTime = userData["time"].split(",")[0];
-  //             _inTime = userData["time"].split(",")[1];
-  //
-  //             _totalHrs = getTimeDifferenceBetween(_outTime, _inTime);
-  //           }
-  //
-  //           /// ONLY IN
-  //           else {
-  //             if (userData["time"] != null &&
-  //                 userData["time"].toString().isNotEmpty) {
-  //               _inTime = userData["time"].split(",")[0];
-  //             }
-  //           }
-  //
-  //           /// -------------------------
-  //           /// PERMISSION STATUS
-  //           /// -------------------------
-  //
-  //           String perStatus = userData["per_status"].toString();
-  //           reasonSave = userData["per_reason"].toString();
-  //
-  //           if (!fromReport) {
-  //             if (perStatus != "null" && perStatus.isNotEmpty) {
-  //               List splitStatus = perStatus.split(",");
-  //
-  //               /// LAST STATUS மட்டும்
-  //               _permissionStatus = splitStatus.last;
-  //
-  //               _isPermission = _permissionStatus == "1";
-  //             } else {
-  //               _permissionStatus = "";
-  //               _isPermission = false;
-  //             }
-  //           }
-  //
-  //           /// PERMISSION REASON
-  //           if (!fromReport) {
-  //             if (reasonSave != "null" && reasonSave.isNotEmpty) {
-  //               List splitReason = reasonSave.split(",");
-  //               permissionReason.text = splitReason.last;
-  //             }
-  //           }
-  //
-  //           /// DEBUG
-  //           print("permissionStatus = $_permissionStatus");
-  //           print("isPermission = $_isPermission");
-  //
-  //           /// LATE COUNT
-  //           getLateCount(
-  //             "${DateTime.now().day.toString().padLeft(2, "0")}-${DateTime.now().month.toString().padLeft(2, "0")}-${DateTime.now().year}",
-  //             "${DateTime.now().day.toString().padLeft(2, "0")}-${DateTime.now().month.toString().padLeft(2, "0")}-${DateTime.now().year}",
-  //           );
-  //         }
-  //       }
-  //
-  //       _attCheck = true;
-  //     } else {
-  //       _totalHrs = "";
-  //       _permissionStatus = "";
-  //       _attCheck = true;
-  //     }
-  //   } catch (e) {
-  //     print("Attendance Error: $e");
-  //
-  //     _totalHrs = "";
-  //     _permissionStatus = "";
-  //     _attCheck = true;
-  //   }
-  //
-  //   notifyListeners();
-  // }
   Future<void> getMainAttendance({bool fromReport = false}) async {
     try {
       final Map data = {
@@ -874,13 +567,18 @@ class AttendanceProvider with ChangeNotifier{
     }
 
   }
+
+  /// Grace 09:10 AM. Late only when check-in is AFTER 09:10
+  /// (Excel report / SQL / attendance_detail oda same rule).
   bool isLate(String inTime) {
-    final format = DateFormat("hh:mm a");
-
-    DateTime officeTime = format.parse("09:00 AM");
-    DateTime userTime = format.parse(inTime);
-
-    return userTime.isAfter(officeTime);
+    try {
+      final t = inTime.trim();
+      if (t.isEmpty || t == "-" || t == "null") return false;
+      final format = DateFormat("hh:mm a");
+      return format.parse(t).isAfter(format.parse("09:10 AM"));
+    } catch (_) {
+      return false; // bad time -> crash aagaadhu
+    }
   }
   Future<void> getAttendanceReport(String id)
   async {
@@ -931,8 +629,6 @@ class AttendanceProvider with ChangeNotifier{
           }
         }
         lateCountShow=count2;
-        // print("permisCount......$permisCount");
-        // print("lateCountShow......$lateCountShow");
         if(_filter==true){
           filterList();
         }
@@ -943,9 +639,6 @@ class AttendanceProvider with ChangeNotifier{
       lastRefreshed=DateFormat('dd-MM-yyyy hh:mm a').format(DateTime.now());
       notifyListeners();
     } catch (e) {
-      // print("permisCount......${localData.storage.read("role")}");
-      // print("lateCountShow......${localData.storage.read("cos_id")}");
-      // print("Errrrrrr$e");
       notifyListeners();
     }
     notifyListeners();
@@ -969,8 +662,6 @@ class AttendanceProvider with ChangeNotifier{
 
       if (response.isNotEmpty){
         _noAttendanceList2=response;
-        // print("_filter...... ${_filter}");
-        // print("Dates...... ${_user}");
         if (_filter == true) {
           final dateFormat = DateFormat('dd-MM-yyyy');
           final parsedDate1 = dateFormat.parse(_startDate);
@@ -999,12 +690,10 @@ class AttendanceProvider with ChangeNotifier{
         }
         _refresh = true;
       }else {
-        // print("missing......llll");
         _refresh = true;
       }
       notifyListeners();
     } catch (e) {
-      // print("Errrrrrr$e");
       _refresh = true;
       notifyListeners();
     }
@@ -1070,21 +759,18 @@ class AttendanceProvider with ChangeNotifier{
 
             var createdTs = DateTime.parse(firstTs);
 
-            // Cutoff is exactly 9:00:00 AM on the same day
+            // Grace till 09:10 (minute level) -> 09:10:59 varaikkum late illa
             var cutoff = DateTime(
               createdTs.year,
               createdTs.month,
               createdTs.day,
-              9, // Hour
-              0, // Minute
-              0, // Second
+              9,  // Hour
+              10, // Minute
+              59, // Second
             );
             if (createdTs.isAfter(cutoff)) {
               _lateCount++;
-            } else {
-
             }
-            // ------------------------------------------------------------------
           } catch (e) {
             print("Error parsing createdTs at index $i: $e");
           }
@@ -1098,7 +784,6 @@ class AttendanceProvider with ChangeNotifier{
       }
     } catch (e) {
       _lateCount = 0;
-      // print("Errrrrrr$e");
     }
     notifyListeners();
   }
@@ -1107,68 +792,7 @@ class AttendanceProvider with ChangeNotifier{
   String _totalHrs2 = "";
   String get totalHrs=>_totalHrs;
   String get totalHrs2=>_totalHrs2;
-  // Future<void> getTotalHours(String date1,String date2) async {
-  //   _totalHrs2 = "";
-  //   notifyListeners();
-  //   try {
-  //     Map data = {
-  //       "action": getAllData,
-  //       "search_type": "get_attendance",
-  //       "salesman_id": localData.storage.read("id"),
-  //       "role": "0",
-  //       "cos_id":localData.storage.read("cos_id"),
-  //       "st_dt": date1,
-  //       "en_dt": date2
-  //     };
-  //     print(data.toString());
-  //     final response = await attRepo.getReport(data);
-  //
-  //     print(response.toString());
-  //     if (response.isNotEmpty){
-  //       if(response.length==1){
-  //         if(response[0].time.toString().contains(",")){
-  //           var split=response[0].time.toString().split(",");
-  //           _totalHrs2=getTimeDifferenceBetween(split.first,split.last);
-  //         }
-  //         log("_totalHrs2 : $_totalHrs2");
-  //       }else{
-  //         Duration totalDuration = const Duration();
-  //         Set<String> daysWorked = {};
-  //
-  //         for (var entry in response) {
-  //           final dates = entry.date.toString().split(',');
-  //           final times = entry.time.toString().split(',');
-  //           final timestamps = entry.createdTs.toString().split(',');
-  //           final statuses = entry.status.toString().split(',');
-  //
-  //           for (int i = 0; i < statuses.length; i++) {
-  //             daysWorked.add(dates[i]); // Always count day once
-  //
-  //             if (statuses[i] == '1' && (i + 1 < statuses.length && statuses[i + 1] == '2')) {
-  //               final inTime = DateTime.parse(timestamps[i]);
-  //               final outTime = DateTime.parse(timestamps[i + 1]);
-  //               totalDuration += outTime.difference(inTime);
-  //               i++; // skip next as it's already paired
-  //             }
-  //           }
-  //         }
-  //
-  //         final totalMinutes = totalDuration.inMinutes;
-  //         final days = daysWorked.length;
-  //         final hours = totalMinutes ~/ 60;
-  //         final minutes = totalMinutes % 60;
-  //         _totalHrs2 ="${days==0?"":days==1?"$days day":"$days days"} : $hours h : $minutes m";
-  //         log("Total Working: $days days, $hours hrs, $minutes mins");
-  //       }
-  //     }else {
-  //       _totalHrs2 = "";
-  //     }
-  //   } catch (e) {
-  //     _totalHrs2 = "";
-  //   }
-  //   print("_totalHrs2...........${_totalHrs2}");
-  //   notifyListeners();
-  // }
+
   String getTimeDifferenceBetween(String time1, String time2) {
     DateTime now = DateTime.now();
 
@@ -1202,25 +826,6 @@ class AttendanceProvider with ChangeNotifier{
     return '$hours : $minutes mins';
   }
 
-  // void searchAttendanceReport(String value){
-  //   final suggestions=_searchGetDailyAttendance.where(
-  //           (user){
-  //         final comFName=user.firstname.toString().toLowerCase();
-  //         final userFName=user.role.toString().toLowerCase();
-  //         final input=value.toString().toLowerCase();
-  //         return comFName.contains(input) ||userFName.contains(input);
-  //       }).toList();
-  //   _getDailyAttendance=suggestions;
-  //
-  //   final suggestions2=_noAttendanceList2.where(
-  //           (user){
-  //         final comFName=user.firstname.toString().toLowerCase();
-  //         final input=value.toString().toLowerCase();
-  //         return comFName.contains(input);
-  //       }).toList();
-  //   _noAttendanceList=suggestions2;
-  //   notifyListeners();
-  // }
   void searchAttendanceReport(String value) {
 
     final input = value.toLowerCase().trim();
@@ -1315,11 +920,6 @@ class AttendanceProvider with ChangeNotifier{
     _user="";
     _startDate=date1 ??_startDate;
     _endDate=date2 ??_endDate;
-    // stDt = DateTime.now();
-    // enDt = DateTime.now().add(const Duration(days: 1));
-    // _startDate = DateFormat('dd-MM-yyyy').format(stDt);
-    // daily(id,role,refresh);
-    // _endDate = DateFormat('dd-MM-yyyy').format(enDt);
     notifyListeners();
   }
   void daily(String id ,String role,bool? isRefresh,context) {
@@ -1540,85 +1140,6 @@ class AttendanceProvider with ChangeNotifier{
     return days;
   }
 
-// String _latitude = "";
-// String _longitude = "";
-// String get latitude=>_latitude;
-// String get longitude=>_longitude;
-  /// Gets the current position once, with a timeout and error handling
-// void getLocation() async {
-//   const platform = MethodChannel('location');
-//   try {
-//     final String location = await platform.invokeMethod('getCurrentLocation');
-//     _latitude=location.toString().split(",")[0];
-//     _longitude=location.toString().split(",")[1];
-//     log('Current location: $location');
-//   } on PlatformException catch (e) {
-//     log('Failed to get location: ${e.message}');
-//   }
-// }
-  ///
-// void getCurrentLocation() async {
-//     const platform = MethodChannel('location');
-//     try {
-//         final String location = await platform.invokeMethod('getCurrentLocation');
-//         _latitude=location.toString().split(",")[0];
-//         _longitude=location.toString().split(",")[1];
-//         log('Current location: $location');
-//     } on PlatformException catch (e) {
-//       log('Failed to get location: ${e.message}');
-//     }
-//   }
-// void getLocation() async {
-//     const platform = MethodChannel('location');
-//     // try {
-//       Map<Permission, PermissionStatus> status = await [
-//         Permission.location,
-//       ].request();
-//       // print(status[Permission.location]==PermissionStatus.permanentlyDenied);
-//       if (status[Permission.location] == PermissionStatus.granted) {
-//         final String location = await platform.invokeMethod('getCurrentLocation');
-//         _latitude=location.toString().split(",")[0];
-//         _longitude=location.toString().split(",")[1];
-//         log('Current location: $location');
-//       }else{
-//         var permission = await Geolocator.requestPermission();
-//         if (permission == LocationPermission.deniedForever) {
-//           log("Location permissions are permanently denied.");
-//           await openAppSettings();
-//         }
-//       }
-//     // } on PlatformException catch (e) {
-//     //   log('Failed to get location: ${e.message}');
-//     // }
-//   }
-// void manageLocation(context) async {
-//     // try {
-//       Map<Permission, PermissionStatus> status = await [
-//         Permission.location,
-//       ].request();
-//       if (status[Permission.location] == PermissionStatus.granted) {
-//         bool isLocationServiceEnabled = await Geolocator.isLocationServiceEnabled();
-//         if (!isLocationServiceEnabled) {
-//           utils.showWarningToast(context, text: "Location services are disabled. Please enable them.");
-//         }else{
-//           // const platform = MethodChannel('location');
-//           // final String location = await platform.invokeMethod('getCurrentLocation');
-//           // _latitude=location.toString().split(",")[0];
-//           // _longitude=location.toString().split(",")[1];
-//          Position position= await Geolocator.getCurrentPosition();
-//                  _latitude="${position.latitude}";
-//                  _longitude="${position.longitude}";
-//           log('Current location: $_latitude $_longitude');
-//         }
-//       }else{
-//           log("Location permissions are denied.");
-//           await openAppSettings();
-//       }
-//     // } on PlatformException catch (e) {
-//     //   log('Failed to get location: ${e.message}');
-//     // }
-//   }
-
   String _profile="";
   String get profile=>_profile;
   Future<void> signDialog({required BuildContext context, required String img,required Function(String newImg) onTap}) async {
@@ -1639,150 +1160,6 @@ class AttendanceProvider with ChangeNotifier{
     _profile = imgData;
     notifyListeners();
   }
-  // Future putDailyAttendance(
-  //     BuildContext context,
-  //     String status,
-  //     String? lat,
-  //     String? lng,
-  //     )
-  // async {
-  //
-  //   // ✅ Location validation first (API call stop)
-  //   if (lat == null ||
-  //       lng == null ||
-  //       lat.isEmpty ||
-  //       lng.isEmpty ||
-  //       lat == "0.0" ||
-  //       lng == "0.0") {
-  //     utils.showWarningToast(
-  //       context,
-  //       text: "Location not available. Please enable GPS and try again.",
-  //     );
-  //     return;
-  //   }
-  //
-  //   showDialog(
-  //     context: context,
-  //     barrierDismissible: false,
-  //     builder: (BuildContext context) {
-  //       return AlertDialog(
-  //         title: Center(
-  //           child: Column(
-  //             children: [
-  //               const CustomText(
-  //                 text: "Attendance Marking",
-  //                 colors: Colors.grey,
-  //                 size: 15,
-  //                 isBold: true,
-  //               ),
-  //               10.height,
-  //               const CustomText(
-  //                 text: "Please Wait",
-  //                 colors: Colors.grey,
-  //                 size: 15,
-  //                 isBold: true,
-  //               ),
-  //               20.height,
-  //               LoadingAnimationWidget.staggeredDotsWave(
-  //                 color: colorsConst.secondary,
-  //                 size: 25,
-  //               ),
-  //             ],
-  //           ),
-  //         ),
-  //       );
-  //     },
-  //   );
-  //
-  //   Map<String, String> requestData = {
-  //     "action": empAttendance,
-  //     "log_file": localData.storage.read("mobile_number"),
-  //     "salesman_id": localData.storage.read("id"),
-  //     "lat": lat,
-  //     "lng": lng,
-  //     "img": "",
-  //     "status": status,
-  //     "cos_id": localData.storage.read("cos_id"),
-  //   };
-  //
-  //   dynamic response;
-  //     try {
-  //       response = await attRepo.addAttendance(requestData, _profile);
-  //     } catch (e) {
-  //       response = {};
-  //     }
-  //   log(response.toString());
-  //
-  //   if (response.isNotEmpty) {
-  //     log("Success");
-  //
-  //     if (Navigator.canPop(context)) {
-  //       Navigator.pop(context);
-  //     }
-  //
-  //     if (status == "1") {
-  //     //   await FirebaseFirestore.instance.collection('attendance').add({
-  //     //     'emp_id': localData.storage.read("id"),
-  //     //     'time': DateTime.now(),
-  //     //     'status': status,
-  //     //   });
-  //      }
-  //
-  //     if (context.mounted) {
-  //       utils.showSuccessToast(
-  //         text: status == "1"
-  //             ? "Check In Successfully"
-  //             : "Check Out Successfully",
-  //         context: context,
-  //       );
-  //     }
-  //
-  //     Provider.of<HomeProvider>(context, listen: false)
-  //         .loadFullDashboard(context);
-  //     Provider.of<AttendanceProvider>(context, listen: false)
-  //         .getMainAttendance();
-  //     Provider.of<AttendanceProvider>(context, listen: false).initDate(
-  //       id: localData.storage.read("id"),
-  //       role: localData.storage.read("role"),
-  //       isRefresh: true,
-  //       date1:
-  //       "${DateTime.now().day.toString().padLeft(2, "0")}-${DateTime.now().month.toString().padLeft(2, "0")}-${DateTime.now().year}",
-  //       date2:
-  //       "${DateTime.now().day.toString().padLeft(2, "0")}-${DateTime.now().month.toString().padLeft(2, "0")}-${DateTime.now().year}",
-  //     );
-  //
-  //     Provider.of<AttendanceProvider>(context, listen: false)
-  //         .getAttendanceReport(localData.storage.read("id"));
-  //   } else {
-  //     log("Failed");
-  //     utils.showErrorToast(context: context);
-  //
-  //     if (Navigator.canPop(context)) {
-  //       Navigator.pop(context);
-  //     }
-  //   }
-  // }
-
-  // =====================================================================
-// AttendanceProvider-kulla paste pannanum (class-kulla).
-//
-// 1) Pazhaya `putDailyAttendance` function-a DELETE pannu.
-// 2) Ithula irukkura ellaa functions-um class-kulla podu.
-// 3) File mela imports:
-//      import 'dart:developer';
-//      import '../source/utilities/offline_attendance_service.dart'; // un path-ku match pannu
-// =====================================================================
-
-  // =====================================================================
-// Un AttendanceProvider-la `bool _syncing = false;` mudhal
-// `_sendOfflineWages` varai irukkura block-a FULL-a ithai vachu replace pannu.
-// (getMainAttendance-a thodaadha)
-//
-// Imports mela irukkanum:
-//   import 'dart:convert';
-//   import 'dart:developer';
-//   import '../source/utilities/offline_attendance_service.dart';
-// =====================================================================
 
   // =====================================================================
   // ✅ CHANGED BLOCK START  (offline sync / attendance fix)
@@ -1790,6 +1167,95 @@ class AttendanceProvider with ChangeNotifier{
 
   bool _syncing = false;
   bool get isSyncing => _syncing;
+
+  // =====================================================================
+  // LEAVE vs ATTENDANCE  (NEW)
+  // =====================================================================
+
+  LeaveBlock _todayLeave = LeaveBlock.none;
+  LeaveBlock get todayLeave => _todayLeave;
+
+  /// Check-in pannitu apram full-day leave potta -> UI "On Leave" nu kaattum
+  /// (check-in panni checkout pannala nu kaattakoodadhu)
+  bool get leaveAfterCheckIn =>
+      _todayLeave == LeaveBlock.fullDay && _mainAttendance == 1 && !_mainCheckOut;
+
+  DateTime _dateOnly(DateTime d) => DateTime(d.year, d.month, d.day);
+
+  /// dd-MM-yyyy  &  yyyy-MM-dd rendaiyum parse pannum (string compare bug fix)
+  DateTime? _parseAnyDate(dynamic v) {
+    final s = v?.toString().trim() ?? "";
+    if (s.isEmpty || s == "null") return null;
+    try {
+      final datePart = s.split(" ").first.split("T").first;
+      final p = datePart.split("-");
+      if (p.length == 3) {
+        if (p[0].length == 4) {
+          return DateTime(int.parse(p[0]), int.parse(p[1]), int.parse(p[2]));
+        }
+        return DateTime(int.parse(p[2]), int.parse(p[1]), int.parse(p[0]));
+      }
+      return _dateOnly(DateTime.parse(s));
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Leave data server-la irundhu load aagiducha nu (fail-open fallback-ku)
+  bool _leaveChecked = false;
+  bool get leaveChecked => _leaveChecked;
+
+  /// TRUE na mattum attendance block. Full-day leave + innum check-in pannala.
+  /// Check-in pannitu apram leave potta -> check-OUT allow.
+  /// Half-day leave -> eppovum allow.
+  bool get attendanceBlockedByLeave =>
+      _todayLeave == LeaveBlock.fullDay && _mainAttendance == 0;
+
+  /// status "1" = approved (approveApply-la status=="1" -> approve).
+  bool _isApprovedLeave(String? st) {
+    final s = (st ?? "").toLowerCase().trim();
+    return s == "1" || s.contains("approv");
+  }
+
+  /// LOGGED-IN user-oda leave list kudunga (LeaveProvider.refreshMyTodayLeave call pannum)
+  void computeTodayLeave(List<LeaveModel> leaves) {
+    final today = _dateOnly(DateTime.now());
+    final myId = localData.storage.read("id").toString();
+    LeaveBlock result = LeaveBlock.none;
+
+    for (final l in leaves) {
+      // vera user-oda leave irundha ignore
+      final uid = l.userId?.toString() ?? "";
+      if (uid.isNotEmpty && uid != myId) continue;
+
+      // APPROVED mattum
+      if (!_isApprovedLeave(l.status)) continue;
+
+      final from = _parseAnyDate(l.startDate);
+      final to = _parseAnyDate(l.endDate) ?? from;
+      if (from == null || to == null) continue;
+
+      // date-only, inclusive -> "next day block aagudhu" bug fix
+      if (today.isBefore(from) || today.isAfter(to)) continue;
+
+      if (l.dayType?.toString() == "0.5") {
+        // half day -> block illa, result mattum note pannum
+        if (result == LeaveBlock.none) {
+          final sess = (l.session ?? "").toLowerCase();
+          result = sess.contains("after")
+              ? LeaveBlock.secondHalf
+              : LeaveBlock.firstHalf;
+        }
+      } else {
+        result = LeaveBlock.fullDay;
+        break;
+      }
+    }
+
+    _leaveChecked = true;
+    _todayLeave = result;
+    notifyListeners();
+  }
 
   bool _isMarking = false;
   bool _isMarkingPermission = false;
@@ -2079,6 +1545,14 @@ class AttendanceProvider with ChangeNotifier{
       return;
     }
 
+    // FULL-DAY leave + innum check-in pannala -> block.
+    // Half-day leave -> ALLOW (oru session work pannuvaanga).
+    // Check-in pannitu apram leave potta -> check-OUT ku allow.
+    if (_todayLeave == LeaveBlock.fullDay && _mainAttendance == 0) {
+      utils.showWarningToast(context, text: "You are on leave today");
+      return;
+    }
+
     _isMarking = true;
     try {
       // Net illana offline save
@@ -2312,11 +1786,6 @@ class AttendanceProvider with ChangeNotifier{
     });
   }
 
-// `saveWages` maara vendaam. Adhu already:
-//   online  -> _sendOfflineWages(item) (direct API)
-//   offline -> OfflineAttendanceService.addWages(...) (ippo thani "pending_wages" list-la save aagum)
-// Rendu vazhikkum orey _sendOfflineWages use aagurathaala backend-ku same JSON pogum.
-
   /// 7️⃣ App restart-ku aprom offline state-a UI-la thirumba podu.
   /// getMainAttendance()-la `if (!fromReport) applyPendingState();` call irukkanum.
   void applyPendingState() {
@@ -2345,68 +1814,6 @@ class AttendanceProvider with ChangeNotifier{
   // ✅ CHANGED BLOCK END
   // =====================================================================
 
-  // Future putWorkDone(context) async {
-  //   showDialog(
-  //       context: context,
-  //       barrierDismissible: false,
-  //       builder: (BuildContext context) {
-  //         return AlertDialog(
-  //           title: Center(
-  //             child: Column(
-  //               children: [
-  //                 const CustomText(text: "Work Done Marking",
-  //                   colors: Colors.grey,
-  //                   size: 15,
-  //                   isBold: true,),
-  //                 10.height,
-  //                 const CustomText(text: "Please Wait",
-  //                   colors: Colors.grey,
-  //                   size: 15,
-  //                   isBold: true,),
-  //                 20.height,
-  //                 LoadingAnimationWidget.staggeredDotsWave(
-  //                   color: colorsConst.secondary,
-  //                   size: 25,
-  //                 ),
-  //               ],
-  //             ),
-  //           ),
-  //         );
-  //       }
-  //   );
-  //
-  //   Map<String, String> requestData = {
-  //     "action": empWork,
-  //     "log_file": localData.storage.read("mobile_number"),
-  //     "salesman_id": localData.storage.read("id"),
-  //     "status": "1",
-  //     "cos_id":localData.storage.read("cos_id"),
-  //   };
-  //   final response =await attRepo.addWorkDone(requestData);
-  //   log(response.toString());
-  //   if(response.isNotEmpty){
-  //     log("Success");
-  //     _isWorkDone = 1;
-  //     workDoneDate = DateTime.now().toString();
-  //
-  //     Navigator.pop(context);
-  //     // if(status=="1"){
-  //     //   await FirebaseFirestore.instance.collection('attendance').add({
-  //     //     'emp_id': localData.storage.read("id"),
-  //     //     'time': DateTime.now(),
-  //     //     'status': status,
-  //     //   });
-  //     // }
-  //     //getMainAttendance();
-  //     //getTotalHours(date1, date2);
-  //     Provider.of<AttendanceProvider>(context, listen: false).initDate(id:localData.storage.read("id"),role:localData.storage.read("role"),isRefresh: true,date1: "${DateTime.now().day.toString().padLeft(2,"0")}-${DateTime.now().month.toString().padLeft(2,"0")}-${DateTime.now().year.toString()}",date2: "${DateTime.now().day.toString().padLeft(2,"0")}-${DateTime.now().month.toString().padLeft(2,"0")}-${DateTime.now().year.toString()}");
-  //     Provider.of<AttendanceProvider>(context, listen: false).getAttendanceReport(localData.storage.read("id"));
-  //   }else{
-  //     log("Failed");
-  //     utils.showErrorToast(context: context);
-  //     Navigator.pop(context);
-  //   }
-  // }
   final TextEditingController permissionReason=TextEditingController();
   Future putDailyPermission(context, String status, String lat, String lng) async {
 
@@ -2495,7 +1902,6 @@ class AttendanceProvider with ChangeNotifier{
       notifyListeners();
 
       /// REFRESH DATA
-      // Provider.of<HomeProvider>(context, listen: false).getMainReport(false);
       Provider.of<HomeProvider>(context, listen: false).loadFullDashboard(context);
       getAttendanceReport(localData.storage.read("id"));
       getMainAttendance();
@@ -2533,6 +1939,8 @@ class AttendanceProvider with ChangeNotifier{
     asc = false;
 
     _mainAttendance = 0;
+    _todayLeave = LeaveBlock.none;
+    _leaveChecked = false;
     _inTime = "";
     _outTime = "-";
     _totalHrs = "";

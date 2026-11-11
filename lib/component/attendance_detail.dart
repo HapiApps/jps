@@ -530,15 +530,17 @@ class AttendanceDetails extends StatelessWidget {
     );
   }
 
+  /// Grace 09:10 AM. Late only when check-in is AFTER 09:10
+  /// (Excel report / provider rule oda same).
   bool isLate(String? inTime) {
     if (inTime == null || inTime.trim().isEmpty) return false;
 
     final format = DateFormat("hh:mm a");
 
     try {
-      DateTime officeTime = format.parse("09:00 AM");
+      DateTime graceTime = format.parse("09:10 AM");
       DateTime userTime = format.parse(inTime);
-      return userTime.isAfter(officeTime);
+      return userTime.isAfter(graceTime);
     } catch (e) {
       return false; // invalid time format
     }

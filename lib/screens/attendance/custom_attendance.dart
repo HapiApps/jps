@@ -52,6 +52,12 @@ class _CheckAttendanceState extends State<CheckAttendance> {
     final locProvider = Provider.of<LocationProvider>(context, listen: false);
     final attProvider = Provider.of<AttendanceProvider>(context, listen: false);
 
+    Future.delayed(Duration.zero, () {
+      if (!mounted) return;
+      Provider.of<LeaveProvider>(context, listen: false)
+          .refreshMyTodayLeave(context);
+    });
+
     if (attProvider.attCheck == false) {
       Future.delayed(Duration.zero, () {
         if (!mounted) return;
@@ -303,11 +309,20 @@ class _CheckAttendanceState extends State<CheckAttendance> {
 
             bool isOnLeave = isOnLeaveValue == "1";
             print("isOnLeaveValue${isOnLeaveValue}");
-            if (isOnLeave) {
+
+            await leaveProvider.refreshMyTodayLeave(context);
+            if (!context.mounted) return;
+
+            // Leave data load aanaa adha use pannu. Load aagala na (offline)
+            // old flag fallback, aana check-out ku eppovum allow.
+            final bool blocked = attProvider.leaveChecked
+                ? attProvider.attendanceBlockedByLeave
+                : (isOnLeaveValue == "1" && attProvider.mainAttendance == 0);
+
+            if (blocked) {
               utils.showWarningToast(
                 context,
-                text:
-                "You are on leave today. Attendance cannot be marked.",
+                text: "You are on leave today. Attendance cannot be marked.",
               );
               return;
             }

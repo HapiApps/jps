@@ -8,6 +8,7 @@ import 'package:master_code/source/utilities/utils.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:open_file/open_file.dart';
 import '../../model/attendance_model.dart';
+// Border / BorderStyle are hidden here so they don't clash with the excel package
 import 'package:syncfusion_flutter_xlsio/xlsio.dart' hide Column, Row, CellStyle, Border, BorderStyle;
 import 'package:universal_html/html.dart' show AnchorElement;
 import 'package:flutter/foundation.dart' show kIsWeb;
@@ -125,19 +126,31 @@ class ExcelReports {
     }
   }
 
+  /// Mobile save: external dir -> fallback to documents dir (iOS / null case),
+  /// errors are caught so they never fail silently.
   Future<void> _saveExcelMobile(
       List<int> bytes, String filename, context) async {
-    final dir = await getExternalStorageDirectory();
-    final path = '${dir!.path}/$filename';
+    try {
+      Directory? dir;
+      try {
+        dir = await getExternalStorageDirectory();
+      } catch (_) {}
+      dir ??= await getApplicationDocumentsDirectory();
 
-    File file = File(path)
-      ..createSync(recursive: true)
-      ..writeAsBytesSync(bytes);
+      final path = '${dir.path}/$filename';
 
-    final result = await OpenFile.open(path);
+      File file = File(path)
+        ..createSync(recursive: true)
+        ..writeAsBytesSync(bytes);
 
-    if (result.type != ResultType.done) {
-      utils.showWarningToast(context, text: "No app found to open the file.");
+      final result = await OpenFile.open(file.path);
+
+      if (result.type != ResultType.done) {
+        utils.showWarningToast(context, text: "No app found to open the file.");
+      }
+    } catch (e, st) {
+      print("Save Error => $e\n$st");
+      utils.showWarningToast(context, text: "File save panna mudiyala");
     }
   }
 
@@ -241,6 +254,7 @@ class ExcelReports {
       };
       print("respinse download${data}");
       final response = await custRepo.getDashboardReport(data);
+      print("API response type: ${response.runtimeType}, length: ${response.length}");
       if (response.isNotEmpty) {
         await exportAttendanceSingleSheetExcel(
           context,
@@ -252,16 +266,17 @@ class ExcelReports {
       } else {
         utils.showWarningToast(context, text: "No data found");
       }
-    } catch (e) {
-      print("Attendance Excel Error => $e");
+    } catch (e, st) {
+      print("Attendance Excel Error => $e\n$st");
       utils.showWarningToast(context, text: "Something went wrong");
     }
   }
 
   /// ==========================================================================
-  /// ATTENDANCE REPORT (2 sheets)
-  ///  1) "Summary"    -> Month + Working Days, then Employee | Leave | Permission
-  ///  2) "Attendance" -> employee-wise day-by-day detail (Late By, 4 hrs rule ...)
+  /// ATTENDANCE REPORT (ONE sheet)
+  ///  - employee-wise day-by-day detail (Late By, 4 hrs rule ...)
+  ///  - OVERALL SUMMARY at the BOTTOM:
+  ///        Month + Working Days, then Employee | Leave | Permission
   ///
   /// RULES
   ///  - Grace time 09:10 AM. Late only when check-in is AFTER 09:10.
@@ -279,10 +294,8 @@ class ExcelReports {
       }) async {
     try {
       var excel = Excel.createExcel();
-      excel.delete('Sheet1');
-
-      Sheet summarySheet = excel["Summary"];
-      Sheet sheet = excel["Attendance"];
+      // ONE sheet only: employee details first, overall summary at the bottom
+      Sheet sheet = excel["Sheet1"];
 
       /// ================= HELPERS =================
       String formatDate(String? input) {
@@ -329,6 +342,72 @@ class ExcelReports {
 
       /// 1.0 -> 1 , 0.5 -> 0.5 (so the sheet doesn't show 1.0)
       dynamic numOut(double v) => v == v.roundToDouble() ? v.toInt() : v;
+
+      /// "HH:mm:ss" / "hh:mm a" / "HH:mm" endha format-um minutes-a maathum
+      int anyTimeToMinutes(String? t) {
+        final s = (t ?? "").trim();
+        if (s.isEmpty || s == "-" || s == "null") return 0;
+        for (final f in ["HH:mm:ss", "hh:mm a", "HH:mm"]) {
+          try {
+            final d = DateFormat(f).parse(s);
+            return d.hour * 60 + d.minute;
+          } catch (_) {}
+        }
+        return 0;
+      }
+
+      /// Oru employee + oru naal-ku ella permission (In, Out) pairs.
+      /// [rows] = andha naal-ku vara ella records (API rendu row anuppinaalum serum)
+      List<List<String>> getPermissionPairs(List<Map<String, dynamic>> rows) {
+        final List<List<String>> pairs = [];
+        final Set<String> seen = {};
+        String s(dynamic v) => v?.toString().trim() ?? "";
+
+        void addPair(String a, String b) {
+          if (a.isEmpty || a == "null" || a == "-") return;
+          final key = "$a|$b";
+          if (seen.add(key)) pairs.add([a, b]);
+        }
+
+        for (final r in rows) {
+          final pIn = s(r["per_in"]);
+          final pOut = s(r["per_out"]);
+          final pTime = s(r["per_time"]);
+          final pStatus = s(r["per_status"]);
+
+          // 1) per_in / per_out la comma list vandha
+          if (pIn.contains(",") || pOut.contains(",")) {
+            final ins = pIn.split(",").map((e) => e.trim()).toList();
+            final outs = pOut.split(",").map((e) => e.trim()).toList();
+            for (int i = 0; i < ins.length; i++) {
+              addPair(ins[i], i < outs.length ? outs[i] : "");
+            }
+            continue;
+          }
+
+          // 2) per_time + per_status ("1,2,1,2") -> 1 = In, 2 = Out
+          if (pTime.contains(",") && pStatus.isNotEmpty) {
+            final times = pTime.split(",").map((e) => e.trim()).toList();
+            final sts = pStatus.split(",").map((e) => e.trim()).toList();
+            String? open;
+            bool found = false;
+            for (int i = 0; i < sts.length && i < times.length; i++) {
+              if (sts[i] == "1") {
+                open = times[i];
+              } else if (sts[i] == "2" && open != null) {
+                addPair(open, times[i]);
+                open = null;
+                found = true;
+              }
+            }
+            if (found) continue;
+          }
+
+          // 3) single pair
+          addPair(pIn, pOut);
+        }
+        return pairs;
+      }
 
       /// Sunday + 3rd Saturday
       Map<String, dynamic> getWeekendInfo(String? dateStr) {
@@ -438,10 +517,10 @@ class ExcelReports {
       }).length;
       int workingDaysCount = totalDaysInRange - weekOffDaysCount;
 
-      /// per-employee totals (used for the Summary sheet)
+      /// per-employee totals (used for the Summary)
       final List<Map<String, dynamic>> summaryRows = [];
 
-      const int lastCol = 15; // last column index of the detail sheet
+      const int lastCol = 15; // last column index of the detail table
 
       int rowIndex = 0;
 
@@ -595,12 +674,31 @@ class ExcelReports {
           }
 
           /// ================= PERMISSION (4 hrs rule) =================
-          int perInMin = timeToMinutes(perIn);
-          int perOutMin = timeToMinutes(perOut);
+          // andha employee + andha naal-ku vara ella rows (first row mattum illa)
+          final List<Map<String, dynamic>> dayRows = attendanceList
+              .where((e) => e["firstname"] == emp && e["date"] == d)
+              .map<Map<String, dynamic>>((e) => Map<String, dynamic>.from(e))
+              .toList();
 
-          int permissionMinutes = 0; // actual permission taken
-          if (perInMin > 0 && perOutMin > 0 && perOutMin > perInMin) {
-            permissionMinutes = perOutMin - perInMin;
+          final List<List<String>> permPairs = getPermissionPairs(dayRows);
+
+          int permissionMinutes = 0; // ella permission-um serthu
+          for (final p in permPairs) {
+            final a = anyTimeToMinutes(p[0]);
+            final b = anyTimeToMinutes(p[1]);
+            // 5 mins-ku kammi (thappa apply panni udane off) ignore
+            if (a > 0 && b > a + 5) permissionMinutes += (b - a);
+          }
+
+          // sheet-la kaattura In / Out (rendu permission irundha " / " vechu)
+          final List<List<String>> validPairs = permPairs
+              .where((p) =>
+          anyTimeToMinutes(p[0]) > 0 &&
+              anyTimeToMinutes(p[1]) > anyTimeToMinutes(p[0]) + 5)
+              .toList();
+          if (validPairs.isNotEmpty) {
+            perIn = validPairs.map((p) => formatTime12(p[0])).join(" / ");
+            perOut = validPairs.map((p) => formatTime12(p[1])).join(" / ");
           }
 
           int permissionCounted = permissionMinutes; // after half-day conversion
@@ -708,7 +806,7 @@ class ExcelReports {
         rowIndex++;
         rowIndex++; // gap row
 
-        /// ================= collect for Summary sheet =================
+        /// ================= collect for Summary =================
         summaryRows.add({
           "name": emp,
           "leave": totalLeave,
@@ -718,17 +816,39 @@ class ExcelReports {
       }
 
       /// ======================================================================
-      /// ================= SUMMARY SHEET (matches the image) ==================
+      /// ============ SUMMARY (same sheet, at the BOTTOM) =====================
       /// ======================================================================
 
-      // title: "September2026" (single month) or "date to date"
+      // title:
+      //  - full month select pannirundha -> "September2026"
+      //  - veru date range (eg 01-15)    -> "01 Sep 2026 - 15 Sep 2026"
+      //  - single day                    -> "15 Sep 2026"
       String monthTitle;
       try {
-        final DateTime s = DateTime.parse(startDate);
-        final DateTime e = DateTime.parse(endDate);
-        monthTitle = (s.year == e.year && s.month == e.month)
-            ? DateFormat('MMMMyyyy').format(s)
-            : "${formatDate(startDate)} to ${formatDate(endDate)}";
+        DateTime parseDmy(String v) {
+          try {
+            return DateFormat('dd-MM-yyyy').parseStrict(v);
+          } catch (_) {
+            return DateTime.parse(v);
+          }
+        }
+
+        final DateTime s = parseDmy(startDate);
+        final DateTime e = parseDmy(endDate);
+
+        final bool isFullMonth = s.day == 1 &&
+            s.year == e.year &&
+            s.month == e.month &&
+            e.day == DateTime(s.year, s.month + 1, 0).day;
+
+        if (isFullMonth) {
+          monthTitle = DateFormat('MMMMyyyy').format(s); // September2026
+        } else if (s.year == e.year && s.month == e.month && s.day == e.day) {
+          monthTitle = DateFormat('dd MMM yyyy').format(s);
+        } else {
+          monthTitle =
+          "${DateFormat('dd MMM yyyy').format(s)} - ${DateFormat('dd MMM yyyy').format(e)}";
+        }
       } catch (_) {
         monthTitle = "$startDate to $endDate";
       }
@@ -758,6 +878,7 @@ class ExcelReports {
         bold: true,
         fontSize: 14,
         fontColorHex: "#4A86E8",
+        backgroundColorHex: "#FFF2CC",
         horizontalAlign: HorizontalAlign.Left,
         verticalAlign: VerticalAlign.Center,
         leftBorder: thin,
@@ -769,6 +890,7 @@ class ExcelReports {
         bold: true,
         fontSize: 14,
         fontColorHex: "#4A86E8",
+        backgroundColorHex: "#FFF2CC",
         horizontalAlign: HorizontalAlign.Right,
         verticalAlign: VerticalAlign.Center,
         leftBorder: thin,
@@ -777,6 +899,7 @@ class ExcelReports {
         bottomBorder: thin,
       );
       CellStyle sCell = CellStyle(
+        backgroundColorHex: "#FFFBEA",
         horizontalAlign: HorizontalAlign.Left,
         verticalAlign: VerticalAlign.Center,
         leftBorder: thin,
@@ -785,53 +908,76 @@ class ExcelReports {
         bottomBorder: thin,
       );
 
-      summarySheet.setColWidth(0, 28);
-      summarySheet.setColWidth(1, 24);
-      summarySheet.setColWidth(2, 30);
-
-      // header row: A1:B1 merged (month), C1 (working days)
-      summarySheet
-          .cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: 0))
-          .value = monthTitle;
-      summarySheet.merge(
-        CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: 0),
-        CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: 0),
-      );
-      summarySheet
-          .cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: 0))
-          .cellStyle = sTitleLeft;
-      summarySheet
-          .cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: 0))
-          .cellStyle = sTitleLeft;
-
-      summarySheet
-          .cell(CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: 0))
-          .value = "Working Days: $workingDaysCount";
-      summarySheet
-          .cell(CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: 0))
-          .cellStyle = sTitleRight;
-
-      // employee rows: Name | Leave | Permission
-      int sRow = 1;
-      for (final s in summaryRows) {
-        // total leave = applied leave + half day(s) made from permission > 4 hrs
-        final double totalLeaveDays =
-            (s["leave"] as double) + (s["halfDay"] as double);
-
-        final List<String> vals = [
-          s["name"].toString(),
-          leaveText(totalLeaveDays),
-          permissionText(s["permMinutes"] as int),
-        ];
-
-        for (int col = 0; col < vals.length; col++) {
-          var c = summarySheet.cell(
-              CellIndex.indexByColumnRow(columnIndex: col, rowIndex: sRow));
-          c.value = vals[col];
-          c.cellStyle = sCell;
+      /// merged block: value -> startCol, merge startCol..endCol, style all cells
+      void putBlock(Sheet target, int row, int startCol, int endCol,
+          String value, CellStyle style) {
+        target
+            .cell(CellIndex.indexByColumnRow(columnIndex: startCol, rowIndex: row))
+            .value = value;
+        if (endCol > startCol) {
+          target.merge(
+            CellIndex.indexByColumnRow(columnIndex: startCol, rowIndex: row),
+            CellIndex.indexByColumnRow(columnIndex: endCol, rowIndex: row),
+          );
         }
-        sRow++;
+        for (int c = startCol; c <= endCol; c++) {
+          target
+              .cell(CellIndex.indexByColumnRow(columnIndex: c, rowIndex: row))
+              .cellStyle = style;
+        }
       }
+
+      /// Summary columns: Name = A..C | Leave = D..F | Permission = G..I
+      void writeSummary(Sheet target, int startRow) {
+        putBlock(target, startRow, 0, 5, monthTitle, sTitleLeft);
+        putBlock(target, startRow, 6, 8, "Working Days: $workingDaysCount",
+            sTitleRight);
+
+        int r = startRow + 1;
+        for (final s in summaryRows) {
+          // total leave = applied leave + half day(s) from permission > 4 hrs
+          final double totalLeaveDays =
+              (s["leave"] as double) + (s["halfDay"] as double);
+
+          putBlock(target, r, 0, 2, s["name"].toString(), sCell);
+          putBlock(target, r, 3, 5, leaveText(totalLeaveDays), sCell);
+          putBlock(target, r, 6, 8,
+              permissionText(s["permMinutes"] as int), sCell);
+          r++;
+        }
+      }
+
+      // column widths (detail table-ku; summary merged cells-la fit aagum)
+      const List<double> colWidths = [
+        14, 9, 11, 11, 12, 9, 9, 12, 11, 14, 14, 18, 14, 34, 9, 34
+      ];
+      for (int i = 0; i < colWidths.length; i++) {
+        sheet.setColWidth(i, colWidths[i]);
+      }
+
+      // highlighted banner above the summary (A..I merge)
+      final int bannerRow = rowIndex + 1;
+      CellStyle bannerStyle = CellStyle(
+        bold: true,
+        fontSize: 14,
+        backgroundColorHex: "#45377D",
+        fontColorHex: "#FFFFFF",
+        horizontalAlign: HorizontalAlign.Center,
+        verticalAlign: VerticalAlign.Center,
+      );
+      sheet
+          .cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: bannerRow))
+          .value = "OVERALL SUMMARY ( $startDate to $endDate )";
+      sheet.merge(
+        CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: bannerRow),
+        CellIndex.indexByColumnRow(columnIndex: 8, rowIndex: bannerRow),
+      );
+      sheet
+          .cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: bannerRow))
+          .cellStyle = bannerStyle;
+
+      // summary table (Month + Working Days, then Employee | Leave | Permission)
+      writeSummary(sheet, bannerRow + 1);
 
       /// ================= SAVE / DOWNLOAD =================
       final bytes = excel.encode();
@@ -842,11 +988,11 @@ class ExcelReports {
         if (kIsWeb) {
           _downloadExcelWebFile(bytes, fileName);
         } else {
-          _saveExcelMobile(bytes, fileName, context);
+          await _saveExcelMobile(bytes, fileName, context);
         }
       }
-    } catch (e) {
-      print("Excel Error => $e");
+    } catch (e, st) {
+      print("Excel Error => $e\n$st");
       utils.showWarningToast(context, text: "Something went wrong");
     }
   }

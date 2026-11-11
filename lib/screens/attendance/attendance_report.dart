@@ -1210,7 +1210,7 @@ class _AttendanceReportState extends State<AttendanceReport> {
                               // ✅ earlier time = In, later time = Out (lat/lng um pair aa move aagum)
                               final parts = _splitAttendance(data, attProvider);
                               final String inTime  = parts.inTime;
-                              final String outTime = parts.outTime;
+                              final String outTime = _outLabel(data, parts.outTime, levPvr);
                               final String timeD   = parts.timeD;
                               final String lat1 = parts.lat1;
                               final String lng1 = parts.lng1;
@@ -1408,7 +1408,7 @@ class _AttendanceReportState extends State<AttendanceReport> {
                                   // inside the map-icon tap callback.
                                   final parts = _splitAttendance(data, attProvider);
                                   final String inTime  = parts.inTime;
-                                  final String outTime = parts.outTime;
+                                  final String outTime = _outLabel(data, parts.outTime, levPvr);
                                   final String timeD   = parts.timeD;
                                   final String lat1 = parts.lat1;
                                   final String lng1 = parts.lng1;
@@ -1537,7 +1537,7 @@ class _AttendanceReportState extends State<AttendanceReport> {
                                   // ✅ earlier time = In, later time = Out (lat/lng um pair aa move aagum)
                                   final parts = _splitAttendance(data, attProvider);
                                   final String inTime  = parts.inTime;
-                                  final String outTime = parts.outTime;
+                                  final String outTime = _outLabel(data, parts.outTime, levPvr);
                                   final String timeD   = parts.timeD;
                                   final String lat1 = parts.lat1;
                                   final String lng1 = parts.lng1;
@@ -1653,6 +1653,16 @@ class _AttendanceReportState extends State<AttendanceReport> {
       );
     });
   }
+
+  String _outLabel(AttendanceModel data, String outTime, LeaveProvider lev) {
+    if (outTime.trim().isNotEmpty && outTime != "-") return outTime;
+    final day = DateTime.tryParse(data.createdTs.toString().split(',')[0].trim());
+    if (day == null) return outTime;
+    return lev.approvedLeaveOn(data.salesmanId.toString(), day) == "Full Day"
+        ? "On Leave"
+        : outTime;
+  }
+
   String getCreatedDate(data) {
     final timestamp = data.missingDate.toString();
     final dateTime = DateTime.parse(timestamp);

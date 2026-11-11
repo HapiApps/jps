@@ -32,6 +32,7 @@ import '../screens/leave_management/yearly_calendar.dart';
 import '../source/constant/api.dart';
 import '../source/constant/colors_constant.dart';
 import '../source/utilities/utils.dart';
+import 'attendance_provider.dart';
 import 'employee_provider.dart';
 import 'home_provider.dart';
 
@@ -1656,6 +1657,7 @@ void setList(){
       if (response["message"] != null &&
           response["message"] == "Leave application successful") {
         utils.showSuccessToast(context: context, text: "Applied Successfully");
+        refreshMyTodayLeave(context);
 
         /// 🔔 SEND NOTIFICATION TO ADMINS
         final empProvider = Provider.of<EmployeeProvider>(context, listen: false);
@@ -1752,6 +1754,10 @@ void setList(){
         utils.showSuccessToast(
             context: context,
             text: response["message"]);
+
+        if (userId == localData.storage.read("id").toString()) {
+          refreshMyTodayLeave(context);
+        }
 
         /// 🔔 SEND NOTIFICATION TO EMPLOYEE
 
@@ -2745,6 +2751,62 @@ void changeStatus(bool value){
   String get showDate6=>_showDate6;
   String get showDate7=>_showDate7;
   String get showDate8=>_showDate8;
+
+  /// Logged-in user-oda innaiku leave-a fresh-a fetch pannitu
+  /// AttendanceProvider-ku kudukkum. Attendance tap-la idhu thaan decide pannum.
+  Future<void> refreshMyTodayLeave(BuildContext context) async {
+    final att = Provider.of<AttendanceProvider>(context, listen: false);
+    try {
+      final now = DateTime.now();
+      final f = DateFormat('dd-MM-yyyy');
+      final Map data = {
+        "action": getLeaveData,
+        "search_type": "my_leave",
+        "id": localData.storage.read("id"),
+        "st_dt": f.format(now.subtract(const Duration(days: 60))),
+        "en_dt": f.format(now),
+        "cos_id": localData.storage.read("cos_id"),
+      };
+      final List<LeaveModel> list =
+      await leaveRepo.getLeave(data).timeout(const Duration(seconds: 6));
+      att.computeTodayLeave(list);
+      debugPrint("MY LEAVES => ${list.map((e) => '${e.startDate}→${e.endDate} status=${e.status} day=${e.dayType} sess=${e.session} user=${e.userId}').toList()}");
+    } catch (e) {
+      log("refreshMyTodayLeave failed: $e"); // fail-open: last known state
+    }
+  }
+
+  bool isApprovedStatus(String? st) {
+    final s = (st ?? "").toLowerCase().trim();
+    return s == "1" || s.contains("approv");
+  }
+
+  /// Report page-ku: antha user-ku antha naal approved leave irukka?
+  /// returns "" | "Half Day" | "Full Day"
+  String approvedLeaveOn(String userId, DateTime day) {
+    final d = DateTime(day.year, day.month, day.day);
+    DateTime? toDay(String? v) {
+      final t = DateTime.tryParse((v ?? "").trim().split(" ").first);
+      return t == null ? null : DateTime(t.year, t.month, t.day);
+    }
+
+    String result = "";
+    for (final l in myLevSearch) {
+      if (l.userId.toString() != userId) continue;
+      if (!isApprovedStatus(l.status)) continue;
+      final s = toDay(l.startDate);
+      final e = toDay(l.endDate) ?? s;
+      if (s == null || e == null) continue;
+      if (d.isBefore(s) || d.isAfter(e)) continue;
+      if (l.dayType.toString() == "0.5") {
+        result = "Half Day";
+      } else {
+        return "Full Day";
+      }
+    }
+    return result;
+  }
+
   Future<void> getLeaveReport(filter) async {
     _isLoading=false;
     myLev.clear();
