@@ -926,7 +926,10 @@ class _AttendanceReportState extends State<AttendanceReport> {
       (builder: (context,attProvider,empProvider,homeProvider,levPvr,_){
       // ✅ filters (date + employee) ellaa tab layum correct aa apply aaga, list ah inga filter pannrom
       final List<AttendanceModel> presentList = _userFiltered(attProvider);
-      final List<dynamic> absentList = _filteredAbsent(attProvider);
+      final List<dynamic> absentList = _filteredAbsent(attProvider, levPvr, empProvider); // ✅ CHANGED
+      final List<AttendanceModel> permList = _permissionList(attProvider);                // ✅ NEW
+      final List<AttendanceModel> lateAll = _lateList(attProvider);                       // ✅ NEW (Late tab = 9:10 ku apram check-in)
+      final int lateCount = lateAll.length;                                               // ✅ NEW
       final List<LeaveModel> leaveList = _filteredLeaves(attProvider, levPvr);
       final int fullDayCount =
           leaveList.where((e) => e.dayType.toString() == "1").length;
@@ -1049,7 +1052,15 @@ class _AttendanceReportState extends State<AttendanceReport> {
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
                                         CustomText(text: "Total Records: ",colors:colorsConst.greyClr,size: 14,),
-                                        CustomText(text: showType=="Leave"?leaveList.length.toString():showType=="Late"?attProvider.lateCountShow.toString():showType=="Absent"?absentList.length.toString():showType=="Present"?presentList.length.toString():attProvider.permisCount.toString(),colors:colorsConst.primary,size: 14,),
+                                        // ✅ Late = late list, Permission = applied permission mattum
+                                        CustomText(
+                                          text: showType=="Leave" ? leaveList.length.toString()
+                                              : showType=="Late" ? lateCount.toString()
+                                              : showType=="Absent" ? absentList.length.toString()
+                                              : showType=="Permission" ? permList.length.toString()
+                                              : presentList.length.toString(),
+                                          colors: colorsConst.primary, size: 14,
+                                        ),
                                       ],
                                     ),
                                   ],
@@ -1353,8 +1364,9 @@ class _AttendanceReportState extends State<AttendanceReport> {
                             },
                           ),
                         ):
+                        // ✅ Late tab: grace (9:10) kku apram check-in pannavanga
                         attProvider.selectedIndex==2 &&
-                            attProvider.lateCountShow!=0? Flexible(
+                            lateCount!=0? Flexible(
                           child: Builder(
                             builder: (context) {
 
@@ -1482,37 +1494,15 @@ class _AttendanceReportState extends State<AttendanceReport> {
                             leaveList.isNotEmpty?
                         Flexible(
                             child: itemBuilder(leaveList,levPvr)):
+                        // ✅ CHANGED: Permission tab = applied permission + auto (late arrival) permission
                         attProvider.selectedIndex == 4 &&
-                            attProvider.permisCount != 0
+                            permList.isNotEmpty
                             ? Flexible(
                           child: Builder(
                             builder: (context) {
 
-                              List<AttendanceModel> filteredList = attProvider.user.isEmpty
-                                  ? List<AttendanceModel>.from(attProvider.getDailyAttendance)
-                                  : attProvider.getDailyAttendance
-                                  .where((e) =>
-                              e.salesmanId.toString() ==
-                                  attProvider.user.toString())
-                                  .toList();
-
-                              filteredList.sort((a, b) {
-                                DateTime aTime =
-                                DateTime.parse(a.createdTs.toString().split(',')[0]);
-                                DateTime bTime =
-                                DateTime.parse(b.createdTs.toString().split(',')[0]);
-                                return bTime.compareTo(aTime);
-                              });
-
-                              if (filteredList.isEmpty) {
-                                return Padding(
-                                  padding: const EdgeInsets.fromLTRB(0, 150, 0, 0),
-                                  child: CustomText(
-                                    text: constValue.noData,
-                                    size: 15,
-                                  ),
-                                );
-                              }
+                              // ✅ CHANGED: list already filtered + sorted in _permissionList()
+                              final List<AttendanceModel> filteredList = permList;
 
                               return ListView.builder(
                                 itemCount: filteredList.length,
@@ -1528,6 +1518,9 @@ class _AttendanceReportState extends State<AttendanceReport> {
                                   final String lng1 = parts.lng1;
                                   final String lat2 = parts.lat2;
                                   final String lng2 = parts.lng2;
+
+                                  // ✅ NEW: applied permission (or auto permission for late arrival)
+                                  final _PermInfo pi = _permInfo(data, attProvider);
 
                                   String timestamp = data.createdTs.toString();
                                   List<String> createdTimes = timestamp.split(',');
@@ -1562,8 +1555,8 @@ class _AttendanceReportState extends State<AttendanceReport> {
                                   final bool showDateHeader =
                                       index == 0 || createdBy != prevCreatedBy;
 
-                                  return data.perStatus.toString() != "null"
-                                      ? Column(
+                                  // ✅ CHANGED: ternary removed -> always return Column
+                                  return Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
                                       if (showDateHeader)
@@ -1609,16 +1602,16 @@ class _AttendanceReportState extends State<AttendanceReport> {
                                           );
                                         },
 
-                                        perStatus: data.perStatus.toString(),
-                                        perReason: data.perReason.toString(),
-                                        perTime: data.perTime.toString(),
+                                        // ✅ CHANGED: from _permInfo()
+                                        perStatus: pi.status,
+                                        perReason: pi.reason,
+                                        perTime: pi.time,
                                         perCreatedTs: data.perCreatedTs.toString(), empId: data.salesmanId, active: data.active,
                                       ),
 
                                       5.height
                                     ],
-                                  )
-                                      : 0.height;
+                                  );
                                 },
                               );
                             },
@@ -1872,32 +1865,28 @@ class _AttendanceReportState extends State<AttendanceReport> {
       },
     );
   }
+
+  /// ✅ Late = check-in 9:10 (grace) kku apram. 9:10 varai late illa.
   bool isLate(String? inTime) {
-    try {
-      print("inTime => $inTime");
+    if (inTime == null) return false;
+    final s = inTime.split(",")[0].trim();
+    if (s.isEmpty || s == "-" || s == "null") return false;
+    final DateTime? t = _parseT(s);
+    if (t == null) return false;
+    return (t.hour * 60 + t.minute) > (9 * 60 + 10);
+  }
 
-      if (inTime == null || inTime.trim().isEmpty || inTime == "null") {
-        return false;
-      }
-
-      if (inTime.contains(",")) {
-        inTime = inTime.split(",")[0].trim();
-      }
-
-      if (inTime.isEmpty || inTime == "-") return false;
-
-      final format = DateFormat("hh:mm a");
-
-      DateTime officeTime = format.parse("09:00 AM");
-
-      DateTime userTime = format.parse(inTime);
-
-      return userTime.isAfter(officeTime);
-
-    } catch (e) {
-      print("isLate ERROR => $inTime");
-      return false;
-    }
+  /// ✅ Late tab list (selected employee + date filter already applied in _userFiltered)
+  List<AttendanceModel> _lateList(AttendanceProvider att) {
+    final list = _userFiltered(att)
+        .where((d) => isLate(_splitAttendance(d, att).inTime))
+        .toList();
+    list.sort((a, b) {
+      final aT = DateTime.parse(a.createdTs.toString().split(',')[0]);
+      final bT = DateTime.parse(b.createdTs.toString().split(',')[0]);
+      return bT.compareTo(aT);
+    });
+    return list;
   }
 
   DateTime? _parseT(String s) {
@@ -1992,17 +1981,132 @@ class _AttendanceReportState extends State<AttendanceReport> {
         .toList();
   }
 
-  /// Absent: From/To date + employee
-  List<dynamic> _filteredAbsent(AttendanceProvider att) {
+  // ==========================================================================
+  // ✅ PERMISSION TAB: employee apply panna permission mattum
+  // (late -> Late tab, Excel export la late = permission aa add aagum)
+  // ==========================================================================
+  bool _hasAppliedPermission(AttendanceModel d) {
+    final s = d.perStatus.toString().trim();
+    return s.isNotEmpty && s != "null";
+  }
+
+  _PermInfo _permInfo(AttendanceModel d, AttendanceProvider att) {
+    return _PermInfo(d.perStatus.toString(), d.perReason.toString(), d.perTime.toString());
+  }
+
+  /// Permission tab: applied permission mattum
+  List<AttendanceModel> _permissionList(AttendanceProvider att) {
+    final list = _userFiltered(att).where(_hasAppliedPermission).toList();
+    list.sort((a, b) {
+      final aT = DateTime.parse(a.createdTs.toString().split(',')[0]);
+      final bT = DateTime.parse(b.createdTs.toString().split(',')[0]);
+      return bT.compareTo(aT);
+    });
+    return list;
+  }
+
+  // ==========================================================================
+  // ✅ NEW: ABSENT = backend list + (check-in illa & leave illa) employees
+  // ==========================================================================
+  String _dayKey(DateTime d) => "${d.year}-${d.month}-${d.day}";
+
+  /// ✅ full-day leave irundha absent illa
+  bool _onLeave(LeaveProvider lev, String id, String name, DateTime day) {
+    if (lev.approvedLeaveOn(id, day) == "Full Day") return true;
+    final n = name.trim().toLowerCase();
+    for (final l in lev.myLevSearch) {
+      if (l.fName.toString().trim().toLowerCase() != n) continue;
+      final ls = _parseDay(l.startDate?.toString());
+      if (ls == null) continue;
+      final le = _parseDay(l.endDate?.toString()) ?? ls;
+      if (!day.isBefore(ls) && !day.isAfter(le) && l.dayType.toString() == "1") {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /// Weekly off days (venumna mathikonga)
+  static const Set<int> _weekOff = {DateTime.sunday};
+
+  /// Absent: backend list + local (check-in pannaadhavanga, leave illaadhavanga)
+  List<dynamic> _filteredAbsent(
+      AttendanceProvider att, LeaveProvider lev, EmployeeProvider emp) {
     final DateTime? fs = _parseDay(att.startDate);
     final DateTime? fe = _parseDay(att.endDate);
-    return att.noAttendanceList.where((d) {
+
+    // 1) backend list (same as before)
+    // ✅ List<dynamic>.from -> so _AbsentRow can be added safely
+    final List<dynamic> out = List<dynamic>.from(att.noAttendanceList.where((d) {
       if (fs != null && fe != null) {
         final DateTime? md = _parseDay(d.missingDate?.toString());
         if (md != null && (md.isBefore(fs) || md.isAfter(fe))) return false;
       }
       return _nameMatch(d.firstname?.toString(), att.userName);
-    }).toList();
+    }));
+
+    // 2) local: check-in pannaadhavanga (admin mattum)
+    if (localData.storage.read("role").toString() == "1" && fs != null && fe != null) {
+      final now = DateTime.now();
+      final today = DateTime(now.year, now.month, now.day);
+      final DateTime last = fe.isAfter(today) ? today : fe;
+
+      final List<UserModel> src = emp.userData.isNotEmpty
+          ? emp.userData
+          : (emp.filterUserData.isNotEmpty ? emp.filterUserData : widget.empList);
+
+      final Map<String, UserModel> users = {};
+      for (final u in src) {
+        final n = u.firstname.toString().trim();
+        if (n.isEmpty || n == "null") continue;
+        users[u.id.toString()] = u;
+      }
+
+      final Set<String> present = {};
+      for (final d in att.getDailyAttendance) {
+        final day = _parseDay(d.createdTs.toString().split(',')[0]);
+        if (day != null) present.add("${d.salesmanId}|${_dayKey(day)}");
+      }
+
+      final Set<String> seen = {};
+      for (final d in out) {
+        final md = _parseDay(d.missingDate?.toString());
+        if (md != null) {
+          seen.add("${d.firstname.toString().trim().toLowerCase()}|${_dayKey(md)}");
+        }
+      }
+
+      final String sel = (att.user ?? "").toString().trim();
+      int guard = 0;
+      for (DateTime day = fs;
+      !day.isAfter(last) && guard < 62;
+      day = DateTime(day.year, day.month, day.day + 1), guard++) {
+        if (_weekOff.contains(day.weekday)) continue;
+        users.forEach((id, u) {
+          if (sel.isNotEmpty && sel != "null" && sel != id) return;
+          final name = u.firstname.toString();
+          if (!_nameMatch(name, att.userName)) return;
+          if (present.contains("$id|${_dayKey(day)}")) return;
+          if (_onLeave(lev, id, name, day)) return;
+          final key = "${name.trim().toLowerCase()}|${_dayKey(day)}";
+          if (!seen.add(key)) return;
+          out.add(_AbsentRow(
+            firstname: name,
+            role: u.role.toString(),
+            missingDate:
+            "${day.year}-${day.month.toString().padLeft(2, '0')}-${day.day.toString().padLeft(2, '0')}",
+          ));
+        });
+      }
+    }
+
+    // newest date first
+    out.sort((a, b) {
+      final x = _parseDay(a.missingDate?.toString()) ?? DateTime(1970);
+      final y = _parseDay(b.missingDate?.toString()) ?? DateTime(1970);
+      return y.compareTo(x);
+    });
+    return out;
   }
 
   /// Leave: From/To date (overlap) + employee
@@ -2320,11 +2424,11 @@ class _MapInfoCard extends StatelessWidget {
     return (t.isEmpty || t == "null") ? "-" : t;
   }
 
-  /// office time 9:00 AM ku apram check in na "Late"
+  /// ✅ Late badge: check-in 9:10 (grace) kku apram
   bool get _isLate {
     try {
       final f = DateFormat("hh:mm a");
-      return f.parse(inTime.trim()).isAfter(f.parse("09:00 AM"));
+      return f.parse(inTime.trim()).isAfter(f.parse("09:10 AM"));
     } catch (_) {
       return false;
     }
@@ -2480,4 +2584,16 @@ class _TimeEntry {
 class _AttParts {
   final String inTime, outTime, timeD, lat1, lng1, lat2, lng2;
   _AttParts(this.inTime, this.outTime, this.timeD, this.lat1, this.lng1, this.lat2, this.lng2);
+}
+
+/// ✅ NEW: permission info (applied or auto)
+class _PermInfo {
+  final String status, reason, time;
+  const _PermInfo(this.status, this.reason, this.time);
+}
+
+/// ✅ NEW: locally-computed absent row (check-in illa, leave illa)
+class _AbsentRow {
+  final String firstname, role, missingDate;
+  const _AbsentRow({required this.firstname, required this.role, required this.missingDate});
 }

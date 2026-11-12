@@ -19,6 +19,26 @@ import '../constant/local_data.dart';
 
 final ExcelReports excelReports = ExcelReports._();
 
+/// NEW: small style holder. The attendance report does not use the `excel`
+/// package, so its CellStyle is not needed here.
+/// (The style is converted and applied through XLSIO instead.)
+class _Sty {
+  final bool bold;
+  final double size;
+  final String? font; // "#RRGGBB"
+  final String? bg; // "#RRGGBB"
+  final HAlignType h;
+  final bool border;
+  const _Sty({
+    this.bold = false,
+    this.size = 11,
+    this.font,
+    this.bg,
+    this.h = HAlignType.center,
+    this.border = false,
+  });
+}
+
 class ExcelReports {
   ExcelReports._();
   String appColor = "#45377D";
@@ -26,9 +46,9 @@ class ExcelReports {
 
   /// ================= ATTENDANCE RULES (change here if rules change) =================
   static const int _officeStartMin = 9 * 60;       // 09:00 AM
-  static const int _graceEndMin = 9 * 60 + 10;     // 09:10 AM  (inga varaikum late illa)
-  static const int _graceLimitMin = 9 * 60 + 15;   // 09:15 AM  (09:11-09:15 -> grace minus, 09:16+ -> full)
-  static const int _permHalfDayLimitMin = 4 * 60;  // permission > 4 hrs -> half day leave
+  static const int _graceEndMin = 9 * 60 + 10;     // 09:10 AM  (up to this time is not late)
+  static const int _graceLimitMin = 9 * 60 + 15;   // 09:15 AM  (09:11-09:15 -> grace deducted, 09:16+ -> full)
+  static const int _permHalfDayLimitMin = 4 * 60;  // every 4 hrs of total permission = 0.5 day leave
 
   Future<void> exportAttendanceToExcel(context,
       {required List<AttendanceModel> chunked, required String date}) async {
@@ -151,7 +171,7 @@ class ExcelReports {
       }
     } catch (e, st) {
       print("Save Error => $e\n$st");
-      utils.showWarningToast(context, text: "File save panna mudiyala");
+      utils.showWarningToast(context, text: "Unable to save the file");
     }
   }
 
@@ -241,7 +261,7 @@ class ExcelReports {
     }
   }
 
-  /// ✅ CHANGED: `leaves` (applied leave list) vaangum
+  /// CHANGED: accepts `leaves` (the applied leave list)
   Future<void> downloadAttendanceExcelReport(context,
       {required String stDate,
         required String enDate,
@@ -256,14 +276,14 @@ class ExcelReports {
         "st_dt": stDate,
         "en_dt": enDate,
       };
-      print("respinse download${data}");
+      print("response download${data}");
       final response = await custRepo.getDashboardReport(data);
       print("API response type: ${response.runtimeType}, length: ${response.length}");
       if (response.isNotEmpty) {
         await exportAttendanceSingleSheetExcel(
           context,
           attendanceList: response,
-          leaveList: leaves, // ✅ CHANGED (was [])
+          leaveList: leaves, // CHANGED (was [])
           startDate: stDate,
           endDate: enDate,
         );
@@ -280,25 +300,34 @@ class ExcelReports {
   /// ATTENDANCE REPORT (ONE sheet)
   ///  - OVERALL SUMMARY at the TOP:
   ///        Month + Working Days, then
-  ///        Employee Name | Leave Taken | Leave Deducted | Permission Taken
+  ///        Employee Name | Leave Taken | Leave Deducted
+  ///        | Total Permission | Converted to Leave | Remaining Permission
+  ///        | Calculation Details
   ///  - employee-wise day-by-day detail below it
+  ///  - "Summary Calculation" lines below each employee's Total row
   ///
-  /// ✅ FIX: SUMMARY + DETAILS rendum ONE in-memory buffer-la collect aagum.
-  ///  Nothing is written to the sheet until the very end. Then the buffer is
-  ///  flushed in ascending row / col order (all cells first, merges last),
-  ///  so file order == row order and the summary is ALWAYS on top
-  ///  (monthly or short date range, both).
+  /// v4 FIX: uses Syncfusion XLSIO instead of the `excel` package
+  ///  (the same package the payroll export already uses).
+  ///  The `excel` package writes rows to the file in the order they were
+  ///  written, so the summary sometimes ended up at the bottom. XLSIO saves
+  ///  every cell by its row/column INDEX, so the summary (rows 1..n) is
+  ///  ALWAYS at the top (monthly, date range, filters - all the same).
   ///
   /// RULES
-  ///  - Check-in 09:10 varaikum -> late illa, permission illa (grace).
+  ///  - Check-in up to 09:10 -> not late, no permission (grace).
   ///  - 09:11 - 09:15  -> permission = check-in - 09:10   (9:12 -> 2 mins)
-  ///  - 09:16 and above -> permission = check-in - 09:00  (9:20 -> 20 mins, grace minus illa)
-  ///  - Applied permission (eg 9:00-9:30) -> grace minus pannaama apdiye.
-  ///  - Applied permission late time-a cover pannirundha double count aagaadhu.
-  ///  - Permission > 4 hrs -> every 4 hrs = 0.5 Half Day Leave.
-  ///  - Check-in illa (past date, leave apply illa) -> detail-la Absent,
-  ///    SUMMARY-la Leave Taken-la serum.
-  ///  - Leave apply pannirundha (check-in illanaalum) -> Leave.
+  ///  - 09:16 and above -> permission = check-in - 09:00  (9:20 -> 20 mins, grace is not deducted)
+  ///  - Applied permission (e.g. 9:00-9:30) -> counted as is, grace is not deducted.
+  ///  - If an applied permission already covers the late time, it is not double counted.
+  ///  - The TOTAL permission of the period (late + applied) is converted to leave:
+  ///        every 4 hrs = 0.5 day leave   (4 hrs = Half Day, 8 hrs = 1 Day)
+  ///        e.g. 4h 20m -> Half Day Leave + 20 mins Permission
+  ///    The converted leave is added to "Leave Taken" in the SUMMARY.
+  ///    The summary shows Total Permission, Converted to Leave and the
+  ///    Remaining Permission as separate columns.
+  ///  - No check-in (past date, no leave applied) -> shown as Absent in the detail,
+  ///    and counted under Leave Taken in the SUMMARY.
+  ///  - Leave applied (even without check-in) -> Leave.
   /// ==========================================================================
   Future<void> exportAttendanceSingleSheetExcel(
       context, {
@@ -308,9 +337,9 @@ class ExcelReports {
         required String endDate,
       }) async {
     try {
-      var excel = Excel.createExcel();
-      // ONE sheet only: overall summary on TOP, employee details below it
-      Sheet sheet = excel["Sheet1"];
+      // XLSIO workbook (not the excel package)
+      final Workbook workbook = Workbook();
+      final Worksheet sheet = workbook.worksheets[0];
 
       /// ================= HELPERS =================
       String formatDate(String? input) {
@@ -358,7 +387,7 @@ class ExcelReports {
       /// 1.0 -> 1 , 0.5 -> 0.5 (so the sheet doesn't show 1.0)
       dynamic numOut(double v) => v == v.roundToDouble() ? v.toInt() : v;
 
-      /// "HH:mm:ss" / "hh:mm a" / "HH:mm" endha format-um minutes-a maathum
+      /// Converts "HH:mm:ss" / "hh:mm a" / "HH:mm" (any of these formats) to minutes
       int anyTimeToMinutes(String? t) {
         final s = (t ?? "").trim();
         if (s.isEmpty || s == "-" || s == "null") return 0;
@@ -371,7 +400,7 @@ class ExcelReports {
         return 0;
       }
 
-      /// endha date format vandhaalum -> DateTime (time illaama)
+      /// Converts any date format -> DateTime (without time)
       DateTime? toDay(dynamic v) {
         final t = v?.toString().trim() ?? "";
         if (t.isEmpty || t == "null") return null;
@@ -393,7 +422,7 @@ class ExcelReports {
         return x == null ? "" : DateFormat('yyyy-MM-dd').format(x);
       }
 
-      /// employee + date-ku applied leave irundha {days, reason}
+      /// Returns {days, reason} if the employee has an applied leave on this date
       Map<String, dynamic>? findLeave(String emp, String d) {
         final day = toDay(d);
         if (day == null) return null;
@@ -412,8 +441,8 @@ class ExcelReports {
         return null;
       }
 
-      /// Oru employee + oru naal-ku ella permission (In, Out) pairs.
-      /// [rows] = andha naal-ku vara ella records (API rendu row anuppinaalum serum)
+      /// All permission (In, Out) pairs for one employee on one day.
+      /// [rows] = all records received for that day (even if the API sends two rows)
       List<List<String>> getPermissionPairs(List<Map<String, dynamic>> rows) {
         final List<List<String>> pairs = [];
         final Set<String> seen = {};
@@ -431,7 +460,7 @@ class ExcelReports {
           final pTime = s(r["per_time"]);
           final pStatus = s(r["per_status"]);
 
-          // 1) per_in / per_out la comma list vandha
+          // 1) per_in / per_out contain a comma-separated list
           if (pIn.contains(",") || pOut.contains(",")) {
             final ins = pIn.split(",").map((e) => e.trim()).toList();
             final outs = pOut.split(",").map((e) => e.trim()).toList();
@@ -496,70 +525,69 @@ class ExcelReports {
         }
       }
 
-      /// ================= STYLES =================
-      CellStyle headerStyle = CellStyle(
+      /// ================= STYLES (applied through XLSIO) =================
+      const _Sty headerStyle = _Sty(
         bold: true,
-        backgroundColorHex: "#45377D",
-        fontColorHex: "#FFFFFF",
-        horizontalAlign: HorizontalAlign.Center,
-        verticalAlign: VerticalAlign.Center,
+        bg: "#45377D",
+        font: "#FFFFFF",
       );
 
-      CellStyle titleStyle = CellStyle(
+      const _Sty titleStyle = _Sty(
         bold: true,
-        horizontalAlign: HorizontalAlign.Left,
-        verticalAlign: VerticalAlign.Center,
+        h: HAlignType.left,
       );
 
-      CellStyle totalStyle = CellStyle(
+      const _Sty totalStyle = _Sty(
         bold: true,
-        horizontalAlign: HorizontalAlign.Center,
-        verticalAlign: VerticalAlign.Center,
-        backgroundColorHex: "#FFF2CC",
+        bg: "#FFF2CC",
       );
 
-      CellStyle normalStyle = CellStyle(
-        bold: false,
-        backgroundColorHex: "#FFFFFF",
-        fontColorHex: "#000000",
-        horizontalAlign: HorizontalAlign.Center,
-        verticalAlign: VerticalAlign.Center,
+      const _Sty normalStyle = _Sty(
+        bg: "#FFFFFF",
+        font: "#000000",
+      );
+
+      /// Employee-wise "Summary Calculation" lines (light blue)
+      const _Sty calcStyle = _Sty(
+        bold: true,
+        bg: "#DDEBF7",
+        font: "#1F3864",
+        h: HAlignType.left,
+      );
+
+      /// Warning line (very late check-in etc.)
+      const _Sty warnStyle = _Sty(
+        bold: true,
+        bg: "#FCE4D6",
+        font: "#C00000",
+        h: HAlignType.left,
       );
 
       /// Week-off row (green)
-      CellStyle weekOffStyle = CellStyle(
+      const _Sty weekOffStyle = _Sty(
         bold: true,
-        backgroundColorHex: "#C6EFCE",
-        fontColorHex: "#006100",
-        horizontalAlign: HorizontalAlign.Center,
-        verticalAlign: VerticalAlign.Center,
+        bg: "#C6EFCE",
+        font: "#006100",
       );
 
       /// Applied-leave row (yellow)
-      CellStyle leaveStyle = CellStyle(
+      const _Sty leaveStyle = _Sty(
         bold: true,
-        backgroundColorHex: "#FFEB9C",
-        fontColorHex: "#9C6500",
-        horizontalAlign: HorizontalAlign.Center,
-        verticalAlign: VerticalAlign.Center,
+        bg: "#FFEB9C",
+        font: "#9C6500",
       );
 
       /// Absent (no check-in) row (light red)
-      CellStyle absentStyle = CellStyle(
+      const _Sty absentStyle = _Sty(
         bold: true,
-        backgroundColorHex: "#FFC7CE",
-        fontColorHex: "#9C0006",
-        horizontalAlign: HorizontalAlign.Center,
-        verticalAlign: VerticalAlign.Center,
+        bg: "#FFC7CE",
+        font: "#9C0006",
       );
 
-      /// Late / permission->half-day row (light orange)
-      CellStyle lateStyle = CellStyle(
-        bold: false,
-        backgroundColorHex: "#FFF3E0",
-        fontColorHex: "#E65100",
-        horizontalAlign: HorizontalAlign.Center,
-        verticalAlign: VerticalAlign.Center,
+      /// Late / permission row (light orange)
+      const _Sty lateStyle = _Sty(
+        bg: "#FFF3E0",
+        font: "#E65100",
       );
 
       /// ================= GROUP EMPLOYEE WISE =================
@@ -571,7 +599,7 @@ class ExcelReports {
         final k = dayKey(item["date"]);
         if (k.isNotEmpty) dateSet.add(k);
       }
-      // leave-la irukkuravangalayum serkkirom
+      // also include the employees found in the leave list
       for (final l in leaveList) {
         final n = (l.fName ?? "").toString();
         if (n.isNotEmpty && n != "null") employeeSet.add(n);
@@ -579,7 +607,7 @@ class ExcelReports {
 
       List<String> employees = employeeSet.toList()..sort();
 
-      /// start..end ellaa naalum (attendance row illanaalum)
+      /// every date from start to end (even if there is no attendance row)
       DateTime? parseRange(String v) {
         try {
           return DateFormat('dd-MM-yyyy').parseStrict(v);
@@ -601,7 +629,7 @@ class ExcelReports {
         dates = dateSet.toList()..sort();
       }
 
-      /// employee + naal -> andha naal-ku vara ella rows
+      /// employee + date -> all rows received for that day
       final Map<String, List<Map<String, dynamic>>> rowsByEmpDay = {};
       for (final item in attendanceList) {
         final n = (item["firstname"] ?? "").toString();
@@ -628,7 +656,7 @@ class ExcelReports {
       /// ======================================================================
       /// ============ SUMMARY (TOP of the sheet) ==============================
       /// ======================================================================
-      const int summaryColEnd = 10; // summary spans columns A..K
+      const int summaryColEnd = 15; // summary spans columns A..P
       const int summaryDataStart = 3; // banner(0) + title(1) + header(2)
       final int detailStartRow = summaryDataStart + employees.length + 2;
 
@@ -663,73 +691,60 @@ class ExcelReports {
         return days <= 1 ? "$n Day Leave" : "$n Days Leave";
       }
 
-      String permissionText(int minutes) {
+      /// Summary permission text: "-" / "20 Mins" / "2 Hours 40 Mins"
+      String permDetailText(int minutes) {
         if (minutes <= 0) return "-";
         final int h = minutes ~/ 60;
         final int m = minutes % 60;
-        if (h == 0) return "$m Mins Permission";
+        if (h == 0) return "$m Mins";
         final String hLabel = h == 1 ? "Hour" : "Hours";
-        if (m == 0) return "$h $hLabel Permission";
-        return "$h $hLabel $m mins Permission";
+        if (m == 0) return "$h $hLabel";
+        return "$h $hLabel $m Mins";
       }
 
-      final Border thin = Border(borderStyle: BorderStyle.Thin);
+      /// Duration text for the calculation lines (0 -> "0h 0m")
+      String calcDur(int minutes) => minutesToHourFormat(minutes < 0 ? 0 : minutes);
 
-      CellStyle bannerStyle = CellStyle(
+      /// Leave days text (1.0 -> "1", 0.5 -> "0.5")
+      String calcDays(double d) =>
+          d == d.roundToDouble() ? d.toInt().toString() : d.toString();
+
+      const _Sty bannerStyle = _Sty(
         bold: true,
-        fontSize: 14,
-        backgroundColorHex: "#45377D",
-        fontColorHex: "#FFFFFF",
-        horizontalAlign: HorizontalAlign.Center,
-        verticalAlign: VerticalAlign.Center,
+        size: 14,
+        bg: "#45377D",
+        font: "#FFFFFF",
       );
-      CellStyle sTitleLeft = CellStyle(
+      const _Sty sTitleLeft = _Sty(
         bold: true,
-        fontSize: 14,
-        fontColorHex: "#4A86E8",
-        backgroundColorHex: "#FFF2CC",
-        horizontalAlign: HorizontalAlign.Left,
-        verticalAlign: VerticalAlign.Center,
-        leftBorder: thin,
-        rightBorder: thin,
-        topBorder: thin,
-        bottomBorder: thin,
+        size: 14,
+        font: "#4A86E8",
+        bg: "#FFF2CC",
+        h: HAlignType.left,
+        border: true,
       );
-      CellStyle sTitleRight = CellStyle(
+      const _Sty sTitleRight = _Sty(
         bold: true,
-        fontSize: 14,
-        fontColorHex: "#4A86E8",
-        backgroundColorHex: "#FFF2CC",
-        horizontalAlign: HorizontalAlign.Right,
-        verticalAlign: VerticalAlign.Center,
-        leftBorder: thin,
-        rightBorder: thin,
-        topBorder: thin,
-        bottomBorder: thin,
+        size: 14,
+        font: "#4A86E8",
+        bg: "#FFF2CC",
+        h: HAlignType.right,
+        border: true,
       );
-      CellStyle sHeader = CellStyle(
+      const _Sty sHeader = _Sty(
         bold: true,
-        backgroundColorHex: "#45377D",
-        fontColorHex: "#FFFFFF",
-        horizontalAlign: HorizontalAlign.Center,
-        verticalAlign: VerticalAlign.Center,
-        leftBorder: thin,
-        rightBorder: thin,
-        topBorder: thin,
-        bottomBorder: thin,
+        bg: "#45377D",
+        font: "#FFFFFF",
+        border: true,
       );
-      CellStyle sCell = CellStyle(
-        backgroundColorHex: "#FFFBEA",
-        horizontalAlign: HorizontalAlign.Left,
-        verticalAlign: VerticalAlign.Center,
-        leftBorder: thin,
-        rightBorder: thin,
-        topBorder: thin,
-        bottomBorder: thin,
+      const _Sty sCell = _Sty(
+        bg: "#FFFBEA",
+        h: HAlignType.left,
+        border: true,
       );
 
       /// ======================================================================
-      /// ============ BUFFER (summary + details rendum idhula thaan) ==========
+      /// ============ BUFFER (both the summary and the details go here) =======
       /// row -> col -> [value, style]
       /// ======================================================================
       final Map<int, Map<int, List<dynamic>>> cellBuf = {};
@@ -743,7 +758,7 @@ class ExcelReports {
         slot(row, col)[0] = v;
       }
 
-      void bufStyle(int row, int col, CellStyle s) {
+      void bufStyle(int row, int col, _Sty s) {
         slot(row, col)[1] = s;
       }
 
@@ -751,35 +766,43 @@ class ExcelReports {
         mergeBuf.add([row, fromCol, toCol]);
       }
 
-      /// buffer -> sheet. ALWAYS ascending row, ascending col.
-      /// Ella cell-um ezhuthina PIRAGU thaan merge pannum.
-      void flushBuffer(Sheet target) {
+      /// Apply a style to an XLSIO range
+      void applyStyle(Range r, _Sty s) {
+        r.cellStyle.bold = s.bold;
+        r.cellStyle.fontSize = s.size;
+        if (s.font != null) r.cellStyle.fontColor = s.font!;
+        if (s.bg != null) r.cellStyle.backColor = s.bg!;
+        r.cellStyle.hAlign = s.h;
+        r.cellStyle.vAlign = VAlignType.center;
+        if (s.border) r.cellStyle.borders.all.lineStyle = LineStyle.thin;
+      }
+
+      /// buffer -> XLSIO sheet (XLSIO uses 1-based indexes).
+      /// Merging is done only AFTER every cell has been written.
+      void flushBuffer() {
         final List<int> rowKeys = cellBuf.keys.toList()..sort();
         for (final r in rowKeys) {
           final Map<int, List<dynamic>> cols = cellBuf[r]!;
           final List<int> colKeys = cols.keys.toList()..sort();
           for (final c in colKeys) {
             final List<dynamic> e = cols[c]!;
-            final cell = target.cell(
-                CellIndex.indexByColumnRow(columnIndex: c, rowIndex: r));
-            if (e[0] != null) cell.value = e[0];
-            if (e[1] != null) cell.cellStyle = e[1] as CellStyle;
+            final Range rng = sheet.getRangeByIndex(r + 1, c + 1);
+            final dynamic v = e[0];
+            if (v is num) {
+              rng.setNumber(v.toDouble());
+            } else if (v != null && v.toString().isNotEmpty) {
+              rng.setText(v.toString());
+            }
+            if (e[1] != null) applyStyle(rng, e[1] as _Sty);
           }
         }
-        final sortedMerges = [...mergeBuf]
-          ..sort((a, b) =>
-          a[0] != b[0] ? a[0].compareTo(b[0]) : a[1].compareTo(b[1]));
-        for (final m in sortedMerges) {
-          target.merge(
-            CellIndex.indexByColumnRow(columnIndex: m[1], rowIndex: m[0]),
-            CellIndex.indexByColumnRow(columnIndex: m[2], rowIndex: m[0]),
-          );
+        for (final m in mergeBuf) {
+          sheet.getRangeByIndex(m[0] + 1, m[1] + 1, m[0] + 1, m[2] + 1).merge();
         }
       }
 
-      /// merged block (BUFFER-ku mattum ezhuthum, sheet-ah direct-a touch pannaadhu)
-      void putBlock(int row, int startCol, int endCol, String value,
-          CellStyle style) {
+      /// merged block (writes to the BUFFER only)
+      void putBlock(int row, int startCol, int endCol, String value, _Sty style) {
         bufVal(row, startCol, value);
         for (int c = startCol; c <= endCol; c++) {
           bufStyle(row, c, style);
@@ -788,40 +811,64 @@ class ExcelReports {
       }
 
       /// Summary columns:
-      ///  Employee Name  = A..C
-      ///  Leave Taken    = D..F
-      ///  Leave Deducted = G..H  (blank for now)
-      ///  Permission Taken = I..K
+      ///  Employee Name          = A..B
+      ///  Leave Taken            = C..D
+      ///  Leave Deducted         = E      (blank for now)
+      ///  Total Permission       = F..G   (late + applied, before conversion)
+      ///  Converted to Leave     = H..I   (4 hrs = 0.5 day)
+      ///  Remaining Permission   = J..K   (after conversion)
+      ///  Calculation Details    = L..P
       void writeSummary() {
         // banner
         putBlock(0, 0, summaryColEnd,
             "OVERALL SUMMARY ( $startDate to $endDate )", bannerStyle);
 
         // month + working days
-        putBlock(1, 0, 5, monthTitle, sTitleLeft);
-        putBlock(1, 6, summaryColEnd,
+        putBlock(1, 0, 7, monthTitle, sTitleLeft);
+        putBlock(1, 8, summaryColEnd,
             "Working Days: $workingDaysCount", sTitleRight);
 
         // column headers
-        putBlock(2, 0, 2, "Employee Name", sHeader);
-        putBlock(2, 3, 5, "Leave Taken", sHeader);
-        putBlock(2, 6, 7, "Leave Deducted", sHeader);
-        putBlock(2, 8, summaryColEnd, "Permission Taken", sHeader);
+        putBlock(2, 0, 1, "Employee Name", sHeader);
+        putBlock(2, 2, 3, "Leave Taken", sHeader);
+        putBlock(2, 4, 4, "Leave Deducted", sHeader);
+        putBlock(2, 5, 6, "Total Permission", sHeader);
+        putBlock(2, 7, 8, "Converted to Leave", sHeader);
+        putBlock(2, 9, 10, "Remaining Permission", sHeader);
+        putBlock(2, 11, summaryColEnd, "Calculation Details", sHeader);
 
         // one row per employee
         int r = summaryDataStart;
         for (final s in summaryRows) {
-          // total leave = applied leave + half day(s) from permission > 4 hrs
-          //             + check-in illatha (absent) naatkal
+          // total leave = applied leave + absent days (no check-in)
+          //             + leave converted from the total permission (4 hrs = 0.5 day)
           final double totalLeaveDays = (s["leave"] as double) +
               (s["halfDay"] as double) +
               (s["absentLeave"] as int).toDouble();
 
-          putBlock(r, 0, 2, s["name"].toString(), sCell);
-          putBlock(r, 3, 5, leaveText(totalLeaveDays), sCell);
-          putBlock(r, 6, 7, "", sCell); // Leave Deducted (later)
-          putBlock(r, 8, summaryColEnd,
-              permissionText(s["permMinutes"] as int), sCell);
+          final int gross = s["grossPerm"] as int;
+          final int converted = s["converted"] as int;
+          final double convertedDays = s["halfDay"] as double;
+          final int remaining = s["permMinutes"] as int;
+
+          // "8 Hours (1 Day Leave)" / "-"
+          final String convertedText = converted <= 0
+              ? "-"
+              : "${permDetailText(converted)} (${leaveText(convertedDays)})";
+
+          // calculation text
+          final String leaveCalc =
+              "Leave: Applied ${calcDays(s["leave"] as double)} + Absent ${s["absentLeave"]} + Permission to Leave ${calcDays(convertedDays)} = ${calcDays(totalLeaveDays)}";
+          final String permCalc =
+              "Permission: Late ${calcDur(s["latePerm"] as int)} + Applied ${calcDur(s["appliedPerm"] as int)} = ${calcDur(gross)} - Converted ${calcDur(converted)} = Remaining ${calcDur(remaining)}";
+
+          putBlock(r, 0, 1, s["name"].toString(), sCell);
+          putBlock(r, 2, 3, leaveText(totalLeaveDays), sCell);
+          putBlock(r, 4, 4, "", sCell); // Leave Deducted (to be added later)
+          putBlock(r, 5, 6, permDetailText(gross), sCell);
+          putBlock(r, 7, 8, convertedText, sCell);
+          putBlock(r, 9, 10, permDetailText(remaining), sCell);
+          putBlock(r, 11, summaryColEnd, "$leaveCalc   |   $permCalc", sCell);
           r++;
         }
       }
@@ -831,7 +878,7 @@ class ExcelReports {
         14, 9, 11, 11, 12, 9, 9, 12, 11, 14, 14, 18, 14, 34, 9, 34
       ];
       for (int i = 0; i < colWidths.length; i++) {
-        sheet.setColWidth(i, colWidths[i]);
+        sheet.getRangeByIndex(1, i + 1).columnWidth = colWidths[i];
       }
 
       /// ======================================================================
@@ -869,8 +916,8 @@ class ExcelReports {
           "Permission", // 8
           "Permission_In", // 9
           "Permission_Out", // 10
-          "Permission Hours", // 11 (after half-day conversion)
-          "Half Day (Perm)", // 12
+          "Permission Hours", // 11 (that day's permission; conversion is done on the total)
+          "Half Day (Perm)", // 12 (shown in the Total row only)
           "Permission Reason", // 13
           "Leave", // 14
           "Leave Reason", // 15
@@ -884,14 +931,18 @@ class ExcelReports {
 
         int totalPresent = 0;
         int totalAbsent = 0;
-        int totalAbsentAsLeave = 0; // check-in illatha naatkal (summary-la Leave)
+        int totalAbsentAsLeave = 0; // days without check-in (counted as Leave in the summary)
         int totalLateDays = 0;
         int totalLateMinutes = 0;
         int totalPermission = 0;
-        double totalHalfDay = 0;
         double totalLeave = 0;
         int totalWorkMinutes = 0;
-        int totalPermissionMinutes = 0;
+        int totalPermissionMinutes = 0; // gross permission of the whole period (before conversion)
+
+        /// For the per-employee summary calculation lines
+        int sumLatePerm = 0; // permission coming from late check-ins
+        int sumAppliedPerm = 0; // permission applied by the employee
+        final List<String> suspectDays = []; // very late check-ins (4 hrs+)
 
         /// ================= DATE LOOP =================
         for (String d in dates) {
@@ -906,7 +957,6 @@ class ExcelReports {
           int lateMinutes = 0;
           int permission = 0;
           double leaveCount = 0;
-          double halfDayLeave = 0;
           String reason = "-";
 
           String inTime = "-";
@@ -922,7 +972,7 @@ class ExcelReports {
           /// true only when the employee actually applied leave on a working day
           bool isAppliedLeave = false;
 
-          /// check-in illa + leave apply illa -> Absent (summary-la Leave)
+          /// no check-in + no leave applied -> Absent (counted as Leave in the summary)
           bool isNoCheckInDay = false;
 
           if (isWeekend) {
@@ -962,9 +1012,9 @@ class ExcelReports {
           int inMin = timeToMinutes(inTime);
           int outMin = timeToMinutes(outTime);
 
-          /// ================= LEAVE / ABSENT (check-in illa) =================
+          /// ================= LEAVE / ABSENT (no check-in) =================
           if (!isWeekend) {
-            // 1) leave apply pannirundha (check-in illanaalum) -> Leave
+            // 1) leave applied (even without a check-in) -> Leave
             final lv = findLeave(emp, d);
             if (lv != null && leaveCount == 0) {
               leaveCount = lv["days"] as double;
@@ -972,24 +1022,24 @@ class ExcelReports {
               isAppliedLeave = true;
             }
 
-            // 2) check-in illa + leave apply illa + past date -> Absent
-            //    (detail-la Absent, summary-la Leave Taken-la serum)
+            // 2) no check-in + no leave applied + past date -> Absent
+            //    (shown as Absent in the detail, counted under Leave Taken in the summary)
             final DateTime? dayDt = DateTime.tryParse(d);
             final bool isPast = dayDt != null && dayDt.isBefore(todayStart);
-            // API-la absent = 1 vandhaalum (innaiku naal-um) count aagum
+            // if the API returns absent = 1, it is counted (even for today)
             if (!isAppliedLeave && inMin == 0 && (absent == 1 || isPast)) {
               isNoCheckInDay = true;
               absent = 1;
             }
 
-            // full day leave = absent illa
+            // a full day leave is not an absence
             if (leaveCount >= 1) absent = 0;
           }
 
           /// ================= LATE (grace 09:10, rule 09:15) =================
-          /// 09:10 varaikum -> 0
+          /// up to 09:10 -> 0
           /// 09:11 - 09:15  -> check-in - 09:10
-          /// 09:16 +        -> check-in - 09:00 (grace minus illa)
+          /// 09:16 +        -> check-in - 09:00 (grace is not deducted)
           final int lateStart =
           inMin <= _graceLimitMin ? _graceEndMin : _officeStartMin;
           int lateRaw = 0;
@@ -1008,15 +1058,18 @@ class ExcelReports {
           /// ================= PERMISSION =================
           final List<List<String>> permPairs = getPermissionPairs(dayRows);
 
-          int permissionMinutes = 0; // applied permission (grace minus illa)
+          int permissionMinutes = 0; // applied permission (grace is not deducted)
           for (final p in permPairs) {
             final a = anyTimeToMinutes(p[0]);
             final b = anyTimeToMinutes(p[1]);
-            // 5 mins-ku kammi (thappa apply panni udane off) ignore
+            // ignore permissions of 5 mins or less (applied by mistake and cancelled immediately)
             if (a > 0 && b > a + 5) permissionMinutes += (b - a);
           }
 
-          // applied permission already cover panna late time-a double count panna koodathu
+          // Applied permission only (before the late time is added)
+          final int appliedOnlyMinutes = permissionMinutes;
+
+          // late time already covered by an applied permission must not be double counted
           int lateCovered = 0;
           if (lateRaw > 0) {
             for (final p in permPairs) {
@@ -1039,7 +1092,7 @@ class ExcelReports {
             permissionMinutes += latePermMinutes; // late time = permission
           }
 
-          // sheet-la kaattura In / Out (rendu permission irundha " / " vechu)
+          // In / Out shown on the sheet (joined with " / " if there are two permissions)
           final List<List<String>> validPairs = permPairs
               .where((p) =>
           anyTimeToMinutes(p[0]) > 0 &&
@@ -1056,17 +1109,12 @@ class ExcelReports {
             perOut = validPairs.map((p) => formatTime12(p[1])).join(" / ");
           }
 
-          int permissionCounted = permissionMinutes; // after half-day conversion
-          while (permissionCounted > _permHalfDayLimitMin) {
-            halfDayLeave += 0.5;
-            permissionCounted -= _permHalfDayLimitMin;
-          }
-          permission = permissionCounted > 0 ? 1 : 0;
+          // No conversion per day. The whole period's permission is
+          // converted to leave after the date loop (4 hrs = 0.5 day).
+          permission = permissionMinutes > 0 ? 1 : 0;
 
           String permissionHoursDisplay =
-          (permissionMinutes > 0 && permissionCounted > 0)
-              ? minutesToHourFormat(permissionCounted)
-              : "-";
+          permissionMinutes > 0 ? minutesToHourFormat(permissionMinutes) : "-";
 
           String permissionReasonDisplay = perReason;
           if (latePermMinutes > 0) {
@@ -1075,16 +1123,19 @@ class ExcelReports {
                 ? lateTxt
                 : "$perReason + $lateTxt";
           }
-          if (halfDayLeave > 0) {
-            permissionReasonDisplay =
-            "$permissionReasonDisplay (Total ${minutesToHourFormat(permissionMinutes)} -> Half Day + ${minutesToHourFormat(permissionCounted)} Permission)";
-          }
 
           String workHoursDisplay =
           workMinutes > 0 ? minutesToHourFormat(workMinutes) : "-";
 
           totalWorkMinutes += workMinutes;
-          totalPermissionMinutes += permissionCounted;
+          totalPermissionMinutes += permissionMinutes;
+
+          // Summary calculation totals
+          sumLatePerm += latePermMinutes;
+          sumAppliedPerm += appliedOnlyMinutes;
+          if (lateRaw >= _permHalfDayLimitMin) {
+            suspectDays.add("${formatDate(d)} (In ${formatTime12(inTime)})");
+          }
 
           /// ================= FILL ROW (buffered) =================
           void put(int col, dynamic v) => bufVal(rowIndex, col, v);
@@ -1101,19 +1152,19 @@ class ExcelReports {
           put(9, formatTime12(perIn));
           put(10, formatTime12(perOut));
           put(11, permissionHoursDisplay);
-          put(12, numOut(halfDayLeave));
+          put(12, ""); // half-day conversion is shown in the Total row
           put(13, permissionReasonDisplay);
           put(14, numOut(leaveCount));
           put(15, reason);
 
-          /// Priority: Weekend -> Applied Leave -> Absent -> Late / HalfDay -> Normal
-          CellStyle rowStyle = isWeekend
+          /// Priority: Weekend -> Applied Leave -> Absent -> Late / Permission -> Normal
+          _Sty rowStyle = isWeekend
               ? weekOffStyle
               : (isAppliedLeave
               ? leaveStyle
               : (isNoCheckInDay
               ? absentStyle
-              : ((late == 1 || halfDayLeave > 0)
+              : ((late == 1 || permissionMinutes > 0)
               ? lateStyle
               : normalStyle)));
 
@@ -1129,13 +1180,21 @@ class ExcelReports {
           totalLateDays += late;
           totalLateMinutes += lateMinutes;
           totalPermission += permission;
-          totalHalfDay += halfDayLeave;
 
           // only APPLIED leaves (not Sunday / 3rd Saturday week-off)
           if (isAppliedLeave) {
             totalLeave += leaveCount;
           }
         }
+
+        /// ================= PERMISSION -> LEAVE (on the period total) =================
+        /// every 4 hrs = 0.5 day leave, the remaining minutes stay as permission
+        ///   4h 20m -> Half Day Leave + 20 mins Permission
+        ///   8h 00m -> 1 Day Leave
+        final int halfDayUnits = totalPermissionMinutes ~/ _permHalfDayLimitMin;
+        final double totalHalfDay = halfDayUnits * 0.5;
+        final int sumConverted = halfDayUnits * _permHalfDayLimitMin;
+        final int netPermissionMinutes = totalPermissionMinutes - sumConverted;
 
         /// ================= TOTAL ROW (buffered) =================
         void putTotal(int col, dynamic v) {
@@ -1158,6 +1217,37 @@ class ExcelReports {
         putTotal(14, numOut(totalLeave));
 
         rowIndex++;
+
+        /// ================= SUMMARY CALCULATION (below the Total row) =================
+        final double empLeaveTotal =
+            totalLeave + totalHalfDay + totalAbsentAsLeave.toDouble();
+
+        bufVal(rowIndex, 0,
+            "Summary Calculation (Leave)  :  Applied Leave ${calcDays(totalLeave)}  +  Absent (no check-in) $totalAbsentAsLeave  +  Permission to Leave ${calcDays(totalHalfDay)}  =  ${calcDays(empLeaveTotal)} Day(s)");
+        bufMerge(rowIndex, 0, lastCol);
+        for (int col = 0; col <= lastCol; col++) {
+          bufStyle(rowIndex, col, calcStyle);
+        }
+        rowIndex++;
+
+        bufVal(rowIndex, 0,
+            "Summary Calculation (Permission)  :  Late ${calcDur(sumLatePerm)}  +  Applied ${calcDur(sumAppliedPerm)}  =  ${calcDur(totalPermissionMinutes)}   |   Converted to Leave (4 hrs = 0.5 day)  -${calcDur(sumConverted)}   |   Remaining Permission  =  ${calcDur(netPermissionMinutes)}");
+        bufMerge(rowIndex, 0, lastCol);
+        for (int col = 0; col <= lastCol; col++) {
+          bufStyle(rowIndex, col, calcStyle);
+        }
+        rowIndex++;
+
+        if (suspectDays.isNotEmpty) {
+          bufVal(rowIndex, 0,
+              "Please verify: very late check-in (4+ hrs) -> ${suspectDays.join(", ")}  (The check-in may have been recorded incorrectly, or only a check-out was punched.)");
+          bufMerge(rowIndex, 0, lastCol);
+          for (int col = 0; col <= lastCol; col++) {
+            bufStyle(rowIndex, col, warnStyle);
+          }
+          rowIndex++;
+        }
+
         rowIndex++; // gap row
 
         /// ================= collect for Summary =================
@@ -1166,31 +1256,32 @@ class ExcelReports {
           "leave": totalLeave,
           "halfDay": totalHalfDay,
           "absentLeave": totalAbsentAsLeave,
-          "permMinutes": totalPermissionMinutes,
+          "permMinutes": netPermissionMinutes,
+          "latePerm": sumLatePerm,
+          "appliedPerm": sumAppliedPerm,
+          "grossPerm": totalPermissionMinutes,
+          "converted": sumConverted,
         });
       }
 
       /// ======================================================================
-      /// ✅ ORDER MATTERS:
-      ///   1) summary -> buffer (rows 0..n)   [summaryRows ippo fill aagiduchu]
-      ///   2) buffer (summary + details) -> sheet, sorted row order
+      /// 1) summary -> buffer (rows 0..n)
+      /// 2) buffer (summary + details) -> XLSIO sheet (by row index)
       /// ======================================================================
-      print("EXCEL v3: summaryRows=${summaryRows.length}, employees=${employees.length}, detailStartRow=$detailStartRow, bufferedRows=${cellBuf.length}");
+      print("EXCEL v7 (xlsio): summaryRows=${summaryRows.length}, employees=${employees.length}, detailStartRow=$detailStartRow, bufferedRows=${cellBuf.length}");
       writeSummary(); // summary -> buffer
-      flushBuffer(sheet); // summary + details, ellam sorted row order-la
-      print("EXCEL v3: sheet.maxRows=${sheet.maxRows}");
+      flushBuffer(); // summary + details -> xlsio sheet
 
       /// ================= SAVE / DOWNLOAD =================
-      final bytes = excel.encode();
+      final List<int> bytes = workbook.saveAsStream();
+      workbook.dispose();
       final String fileName =
           "${constValue.appName}_Attendance_Report_${formatDate(startDate)}_to_${formatDate(endDate)}.xlsx";
 
-      if (bytes != null) {
-        if (kIsWeb) {
-          _downloadExcelWebFile(bytes, fileName);
-        } else {
-          await _saveExcelMobile(bytes, fileName, context);
-        }
+      if (kIsWeb) {
+        _downloadExcelWebFile(bytes, fileName);
+      } else {
+        await _saveExcelMobile(bytes, fileName, context);
       }
     } catch (e, st) {
       print("Excel Error => $e\n$st");
