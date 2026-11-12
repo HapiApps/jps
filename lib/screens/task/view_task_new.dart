@@ -1410,6 +1410,182 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>
   }
 
   // -------------------------------------------------------------------------
+  // WORK TIMER BAR (Start / Hold / Resume / Complete)
+  // -------------------------------------------------------------------------
+  String _hms(int s) {
+    final h = (s ~/ 3600).toString().padLeft(2, '0');
+    final m = ((s % 3600) ~/ 60).toString().padLeft(2, '0');
+    final x = (s % 60).toString().padLeft(2, '0');
+    return "$h:$m:$x";
+  }
+
+  String _worked(int s) {
+    final h = s ~/ 3600, m = (s % 3600) ~/ 60;
+    if (h > 0) return "${h}h ${m}m";
+    if (m > 0) return "${m}m ${s % 60}s";
+    return "${s}s";
+  }
+
+  Widget _actBtn(String text, IconData icon, Color color, VoidCallback onTap,
+      {bool filled = true}) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(20),
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+        decoration: BoxDecoration(
+          color: filled ? color : color.withOpacity(0.10),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          Icon(icon, size: 15, color: filled ? Colors.white : color),
+          const SizedBox(width: 5),
+          Text(text,
+              style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: filled ? Colors.white : color)),
+        ]),
+      ),
+    );
+  }
+
+  Future<void> _confirmComplete(TaskData d) async {
+    final tp = context.read<TaskProvider>();
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (c) => AlertDialog(
+        title: const Text("Complete work?"),
+        content: Text("Total worked: ${_worked(tp.currentSeconds(d.id.toString()))}"),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(c, false), child: const Text("No")),
+          TextButton(onPressed: () => Navigator.pop(c, true), child: const Text("Yes, Complete")),
+        ],
+      ),
+    );
+    if (ok == true && mounted) {
+      await tp.insertTaskLogHistory(context, id: d.id.toString(), level: "Complete");
+    }
+  }
+
+  /// Live timer + action buttons. Only this bar rebuilds every second.
+  Widget _workBar(TaskData d) {
+    final tp = context.read<TaskProvider>();
+    final id = d.id.toString();
+    final mine = tp.isMyTask(d);
+
+    return ValueListenableBuilder<int>(
+      valueListenable: tp.tickNotifier,
+      builder: (_, __, ___) {
+        final state = tp.workState(d);
+        final secs = tp.currentSeconds(id);
+
+        // not my task and nothing has happened yet -> hide the bar
+        if (state == "idle" && !mine) return const SizedBox.shrink();
+
+        Color accent;
+        String title, sub;
+        switch (state) {
+          case "running":
+            accent = const Color(0xff1FAF38);
+            title = _hms(secs);
+            sub = "Working now";
+            break;
+          case "hold":
+            accent = const Color(0xffF59E0B);
+            title = _hms(secs);
+            sub = "On hold • worked ${_worked(secs)}";
+            break;
+          case "done":
+            accent = const Color(0xff0B5FB5);
+            title = _worked(secs);
+            sub = "Work completed";
+            break;
+          default:
+            accent = const Color(0xff6B7280);
+            title = "Ready to start";
+            sub = "Tap Start to track your work time";
+        }
+
+        Widget actions;
+        if (state == "done") {
+          actions = Icon(Icons.check_circle, color: accent, size: 24);
+        } else if (!mine) {
+          actions = const SizedBox.shrink(); // others only watch the timer
+        } else if (state == "idle") {
+          actions = _actBtn("Start", Icons.play_arrow_rounded, colorsConst.primary,
+                  () => tp.startWork(context, d));
+        } else if (state == "running") {
+          actions = Row(mainAxisSize: MainAxisSize.min, children: [
+            _actBtn("Hold", Icons.pause_rounded, const Color(0xffF59E0B),
+                    () => tp.insertTaskLogHistory(context, id: id, level: "Hold"),
+                filled: false),
+            const SizedBox(width: 6),
+            _actBtn("Complete", Icons.check_rounded, const Color(0xff1FAF38),
+                    () => _confirmComplete(d)),
+          ]);
+        } else {
+          actions = Row(mainAxisSize: MainAxisSize.min, children: [
+            _actBtn("Resume", Icons.play_arrow_rounded, colorsConst.primary,
+                    () => tp.startWork(context, d)),
+            const SizedBox(width: 6),
+            _actBtn("Complete", Icons.check_rounded, const Color(0xff1FAF38),
+                    () => _confirmComplete(d),
+                filled: false),
+          ]);
+        }
+
+        final bool idle = state == "idle";
+
+        return Container(
+          margin: const EdgeInsets.only(top: 12),
+          padding: const EdgeInsets.fromLTRB(12, 10, 10, 10),
+          decoration: BoxDecoration(
+            color: accent.withOpacity(0.07),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: accent.withOpacity(0.25)),
+          ),
+          child: Row(children: [
+            if (idle)
+              Icon(Icons.timer_outlined, size: 20, color: accent)
+            else
+              Container(
+                width: 8,
+                height: 8,
+                decoration: BoxDecoration(color: accent, shape: BoxShape.circle),
+              ),
+            SizedBox(width: idle ? 8 : 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: idle ? 14 : 17,
+                      fontWeight: FontWeight.w800,
+                      color: const Color(0xff14151F),
+                      fontFeatures: const [FontFeature.tabularFigures()],
+                    ),
+                  ),
+                  Text(
+                    sub,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                        fontSize: 11, color: accent, fontWeight: FontWeight.w600),
+                  ),
+                ],
+              ),
+            ),
+            actions,
+          ]),
+        );
+      },
+    );
+  }
+
+  // -------------------------------------------------------------------------
   // NAVIGATION
   // -------------------------------------------------------------------------
   void _openDetails(TaskData data, int index) {
@@ -1518,9 +1694,21 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>
   }
 
   Widget _taskCard(TaskData data, int index) {
+    final tp = context.read<TaskProvider>();
+    final workState = tp.workState(data); // idle | running | hold | done
+
     final overdue = _isOverdue(data);
     final statusText = overdue ? "Overdue" : (data.statval ?? "");
-    final statusStyle = _statusStyle(statusText);
+
+    // running / hold chip overrides the normal status chip
+    final _ChipStyle statusStyle = workState == "running"
+        ? const _ChipStyle(
+        "Working", Color(0xffE7F6EC), Color(0xff1FAF38), Icons.timer_outlined)
+        : workState == "hold"
+        ? const _ChipStyle(
+        "On Hold", Color(0xffFFF4E5), Color(0xffD97706), Icons.pause_circle_outline)
+        : _statusStyle(statusText);
+
     final priorityStyle = _priorityStyle(data.level.toString());
 
     // due date
@@ -1546,16 +1734,21 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>
     final phone = _phoneFor(data);
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 6), // was h8 v5
+      padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 6),
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: () => _openDetails(data, index),
         child: Container(
-          padding: const EdgeInsets.fromLTRB(12, 12, 12, 12), // was 14,12,14,12
+          padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xffE9ECF0)),
+            border: Border.all(
+              color: workState == "running"
+                  ? const Color(0xff1FAF38).withOpacity(0.45)
+                  : const Color(0xffE9ECF0),
+              width: workState == "running" ? 1.4 : 1,
+            ),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1589,14 +1782,14 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>
                         style: const TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w800,
-                          color: ColorsConst.appBlack, // always dark (screenshot)
+                          color: ColorsConst.appBlack,
                         ),
                       ),
                     ],
                   ),
                 ],
               ),
-              4.height, // was 10 (chips -> title)
+              4.height,
 
               /// title
               Text(
@@ -1604,12 +1797,12 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
-                  fontSize: 18, // was 16
+                  fontSize: 18,
                   fontWeight: FontWeight.w700,
                   color: Color(0xff14151F),
                 ),
               ),
-              4.height, // was 10 (title -> type/company)
+              4.height,
 
               /// type + company
               if (type.isNotEmpty || company.isNotEmpty)
@@ -1617,7 +1810,7 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>
                   children: [
                     if (type.isNotEmpty)
                       _metaItem(
-                        Icons.sell_outlined, // fallback icon
+                        Icons.sell_outlined,
                         type,
                         customIcon: SvgPicture.asset(
                           'assets/images/task/task_type_icon.svg',
@@ -1644,13 +1837,13 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>
                       ),
                   ],
                 ),
-              12.height, // was 15 (meta -> assigned row)
+              12.height,
 
               /// assigned + comments + view details
               Row(
                 children: [
                   CircleAvatar(
-                    radius: 15, // was 14
+                    radius: 15,
                     backgroundColor: avatarColor,
                     child: Text(
                       _initials(firstName),
@@ -1730,7 +1923,7 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>
                   SizedBox(width: phone.isNotEmpty ? 10 : 16),
                   Text(
                     constValue.viewDetailsText,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 12.5,
                       fontWeight: FontWeight.w600,
                       color: Color(0xff0B5FB5),
@@ -1739,12 +1932,16 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>
                   const Icon(Icons.keyboard_arrow_right, size: 16, color: Color(0xff0B5FB5)),
                 ],
               ),
+
+              /// live timer + Start / Hold / Resume / Complete
+              _workBar(data),
             ],
           ),
         ),
       ),
     );
   }
+
 }
 
 class _DataSource extends CalendarDataSource {

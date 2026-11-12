@@ -2693,6 +2693,43 @@ class TaskProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  // ---------------- WORK HISTORY (task_logs) ----------------
+  List workHistory = [];
+  bool workHistoryLoading = false;
+
+  Future<void> getWorkHistory(String taskId) async {
+    workHistoryLoading = true;
+    notifyListeners();
+    try {
+      Map data = {
+        "action": taskDatas,
+        "search_type": "task_work_history",
+        "cos_id": localData.storage.read("cos_id"),
+        "role": localData.storage.read("role"),
+        "id": localData.storage.read("id"),
+        "task_id": taskId,
+      };
+
+      // ---- DEBUG: Postman-la idhe values use pannunga ----
+      debugPrint("WH REQUEST JSON => ${jsonEncode(data)}");
+      data.forEach((k, v) => debugPrint("WH PARAM  $k = $v"));
+      debugPrint("WH ENDPOINT action value => $taskDatas");
+
+      final response = await _taskRepo.getTasks(data);
+
+      // ---- DEBUG: raw response ----
+      debugPrint("WH RESPONSE TYPE => ${response.runtimeType}");
+      debugPrint("WH RESPONSE => $response");
+
+      workHistory = response.isNotEmpty ? response : [];
+    } catch (e) {
+      workHistory = [];
+      debugPrint("getWorkHistory error: $e");
+    }
+    workHistoryLoading = false;
+    notifyListeners();
+  }
+
   void initValue() {
     _isRecording = false;
     _selectedFiles.clear();
@@ -3326,22 +3363,65 @@ class TaskProvider with ChangeNotifier {
     }
   }
 
+  /// "3600" / "3600.0" / "01:00:00" / "05:30" -> seconds
+  int _parseSecs(dynamic v) {
+    final s = (v ?? "").toString().trim();
+    if (s.isEmpty || s == "null") return 0;
+
+    final n = int.tryParse(s);
+    if (n != null) return n;
+
+    final d = double.tryParse(s);
+    if (d != null) return d.toInt();
+
+    final p = s.split(":").map((e) => int.tryParse(e.trim()) ?? 0).toList();
+    if (p.length == 3) return p[0] * 3600 + p[1] * 60 + p[2];
+    if (p.length == 2) return p[0] * 60 + p[1];
+    return 0;
+  }
+
   /// Common post-processing for getAllTask / getAllIncompleteTask
   void _applyTaskResponse(List<TaskData> response) {
     final monthPad = utils.returnPadLeft(defaultMonth.toString());
 
     for (final r in response) {
       final id = r.id.toString();
-      final totalSeconds = int.tryParse(r.totalHours.toString()) ?? 0;
-      final status = r.workStatus.toString();
+      final status = (r.workStatus ?? "").toString().trim();
+      final serverRunning = status == "Start";
+      final serverDone = (status == "Completed" || status == "Complete");
+
+      // finished segments (Hold / Complete) from the server
+      final acc = _parseSecs(r.totalHours);
+
+      // running segment: how long ago the last Start happened (server clock)
+      DateTime? start;
+      if (serverRunning) {
+        final at = DateTime.tryParse((r.actionTime ?? "").trim());
+        final sn = DateTime.tryParse((r.serverNow ?? "").trim());
+        if (at != null && sn != null) {
+          final elapsed = sn.difference(at).inSeconds;
+          start = DateTime.now().subtract(Duration(seconds: elapsed < 0 ? 0 : elapsed));
+        } else {
+          // server_now missing (old cache) -> keep local start if we have it
+          final old = taskTimers[id];
+          start = (old != null && old.isRunning && old.startTime != null)
+              ? old.startTime
+              : DateTime.now();
+        }
+      }
 
       taskTimers[id] = TaskTimer(
-        accumulatedSeconds: totalSeconds,
-        isRunning: status == "Start",
-        startTime: status == "Start" ? DateTime.now() : null,
-        isCompleted: (status == "Completed" || status == "Complete"),
+        accumulatedSeconds: acc,
+        isRunning: serverRunning,
+        startTime: start,
+        isCompleted: serverDone,
       );
-      if (status == "Start") _startUiTicker();
+      if (serverRunning) _startUiTicker();
+
+      if (kDebugMode && (serverRunning || status == "Hold")) {
+        debugPrint("TIMER id=$id status=$status total='${r.totalHours}' "
+            "acc=$acc action='${r.actionTime}' now='${r.serverNow}'");
+      }
 
       final parsedDate = _parseTaskDate(r.taskDate);
       if (parsedDate == null) continue;
@@ -4626,6 +4706,106 @@ class TaskProvider with ChangeNotifier {
     }
   }
 
+  // ===========================================================================
+  // WORK STATE / START-HOLD-RESUME / ADMIN NOTIFY
+  // ===========================================================================
+
+  /// idle | running | hold | done
+  String workState(TaskData t) {
+    if ((t.statval ?? "").toString().trim() == "Completed") return "done";
+    final tm = taskTimers[t.id.toString()];
+    final ws = (t.workStatus ?? "").toString().trim().toLowerCase();
+    if (tm != null && tm.isCompleted) return "done";
+    if (tm != null && tm.isRunning) return "running";
+    if (ws.startsWith("complete")) return "done";
+    if (ws == "hold" || (tm != null && tm.accumulatedSeconds > 0)) return "hold";
+    return "idle";
+  }
+
+  /// Another task of the logged-in user that is currently running
+  TaskData? otherRunningTask(String id) {
+    for (final t in _allTasks) {
+      final tid = t.id.toString();
+      if (tid == id) continue;
+      if (taskTimers[tid]?.isRunning == true && isMyTask(t)) return t;
+    }
+    return null;
+  }
+
+  /// Start / Resume. If another work is running -> confirm -> auto Hold it -> Start this one.
+  Future<void> startWork(BuildContext context, TaskData t) async {
+    final id = t.id.toString();
+    final other = otherRunningTask(id);
+
+    if (other != null) {
+      final ok = await showDialog<bool>(
+        context: context,
+        builder: (c) => AlertDialog(
+          title: const Text("Another work is running"),
+          content: Text(
+              "\"${other.taskTitle}\" is currently running.\n"
+                  "Hold it and start this task?"),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(c, false), child: const Text("Cancel")),
+            TextButton(onPressed: () => Navigator.pop(c, true), child: const Text("Hold & Start")),
+          ],
+        ),
+      );
+      if (ok != true || !context.mounted) return;
+      await insertTaskLogHistory(context, id: other.id.toString(), level: "Hold");
+      if (!context.mounted) return;
+    }
+    await insertTaskLogHistory(context, id: id, level: "Start");
+  }
+
+  /// Start / Resume / Hold / Complete -> notification to admin(s)
+  Future<void> _notifyAdminWork(
+      BuildContext context, String id, String level, bool resumed) async {
+    try {
+      final emp = Provider.of<EmployeeProvider>(context, listen: false); // read before any await
+      final idx = _allTasks.indexWhere((e) => e.id.toString() == id);
+      final t = idx >= 0 ? _allTasks[idx] : null;
+      debugPrint("NOTIFY-ADMIN start: id=$id level=$level idx=$idx");
+
+      final me = localData.storage.read("f_name").toString();
+      final verb = level == "Start"
+          ? (resumed ? "resumed" : "started")
+          : level == "Hold"
+          ? "put on hold"
+          : "completed";
+
+      final title = "$me $verb work";
+      final body = "${t?.taskTitle ?? 'Task'} || ${t?.projectName ?? ''}";
+      final taskDate = t?.taskDate ?? "";
+
+      String adminIds = "";
+      try {
+        adminIds = await emp.getAdminIds();
+      } catch (e) {
+        debugPrint("NOTIFY-ADMIN getAdminIds error: $e");
+      }
+      debugPrint("NOTIFY-ADMIN adminIds='$adminIds' "
+          "storage=${localData.storage.read("admin_ids")}");
+
+      if (adminIds.isNotEmpty) {
+        await emp.sendSomeUserNotification(title, body, adminIds, id, taskDate);
+        debugPrint("NOTIFY-ADMIN sent via sendSomeUserNotification");
+      } else {
+        debugPrint("NOTIFY-ADMIN no admin ids -> fallback sendAdminNotification");
+        await emp.sendAdminNotification(
+          title,
+          body,
+          "1",
+          id,
+          localData.storage.read("role").toString() == "1" ? "1" : "",
+        );
+        debugPrint("NOTIFY-ADMIN sent via sendAdminNotification");
+      }
+    } catch (e, st) {
+      debugPrint("NOTIFY-ADMIN ERROR: $e\n$st");
+    }
+  }
+
   Future<void> insertTaskLogHistory(context,
       {required String id, required String level}) async {
     try {
@@ -4665,7 +4845,9 @@ class TaskProvider with ChangeNotifier {
       if (response.toString().contains("200")) {
         utils.showSuccessToast(context: context, text: constValue.updated);
 
+        final resumed = level == "Start" && (taskTimers[id]?.accumulatedSeconds ?? 0) > 0;
         _updateTimerOnLog(id, level);
+        _notifyAdminWork(context, id, level, resumed); // not awaited, so the UI isn't blocked
 
         getAllTask(false);
         Navigator.pop(context);
@@ -4815,6 +4997,8 @@ class TaskProvider with ChangeNotifier {
     _userAllTasks = <TaskData>[];
     assignEmployees = [];
     historyDetails = [];
+    workHistory = [];
+    workHistoryLoading = false;
     _customerAttendanceReport = <CustomerAttendanceModel>[];
     typeList = [];
     customerList = [];

@@ -26,6 +26,7 @@ class TaskData {
   final String? hasVoice;
   final String? visitReportCount;
   final String? expenseReportCount;
+  final String? serverNow;
 
   /// 🔥 NEW FIELDS
   String? commentCount;
@@ -78,6 +79,7 @@ class TaskData {
     this.hasVoice, this.updatedByName,this.workStatus,
     this.workStatusBy,this.actionTime,this.totalHours,
     this.employeeHours,this.employeeStatus,
+      this.serverNow
     });
 
   factory TaskData.fromJson(Map<String?, dynamic> json) {
@@ -122,6 +124,7 @@ class TaskData {
       totalHours: json['total_hours'],
       employeeStatus: json['employee_status'],
       employeeHours: json['employee_hours'],
+      serverNow: json['server_now'],
     );
   }
 
@@ -167,6 +170,7 @@ class TaskData {
       'all_comments': allComments,
       'has_voice': hasVoice,
       'updated_by_name': updatedByName,
+      'server_now' : serverNow
     };
   }
 }

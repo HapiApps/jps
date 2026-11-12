@@ -52,6 +52,8 @@ class _TaskDetailsState extends State<TaskDetails>
 
   bool isTaskTitleExpanded = true;
 
+  static const int _workPreviewCount = 5;
+
   String level = '';
   var type = "0";
   var imgC = 0;
@@ -171,6 +173,7 @@ class _TaskDetailsState extends State<TaskDetails>
         _loadExpenses(expenseProvider),
         _loadHistory(taskProvider),
         _loadComments(customerProvider),
+        _loadWorkHistory(taskProvider),
       ]);
 
       if (!mounted) return;
@@ -216,6 +219,257 @@ class _TaskDetailsState extends State<TaskDetails>
     } catch (e) {
       debugPrint("LOAD COMMENTS ERROR => $e");
     }
+  }
+
+  Future<void> _loadWorkHistory(TaskProvider p) async {
+    try {
+      await p.getWorkHistory(widget.data.id.toString());
+    } catch (e) {
+      debugPrint("LOAD WORK HISTORY ERROR => $e");
+    }
+  }
+
+  DateTime? _dt(dynamic v) => DateTime.tryParse((v ?? "").toString().trim());
+
+  String _dur(Duration d) {
+    final s = d.inSeconds < 0 ? 0 : d.inSeconds;
+    final h = s ~/ 3600, m = (s % 3600) ~/ 60, x = s % 60;
+    if (h > 0) return "${h}h ${m}m";
+    if (m > 0) return "${m}m ${x}s";
+    return "${x}s";
+  }
+
+  /// logs (ASC) -> rows with label + "Worked 30m" / "Paused 10m"
+  List<Map<String, dynamic>> _buildWorkRows(List logs) {
+    final rows = <Map<String, dynamic>>[];
+    final lastAction = <String, String>{};
+    final lastTime = <String, DateTime>{};
+    final lastStart = <String, DateTime>{};
+
+    for (final raw in logs) {
+      final l = Map<String, dynamic>.from(raw as Map);
+      final emp = l['employee_id'].toString();
+      final action = l['action'].toString();
+      final t = _dt(l['action_time']);
+      final prev = lastAction[emp];
+
+      String label;
+      String note = "";
+      Color color;
+
+      if (action == "Start" || action == "Resume") {
+        final resumed = action == "Resume" || (prev != null && prev != "Start");
+        label = resumed ? "Resumed" : "Started";
+        color = resumed ? Colors.blue : Colors.green;
+        if (resumed && t != null && lastTime[emp] != null) {
+          note = "Paused ${_dur(t.difference(lastTime[emp]!))}";
+        }
+        if (t != null) lastStart[emp] = t;
+      } else if (action == "Hold") {
+        label = "On Hold";
+        color = Colors.orange;
+        if (t != null && lastStart[emp] != null) {
+          note = "Worked ${_dur(t.difference(lastStart[emp]!))}";
+        }
+      } else {
+        label = "Completed";
+        color = const Color(0xff0B5FB5);
+        if (t != null && lastStart[emp] != null) {
+          note = "Worked ${_dur(t.difference(lastStart[emp]!))}";
+        }
+      }
+
+      lastAction[emp] = action;
+      if (t != null) lastTime[emp] = t;
+
+      rows.add({
+        "label": label,
+        "note": note,
+        "color": color,
+        "name": (l['employee_name'] ?? "").toString(),
+        "time": t != null ? DateFormat("dd-MM-yyyy, hh:mm a").format(t) : "-",
+      });
+    }
+    return rows;
+  }
+
+  Widget _workRow(Map<String, dynamic> r, bool isLast) {
+    final Color c = r["color"] as Color;
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 6),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                margin: const EdgeInsets.only(top: 4),
+                width: 10,
+                height: 10,
+                decoration: BoxDecoration(shape: BoxShape.circle, color: c),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      r["label"].toString(),
+                      style: TextStyle(
+                          fontSize: 13, fontWeight: FontWeight.bold, color: c),
+                    ),
+                    Text(
+                      r["name"].toString(),
+                      style: const TextStyle(
+                          fontSize: 13, fontWeight: FontWeight.w500),
+                    ),
+                    if (r["note"].toString().isNotEmpty)
+                      Text(
+                        r["note"].toString(),
+                        style: TextStyle(
+                            fontSize: 11, color: Colors.grey.shade600),
+                      ),
+                  ],
+                ),
+              ),
+              Text(
+                r["time"].toString(),
+                style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+              ),
+            ],
+          ),
+        ),
+        if (!isLast) Divider(color: Colors.grey.shade300, thickness: 1),
+      ],
+    );
+  }
+
+  void _showAllWorkHistory(List<Map<String, dynamic>> rows) {
+    HapticFeedback.lightImpact();
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetCtx) {
+        return SafeArea(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.8,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 16, 8, 8),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          "Work History (${rows.length})",
+                          style: const TextStyle(
+                              fontSize: 16, fontWeight: FontWeight.w700),
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close),
+                        onPressed: () => Navigator.pop(sheetCtx),
+                      ),
+                    ],
+                  ),
+                ),
+                const Divider(height: 1),
+                Flexible(
+                  child: ListView.builder(
+                    shrinkWrap: true,
+                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+                    itemCount: rows.length,
+                    itemBuilder: (_, i) =>
+                        _workRow(rows[i], i == rows.length - 1),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _workHistoryCard(TaskProvider tp, double width) {
+    // duration calc oldest->newest; display newest first
+    final rows = _buildWorkRows(tp.workHistory).reversed.toList();
+    final visibleRows = rows.take(_workPreviewCount).toList();
+
+    return Center(
+      child: Container(
+        width: width,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(25),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withOpacity(0.2),
+              blurRadius: 10,
+              spreadRadius: 2,
+              offset: const Offset(0, 5),
+            )
+          ],
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(18.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                "Work History",
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+              ),
+              12.height,
+              if (tp.workHistoryLoading)
+                const Loading()
+              else if (rows.isEmpty)
+                Center(
+                  child: CustomText(
+                    text: "No Work History Found",
+                    size: 14,
+                    colors: Colors.grey,
+                  ),
+                )
+              else ...[
+                  ListView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: visibleRows.length,
+                    itemBuilder: (context, i) =>
+                        _workRow(visibleRows[i], i == visibleRows.length - 1),
+                  ),
+                  if (rows.length > _workPreviewCount)
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: InkWell(
+                        onTap: () => _showAllWorkHistory(rows),
+                        child: Padding(
+                          padding: const EdgeInsets.only(top: 8, right: 5),
+                          child: Text(
+                            "View More (${rows.length - _workPreviewCount} more)",
+                            style: TextStyle(
+                              color: colorsConst.primary,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   void _parseDocs() {
@@ -1617,6 +1871,8 @@ class _TaskDetailsState extends State<TaskDetails>
                     ),
                   ),
 
+                  20.height,
+                  _workHistoryCard(taskProvider, kIsWeb ? webWidth : phoneWidth),
                   20.height,
                   ///Comment for JPS
                   Center(
