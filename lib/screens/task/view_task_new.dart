@@ -58,6 +58,10 @@ import 'package:url_launcher/url_launcher.dart';
 /// UI CHANGES (match design screenshot, 393dp base):
 ///  * 16dp side margin on the whole body (children use zero side padding).
 ///  * Task overview, tab bar, search, chips, cards and calendar re-measured.
+///
+/// DATE RANGE CHANGES:
+///  * The Home page date range is forced onto the provider when this page opens.
+///  * The Task Overview card counts only tasks inside the selected From/To range.
 /// ---------------------------------------------------------------------------
 class ViewTaskPage extends StatefulWidget {
   final String date1;
@@ -131,6 +135,22 @@ class _ViewTaskState extends State<ViewTaskPage> with SingleTickerProviderStateM
         date2: widget.date2,
         type: widget.type,
       );
+
+      // initFilterValue may rebuild the dates from `type` (a custom range
+      // from Home would be lost), so force the exact Home range.
+      if (taskProvider.startDate != widget.date1 ||
+          taskProvider.endDate != widget.date2 ||
+          !taskProvider.dateFilterOn) {
+        final String t = taskProvider.filterTypeList.contains(widget.type)
+            ? widget.type
+            : "Custom";
+        taskProvider.applyDateRange(
+          date1: widget.date1,
+          date2: widget.date2,
+          type: t,
+        );
+      }
+
       taskProvider.getAllTask(true);
     });
   }
@@ -1956,6 +1976,8 @@ class _DataSource extends CalendarDataSource {
 ///   page 2 -> "My Task Overview" : only tasks assigned to the logged-in admin
 /// Swiping also switches the task list + calendar below to "my tasks".
 /// Non-admin users just see the normal single card.
+///
+/// The counts only include tasks inside the selected From/To date range.
 /// ---------------------------------------------------------------------------
 class _OverviewSwitcher extends StatefulWidget {
   final bool isAdmin;

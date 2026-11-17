@@ -70,6 +70,23 @@ const InitializationSettings initializationSettings = InitializationSettings(
 );
 
 /// ==========================================================
+/// NOTIFICATION TEXT LIMITS
+/// ==========================================================
+/// Only the text shown in the notification tray is shortened.
+/// The FULL text always stays in the payload, so tapping the
+/// notification still routes correctly and the opened page shows
+/// everything.
+const int kNotifTitleMax = 50;
+const int kNotifBodyMax = 100;
+
+/// Shortens text for display in the notification tray only.
+String truncateForNotification(String text, {int maxChars = kNotifBodyMax}) {
+  final String clean = text.replaceAll(RegExp(r'\s+'), ' ').trim();
+  if (clean.length <= maxChars) return clean;
+  return '${clean.substring(0, maxChars).trimRight()}...';
+}
+
+/// ==========================================================
 /// PENDING NOTIFICATION (killed-state / not-yet-ready navigator)
 /// ==========================================================
 Map<String, dynamic>? pendingNotificationData;
@@ -322,6 +339,12 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
       return;
     }
 
+    // Strip the "|| date" part (same as the foreground listener does)
+    final String displayBody =
+    body.contains("||") ? body.split("||").first.trim() : body;
+
+    // styleInformation: DefaultStyleInformation keeps the text single-line
+    // with an ellipsis instead of Android shrinking the font size.
     const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
       'JPS',
       'JPS',
@@ -330,6 +353,7 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
       playSound: true,
       enableVibration: true,
       icon: '@mipmap/ic_launcher',
+      styleInformation: DefaultStyleInformation(false, false),
     );
 
     // ✅ CHANGED: presentBadge false
@@ -351,10 +375,10 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 
     await flutterLocalNotificationsPlugin.show(
       notificationId,
-      title,
-      body,
+      truncateForNotification(title, maxChars: kNotifTitleMax),
+      truncateForNotification(displayBody, maxChars: kNotifBodyMax),
       platformDetails,
-      payload: jsonEncode(data),
+      payload: jsonEncode(data), // FULL text kept here for navigation
     );
 
     log("🔔 Background notification displayed");
@@ -536,6 +560,8 @@ void setupForegroundFirebaseMessageListener() {
       }
 
       await safeCall('show local notification', () async {
+        // styleInformation: DefaultStyleInformation keeps the text single-line
+        // with an ellipsis instead of Android shrinking the font size.
         const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
           'JPS',
           'JPS',
@@ -544,6 +570,7 @@ void setupForegroundFirebaseMessageListener() {
           playSound: true,
           enableVibration: true,
           icon: '@mipmap/ic_launcher',
+          styleInformation: DefaultStyleInformation(false, false),
         );
 
         // ✅ CHANGED: presentBadge false
@@ -558,21 +585,29 @@ void setupForegroundFirebaseMessageListener() {
           iOS: iosDetails,
         );
 
-        // payload now uses normalizeMessage so title/body are always present
+        // In this listener, messageText (the long content) goes in the
+        // first line, and `title` in the second line.
+        final String shortMessage =
+        truncateForNotification(messageText, maxChars: kNotifBodyMax);
+        final String shortTitle =
+        truncateForNotification(title, maxChars: kNotifBodyMax);
+
+        // payload uses normalizeMessage so FULL title/body are always present
         // (works even when backend sends a `notification` block)
         if (title.contains("A new task has been assigned")) {
           await flutterLocalNotificationsPlugin.show(
             message.hashCode,
-            messageText,
-            "Created by $name .Task",
+            shortMessage,
+            truncateForNotification("Created by $name .Task",
+                maxChars: kNotifBodyMax),
             platformDetails,
             payload: jsonEncode(normalizeMessage(message)),
           );
         } else {
           await flutterLocalNotificationsPlugin.show(
             message.hashCode,
-            messageText,
-            title,
+            shortMessage,
+            shortTitle,
             platformDetails,
             payload: jsonEncode(normalizeMessage(message)),
           );
@@ -911,7 +946,6 @@ class _SplashScreenState extends State<SplashScreen> {
         ),
       );
 
-      // Version
       // Version
       await safeCall(
         'homeProvider.checkVersion',
