@@ -1080,7 +1080,6 @@ class _SplashScreenState extends State<SplashScreen> {
               width: 100,
               height: 100,
             ),
-
             const SizedBox(height: 20),
 
             CustomText(
