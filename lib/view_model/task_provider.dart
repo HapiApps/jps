@@ -197,8 +197,8 @@ class TaskProvider with ChangeNotifier {
     return d.isBefore(DateTime(now.year, now.month, now.day));
   }
 
-     List<TaskData> _baseFiltered({bool ignoreDate = false}) {
-       final bool applyDate = !ignoreDate && _dateFilterOn;
+  List<TaskData> _baseFiltered({bool ignoreDate = false}) {
+    final bool applyDate = !ignoreDate && _dateFilterOn;
 
     DateTime? from;
     DateTime? to;
@@ -239,8 +239,11 @@ class TaskProvider with ChangeNotifier {
     }).toList();
   }
 
+  /// List shown in the Tasks tab.
+  /// The selected / Home date range applies to EVERY tab (incl. Overdue),
+  /// so the list count always matches the Task Overview card.
   void filterList() {
-    final base = _baseFiltered(ignoreDate: _overdueTab);
+    final base = _baseFiltered();
     final status = _statusIds.trim();
     final q = search.text.trim().toLowerCase();
 
@@ -4329,13 +4332,14 @@ class TaskProvider with ChangeNotifier {
     filterList();
   }
 
-  /// Dialog "Clear All"  -> back to default (all pending tasks)
+  /// Dialog "Clear All" -> back to the Home page date range (NOT "All dates"),
+  /// so the Task Overview keeps counting only the Home range.
   void resetFilters({required String date1, required String date2, String? type}) {
     _isFilter = false;
-    _dateFilterOn = false;
-    _filterType = type;
     _startDate = date1;
     _endDate = date2;
+    _filterType = (type != null && filterTypeList.contains(type)) ? type : "Custom";
+    _dateFilterOn = true; // keep the Home range applied
     _fType = "";
     _filterTypeId = null;
     _companyName = "";
@@ -4374,23 +4378,23 @@ class TaskProvider with ChangeNotifier {
     filterList();
   }
 
-  /// Real numbers for the Task Overview card (respects date/type/employee/company)
+  /// Task Overview card: ONLY tasks inside the selected / Home date range are
+  /// counted (+ mine / type / employee / company filters are respected).
+  /// total = completed + pending + overdue = tasks in range.
   TaskOverviewData get overview {
-    final inRange = _baseFiltered();
-    final allDates = _baseFiltered(ignoreDate: true);
+    final inRange = _baseFiltered(); // date range applied when _dateFilterOn
 
     int completed = 0, pending = 0, overdue = 0;
     for (final t in inRange) {
       if ((t.statval ?? "").toString().trim() == "Completed") {
         completed++;
-      } else if (!_isOverdueTask(t)) {
+      } else if (_isOverdueTask(t)) {
+        overdue++;
+      } else {
         pending++;
       }
     }
-    for (final t in allDates) {
-      if (_isOverdueTask(t)) overdue++;
-    }
-    return TaskOverviewData(completed + pending + overdue, completed, pending, overdue);
+    return TaskOverviewData(inRange.length, completed, pending, overdue);
   }
 
   // ===========================================================================

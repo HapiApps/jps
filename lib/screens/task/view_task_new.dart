@@ -60,8 +60,10 @@ import 'package:url_launcher/url_launcher.dart';
 ///  * Task overview, tab bar, search, chips, cards and calendar re-measured.
 ///
 /// DATE RANGE CHANGES:
-///  * The Home page date range is forced onto the provider when this page opens.
-///  * The Task Overview card counts only tasks inside the selected From/To range.
+///  * The Home page date range is ALWAYS forced onto the provider when this
+///    page opens (initFilterValue resets the date filter, so we re-apply it).
+///  * The Task Overview card counts only tasks inside the selected From/To
+///    range (completed, pending AND overdue).
 /// ---------------------------------------------------------------------------
 class ViewTaskPage extends StatefulWidget {
   final String date1;
@@ -136,20 +138,13 @@ class _ViewTaskState extends State<ViewTaskPage> with SingleTickerProviderStateM
         type: widget.type,
       );
 
-      // initFilterValue may rebuild the dates from `type` (a custom range
-      // from Home would be lost), so force the exact Home range.
-      if (taskProvider.startDate != widget.date1 ||
-          taskProvider.endDate != widget.date2 ||
-          !taskProvider.dateFilterOn) {
-        final String t = taskProvider.filterTypeList.contains(widget.type)
-            ? widget.type
-            : "Custom";
-        taskProvider.applyDateRange(
-          date1: widget.date1,
-          date2: widget.date2,
-          type: t,
-        );
-      }
+      // initFilterValue sets _dateFilterOn = false, so the Task Overview would
+      // count ALL dates. Always force the exact Home page range here.
+      taskProvider.applyDateRange(
+        date1: widget.date1,
+        date2: widget.date2,
+        type: taskProvider.filterTypeList.contains(widget.type) ? widget.type : "Custom",
+      );
 
       taskProvider.getAllTask(true);
     });
