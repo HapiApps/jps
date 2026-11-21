@@ -272,23 +272,33 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>
   }
 
   void _onScroll() {
-    if (_isLoadingMore) return;
     if (!_scrollController.hasClients) return;
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 300) {
+      _loadMore();
+    }
+  }
 
+  void _loadMore() {
+    if (_isLoadingMore || !mounted) return;
     final total = context.read<TaskProvider>().filterUserData.length;
     if (_visibleCount >= total) return;
 
-    if (_scrollController.position.pixels >=
-        _scrollController.position.maxScrollExtent - 300) {
-      setState(() => _isLoadingMore = true);
-      Future.delayed(const Duration(milliseconds: 300), () {
-        if (!mounted) return;
-        setState(() {
-          _visibleCount += _pageSize;
-          _isLoadingMore = false;
-        });
+    setState(() => _isLoadingMore = true);
+    Future.delayed(const Duration(milliseconds: 300), () {
+      if (!mounted) return;
+      setState(() {
+        _visibleCount += _pageSize;
+        _isLoadingMore = false;
       });
-    }
+    });
+  }
+
+  /// If the visible items don't fill the screen there is nothing to scroll,
+  /// so _onScroll never fires and the rest of the list never appears.
+  void _fillIfNotScrollable() {
+    if (!mounted || !_scrollController.hasClients) return;
+    if (_scrollController.position.maxScrollExtent <= 0) _loadMore();
   }
 
   // ✅ search / filter / tab maathum bodhu thirumba first 15 ku reset
@@ -359,9 +369,7 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>
                                 ),
                                 onChanged: (value) {
                                   _resetPaging();
-                                  Future.microtask(() {
-                                    taskProvider.searchTask(value);
-                                  });
+                                  taskProvider.searchTask(value);
                                 },
                                 decoration: InputDecoration(
                                   hintText: "Search Name or ${constValue.customer}",
@@ -556,6 +564,10 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>
                       final total = taskProvider.filterUserData.length;
                       final visible = _visibleCount > total ? total : _visibleCount;
                       final hasMore = visible < total;
+                      if (hasMore) {
+                        WidgetsBinding.instance
+                            .addPostFrameCallback((_) => _fillIfNotScrollable());
+                      }
 
                       return ListView.builder(
                         controller: _scrollController,
@@ -678,10 +690,10 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>
                           30.width,
                           InkWell(
                             onTap: () {
-                              taskProvider.initFilterValue(true,
+                              Navigator.of(context, rootNavigator: true).pop();
+                              taskProvider.clearFilters(
                                   date1: widget.date1, date2: widget.date2, type: widget.type);
                               _resetPaging();
-                              Navigator.of(context, rootNavigator: true).pop();
                             },
                             child: SvgPicture.asset(assets.cancel),
                           )
@@ -827,9 +839,7 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>
                             child: localData.storage.read("role") == "1"
                                 ? SearchCustomDropdown(
                               text: "Employee Name",
-                              hintText: taskProvider.assignedId == ""
-                                  ? ""
-                                  : taskProvider.assignedNames,
+                              hintText: taskProvider.filterEmpName,
                               valueList: empProvider.activeEmps,
                               onChanged: (value) {
                                 if (value is UserModel) {
@@ -909,10 +919,10 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>
                             width: 100,
                             text: 'Clear All',
                             callback: () {
-                              taskProvider.initFilterValue(true,
+                              Navigator.of(context, rootNavigator: true).pop();
+                              taskProvider.clearFilters(
                                   date1: widget.date1, date2: widget.date2, type: widget.type);
                               _resetPaging();
-                              Navigator.of(context, rootNavigator: true).pop();
                             },
                             bgColor: Colors.grey.shade200,
                             textColor: Colors.black,
@@ -920,12 +930,12 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>
                           CustomBtn(
                             width: 100,
                             text: 'Apply Filters',
-                            callback: () {
-                              taskProvider.initFilterValue(false);
-                              taskProvider.filterList();
-                              taskProvider.updateFilteredBeforeSearch(taskProvider.filterUserData);
-                              _resetPaging();
+                            callback: () async {
                               Navigator.of(context, rootNavigator: true).pop();
+                              _resetPaging();
+                              // date + type + employee + customer + status tab + search
+                              await taskProvider.applyFilters();
+                              _resetPaging();
                             },
                             bgColor: colorsConst.primary,
                             textColor: Colors.white,
@@ -1376,7 +1386,7 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>
                               Provider.of<TaskProvider>(
                                 context,
                                 listen: false,
-                              ).getAllTask(false);
+                              ).refreshCurrentTasks();
                             }
                           },
                           child: const Icon(

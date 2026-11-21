@@ -81,17 +81,180 @@ class TaskProvider with ChangeNotifier {
   static final DateFormat _df = DateFormat('dd-MM-yyyy');
   final Map<String, DateTime?> _dateCache = {};
 
+  /// Handles "dd-MM-yyyy", "dd-MM-yyyy || dd-MM-yyyy" (range -> first date)
+  /// and ISO "yyyy-MM-dd ...". Previously any non dd-MM-yyyy value made the
+  /// task silently disappear from the filtered list.
   DateTime? _parseTaskDate(String? s) {
     if (s == null) return null;
-    final key = s.trim();
-    if (key.isEmpty) return null;
+    var key = s.trim();
+    if (key.contains("||")) key = key.split("||").first.trim();
+    if (key.isEmpty || key == "null") return null;
     return _dateCache.putIfAbsent(key, () {
+      if (RegExp(r'^\d{4}-\d{1,2}-\d{1,2}').hasMatch(key)) {
+        final iso = DateTime.tryParse(key);
+        if (iso != null) return iso;
+      }
       try {
         return _df.parse(key);
       } catch (_) {
         return null;
       }
     });
+  }
+
+  String _clean(Object? v) {
+    final s = (v ?? "").toString().trim();
+    return s == "null" ? "" : s;
+  }
+
+  // ---------------------------------------------------------------------------
+  // FILTER STATE (kept separate from the add/edit task form fields)
+  // ---------------------------------------------------------------------------
+
+  /// Employee picked in the filter dialog. Earlier this reused
+  /// `_assignedNames`, which is ALSO written by add/edit task
+  /// (changeAssignedIs) -> stale names silently filtered the list.
+  String _filterEmpName = "";
+  String get filterEmpName => _filterEmpName;
+
+  /// True when Apply Filters switched the list from "incomplete tasks"
+  /// to "all tasks" (so completed / older tasks in the date range show up).
+  bool _returnToIncomplete = false;
+
+  /// ONE pipeline for the task list:
+  /// all tasks -> date -> type -> employee -> customer -> status tab -> search
+  /// Search, status tab and filter dialog all go through this, so none of
+  /// them can drop the others' results any more.
+  List<TaskData> _computeFiltered() {
+    final bool applyDate = !(_incompleteMode && _isFilter != true);
+
+    DateTime? from;
+    DateTime? to;
+    if (applyDate) {
+      final f = _parseTaskDate(_startDate);
+      final t = _parseTaskDate(_endDate);
+      if (f != null && t != null) {
+        from = DateTime(f.year, f.month, f.day);
+        to = DateTime(t.year, t.month, t.day);
+        if (from.isAfter(to)) {
+          final tmp = from;
+          from = to;
+          to = tmp;
+        }
+      }
+    }
+
+    final selectedType = _fType.trim().toLowerCase();
+    final empName = _filterEmpName.trim().toLowerCase();
+    final company = _companyName.trim().toLowerCase();
+    final status = _statusIds.trim().toLowerCase();
+    final query = search.text.trim().toLowerCase();
+
+    return _searchAllTasks.where((t) {
+      // DATE
+      if (from != null && to != null) {
+        final d = _parseTaskDate(_clean(t.taskDate));
+        if (d == null) return false;
+        final only = DateTime(d.year, d.month, d.day);
+        if (only.isBefore(from) || only.isAfter(to)) return false;
+      }
+
+      // TYPE
+      if (selectedType.isNotEmpty &&
+          _clean(t.type).toLowerCase() != selectedType) {
+        return false;
+      }
+
+      // EMPLOYEE
+      if (empName.isNotEmpty) {
+        final names = _clean(t.assignedNames)
+            .toLowerCase()
+            .split(',')
+            .map((e) => e.trim())
+            .where((e) => e.isNotEmpty);
+        if (!names.any((n) => n == empName || n.contains(empName))) return false;
+      }
+
+      // CUSTOMER
+      if (company.isNotEmpty && _clean(t.projectName).toLowerCase() != company) {
+        return false;
+      }
+
+      // STATUS TAB
+      if (status.isNotEmpty && _clean(t.statval).toLowerCase() != status) {
+        return false;
+      }
+
+      // SEARCH TEXT
+      if (query.isNotEmpty) {
+        final p = _clean(t.projectName).toLowerCase();
+        final a = _clean(t.assignedNames).toLowerCase();
+        if (!p.contains(query) && !a.contains(query)) return false;
+      }
+
+      return true;
+    }).toList();
+  }
+
+  /// Apply Filters button
+  Future<void> applyFilters() async {
+    _isFilter = true;
+    if (_incompleteMode) {
+      // The incomplete API does not return completed / closed tasks, so a
+      // date-range filter on it shows fewer rows than the old build did.
+      _returnToIncomplete = true;
+      _viewRefresh = false;
+      notifyListeners();
+      await getAllTask(false); // keeps filter values, runs filterList()
+    } else {
+      filterList();
+    }
+  }
+
+  /// Clear All / close (X) in the filter dialog
+  Future<void> clearFilters({
+    required String date1,
+    required String date2,
+    String? type,
+  }) async {
+    initFilterValue(true, date1: date1, date2: date2, type: type);
+    if (_returnToIncomplete) {
+      _returnToIncomplete = false;
+      _viewRefresh = false;
+      notifyListeners();
+      await getAllIncompleteTask(false);
+    }
+  }
+
+  /// Re-fetch using whichever list the screen is currently showing.
+  /// (getAllTask(false) after a status change / chat used to switch the
+  /// incomplete screen to "all tasks + today's date" -> only a few rows.)
+  Future<void> refreshCurrentTasks() =>
+      _incompleteMode ? getAllIncompleteTask(false) : getAllTask(false);
+
+  /// Report download filter: same type / employee / customer rules as the list.
+  bool _reportMatch(DTaskModel task) {
+    final type = _fType.trim().toLowerCase();
+    final emp = (_filterEmpName.isNotEmpty ? _filterEmpName : _userName)
+        .trim()
+        .toLowerCase();
+    final company = _companyName.trim().toLowerCase();
+
+    if (type.isNotEmpty && _clean(task.type).toLowerCase() != type) return false;
+
+    if (emp.isNotEmpty) {
+      final names = _clean(task.assignedNames)
+          .toLowerCase()
+          .split(',')
+          .map((e) => e.trim())
+          .where((e) => e.isNotEmpty);
+      if (!names.any((n) => n == emp || n.contains(emp))) return false;
+    }
+
+    if (company.isNotEmpty && _clean(task.projectName).toLowerCase() != company) {
+      return false;
+    }
+    return true;
   }
 
   @override
@@ -177,82 +340,8 @@ class TaskProvider with ChangeNotifier {
   }
 
   void filterList() {
-    if (_startDate.isEmpty || _endDate.isEmpty) {
-      notifyListeners();
-      return;
-    }
-
-    // Incomplete screen la user date filter apply pannala na date check venaam
-    final bool applyDate = !(_incompleteMode && _isFilter != true);
-
-    DateTime parsedStartDate;
-    DateTime parsedEndDate;
-
-    try {
-      final startDate = _df.parse(_startDate);
-      final endDate = _df.parse(_endDate);
-
-      parsedStartDate = DateTime(startDate.year, startDate.month, startDate.day);
-      parsedEndDate = DateTime(endDate.year, endDate.month, endDate.day);
-    } catch (e) {
-      _log("Start/End Date Parse Error: $e");
-      return;
-    }
-
-    // values that do not change per task -> computed once, outside the loop
-    final selectedType = _fType.toString().trim().toLowerCase();
-    final searchName = _assignedNames.trim().toLowerCase();
-    final selectedCompany = _companyName.toString().trim().toLowerCase();
-    final selectedStatus = _statusIds.toString().trim();
-
-    _filterUserData = _searchAllTasks.where((contact) {
-      // ---------------- DATE CHECK ----------------
-      bool isWithinDateRange = true;
-
-      if (applyDate) {
-        final taskDate = _parseTaskDate(contact.taskDate);
-        if (taskDate == null) return false;
-
-        final taskDateOnly = DateTime(taskDate.year, taskDate.month, taskDate.day);
-
-        isWithinDateRange = !taskDateOnly.isBefore(parsedStartDate) &&
-            !taskDateOnly.isAfter(parsedEndDate);
-      }
-      if (!isWithinDateRange) return false;
-
-      // ---------------- TYPE CHECK ----------------
-      final contactType = (contact.type ?? "").toString().trim().toLowerCase();
-      final isTypeMatch = selectedType.isEmpty || selectedType == contactType;
-      if (!isTypeMatch) return false;
-
-      // ---------------- EMPLOYEE CHECK ----------------
-      bool isEmpMatch = true;
-      if (searchName.isNotEmpty) {
-        final assignedList = (contact.assignedNames ?? "")
-            .toString()
-            .split(',')
-            .map((e) => e.trim().toLowerCase())
-            .where((e) => e.isNotEmpty);
-
-        isEmpMatch = assignedList.any((name) =>
-        name == searchName ||
-            name.contains(searchName) ||
-            searchName.contains(name));
-      }
-      if (!isEmpMatch) return false;
-
-      // ---------------- CUSTOMER CHECK ----------------
-      final contactCompany =
-      (contact.projectName ?? "").toString().trim().toLowerCase();
-      final isCusMatch =
-          selectedCompany.isEmpty || selectedCompany == contactCompany;
-      if (!isCusMatch) return false;
-
-      // ---------------- STATUS CHECK ----------------
-      final taskStatus = (contact.statval ?? "").toString().trim();
-      return selectedStatus.isEmpty || taskStatus == selectedStatus;
-    }).toList();
-
+    _filterUserData = _computeFiltered();
+    _filteredBeforeSearch = _filterUserData;
     notifyListeners();
   }
 
@@ -329,7 +418,7 @@ class TaskProvider with ChangeNotifier {
   }
 
   void changeName(value) {
-    _companyName = value!.companyName.toString();
+    _companyName = value == null ? "" : _clean(value.companyName);
     filterList();
   }
 
@@ -471,8 +560,8 @@ class TaskProvider with ChangeNotifier {
       _companyName = "";
       _fType = "";
       _filterTypeId = null; // NEW
-      _filterUserData = _allTasks;
       _userName = "";
+      _filterEmpName = "";
       _filterDate = "";
       _startDate = date1!;
       _endDate = date2!;
@@ -480,6 +569,8 @@ class TaskProvider with ChangeNotifier {
       _assignedNames = "";
     }
     search.clear();
+    _filterUserData = _computeFiltered();
+    _filteredBeforeSearch = _filterUserData;
     notifyListeners();
   }
 
@@ -660,17 +751,7 @@ class TaskProvider with ChangeNotifier {
       if (response.isNotEmpty) {
         List<DTaskModel> taskList = List<DTaskModel>.from(response);
 
-        List<DTaskModel> filteredList = taskList.where((task) {
-          final isTypeMatch = _fType.isEmpty || (_fType == task.type);
-
-          final isEmpMatch =
-              _userName.isEmpty || (task.assignedNames ?? "").contains(_userName);
-
-          final isCusMatch =
-              _companyName.isEmpty || (_companyName == (task.projectName ?? ""));
-
-          return isTypeMatch && isEmpMatch && isCusMatch;
-        }).toList();
+        List<DTaskModel> filteredList = taskList.where(_reportMatch).toList();
 
         filteredList = List<DTaskModel>.from(filteredList);
 
@@ -731,27 +812,25 @@ class TaskProvider with ChangeNotifier {
       if (response.isNotEmpty) {
         List<DTaskModel> taskList = List<DTaskModel>.from(response);
 
-        List<DTaskModel> filteredList = taskList.where((task) {
-          final isTypeMatch = _fType.isEmpty || (_fType == task.type);
-
-          final isEmpMatch =
-              _userName.isEmpty || (task.assignedNames ?? "").contains(_userName);
-
-          final isCusMatch =
-              _companyName.isEmpty || (_companyName == (task.projectName ?? ""));
-
-          return isTypeMatch && isEmpMatch && isCusMatch;
-        }).toList();
+        List<DTaskModel> filteredList = taskList.where(_reportMatch).toList();
 
         filteredList = List<DTaskModel>.from(filteredList);
 
         if (filteredList.isNotEmpty) {
+          // Admin -> full report (or only the employee picked in the filter)
+          // Employee -> only own tasks.
+          // (role was hard-coded "2" and the UNFILTERED list was passed, so an
+          //  admin got only the tasks assigned to themselves.)
+          final bool isAdmin = localData.storage.read("role").toString() == "1";
+          final String selectedEmp = _filterEmpName.trim();
           await exportTaskOnlyEmployeeWiseExcel(
-            taskList: taskList,
+            taskList: filteredList,
             fromDate: _startDate,
             toDate: _endDate,
-            role: "2",
-            userName: localData.storage.read("f_name").toString(),
+            role: (isAdmin && selectedEmp.isEmpty) ? "1" : "2",
+            userName: isAdmin
+                ? selectedEmp
+                : localData.storage.read("f_name").toString(),
           );
 
           if (context.mounted) Navigator.pop(context);
@@ -1015,17 +1094,7 @@ class TaskProvider with ChangeNotifier {
       if (response.isNotEmpty) {
         List<DTaskModel> taskList = List<DTaskModel>.from(response);
 
-        List<DTaskModel> test = taskList.where((task) {
-          final isTypeMatch = _fType.isEmpty || _fType == task.type;
-
-          final isEmpMatch =
-              _userName.isEmpty || (task.assignedNames ?? "").contains(_userName);
-
-          final isCusMatch =
-              _companyName.isEmpty || (task.projectName ?? "") == _companyName;
-
-          return isTypeMatch && isEmpMatch && isCusMatch;
-        }).toList();
+        List<DTaskModel> test = taskList.where(_reportMatch).toList();
 
         test = List<DTaskModel>.from(test);
 
@@ -2963,7 +3032,7 @@ class TaskProvider with ChangeNotifier {
       if (response.toString().contains("200")) {
         utils.showSuccessToast(context: context, text: constValue.updated);
         taskCtr.reset();
-        getAllTask(false);
+        refreshCurrentTasks();
       } else {
         utils.showErrorToast(context: context);
         taskCtr.reset();
@@ -3121,7 +3190,7 @@ class TaskProvider with ChangeNotifier {
         utils.showSuccessToast(context: context, text: constValue.updated);
         taskStatusCtr.reset();
         Provider.of<HomeProvider>(context, listen: false).loadFullDashboard(context);
-        getAllTask(false);
+        refreshCurrentTasks();
         getStatusHistory(data.id.toString());
       } else {
         utils.showErrorToast(context: context);
@@ -3247,9 +3316,9 @@ class TaskProvider with ChangeNotifier {
       search.clear();
       search2.clear();
 
-      _allTasks.clear();
-      _searchAllTasks.clear();
-      _filterUserData.clear();
+      _allTasks = [];
+      _searchAllTasks = [];
+      _filterUserData = [];
 
       dataSource.appointments!.clear();
 
@@ -3313,10 +3382,11 @@ class TaskProvider with ChangeNotifier {
           }
         }
 
-        if (newApps.isNotEmpty) {
-          dataSource.appointments!.addAll(newApps);
-          dataSource.notifyListeners(CalendarDataSourceAction.add, newApps);
-        }
+        dataSource.appointments!
+          ..clear()
+          ..addAll(newApps);
+        dataSource.notifyListeners(
+            CalendarDataSourceAction.reset, dataSource.appointments!);
 
         /// CHECKED TASK
         for (var i = 0; i < response.length; i++) {
@@ -3328,6 +3398,11 @@ class TaskProvider with ChangeNotifier {
         }
 
         filterList();
+        _viewRefresh = true;
+      } else {
+        _allTasks = [];
+        _searchAllTasks = [];
+        _filterUserData = [];
         _viewRefresh = true;
       }
     } catch (e) {
@@ -3349,6 +3424,8 @@ class TaskProvider with ChangeNotifier {
   Future<void> getAllIncompleteTask(bool isRefresh,
       {String? date1, String? date2, String? type}) async {
     _incompleteMode = true; // date filter skip panna
+    _returnToIncomplete = false;
+    if (isRefresh == true) _statusIds = "";
 
     _checkAtt = "";
     _checkAttName = "";
@@ -3364,9 +3441,9 @@ class TaskProvider with ChangeNotifier {
       search.clear();
       search2.clear();
 
-      _allTasks.clear();
-      _searchAllTasks.clear();
-      _filterUserData.clear();
+      _allTasks = [];
+      _searchAllTasks = [];
+      _filterUserData = [];
 
       dataSource.appointments!.clear();
 
@@ -3456,10 +3533,11 @@ class TaskProvider with ChangeNotifier {
           }
         }
 
-        if (newApps.isNotEmpty) {
-          dataSource.appointments!.addAll(newApps);
-          dataSource.notifyListeners(CalendarDataSourceAction.add, newApps);
-        }
+        dataSource.appointments!
+          ..clear()
+          ..addAll(newApps);
+        dataSource.notifyListeners(
+            CalendarDataSourceAction.reset, dataSource.appointments!);
 
         // CHECKED TASK
         for (var i = 0; i < response.length; i++) {
@@ -3611,7 +3689,7 @@ class TaskProvider with ChangeNotifier {
         utils.showSuccessToast(
             text: status == "1" ? "Check In Successful" : "Check Out Successful",
             context: context);
-        getAllTask(false);
+        refreshCurrentTasks();
         Navigator.of(context, rootNavigator: true).pop();
       } else {
         Navigator.of(context, rootNavigator: true).pop();
@@ -4204,28 +4282,16 @@ class TaskProvider with ChangeNotifier {
     searchTask(search.text);
   }
 
-  /// searchTask — searches within _filteredBeforeSearch, NOT _allTasks
+  /// searchTask — runs the full pipeline (filters + status tab + search text).
+  /// Before, it searched `_filteredBeforeSearch`, which stayed EMPTY until
+  /// Apply Filters was pressed, and the status tab ignored the search text.
   void searchTask(String value) {
-    final input = value.toLowerCase();
-
-    if (value.trim().isEmpty) {
-      _filterUserData = List.from(_filteredBeforeSearch);
-    } else {
-      final suggestions = _filteredBeforeSearch.where((user) {
-        final userFName = user.projectName.toString().toLowerCase();
-        final userNumber = user.assignedNames.toString().toLowerCase();
-
-        return userFName.contains(input) || userNumber.contains(input);
-      }).toList();
-
-      _filterUserData = suggestions;
-    }
-
-    notifyListeners();
+    filterList();
   }
+
   void selectEmployeeFilter(UserModel value) {
-    _assignedNames = value.firstname.toString();
-    notifyListeners();
+    _filterEmpName = _clean(value.firstname);
+    notifyListeners(); // applied when "Apply Filters" is pressed
   }
   /// Call this whenever date filter / status tab changes
   void applyDateAndStatusFilter() {
@@ -4269,12 +4335,14 @@ class TaskProvider with ChangeNotifier {
     _filteredBeforeSearch = baseList;
 
     /// ---- RE-APPLY SEARCH TEXT ----
-    if (search.text.trim().isNotEmpty) {
-      searchTask(search.text.trim());
-    } else {
-      _filterUserData = List<TaskData>.from(_filteredBeforeSearch);
-      notifyListeners();
-    }
+    final q = search.text.trim().toLowerCase();
+    _filterUserData = q.isEmpty
+        ? List<TaskData>.from(_filteredBeforeSearch)
+        : _filteredBeforeSearch.where((t) {
+      return _clean(t.projectName).toLowerCase().contains(q) ||
+          _clean(t.assignedNames).toLowerCase().contains(q);
+    }).toList();
+    notifyListeners();
   }
 
   Future<void> editTaskType(context, String id) async {
@@ -4547,7 +4615,7 @@ class TaskProvider with ChangeNotifier {
 
         _updateTimerOnLog(id, level);
 
-        getAllTask(false);
+        refreshCurrentTasks();
         Navigator.pop(context);
       } else {
         utils.showErrorToast(context: context);
@@ -4598,6 +4666,9 @@ class TaskProvider with ChangeNotifier {
     _fType = "";
     _filterTypeId = null;
     _filterType = null;
+    _filterEmpName = "";
+    _returnToIncomplete = false;
+    _incompleteMode = false;
     selectedDate2 = null;
     datesBetween = [];
     betweenDates = "";
