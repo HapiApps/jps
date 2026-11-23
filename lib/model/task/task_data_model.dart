@@ -42,43 +42,43 @@ class TaskData {
   final String? employeeStatus;
 
   TaskData(
-    {
-    this.name,
-    this.phoneNo,
-    this.id,
-    this.taskTitle,
-      this.taskDesc,
-    this.projectName,
-    this.department,
-    this.type,
-    this.level,
-    this.taskDate,
-    this.taskTime,
-    this.assignedNames,
-    this.statval,
-    this.createdBy,
-    this.updatedBy,
-    this.createdTs,
-    this.updatedTs,
-    this.active,
-    this.creator,
-    this.profile,
-    this.documents,
-    this.isChecked,
-    this.assigned,
-    this.companyId,
-    this.visitReportCount,
-    this.expenseReportCount,
-    this.role,
-    /// 🔥 NEW
-    this.commentCount,
-    this.lastComment,
-    this.lastCommentBy,
-    this.allComments,
-    this.hasVoice, this.updatedByName,this.workStatus,
-    this.workStatusBy,this.actionTime,this.totalHours,
-    this.employeeHours,this.employeeStatus,
-    });
+      {
+        this.name,
+        this.phoneNo,
+        this.id,
+        this.taskTitle,
+        this.taskDesc,
+        this.projectName,
+        this.department,
+        this.type,
+        this.level,
+        this.taskDate,
+        this.taskTime,
+        this.assignedNames,
+        this.statval,
+        this.createdBy,
+        this.updatedBy,
+        this.createdTs,
+        this.updatedTs,
+        this.active,
+        this.creator,
+        this.profile,
+        this.documents,
+        this.isChecked,
+        this.assigned,
+        this.companyId,
+        this.visitReportCount,
+        this.expenseReportCount,
+        this.role,
+        /// 🔥 NEW
+        this.commentCount,
+        this.lastComment,
+        this.lastCommentBy,
+        this.allComments,
+        this.hasVoice, this.updatedByName,this.workStatus,
+        this.workStatusBy,this.actionTime,this.totalHours,
+        this.employeeHours,this.employeeStatus,
+      });
 
   factory TaskData.fromJson(Map<String?, dynamic> json) {
     return TaskData(
@@ -227,6 +227,18 @@ class DTaskModel {
   final String? wagesHours;
   final String? wagesAmount;
 
+  // 🔥 NEW - Full task details for report
+  final String? id; // task id (used to match the screen list)
+  final String? level; // priority: High / Normal / Immediate
+  final String? customerName;
+  final String? phoneNo;
+  final String? createdTs;
+  final String? updatedTs;
+  final String? updatedByName;
+  final String? commentCount;
+  final String? lastComment;
+  final String? lastCommentBy;
+
   DTaskModel({
     required this.taskTitle,
     required this.taskDesc,
@@ -270,6 +282,17 @@ class DTaskModel {
     this.wagesDescription,
     this.wagesHours,
     this.wagesAmount,
+    // 🔥 NEW - Full task details
+    this.id,
+    this.level,
+    this.customerName,
+    this.phoneNo,
+    this.createdTs,
+    this.updatedTs,
+    this.updatedByName,
+    this.commentCount,
+    this.lastComment,
+    this.lastCommentBy,
   });
 
   /// null / "" / "null" -> null
@@ -288,7 +311,7 @@ class DTaskModel {
     }
 
     /// 🔥 COMMENTS PARSE
-    String commentsFull = json['comments_full'] ?? '';
+    String commentsFull = _nullIfEmpty(json['comments_full']) ?? '';
     List<String> commentsList = [];
 
     if (commentsFull.isNotEmpty) {
@@ -308,10 +331,23 @@ class DTaskModel {
       wagesHours: _nullIfEmpty(json['wages_hours']),
       wagesAmount: _nullIfEmpty(json['wages_amount']),
 
+      // 🔥 NEW - Full task details (same keys as TaskData)
+      id: _nullIfEmpty(json['id']),
+      level: _nullIfEmpty(json['level']),
+      customerName: _nullIfEmpty(json['name'] ?? json['customer_name']),
+      phoneNo: _nullIfEmpty(json['phone_no']),
+      createdTs: _nullIfEmpty(json['created_ts']),
+      updatedTs: _nullIfEmpty(json['updated_ts']),
+      updatedByName: _nullIfEmpty(json['updated_by_name']),
+      commentCount: _nullIfEmpty(json['comment_count']),
+      lastComment: _nullIfEmpty(json['last_comment']),
+      lastCommentBy: _nullIfEmpty(json['last_comment_by']),
+
       taskDate: json['task_date'] ?? '',
       taskTitle: json['task_title'] ?? '',
-      taskDesc: json['task_desc'] ?? '',
-      projectName: json['company_name'] ?? '',
+      taskDesc: _nullIfEmpty(json['task_desc']) ?? '',
+      // API sends the company NAME as "project_name" (c.company_name AS project_name)
+      projectName: (json['project_name'] ?? json['company_name'] ?? '').toString(),
       creator: json['creator'] ?? '',
       status: json['statval'] ?? '',
       type: json['type'] ?? '',
@@ -364,6 +400,18 @@ class DTaskModel {
       'wages_description': wagesDescription,
       'wages_hours': wagesHours,
       'wages_amount': wagesAmount,
+
+      // 🔥 NEW - Full task details
+      'id': id,
+      'level': level,
+      'name': customerName,
+      'phone_no': phoneNo,
+      'created_ts': createdTs,
+      'updated_ts': updatedTs,
+      'updated_by_name': updatedByName,
+      'comment_count': commentCount,
+      'last_comment': lastComment,
+      'last_comment_by': lastCommentBy,
 
       'task_date': taskDate,
       'taskTitle': taskTitle,

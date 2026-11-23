@@ -13,25 +13,37 @@ import '../source/constant/local_data.dart';
 
 class TaskRepo {
   Future<List<DTaskModel>> downloadReport(Map data) async {
-    try{
-      final request = await http.post(Uri.parse(taskScript),
-          headers: {
-            "Accept": "application/text",
-            "Content-Type": "application/x-www-form-urlencoded"
-          },
-          body: jsonEncode(data),
-          encoding: Encoding.getByName("utf-8"));
-      print("Respond ${data}");
-      log("Resp ${request.body}");
-      if (request.statusCode == 200){
-        List response = json.decode(request.body);
-        return response.map((json) => DTaskModel.fromJson(json)).toList();
-      } else {
-        throw Exception('Failed to get role');
-      }
-    }catch(e){
-      throw Exception('Failed to get role');
+    final request = await http.post(Uri.parse(taskScript),
+        headers: {
+          "Accept": "application/text",
+          "Content-Type": "application/x-www-form-urlencoded"
+        },
+        body: jsonEncode(data),
+        encoding: Encoding.getByName("utf-8"));
+
+    final body = request.body;
+    final short = body.length > 800 ? "${body.substring(0, 800)}..." : body;
+    if (kDebugMode) print("downloadReport [${request.statusCode}] $short");
+
+    if (request.statusCode != 200) {
+      throw Exception("downloadReport HTTP ${request.statusCode}: $short");
     }
+
+    final dynamic decoded;
+    try {
+      decoded = json.decode(body);
+    } on FormatException {
+      // PHP sent an error / warning text instead of JSON
+      throw Exception("downloadReport NOT JSON: $short");
+    }
+
+    if (decoded is! List) {
+      throw Exception("downloadReport expected a list, got: $short");
+    }
+
+    return decoded
+        .map((j) => DTaskModel.fromJson(Map<String, dynamic>.from(j)))
+        .toList();
   }
 
   Future<Map<String,dynamic>> addType(Map data) async {

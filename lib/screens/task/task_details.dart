@@ -413,6 +413,72 @@ class _TaskDetailsState extends State<TaskDetails>
     );
   }
 
+  /// ================= TASK DESCRIPTION CARD =================
+  Widget _descriptionCard(double width) {
+    final raw = (widget.data.taskDesc ?? "").toString().trim();
+    final bool hasDesc = raw.isNotEmpty && raw.toLowerCase() != "null";
+
+    return Center(
+      child: Container(
+        width: width,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(25),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withOpacity(0.2),
+              blurRadius: 10,
+              spreadRadius: 2,
+              offset: const Offset(0, 5),
+            )
+          ],
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(18.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.description_outlined,
+                      size: 20, color: colorsConst.primary),
+                  8.width,
+                  const Text(
+                    "Task Description",
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+              Divider(color: Colors.grey.shade300, thickness: 1.2),
+              5.height,
+              hasDesc
+                  ? SelectableText(
+                raw,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontFamily: "Lato",
+                  color: Colors.black87,
+                  height: 1.5,
+                ),
+              )
+                  : Text(
+                "No description added",
+                style: TextStyle(
+                  fontSize: 13,
+                  color: Colors.grey.shade500,
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     var webWidth = MediaQuery.of(context).size.width * 0.5;
@@ -927,6 +993,11 @@ class _TaskDetailsState extends State<TaskDetails>
                           ),
                         )),
                   ),
+                  10.height,
+
+                  /// ================= TASK DESCRIPTION =================
+                  _descriptionCard(kIsWeb ? webWidth : phoneWidth),
+
                   10.height,
                   Center(
                     child: Container(

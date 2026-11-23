@@ -31,20 +31,25 @@ android {
         applicationId = "com.hapiapps.jains"
         minSdkVersion flutter.minSdkVersion
         targetSdk = 36
-        versionCode 41
-        versionName "1.41"
+        versionCode 42
+        versionName "1.42"
         multiDexEnabled true
     }
 
     signingConfigs {
         release {
-            keyAlias keystoreProperties['keyAlias']
-            keyPassword keystoreProperties['keyPassword']
-            storeFile file(keystoreProperties['storeFile'])
-            storePassword keystoreProperties['storePassword']
+            def keystorePath = keystoreProperties['storeFile']
+
+            if (keystorePath == null || keystorePath.toString().trim().isEmpty()) {
+                throw new GradleException("Keystore path is missing in key.properties")
+            }
+
+            keyAlias = keystoreProperties['keyAlias']
+            keyPassword = keystoreProperties['keyPassword']
+            storeFile = file(keystorePath)
+            storePassword = keystoreProperties['storePassword']
         }
     }
-
     buildTypes {
         release {
             minifyEnabled true

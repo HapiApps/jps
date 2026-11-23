@@ -243,6 +243,10 @@ class _DailyReportStatusPageState extends State<DailyReportStatusPage>
       final startStr = DateFormat("dd-MM-yyyy").format(startDate);
       final endStr = DateFormat("dd-MM-yyyy").format(endDate);
       final dateStr = startStr == endStr ? startStr : "${startStr}_to_$endStr";
+      final dateText = startStr == endStr ? startStr : "$startStr to $endStr";
+
+      const reportTitle = "Daily Work Plan Report";
+      const int totalCols = 7; // S.No ... Updated Time
 
       int rowIndex = 0;
 
@@ -254,6 +258,49 @@ class _DailyReportStatusPageState extends State<DailyReportStatusPage>
         ))
             .value = value;
       }
+
+      /// Writes [text] in column A, merges it across all report columns
+      /// and applies [style].
+      void setMergedRow(String text, excel_pkg.CellStyle style) {
+        setCell(0, text);
+        sheet.merge(
+          excel_pkg.CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: rowIndex),
+          excel_pkg.CellIndex.indexByColumnRow(
+              columnIndex: totalCols - 1, rowIndex: rowIndex),
+        );
+        sheet
+            .cell(excel_pkg.CellIndex.indexByColumnRow(
+          columnIndex: 0,
+          rowIndex: rowIndex,
+        ))
+            .cellStyle = style;
+      }
+
+      // =================== REPORT HEADING ===================
+      final titleStyle = excel_pkg.CellStyle(
+        bold: true,
+        fontSize: 16,
+        horizontalAlign: excel_pkg.HorizontalAlign.Center,
+        verticalAlign: excel_pkg.VerticalAlign.Center,
+      );
+      final subTitleStyle = excel_pkg.CellStyle(
+        bold: true,
+        horizontalAlign: excel_pkg.HorizontalAlign.Center,
+        verticalAlign: excel_pkg.VerticalAlign.Center,
+      );
+
+      setMergedRow(reportTitle, titleStyle);
+      rowIndex++;
+
+      setMergedRow(
+        isAdmin
+            ? "Date : $dateText"
+            : "Employee : $loggedInUserName    |    Date : $dateText",
+        subTitleStyle,
+      );
+      rowIndex++;
+
+      rowIndex++; // blank row before the data
 
       // group by employee
       final Map<String, List<WorkPlanModelDetails>> groupedByEmp = {};
@@ -346,7 +393,10 @@ class _DailyReportStatusPageState extends State<DailyReportStatusPage>
 
       // App documents folder: no storage permission needed (Android 11+ safe)
       final dir = await getApplicationDocumentsDirectory();
-      final filePath = "${dir.path}/DailyWorkPlan_$dateStr.xlsx";
+      // File name = report heading  ->  Daily_Work_Plan_Report_<date>.xlsx
+      final fileName =
+          "${reportTitle.replaceAll(' ', '_')}_$dateStr.xlsx";
+      final filePath = "${dir.path}/$fileName";
 
       final file = File(filePath);
       await file.create(recursive: true);

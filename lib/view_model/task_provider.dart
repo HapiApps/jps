@@ -786,74 +786,401 @@ class TaskProvider with ChangeNotifier {
   }
 
   Future<void> downloadAllOnlyEmpTask(BuildContext context) async {
-    notifyListeners();
+    // ---------- 1) SOURCE OF TRUTH = what the screen shows ----------
+    final Map<String, TaskData> uniq = {};
+    for (final t in _filterUserData) {
+      final key = _clean(t.id).isNotEmpty
+          ? _clean(t.id)
+          : "${_clean(t.taskTitle)}|${_clean(t.taskDate)}|${_clean(t.createdTs)}";
+      uniq.putIfAbsent(key, () => t);
+    }
+    final List<TaskData> screenTasks = uniq.values.toList();
+
+    if (screenTasks.isEmpty) {
+      utils.showWarningToast(context, text: "No Task Found");
+      return;
+    }
+
+    bool dialogOpen = false;
+    void closeDialog() {
+      if (dialogOpen && context.mounted) {
+        Navigator.of(context, rootNavigator: true).pop();
+      }
+      dialogOpen = false;
+    }
 
     try {
+      dialogOpen = true;
       showDialog(
         context: context,
         barrierDismissible: false,
         builder: (_) => const Center(child: CircularProgressIndicator()),
       );
 
-      Map data = {
-        "action": taskDatas,
-        "search_type": "download_reports_work",
-        "cos_id": localData.storage.read("cos_id"),
-        "role": localData.storage.read("role"),
-        "id": localData.storage.read("id"),
-        "date1": _startDate,
-        "date2": _endDate,
-      };
+      // ---------- 2) date range that covers EVERY task on screen ----------
+      DateTime? minD;
+      DateTime? maxD;
+      for (final t in screenTasks) {
+        final d = _parseTaskDate(_clean(t.taskDate));
+        if (d == null) continue;
+        if (minD == null || d.isBefore(minD)) minD = d;
+        if (maxD == null || d.isAfter(maxD)) maxD = d;
+      }
+      final String apiFrom = minD != null ? _df.format(minD) : _startDate;
+      final String apiTo = maxD != null ? _df.format(maxD) : _endDate;
 
-      final response = await _taskRepo.downloadReport(data);
-      _log("log response$response");
+      // Title dates: filter range when filtered, else the actual task range
+      final String fromDate = _isFilter ? _startDate : apiFrom;
+      final String toDate = _isFilter ? _endDate : apiTo;
+
+      // ---------- 3) extra details (wages) by task id – OPTIONAL ----------
+      final Map<String, DTaskModel> extraById = {};
+      try {
+        Map data = {
+          "action": taskDatas,
+          "search_type": "download_reports_work",
+          "cos_id": localData.storage.read("cos_id"),
+          "role": localData.storage.read("role"),
+          "id": localData.storage.read("id"),
+          "date1": apiFrom,
+          "date2": apiTo,
+        };
+        final response = await _taskRepo.downloadReport(data);
+        for (final r in List<DTaskModel>.from(response)) {
+          final id = _clean(r.id);
+          if (id.isNotEmpty) extraById.putIfAbsent(id, () => r);
+        }
+      } catch (e) {
+        _log("Report extra details failed (report still created): $e");
+      }
       if (!context.mounted) return;
 
-      if (response.isNotEmpty) {
-        List<DTaskModel> taskList = List<DTaskModel>.from(response);
+      final noExtra = screenTasks
+          .where((t) => !extraById.containsKey(_clean(t.id)))
+          .map((t) => t.id)
+          .toList();
+      _log("REPORT -> SCREEN: ${screenTasks.length} | "
+          "WITH API DETAILS: ${screenTasks.length - noExtra.length} | "
+          "NO API DETAILS: $noExtra");
 
-        List<DTaskModel> filteredList = taskList.where(_reportMatch).toList();
+      // ---------- 4) export ----------
+      final bool isAdmin = localData.storage.read("role").toString() == "1";
+      final String selectedEmp = _filterEmpName.trim();
 
-        filteredList = List<DTaskModel>.from(filteredList);
+      await exportScreenTaskReportExcel(
+        tasks: screenTasks,
+        extraById: extraById,
+        fromDate: fromDate,
+        toDate: toDate,
+        // admin + no employee filter -> null = group by every assignee
+        groupName: isAdmin
+            ? (selectedEmp.isEmpty ? null : selectedEmp)
+            : localData.storage.read("f_name").toString(),
+      );
 
-        if (filteredList.isNotEmpty) {
-          // Admin -> full report (or only the employee picked in the filter)
-          // Employee -> only own tasks.
-          // (role was hard-coded "2" and the UNFILTERED list was passed, so an
-          //  admin got only the tasks assigned to themselves.)
-          final bool isAdmin = localData.storage.read("role").toString() == "1";
-          final String selectedEmp = _filterEmpName.trim();
-          await exportTaskOnlyEmployeeWiseExcel(
-            taskList: filteredList,
-            fromDate: _startDate,
-            toDate: _endDate,
-            role: (isAdmin && selectedEmp.isEmpty) ? "1" : "2",
-            userName: isAdmin
-                ? selectedEmp
-                : localData.storage.read("f_name").toString(),
-          );
-
-          if (context.mounted) Navigator.pop(context);
-        } else {
-          if (context.mounted) {
-            Navigator.pop(context);
-            utils.showWarningToast(context, text: "No Task Found");
-          }
-        }
-      } else {
-        if (context.mounted) {
-          Navigator.pop(context);
-          utils.showWarningToast(context, text: "No Task Found");
-        }
-      }
-    } catch (e) {
+      closeDialog();
+    } catch (e, st) {
+      _log("downloadAllOnlyEmpTask ERROR: $e\n$st");
+      closeDialog();
       if (context.mounted) {
-        Navigator.pop(context);
-        utils.showWarningToast(context, text: "No Task Found");
+        utils.showWarningToast(context, text: "Report download failed");
       }
     }
-    notifyListeners();
   }
+
+  Future<void> exportScreenTaskReportExcel({
+    required List<TaskData> tasks,
+    required Map<String, DTaskModel> extraById,
+    required String fromDate,
+    required String toDate,
+    String? groupName, // null => admin: one section per assignee
+  }) async {
+    final excel = Excel.createExcel();
+    final Sheet sheet = excel["Sheet1"];
+
+    /// =================== HELPERS ===================
+    String clean(String? v) =>
+        (v == null || v.trim().isEmpty || v.trim() == "null") ? "" : v.trim();
+
+    String dash(String? v) {
+      final c = clean(v);
+      return c.isEmpty ? "-" : c;
+    }
+
+    String fmtDateTime(String? v) {
+      final c = clean(v);
+      if (c.isEmpty) return "-";
+      final d = DateTime.tryParse(c);
+      return d == null ? c : DateFormat('dd-MM-yyyy h:mm a').format(d);
+    }
+
+    String fmtTaskDate(String? v) {
+      final c = clean(v);
+      if (c.isEmpty) return "-";
+      final parts =
+      c.split("||").map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+      if (parts.length == 2 && parts[0] != parts[1]) return "${parts[0]} to ${parts[1]}";
+      return parts.isEmpty ? "-" : parts.first;
+    }
+
+    DTaskModel? extra(TaskData t) => extraById[clean(t.id)];
+    bool hasWages(TaskData t) => clean(extra(t)?.wagesWorkers).isNotEmpty;
+
+    /// all comments, one per line: "dd-MM-yyyy h:mm a - Name: comment"
+    /// (all_comments format "name|comment|time||name|comment|time" assumed;
+    ///  anything else is shown as it is)
+    String commentsOf(TaskData t) {
+      final all = clean(t.allComments);
+      if (all.isNotEmpty) {
+        final lines = <String>[];
+        for (final c in all.split("||")) {
+          if (c.trim().isEmpty) continue;
+          final p = c.split("|").map((e) => e.trim()).toList();
+          if (p.length >= 3) {
+            final dt = DateTime.tryParse(p[2]);
+            final time =
+            dt == null ? p[2] : DateFormat('dd-MM-yyyy h:mm a').format(dt);
+            lines.add("$time - ${p[0]}: ${p[1]}");
+          } else {
+            lines.add(c.trim());
+          }
+        }
+        if (lines.isNotEmpty) return lines.join("\n");
+      }
+
+      final ex = extra(t);
+      if (ex != null) {
+        final l = ex.commentsList.map(clean).where((e) => e.isNotEmpty).toList();
+        if (l.isNotEmpty) return l.join("\n");
+      }
+
+      final last = clean(t.lastComment);
+      if (last.isEmpty) return "-";
+      final by = clean(t.lastCommentBy);
+      return by.isEmpty ? last : "$last (by $by)";
+    }
+
+    String commentCountOf(TaskData t) {
+      final c = clean(t.commentCount);
+      return c.isEmpty ? "0" : c;
+    }
+
+    String customerOf(TaskData t) {
+      final n = clean(t.name);
+      if (n.isNotEmpty) return n;
+      return dash(extra(t)?.customerName);
+    }
+
+    /// =================== STYLES ===================
+    final titleStyle = CellStyle(
+      bold: true,
+      fontSize: 16,
+      horizontalAlign: HorizontalAlign.Center,
+      verticalAlign: VerticalAlign.Center,
+    );
+    final summaryStyle = CellStyle(
+      bold: true,
+      horizontalAlign: HorizontalAlign.Left,
+      verticalAlign: VerticalAlign.Center,
+    );
+    final headerStyle = CellStyle(
+      bold: true,
+      backgroundColorHex: "#FFFF00",
+      fontColorHex: "#000000",
+      horizontalAlign: HorizontalAlign.Center,
+      verticalAlign: VerticalAlign.Center,
+      textWrapping: TextWrapping.WrapText,
+    );
+    final wagesHeaderStyle = CellStyle(
+      bold: true,
+      backgroundColorHex: "#C6EFCE",
+      fontColorHex: "#000000",
+      horizontalAlign: HorizontalAlign.Center,
+      verticalAlign: VerticalAlign.Center,
+      textWrapping: TextWrapping.WrapText,
+    );
+    final empStyle = CellStyle(
+      bold: true,
+      backgroundColorHex: "#D9E1F2",
+      fontColorHex: "#000000",
+      horizontalAlign: HorizontalAlign.Left,
+      verticalAlign: VerticalAlign.Center,
+    );
+    final normalStyle = CellStyle(
+      horizontalAlign: HorizontalAlign.Left,
+      verticalAlign: VerticalAlign.Top,
+    );
+    final wrapStyle = CellStyle(
+      horizontalAlign: HorizontalAlign.Left,
+      verticalAlign: VerticalAlign.Top,
+      textWrapping: TextWrapping.WrapText,
+    );
+
+    /// =================== COLUMNS ===================
+    final bool anyWages = tasks.any(hasWages);
+
+    final List<String> headers = [
+      "S.No", //                0
+      "Task Created Date", //   1
+      "Task Title", //          2
+      "Task Description", //    3
+      "Company", //             4
+      "Customer Name", //       5
+      "Customer Phone", //      6
+      "Task Type", //           7
+      "Service Date", //        8
+      "Priority", //            9
+      "Status", //              10
+      "Assigned To", //         11
+      "Created By", //          12
+      "Updated By", //          13
+      "Updated Date", //        14
+      "Comments Count", //      15
+      "All Comments", //        16
+      if (anyWages) ...[
+        "Wages Workers", //     17
+        "Wages Added By", //    18
+        "Work Description", //  19
+        "Wages Hours", //       20
+        "Wages Amount (₹)", //  21
+      ],
+    ];
+    const int baseCols = 17;
+    final int totalCols = headers.length;
+    const Set<int> wrapCols = {2, 3, 11, 16, 17, 19};
+    final List<double> widths = [
+      6, 22, 40, 60, 28, 25, 16, 20, 15, 12, 14, 30, 18, 18, 22, 10, 60,
+      if (anyWages) ...[35, 18, 45, 12, 16],
+    ];
+
+    /// =================== GROUPS ===================
+    // Screen order is kept inside every group. No task is dropped:
+    //  - employee / selected employee -> ONE section with ALL screen tasks
+    //  - admin (all) -> one section per assignee, "Unassigned" if none
+    final Map<String, List<TaskData>> groups = {};
+    if (groupName != null && groupName.trim().isNotEmpty) {
+      groups[groupName.trim()] = List<TaskData>.from(tasks);
+    } else {
+      for (final t in tasks) {
+        final names = clean(t.assignedNames)
+            .split(",")
+            .map((e) => e.trim())
+            .where((e) => e.isNotEmpty)
+            .toSet();
+        if (names.isEmpty) names.add("Unassigned");
+        for (final n in names) {
+          groups.putIfAbsent(n, () => []).add(t);
+        }
+      }
+    }
+
+    /// =================== TITLE + SUMMARY ===================
+    sheet.appendRow(["${constValue.appName} TASK REPORT DETAILS ($fromDate to $toDate)"]);
+    sheet.merge(
+      CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: 0),
+      CellIndex.indexByColumnRow(columnIndex: totalCols - 1, rowIndex: 0),
+    );
+    sheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: 0)).cellStyle =
+        titleStyle;
+
+    sheet.appendRow([
+      "Total Tasks: ${tasks.length}    |    Generated: "
+          "${DateFormat('dd-MM-yyyy h:mm a').format(DateTime.now())}"
+    ]);
+    sheet.merge(
+      CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: 1),
+      CellIndex.indexByColumnRow(columnIndex: totalCols - 1, rowIndex: 1),
+    );
+    sheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: 1)).cellStyle =
+        summaryStyle;
+
+    sheet.appendRow([""]);
+    int rowIndex = 3;
+
+    /// =================== SECTIONS ===================
+    groups.forEach((empName, list) {
+      sheet.appendRow(["$empName ($fromDate to $toDate)  -  ${list.length} Task(s)"]);
+      sheet.merge(
+        CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: rowIndex),
+        CellIndex.indexByColumnRow(columnIndex: totalCols - 1, rowIndex: rowIndex),
+      );
+      sheet
+          .cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: rowIndex))
+          .cellStyle = empStyle;
+      rowIndex++;
+
+      sheet.appendRow(headers);
+      for (int col = 0; col < totalCols; col++) {
+        sheet
+            .cell(CellIndex.indexByColumnRow(columnIndex: col, rowIndex: rowIndex))
+            .cellStyle = col >= baseCols ? wagesHeaderStyle : headerStyle;
+      }
+      rowIndex++;
+
+      int sNo = 1;
+      for (final t in list) {
+        final ex = extra(t);
+        final bool w = hasWages(t);
+
+        sheet.appendRow([
+          sNo++,
+          fmtDateTime(t.createdTs),
+          dash(t.taskTitle),
+          dash(t.taskDesc),
+          dash(t.projectName),
+          customerOf(t),
+          dash(t.phoneNo),
+          dash(t.type),
+          fmtTaskDate(t.taskDate),
+          dash(t.level),
+          dash(t.statval),
+          dash(t.assignedNames),
+          dash(t.creator),
+          dash(t.updatedByName),
+          fmtDateTime(t.updatedTs),
+          commentCountOf(t),
+          commentsOf(t),
+          if (anyWages) ...[
+            w ? clean(ex?.wagesWorkers) : "",
+            w ? clean(ex?.wagesAddedBy) : "",
+            w ? clean(ex?.wagesDescription) : "",
+            w ? clean(ex?.wagesHours) : "",
+            w ? clean(ex?.wagesAmount) : "",
+          ],
+        ]);
+
+        for (int col = 0; col < totalCols; col++) {
+          sheet
+              .cell(CellIndex.indexByColumnRow(columnIndex: col, rowIndex: rowIndex))
+              .cellStyle = wrapCols.contains(col) ? wrapStyle : normalStyle;
+        }
+        rowIndex++;
+      }
+
+      sheet.appendRow([""]);
+      rowIndex++;
+    });
+
+    /// =================== COLUMN WIDTH ===================
+    for (int i = 0; i < widths.length; i++) {
+      sheet.setColWidth(i, widths[i]);
+    }
+
+    /// =================== SAVE FILE ===================
+    final dir = await getApplicationDocumentsDirectory();
+    final String safeName = (groupName ?? "").trim().isEmpty
+        ? "All_Employee"
+        : groupName!.trim().replaceAll(RegExp(r'[\\/:*?"<>|]'), "_");
+    final String fileName = "${safeName}_Task_Report_($fromDate to $toDate).xlsx";
+    final String filePath = "${dir.path}/$fileName";
+
+    File(filePath)
+      ..createSync(recursive: true)
+      ..writeAsBytesSync(excel.encode()!);
+
+    await OpenFile.open(filePath);
+  }
+
 
   Future<void> exportTaskWithCommentsBlockExcel({
     required List<DTaskModel> taskList,
@@ -1285,40 +1612,71 @@ class TaskProvider with ChangeNotifier {
   }) async {
     _log("### EXPORT CALLED ### tasks=${taskList.length} role=$role user=$userName");
 
-    var excel = Excel.createExcel();
-    Sheet sheet = excel["Sheet1"];
+    final excel = Excel.createExcel();
+    final Sheet sheet = excel["Sheet1"];
 
-    /// null / empty na blank
+    /// =================== HELPERS ===================
     String clean(String? v) =>
         (v == null || v.trim().isEmpty || v.trim() == "null") ? "" : v.trim();
 
+    String dash(String? v) {
+      final c = clean(v);
+      return c.isEmpty ? "-" : c;
+    }
+
+    String fmtDateTime(String? v) {
+      final c = clean(v);
+      if (c.isEmpty) return "-";
+      final d = DateTime.tryParse(c);
+      return d == null ? c : DateFormat('dd-MM-yyyy h:mm a').format(d);
+    }
+
     bool hasWages(DTaskModel t) => clean(t.wagesWorkers).isNotEmpty;
 
+    /// all comments (comments_full split by ||) -> one per line.
+    /// If the API sends only last_comment, show that with who wrote it.
+    String allCommentsOf(DTaskModel t) {
+      final list = t.commentsList.map(clean).where((c) => c.isNotEmpty).toList();
+      if (list.isNotEmpty) return list.join("\n");
+      final last = clean(t.lastComment);
+      if (last.isEmpty) return "-";
+      final by = clean(t.lastCommentBy);
+      return by.isEmpty ? last : "$last (by $by)";
+    }
+
+    String commentCountOf(DTaskModel t) {
+      final c = clean(t.commentCount);
+      if (c.isNotEmpty) return c;
+      return t.commentsList.where((e) => clean(e).isNotEmpty).length.toString();
+    }
+
     /// =================== STYLES ===================
-    CellStyle titleStyle = CellStyle(
+    final titleStyle = CellStyle(
       bold: true,
       fontSize: 16,
       horizontalAlign: HorizontalAlign.Center,
       verticalAlign: VerticalAlign.Center,
     );
 
-    CellStyle headerStyle = CellStyle(
+    final headerStyle = CellStyle(
       bold: true,
       backgroundColorHex: "#FFFF00",
       fontColorHex: "#000000",
       horizontalAlign: HorizontalAlign.Center,
       verticalAlign: VerticalAlign.Center,
+      textWrapping: TextWrapping.WrapText,
     );
 
-    CellStyle wagesHeaderStyle = CellStyle(
+    final wagesHeaderStyle = CellStyle(
       bold: true,
       backgroundColorHex: "#C6EFCE",
       fontColorHex: "#000000",
       horizontalAlign: HorizontalAlign.Center,
       verticalAlign: VerticalAlign.Center,
+      textWrapping: TextWrapping.WrapText,
     );
 
-    CellStyle empStyle = CellStyle(
+    final empStyle = CellStyle(
       bold: true,
       backgroundColorHex: "#D9E1F2",
       fontColorHex: "#000000",
@@ -1326,9 +1684,16 @@ class TaskProvider with ChangeNotifier {
       verticalAlign: VerticalAlign.Center,
     );
 
-    CellStyle normalStyle = CellStyle(
+    final normalStyle = CellStyle(
       horizontalAlign: HorizontalAlign.Left,
-      verticalAlign: VerticalAlign.Center,
+      verticalAlign: VerticalAlign.Top,
+    );
+
+    // long text (title / description / comments) -> wrap inside the cell
+    final wrapStyle = CellStyle(
+      horizontalAlign: HorizontalAlign.Left,
+      verticalAlign: VerticalAlign.Top,
+      textWrapping: TextWrapping.WrapText,
     );
 
     /// =================== REMOVE DUPLICATE ROWS ===================
@@ -1338,6 +1703,8 @@ class TaskProvider with ChangeNotifier {
       final key = [
         t.taskDate,
         t.taskTitle,
+        clean(t.taskDesc),
+        clean(t.createdTs),
         t.projectName,
         t.type,
         t.assignedNames,
@@ -1352,58 +1719,84 @@ class TaskProvider with ChangeNotifier {
       if (seen.add(key)) uniqueTasks.add(t);
     }
     _log("AFTER DEDUPE: ${uniqueTasks.length} (from ${taskList.length})");
-    _log("TASKS WITH WAGES: ${uniqueTasks.where(hasWages).length}");
 
     /// =================== FILTER LIST ===================
-    List<DTaskModel> filteredTasks = [];
+    final String loginName = (userName ?? "").trim().toLowerCase();
+    final List<DTaskModel> filteredTasks = role.trim() == "1"
+        ? uniqueTasks
+        : uniqueTasks.where((task) {
+      final names = task.assignedNames.trim();
+      if (names.isEmpty) return false;
+      return names
+          .split(",")
+          .any((e) => e.trim().toLowerCase() == loginName);
+    }).toList();
 
-    if (role.toString().trim() == "1") {
-      filteredTasks = uniqueTasks;
-    } else {
-      String filter = (userName ?? "").trim().toLowerCase();
-
-      filteredTasks = uniqueTasks.where((task) {
-        String assignedNames = task.assignedNames.trim();
-        if (assignedNames.isEmpty) return false;
-
-        List<String> empList = assignedNames.split(",");
-
-        return empList.any((e) => e.trim().toLowerCase() == filter);
-      }).toList();
-    }
-
-    /// =================== WAGES COLUMNS NEEDED? ===================
+    /// =================== COLUMNS ===================
     final bool anyWages = filteredTasks.any(hasWages);
-    final int totalCols = anyWages ? 13 : 8;
-    final String lastCol = anyWages ? "M" : "H";
+
+    final List<String> headers = [
+      "S.No", //                0
+      "Task Created Date", //   1
+      "Task Title", //          2
+      "Task Description", //    3
+      "Company", //             4
+      "Customer Name", //       5
+      "Customer Phone", //      6
+      "Task Type", //           7
+      "Service Date", //        8
+      "Priority", //            9
+      "Status", //              10
+      "Assigned To", //         11
+      "Created By", //          12
+      "Updated By", //          13
+      "Updated Date", //        14
+      "Comments Count", //      15
+      "All Comments", //        16
+      if (anyWages) ...[
+        "Wages Workers", //     17
+        "Wages Added By", //    18
+        "Work Description", //  19
+        "Wages Hours", //       20
+        "Wages Amount (₹)", //  21
+      ],
+    ];
+
+    const int baseCols = 17;
+    final int totalCols = headers.length;
+    const Set<int> wrapCols = {2, 3, 11, 16, 17, 19};
+
+    final List<double> widths = [
+      6, 22, 40, 60, 28, 25, 16, 20, 15, 12, 14, 30, 18, 18, 22, 10, 60,
+      if (anyWages) ...[35, 18, 45, 12, 16],
+    ];
+
     _log("AFTER FILTER: ${filteredTasks.length} | anyWages=$anyWages");
 
     /// =================== TOP TITLE ===================
-    sheet.appendRow(["${constValue.appName} TASK REPORT DETAILS"]);
-    sheet.merge(CellIndex.indexByString("A1"), CellIndex.indexByString("${lastCol}1"));
-    sheet.cell(CellIndex.indexByString("A1")).cellStyle = titleStyle;
+    sheet.appendRow(["${constValue.appName} TASK REPORT DETAILS ($fromDate to $toDate)"]);
+    sheet.merge(
+      CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: 0),
+      CellIndex.indexByColumnRow(columnIndex: totalCols - 1, rowIndex: 0),
+    );
+    sheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: 0)).cellStyle =
+        titleStyle;
 
     sheet.appendRow([""]);
 
     /// =================== GROUP BY EMPLOYEE ===================
-    Map<String, List<DTaskModel>> groupedTasks = {};
+    final Map<String, List<DTaskModel>> groupedTasks = {};
 
-    for (var task in filteredTasks) {
-      String names = task.assignedNames.isEmpty ? "Unknown" : task.assignedNames;
-      List<String> empList = names.split(",");
+    for (final task in filteredTasks) {
+      final names = task.assignedNames.isEmpty ? "Unknown" : task.assignedNames;
 
-      for (var emp in empList) {
+      for (final emp in names.split(",")) {
         String empName = emp.trim();
         if (empName.isEmpty) empName = "Unknown";
 
-        if (role.toString().trim() != "1") {
-          if (empName.toLowerCase() != (userName ?? "").trim().toLowerCase()) {
-            continue;
-          }
-        }
+        if (role.trim() != "1" && empName.toLowerCase() != loginName) continue;
 
-        groupedTasks.putIfAbsent(empName, () => []);
-        groupedTasks[empName]!.add(task);
+        groupedTasks.putIfAbsent(empName, () => []).add(task);
       }
     }
 
@@ -1419,60 +1812,52 @@ class TaskProvider with ChangeNotifier {
         final wa = hasWages(a) ? 0 : 1;
         final wb = hasWages(b) ? 0 : 1;
         if (wa != wb) return wa.compareTo(wb);
-        DateTime da = parseDate(a.taskDate);
-        DateTime db = parseDate(b.taskDate);
-        return da.compareTo(db);
+        return parseDate(a.taskDate).compareTo(parseDate(b.taskDate));
       });
 
-      sheet.appendRow(["$empName ($fromDate to $toDate)"]);
-
+      // Employee header row
+      sheet.appendRow(["$empName ($fromDate to $toDate)  -  ${tasks.length} Task(s)"]);
       sheet.merge(
-        CellIndex.indexByString("A${rowIndex + 1}"),
-        CellIndex.indexByString("$lastCol${rowIndex + 1}"),
+        CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: rowIndex),
+        CellIndex.indexByColumnRow(columnIndex: totalCols - 1, rowIndex: rowIndex),
       );
-
-      sheet.cell(CellIndex.indexByString("A${rowIndex + 1}")).cellStyle = empStyle;
-
+      sheet
+          .cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: rowIndex))
+          .cellStyle = empStyle;
       rowIndex++;
 
-      sheet.appendRow([
-        "Task Created Date",
-        "Task Title",
-        "Company",
-        "Task type",
-        "Service Date",
-        "Assigned To",
-        "Created By",
-        "Status",
-        if (anyWages) ...[
-          "Wages Workers",
-          "Wages Added By",
-          "Work Description",
-          "Wages Hours",
-          "Wages Amount (₹)",
-        ],
-      ]);
-
+      // Column header row
+      sheet.appendRow(headers);
       for (int col = 0; col < totalCols; col++) {
         sheet
             .cell(CellIndex.indexByColumnRow(columnIndex: col, rowIndex: rowIndex))
-            .cellStyle = col >= 8 ? wagesHeaderStyle : headerStyle;
+            .cellStyle = col >= baseCols ? wagesHeaderStyle : headerStyle;
       }
-
       rowIndex++;
 
-      for (var task in tasks) {
+      // Task rows
+      int sNo = 1;
+      for (final task in tasks) {
         final bool w = hasWages(task);
 
         sheet.appendRow([
-          task.taskDate.isEmpty ? "-" : task.taskDate,
-          task.taskTitle.isEmpty ? "-" : task.taskTitle,
-          task.projectName.isEmpty ? "-" : task.projectName,
-          task.type.isEmpty ? "-" : task.type,
-          task.taskDate.isEmpty ? "-" : task.taskDate,
-          task.assignedNames.isEmpty ? "-" : task.assignedNames,
-          task.creator.isEmpty ? "-" : task.creator,
-          task.status.isEmpty ? "-" : task.status,
+          sNo++,
+          fmtDateTime(task.createdTs),
+          dash(task.taskTitle),
+          dash(task.taskDesc),
+          dash(task.projectName),
+          dash(task.customerName),
+          dash(task.phoneNo),
+          dash(task.type),
+          dash(task.taskDate),
+          dash(task.level),
+          dash(task.status),
+          dash(task.assignedNames),
+          dash(task.creator),
+          dash(task.updatedByName),
+          fmtDateTime(task.updatedTs),
+          commentCountOf(task),
+          allCommentsOf(task),
           if (anyWages) ...[
             w ? clean(task.wagesWorkers) : "",
             w ? clean(task.wagesAddedBy) : "",
@@ -1485,9 +1870,8 @@ class TaskProvider with ChangeNotifier {
         for (int col = 0; col < totalCols; col++) {
           sheet
               .cell(CellIndex.indexByColumnRow(columnIndex: col, rowIndex: rowIndex))
-              .cellStyle = normalStyle;
+              .cellStyle = wrapCols.contains(col) ? wrapStyle : normalStyle;
         }
-
         rowIndex++;
       }
 
@@ -1496,30 +1880,18 @@ class TaskProvider with ChangeNotifier {
     });
 
     /// =================== COLUMN WIDTH ===================
-    sheet.setColWidth(0, 22);
-    sheet.setColWidth(1, 50);
-    sheet.setColWidth(2, 30);
-    sheet.setColWidth(3, 25);
-    sheet.setColWidth(4, 18);
-    sheet.setColWidth(5, 30);
-    sheet.setColWidth(6, 18);
-    sheet.setColWidth(7, 15);
-    if (anyWages) {
-      sheet.setColWidth(8, 45);
-      sheet.setColWidth(9, 20);
-      sheet.setColWidth(10, 45);
-      sheet.setColWidth(11, 14);
-      sheet.setColWidth(12, 18);
+    for (int i = 0; i < widths.length; i++) {
+      sheet.setColWidth(i, widths[i]);
     }
 
     /// =================== SAVE FILE ===================
     final dir = await getApplicationDocumentsDirectory();
 
-    String fileName = role.toString().trim() == "1"
+    final String fileName = role.trim() == "1"
         ? "All_Employee_Task_Report_($fromDate to $toDate).xlsx"
         : "${userName}_Task_Report_($fromDate to $toDate).xlsx";
 
-    String filePath = "${dir.path}/$fileName";
+    final String filePath = "${dir.path}/$fileName";
 
     File(filePath)
       ..createSync(recursive: true)
@@ -1527,6 +1899,7 @@ class TaskProvider with ChangeNotifier {
 
     await OpenFile.open(filePath);
   }
+
 
   Future<void> generatePdf(List<DTaskModel> taskList, BuildContext context) async {
     final pdf = pw.Document();

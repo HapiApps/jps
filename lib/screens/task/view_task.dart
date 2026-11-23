@@ -1085,12 +1085,8 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>
                         const SizedBox(width: 6),
                       ],
                     ),
-                    5.height,
-                    if (data.taskDesc != null && data.taskDesc!.trim().isNotEmpty)
-                      CustomText(
-                        text: data.taskDesc!,
-                        size: 12,
-                      ),
+                    // Task description removed from the list card ->
+                    // shown in its own card on the Task Details page.
                     5.height,
                     /// ASSIGNED USERS
                     Row(

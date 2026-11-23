@@ -393,7 +393,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                                     Row(
                                       children: [
                                         const CustomText(
-                                          "Daily Work Report ",
+                                          "Daily Work Report : ",
                                           size: 16,
                                           weight: FontWeight.bold,
                                         ),
