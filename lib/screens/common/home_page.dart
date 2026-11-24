@@ -11,6 +11,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:master_code/source/constant/language_model.dart';
 import 'package:master_code/view_model/leave_provider.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../component/custom_loading.dart';
 import '../../component/new_co.dart';
@@ -372,307 +373,322 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                       children: [
                         _buildGreetingRow(homeProvider),
                         5.height,
+                        8.height,
                         _buildFilterRow(context, homeProvider, screenWidth),
-                        10.height,
+                        12.height,
                         const InkWell(child: CheckAttendance()),
                         10.height,
 
-                        /// DAILY WORK PLAN
-                        _buildDailyWorkPlan(context, homeProvider, attPvr),
+                        /// range loading nadakkum bodhu cards dim + tap block
+                        IgnorePointer(
+                          ignoring: homeProvider.rangeLoading,
+                          child: AnimatedOpacity(
+                            duration: const Duration(milliseconds: 200),
+                            opacity: homeProvider.rangeLoading ? 0.45 : 1,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
 
-                        /// ATTENDANCE CARD
-                        if (localData.storage.read("role") == "1")
-                          _buildAttendanceCard(context, homeProvider),
-                        10.height,
+                                /// DAILY WORK PLAN
+                                _buildDailyWorkPlan(context, homeProvider, attPvr),
 
-                        ///Daily Work Report Uncomment for (only for Aswin Fire system & JPS) ///Uncomment for JPS
-                        // InkWell(
-                        //   onTap:(){
-                        //     utils.navigatePage(context, ()=> DashBoard(child: VisitReport(date1: homeProvider.startDate, date2: homeProvider.endDate,month: homeProvider.month,type: homeProvider.type,)));
-                        //   },
-                        //   child:
-                        //   // homeProvider.vRefresh==false
-                        //   //     ? const Loading():
-                        //   Container(
-                        //     padding: const EdgeInsets.all(16),
-                        //     decoration: BoxDecoration(
-                        //       color: Colors.white,
-                        //       borderRadius: BorderRadius.circular(15),
-                        //       boxShadow: const [
-                        //         BoxShadow(
-                        //           color: Colors.black12,
-                        //           blurRadius: 8,
-                        //           offset: Offset(0, 4),
-                        //         ),
-                        //       ],
-                        //     ),
-                        //     child: Column(
-                        //       crossAxisAlignment: CrossAxisAlignment.start,
-                        //       children: [
-                        //         /// Top Row
-                        //         Row(
-                        //           crossAxisAlignment: CrossAxisAlignment.center,
-                        //           mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        //           children: [
-                        //             Row(
-                        //               children: [
-                        //                 const CustomText(
-                        //                   "Daily Work Report ",
-                        //                   size: 16,
-                        //                   weight: FontWeight.bold,
-                        //                 ),
-                        //                 CustomText("${homeProvider.visitCount.length}", size: 20, weight: FontWeight.bold),
-                        //               ],
-                        //             ),
-                        //             InkWell(
-                        //               onTap: (){
-                        //                 utils.navigatePage(context, ()=> DashBoard(child:
-                        //                 CusAddVisit(taskId:"",companyId: "",companyName: "",
-                        //                     numberList: [],isDirect: true, type: "", desc: "")));
-                        //               },
-                        //               child: Container(
-                        //                 width: screenWidth/2.5,
-                        //                 height: screenHeight/22,
-                        //                 decoration: BoxDecoration(
-                        //                   color: Color(0xffDAF2DC),
-                        //                   borderRadius: BorderRadius.circular(10),
-                        //                   boxShadow: const [
-                        //                     BoxShadow(
-                        //                       color: Colors.black38,
-                        //                       blurRadius: 4,
-                        //                       offset: Offset(0, 0),
-                        //                     ),
-                        //                   ],
-                        //                 ),
-                        //                 child: Padding(
-                        //                   padding: const EdgeInsets.all(5.0),
-                        //                   child: Row(
-                        //                     mainAxisAlignment: MainAxisAlignment.center,
-                        //                     children: [
-                        //                       Image.asset(
-                        //                         assets.addButton,
-                        //                       ),
-                        //                       SizedBox(width: 6),
-                        //                       CustomText(
-                        //                         "Add Work",
-                        //                         size: 14,
-                        //                         weight: FontWeight.bold,
-                        //                         color: Color(0xff0F8D4B),
-                        //                       ),
-                        //                     ],
-                        //                   ),
-                        //                 ),
-                        //               ), ///ADDED NEW,
-                        //             ),
-                        //           ],
-                        //         ),7.height,
-                        //
-                        //         /// Big Count
-                        //
-                        //         /// Main Content Row
-                        //         Row(
-                        //           crossAxisAlignment: CrossAxisAlignment.start,
-                        //           children: [
-                        //             /// LEFT SECTION
-                        //             Expanded(
-                        //               flex: 40,
-                        //               child: Column(
-                        //                 crossAxisAlignment: CrossAxisAlignment.start,
-                        //                 children: [
-                        //                   Container(
-                        //                     width: screenWidth/1.8,
-                        //
-                        //                     height:30,
-                        //                     decoration: BoxDecoration(
-                        //                       color: Color(0xff63D076),
-                        //                       borderRadius: BorderRadius.circular(20),
-                        //                     ),
-                        //                     child: Padding(
-                        //                       padding: const EdgeInsets.only(left: 8.0,bottom: 3),
-                        //                       child: Row(
-                        //
-                        //                         crossAxisAlignment: CrossAxisAlignment.center,
-                        //                         mainAxisAlignment: MainAxisAlignment.start,
-                        //                         children: [
-                        //
-                        //                           Icon(
-                        //                             Icons.calendar_month,
-                        //                             size: 16,
-                        //                             color: Colors.white,
-                        //                           ),
-                        //                           5.width,
-                        //                           CustomText(
-                        //                             "Active Works : ${homeProvider.activeVisit}",
-                        //                             size: 13,
-                        //                             weight: FontWeight.bold,
-                        //                             color: Colors.white,
-                        //                           ),
-                        //                         ],
-                        //                       ),
-                        //                     ),
-                        //                   ),
-                        //
-                        //                   const SizedBox(height: 8),
-                        //                   /// Scrollable List (3 visible items height)
-                        //                   SizedBox(
-                        //                     height: 95,
-                        //                     child: Scrollbar(
-                        //                       thumbVisibility: true, // 👈 always show scroll indicator
-                        //                       thickness: 5,          // 👈 scroll bar width
-                        //                       radius: const Radius.circular(10),
-                        //                       interactive: true,
-                        //                       child: SingleChildScrollView(
-                        //                         physics: const BouncingScrollPhysics(),
-                        //                         child: Column(
-                        //                           children: [
-                        //                             !homeProvider.vRefresh
-                        //                                 ? const SkeletonLoading()
-                        //                                 : homeProvider.visitCount.isEmpty
-                        //                                 ? const Center(
-                        //                               child: CustomText("No Daily Work activity Report Found"),
-                        //                             )
-                        //                                 : Padding(
-                        //                               padding: const EdgeInsets.fromLTRB(0, 0, 0, 5),
-                        //                               child: ListView.builder(
-                        //                                 itemCount: homeProvider.visitCount.length,
-                        //                                 shrinkWrap: true,
-                        //                                 physics: const NeverScrollableScrollPhysics(),
-                        //                                 itemBuilder: (context, index) {
-                        //                                   return Padding(
-                        //                                     padding: const EdgeInsets.symmetric(vertical: 4),
-                        //                                     child: Row(
-                        //                                       children: [
-                        //                                         const Text("• "),
-                        //                                         Expanded(
-                        //                                           child: CustomText(
-                        //                                             homeProvider.visitCount[index]["value"],
-                        //                                             size: 13,
-                        //                                           ),
-                        //                                         ),
-                        //                                         Padding(
-                        //                                           padding: const EdgeInsets.only(right: 10.0),
-                        //                                           child: Container(
-                        //                                             padding: const EdgeInsets.symmetric(
-                        //                                               horizontal: 8,
-                        //                                               vertical: 2,
-                        //                                             ),
-                        //                                             decoration: BoxDecoration(
-                        //                                               color: Colors.blue,
-                        //                                               borderRadius: BorderRadius.circular(12),
-                        //                                             ),
-                        //                                             child: CustomText(
-                        //                                               homeProvider.visitCount[index]["total_count"],
-                        //                                               size: 10,
-                        //                                               color: Colors.white,
-                        //                                             ),
-                        //                                           ),
-                        //                                         ),
-                        //                                       ],
-                        //                                     ),
-                        //                                   );
-                        //                                 },
-                        //                               ),
-                        //                             ),
-                        //                           ],
-                        //                         ),
-                        //                       ),
-                        //                     ),
-                        //                   ),
-                        //                 ],
-                        //               ),
-                        //             ),
-                        //             const SizedBox(width: 16),
-                        //             /// RIGHT SECTION
-                        //             Expanded(
-                        //               flex: 45,
-                        //               child: Column(
-                        //                 children: [
-                        //                   /// Larger Pie Chart (closer to reference)
-                        //                   Container(
-                        //                     width: screenWidth/2,
-                        //                     decoration: BoxDecoration(
-                        //                       color: Colors.red,
-                        //                       borderRadius: BorderRadius.circular(20),
-                        //                     ),
-                        //                     child: Padding(
-                        //                       padding: const EdgeInsets.all(8.0),
-                        //                       child: Row(
-                        //                         children: [
-                        //                           Icon(
-                        //                             Icons.calendar_month,
-                        //                             size: 16,
-                        //                             color: Colors.white,
-                        //                           ),
-                        //                           SizedBox(width: 6),
-                        //                           CustomText(
-                        //                             "Pending Works: ${homeProvider.inActiveVisit}",
-                        //                             size: 12,
-                        //                             weight: FontWeight.w600,
-                        //                             color: Colors.white,
-                        //                           ),
-                        //                         ],
-                        //                       ),
-                        //                     ),
-                        //                   ),
-                        //                   15.height,
-                        //                   SizedBox(
-                        //                     height: 80,
-                        //                     child:
-                        //                     // totalVisits == 0
-                        //                     //     ? const Center(
-                        //                     //   child: CustomText("No Data"),
-                        //                     // )
-                        //                     //     :
-                        //                     PieChart(
-                        //                       PieChartData(
-                        //                         sectionsSpace: 0,
-                        //                         centerSpaceRadius: 0,
-                        //                         sections: [
-                        //                           PieChartSectionData(
-                        //                             value: visitPendingsCount.toDouble(),
-                        //                             color:  Colors.red,
-                        //                             radius: 50,
-                        //                             showTitle: false,
-                        //                           ),
-                        //                           PieChartSectionData(
-                        //                             value: visitActiveCount.toDouble(),
-                        //                             color: Color(0xff63D076),
-                        //                             radius: 50,
-                        //                             showTitle: false,
-                        //                           ),
-                        //                         ],
-                        //                       ),
-                        //                     ),
-                        //                   ),
-                        //
-                        //
-                        //
-                        //                 ],
-                        //               ),
-                        //             ),
-                        //           ],
-                        //         ),
-                        //         10.height,
-                        //
-                        //       ],
-                        //     ),
-                        //   ),
-                        // ),
+                                /// ATTENDANCE CARD
+                                if (localData.storage.read("role") == "1")
+                                  _buildAttendanceCard(context, homeProvider),
+                                10.height,
 
-                        // if (homeProvider.roleAccess.any((f) =>
-                        // f['feature'] == 'Task Management' &&
-                        //     f['name'] == 'View'))
+                                ///Daily Work Report Uncomment for (only for Aswin Fire system & JPS) ///Uncomment for JPS
+                                // InkWell(
+                                //   onTap:(){
+                                //     utils.navigatePage(context, ()=> DashBoard(child: VisitReport(date1: homeProvider.startDate, date2: homeProvider.endDate,month: homeProvider.month,type: homeProvider.type,)));
+                                //   },
+                                //   child:
+                                //   // homeProvider.vRefresh==false
+                                //   //     ? const Loading():
+                                //   Container(
+                                //     padding: const EdgeInsets.all(16),
+                                //     decoration: BoxDecoration(
+                                //       color: Colors.white,
+                                //       borderRadius: BorderRadius.circular(15),
+                                //       boxShadow: const [
+                                //         BoxShadow(
+                                //           color: Colors.black12,
+                                //           blurRadius: 8,
+                                //           offset: Offset(0, 4),
+                                //         ),
+                                //       ],
+                                //     ),
+                                //     child: Column(
+                                //       crossAxisAlignment: CrossAxisAlignment.start,
+                                //       children: [
+                                //         /// Top Row
+                                //         Row(
+                                //           crossAxisAlignment: CrossAxisAlignment.center,
+                                //           mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                //           children: [
+                                //             Row(
+                                //               children: [
+                                //                 const CustomText(
+                                //                   "Daily Work Report ",
+                                //                   size: 16,
+                                //                   weight: FontWeight.bold,
+                                //                 ),
+                                //                 CustomText("${homeProvider.visitCount.length}", size: 20, weight: FontWeight.bold),
+                                //               ],
+                                //             ),
+                                //             InkWell(
+                                //               onTap: (){
+                                //                 utils.navigatePage(context, ()=> DashBoard(child:
+                                //                 CusAddVisit(taskId:"",companyId: "",companyName: "",
+                                //                     numberList: [],isDirect: true, type: "", desc: "")));
+                                //               },
+                                //               child: Container(
+                                //                 width: screenWidth/2.5,
+                                //                 height: screenHeight/22,
+                                //                 decoration: BoxDecoration(
+                                //                   color: Color(0xffDAF2DC),
+                                //                   borderRadius: BorderRadius.circular(10),
+                                //                   boxShadow: const [
+                                //                     BoxShadow(
+                                //                       color: Colors.black38,
+                                //                       blurRadius: 4,
+                                //                       offset: Offset(0, 0),
+                                //                     ),
+                                //                   ],
+                                //                 ),
+                                //                 child: Padding(
+                                //                   padding: const EdgeInsets.all(5.0),
+                                //                   child: Row(
+                                //                     mainAxisAlignment: MainAxisAlignment.center,
+                                //                     children: [
+                                //                       Image.asset(
+                                //                         assets.addButton,
+                                //                       ),
+                                //                       SizedBox(width: 6),
+                                //                       CustomText(
+                                //                         "Add Work",
+                                //                         size: 14,
+                                //                         weight: FontWeight.bold,
+                                //                         color: Color(0xff0F8D4B),
+                                //                       ),
+                                //                     ],
+                                //                   ),
+                                //                 ),
+                                //               ), ///ADDED NEW,
+                                //             ),
+                                //           ],
+                                //         ),7.height,
+                                //
+                                //         /// Big Count
+                                //
+                                //         /// Main Content Row
+                                //         Row(
+                                //           crossAxisAlignment: CrossAxisAlignment.start,
+                                //           children: [
+                                //             /// LEFT SECTION
+                                //             Expanded(
+                                //               flex: 40,
+                                //               child: Column(
+                                //                 crossAxisAlignment: CrossAxisAlignment.start,
+                                //                 children: [
+                                //                   Container(
+                                //                     width: screenWidth/1.8,
+                                //
+                                //                     height:30,
+                                //                     decoration: BoxDecoration(
+                                //                       color: Color(0xff63D076),
+                                //                       borderRadius: BorderRadius.circular(20),
+                                //                     ),
+                                //                     child: Padding(
+                                //                       padding: const EdgeInsets.only(left: 8.0,bottom: 3),
+                                //                       child: Row(
+                                //
+                                //                         crossAxisAlignment: CrossAxisAlignment.center,
+                                //                         mainAxisAlignment: MainAxisAlignment.start,
+                                //                         children: [
+                                //
+                                //                           Icon(
+                                //                             Icons.calendar_month,
+                                //                             size: 16,
+                                //                             color: Colors.white,
+                                //                           ),
+                                //                           5.width,
+                                //                           CustomText(
+                                //                             "Active Works : ${homeProvider.activeVisit}",
+                                //                             size: 13,
+                                //                             weight: FontWeight.bold,
+                                //                             color: Colors.white,
+                                //                           ),
+                                //                         ],
+                                //                       ),
+                                //                     ),
+                                //                   ),
+                                //
+                                //                   const SizedBox(height: 8),
+                                //                   /// Scrollable List (3 visible items height)
+                                //                   SizedBox(
+                                //                     height: 95,
+                                //                     child: Scrollbar(
+                                //                       thumbVisibility: true, // 👈 always show scroll indicator
+                                //                       thickness: 5,          // 👈 scroll bar width
+                                //                       radius: const Radius.circular(10),
+                                //                       interactive: true,
+                                //                       child: SingleChildScrollView(
+                                //                         physics: const BouncingScrollPhysics(),
+                                //                         child: Column(
+                                //                           children: [
+                                //                             !homeProvider.vRefresh
+                                //                                 ? const SkeletonLoading()
+                                //                                 : homeProvider.visitCount.isEmpty
+                                //                                 ? const Center(
+                                //                               child: CustomText("No Daily Work activity Report Found"),
+                                //                             )
+                                //                                 : Padding(
+                                //                               padding: const EdgeInsets.fromLTRB(0, 0, 0, 5),
+                                //                               child: ListView.builder(
+                                //                                 itemCount: homeProvider.visitCount.length,
+                                //                                 shrinkWrap: true,
+                                //                                 physics: const NeverScrollableScrollPhysics(),
+                                //                                 itemBuilder: (context, index) {
+                                //                                   return Padding(
+                                //                                     padding: const EdgeInsets.symmetric(vertical: 4),
+                                //                                     child: Row(
+                                //                                       children: [
+                                //                                         const Text("• "),
+                                //                                         Expanded(
+                                //                                           child: CustomText(
+                                //                                             homeProvider.visitCount[index]["value"],
+                                //                                             size: 13,
+                                //                                           ),
+                                //                                         ),
+                                //                                         Padding(
+                                //                                           padding: const EdgeInsets.only(right: 10.0),
+                                //                                           child: Container(
+                                //                                             padding: const EdgeInsets.symmetric(
+                                //                                               horizontal: 8,
+                                //                                               vertical: 2,
+                                //                                             ),
+                                //                                             decoration: BoxDecoration(
+                                //                                               color: Colors.blue,
+                                //                                               borderRadius: BorderRadius.circular(12),
+                                //                                             ),
+                                //                                             child: CustomText(
+                                //                                               homeProvider.visitCount[index]["total_count"],
+                                //                                               size: 10,
+                                //                                               color: Colors.white,
+                                //                                             ),
+                                //                                           ),
+                                //                                         ),
+                                //                                       ],
+                                //                                     ),
+                                //                                   );
+                                //                                 },
+                                //                               ),
+                                //                             ),
+                                //                           ],
+                                //                         ),
+                                //                       ),
+                                //                     ),
+                                //                   ),
+                                //                 ],
+                                //               ),
+                                //             ),
+                                //             const SizedBox(width: 16),
+                                //             /// RIGHT SECTION
+                                //             Expanded(
+                                //               flex: 45,
+                                //               child: Column(
+                                //                 children: [
+                                //                   /// Larger Pie Chart (closer to reference)
+                                //                   Container(
+                                //                     width: screenWidth/2,
+                                //                     decoration: BoxDecoration(
+                                //                       color: Colors.red,
+                                //                       borderRadius: BorderRadius.circular(20),
+                                //                     ),
+                                //                     child: Padding(
+                                //                       padding: const EdgeInsets.all(8.0),
+                                //                       child: Row(
+                                //                         children: [
+                                //                           Icon(
+                                //                             Icons.calendar_month,
+                                //                             size: 16,
+                                //                             color: Colors.white,
+                                //                           ),
+                                //                           SizedBox(width: 6),
+                                //                           CustomText(
+                                //                             "Pending Works: ${homeProvider.inActiveVisit}",
+                                //                             size: 12,
+                                //                             weight: FontWeight.w600,
+                                //                             color: Colors.white,
+                                //                           ),
+                                //                         ],
+                                //                       ),
+                                //                     ),
+                                //                   ),
+                                //                   15.height,
+                                //                   SizedBox(
+                                //                     height: 80,
+                                //                     child:
+                                //                     // totalVisits == 0
+                                //                     //     ? const Center(
+                                //                     //   child: CustomText("No Data"),
+                                //                     // )
+                                //                     //     :
+                                //                     PieChart(
+                                //                       PieChartData(
+                                //                         sectionsSpace: 0,
+                                //                         centerSpaceRadius: 0,
+                                //                         sections: [
+                                //                           PieChartSectionData(
+                                //                             value: visitPendingsCount.toDouble(),
+                                //                             color:  Colors.red,
+                                //                             radius: 50,
+                                //                             showTitle: false,
+                                //                           ),
+                                //                           PieChartSectionData(
+                                //                             value: visitActiveCount.toDouble(),
+                                //                             color: Color(0xff63D076),
+                                //                             radius: 50,
+                                //                             showTitle: false,
+                                //                           ),
+                                //                         ],
+                                //                       ),
+                                //                     ),
+                                //                   ),
+                                //
+                                //
+                                //
+                                //                 ],
+                                //               ),
+                                //             ),
+                                //           ],
+                                //         ),
+                                //         10.height,
+                                //
+                                //       ],
+                                //     ),
+                                //   ),
+                                // ),
 
-                        // 10.height,
+                                // if (homeProvider.roleAccess.any((f) =>
+                                // f['feature'] == 'Task Management' &&
+                                //     f['name'] == 'View'))
 
-                        /// TASK CARD
-                        _buildTaskCard(
-                          context,
-                          homeProvider,
-                          screenWidth,
-                          screenHeight,
-                          taskPendingCount,
-                          taskCompletedCount,
+                                // 10.height,
+
+                                /// TASK CARD
+                                _buildTaskCard(
+                                  context,
+                                  homeProvider,
+                                  screenWidth,
+                                  screenHeight,
+                                  taskPendingCount,
+                                  taskCompletedCount,
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
                       ],
                     ),
@@ -690,117 +706,360 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   // GREETING + DATE
   // ---------------------------------------------------------------------------
   Widget _buildGreetingRow(HomeProvider homeProvider) {
+    final Color primary = colorsConst.primary;
+    // live "today" (provider _date app open aana bodhu mattum set aagum,
+    // midnight cross aanaa stale aagidum -> inga direct DateTime.now())
+    final String todayText = DateFormat('EEE, dd MMM').format(DateTime.now());
+
     return Row(
       children: [
-        Text.rich(
-          TextSpan(
+        Expanded(
+          child: Text.rich(
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            TextSpan(
+              children: [
+                TextSpan(
+                  text: "${greeting()}  ",
+                  style: GoogleFonts.lato(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.black),
+                ),
+                TextSpan(
+                  text: "${localData.storage.read("f_name")}",
+                  style: GoogleFonts.lato(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: ColorsConst.textBlack,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        8.width,
+
+        /// TODAY pill -> idhu eppovum INNAIKKU date (selected range illa)
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: primary.withOpacity(0.15)),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              TextSpan(
-                text: "${greeting()}  ",
+              Icon(Icons.wb_sunny_outlined, size: 13, color: primary),
+              const SizedBox(width: 5),
+              Text(
+                "Today · $todayText",
                 style: GoogleFonts.lato(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.black),
-              ),
-              TextSpan(
-                text: "${localData.storage.read("f_name")}",
-                style: GoogleFonts.lato(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: ColorsConst.textBlack,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xff4B5563),
                 ),
               ),
             ],
           ),
-        ),
-        30.width,
-        CustomText(
-          homeProvider.date,
-          size: 14,
-          color: ColorsConst.textGrey,
         ),
       ],
     );
   }
 
   // ---------------------------------------------------------------------------
-  // TYPE DROPDOWN + DATE PICKER
+  // PERIOD + DATE RANGE (ore premium card)
   // ---------------------------------------------------------------------------
+  static const String _customKey = "__custom__";
+  static final DateFormat _apiFmt = DateFormat('dd-MM-yyyy');
+
+  DateTime? _tryParse(String s) {
+    if (s.isEmpty) return null;
+    try {
+      return _apiFmt.parseStrict(s);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  int _rangeDays(HomeProvider h) {
+    final s = _tryParse(h.startDate);
+    final e = _tryParse(h.endDate);
+    if (s == null || e == null) return 1;
+    return e.difference(s).inDays.abs() + 1;
+  }
+
+  /// vera page-la irundhu vandha apram provider inactive-ah irundha,
+  /// loadFullDashboard() block aagaama irukka
+  void _ensureHomeActive(HomeProvider h) {
+    if (!h.isHomePageActive) h.setHomePageActive(true, context);
+  }
+
+  Widget _caption(String text) => Text(
+    text,
+    style: GoogleFonts.lato(
+      fontSize: 10,
+      letterSpacing: 0.9,
+      fontWeight: FontWeight.w700,
+      color: const Color(0xff8A90A2),
+    ),
+  );
+
+  PopupMenuItem<String> _periodItem(
+      String value, String text, bool selected, Color primary,
+      {IconData? icon}) {
+    return PopupMenuItem<String>(
+      value: value,
+      height: 42,
+      child: Row(
+        children: [
+          Icon(
+            icon ?? (selected ? Icons.radio_button_checked : Icons.radio_button_off),
+            size: 18,
+            color: selected ? primary : const Color(0xffB0B5C3),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              text,
+              style: GoogleFonts.lato(
+                fontSize: 14,
+                fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                color: selected ? primary : const Color(0xff14151F),
+              ),
+            ),
+          ),
+          if (selected) Icon(Icons.check_rounded, size: 18, color: primary),
+        ],
+      ),
+    );
+  }
+
+  /// "24 Nov 2026" | "01 – 24 Nov 2026" | "28 Oct – 24 Nov 2026"
+  String _rangeLabel(HomeProvider h) {
+    final s = _tryParse(h.startDate);
+    final e = _tryParse(h.endDate);
+    if (s == null) return "Select date";
+    if (e == null || DateUtils.isSameDay(s, e)) {
+      return DateFormat('dd MMM yyyy').format(s);
+    }
+    if (s.year == e.year) {
+      if (s.month == e.month) {
+        return "${DateFormat('dd').format(s)} – ${DateFormat('dd MMM yyyy').format(e)}";
+      }
+      return "${DateFormat('dd MMM').format(s)} – ${DateFormat('dd MMM yyyy').format(e)}";
+    }
+    return "${DateFormat('dd MMM yy').format(s)} – ${DateFormat('dd MMM yy').format(e)}";
+  }
+
+  /// Single line card: [PERIOD ▾] | [DATE RANGE]
+  /// Overflow fix:
+  ///  * caption + days badge Row-ah remove panni ore Text ("DATE RANGE · 7 days")
+  ///  * range text FittedBox(scaleDown) -> rendu date irundhaalum overflow aagaadhu
+  ///  * icon chip 34 -> 30, padding kammi -> congested-ah theriyaadhu
   Widget _buildFilterRow(
       BuildContext context, HomeProvider homeProvider, double screenWidth) {
-    return SizedBox(
+    final Color primary = colorsConst.primary;
+    final bool loading = homeProvider.rangeLoading;
+    final bool isCustom = !homeProvider.typeList.contains(homeProvider.type);
+    final String periodLabel = isCustom ? "Custom" : homeProvider.type;
+    final int days = _rangeDays(homeProvider);
+    final String caption = loading
+        ? "UPDATING..."
+        : days > 1
+        ? "DATE RANGE · $days DAYS"
+        : "DATE";
+
+    Widget chip(IconData icon) => Container(
+      width: 30,
+      height: 30,
+      decoration: BoxDecoration(
+        color: primary.withOpacity(0.12),
+        borderRadius: BorderRadius.circular(9),
+      ),
+      child: Icon(icon, size: 16, color: primary),
+    );
+
+    TextStyle valueStyle() => GoogleFonts.lato(
+      fontSize: 14,
+      fontWeight: FontWeight.w800,
+      color: const Color(0xff14151F),
+    );
+
+    return Container(
       width: screenWidth,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Container(
-            height: 35,
-            width: screenWidth / 2.2,
-            decoration: customDecoration.baseBackgroundDecoration(
-                color: Colors.white, radius: 10),
-            child: DropdownButtonHideUnderline(
-              child: DropdownButton<String>(
-                value: homeProvider.type,
-                isExpanded: true,
-                icon: const Icon(
-                  Icons.keyboard_arrow_down,
-                  color: Colors.black,
-                ),
-                style: const TextStyle(
-                  color: Colors.black,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                ),
-                items: homeProvider.typeList.map((list) {
-                  return DropdownMenuItem(
-                    value: list,
-                    child: CustomText(
-                      "  $list",
-                      color: Colors.black,
-                    ),
-                  );
-                }).toList(),
-                onChanged: (value) {
-                  setState(() {
-                    homeProvider.changeType(context, value);
-                  });
-                },
-              ),
-            ),
-          ),
-          GestureDetector(
-            onTap: () {
-              homeProvider.showDatePickerDialog(context);
-            },
-            child: Container(
-              height: 35,
-              width: screenWidth / 2.2,
-              decoration: customDecoration.baseBackgroundDecoration(
-                  color: Colors.white, radius: 10),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.calendar_today,
-                    size: 18,
-                    color: colorsConst.primary,
-                  ),
-                  const SizedBox(width: 5),
-                  Expanded(
-                    child: CustomText(
-                      size: 12,
-                      (homeProvider.startDate == homeProvider.endDate)
-                          ? homeProvider.startDate
-                          : "${homeProvider.startDate} to ${homeProvider.endDate}",
-                      weight: FontWeight.w600,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
-              ),
-            ),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Colors.white,
+            Color.alphaBlend(primary.withOpacity(0.07), Colors.white),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: primary.withOpacity(0.12)),
+        boxShadow: [
+          BoxShadow(
+            color: primary.withOpacity(0.08),
+            blurRadius: 14,
+            offset: const Offset(0, 5),
           ),
         ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: Material(
+          type: MaterialType.transparency,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(
+                height: 58,
+                child: Row(
+                  children: [
+                    /// ===== PERIOD =====
+                    Expanded(
+                      flex: 5,
+                      child: PopupMenuButton<String>(
+                        enabled: !loading,
+                        tooltip: "Select period",
+                        color: Colors.white,
+                        surfaceTintColor: Colors.white,
+                        elevation: 8,
+                        offset: const Offset(0, 58),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14)),
+                        onSelected: (v) {
+                          _ensureHomeActive(homeProvider);
+                          if (v == _customKey) {
+                            homeProvider.showDatePickerDialog(context);
+                            return;
+                          }
+                          if (v == homeProvider.type) return;
+                          homeProvider.changeType(context, v);
+                        },
+                        itemBuilder: (_) => <PopupMenuEntry<String>>[
+                          ...homeProvider.typeList.map((t) => _periodItem(
+                              t, t, homeProvider.type == t, primary)),
+                          const PopupMenuDivider(height: 8),
+                          _periodItem(_customKey, "Custom Range", isCustom,
+                              primary,
+                              icon: Icons.date_range_rounded),
+                        ],
+                        child: Padding(
+                          padding: const EdgeInsets.only(left: 10, right: 4),
+                          child: Row(
+                            children: [
+                              chip(Icons.schedule_rounded),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    _caption("PERIOD"),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      periodLabel,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: valueStyle(),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Icon(Icons.keyboard_arrow_down_rounded,
+                                  size: 20, color: primary),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    VerticalDivider(
+                      width: 1,
+                      thickness: 1,
+                      indent: 14,
+                      endIndent: 14,
+                      color: primary.withOpacity(0.15),
+                    ),
+
+                    /// ===== DATE RANGE =====
+                    Expanded(
+                      flex: 7,
+                      child: InkWell(
+                        onTap: loading
+                            ? null
+                            : () {
+                          _ensureHomeActive(homeProvider);
+                          homeProvider.showDatePickerDialog(context);
+                        },
+                        child: Padding(
+                          padding: const EdgeInsets.only(left: 10, right: 8),
+                          child: Row(
+                            children: [
+                              chip(Icons.calendar_month_rounded), // spinner illa
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    // ore Text -> Row overflow varaadhu
+                                    Text(
+                                      caption,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: GoogleFonts.lato(
+                                        fontSize: 10,
+                                        letterSpacing: 0.6,
+                                        fontWeight: FontWeight.w700,
+                                        color: loading
+                                            ? primary
+                                            : const Color(0xff8A90A2),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    // rendu date-um fit aagum (overflow illa)
+                                    FittedBox(
+                                      fit: BoxFit.scaleDown,
+                                      alignment: Alignment.centerLeft,
+                                      child: Text(
+                                        _rangeLabel(homeProvider),
+                                        maxLines: 1,
+                                        style: valueStyle(),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const Icon(Icons.chevron_right_rounded,
+                                  size: 18, color: Color(0xffB0B5C3)),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              /// bottom loading line
+              AnimatedSize(
+                duration: const Duration(milliseconds: 200),
+                child: loading
+                    ? LinearProgressIndicator(
+                  minHeight: 2.5,
+                  color: primary,
+                  backgroundColor: primary.withOpacity(0.12),
+                )
+                    : const SizedBox(width: double.infinity),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

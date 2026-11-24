@@ -154,20 +154,20 @@ class LeaveProvider with ChangeNotifier {
   TextEditingController reason=TextEditingController();
   void iniValues(){
     _type=null;
-  _dayType=null;
-  _name=null;
-  search.clear();
-  _typeId="";
-  _nameId="";
-  _rulesList.clear();
-  _dayType="1";
-  _stDate="";
-  _enDate="";
-  reason.clear();
-  _session1=true;
-  _session2=false;
-  notifyListeners();
-}
+    _dayType=null;
+    _name=null;
+    search.clear();
+    _typeId="";
+    _nameId="";
+    _rulesList.clear();
+    _dayType="1";
+    _stDate="";
+    _enDate="";
+    reason.clear();
+    _session1=true;
+    _session2=false;
+    notifyListeners();
+  }
   DateTime selected = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
   dynamic lastDate,end,yearr;
   void initVal(){
@@ -184,9 +184,9 @@ class LeaveProvider with ChangeNotifier {
     levMonthD2=end;
     noOfWorkingDay.text=lastDate.toString();
     getMonthLeaves(true,showDate7,showDate8);
-  
-  notifyListeners();
-}
+
+    notifyListeners();
+  }
 
   bool _allSunday = false;
   bool _allSaturday = false;
@@ -209,7 +209,7 @@ class LeaveProvider with ChangeNotifier {
 
   void allSunDay(dynamic value){
     _allSunday = value;
-      sundays.clear();
+    sundays.clear();
     changeStatus(true);
     notifyListeners();
   }
@@ -313,8 +313,8 @@ class LeaveProvider with ChangeNotifier {
     searchFutureHolidays = suggestions;
     notifyListeners();
   }
-  
-  
+
+
   void getOwnLeaves(String id,String st,String en)async{
     _isLoading4=false;
     _allSelect= false;
@@ -457,7 +457,7 @@ class LeaveProvider with ChangeNotifier {
   //   notifyListeners();
   //   return list;
   // }
-///
+  ///
   // List<Map<String, dynamic>> getFifthSaturdays(int year, List<Map<String, dynamic>> list,String value) {
   //   for (int month = 1; month <= 12; month++) {
   //     DateTime firstDayOfMonth = DateTime(year, month, 1);
@@ -583,7 +583,7 @@ class LeaveProvider with ChangeNotifier {
   //   }
   //   return saturdays;
   // }
-  
+
 
   List<Map<String, dynamic>> getAllSundays(int year,String value) {
     for (int month = 1; month <= 12; month++) {
@@ -627,8 +627,8 @@ class LeaveProvider with ChangeNotifier {
     _allSelect=false;
     _year="${DateTime.now().year}";
 
-  notifyListeners();
-}
+    notifyListeners();
+  }
   void listCheck(){
     changeStatus(false);
     getAllSundays(int.parse(_year), _allSunday==true?"1":"0");
@@ -764,7 +764,7 @@ class LeaveProvider with ChangeNotifier {
     _typeReport="Today";
     _filter=false;
     notifyListeners();
-}
+  }
   void iniValues3(){
     reason.clear();
     groupController.selectIndex(0);
@@ -775,11 +775,11 @@ class LeaveProvider with ChangeNotifier {
     // setMonth(_showDate7,_showDate8,month);
     // setMonth(levMonthD1,levMonthD2,month);
     notifyListeners();
-}
-void changeSetting(){
+  }
+  void changeSetting(){
     _settingPage = true;
-  notifyListeners();
-}
+    notifyListeners();
+  }
   void setCurrentWeek() {
     DateTime now = DateTime.now();
     dateTime1 = now.subtract(Duration(days: now.weekday - 1)); // First day of current week (Monday)
@@ -893,92 +893,92 @@ void changeSetting(){
   DateTimeRange dateRange = DateTimeRange(start: DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day), end: DateTime.now());
   DateTime lastRange = DateTime(DateTime.now().year, DateTime.december, 31);
   void showDatePickerCalendar(BuildContext context) {
-  // selectedDate=null;
-  // datesBetween = [];
-  // betweenDates="";
-  DateTime today = DateTime.now();
-  selectedDate = PickerDateRange(today, today);
-  datesBetween = getDatesInRange(selectedDate!.startDate!, selectedDate!.endDate!);
+    // selectedDate=null;
+    // datesBetween = [];
+    // betweenDates="";
+    DateTime today = DateTime.now();
+    selectedDate = PickerDateRange(today, today);
+    datesBetween = getDatesInRange(selectedDate!.startDate!, selectedDate!.endDate!);
 
-  DateFormat dateFormat = DateFormat('dd-MM-yyyy');
-  List<String> formattedDates = datesBetween.map((date) => dateFormat.format(date)).toList();
-  betweenDates = formattedDates.join(' || ');
+    DateFormat dateFormat = DateFormat('dd-MM-yyyy');
+    List<String> formattedDates = datesBetween.map((date) => dateFormat.format(date)).toList();
+    betweenDates = formattedDates.join(' || ');
 
-  _startDate = dateFormat.format(selectedDate!.startDate!);
-  notifyListeners();
-  showDialog(
-    context: context,
-    builder: (BuildContext context) {
-      return AlertDialog(
-        title: CustomText(text: '   Select Date',colors: colorsConst.secondary,isBold: true,),
-        content: SizedBox(
-          height: 300, // Adjust height as needed
-          width: 300, // Adjust width as needed
-          child: SfDateRangePicker(
-            minDate: DateTime.now().subtract(const Duration(days: 365)),
-            maxDate: DateTime.now().add(const Duration(days: 365)),
-            onSelectionChanged: (DateRangePickerSelectionChangedArgs args) {
-              selectedDate = args.value;
-              if(selectedDate?.endDate!=null){
-                _startDate="${selectedDate?.startDate?.day.toString().padLeft(2,"0")}"
-                    "-${selectedDate?.startDate?.month.toString().padLeft(2,"0")}"
-                    "-${selectedDate?.startDate?.year.toString()}";
+    _startDate = dateFormat.format(selectedDate!.startDate!);
+    notifyListeners();
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: CustomText(text: '   Select Date',colors: colorsConst.secondary,isBold: true,),
+          content: SizedBox(
+            height: 300, // Adjust height as needed
+            width: 300, // Adjust width as needed
+            child: SfDateRangePicker(
+              minDate: DateTime.now().subtract(const Duration(days: 365)),
+              maxDate: DateTime.now().add(const Duration(days: 365)),
+              onSelectionChanged: (DateRangePickerSelectionChangedArgs args) {
+                selectedDate = args.value;
+                if(selectedDate?.endDate!=null){
+                  _startDate="${selectedDate?.startDate?.day.toString().padLeft(2,"0")}"
+                      "-${selectedDate?.startDate?.month.toString().padLeft(2,"0")}"
+                      "-${selectedDate?.startDate?.year.toString()}";
 
-                _endDate="${selectedDate?.endDate?.day.toString().padLeft(2,"0")}"
-                    "-${selectedDate?.endDate?.month.toString().padLeft(2,"0")}"
-                    "-${selectedDate?.endDate?.year.toString()}";
-              }else{
-                _startDate="${selectedDate?.startDate?.day.toString().padLeft(2,"0")}"
-                    "-${selectedDate?.startDate?.month.toString().padLeft(2,"0")}"
-                    "-${selectedDate?.startDate?.year.toString()}";
-                _endDate="";
-              }
-              notifyListeners();
-            },
-            selectionMode: DateRangePickerSelectionMode.range,
+                  _endDate="${selectedDate?.endDate?.day.toString().padLeft(2,"0")}"
+                      "-${selectedDate?.endDate?.month.toString().padLeft(2,"0")}"
+                      "-${selectedDate?.endDate?.year.toString()}";
+                }else{
+                  _startDate="${selectedDate?.startDate?.day.toString().padLeft(2,"0")}"
+                      "-${selectedDate?.startDate?.month.toString().padLeft(2,"0")}"
+                      "-${selectedDate?.startDate?.year.toString()}";
+                  _endDate="";
+                }
+                notifyListeners();
+              },
+              selectionMode: DateRangePickerSelectionMode.range,
+            ),
           ),
-        ),
-        actions: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              CustomText(text: 'Click and drag to select multiple dates',colors: colorsConst.primary,),
-            ],
-          ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              TextButton(
-                child: const CustomText(text:'Cancel',colors: Colors.grey,isBold: true,),
-                onPressed: () {
-                  Navigator.of(context).pop();
-                },
-              ),
-              TextButton(
-                child: CustomText(text: 'OK',colors: colorsConst.primary,isBold: true,),
-                onPressed: () {
-                  if (selectedDate != null) {
-                    datesBetween = getDatesInRange(
-                      selectedDate!.startDate!,
-                      selectedDate!.endDate ?? selectedDate!.startDate!,
-                    );
-                  }
-                  DateFormat dateFormat = DateFormat('dd-MM-yyyy');
+          actions: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                CustomText(text: 'Click and drag to select multiple dates',colors: colorsConst.primary,),
+              ],
+            ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                TextButton(
+                  child: const CustomText(text:'Cancel',colors: Colors.grey,isBold: true,),
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                ),
+                TextButton(
+                  child: CustomText(text: 'OK',colors: colorsConst.primary,isBold: true,),
+                  onPressed: () {
+                    if (selectedDate != null) {
+                      datesBetween = getDatesInRange(
+                        selectedDate!.startDate!,
+                        selectedDate!.endDate ?? selectedDate!.startDate!,
+                      );
+                    }
+                    DateFormat dateFormat = DateFormat('dd-MM-yyyy');
 
-                  List<String> formattedDates = datesBetween.map((date) => dateFormat.format(date)).toList();
-                  betweenDates = formattedDates.join(' || ');
-                  getLeaveReport(_filter);
-                  notifyListeners();
-                  Navigator.of(context).pop();
-                },
-              ),
-            ],
-          ),
-        ],
-      );
-    },
-  );
-}
+                    List<String> formattedDates = datesBetween.map((date) => dateFormat.format(date)).toList();
+                    betweenDates = formattedDates.join(' || ');
+                    getLeaveReport(_filter);
+                    notifyListeners();
+                    Navigator.of(context).pop();
+                  },
+                ),
+              ],
+            ),
+          ],
+        );
+      },
+    );
+  }
 
   void reportPick({required BuildContext context,required String date,required String type}){
     DateTime dateTime=DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
@@ -1006,8 +1006,8 @@ void changeSetting(){
   }
   void changeReportType(dynamic value){
     _report = value;
-  notifyListeners();
-}
+    notifyListeners();
+  }
 // void changeLeaveType(dynamic value) {
 //     if (value == null) return;
 //
@@ -1034,49 +1034,49 @@ void changeSetting(){
     _dayType = value.toString();
     notifyListeners();
   }
-void changePage(context){
+  void changePage(context){
     _settingPage = false;
     _addType=false;
     _selectedIndex = 0;
     utils.navigatePage(context, ()=>const DashBoard(child: LeaveManagementDashboard()));
     // setList();
-  notifyListeners();
-}
-void searchReport(String value){
-  if(_filter==false){
-    final suggestions = myLev.where(
-            (user) {
-          final userName = user.fName.toString()
-              .toLowerCase();
-          final input = value.toString()
-              .toLowerCase()
-              .trim();
-          return userName.contains(input);
-        }).toList();
-    myLevSearch = suggestions;
-  }else{
-    final suggestions = myLevSearch.where(
-            (user) {
-          final userName = user.fName.toString()
-              .toLowerCase();
-          final input = value.toString()
-              .toLowerCase()
-              .trim();
-          return userName.contains(input);
-        }).toList();
-    myLevSearch = suggestions;
-    if(value.isEmpty){
-      getLeaveReport(_filter);
-    }
+    notifyListeners();
   }
-  notifyListeners();
-}
+  void searchReport(String value){
+    if(_filter==false){
+      final suggestions = myLev.where(
+              (user) {
+            final userName = user.fName.toString()
+                .toLowerCase();
+            final input = value.toString()
+                .toLowerCase()
+                .trim();
+            return userName.contains(input);
+          }).toList();
+      myLevSearch = suggestions;
+    }else{
+      final suggestions = myLevSearch.where(
+              (user) {
+            final userName = user.fName.toString()
+                .toLowerCase();
+            final input = value.toString()
+                .toLowerCase()
+                .trim();
+            return userName.contains(input);
+          }).toList();
+      myLevSearch = suggestions;
+      if(value.isEmpty){
+        getLeaveReport(_filter);
+      }
+    }
+    notifyListeners();
+  }
 
-void changePage2(){
+  void changePage2(){
     _addType=false;
     setList();
-  notifyListeners();
-}
+    notifyListeners();
+  }
   PickerDateRange? selectedDate;
   List<DateTime> datesBetween = [];
   String betweenDates="";
@@ -1240,30 +1240,30 @@ void changePage2(){
     }
     return days;
   }
-void changeIndex(int index){
+  void changeIndex(int index){
     _selectedIndex = index;
     _addType = false;
     _settingPage = false;
     // setList();
-  notifyListeners();
+    notifyListeners();
   }
-   List<Widget> _mainContents = [];
-   List<Widget> get mainContents => _mainContents;
+  List<Widget> _mainContents = [];
+  List<Widget> get mainContents => _mainContents;
   void changeAddType(){
     _addType = true;
     // setList();
-  notifyListeners();
-}
-void setList(){
-  _mainContents = [
-    const FixedLeave(),
-    _addType==false?
-    const LeaveTypes():const AddType(),
-    const ViewMyLeaves(),
-    const ApplyLeave(),
-    const AddLeaveRules(),
-  ];
-}
+    notifyListeners();
+  }
+  void setList(){
+    _mainContents = [
+      const FixedLeave(),
+      _addType==false?
+      const LeaveTypes():const AddType(),
+      const ViewMyLeaves(),
+      const ApplyLeave(),
+      const AddLeaveRules(),
+    ];
+  }
   List types=[];
   RoundedLoadingButtonController submitCtr=RoundedLoadingButtonController();
   RoundedLoadingButtonController addCtr=RoundedLoadingButtonController();
@@ -1302,19 +1302,19 @@ void setList(){
     notifyListeners();
   }
   void selectUser(dynamic value) {
-      var list = value.toString().split(',');
-      _name = value;
-      _nameId = list[0];
-      localData.storage.write("leave_emp_name",list[1]);
-      // _nameId = value.id.toString();
+    var list = value.toString().split(',');
+    _name = value;
+    _nameId = list[0];
+    localData.storage.write("leave_emp_name",list[1]);
+    // _nameId = value.id.toString();
     notifyListeners();
   }
   void selectUser2(dynamic value) {
-      var list = value.toString().split(',');
-      _name = value;
-      _nameId = list[0];
-      // _nameId = value.id.toString();
-      getLeavesRules(_nameId);
+    var list = value.toString().split(',');
+    _name = value;
+    _nameId = list[0];
+    // _nameId = value.id.toString();
+    getLeavesRules(_nameId);
     notifyListeners();
   }
   Future<void> addLeaveRule(context) async {
@@ -1877,10 +1877,10 @@ void setList(){
   // }
   bool _isChanged=false;
   bool get isChanged=> _isChanged;
-void changeStatus(bool value){
-  _isChanged=value;
-  notifyListeners();
-}
+  void changeStatus(bool value){
+    _isChanged=value;
+    notifyListeners();
+  }
   Future<void> insertLeaveDays(context) async {
     getAllSundays(int.parse(_year), _allSunday == true ? "1" : "0");
     getFirstSaturdays(int.parse(_year), customSaturdays1, _saturday1 == true ? "1" : "0");
@@ -2118,6 +2118,22 @@ void changeStatus(bool value){
 
     notifyListeners();
   }
+  /// Home page-la select panna range (dd-MM-yyyy) -> Leave page data
+  /// label: Home type ("Last 7 Days" ...). typeList-la illana null
+  /// (DropdownButton value items-la illana crash aagum).
+  void applyHomeRange(String d1, String d2, {String? label}) {
+    _startDate = d1;
+    _endDate = d2.isEmpty ? d1 : d2;
+    _typeReport = (label != null && typeList.contains(label)) ? label : null;
+    _filter = false;
+    isFilterApplied = false;
+    _user = null;
+    _userName = "";
+    search2.clear();
+    getLeaveReport(_filter);
+    notifyListeners();
+  }
+
   void initDates({required String id, required String role, bool? isRefresh, String? date1, String? date2, String? type}){
     _typeReport=type;
     search.clear();
@@ -2214,8 +2230,8 @@ void changeStatus(bool value){
       };
 
       final response = await leaveRepo.getLeave(data);
-       print("TODAY LEAVE LIST 33 => ${response}");
-     print("TODAY LEAVE LIST 12 => ${data}");
+      print("TODAY LEAVE LIST 33 => ${response}");
+      print("TODAY LEAVE LIST 12 => ${data}");
       myLev = response;
       myLevSearch = response;
 
@@ -2232,8 +2248,8 @@ void changeStatus(bool value){
       if(isToday){
         todayLeaveList = response;
       }
-   print("TODAY LEAVE LIST => ${todayLeaveList}");
-       print("MY ID => ${localData.storage.read("id")}");// ✅ store here
+      print("TODAY LEAVE LIST => ${todayLeaveList}");
+      print("MY ID => ${localData.storage.read("id")}");// ✅ store here
       _isLoading = false;
       notifyListeners();
 
@@ -2265,8 +2281,8 @@ void changeStatus(bool value){
       };
 
       final response = await leaveRepo.getLeave(data);
-       print("TODAY LEAVE LIST 33 => ${response}");
-     print("TODAY LEAVE LIST 12 => ${data}");
+      print("TODAY LEAVE LIST 33 => ${response}");
+      print("TODAY LEAVE LIST 12 => ${data}");
       myLev = response;
       myLevSearch = response;
 
@@ -2283,8 +2299,8 @@ void changeStatus(bool value){
       if(isToday){
         todayLeaveList = response;
       }
-   print("TODAY LEAVE LIST => ${todayLeaveList}");
-       print("MY ID => ${localData.storage.read("id")}");// ✅ store here
+      print("TODAY LEAVE LIST => ${todayLeaveList}");
+      print("MY ID => ${localData.storage.read("id")}");// ✅ store here
       _isLoading = false;
       notifyListeners();
 
@@ -2490,7 +2506,7 @@ void changeStatus(bool value){
     enDt = DateTime.now();
     _startDate = DateFormat('dd-MM-yyyy').format(stDt);
     _endDate = DateFormat('dd-MM-yyyy').format(stDt);
-   // getLeaveReport(_filter);
+    // getLeaveReport(_filter);
     notifyListeners();
   }
   void last7Days(String id ,String role,bool? isRefresh) {
@@ -2499,7 +2515,7 @@ void changeStatus(bool value){
     DateTime lastWeekEnd = now;
     _startDate = DateFormat('dd-MM-yyyy').format(lastWeekStart);
     _endDate = DateFormat('dd-MM-yyyy').format(lastWeekEnd);
-   // getLeaveReport(_filter);
+    // getLeaveReport(_filter);
     notifyListeners();
   }
   void last30Days(String id ,String role,bool? isRefresh) {
@@ -2508,7 +2524,7 @@ void changeStatus(bool value){
     DateTime lastMonthEnd = now;
     _startDate = DateFormat('dd-MM-yyyy').format(lastMonthStart);
     _endDate = DateFormat('dd-MM-yyyy').format(lastMonthEnd);
-   // getLeaveReport(_filter);
+    // getLeaveReport(_filter);
     notifyListeners();
   }
   void thisWeek(String id ,String role,bool? isRefresh) {
@@ -2518,7 +2534,7 @@ void changeStatus(bool value){
     DateTime enDt = now.add(Duration(days: 7 - currentWeekday));
     _startDate = DateFormat('dd-MM-yyyy').format(stDt);
     _endDate = DateFormat('dd-MM-yyyy').format(enDt);
-   // getLeaveReport(_filter);
+    // getLeaveReport(_filter);
     notifyListeners();
   }
   void thisMonth(String id ,String role,bool? isRefresh) {
@@ -2527,7 +2543,7 @@ void changeStatus(bool value){
     enDt = now; // Today’s date
     _startDate = DateFormat('dd-MM-yyyy').format(stDt);
     _endDate = DateFormat('dd-MM-yyyy').format(enDt);
-   // getLeaveReport(_filter);
+    // getLeaveReport(_filter);
     notifyListeners();
   }
   void last3Month(String id ,String role,bool? isRefresh) {
@@ -2539,7 +2555,7 @@ void changeStatus(bool value){
 
     _startDate = DateFormat('dd-MM-yyyy').format(stDt);
     _endDate = DateFormat('dd-MM-yyyy').format(enDt);
-   // getLeaveReport(_filter);
+    // getLeaveReport(_filter);
     notifyListeners();
   }
 
@@ -2589,109 +2605,109 @@ void changeStatus(bool value){
     // try{
 
     _defaultMonth =DateTime.now().month;
-      if(isRefresh==true){
-        _refresh=false;
-        fixedLeaves.clear();
-        _thisMonthLeave="0";
-      }
+    if(isRefresh==true){
+      _refresh=false;
+      fixedLeaves.clear();
+      _thisMonthLeave="0";
+    }
     dataSource.dispose();
     dataSource.appointments?.clear();
     notifyListeners();
-      Map data = {
-        "action":getLeaveData,
-        "search_type":"yearly_leaves",
-        "st_dt":date1,
-        "en_dt":date2,
-        "cos_id":localData.storage.read("cos_id")
-      };
-      final request = await http.post(Uri.parse(leavePhpFile),
-          headers: {
-            "Accept": "application/text",
-            "Content-Type": "application/x-www-form-urlencoded"
-          },
-          body: jsonEncode(data),
-          encoding: Encoding.getByName("utf-8"));
-      // print(data.toString());
-      // print(request.body);
-      if (request.statusCode == 200) {
-        final List response= json.decode(request.body);
-        total=response.length;
-        if(isMonthly==false){
-          // for(var i=0;i<response.length;i++){
-          //   DateTime dateObject = DateTime.parse(response[i]["lev_date"]);
-          //   Appointment app = Appointment(
-          //     startTime: dateObject,
-          //     endTime: dateObject,
-          //     subject: response[i]["reason"],
-          //     color: colorsConst.primary,
-          //   );
-          //   dataSource.appointments!.add(app);
-          //   dataSource.notifyListeners(CalendarDataSourceAction.add, <Appointment>[app]);
-          //   // print("Adding Appointment....");
-          //   var count=0;
-          //   for(var i=0;i<response.length;i++){
-          //     var st = DateTime.parse(response[i]["lev_date"].toString());
-          //     if(utils.returnPadLeft(defaultMonth.toString())==utils.returnPadLeft(st.month.toString())){
-          //       count++;
-          //     }
-          //   }
-          //   _thisMonthLeave=count.toString();
-          // }
-          Set<String> uniqueDates = {};
+    Map data = {
+      "action":getLeaveData,
+      "search_type":"yearly_leaves",
+      "st_dt":date1,
+      "en_dt":date2,
+      "cos_id":localData.storage.read("cos_id")
+    };
+    final request = await http.post(Uri.parse(leavePhpFile),
+        headers: {
+          "Accept": "application/text",
+          "Content-Type": "application/x-www-form-urlencoded"
+        },
+        body: jsonEncode(data),
+        encoding: Encoding.getByName("utf-8"));
+    // print(data.toString());
+    // print(request.body);
+    if (request.statusCode == 200) {
+      final List response= json.decode(request.body);
+      total=response.length;
+      if(isMonthly==false){
+        // for(var i=0;i<response.length;i++){
+        //   DateTime dateObject = DateTime.parse(response[i]["lev_date"]);
+        //   Appointment app = Appointment(
+        //     startTime: dateObject,
+        //     endTime: dateObject,
+        //     subject: response[i]["reason"],
+        //     color: colorsConst.primary,
+        //   );
+        //   dataSource.appointments!.add(app);
+        //   dataSource.notifyListeners(CalendarDataSourceAction.add, <Appointment>[app]);
+        //   // print("Adding Appointment....");
+        //   var count=0;
+        //   for(var i=0;i<response.length;i++){
+        //     var st = DateTime.parse(response[i]["lev_date"].toString());
+        //     if(utils.returnPadLeft(defaultMonth.toString())==utils.returnPadLeft(st.month.toString())){
+        //       count++;
+        //     }
+        //   }
+        //   _thisMonthLeave=count.toString();
+        // }
+        Set<String> uniqueDates = {};
 
-          for (var i = 0; i < response.length; i++) {
-            DateTime dateObject = DateTime.parse(response[i]["lev_date"]);
+        for (var i = 0; i < response.length; i++) {
+          DateTime dateObject = DateTime.parse(response[i]["lev_date"]);
 
-            // print("➡️ Raw Date from API: ${response[i]["lev_date"]}");
-            // print("➡️ Parsed Date: $dateObject");
+          // print("➡️ Raw Date from API: ${response[i]["lev_date"]}");
+          // print("➡️ Parsed Date: $dateObject");
 
-            // Add appointment
-            Appointment app = Appointment(
-              startTime: dateObject,
-              endTime: dateObject,
-              subject: response[i]["reason"],
-              color: colorsConst.primary,
-            );
+          // Add appointment
+          Appointment app = Appointment(
+            startTime: dateObject,
+            endTime: dateObject,
+            subject: response[i]["reason"],
+            color: colorsConst.primary,
+          );
 
-            dataSource.appointments!.add(app);
-            dataSource.notifyListeners(
-              CalendarDataSourceAction.add,
-              <Appointment>[app],
-            );
+          dataSource.appointments!.add(app);
+          dataSource.notifyListeners(
+            CalendarDataSourceAction.add,
+            <Appointment>[app],
+          );
 
-            // Month check + unique date logic
-            if (utils.returnPadLeft(defaultMonth.toString()) ==
-                utils.returnPadLeft(dateObject.month.toString())) {
+          // Month check + unique date logic
+          if (utils.returnPadLeft(defaultMonth.toString()) ==
+              utils.returnPadLeft(dateObject.month.toString())) {
 
-              String onlyDate = dateObject.toIso8601String().substring(0, 10);
+            String onlyDate = dateObject.toIso8601String().substring(0, 10);
 
-              if (uniqueDates.contains(onlyDate)) {
-                // print("⚠️ Duplicate date skipped: $onlyDate");
-              } else {
-                // print("✅ New date added for count: $onlyDate");
-              }
-
-              uniqueDates.add(onlyDate);
+            if (uniqueDates.contains(onlyDate)) {
+              // print("⚠️ Duplicate date skipped: $onlyDate");
+            } else {
+              // print("✅ New date added for count: $onlyDate");
             }
+
+            uniqueDates.add(onlyDate);
           }
-
-          // print("📊 Unique leave dates in this month: $uniqueDates");
-          // print("📌 Total Leave Count (This Month): ${uniqueDates.length}");
-
-          _thisMonthLeave = uniqueDates.length.toString();
-          // print("📌 _thisMonthLeave: ${_thisMonthLeave}");
         }
-        _refresh=true;
-        notifyListeners();
-        return response.map((json) => HolyDaysModel.fromJson(json)).toList();
-      } else {
-        total=0;
-        _refresh=true;
-        dataSource.appointments?.clear();
-        fixedLeaves.clear();
-        notifyListeners();
-        throw Exception('Failed to load album');
+
+        // print("📊 Unique leave dates in this month: $uniqueDates");
+        // print("📌 Total Leave Count (This Month): ${uniqueDates.length}");
+
+        _thisMonthLeave = uniqueDates.length.toString();
+        // print("📌 _thisMonthLeave: ${_thisMonthLeave}");
       }
+      _refresh=true;
+      notifyListeners();
+      return response.map((json) => HolyDaysModel.fromJson(json)).toList();
+    } else {
+      total=0;
+      _refresh=true;
+      dataSource.appointments?.clear();
+      fixedLeaves.clear();
+      notifyListeners();
+      throw Exception('Failed to load album');
+    }
     // }catch(e){
     //   total=0;
     //   _refresh=true;

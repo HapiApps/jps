@@ -20,6 +20,7 @@ import 'package:master_code/view_model/employee_provider.dart';
 import 'package:master_code/view_model/home_provider.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
 import '../../component/animated_button.dart';
@@ -106,29 +107,15 @@ class _ViewTaskState extends State<ViewTaskPage> with SingleTickerProviderStateM
       if (!mounted) return;
 
       final taskProvider = Provider.of<TaskProvider>(context, listen: false);
-      final custProvider = Provider.of<CustomerProvider>(context, listen: false);
-
-      // employees / customers / task users -> HomePage already loaded them.
-      // They are loaded lazily (only if empty) when the Filter dialog opens.
 
       taskProvider.search.clear();
       taskProvider.search2.clear();
 
-      // Dropdown / master data
-      if (kIsWeb) {
-        taskProvider.getTaskType(false);
-        taskProvider.getTaskStatuses();
-        custProvider.getLeadCategory();
-        custProvider.getVisitType();
-        custProvider.getCmtType();
-      } else {
-        taskProvider.getAllTypes();
-        taskProvider.getTypeSts();
-        custProvider.getLead();
-        custProvider.getVisit();
-        custProvider.getCommentType();
-      }
-
+      // ============ 1) TASKS FIRST ============
+      // FIX (web): munnadi CustomerProvider read mudhalla irundhuchu.
+      // Web-la CustomerProvider create aagum bodhu geocoding crash aagudhu ->
+      // indha callback adhoda nindhudum -> getAllTask() call-ae aagala ->
+      // "No Task Found". Ippo tasks mudhalla load aagum.
       taskProvider.dataSource = _getDataSource();
 
       taskProvider.initFilterValue(
@@ -147,6 +134,31 @@ class _ViewTaskState extends State<ViewTaskPage> with SingleTickerProviderStateM
       );
 
       taskProvider.getAllTask(true);
+
+      // ============ 2) DROPDOWN / MASTER DATA ============
+      if (kIsWeb) {
+        taskProvider.getTaskType(false);
+        taskProvider.getTaskStatuses();
+      } else {
+        taskProvider.getAllTypes();
+        taskProvider.getTypeSts();
+      }
+
+      // CustomerProvider fail aanaalum task list affect aagaadhu
+      try {
+        final custProvider = Provider.of<CustomerProvider>(context, listen: false);
+        if (kIsWeb) {
+          custProvider.getLeadCategory();
+          custProvider.getVisitType();
+          custProvider.getCmtType();
+        } else {
+          custProvider.getLead();
+          custProvider.getVisit();
+          custProvider.getCommentType();
+        }
+      } catch (e) {
+        debugPrint("ViewTask: CustomerProvider unavailable => $e");
+      }
     });
   }
 
@@ -772,9 +784,13 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>
                         borderRadius: BorderRadius.circular(22),
                         onTap: () {
                           _myFocusScopeNode.unfocus();
-                          final cust = context.read<CustomerProvider>();
+                          try {
+                            final cust = context.read<CustomerProvider>();
+                            if (cust.customer.isEmpty) cust.getAllCustomers(true);
+                          } catch (e) {
+                            debugPrint("Filter: CustomerProvider unavailable => $e");
+                          }
                           final emp = context.read<EmployeeProvider>();
-                          if (cust.customer.isEmpty) cust.getAllCustomers(true);
                           if (emp.activeEmps.isEmpty) emp.getAllUsers(isRefresh: false);
                           if (!taskProvider.typeList.any((e) => e['value'] == 'All')) {
                             taskProvider.typeList.insert(0, {
@@ -818,9 +834,22 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>
                   /// LIST
                   noData
                       ? Padding(
-                    padding: const EdgeInsets.only(top: 100),
-                    child: CustomText(
-                        text: "No Task Found", colors: colorsConst.greyClr),
+                    padding: const EdgeInsets.only(top: 100, left: 16, right: 16),
+                    child: Column(
+                      children: [
+                        CustomText(
+                            text: "No Task Found", colors: colorsConst.greyClr),
+                        // load fail aana real reason (web debug-kku)
+                        if (taskProvider.taskLoadError.isNotEmpty) ...[
+                          const SizedBox(height: 8),
+                          SelectableText(
+                            "Load error: ${taskProvider.taskLoadError}",
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(fontSize: 12, color: Colors.red),
+                          ),
+                        ],
+                      ],
+                    ),
                   )
                       : Expanded(
                     child: Builder(builder: (context) {
@@ -1603,6 +1632,29 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>
   // -------------------------------------------------------------------------
   // NAVIGATION
   // -------------------------------------------------------------------------
+
+  /// Edit icon show aaganum na: admin (role 1) + task Completed illa
+  /// (Task Details page-la irukkura same condition)
+  bool _canEdit(TaskData data) =>
+      localData.storage.read("role").toString() == "1" &&
+          (data.statval ?? "").toString().trim() != "Completed";
+
+  void _openEdit(TaskData data) {
+    _myFocusScopeNode.unfocus();
+    HapticFeedback.lightImpact();
+    Provider.of<HomeProvider>(context, listen: false).panelClose();
+    utils.navigatePage(
+      context,
+          () => DashBoard(
+        child: EditTask(
+          data: data,
+          isDirect: true,
+          numberList: const [],
+        ),
+      ),
+    );
+  }
+
   void _openDetails(TaskData data, int index) {
     _myFocusScopeNode.unfocus();
     Provider.of<HomeProvider>(context, listen: false).panelClose();
@@ -1802,6 +1854,34 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>
                       ),
                     ],
                   ),
+
+                  /// EDIT ICON -> Edit Task page
+                  if (_canEdit(data)) ...[
+                    const SizedBox(width: 8),
+                    GestureDetector(
+                      behavior: HitTestBehavior.opaque, // card tap-ku pogaadhu
+                      onTap: () => _openEdit(data),
+                      child: Container(
+                        width: 32,
+                        height: 32,
+                        decoration: BoxDecoration(
+                          color: colorsConst.primary.withOpacity(0.10),
+                          shape: BoxShape.circle,
+                        ),
+                        padding: const EdgeInsets.all(8),
+                        child: SvgPicture.asset(
+                          assets.tEdit,
+                          width: 16,
+                          height: 16,
+                          placeholderBuilder: (_) => Icon(
+                            Icons.edit_outlined,
+                            size: 16,
+                            color: colorsConst.primary,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ],
               ),
               4.height,

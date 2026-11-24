@@ -429,7 +429,32 @@ class CustomerProvider with ChangeNotifier{
   String selectedCompanyId = "";
   String selectedCompanyName = "";
   List<Map<String, dynamic>> sendLists = [];
-  final Geocoding geocodingService = Geocoding();
+  // FIX (web): `Geocoding()` web-la create panna crash aagudhu (platform
+  // implementation illa) -> CustomerProvider-ae create aagaama, View Task /
+  // Home / Customer pages web-la break aachu. Ippo lazy + web-la null.
+  Geocoding? _geocoding;
+  Geocoding? get geocodingService {
+    if (kIsWeb) return null;
+    try {
+      return _geocoding ??= Geocoding();
+    } catch (e) {
+      log("Geocoding unavailable: $e");
+      return null;
+    }
+  }
+
+  /// lat/lng -> Placemark (web / error -> null)
+  Future<Placemark?> _placemarkAt(double lat, double lng) async {
+    final geo = geocodingService;
+    if (geo == null) return null;
+    try {
+      final list = await geo.placemarkFromCoordinates(lat, lng);
+      return list.isEmpty ? null : list.first;
+    } catch (e) {
+      log("placemarkFromCoordinates failed: $e");
+      return null;
+    }
+  }
 
   void setSendList(List<Map<String, dynamic>> list) {
     sendLists = list;
@@ -568,7 +593,13 @@ class CustomerProvider with ChangeNotifier{
   Future<void> mapAddress() async {
     if(search2.text!=""){
       try{
-        List<Location> locations = await geocodingService.locationFromAddress(search2.text);
+        final geo = geocodingService;
+        if (geo == null) {
+          // web-la address -> location lookup illa
+          notifyListeners();
+          return;
+        }
+        List<Location> locations = await geo.locationFromAddress(search2.text);
         googleMapController.animateCamera
           (CameraUpdate.newCameraPosition(CameraPosition
           (target: LatLng(locations[0].latitude,locations[0].longitude),zoom: 20)));
@@ -579,8 +610,11 @@ class CustomerProvider with ChangeNotifier{
             infoWindow: InfoWindow(title: search2.text),
             icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueViolet
             ),),);
-        List<Placemark> placeMark=await geocodingService.placemarkFromCoordinates(locations[0].latitude,locations[0].longitude);
-        Placemark place = placeMark[0];
+        final Placemark? place = await _placemarkAt(locations[0].latitude,locations[0].longitude);
+        if (place == null) {
+          notifyListeners();
+          return;
+        }
         address.text=place.street.toString();
         comArea.text="${place.subLocality.toString()}${place.thoroughfare.toString()==""?"":",${place.thoroughfare}"==""?"":place.thoroughfare.toString()}";
         city.text=place.locality.toString();
@@ -1201,8 +1235,8 @@ class CustomerProvider with ChangeNotifier{
     notifyListeners();
   }
   void getAdd(double lat,double lng) async {
-    List<Placemark> placeMark=await geocodingService.placemarkFromCoordinates(lat,lng);
-    Placemark place = placeMark[0];
+    final Placemark? place = await _placemarkAt(lat, lng);
+    if (place == null) return; // web / lookup fail -> fields appadiye
     address.text=place.street.toString();
     comArea.text="${place.subLocality.toString()}${place.thoroughfare.toString()==""?"":",${place.thoroughfare}"==""?"":place.thoroughfare.toString()}";
     city.text=place.locality.toString();
@@ -2675,11 +2709,12 @@ class CustomerProvider with ChangeNotifier{
       if (response.isNotEmpty) {
         for (var i = 0; i < dataList.length; i++) {
           DateTime dateTime = DateTime.parse(dataList[i]["created_ts"]);
-          List<Placemark> placeMark = await geocodingService.placemarkFromCoordinates(
+          // web-la area name kidaikkaadhu -> marker mattum (crash illa)
+          final Placemark? area = await _placemarkAt(
             double.parse(dataList[i]["lat"]),
             double.parse(dataList[i]["lng"]),
           );
-          Placemark area = placeMark[0];
+          final String areaName = area?.subLocality ?? "";
 
           BitmapDescriptor markerIcon = await createCustomMarkerFromNetwork(dataList[i]["image"] ?? "");
 
@@ -2702,7 +2737,7 @@ class CustomerProvider with ChangeNotifier{
               infoWindow: InfoWindow(
                 title: dataList[i]["firstname"],
                 snippet:
-                "$unitLabel${area.subLocality}-${DateFormat('HH:mm:ss').format(dateTime)}",
+                "$unitLabel${areaName.isEmpty ? "" : "$areaName-"}${DateFormat('HH:mm:ss').format(dateTime)}",
               ),
             ),
           );

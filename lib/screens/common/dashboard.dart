@@ -265,7 +265,10 @@ class _DashBoardState extends State<DashBoard> {
 
             /// Drawer Menu
             drawer: SizedBox(
-              width: MediaQuery.of(context).size.width * 0.60,
+              // Web: fixed compact sidebar (240-300px). Mobile: same as before.
+              width: kIsWeb
+                  ? (MediaQuery.of(context).size.width * 0.22).clamp(240.0, 300.0)
+                  : MediaQuery.of(context).size.width * 0.60,
               child: Drawer(
                 child: SafeArea(
                   child: Consumer2<HomeProvider, EmployeeProvider>(
@@ -350,7 +353,13 @@ class _DashBoardState extends State<DashBoard> {
                 controller: scrollController,
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: _getPanelButtons(context, homeProvider, empPvr),
+                  crossAxisAlignment: kIsWeb
+                      ? CrossAxisAlignment.stretch
+                      : CrossAxisAlignment.center,
+                  children: [
+                    if (kIsWeb) 8.height,
+                    ..._getPanelButtons(context, homeProvider, empPvr),
+                  ],
                 ),
               ),
             ),
@@ -388,43 +397,61 @@ class _DashBoardState extends State<DashBoard> {
           ),
         ),
 
+        if (kIsWeb) 6.height,
         SizedBox(
-          width: 150,
-          child: ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-            ),
-            onPressed: () {
-              HapticFeedback.mediumImpact();
-              utils.customDialog(
-                context: context,
-                title: constValue.sureWantTo,
-                title2: constValue.endSessionQ,
-                callback: () {
-                  homeProvider.loginOuts(context);
-                },
-                isLoading: true,
-                roundedLoadingButtonController: homeProvider.loginCtr,
-              );
-            },
-            child: Row(
-              children: [
-                const Icon(Icons.logout_outlined, color: Colors.white),
-                CustomText(
-                  text: '${constValue.logOut}',
-                  isBold: true,
-                  shrink: true,
-                  colors: Colors.white,
-                ),
-              ],
+          width: kIsWeb ? double.infinity : 150,
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: kIsWeb ? 16 : 0),
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+              ),
+              onPressed: () {
+                HapticFeedback.mediumImpact();
+                utils.customDialog(
+                  context: context,
+                  title: constValue.sureWantTo,
+                  title2: constValue.endSessionQ,
+                  callback: () {
+                    homeProvider.loginOuts(context);
+                  },
+                  isLoading: true,
+                  roundedLoadingButtonController: homeProvider.loginCtr,
+                );
+              },
+              child: Row(
+                mainAxisAlignment: kIsWeb
+                    ? MainAxisAlignment.center
+                    : MainAxisAlignment.start,
+                children: [
+                  const Icon(Icons.logout_outlined, color: Colors.white),
+                  if (kIsWeb) 8.width,
+                  CustomText(
+                    text: '${constValue.logOut}',
+                    isBold: true,
+                    shrink: true,
+                    colors: Colors.white,
+                  ),
+                ],
+              ),
             ),
           ),
         ),
 
         /// Footer Version
         Padding(
-          padding: const EdgeInsets.only(left: 110),
-          child: CustomText(
+          padding: kIsWeb
+              ? const EdgeInsets.only(top: 6, bottom: 8)
+              : const EdgeInsets.only(left: 110),
+          child: kIsWeb
+              ? Center(
+            child: CustomText(
+              text: "Version ${localData.versionNumber}",
+              colors: Colors.grey,
+              size: 12,
+            ),
+          )
+              : CustomText(
             text: "Version ${localData.versionNumber}",
             colors: Colors.grey,
           ),
@@ -621,6 +648,76 @@ class _DashBoardState extends State<DashBoard> {
     );
   }
 
+  // ---------------------------------------------------------------------
+  // WEB SIDEBAR ITEM
+  // ---------------------------------------------------------------------
+  Widget _menuIcon(String path, Color color) {
+    if (path.isEmpty) return const SizedBox.shrink();
+    if (path.toLowerCase().endsWith('.svg')) {
+      return SvgPicture.asset(
+        path,
+        width: 18,
+        height: 18,
+        colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
+      );
+    }
+    return Image.asset(path, width: 18, height: 18, color: color);
+  }
+
+  Widget _webMenuItem(_PanelItem item, bool selected, VoidCallback onTap) {
+    final Color primary = colorsConst.primary;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 3),
+      child: Material(
+        color: selected ? primary.withOpacity(0.10) : Colors.transparent,
+        borderRadius: BorderRadius.circular(10),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(10),
+          hoverColor: primary.withOpacity(0.06),
+          onTap: onTap,
+          child: Container(
+            height: 46,
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: selected ? primary.withOpacity(0.35) : Colors.transparent,
+              ),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 32,
+                  height: 32,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: selected ? primary : primary.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: _menuIcon(
+                      item.image, selected ? Colors.white : primary),
+                ),
+                12.width,
+                Expanded(
+                  child: Text(
+                    item.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                      color: selected ? primary : const Color(0xff1F2937),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   /// Cached panel buttons. Rebuilds only when roleAccess, role,
   /// selected menu index or LANGUAGE changes.
   List<Widget> _getPanelButtons(
@@ -669,8 +766,8 @@ class _DashBoardState extends State<DashBoard> {
               () => const DashBoard(child: ViewCustomer())),
       // if (homeProvider.roleAccess
       //     .any((f) => f['feature'] == 'Expense' && f['name'] == 'View'))
-        _PanelItem(
-            "Expense", assets.expense, 9, () => const DashBoard(child: ExpensePage())),
+      _PanelItem(
+          "Expense", assets.expense, 9, () => const DashBoard(child: ExpensePage())),
       _PanelItem(
           "${constValue.task}",
           assets.report,
@@ -700,6 +797,28 @@ class _DashBoardState extends State<DashBoard> {
     ];
 
     return allItems.map((item) {
+      void onTap() {
+        HapticFeedback.selectionClick();
+        homeProvider.updateIndex(item.index);
+        if (item.index == 0) {
+          utils.navigateAndClear(context, item.pageBuilder);
+        } else {
+          utils.navigatePage(context, item.pageBuilder);
+        }
+        homeProvider.panelClose();
+      }
+
+      // WEB: PanelButton fixed width-la text overflow aagudhu
+      // ("Employees", "Wages Employee") -> full-width row, ellipsis
+      if (kIsWeb) {
+        if (!item.isShow) return const SizedBox.shrink();
+        return _webMenuItem(
+          item,
+          homeProvider.selectedIndex == item.index,
+          onTap,
+        );
+      }
+
       return PanelButton(
         image: item.image,
         text: item.title,

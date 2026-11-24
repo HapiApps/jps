@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
@@ -39,11 +41,53 @@ class _ViewMyLeavesState extends State<ViewMyLeaves>
   final FocusScopeNode _myFocusScopeNode = FocusScopeNode();
   late TabController _tabController; // manual controller (replaces DefaultTabController)
 
+  // ===== HOME RANGE (dd-MM-yyyy) =====
+  String _rangeD1 = "";
+  String _rangeD2 = "";
+  String? _rangeType;
+  static final DateFormat _apiFmt = DateFormat('dd-MM-yyyy');
+
+  /// "yyyy-MM-dd" / "yyyy-MM-dd HH:mm:ss" / "dd-MM-yyyy" -> "dd-MM-yyyy"
+  String _toApi(String? v) {
+    final s = (v ?? "").trim();
+    if (s.isEmpty || s == "null") return "";
+    if (RegExp(r'^\d{2}-\d{2}-\d{4}$').hasMatch(s)) return s;
+    if (RegExp(r'^\d{4}-\d{2}-\d{2}').hasMatch(s)) {
+      final d = DateTime.tryParse(s.substring(0, 10));
+      if (d != null) return _apiFmt.format(d);
+    }
+    return "";
+  }
+
+  /// Priority: Home page range -> widget dates -> today
+  void _resolveRange() {
+    final home = Provider.of<HomeProvider>(context, listen: false);
+    String d1 = _toApi(home.startDate);
+    String d2 = _toApi(home.endDate);
+    String? type = home.type;
+
+    if (d1.isEmpty) {
+      d1 = _toApi(widget.date1);
+      d2 = _toApi(widget.date2);
+      type = null;
+    }
+    if (d1.isEmpty) {
+      d1 = _apiFmt.format(DateTime.now());
+      type = "Today";
+    }
+    if (d2.isEmpty) d2 = d1;
+
+    _rangeD1 = d1;
+    _rangeD2 = d2;
+    _rangeType = type;
+  }
+
   @override
   void initState() {
     super.initState();
 
     final leaveProvider = Provider.of<LeaveProvider>(context, listen: false);
+    _resolveRange();
 
     // start on whichever tab the provider says (set by LeaveSummaryCard / CheckAttendance taps)
     _tabController = TabController(
@@ -52,26 +96,14 @@ class _ViewMyLeavesState extends State<ViewMyLeaves>
       initialIndex: leaveProvider.viewLeaveTabIndex,
     );
 
+    // FIX: munnadi dailys() + initDate(today, "yyyy-MM-dd") + daily() ->
+    // eppovum TODAY data mattum (format-um thappu). Ippo Home range.
     WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
-      leaveProvider.dailys(
-        localData.storage.read("id"),
-        localData.storage.read("role"),
-        true,
-      );
-
-      final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
-
-      leaveProvider.initDate(today, today);
-
+      if (!mounted) return;
       if (localData.storage.read("role") != "1") {
         leaveProvider.getLeaveTypes();
       }
-
-      leaveProvider.daily(
-        localData.storage.read("id"),
-        localData.storage.read("role"),
-        false,
-      );
+      leaveProvider.applyHomeRange(_rangeD1, _rangeD2, label: _rangeType);
     });
   }
 
@@ -128,6 +160,15 @@ class _ViewMyLeavesState extends State<ViewMyLeaves>
   Widget build(BuildContext context) {
     var webWidth = MediaQuery.of(context).size.width * 0.7;
     var phoneWidth = MediaQuery.of(context).size.width * 0.95;
+
+    // ===== PAGE CONTENT WIDTH (ella section-um idhe width) =====
+    // Web: max 960, screen-oda 70% -> center-la, rendu pakkamum equal space
+    // Phone: 12dp left + right padding
+    final double screenW = MediaQuery.of(context).size.width;
+    final double contentW = kIsWeb
+        ? math.min(screenW * 0.7, 960).toDouble()
+        : screenW - 24;
+
     return Consumer2<LeaveProvider, HomeProvider>(
         builder: (context, levProvider, homeProvider, _) {
           // If this page is already alive in the navigation stack,
@@ -166,7 +207,7 @@ class _ViewMyLeavesState extends State<ViewMyLeaves>
                       utils.navigatePage(
                           context,
                               () => ApplyLeave(
-                              date1: widget.date1, date2: widget.date2));
+                              date1: _rangeD1, date2: _rangeD2));
                     },
                   ),
                 ),
@@ -186,595 +227,733 @@ class _ViewMyLeavesState extends State<ViewMyLeaves>
                     }
                     _myFocusScopeNode.unfocus();
                   },
-                  child: Column(
-                    children: [
-                      20.height,
+                  // Center + fixed width -> search, banner, tabs, lists
+                  // ellam ore alignment-la (web-la edge-ku ottaama)
+                  child: Center(
+                    child: SizedBox(
+                      width: contentW,
+                      child: Column(
+                        children: [
+                          20.height,
 
-                      /// SEARCH BAR (UNCHANGED)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                        child: Container(
-                          width: kIsWeb ? webWidth : phoneWidth,
-                          decoration: customDecoration.baseBackgroundDecoration(
-                            radius: 30,
-                            color: colorsConst.primary,
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              /// SEARCH FIELD
-                              Container(
-                                width: kIsWeb ? webWidth / 1.2 : phoneWidth / 1.2,
-                                height: 45,
-                                decoration:
-                                customDecoration.baseBackgroundDecoration(
-                                  radius: 20,
-                                  color: Colors.transparent,
-                                ),
-                                child: TextFormField(
-                                  controller: levProvider.search2,
-                                  cursorColor: colorsConst.primary,
-                                  onChanged: (value) {
-                                    levProvider.searchReport(value.toString());
-                                  },
-                                  decoration: InputDecoration(
-                                    hintText: "Search for Employees",
-                                    hintStyle: TextStyle(
-                                      color: colorsConst.primary,
-                                      fontSize: 14,
-                                    ),
-                                    filled: true,
-                                    fillColor: Colors.white,
-                                    prefixIcon: const Icon(Icons.search,
-                                        color: Colors.grey),
-                                    suffixIcon: levProvider.search2.text.isNotEmpty
-                                        ? GestureDetector(
-                                        onTap: () {
-                                          levProvider.search2.clear();
-                                          levProvider.searchReport("");
-                                        },
-                                        child: Container(
-                                            width: 10,
-                                            height: 10,
-                                            color: Colors.transparent,
-                                            child: Padding(
-                                              padding:
-                                              const EdgeInsets.all(8.0),
-                                              child: SvgPicture.asset(
-                                                  assets.cancel2),
-                                            )))
-                                        : null,
-                                    errorStyle: const TextStyle(
-                                      fontSize: 12.0,
-                                      height: 0.20,
-                                    ),
-                                    focusedBorder: OutlineInputBorder(
-                                        borderSide:
-                                        BorderSide(color: colorsConst.primary),
-                                        borderRadius: BorderRadius.circular(30)),
-                                    focusedErrorBorder: OutlineInputBorder(
-                                        borderSide:
-                                        BorderSide(color: colorsConst.primary),
-                                        borderRadius: BorderRadius.circular(30)),
-                                    contentPadding:
-                                    const EdgeInsets.fromLTRB(10, 10, 10, 10),
-                                    errorBorder: OutlineInputBorder(
-                                        borderSide: const BorderSide(
-                                            color: Colors.transparent),
-                                        borderRadius: BorderRadius.circular(30)),
-                                    enabledBorder: OutlineInputBorder(
-                                        borderSide:
-                                        BorderSide(color: Colors.grey.shade300),
-                                        borderRadius: BorderRadius.circular(30)),
-                                  ),
-                                ),
+                          /// SEARCH BAR
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            child: Container(
+                              width: contentW,
+                              decoration: customDecoration.baseBackgroundDecoration(
+                                radius: 30,
+                                color: colorsConst.primary,
                               ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  /// SEARCH FIELD
+                                  Container(
+                                    // filter icon (~48dp) + gap pothum
+                                    width: contentW - 60,
+                                    height: 45,
+                                    decoration:
+                                    customDecoration.baseBackgroundDecoration(
+                                      radius: 20,
+                                      color: Colors.transparent,
+                                    ),
+                                    child: TextFormField(
+                                      controller: levProvider.search2,
+                                      cursorColor: colorsConst.primary,
+                                      onChanged: (value) {
+                                        levProvider.searchReport(value.toString());
+                                      },
+                                      decoration: InputDecoration(
+                                        hintText: "Search for Employees",
+                                        hintStyle: TextStyle(
+                                          color: colorsConst.primary,
+                                          fontSize: 14,
+                                        ),
+                                        filled: true,
+                                        fillColor: Colors.white,
+                                        prefixIcon: const Icon(Icons.search,
+                                            color: Colors.grey),
+                                        suffixIcon: levProvider.search2.text.isNotEmpty
+                                            ? GestureDetector(
+                                            onTap: () {
+                                              levProvider.search2.clear();
+                                              levProvider.searchReport("");
+                                            },
+                                            child: Container(
+                                                width: 10,
+                                                height: 10,
+                                                color: Colors.transparent,
+                                                child: Padding(
+                                                  padding:
+                                                  const EdgeInsets.all(8.0),
+                                                  child: SvgPicture.asset(
+                                                      assets.cancel2),
+                                                )))
+                                            : null,
+                                        errorStyle: const TextStyle(
+                                          fontSize: 12.0,
+                                          height: 0.20,
+                                        ),
+                                        focusedBorder: OutlineInputBorder(
+                                            borderSide:
+                                            BorderSide(color: colorsConst.primary),
+                                            borderRadius: BorderRadius.circular(30)),
+                                        focusedErrorBorder: OutlineInputBorder(
+                                            borderSide:
+                                            BorderSide(color: colorsConst.primary),
+                                            borderRadius: BorderRadius.circular(30)),
+                                        contentPadding:
+                                        const EdgeInsets.fromLTRB(10, 10, 10, 10),
+                                        errorBorder: OutlineInputBorder(
+                                            borderSide: const BorderSide(
+                                                color: Colors.transparent),
+                                            borderRadius: BorderRadius.circular(30)),
+                                        enabledBorder: OutlineInputBorder(
+                                            borderSide:
+                                            BorderSide(color: Colors.grey.shade300),
+                                            borderRadius: BorderRadius.circular(30)),
+                                      ),
+                                    ),
+                                  ),
 
-                              /// FILTER ICON
-                              InkWell(
-                                onTap: () {
-                                  _myFocusScopeNode.unfocus();
-                                  showDialog(
-                                    context: context,
-                                    builder: (context) {
-                                      return Consumer2<LeaveProvider,
-                                          EmployeeProvider>(
-                                        builder:
-                                            (context, levPvr, empProvider, _) {
-                                          return AlertDialog(
-                                            actions: [
-                                              SizedBox(
-                                                width:
-                                                kIsWeb ? webWidth : phoneWidth,
-                                                child: Column(
-                                                  children: [
-                                                    20.height,
-                                                    Row(
-                                                      mainAxisAlignment:
-                                                      MainAxisAlignment
-                                                          .spaceBetween,
+                                  /// FILTER ICON
+                                  InkWell(
+                                    onTap: () {
+                                      _myFocusScopeNode.unfocus();
+                                      showDialog(
+                                        context: context,
+                                        builder: (context) {
+                                          return Consumer2<LeaveProvider,
+                                              EmployeeProvider>(
+                                            builder:
+                                                (context, levPvr, empProvider, _) {
+                                              return AlertDialog(
+                                                actions: [
+                                                  SizedBox(
+                                                    width:
+                                                    kIsWeb ? webWidth : phoneWidth,
+                                                    child: Column(
                                                       children: [
-                                                        70.width,
-                                                        const CustomText(
-                                                          text: 'Filters',
-                                                          colors: Colors.black,
-                                                          size: 16,
-                                                          isBold: true,
-                                                        ),
-                                                        30.width,
-                                                        InkWell(
-                                                          onTap: () {
-                                                            Navigator.of(context,
-                                                                rootNavigator:
-                                                                true)
-                                                                .pop();
-                                                          },
-                                                          child: SvgPicture.asset(
-                                                              assets.cancel),
-                                                        )
-                                                      ],
-                                                    ),
-                                                    20.height,
-                                                    Row(
-                                                      mainAxisAlignment:
-                                                      MainAxisAlignment
-                                                          .spaceEvenly,
-                                                      children: [
-                                                        Column(
-                                                          crossAxisAlignment:
-                                                          CrossAxisAlignment
-                                                              .start,
+                                                        20.height,
+                                                        Row(
+                                                          mainAxisAlignment:
+                                                          MainAxisAlignment
+                                                              .spaceBetween,
                                                           children: [
-                                                            CustomText(
-                                                              text: "From Date",
-                                                              colors: colorsConst
-                                                                  .greyClr,
-                                                              size: 12,
+                                                            70.width,
+                                                            const CustomText(
+                                                              text: 'Filters',
+                                                              colors: Colors.black,
+                                                              size: 16,
+                                                              isBold: true,
                                                             ),
+                                                            30.width,
                                                             InkWell(
                                                               onTap: () {
-                                                                levPvr.datePick(
-                                                                  context: context,
-                                                                  isStartDate: true,
-                                                                  date: levPvr
-                                                                      .startDate,
-                                                                );
+                                                                Navigator.of(context,
+                                                                    rootNavigator:
+                                                                    true)
+                                                                    .pop();
                                                               },
-                                                              child: Container(
-                                                                height: 30,
-                                                                width: kIsWeb
-                                                                    ? webWidth / 2.7
-                                                                    : phoneWidth /
-                                                                    2.7,
-                                                                decoration: customDecoration
-                                                                    .baseBackgroundDecoration(
-                                                                  color:
-                                                                  Colors.white,
-                                                                  radius: 5,
-                                                                  borderColor:
-                                                                  colorsConst
-                                                                      .litGrey,
-                                                                ),
-                                                                child: Row(
-                                                                  mainAxisAlignment:
-                                                                  MainAxisAlignment
-                                                                      .center,
-                                                                  children: [
-                                                                    CustomText(
-                                                                        text: levPvr
-                                                                            .startDate),
-                                                                    5.width,
-                                                                    SvgPicture.asset(
-                                                                        assets
-                                                                            .calendar2),
-                                                                  ],
-                                                                ),
-                                                              ),
+                                                              child: SvgPicture.asset(
+                                                                  assets.cancel),
                                                             )
                                                           ],
                                                         ),
-                                                        Column(
-                                                          crossAxisAlignment:
-                                                          CrossAxisAlignment
-                                                              .start,
+                                                        20.height,
+                                                        Row(
+                                                          mainAxisAlignment:
+                                                          MainAxisAlignment
+                                                              .spaceEvenly,
                                                           children: [
-                                                            CustomText(
-                                                              text: "To Date",
-                                                              colors: colorsConst
-                                                                  .greyClr,
-                                                              size: 12,
-                                                            ),
-                                                            InkWell(
-                                                              onTap: () {
-                                                                levPvr.datePick(
-                                                                  context: context,
-                                                                  isStartDate:
-                                                                  false,
-                                                                  date: levPvr
-                                                                      .endDate,
-                                                                );
-                                                              },
-                                                              child: Container(
-                                                                height: 30,
-                                                                width: kIsWeb
-                                                                    ? webWidth / 2.7
-                                                                    : phoneWidth /
-                                                                    2.7,
-                                                                decoration: customDecoration
-                                                                    .baseBackgroundDecoration(
-                                                                  color:
-                                                                  Colors.white,
-                                                                  radius: 5,
-                                                                  borderColor:
-                                                                  colorsConst
-                                                                      .litGrey,
-                                                                ),
-                                                                child: Row(
-                                                                  mainAxisAlignment:
-                                                                  MainAxisAlignment
-                                                                      .center,
-                                                                  children: [
-                                                                    CustomText(
-                                                                        text: levPvr
-                                                                            .endDate),
-                                                                    5.width,
-                                                                    SvgPicture.asset(
-                                                                        assets
-                                                                            .calendar2),
-                                                                  ],
-                                                                ),
-                                                              ),
-                                                            )
-                                                          ],
-                                                        ),
-                                                      ],
-                                                    ),
-                                                    10.height,
-                                                    Row(
-                                                      mainAxisAlignment:
-                                                      MainAxisAlignment
-                                                          .spaceEvenly,
-                                                      children: [
-                                                        if (localData.storage
-                                                            .read("role") ==
-                                                            "1")
-                                                          Column(
-                                                            crossAxisAlignment:
-                                                            CrossAxisAlignment
-                                                                .start,
-                                                            children: [
-                                                              CustomText(
-                                                                text:
-                                                                "Employee Name",
-                                                                colors: colorsConst
-                                                                    .greyClr,
-                                                                size: 12,
-                                                              ),
-                                                              EmployeeDropdown(
-                                                                callback: () {
-                                                                  empProvider
-                                                                      .getAllUsers();
-                                                                },
-                                                                text: levPvr.userName ==
-                                                                    ""
-                                                                    ? "Name"
-                                                                    : levPvr
-                                                                    .userName,
-                                                                employeeList:
-                                                                empProvider
-                                                                    .filterUserData,
-                                                                onChanged:
-                                                                    (UserModel?
-                                                                value) {
-                                                                  levPvr
-                                                                      .selectUserReport(
-                                                                      value!);
-                                                                },
-                                                                size: kIsWeb
-                                                                    ? webWidth / 2.7
-                                                                    : phoneWidth /
-                                                                    2.7,
-                                                              ),
-                                                            ],
-                                                          ),
-                                                        Padding(
-                                                          padding:
-                                                          EdgeInsets.fromLTRB(
-                                                              0,
-                                                              empProvider
-                                                                  .filterUserData
-                                                                  .isEmpty
-                                                                  ? 20
-                                                                  : 0,
-                                                              0,
-                                                              0),
-                                                          child: Column(
-                                                            crossAxisAlignment:
-                                                            CrossAxisAlignment
-                                                                .start,
-                                                            children: [
-                                                              CustomText(
-                                                                text:
-                                                                "Select Date Range",
-                                                                colors: colorsConst
-                                                                    .greyClr,
-                                                                size: 12,
-                                                              ),
-                                                              Container(
-                                                                height: 40,
-                                                                width: kIsWeb
-                                                                    ? webWidth / 2.7
-                                                                    : phoneWidth /
-                                                                    2.7,
-                                                                decoration: customDecoration
-                                                                    .baseBackgroundDecoration(
-                                                                  radius: 5,
-                                                                  color:
-                                                                  Colors.white,
-                                                                  borderColor:
-                                                                  colorsConst
-                                                                      .litGrey,
-                                                                ),
-                                                                child:
-                                                                DropdownButton(
-                                                                  iconEnabledColor:
-                                                                  colorsConst
+                                                            Column(
+                                                              crossAxisAlignment:
+                                                              CrossAxisAlignment
+                                                                  .start,
+                                                              children: [
+                                                                CustomText(
+                                                                  text: "From Date",
+                                                                  colors: colorsConst
                                                                       .greyClr,
-                                                                  isExpanded: true,
-                                                                  underline:
-                                                                  const SizedBox(),
-                                                                  icon: const Icon(
-                                                                      Icons
-                                                                          .keyboard_arrow_down_outlined),
-                                                                  value: levPvr
-                                                                      .typeReport,
-                                                                  onChanged:
-                                                                      (value) {
-                                                                    levPvr.changeRrtType(
-                                                                        value,
-                                                                        localData
-                                                                            .storage
-                                                                            .read(
-                                                                            "id"),
-                                                                        localData
-                                                                            .storage
-                                                                            .read(
-                                                                            "role"),
-                                                                        false);
-                                                                  },
-                                                                  items: levPvr
-                                                                      .typeList
-                                                                      .map((list) {
-                                                                    return DropdownMenuItem(
-                                                                      value: list,
-                                                                      child:
-                                                                      CustomText(
-                                                                        text:
-                                                                        "  $list",
-                                                                        colors: Colors
-                                                                            .black,
-                                                                        isBold:
-                                                                        false,
-                                                                      ),
-                                                                    );
-                                                                  }).toList(),
+                                                                  size: 12,
                                                                 ),
+                                                                InkWell(
+                                                                  onTap: () {
+                                                                    levPvr.datePick(
+                                                                      context: context,
+                                                                      isStartDate: true,
+                                                                      date: levPvr
+                                                                          .startDate,
+                                                                    );
+                                                                  },
+                                                                  child: Container(
+                                                                    height: 30,
+                                                                    width: kIsWeb
+                                                                        ? webWidth / 2.7
+                                                                        : phoneWidth /
+                                                                        2.7,
+                                                                    decoration: customDecoration
+                                                                        .baseBackgroundDecoration(
+                                                                      color:
+                                                                      Colors.white,
+                                                                      radius: 5,
+                                                                      borderColor:
+                                                                      colorsConst
+                                                                          .litGrey,
+                                                                    ),
+                                                                    child: Row(
+                                                                      mainAxisAlignment:
+                                                                      MainAxisAlignment
+                                                                          .center,
+                                                                      children: [
+                                                                        CustomText(
+                                                                            text: levPvr
+                                                                                .startDate),
+                                                                        5.width,
+                                                                        SvgPicture.asset(
+                                                                            assets
+                                                                                .calendar2),
+                                                                      ],
+                                                                    ),
+                                                                  ),
+                                                                )
+                                                              ],
+                                                            ),
+                                                            Column(
+                                                              crossAxisAlignment:
+                                                              CrossAxisAlignment
+                                                                  .start,
+                                                              children: [
+                                                                CustomText(
+                                                                  text: "To Date",
+                                                                  colors: colorsConst
+                                                                      .greyClr,
+                                                                  size: 12,
+                                                                ),
+                                                                InkWell(
+                                                                  onTap: () {
+                                                                    levPvr.datePick(
+                                                                      context: context,
+                                                                      isStartDate:
+                                                                      false,
+                                                                      date: levPvr
+                                                                          .endDate,
+                                                                    );
+                                                                  },
+                                                                  child: Container(
+                                                                    height: 30,
+                                                                    width: kIsWeb
+                                                                        ? webWidth / 2.7
+                                                                        : phoneWidth /
+                                                                        2.7,
+                                                                    decoration: customDecoration
+                                                                        .baseBackgroundDecoration(
+                                                                      color:
+                                                                      Colors.white,
+                                                                      radius: 5,
+                                                                      borderColor:
+                                                                      colorsConst
+                                                                          .litGrey,
+                                                                    ),
+                                                                    child: Row(
+                                                                      mainAxisAlignment:
+                                                                      MainAxisAlignment
+                                                                          .center,
+                                                                      children: [
+                                                                        CustomText(
+                                                                            text: levPvr
+                                                                                .endDate),
+                                                                        5.width,
+                                                                        SvgPicture.asset(
+                                                                            assets
+                                                                                .calendar2),
+                                                                      ],
+                                                                    ),
+                                                                  ),
+                                                                )
+                                                              ],
+                                                            ),
+                                                          ],
+                                                        ),
+                                                        10.height,
+                                                        Row(
+                                                          mainAxisAlignment:
+                                                          MainAxisAlignment
+                                                              .spaceEvenly,
+                                                          children: [
+                                                            if (localData.storage
+                                                                .read("role") ==
+                                                                "1")
+                                                              Column(
+                                                                crossAxisAlignment:
+                                                                CrossAxisAlignment
+                                                                    .start,
+                                                                children: [
+                                                                  CustomText(
+                                                                    text:
+                                                                    "Employee Name",
+                                                                    colors: colorsConst
+                                                                        .greyClr,
+                                                                    size: 12,
+                                                                  ),
+                                                                  EmployeeDropdown(
+                                                                    callback: () {
+                                                                      empProvider
+                                                                          .getAllUsers();
+                                                                    },
+                                                                    text: levPvr.userName ==
+                                                                        ""
+                                                                        ? "Name"
+                                                                        : levPvr
+                                                                        .userName,
+                                                                    employeeList:
+                                                                    empProvider
+                                                                        .filterUserData,
+                                                                    onChanged:
+                                                                        (UserModel?
+                                                                    value) {
+                                                                      levPvr
+                                                                          .selectUserReport(
+                                                                          value!);
+                                                                    },
+                                                                    size: kIsWeb
+                                                                        ? webWidth / 2.7
+                                                                        : phoneWidth /
+                                                                        2.7,
+                                                                  ),
+                                                                ],
                                                               ),
-                                                            ],
-                                                          ),
+                                                            Padding(
+                                                              padding:
+                                                              EdgeInsets.fromLTRB(
+                                                                  0,
+                                                                  empProvider
+                                                                      .filterUserData
+                                                                      .isEmpty
+                                                                      ? 20
+                                                                      : 0,
+                                                                  0,
+                                                                  0),
+                                                              child: Column(
+                                                                crossAxisAlignment:
+                                                                CrossAxisAlignment
+                                                                    .start,
+                                                                children: [
+                                                                  CustomText(
+                                                                    text:
+                                                                    "Select Date Range",
+                                                                    colors: colorsConst
+                                                                        .greyClr,
+                                                                    size: 12,
+                                                                  ),
+                                                                  Container(
+                                                                    height: 40,
+                                                                    width: kIsWeb
+                                                                        ? webWidth / 2.7
+                                                                        : phoneWidth /
+                                                                        2.7,
+                                                                    decoration: customDecoration
+                                                                        .baseBackgroundDecoration(
+                                                                      radius: 5,
+                                                                      color:
+                                                                      Colors.white,
+                                                                      borderColor:
+                                                                      colorsConst
+                                                                          .litGrey,
+                                                                    ),
+                                                                    child:
+                                                                    DropdownButton(
+                                                                      iconEnabledColor:
+                                                                      colorsConst
+                                                                          .greyClr,
+                                                                      isExpanded: true,
+                                                                      underline:
+                                                                      const SizedBox(),
+                                                                      icon: const Icon(
+                                                                          Icons
+                                                                              .keyboard_arrow_down_outlined),
+                                                                      value: levPvr
+                                                                          .typeReport,
+                                                                      onChanged:
+                                                                          (value) {
+                                                                        levPvr.changeRrtType(
+                                                                            value,
+                                                                            localData
+                                                                                .storage
+                                                                                .read(
+                                                                                "id"),
+                                                                            localData
+                                                                                .storage
+                                                                                .read(
+                                                                                "role"),
+                                                                            false);
+                                                                      },
+                                                                      items: levPvr
+                                                                          .typeList
+                                                                          .map((list) {
+                                                                        return DropdownMenuItem(
+                                                                          value: list,
+                                                                          child:
+                                                                          CustomText(
+                                                                            text:
+                                                                            "  $list",
+                                                                            colors: Colors
+                                                                                .black,
+                                                                            isBold:
+                                                                            false,
+                                                                          ),
+                                                                        );
+                                                                      }).toList(),
+                                                                    ),
+                                                                  ),
+                                                                ],
+                                                              ),
+                                                            ),
+                                                          ],
                                                         ),
+                                                        20.height,
+                                                        Row(
+                                                          mainAxisAlignment:
+                                                          MainAxisAlignment
+                                                              .spaceEvenly,
+                                                          children: [
+                                                            CustomBtn(
+                                                              width: 100,
+                                                              text: 'Clear All',
+                                                              callback: () {
+                                                                // Clear All -> TODAY illa, Home range-ku thirumba
+                                                                Navigator.of(context,
+                                                                    rootNavigator:
+                                                                    true)
+                                                                    .pop();
+                                                                levPvr.applyHomeRange(
+                                                                    _rangeD1,
+                                                                    _rangeD2,
+                                                                    label:
+                                                                    _rangeType);
+                                                              },
+                                                              bgColor:
+                                                              Colors.grey.shade200,
+                                                              textColor: Colors.black,
+                                                            ),
+                                                            CustomBtn(
+                                                              width: 100,
+                                                              text: 'Apply Filters',
+                                                              callback: () {
+                                                                levPvr.isFilterApplied =
+                                                                true;
+                                                                levPvr.changeFilter();
+                                                                levPvr.getLeaveReport(
+                                                                    levPvr.filter);
+                                                                Navigator.of(context,
+                                                                    rootNavigator:
+                                                                    true)
+                                                                    .pop();
+                                                              },
+                                                              bgColor:
+                                                              colorsConst.primary,
+                                                              textColor: Colors.white,
+                                                            ),
+                                                          ],
+                                                        ),
+                                                        20.height,
                                                       ],
                                                     ),
-                                                    20.height,
-                                                    Row(
-                                                      mainAxisAlignment:
-                                                      MainAxisAlignment
-                                                          .spaceEvenly,
-                                                      children: [
-                                                        CustomBtn(
-                                                          width: 100,
-                                                          text: 'Clear All',
-                                                          callback: () {
-                                                            levPvr.isFilterApplied =
-                                                            false;
-
-                                                            levPvr.initDates(
-                                                                id: localData
-                                                                    .storage
-                                                                    .read("id"),
-                                                                role: localData
-                                                                    .storage
-                                                                    .read("role"),
-                                                                isRefresh: false);
-                                                            Navigator.of(context,
-                                                                rootNavigator:
-                                                                true)
-                                                                .pop();
-                                                            levPvr.getLeaveReport(
-                                                                levPvr.filter);
-                                                          },
-                                                          bgColor:
-                                                          Colors.grey.shade200,
-                                                          textColor: Colors.black,
-                                                        ),
-                                                        CustomBtn(
-                                                          width: 100,
-                                                          text: 'Apply Filters',
-                                                          callback: () {
-                                                            levPvr.isFilterApplied =
-                                                            true;
-                                                            levPvr.changeFilter();
-                                                            levPvr.getLeaveReport(
-                                                                levPvr.filter);
-                                                            Navigator.of(context,
-                                                                rootNavigator:
-                                                                true)
-                                                                .pop();
-                                                          },
-                                                          bgColor:
-                                                          colorsConst.primary,
-                                                          textColor: Colors.white,
-                                                        ),
-                                                      ],
-                                                    ),
-                                                    20.height,
-                                                  ],
-                                                ),
-                                              )
-                                            ],
+                                                  )
+                                                ],
+                                              );
+                                            },
                                           );
                                         },
                                       );
                                     },
-                                  );
-                                },
-                                child: Padding(
-                                  padding: const EdgeInsets.all(8.0),
-                                  child: Icon(
-                                    Icons.filter_alt,
-                                    size: 27,
-                                    color: Colors.white,
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(8.0),
+                                      child: Icon(
+                                        Icons.filter_alt,
+                                        size: 27,
+                                        color: Colors.white,
+                                      ),
+                                    ),
                                   ),
-                                ),
+                                  5.width,
+                                ],
                               ),
-                              5.width,
+                            ),
+                          ),
+
+                          /// ===== DATE RANGE BANNER (enna range-ku data) =====
+                          _rangeBanner(levProvider, contentW),
+                          6.height,
+
+                          /// TAB BAR
+                          TabBar(
+                            controller: _tabController,
+                            labelColor: Colors.black,
+                            indicatorColor: colorsConst.primary,
+                            indicatorSize: TabBarIndicatorSize.tab,
+                            dividerColor: Colors.grey.shade300,
+                            tabs: [
+                              Tab(text: "Leave Created "),
+                              Tab(text: "Employees On Leave"),
                             ],
                           ),
-                        ),
-                      ),
 
-                      /// TAB BAR
-                      TabBar(
-                        controller: _tabController,
-                        labelColor: Colors.black,
-                        indicatorColor: colorsConst.primary,
-                        tabs: [
-                          Tab(text: "Leave Created "),
-                          Tab(text: "Employees On Leave"),
-                        ],
-                      ),
+                          /// TAB VIEW
+                          Expanded(
+                            child: TabBarView(
+                              controller: _tabController,
+                              children: [
+                                /// ===============================
+                                /// TAB 1 – LEAVE CREATED
+                                /// ===============================
+                                Builder(
+                                  builder: (context) {
+                                    final DateTime? fs =
+                                    parseLeaveDate(levProvider.startDate);
+                                    final DateTime? fe =
+                                    parseLeaveDate(levProvider.endDate);
 
-                      /// TAB VIEW
-                      Expanded(
-                        child: TabBarView(
-                          controller: _tabController,
-                          children: [
-                            /// ===============================
-                            /// TAB 1 – LEAVE CREATED
-                            /// ===============================
-                            Builder(
-                              builder: (context) {
-                                final DateTime? fs =
-                                parseLeaveDate(levProvider.startDate);
-                                final DateTime? fe =
-                                parseLeaveDate(levProvider.endDate);
+                                    final List<LeaveModel> applied;
+                                    final List<LeaveModel> approved;
 
-                                final List<LeaveModel> applied;
-                                final List<LeaveModel> approved;
+                                    if (levProvider.isFilterApplied) {
+                                      // FIX: leave date match OR apply panna (created) date match,
+                                      // rendu-la edhu irundhaalum Applied tab-la show aagum
+                                      applied = levProvider.myLevSearch
+                                          .where((e) =>
+                                      leaveInRange(e, fs, fe) ||
+                                          createdInRange(e, fs, fe))
+                                          .toList();
+                                    } else {
+                                      applied = levProvider.myLevSearch;
+                                    }
 
-                                if (levProvider.isFilterApplied) {
-                                  // FIX: leave date match OR apply panna (created) date match,
-                                  // rendu-la edhu irundhaalum Applied tab-la show aagum
-                                  applied = levProvider.myLevSearch
-                                      .where((e) =>
-                                  leaveInRange(e, fs, fe) ||
-                                      createdInRange(e, fs, fe))
-                                      .toList();
-                                } else {
-                                  applied = levProvider.myLevSearch;
-                                }
+                                    approved = levProvider.myLevSearch
+                                        .where((e) => leaveInRange(e, fs, fe))
+                                        .toList();
 
-                                approved = levProvider.myLevSearch
-                                    .where((e) => leaveInRange(e, fs, fe))
-                                    .toList();
+                                    return DefaultTabController(
+                                      length: 3,
+                                      child: Column(
+                                        children: [
+                                          /// SUB TAB BAR
+                                          TabBar(
+                                            labelColor: Colors.black,
+                                            indicatorColor: colorsConst.primary,
+                                            indicatorSize: TabBarIndicatorSize.tab,
+                                            dividerColor: Colors.grey.shade200,
+                                            tabs: [
+                                              Tab(text: "Applied"),
+                                              Tab(text: "Approved"),
+                                              Tab(text: "Rejected"),
+                                            ],
+                                          ),
 
-                                return DefaultTabController(
-                                  length: 3,
-                                  child: Column(
-                                    children: [
-                                      /// SUB TAB BAR
-                                      TabBar(
-                                        labelColor: Colors.black,
-                                        indicatorColor: colorsConst.primary,
-                                        tabs: [
-                                          Tab(text: "Applied"),
-                                          Tab(text: "Approved"),
-                                          Tab(text: "Rejected"),
+                                          Expanded(
+                                            child: TabBarView(
+                                              children: [
+                                                /// APPLIED (status 0)
+                                                leaveStatusList(applied, "0",
+                                                    levProvider.isLoading),
+
+                                                /// APPROVED (status 1)
+                                                leaveStatusList(approved, "1",
+                                                    levProvider.isLoading),
+
+                                                /// REJECTED (status 2)
+                                                leaveStatusList(approved, "2",
+                                                    levProvider.isLoading),
+                                              ],
+                                            ),
+                                          ),
                                         ],
                                       ),
-
-                                      Expanded(
-                                        child: TabBarView(
-                                          children: [
-                                            /// APPLIED (status 0)
-                                            leaveStatusList(applied, "0",
-                                                levProvider.isLoading),
-
-                                            /// APPROVED (status 1)
-                                            leaveStatusList(approved, "1",
-                                                levProvider.isLoading),
-
-                                            /// REJECTED (status 2)
-                                            leaveStatusList(approved, "2",
-                                                levProvider.isLoading),
-                                          ],
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                );
-                              },
-                            ),
-
-                            /// ===============================
-                            /// TAB 2 – EMPLOYEE ON LEAVE
-                            /// ===============================
-                            Builder(
-                              builder: (context) {
-                                // Loading first
-                                if (levProvider.isLoading) {
-                                  return const Center(
-                                      child: CircularProgressIndicator());
-                                }
-
-                                final DateTime? fs =
-                                parseLeaveDate(levProvider.startDate);
-                                final DateTime? fe =
-                                parseLeaveDate(levProvider.endDate);
-
-                                // only APPROVED leaves count as "On Leave"
-                                final List<LeaveModel> onLeaveToday = sortNewToOld(levProvider
-                                    .myLevSearch
-                                    .where((e) =>
-                                e.status.toString() == "1" &&
-                                    leaveInRange(e, fs, fe))
-                                    .toList());
-
-                                if (onLeaveToday.isEmpty) {
-                                  return const Center(
-                                      child: Text("No Employees On Leave Today"));
-                                }
-                                return ListView.builder(
-                                  padding: const EdgeInsets.all(10),
-                                  itemCount: onLeaveToday.length,
-                                  itemBuilder: (context, index) {
-                                    final data = onLeaveToday[index];
-                                    return leaveCard(data,
-                                        showButtons: false, showCancelOnly: true);
+                                    );
                                   },
-                                );
-                              },
+                                ),
+
+                                /// ===============================
+                                /// TAB 2 – EMPLOYEE ON LEAVE
+                                /// ===============================
+                                Builder(
+                                  builder: (context) {
+                                    // Loading first
+                                    if (levProvider.isLoading) {
+                                      return const Center(
+                                          child: CircularProgressIndicator());
+                                    }
+
+                                    final DateTime? fs =
+                                    parseLeaveDate(levProvider.startDate);
+                                    final DateTime? fe =
+                                    parseLeaveDate(levProvider.endDate);
+
+                                    // only APPROVED leaves count as "On Leave"
+                                    final List<LeaveModel> onLeaveToday = sortNewToOld(levProvider
+                                        .myLevSearch
+                                        .where((e) =>
+                                    e.status.toString() == "1" &&
+                                        leaveInRange(e, fs, fe))
+                                        .toList());
+
+                                    if (onLeaveToday.isEmpty) {
+                                      return const Center(
+                                          child: Text("No Employees On Leave in this range"));
+                                    }
+                                    return ListView.builder(
+                                      padding: const EdgeInsets.symmetric(vertical: 10), // side padding parent-la
+                                      itemCount: onLeaveToday.length,
+                                      itemBuilder: (context, index) {
+                                        final data = onLeaveToday[index];
+                                        return leaveCard(data,
+                                            showButtons: false, showCancelOnly: true);
+                                      },
+                                    );
+                                  },
+                                ),
+                              ],
                             ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
-                    ],
+                    ),
                   ),
                 ),
               ),
             ),
           );
         });
+  }
+
+  // ---------------------------------------------------------------
+  // DATE RANGE BANNER
+  // ---------------------------------------------------------------
+  /// "24 Nov 2026 (Tue)" | "01 – 24 Nov 2026" | "28 Oct – 24 Nov 2026"
+  String _prettyRange(String a, String b) {
+    DateTime? p(String s) {
+      try {
+        return _apiFmt.parseStrict(s);
+      } catch (_) {
+        return null;
+      }
+    }
+
+    final s = p(a);
+    final e = p(b) ?? s;
+    if (s == null || e == null) return "-";
+    if (DateUtils.isSameDay(s, e)) {
+      return DateFormat('dd MMM yyyy (EEE)').format(s);
+    }
+    if (s.year == e.year) {
+      if (s.month == e.month) {
+        return "${DateFormat('dd').format(s)} – ${DateFormat('dd MMM yyyy').format(e)}";
+      }
+      return "${DateFormat('dd MMM').format(s)} – ${DateFormat('dd MMM yyyy').format(e)}";
+    }
+    return "${DateFormat('dd MMM yy').format(s)} – ${DateFormat('dd MMM yy').format(e)}";
+  }
+
+  int _rangeDayCount(String a, String b) {
+    try {
+      final s = _apiFmt.parseStrict(a);
+      final e = b.isEmpty ? s : _apiFmt.parseStrict(b);
+      return e.difference(s).inDays.abs() + 1;
+    } catch (_) {
+      return 1;
+    }
+  }
+
+  Widget _rangeBanner(LeaveProvider lp, double width) {
+    final Color primary = colorsConst.primary;
+    final String label = lp.isFilterApplied
+        ? (lp.typeReport?.toString() ?? "Custom")
+        : (_rangeType != null && lp.typeList.contains(_rangeType)
+        ? _rangeType!
+        : "Custom");
+    final int days = _rangeDayCount(lp.startDate, lp.endDate);
+
+    return Container(
+      width: width,
+      height: 48,
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            Colors.white,
+            Color.alphaBlend(primary.withOpacity(0.07), Colors.white),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: primary.withOpacity(0.12)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 30,
+            height: 30,
+            decoration: BoxDecoration(
+              color: primary.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(9),
+            ),
+            child: Icon(Icons.calendar_month_rounded, size: 16, color: primary),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "SHOWING LEAVES · ${label.toUpperCase()}"
+                      "${days > 1 ? ' · $days DAYS' : ''}",
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 10,
+                    letterSpacing: 0.5,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.grey.shade600,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    _prettyRange(lp.startDate, lp.endDate),
+                    maxLines: 1,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xff14151F),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (lp.isFilterApplied)
+            Container(
+              margin: const EdgeInsets.only(left: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(
+                color: primary.withOpacity(0.12),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Text(
+                "Filtered",
+                style: TextStyle(
+                  fontSize: 10.5,
+                  fontWeight: FontWeight.w700,
+                  color: primary,
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
   }
 
   DateTime? parseCreatedDate(String? value) {
@@ -930,8 +1109,8 @@ class _ViewMyLeavesState extends State<ViewMyLeaves>
                             empId: data.userId.toString(),
                             name: data.fName.toString(),
                             role: data.role.toString(),
-                            date1: widget.date1!,
-                            date2: widget.date2!));
+                            date1: _rangeD1,
+                            date2: _rangeD2));
                   },
                   child: Container(
                     width: kIsWeb ? webWidth : phoneWidth,
@@ -1207,8 +1386,8 @@ class _ViewMyLeavesState extends State<ViewMyLeaves>
                               utils.navigatePage(
                                 context,
                                     () => ApplyLeave(
-                                  date1: widget.date1,
-                                  date2: widget.date2,
+                                  date1: _rangeD1,
+                                  date2: _rangeD2,
                                   editData: data, // prefill with this leave record
                                 ),
                               );
@@ -1579,7 +1758,7 @@ class _ViewMyLeavesState extends State<ViewMyLeaves>
     }
 
     return ListView.builder(
-      padding: const EdgeInsets.all(10),
+      padding: const EdgeInsets.symmetric(vertical: 10), // side padding parent-la
       itemCount: filtered.length,
       itemBuilder: (context, index) {
         return leaveCard(

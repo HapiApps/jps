@@ -39,10 +39,16 @@ android {
 
     signingConfigs {
         release {
-            keyAlias keystoreProperties['keyAlias']
-            keyPassword keystoreProperties['keyPassword']
-            storeFile file(keystoreProperties['storeFile'])
-            storePassword keystoreProperties['storePassword']
+            def keystorePath = keystoreProperties['storeFile']
+
+            if (keystorePath == null || keystorePath.toString().trim().isEmpty()) {
+                throw new GradleException("Keystore path is missing in key.properties")
+            }
+
+            keyAlias = keystoreProperties['keyAlias']
+            keyPassword = keystoreProperties['keyPassword']
+            storeFile = file(keystorePath)
+            storePassword = keystoreProperties['storePassword']
         }
     }
 

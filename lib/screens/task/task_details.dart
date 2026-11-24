@@ -52,6 +52,10 @@ class _TaskDetailsState extends State<TaskDetails>
 
   bool isTaskTitleExpanded = true;
 
+  // ===== DESCRIPTION =====
+  bool isDescriptionExpanded = false;
+  static const int _descPreviewLines = 4;
+
   static const int _workPreviewCount = 5;
 
   String level = '';
@@ -465,6 +469,156 @@ class _TaskDetailsState extends State<TaskDetails>
                       ),
                     ),
                 ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ===========================================================================
+  // DESCRIPTION SECTION
+  // ===========================================================================
+
+  /// Task description (null / "null" / empty -> "")
+  /// ⚠️ TaskData model-la field name vera na (eg: taskDescription, details),
+  /// indha line-la mattum maathunga.
+  String get _taskDescription {
+    final d = (widget.data.taskDesc ?? "").toString().trim();
+    return d == "null" ? "" : d;
+  }
+
+  Widget _descriptionCard(double width) {
+    final String desc = _taskDescription;
+
+    const descStyle = TextStyle(
+      fontSize: 14,
+      fontFamily: "Lato",
+      color: Colors.black87,
+      height: 1.45,
+    );
+
+    return Center(
+      child: Container(
+        width: width,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(25),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withOpacity(0.2),
+              blurRadius: 10,
+              spreadRadius: 2,
+              offset: const Offset(0, 5),
+            )
+          ],
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(18.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              /// ================= TITLE =================
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.description_outlined,
+                          size: 18, color: colorsConst.primary),
+                      6.width,
+                      const Text(
+                        "Description",
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (desc.isNotEmpty)
+                    InkWell(
+                      borderRadius: BorderRadius.circular(20),
+                      onTap: () {
+                        HapticFeedback.lightImpact();
+                        Clipboard.setData(ClipboardData(text: desc));
+                        utils.showSuccessToast(
+                            context: context, text: "Description copied");
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.all(4.0),
+                        child: Icon(Icons.copy_rounded,
+                            size: 18, color: Colors.grey.shade600),
+                      ),
+                    ),
+                ],
+              ),
+              Divider(color: Colors.grey.shade300, thickness: 1.2),
+              6.height,
+
+              /// ================= BODY =================
+              if (desc.isEmpty)
+                Center(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 6),
+                    child: CustomText(
+                      text: "No Description Found",
+                      size: 14,
+                      colors: Colors.grey,
+                    ),
+                  ),
+                )
+              else
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    // 4 line-ku mela pogudha nu check pannum
+                    final tp = TextPainter(
+                      text: TextSpan(text: desc, style: descStyle),
+                      maxLines: _descPreviewLines,
+                      textDirection: Directionality.of(context),
+                    )..layout(maxWidth: constraints.maxWidth);
+                    final bool hasOverflow = tp.didExceedMaxLines;
+
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        isDescriptionExpanded || !hasOverflow
+                            ? SelectableText(desc, style: descStyle)
+                            : Text(
+                          desc,
+                          style: descStyle,
+                          maxLines: _descPreviewLines,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        if (hasOverflow)
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: InkWell(
+                              onTap: () {
+                                HapticFeedback.selectionClick();
+                                setState(() => isDescriptionExpanded =
+                                !isDescriptionExpanded);
+                              },
+                              child: Padding(
+                                padding:
+                                const EdgeInsets.only(top: 8, right: 5),
+                                child: Text(
+                                  isDescriptionExpanded
+                                      ? "Show Less"
+                                      : "Show More",
+                                  style: TextStyle(
+                                    color: colorsConst.primary,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
+                    );
+                  },
+                ),
             ],
           ),
         ),
@@ -1289,7 +1443,10 @@ class _TaskDetailsState extends State<TaskDetails>
                           ),
                         )),
                   ),
-                  10.height,
+                  20.height,
+                  /// ================= DESCRIPTION (separate section) =================
+                  _descriptionCard(kIsWeb ? webWidth : phoneWidth),
+                  20.height,
                   Center(
                     child: Container(
                       width: kIsWeb ? webWidth : phoneWidth,

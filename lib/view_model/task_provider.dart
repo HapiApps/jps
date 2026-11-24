@@ -3446,8 +3446,13 @@ class TaskProvider with ChangeNotifier {
     filterList();
   }
 
+  /// getAllTask() fail aana reason (web-la "No Task Found" mattum varaama UI-la theriyum)
+  String _taskLoadError = "";
+  String get taskLoadError => _taskLoadError;
+
   Future<void> getAllTask(bool isRefresh, {String? date1, String? date2, String? type}) async {
     _log("=====  getAllTask START =====");
+    _taskLoadError = "";
     // stops "refresh after comment/chat" from switching to all-tasks + today-only
     if (!isRefresh && _incompleteMode) {
       return getAllIncompleteTask(false);
@@ -3498,9 +3503,15 @@ class TaskProvider with ChangeNotifier {
         _applyTaskResponse(response);
         _viewRefresh = true;
       } else {
+        debugPrint("getAllTask: API returned EMPTY list (cos_id=${data['cos_id']}, id=${data['id']}, role=${data['role']})");
         _viewRefresh = true;
       }
-    } catch (e) {
+    } catch (e, st) {
+      // munnadi error amaidhiyaa vizhungidum -> web-la "No Task Found" mattum.
+      // debugPrint release web build-layum browser console-la varum.
+      debugPrint("getAllTask ERROR => $e\n$st");
+      _taskLoadError = e.toString();
+
       _allTasks = [];
       _searchAllTasks = [];
       _filterUserData = [];

@@ -553,127 +553,276 @@ class HomeProvider with ChangeNotifier{
     }
     return days;
   }
+  // ===========================================================================
+  // DATE RANGE PICKER (premium)
+  //
+  // FIX 1: munnadi dialog open aagum bodhe _startDate/_endDate-ah "today"-ku
+  //        maathitturundhuchu -> Cancel pannaalum range maaridum.
+  //        Ippo temp values mattum; Apply pannina dhaan provider maarum.
+  // FIX 2: munnadi OK-la DIALOG context-oda loadFullDashboard() call aachu.
+  //        Dialog pop aanadhum andha context unmounted -> API vandha apram
+  //        "Context is not mounted" nu return aagidum -> range update aagaadhu.
+  //        Ippo HomePage (page) context use pannudhu.
+  // FIX 3: _type = "Custom" -> next pages (ViewTask, AttendanceReport) ku
+  //        "Today" nu pogaama correct range pogum.
+  // ===========================================================================
   void showDatePickerDialog(BuildContext context) {
-    DateTime today = DateTime.now();
+    final BuildContext pageContext = context;
+    final DateFormat apiFmt = DateFormat('dd-MM-yyyy');
+    final DateFormat showFmt = DateFormat('dd MMM yyyy');
+    final Color primary = colorsConst.primary;
 
-    selectedDate = PickerDateRange(today, today);
+    DateTime parse(String s) {
+      try {
+        return apiFmt.parseStrict(s);
+      } catch (_) {
+        return DateTime.now();
+      }
+    }
 
-    datesBetween = getDatesInRange(
-      selectedDate!.startDate!,
-      selectedDate!.endDate!,
-    );
+    DateTime tempStart = _startDate.isEmpty ? DateTime.now() : parse(_startDate);
+    DateTime tempEnd = _endDate.isEmpty ? tempStart : parse(_endDate);
 
-    DateFormat dateFormat = DateFormat('dd-MM-yyyy');
-
-    List<String> formattedDates =
-    datesBetween.map((date) => dateFormat.format(date)).toList();
-
-    betweenDates = formattedDates.join(' || ');
-
-    _startDate = dateFormat.format(selectedDate!.startDate!);
-    _endDate = dateFormat.format(selectedDate!.endDate!);
-
-    notifyListeners();
+    Widget summaryBox(String label, String value, CrossAxisAlignment align) {
+      return Column(
+        crossAxisAlignment: align,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 10,
+              letterSpacing: 0.8,
+              fontWeight: FontWeight.w700,
+              color: primary.withOpacity(0.75),
+            ),
+          ),
+          const SizedBox(height: 3),
+          // FittedBox -> rendu date-um select pannaalum text overflow aagaadhu
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: align == CrossAxisAlignment.end
+                ? Alignment.centerRight
+                : Alignment.centerLeft,
+            child: Text(
+              value,
+              maxLines: 1,
+              style: const TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
+                color: Color(0xff14151F),
+              ),
+            ),
+          ),
+        ],
+      );
+    }
 
     showDialog(
       context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: CustomText(
-            text: '   Select Date',
-            colors: colorsConst.secondary,
-            isBold: true,
-          ),
-          content: SizedBox(
-            height: 300,
-            width: 300,
-            child: SfDateRangePicker(
-              minDate: DateTime(2025, 1, 1),
+      builder: (dialogCtx) {
+        return StatefulBuilder(
+          builder: (dialogCtx, setD) {
+            final int days = tempEnd.difference(tempStart).inDays + 1;
 
-              // Future dates allow
-              // maxDate removed
-
-              selectionMode: DateRangePickerSelectionMode.range,
-
-              onSelectionChanged:
-                  (DateRangePickerSelectionChangedArgs args) {
-                selectedDate = args.value;
-
-                if (selectedDate != null) {
-                  final start = selectedDate!.startDate!;
-                  final end = selectedDate!.endDate ?? start;
-
-                  _startDate =
-                  "${start.day.toString().padLeft(2, '0')}-"
-                      "${start.month.toString().padLeft(2, '0')}-"
-                      "${start.year}";
-
-                  _endDate =
-                  "${end.day.toString().padLeft(2, '0')}-"
-                      "${end.month.toString().padLeft(2, '0')}-"
-                      "${end.year}";
-                }
-
-                notifyListeners();
-              },
-            ),
-          ),
-          actions: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                CustomText(
-                  text: 'Click and drag to select multiple dates',
-                  colors: colorsConst.greyClr,
+            return Dialog(
+              backgroundColor: Colors.white,
+              surfaceTintColor: Colors.white,
+              insetPadding:
+              const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(22)),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxWidth: 380,
+                  // chinna screen-la bottom overflow aagaama
+                  maxHeight: MediaQuery.of(dialogCtx).size.height * 0.88,
                 ),
-              ],
-            ),
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(18, 16, 18, 14),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      /// HEADER
+                      Row(
+                        children: [
+                          Container(
+                            width: 34,
+                            height: 34,
+                            decoration: BoxDecoration(
+                              color: primary.withOpacity(0.12),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Icon(Icons.date_range_rounded,
+                                size: 18, color: primary),
+                          ),
+                          const SizedBox(width: 10),
+                          const Expanded(
+                            child: Text(
+                              'Select Date Range',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xff14151F),
+                              ),
+                            ),
+                          ),
+                          InkWell(
+                            borderRadius: BorderRadius.circular(20),
+                            onTap: () => Navigator.of(dialogCtx).pop(),
+                            child: const Padding(
+                              padding: EdgeInsets.all(4),
+                              child: Icon(Icons.close_rounded,
+                                  size: 20, color: Colors.grey),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 14),
 
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                TextButton(
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                  },
-                  child: const CustomText(
-                    text: 'Cancel',
-                    colors: Colors.grey,
-                    isBold: true,
+                      /// FROM -> TO SUMMARY
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: primary.withOpacity(0.07),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: primary.withOpacity(0.15)),
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: summaryBox("FROM",
+                                  showFmt.format(tempStart),
+                                  CrossAxisAlignment.start),
+                            ),
+                            Container(
+                              margin: const EdgeInsets.symmetric(horizontal: 8),
+                              padding: const EdgeInsets.all(5),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                    color: primary.withOpacity(0.2)),
+                              ),
+                              child: Icon(Icons.arrow_forward_rounded,
+                                  size: 14, color: primary),
+                            ),
+                            Expanded(
+                              child: summaryBox("TO", showFmt.format(tempEnd),
+                                  CrossAxisAlignment.end),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Center(
+                        child: Text(
+                          "$days ${days == 1 ? 'day' : 'days'} selected",
+                          style: const TextStyle(
+                              fontSize: 12, color: Color(0xff6B7280)),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+
+                      /// CALENDAR
+                      SizedBox(
+                        height: 300,
+                        child: SfDateRangePicker(
+                          minDate: DateTime(2025, 1, 1),
+                          initialDisplayDate: tempEnd,
+                          initialSelectedRange:
+                          PickerDateRange(tempStart, tempEnd),
+                          selectionMode: DateRangePickerSelectionMode.range,
+                          selectionColor: primary,
+                          startRangeSelectionColor: primary,
+                          endRangeSelectionColor: primary,
+                          rangeSelectionColor: primary.withOpacity(0.12),
+                          todayHighlightColor: primary,
+                          headerStyle: const DateRangePickerHeaderStyle(
+                            textAlign: TextAlign.center,
+                            textStyle: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xff14151F),
+                            ),
+                          ),
+                          // temp mattum maarum; provider / dashboard touch aagaadhu
+                          onSelectionChanged:
+                              (DateRangePickerSelectionChangedArgs args) {
+                            final v = args.value;
+                            if (v is PickerDateRange && v.startDate != null) {
+                              setD(() {
+                                tempStart = v.startDate!;
+                                tempEnd = v.endDate ?? v.startDate!;
+                              });
+                            }
+                          },
+                        ),
+                      ),
+                      const Text(
+                        'Tap a start date, then an end date',
+                        textAlign: TextAlign.center,
+                        style:
+                        TextStyle(fontSize: 11, color: Color(0xff9CA3AF)),
+                      ),
+                      const SizedBox(height: 14),
+
+                      /// ACTIONS
+                      Row(
+                        children: [
+                          Expanded(
+                            child: SizedBox(
+                              height: 44,
+                              child: OutlinedButton(
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: const Color(0xff4B5563),
+                                  side: const BorderSide(
+                                      color: Color(0xffD9DCE1)),
+                                  shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12)),
+                                ),
+                                onPressed: () => Navigator.of(dialogCtx).pop(),
+                                child: const Text('Cancel',
+                                    style: TextStyle(
+                                        fontWeight: FontWeight.w600)),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: SizedBox(
+                              height: 44,
+                              child: ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: primary,
+                                  foregroundColor: Colors.white,
+                                  elevation: 0,
+                                  shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12)),
+                                ),
+                                onPressed: () {
+                                  Navigator.of(dialogCtx).pop();
+                                  if (pageContext.mounted) {
+                                    applyCustomRange(
+                                        pageContext, tempStart, tempEnd);
+                                  }
+                                },
+                                child: const Text('Apply',
+                                    style: TextStyle(
+                                        fontWeight: FontWeight.w700)),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
-
-                TextButton(
-                  onPressed: () {
-                    if (selectedDate != null) {
-                      datesBetween = getDatesInRange(
-                        selectedDate!.startDate!,
-                        selectedDate!.endDate ??
-                            selectedDate!.startDate!,
-                      );
-
-                      List<String> formattedDates = datesBetween
-                          .map((date) => dateFormat.format(date))
-                          .toList();
-
-                      betweenDates = formattedDates.join(' || ');
-                    }
-
-                    loadFullDashboard(context);
-
-                    notifyListeners();
-
-                    Navigator.of(context).pop();
-                  },
-                  child: CustomText(
-                    text: 'OK',
-                    colors: colorsConst.primary,
-                    isBold: true,
-                  ),
-                ),
-              ],
-            ),
-          ],
+              ),
+            );
+          },
         );
       },
     );
@@ -1231,6 +1380,10 @@ class HomeProvider with ChangeNotifier{
 
   bool get isHomePageActive => _isHomePageActive;
   bool _isDashboardLoading = false;
+
+  // ===== DATE RANGE CHANGE LOADER (auto-refresh timer-ku show aagaadhu) =====
+  bool _rangeLoading = false;
+  bool get rangeLoading => _rangeLoading;
   bool _reloadQueued = false;   // 👈 NEW: running la irukkum bodhu vandha reload request-ah queue panna
   BuildContext? _queuedContext; // 👈 NEW: queue panna call oda context (popped page context use aagaama irukka)
   int _loadCallCount = 0;
@@ -2032,16 +2185,66 @@ class HomeProvider with ChangeNotifier{
       last3Month();
     }
     checkThisMonth();
-    if (reloadDashboard) loadFullDashboard(context);
-    // getMainReport(false);
-    //   getDashboardReport(false);
-    Provider.of<AttendanceProvider>(context, listen: false).getLateCount(_startDate,_endDate);
-
-    Provider.of<AttendanceProvider>(context, listen: false).initDate(id:localData.storage.read("id"),role:localData.storage.read("role"),isRefresh:true,date1:_startDate,date2:_endDate,type:"");
-    Provider.of<AttendanceProvider>(context, listen: false).getAttendanceReport(localData.storage.read("id"));
-    Provider.of<AttendanceProvider>(context, listen: false).getAbsentAttendanceReport(localData.storage.read("id"));
-    Provider.of<LeaveProvider>(context, listen: false).allLeaves(_startDate,_endDate,true,localData.storage.read("role"),localData.storage.read("id"));
+    _refreshRangeReports(context);
+    if (reloadDashboard) _reloadForRange(context); // loader-oda
     notifyListeners();
+  }
+
+  /// Custom date range (picker Apply) -> type "Custom" + reports + dashboard
+  void applyCustomRange(BuildContext context, DateTime start, DateTime end) {
+    if (end.isBefore(start)) {
+      final t = start;
+      start = end;
+      end = t;
+    }
+    final f = DateFormat('dd-MM-yyyy');
+    _type = "Custom";
+    stDt = start;
+    enDt = end;
+    _startDate = f.format(start);
+    _endDate = f.format(end);
+    selectedDate = PickerDateRange(start, end);
+    datesBetween = getDatesInRange(start, end);
+    betweenDates = datesBetween.map((d) => f.format(d)).join(' || ');
+    checkThisMonth();
+    _refreshRangeReports(context);
+    _reloadForRange(context);
+    notifyListeners();
+  }
+
+  /// Attendance / leave reports -> current range
+  void _refreshRangeReports(context) {
+    final att = Provider.of<AttendanceProvider>(context, listen: false);
+    att.getLateCount(_startDate, _endDate);
+    att.initDate(
+        id: localData.storage.read("id"),
+        role: localData.storage.read("role"),
+        isRefresh: true,
+        date1: _startDate,
+        date2: _endDate,
+        type: "");
+    att.getAttendanceReport(localData.storage.read("id"));
+    att.getAbsentAttendanceReport(localData.storage.read("id"));
+    Provider.of<LeaveProvider>(context, listen: false).allLeaves(_startDate,
+        _endDate, true, localData.storage.read("role"), localData.storage.read("id"));
+  }
+
+  /// Dashboard reload + rangeLoading flag (Home card loader idha use pannum)
+  Future<void> _reloadForRange(BuildContext context) async {
+    _rangeLoading = true;
+    notifyListeners();
+    try {
+      await loadFullDashboard(context);
+      // munnadi oru call running-na idhu QUEUE aagum -> adhu mudiyura varaikkum wait
+      int guard = 0;
+      while ((_isDashboardLoading || _reloadQueued) && guard < 120) {
+        await Future.delayed(const Duration(milliseconds: 150));
+        guard++;
+      }
+    } finally {
+      _rangeLoading = false;
+      notifyListeners();
+    }
   }
   DateTime stDt = DateTime.now();
   DateTime enDt = DateTime.now().add(const Duration(days: 1));
@@ -2332,6 +2535,7 @@ class HomeProvider with ChangeNotifier{
     stopAutoRefresh();
     _isHomePageActive = false;
     _isDashboardLoading = false;
+    _rangeLoading = false;
     _reloadQueued = false;   // 👈 NEW
     _queuedContext = null;   // 👈 NEW
     _loadCallCount = 0;
