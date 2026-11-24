@@ -168,6 +168,9 @@ class _TaskDetailsState extends State<TaskDetails>
       final customerProvider =
       Provider.of<CustomerProvider>(context, listen: false);
 
+      // timer: getAllTask nadakkaama direct-ah vandhaalum seed aagum
+      taskProvider.ensureTimer(widget.data);
+
       taskProvider.lStatus = widget.data.statval.toString();
       taskProvider.setStatus(taskProvider.lStatus);
       taskProvider.setStatusByName(widget.data.statval.toString());
@@ -623,6 +626,253 @@ class _TaskDetailsState extends State<TaskDetails>
           ),
         ),
       ),
+    );
+  }
+
+  // ===========================================================================
+  // WORK TIMER (Start / Hold / Resume / Complete) - View Task card-oda adhe logic
+  // ===========================================================================
+  static const int _daySecs = 24 * 3600;
+
+  String _hms(int s) {
+    if (s < 0) s = 0;
+    if (s >= _daySecs) return _worked(s);
+    final h = (s ~/ 3600).toString().padLeft(2, '0');
+    final m = ((s % 3600) ~/ 60).toString().padLeft(2, '0');
+    final x = (s % 60).toString().padLeft(2, '0');
+    return "$h:$m:$x";
+  }
+
+  String _worked(int s) {
+    if (s < 0) s = 0;
+    final d = s ~/ _daySecs;
+    final h = (s % _daySecs) ~/ 3600;
+    final m = (s % 3600) ~/ 60;
+    final x = s % 60;
+    if (d > 0) return "${d}d ${h}h ${m}m";
+    if (h > 0) return "${h}h ${m}m";
+    if (m > 0) return "${m}m ${x}s";
+    return "${x}s";
+  }
+
+  Widget _timerBtn(String text, IconData icon, Color color, VoidCallback onTap,
+      {bool filled = true}) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(20),
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: filled ? color : color.withOpacity(0.10),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          Icon(icon, size: 16, color: filled ? Colors.white : color),
+          const SizedBox(width: 5),
+          Text(text,
+              style: TextStyle(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w700,
+                  color: filled ? Colors.white : color)),
+        ]),
+      ),
+    );
+  }
+
+  Future<void> _afterTimerAction(TaskProvider tp) async {
+    if (!mounted) return;
+    await tp.getWorkHistory(widget.data.id.toString());
+  }
+
+  Future<void> _confirmComplete(TaskProvider tp, TaskData d) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (c) => AlertDialog(
+        title: const Text("Complete work?"),
+        content: Text("Total worked: ${_worked(tp.currentSeconds(d.id.toString()))}"),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(c, false), child: const Text("No")),
+          TextButton(onPressed: () => Navigator.pop(c, true), child: const Text("Yes, Complete")),
+        ],
+      ),
+    );
+    if (ok == true && mounted) {
+      await tp.insertTaskLogHistory(context, id: d.id.toString(), level: "Complete");
+      await _afterTimerAction(tp);
+    }
+  }
+
+  Widget _workTimerCard(TaskProvider tp, double width) {
+    final d = tp.latestTask(widget.data);
+    final id = d.id.toString();
+    final mine = tp.isMyTask(d);
+
+    return ValueListenableBuilder<int>(
+      valueListenable: tp.tickNotifier,
+      builder: (_, __, ___) {
+        final state = tp.workState(d);
+        final secs = tp.currentSeconds(id);
+
+        // munnadi: en task illa + start aagala -> bar-ae hide (adhanaala overdue
+        // task-la "Start" illa-nu thonuchu). Ippo reason-oda info bar kaattum.
+        final bool locked = state == "idle" && !mine;
+        if (locked && kDebugMode) {
+          debugPrint("TIMER-LOCKED id=$id assigned='${d.assigned}' "
+              "names='${d.assignedNames}' myId='${localData.storage.read("id")}' "
+              "myName='${localData.storage.read("f_name")}'");
+        }
+
+        Color accent;
+        String title, sub;
+        switch (state) {
+          case "running":
+            accent = const Color(0xff1FAF38);
+            title = _hms(secs);
+            sub = secs >= _daySecs
+                ? "Working now • running over a day, check timer"
+                : "Working now";
+            break;
+          case "hold":
+            accent = const Color(0xffF59E0B);
+            title = _hms(secs);
+            sub = "On hold • worked ${_worked(secs)}";
+            break;
+          case "done":
+            accent = const Color(0xff0B5FB5);
+            title = _worked(secs);
+            sub = "Work completed";
+            break;
+          default:
+            accent = const Color(0xff6B7280);
+            if (locked) {
+              final who = (d.assignedNames ?? "").toString().trim();
+              title = "Not started yet";
+              sub = who.isEmpty || who == "null"
+                  ? "Only the assigned person can start"
+                  : "Only $who can start this timer";
+            } else {
+              title = "Ready to start";
+              sub = "Tap Start (or set status to Started) to track time";
+            }
+        }
+
+        Widget actions;
+        if (state == "done") {
+          actions = Icon(Icons.check_circle, color: accent, size: 26);
+        } else if (!mine) {
+          actions = locked
+              ? const Icon(Icons.lock_outline_rounded, size: 20, color: Color(0xff9CA3AF))
+              : const SizedBox.shrink(); // others only watch
+        } else if (state == "idle") {
+          actions = _timerBtn("Start", Icons.play_arrow_rounded, colorsConst.primary,
+                  () async {
+                await tp.startWork(context, d);
+                await _afterTimerAction(tp);
+              });
+        } else if (state == "running") {
+          actions = Wrap(spacing: 6, runSpacing: 6, children: [
+            _timerBtn("Hold", Icons.pause_rounded, const Color(0xffF59E0B), () async {
+              await tp.insertTaskLogHistory(context, id: id, level: "Hold");
+              await _afterTimerAction(tp);
+            }, filled: false),
+            _timerBtn("Complete", Icons.check_rounded, const Color(0xff1FAF38),
+                    () => _confirmComplete(tp, d)),
+          ]);
+        } else {
+          actions = Wrap(spacing: 6, runSpacing: 6, children: [
+            _timerBtn("Resume", Icons.play_arrow_rounded, colorsConst.primary, () async {
+              await tp.startWork(context, d);
+              await _afterTimerAction(tp);
+            }),
+            _timerBtn("Complete", Icons.check_rounded, const Color(0xff1FAF38),
+                    () => _confirmComplete(tp, d),
+                filled: false),
+          ]);
+        }
+
+        final bool idle = state == "idle";
+
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 20),
+          child: Center(
+            child: Container(
+              width: width,
+              padding: const EdgeInsets.fromLTRB(16, 14, 14, 14),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(25),
+                border: Border.all(color: accent.withOpacity(0.30)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.grey.withOpacity(0.2),
+                    blurRadius: 10,
+                    spreadRadius: 2,
+                    offset: const Offset(0, 5),
+                  )
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.timer_outlined, size: 18, color: accent),
+                      6.width,
+                      const Text(
+                        "Work Timer",
+                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                  Divider(color: Colors.grey.shade300, thickness: 1.2),
+                  Row(
+                    children: [
+                      Container(
+                        width: 10,
+                        height: 10,
+                        decoration: BoxDecoration(
+                          color: idle ? Colors.transparent : accent,
+                          border: Border.all(color: accent, width: 1.5),
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              title,
+                              style: TextStyle(
+                                fontSize: idle ? 15 : 22,
+                                fontWeight: FontWeight.w800,
+                                color: const Color(0xff14151F),
+                                fontFeatures: const [FontFeature.tabularFigures()],
+                              ),
+                            ),
+                            2.height,
+                            Text(
+                              sub,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                  fontSize: 11.5,
+                                  color: accent,
+                                  fontWeight: FontWeight.w600),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Flexible(child: actions),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -1436,9 +1686,9 @@ class _TaskDetailsState extends State<TaskDetails>
                                         ),
                                       );
                                     }),
-                              Divider(
-                                color: Colors.grey.shade200,
-                              ),
+                              // Divider(
+                              //   color: Colors.grey.shade200,
+                              // ),
                             ],
                           ),
                         )),
@@ -1447,6 +1697,9 @@ class _TaskDetailsState extends State<TaskDetails>
                   /// ================= DESCRIPTION (separate section) =================
                   _descriptionCard(kIsWeb ? webWidth : phoneWidth),
                   20.height,
+
+                  /// ================= WORK TIMER (View Task maadhiri) =================
+                  _workTimerCard(taskProvider, kIsWeb ? webWidth : phoneWidth),
                   Center(
                     child: Container(
                       width: kIsWeb ? webWidth : phoneWidth,
@@ -1481,19 +1734,30 @@ class _TaskDetailsState extends State<TaskDetails>
                                 // ✅ FIX: latest status Completed illana mattum Save show aagum
                                 if (currentStatus != "Completed")
                                   CustomLoadingButton(
-                                    callback: () {
+                                    callback: () async {
                                       if (taskProvider.isUpdate == false) {
                                         utils.showWarningToast(context,
                                             text: "Please make changes");
                                         taskProvider.taskStatusCtr.reset();
                                       } else {
-                                        taskProvider.editTask(
+                                        // Save-ku munnadi state (save apram statval maaridum)
+                                        final newStatus =
+                                        (taskProvider.statusT ?? "").toString().trim();
+                                        final prevState = taskProvider.workState(
+                                            taskProvider.latestTask(widget.data));
+
+                                        await taskProvider.editTask(
                                           context: context,
                                           data: widget.data,
                                           taskId: widget.data.id.toString(),
                                           isDirect: widget.isDirect,
                                           coId: widget.coId.toString(),
                                         );
+
+                                        // "Started" -> timer start, "Completed" -> timer stop
+                                        if (!mounted) return;
+                                        await taskProvider.syncTimerWithStatus(
+                                            context, widget.data, newStatus, prevState);
                                       }
                                     },
                                     isLoading: true,

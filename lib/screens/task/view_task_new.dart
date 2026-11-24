@@ -810,6 +810,10 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>
                           child: const Icon(Icons.tune, color: Colors.white, size: 20),
                         ),
                       ),
+                      const SizedBox(width: 8),
+
+                      // DOWNLOAD (Task report / Comment report)
+                      _downloadMenu(taskProvider),
                     ],
                   ),
                   const SizedBox(height: 14),
@@ -897,6 +901,137 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>
             ),
           );
         });
+  }
+
+  // -------------------------------------------------------------------------
+  // DOWNLOAD MENU  (palaya code-la irundha "Task" & "Comments" download)
+  //  - Task Report    -> downloadFilteredTaskReport
+  //  - Comment Report -> downloadFilteredCommentReport
+  //  Screen-la filter-la ulla EXACT list (status tab / overdue / search / type /
+  //  company / employee / date range) thaan download aagum. Lazy load-la
+  //  15 mattum kaattinaalum report-la full filtered list varum.
+  // -------------------------------------------------------------------------
+  bool _downloading = false;
+
+  Future<void> _runDownload(Future<void> Function() job) async {
+    if (_downloading) return;
+    _myFocusScopeNode.unfocus();
+    setState(() => _downloading = true);
+    try {
+      await job();
+    } finally {
+      if (mounted) setState(() => _downloading = false);
+    }
+  }
+
+  PopupMenuItem<String> _downloadItem(
+      String value, IconData icon, Color color, String title, String sub) {
+    return PopupMenuItem<String>(
+      value: value,
+      height: 56,
+      child: Row(
+        children: [
+          Container(
+            width: 34,
+            height: 34,
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.10),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, size: 18, color: color),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xff1F2937))),
+                const SizedBox(height: 2),
+                Text(sub,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 11.5, color: Color(0xff6B7280))),
+              ],
+            ),
+          ),
+          const Icon(Icons.download_rounded, size: 18, color: Color(0xff9CA3AF)),
+        ],
+      ),
+    );
+  }
+
+  Widget _downloadMenu(TaskProvider taskProvider) {
+    return PopupMenuButton<String>(
+      tooltip: "Download report",
+      enabled: !_downloading,
+      onOpened: () => _myFocusScopeNode.unfocus(),
+      offset: const Offset(0, 46),
+      color: Colors.white,
+      elevation: 6,
+      constraints: const BoxConstraints(minWidth: 240, maxWidth: 280),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      onSelected: (v) {
+        if (v == "task") {
+          _runDownload(() => taskProvider.downloadFilteredTaskReport(context));
+        } else if (v == "comment") {
+          _runDownload(() => taskProvider.downloadFilteredCommentReport(context));
+        }
+      },
+      itemBuilder: (_) {
+        final n = taskProvider.filterUserData.length;
+        final countTxt = "$n ${n == 1 ? 'task' : 'tasks'}";
+        return [
+          PopupMenuItem<String>(
+            enabled: false,
+            height: 30,
+            child: Text(
+              "DOWNLOAD REPORT (EXCEL) • $countTxt",
+              style: TextStyle(
+                fontSize: 10.5,
+                letterSpacing: 0.8,
+                fontWeight: FontWeight.w700,
+                color: colorsConst.greyClr,
+              ),
+            ),
+          ),
+          _downloadItem("task", Icons.assignment_outlined, const Color(0xff0B5FB5),
+              "Task Report", "$countTxt • full details + work time"),
+          const PopupMenuDivider(height: 6),
+          _downloadItem("comment", Icons.forum_outlined, const Color(0xff7C3AED),
+              "Comment Report", "$countTxt • every comment"),
+        ];
+      },
+      child: Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          shape: BoxShape.circle,
+          border: Border.all(color: colorsConst.primary.withOpacity(0.35)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: _downloading
+            ? Padding(
+          padding: const EdgeInsets.all(11),
+          child: CircularProgressIndicator(
+              strokeWidth: 2, color: colorsConst.primary),
+        )
+            : Icon(Icons.download_rounded, color: colorsConst.primary, size: 21),
+      ),
+    );
   }
 
   // -------------------------------------------------------------------------
@@ -1456,18 +1591,32 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>
   // -------------------------------------------------------------------------
   // WORK TIMER BAR (Start / Hold / Resume / Complete)
   // -------------------------------------------------------------------------
+  static const int _daySecs = 24 * 3600;
+
+  /// LIVE timer text
+  ///  < 1 day : "05:12:09"           (clock style, seconds ticking)
+  ///  >= 1 day: "10d 16h 28m"        (munnadi "256:28:40" nu vandhuchu)
   String _hms(int s) {
+    if (s < 0) s = 0;
+    if (s >= _daySecs) return _worked(s);
     final h = (s ~/ 3600).toString().padLeft(2, '0');
     final m = ((s % 3600) ~/ 60).toString().padLeft(2, '0');
     final x = (s % 60).toString().padLeft(2, '0');
     return "$h:$m:$x";
   }
 
+  /// Total worked (readable)
+  ///  "10d 16h 28m" | "1d 0h 5m" | "5h 12m" | "12m 5s" | "40s"
   String _worked(int s) {
-    final h = s ~/ 3600, m = (s % 3600) ~/ 60;
+    if (s < 0) s = 0;
+    final d = s ~/ _daySecs;
+    final h = (s % _daySecs) ~/ 3600;
+    final m = (s % 3600) ~/ 60;
+    final x = s % 60;
+    if (d > 0) return "${d}d ${h}h ${m}m";
     if (h > 0) return "${h}h ${m}m";
-    if (m > 0) return "${m}m ${s % 60}s";
-    return "${s}s";
+    if (m > 0) return "${m}m ${x}s";
+    return "${x}s";
   }
 
   Widget _actBtn(String text, IconData icon, Color color, VoidCallback onTap,
@@ -1524,8 +1673,14 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>
         final state = tp.workState(d);
         final secs = tp.currentSeconds(id);
 
-        // not my task and nothing has happened yet -> hide the bar
-        if (state == "idle" && !mine) return const SizedBox.shrink();
+        // munnadi: en task illa + start aagala -> bar-ae hide (adhanaala overdue
+        // task-la "Start" illa-nu thonuchu). Ippo reason-oda info bar kaattum.
+        final bool locked = state == "idle" && !mine;
+        if (locked && kDebugMode) {
+          debugPrint("TIMER-LOCKED id=$id assigned='${d.assigned}' "
+              "names='${d.assignedNames}' myId='${localData.storage.read("id")}' "
+              "myName='${localData.storage.read("f_name")}'");
+        }
 
         Color accent;
         String title, sub;
@@ -1533,7 +1688,10 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>
           case "running":
             accent = const Color(0xff1FAF38);
             title = _hms(secs);
-            sub = "Working now";
+            // 1 naal-ku mela running -> timer stop panna marandhirukkalaam
+            sub = secs >= _daySecs
+                ? "Working now • running over a day, check timer"
+                : "Working now";
             break;
           case "hold":
             accent = const Color(0xffF59E0B);
@@ -1547,15 +1705,25 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>
             break;
           default:
             accent = const Color(0xff6B7280);
-            title = "Ready to start";
-            sub = "Tap Start to track your work time";
+            if (locked) {
+              final who = (d.assignedNames ?? "").toString().trim();
+              title = "Not started yet";
+              sub = who.isEmpty || who == "null"
+                  ? "Only the assigned person can start"
+                  : "Only $who can start this timer";
+            } else {
+              title = "Ready to start";
+              sub = "Tap Start to track your work time";
+            }
         }
 
         Widget actions;
         if (state == "done") {
           actions = Icon(Icons.check_circle, color: accent, size: 24);
         } else if (!mine) {
-          actions = const SizedBox.shrink(); // others only watch the timer
+          actions = locked
+              ? const Icon(Icons.lock_outline_rounded, size: 18, color: Color(0xff9CA3AF))
+              : const SizedBox.shrink(); // others only watch the timer
         } else if (state == "idle") {
           actions = _actBtn("Start", Icons.play_arrow_rounded, colorsConst.primary,
                   () => tp.startWork(context, d));
@@ -1729,6 +1897,87 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>
     );
   }
 
+  // -------------------------------------------------------------------------
+  // NEW / OLD TAG
+  // NEW  = created today or yesterday (last 2 days incl. today)
+  // OLD  = created before that
+  // createdTs illana taskDate fallback
+  // -------------------------------------------------------------------------
+  bool _isNewTask(TaskData d) {
+    final created = _parseDate(d.createdTs) ?? _parseDate(d.taskDate);
+    if (created == null) return false;
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final yesterday = today.subtract(const Duration(days: 1));
+    return !created.isBefore(yesterday); // yesterday / today (/ future)
+  }
+
+  /// premium gradient "NEW" badge
+  Widget _newTag() {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(6, 3, 8, 3),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xffFF8A00), Color(0xffFF3D77)],
+        ),
+        borderRadius: BorderRadius.circular(8),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xffFF3D77).withOpacity(0.30),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: const Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.auto_awesome, size: 11, color: Colors.white),
+          SizedBox(width: 3),
+          Text(
+            "NEW",
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.6,
+              color: Colors.white,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// subtle outlined "OLD" badge
+  Widget _oldTag() {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(6, 2, 8, 2),
+      decoration: BoxDecoration(
+        color: const Color(0xffF5F6F8),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: const Color(0xffDCDFE4)),
+      ),
+      child: const Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.history_rounded, size: 11, color: Color(0xff8A90A2)),
+          SizedBox(width: 3),
+          Text(
+            "OLD",
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.6,
+              color: Color(0xff8A90A2),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _metaItem(
       IconData icon,
       String text, {
@@ -1777,6 +2026,7 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>
         : _statusStyle(statusText);
 
     final priorityStyle = _priorityStyle(data.level.toString());
+    final bool isNew = _isNewTask(data);
 
     // due date
     final dueDate = _parseDate(data.taskDate);
@@ -1813,8 +2063,10 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>
             border: Border.all(
               color: workState == "running"
                   ? const Color(0xff1FAF38).withOpacity(0.45)
+                  : isNew
+                  ? const Color(0xffFF8A00).withOpacity(0.35)
                   : const Color(0xffE9ECF0),
-              width: workState == "running" ? 1.4 : 1,
+              width: (workState == "running" || isNew) ? 1.4 : 1,
             ),
           ),
           child: Column(
@@ -1828,7 +2080,13 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>
                     child: Wrap(
                       spacing: 6,
                       runSpacing: 4,
-                      children: [_pill(statusStyle), _pill(priorityStyle)],
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        // NEW / OLD mudhalla -> kannukku udane theriyum
+                        isNew ? _newTag() : _oldTag(),
+                        _pill(statusStyle),
+                        _pill(priorityStyle),
+                      ],
                     ),
                   ),
                   const SizedBox(width: 8),

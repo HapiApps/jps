@@ -280,20 +280,24 @@ class TaskProvider with ChangeNotifier {
     final myId = (localData.storage.read("id") ?? "").toString().trim();
     final myName = (localData.storage.read("f_name") ?? "").toString().trim().toLowerCase();
 
-    final ids = t.assigned
+    // "12,13" | "[12, 13]" | "\"12\",\"13\"" -> ellame handle aagum
+    final ids = (t.assigned ?? "")
         .toString()
-        .split(',')
-        .map((e) => e.trim())
-        .where((e) => e.isNotEmpty)
+        .split(RegExp(r'[,;|]'))
+        .map((e) => e.replaceAll(RegExp(r'[^0-9A-Za-z_-]'), ''))
+        .where((e) => e.isNotEmpty && e != "null")
         .toList();
     if (myId.isNotEmpty && myId != "null" && ids.contains(myId)) return true;
 
-    if (myName.isEmpty) return false;
-    return t.assignedNames
+    if (myName.isEmpty || myName == "null") return false;
+    // name: extra space / case difference irundhaalum match aagum
+    String norm(String v) => v.trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
+    final me = norm(myName);
+    return (t.assignedNames ?? "")
         .toString()
         .split(',')
-        .map((e) => e.trim().toLowerCase())
-        .contains(myName);
+        .map(norm)
+        .contains(me);
   }
 
   String _fType = "";
@@ -691,6 +695,552 @@ class TaskProvider with ChangeNotifier {
     filterList();
   }
 
+  // ===========================================================================
+  // FILTERED REPORT DOWNLOAD (Task report + Comment report)
+  //
+  //  * Screen-la filter-la evlo task varudho (filterUserData) adhe list thaan
+  //    report-ku source. Lazy load (15-15 ah kaattradhu) UI paging mattum,
+  //    provider list-la full filtered data irukku -> report-la ellame varum.
+  //  * Status tab / Overdue tab / search / type / company / employee /
+  //    My-task swipe / date range -> ellame apply aagum (UI count == report count).
+  //  * Server "download_reports_work" data (full comments, visits, expenses,
+  //    attendance, wages) match aana task-ku extra details-ah serkum.
+  // ===========================================================================
+  bool _reportBusy = false;
+  bool get reportBusy => _reportBusy;
+
+  String _rTxt(dynamic v) {
+    if (v == null) return "";
+    final s = v.toString().trim();
+    return (s == "null") ? "" : s;
+  }
+
+  String _rKey(String? title, String? date, String? names) =>
+      "${_rTxt(title).toLowerCase()}|${_rTxt(date)}|"
+          "${_rTxt(names).toLowerCase().replaceAll(RegExp(r'\s+'), '')}";
+
+  /// readable worked time: "2d 4h 10m" | "5h 12m" | "12m 5s"
+  String _rWorked(int s) {
+    if (s <= 0) return "-";
+    final d = s ~/ 86400;
+    final h = (s % 86400) ~/ 3600;
+    final m = (s % 3600) ~/ 60;
+    final x = s % 60;
+    if (d > 0) return "${d}d ${h}h ${m}m";
+    if (h > 0) return "${h}h ${m}m";
+    if (m > 0) return "${m}m ${x}s";
+    return "${x}s";
+  }
+
+  String _rDateTime(String? v) {
+    final s = _rTxt(v);
+    if (s.isEmpty) return "";
+    final dt = DateTime.tryParse(s);
+    if (dt == null) return s;
+    return DateFormat("dd-MM-yyyy hh:mm a").format(dt);
+  }
+
+  String _rWorkLabel(TaskData t) {
+    switch (workState(t)) {
+      case "running":
+        return "Working";
+      case "hold":
+        return "On Hold";
+      case "done":
+        return "Completed";
+      default:
+        return "Not Started";
+    }
+  }
+
+  /// "name|comment|time || name|comment|time" -> rows
+  List<Map<String, String>> _rParseComments(String? raw) {
+    final out = <Map<String, String>>[];
+    final s = _rTxt(raw);
+    if (s.isEmpty) return out;
+    for (final c in s.split(RegExp(r'\s*\|\|\s*'))) {
+      if (c.trim().isEmpty) continue;
+      final p = c.split("|");
+      if (p.length < 2) {
+        out.add({"name": "", "comment": c.trim(), "time": ""});
+        continue;
+      }
+      out.add({
+        "name": p[0].trim(),
+        "comment": p[1].trim(),
+        "time": p.length > 2 ? _rDateTime(p.sublist(2).join("|")) : "",
+      });
+    }
+    return out;
+  }
+
+  /// Report-la kaattura "applied filters" text
+  String _rFilterText() {
+    final f = <String>[];
+    f.add(_dateFilterOn && _startDate.isNotEmpty
+        ? "Date: $_startDate to $_endDate"
+        : "Date: All dates");
+    if (_overdueTab) {
+      f.add("Status: Overdue");
+    } else if (_statusIds.trim().isNotEmpty) {
+      f.add("Status: ${_statusIds.trim()}");
+    } else {
+      f.add("Status: All");
+    }
+    if (_mineOnly) f.add("My tasks only");
+    if (_fType.trim().isNotEmpty) f.add("Type: ${_fType.trim()}");
+    if (_companyName.trim().isNotEmpty) f.add("Company: ${_companyName.trim()}");
+    if (hasEmployeeFilter) f.add("Employee: $filterEmpNames");
+    if (search.text.trim().isNotEmpty) f.add("Search: \"${search.text.trim()}\"");
+    return f.join("   •   ");
+  }
+
+  String _rRangeText(List<TaskData> list) {
+    if (_dateFilterOn && _startDate.isNotEmpty) return "$_startDate to $_endDate";
+    DateTime? mn, mx;
+    for (final t in list) {
+      final d = _parseTaskDate(t.taskDate);
+      if (d == null) continue;
+      if (mn == null || d.isBefore(mn)) mn = d;
+      if (mx == null || d.isAfter(mx)) mx = d;
+    }
+    if (mn == null || mx == null) return "All dates";
+    final df = DateFormat("dd-MM-yyyy");
+    return "${df.format(mn)} to ${df.format(mx)}";
+  }
+
+  /// Server-la irundhu extra details (comments full, visits, expenses...).
+  /// Fail aanaalum report nikkaadhu -> local data vachu thaan varum.
+  Future<Map<String, List<DTaskModel>>> _rServerExtras(List<TaskData> list) async {
+    final map = <String, List<DTaskModel>>{};
+    try {
+      String d1 = _startDate, d2 = _endDate;
+      if (!_dateFilterOn || d1.isEmpty || d2.isEmpty) {
+        final r = _rRangeText(list).split(" to ");
+        if (r.length == 2) {
+          d1 = r[0];
+          d2 = r[1];
+        }
+      }
+      final Map data = {
+        "action": taskDatas,
+        "search_type": "download_reports_work",
+        "cos_id": localData.storage.read("cos_id"),
+        "role": localData.storage.read("role"),
+        "id": localData.storage.read("id"),
+        "date1": d1,
+        "date2": d2,
+      };
+      final response = await _taskRepo.downloadReport(data);
+      for (final DTaskModel m in List<DTaskModel>.from(response)) {
+        map.putIfAbsent(_rKey(m.taskTitle, m.taskDate, m.assignedNames), () => []).add(m);
+      }
+    } catch (e) {
+      _log("report extras error => $e");
+    }
+    return map;
+  }
+
+  DTaskModel? _rTakeExtra(Map<String, List<DTaskModel>> m, TaskData t) {
+    final l = m[_rKey(t.taskTitle, t.taskDate, t.assignedNames)];
+    if (l == null || l.isEmpty) return null;
+    return l.removeAt(0);
+  }
+
+  String _rJoin(List<String> v) =>
+      v.map((e) => e.trim()).where((e) => e.isNotEmpty && e != "null").join(", ");
+
+  void _rStyleRow(Sheet sheet, int row, int cols, CellStyle style) {
+    for (int c = 0; c < cols; c++) {
+      sheet.cell(CellIndex.indexByColumnRow(columnIndex: c, rowIndex: row)).cellStyle = style;
+    }
+  }
+
+  void _rShowLoader(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      useRootNavigator: true,
+      builder: (_) => const Center(child: CircularProgressIndicator()),
+    );
+  }
+
+  void _rHideLoader(BuildContext context) {
+    if (context.mounted) Navigator.of(context, rootNavigator: true).pop();
+  }
+
+  /// TASK REPORT: one row per task (filter-la ulla exact list)
+  Future<void> downloadFilteredTaskReport(BuildContext context) async {
+    if (_reportBusy) return;
+    final list = List<TaskData>.from(_filterUserData);
+    if (list.isEmpty) {
+      utils.showWarningToast(context, text: "No Task Found");
+      return;
+    }
+    _reportBusy = true;
+    _rShowLoader(context);
+    try {
+      list.sort((a, b) {
+        final da = _parseTaskDate(a.taskDate) ?? DateTime(1900);
+        final db = _parseTaskDate(b.taskDate) ?? DateTime(1900);
+        return da.compareTo(db);
+      });
+      final extras = await _rServerExtras(list);
+
+      final excel = Excel.createExcel();
+      final sheet = excel["Sheet1"];
+
+      final title = CellStyle(bold: true, fontSize: 16,
+          horizontalAlign: HorizontalAlign.Left, verticalAlign: VerticalAlign.Center);
+      final info = CellStyle(italic: true, fontColorHex: "#4B5563",
+          horizontalAlign: HorizontalAlign.Left);
+      final head = CellStyle(bold: true, backgroundColorHex: "#D9E1F2",
+          fontColorHex: "#000000", horizontalAlign: HorizontalAlign.Center,
+          verticalAlign: VerticalAlign.Center, textWrapping: TextWrapping.WrapText);
+      final cell = CellStyle(horizontalAlign: HorizontalAlign.Left,
+          verticalAlign: VerticalAlign.Top, textWrapping: TextWrapping.WrapText);
+      final overdueCell = CellStyle(bold: true, fontColorHex: "#E5383B",
+          verticalAlign: VerticalAlign.Top, textWrapping: TextWrapping.WrapText);
+
+      final headers = [
+        "S.No", "Task ID", "Task Date", "Task Time", "Task Title", "Description",
+        "Company / Customer", "Department", "Task Type", "Priority", "Status",
+        "Overdue", "Assigned To", "Created By", "Created On", "Last Updated By",
+        "Last Updated On", "Work Status", "Total Worked", "Worked (Hours)",
+        "Employee Hours", "Employee Status", "Comments Count", "Last Comment",
+        "Last Comment By", "Visit Reports", "Expense Reports",
+        "Customer Visits", "Check In", "Check Out", "Expense Amount",
+        "Wages Workers", "Wages Hours", "Wages Amount", "Wages Description",
+        "Contact Name", "Contact Phone",
+      ];
+
+      int row = 0;
+      sheet.appendRow(["${constValue.appName} - TASK REPORT"]);
+      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: row)).cellStyle = title;
+      row++;
+      sheet.appendRow(["Range: ${_rRangeText(list)}   |   Total Tasks: ${list.length}   |   "
+          "Generated: ${DateFormat("dd-MM-yyyy hh:mm a").format(DateTime.now())}"]);
+      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: row)).cellStyle = info;
+      row++;
+      sheet.appendRow(["Filters: ${_rFilterText()}"]);
+      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: row)).cellStyle = info;
+      row++;
+      sheet.appendRow([""]);
+      row++;
+      sheet.appendRow(headers);
+      _rStyleRow(sheet, row, headers.length, head);
+      row++;
+
+      // employee summary counters
+      final empSum = <String, Map<String, int>>{};
+      final empSecs = <String, int>{};
+
+      for (int i = 0; i < list.length; i++) {
+        final t = list[i];
+        final x = _rTakeExtra(extras, t);
+        final overdue = _isOverdueTask(t);
+        final secs = currentSeconds(t.id.toString());
+        final status = _rTxt(t.statval).isEmpty ? "-" : _rTxt(t.statval);
+
+        final desc = _rTxt(t.taskDesc).isNotEmpty ? _rTxt(t.taskDesc) : _rTxt(x?.taskDesc);
+        final company =
+        _rTxt(t.projectName).isNotEmpty ? _rTxt(t.projectName) : _rTxt(x?.projectName);
+
+        String visits = "";
+        String expAmt = "";
+        String checkIn = "", checkOut = "";
+        if (x != null) {
+          final names = x.cvCustomerNames.split(RegExp(r'\s*\|\|\s*'));
+          final dates = x.cvDates.split(RegExp(r'\s*\|\|\s*'));
+          final pts = x.cvDiscussionPoints.split(RegExp(r'\s*\|\|\s*'));
+          final v = <String>[];
+          for (int k = 0; k < names.length; k++) {
+            final n = _rTxt(names[k]);
+            if (n.isEmpty) continue;
+            final dt = k < dates.length ? _rTxt(dates[k]) : "";
+            final p = k < pts.length ? _rTxt(pts[k]) : "";
+            v.add([dt, n, p].where((e) => e.isNotEmpty).join(" - "));
+          }
+          visits = v.join("\n");
+          expAmt = _rJoin(x.expenseAmount);
+          checkIn = _rDateTime(x.checkInTs);
+          checkOut = _rDateTime(x.checkOutTs);
+        }
+
+        sheet.appendRow([
+          "${i + 1}",
+          _rTxt(t.id),
+          _rTxt(t.taskDate),
+          _rTxt(t.taskTime),
+          _rTxt(t.taskTitle),
+          desc,
+          company,
+          _rTxt(t.department),
+          _rTxt(t.type),
+          _rTxt(t.level).isEmpty ? "Normal" : _rTxt(t.level),
+          status,
+          overdue ? "Yes" : "No",
+          _rTxt(t.assignedNames),
+          _rTxt(t.creator),
+          _rDateTime(t.createdTs),
+          _rTxt(t.updatedByName),
+          _rDateTime(t.updatedTs),
+          _rWorkLabel(t),
+          _rWorked(secs),
+          secs > 0 ? (secs / 3600).toStringAsFixed(2) : "0",
+          _rTxt(t.employeeHours).isNotEmpty ? _rTxt(t.employeeHours) : _rTxt(x?.employeeHours),
+          _rTxt(t.employeeStatus).isNotEmpty ? _rTxt(t.employeeStatus) : _rTxt(x?.employeeStatus),
+          _rTxt(t.commentCount).isEmpty ? "0" : _rTxt(t.commentCount),
+          _rTxt(t.lastComment),
+          _rTxt(t.lastCommentBy),
+          _rTxt(t.visitReportCount).isEmpty ? "0" : _rTxt(t.visitReportCount),
+          _rTxt(t.expenseReportCount).isEmpty ? "0" : _rTxt(t.expenseReportCount),
+          visits,
+          checkIn,
+          checkOut,
+          expAmt,
+          _rTxt(x?.wagesWorkers),
+          _rTxt(x?.wagesHours),
+          _rTxt(x?.wagesAmount),
+          _rTxt(x?.wagesDescription),
+          _rTxt(t.name),
+          _rTxt(t.phoneNo),
+        ]);
+        _rStyleRow(sheet, row, headers.length, cell);
+        if (overdue) {
+          sheet.cell(CellIndex.indexByColumnRow(columnIndex: 11, rowIndex: row)).cellStyle =
+              overdueCell;
+        }
+        row++;
+
+        // summary (multi assign -> ovvoru employee-kum count aagum)
+        final emps = _rTxt(t.assignedNames)
+            .split(",")
+            .map((e) => e.trim())
+            .where((e) => e.isNotEmpty)
+            .toList();
+        for (final e in (emps.isEmpty ? ["Unassigned"] : emps)) {
+          final m = empSum.putIfAbsent(e, () => {
+            "Total": 0, "Completed": 0, "Started": 0, "Assigned": 0, "Overdue": 0,
+          });
+          m["Total"] = m["Total"]! + 1;
+          if (overdue) m["Overdue"] = m["Overdue"]! + 1;
+          if (m.containsKey(status)) m[status] = m[status]! + 1;
+          empSecs[e] = (empSecs[e] ?? 0) + secs;
+        }
+      }
+
+      const widths = [6, 9, 12, 10, 32, 45, 26, 16, 16, 11, 12, 9, 26, 18, 19, 18, 19,
+        13, 14, 12, 16, 16, 10, 35, 18, 10, 10, 40, 19, 19, 16, 22, 12, 12, 30, 18, 15];
+      for (int c = 0; c < widths.length; c++) {
+        sheet.setColWidth(c, widths[c].toDouble());
+      }
+
+      // ---------- Sheet 2: Employee Summary ----------
+      final sum = excel["Employee Summary"];
+      sum.appendRow(["EMPLOYEE SUMMARY (${_rRangeText(list)})"]);
+      sum.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: 0)).cellStyle = title;
+      sum.appendRow([""]);
+      final sh = ["Employee", "Total", "Completed", "Started", "Assigned", "Overdue", "Total Worked"];
+      sum.appendRow(sh);
+      _rStyleRow(sum, 2, sh.length, head);
+      int sr = 3;
+      final keys = empSum.keys.toList()..sort();
+      for (final e in keys) {
+        final m = empSum[e]!;
+        sum.appendRow([
+          e, "${m["Total"]}", "${m["Completed"]}", "${m["Started"]}",
+          "${m["Assigned"]}", "${m["Overdue"]}", _rWorked(empSecs[e] ?? 0),
+        ]);
+        _rStyleRow(sum, sr, sh.length, cell);
+        sr++;
+      }
+      const sw = [28, 9, 12, 10, 11, 10, 16];
+      for (int c = 0; c < sw.length; c++) {
+        sum.setColWidth(c, sw[c].toDouble());
+      }
+
+      final range = _rRangeText(list).replaceAll(" to ", "_to_");
+      await _saveAndOpenExcel(excel, "Task_Report_${range}_(${list.length}).xlsx");
+      _rHideLoader(context);
+      if (context.mounted) {
+        utils.showSuccessToast(context: context, text: "Task report downloaded (${list.length})");
+      }
+    } catch (e, st) {
+      _log("task report error => $e\n$st");
+      _rHideLoader(context);
+      if (context.mounted) utils.showWarningToast(context, text: "Report download failed");
+    } finally {
+      _reportBusy = false;
+    }
+  }
+
+  /// COMMENT REPORT: ovvoru comment-um oru row (filter-la ulla exact tasks)
+  /// comment illaadha task-um "No Comments" nu varum -> task count match aagum
+  Future<void> downloadFilteredCommentReport(BuildContext context) async {
+    if (_reportBusy) return;
+    final list = List<TaskData>.from(_filterUserData);
+    if (list.isEmpty) {
+      utils.showWarningToast(context, text: "No Task Found");
+      return;
+    }
+    _reportBusy = true;
+    _rShowLoader(context);
+    try {
+      list.sort((a, b) {
+        final da = _parseTaskDate(a.taskDate) ?? DateTime(1900);
+        final db = _parseTaskDate(b.taskDate) ?? DateTime(1900);
+        return da.compareTo(db);
+      });
+      final extras = await _rServerExtras(list);
+
+      final excel = Excel.createExcel();
+      final sheet = excel["Sheet1"];
+
+      final title = CellStyle(bold: true, fontSize: 16,
+          horizontalAlign: HorizontalAlign.Left, verticalAlign: VerticalAlign.Center);
+      final info = CellStyle(italic: true, fontColorHex: "#4B5563",
+          horizontalAlign: HorizontalAlign.Left);
+      final head = CellStyle(bold: true, backgroundColorHex: "#FFF2CC",
+          fontColorHex: "#000000", horizontalAlign: HorizontalAlign.Center,
+          verticalAlign: VerticalAlign.Center, textWrapping: TextWrapping.WrapText);
+      final taskCell = CellStyle(bold: true, backgroundColorHex: "#F3F6FB",
+          verticalAlign: VerticalAlign.Top, textWrapping: TextWrapping.WrapText);
+      final cell = CellStyle(horizontalAlign: HorizontalAlign.Left,
+          verticalAlign: VerticalAlign.Top, textWrapping: TextWrapping.WrapText);
+      final empty = CellStyle(italic: true, fontColorHex: "#9CA3AF",
+          verticalAlign: VerticalAlign.Top);
+
+      final headers = [
+        "S.No", "Task ID", "Task Date", "Task Title", "Description", "Company / Customer",
+        "Task Type", "Priority", "Status", "Assigned To", "Created By",
+        "Comment #", "Comment Date & Time", "Comment By", "Comment",
+      ];
+
+      int row = 0;
+      int totalComments = 0;
+      sheet.appendRow(["${constValue.appName} - TASK COMMENT REPORT"]);
+      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: row)).cellStyle = title;
+      row++;
+      final infoRow = row;
+      sheet.appendRow([""]); // total comments count - kadaisila fill pannuvom
+      row++;
+      sheet.appendRow(["Filters: ${_rFilterText()}"]);
+      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: row)).cellStyle = info;
+      row++;
+      sheet.appendRow([""]);
+      row++;
+      sheet.appendRow(headers);
+      _rStyleRow(sheet, row, headers.length, head);
+      row++;
+
+      for (int i = 0; i < list.length; i++) {
+        final t = list[i];
+        final x = _rTakeExtra(extras, t);
+
+        // full comments: server comments_full -> illana all_comments -> last comment
+        var comments = _rParseComments(x?.commentsFull);
+        if (comments.isEmpty) comments = _rParseComments(t.allComments);
+        if (comments.isEmpty && _rTxt(t.lastComment).isNotEmpty) {
+          comments = [
+            {"name": _rTxt(t.lastCommentBy), "comment": _rTxt(t.lastComment), "time": ""}
+          ];
+        }
+
+        final overdue = _isOverdueTask(t);
+        final status = "${_rTxt(t.statval)}${overdue ? " (Overdue)" : ""}";
+        final desc = _rTxt(t.taskDesc).isNotEmpty ? _rTxt(t.taskDesc) : _rTxt(x?.taskDesc);
+        final company =
+        _rTxt(t.projectName).isNotEmpty ? _rTxt(t.projectName) : _rTxt(x?.projectName);
+
+        final base = [
+          "${i + 1}",
+          _rTxt(t.id),
+          _rTxt(t.taskDate),
+          _rTxt(t.taskTitle),
+          desc,
+          company,
+          _rTxt(t.type),
+          _rTxt(t.level).isEmpty ? "Normal" : _rTxt(t.level),
+          status,
+          _rTxt(t.assignedNames),
+          _rTxt(t.creator),
+        ];
+        final blank = List<String>.filled(base.length, "");
+
+        if (comments.isEmpty) {
+          sheet.appendRow([...base, "-", "-", "-", "No Comments"]);
+          _rStyleRow(sheet, row, base.length, taskCell);
+          for (int c = base.length; c < headers.length; c++) {
+            sheet.cell(CellIndex.indexByColumnRow(columnIndex: c, rowIndex: row)).cellStyle =
+                empty;
+          }
+          row++;
+          continue;
+        }
+
+        for (int k = 0; k < comments.length; k++) {
+          final c = comments[k];
+          // task details first row-la mattum, adutha comments-la blank (clean look)
+          sheet.appendRow([
+            ...(k == 0 ? base : blank),
+            "${k + 1}",
+            c["time"] ?? "",
+            c["name"] ?? "",
+            c["comment"] ?? "",
+          ]);
+          _rStyleRow(sheet, row, headers.length, cell);
+          if (k == 0) _rStyleRow(sheet, row, base.length, taskCell);
+          row++;
+          totalComments++;
+        }
+      }
+
+      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: infoRow)).value =
+      "Range: ${_rRangeText(list)}   |   Total Tasks: ${list.length}   |   "
+          "Total Comments: $totalComments   |   "
+          "Generated: ${DateFormat("dd-MM-yyyy hh:mm a").format(DateTime.now())}";
+      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: infoRow)).cellStyle = info;
+
+      const widths = [6, 9, 12, 32, 40, 26, 16, 11, 18, 26, 18, 10, 20, 20, 60];
+      for (int c = 0; c < widths.length; c++) {
+        sheet.setColWidth(c, widths[c].toDouble());
+      }
+
+      final range = _rRangeText(list).replaceAll(" to ", "_to_");
+      await _saveAndOpenExcel(excel, "Task_Comment_Report_${range}_(${list.length}).xlsx");
+      _rHideLoader(context);
+      if (context.mounted) {
+        utils.showSuccessToast(
+            context: context, text: "Comment report downloaded ($totalComments comments)");
+      }
+    } catch (e, st) {
+      _log("comment report error => $e\n$st");
+      _rHideLoader(context);
+      if (context.mounted) utils.showWarningToast(context, text: "Report download failed");
+    } finally {
+      _reportBusy = false;
+    }
+  }
+
+  /// Excel save: Web -> browser download | Mobile -> app folder-la save panni open
+  /// (munnadi File / OpenFile mattum -> web-la download aagaadhu)
+  Future<void> _saveAndOpenExcel(Excel excel, String fileName) async {
+    final safeName = fileName.replaceAll(RegExp(r'[\\/:*?"<>|]'), "-");
+    if (kIsWeb) {
+      excel.save(fileName: safeName); // excel package web-la auto download pannum
+      return;
+    }
+    final bytes = excel.encode();
+    if (bytes == null) return;
+    final dir = await getApplicationDocumentsDirectory();
+    final filePath = "${dir.path}/$safeName";
+    final file = File(filePath);
+    await file.create(recursive: true);
+    await file.writeAsBytes(bytes, flush: true);
+    await OpenFile.open(filePath);
+  }
+
   Future<void> downloadAllTask(BuildContext context) async {
     notifyListeners();
 
@@ -1024,21 +1574,11 @@ class TaskProvider with ChangeNotifier {
       sheet.setColWidth(1, 18);
       sheet.setColWidth(2, 60);
 
-      final dir = await getApplicationDocumentsDirectory();
-
       String cleanFromDate = fromDate.replaceAll("/", "-").replaceAll(":", "-");
       String cleanToDate = toDate.replaceAll("/", "-").replaceAll(":", "-");
 
-      String filePath =
-          "${dir.path}/Task_Comments_Block_${cleanFromDate}_to_$cleanToDate.xlsx";
-
-      final bytes = excel.encode();
-      if (bytes == null) return;
-
-      final file = File(filePath);
-      await file.writeAsBytes(bytes, flush: true);
-
-      await OpenFile.open(filePath);
+      await _saveAndOpenExcel(
+          excel, "Task_Comments_Block_${cleanFromDate}_to_$cleanToDate.xlsx");
     } catch (e) {
       _log("Excel Export Error => $e");
     }
@@ -1251,15 +1791,7 @@ class TaskProvider with ChangeNotifier {
     sheet.setColWidth(8, 15);
 
     /// =================== SAVE FILE ===================
-    final dir = await getApplicationDocumentsDirectory();
-
-    String filePath = "${dir.path}/Employee_Task_Report_($fromDate to $toDate).xlsx";
-
-    File(filePath)
-      ..createSync(recursive: true)
-      ..writeAsBytesSync(excel.encode()!);
-
-    await OpenFile.open(filePath);
+    await _saveAndOpenExcel(excel, "Employee_Task_Report_($fromDate to $toDate).xlsx");
   }
 
   Future<void> exportTaskOnlyEmployeeWiseExcel({
@@ -1497,19 +2029,11 @@ class TaskProvider with ChangeNotifier {
     }
 
     /// =================== SAVE FILE ===================
-    final dir = await getApplicationDocumentsDirectory();
-
     String fileName = role.toString().trim() == "1"
         ? "All_Employee_Task_Report_($fromDate to $toDate).xlsx"
         : "${userName}_Task_Report_($fromDate to $toDate).xlsx";
 
-    String filePath = "${dir.path}/$fileName";
-
-    File(filePath)
-      ..createSync(recursive: true)
-      ..writeAsBytesSync(excel.encode()!);
-
-    await OpenFile.open(filePath);
+    await _saveAndOpenExcel(excel, fileName);
   }
 
   Future<void> generatePdf(List<DTaskModel> taskList, BuildContext context) async {
@@ -3084,18 +3608,27 @@ class TaskProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  /// "256:28:40" -> "10d 16h 28m 40s"   (24h = 1 day)
+  /// "05:12:00"  -> "5h 12m"
   String formatHours(String time) {
-    final parts = time.split(":");
+    final parts = time.trim().split(":");
 
     if (parts.length != 3) return time;
 
-    final hours = int.parse(parts[0]);
-    final minutes = int.parse(parts[1]);
-    final seconds = int.parse(parts[2]);
+    final totalHours = int.tryParse(parts[0]) ?? 0;
+    final minutes = int.tryParse(parts[1]) ?? 0;
+    final seconds = int.tryParse(parts[2]) ?? 0;
+
+    final days = totalHours ~/ 24;
+    final hours = totalHours % 24;
 
     List<String> result = [];
 
-    if (hours > 0) {
+    if (days > 0) {
+      result.add("${days}d");
+    }
+
+    if (hours > 0 || days > 0) {
       result.add("${hours}h");
     }
 
@@ -3388,6 +3921,20 @@ class TaskProvider with ChangeNotifier {
     final monthPad = utils.returnPadLeft(defaultMonth.toString());
 
     for (final r in response) {
+      _seedTimer(r);
+
+      final parsedDate = _parseTaskDate(r.taskDate);
+      if (parsedDate == null) continue;
+      if (monthPad == utils.returnPadLeft(parsedDate.month.toString())) {
+        _thisMonthLeave = "1";
+      }
+    }
+    _afterApplyTaskResponse(response);
+  }
+
+  /// One task-oda server work_status / total_hours / action_time -> taskTimers
+  void _seedTimer(TaskData r) {
+    {
       final id = r.id.toString();
       final status = (r.workStatus ?? "").toString().trim();
       final serverRunning = status == "Start";
@@ -3413,11 +3960,18 @@ class TaskProvider with ChangeNotifier {
         }
       }
 
+      // work Complete aana time (last action_time) -> overdue re-open check-ku
+      DateTime? doneAt;
+      if (serverDone) {
+        doneAt = DateTime.tryParse((r.actionTime ?? "").trim()) ?? taskTimers[id]?.completedAt;
+      }
+
       taskTimers[id] = TaskTimer(
         accumulatedSeconds: acc,
         isRunning: serverRunning,
         startTime: start,
         isCompleted: serverDone,
+        completedAt: doneAt,
       );
       if (serverRunning) _startUiTicker();
 
@@ -3425,13 +3979,48 @@ class TaskProvider with ChangeNotifier {
         debugPrint("TIMER id=$id status=$status total='${r.totalHours}' "
             "acc=$acc action='${r.actionTime}' now='${r.serverNow}'");
       }
-
-      final parsedDate = _parseTaskDate(r.taskDate);
-      if (parsedDate == null) continue;
-      if (monthPad == utils.returnPadLeft(parsedDate.month.toString())) {
-        _thisMonthLeave = "1";
-      }
     }
+  }
+
+  /// Task Details direct-ah open aana (getAllTask nadakkaama) timer seed pannum
+  void ensureTimer(TaskData t) {
+    final id = t.id.toString();
+    if (taskTimers.containsKey(id)) return;
+    _seedTimer(t);
+    tickNotifier.value++;
+  }
+
+  /// _allTasks-la irukkura latest copy (work_status updated) / illana fallback
+  TaskData latestTask(TaskData fallback) {
+    final id = fallback.id.toString();
+    for (final t in _allTasks) {
+      if (t.id.toString() == id) return t;
+    }
+    return fallback;
+  }
+
+  /// Progress Tracker Save -> timer sync
+  ///  "Started"   -> timer Start / Resume (running illana)
+  ///  "Completed" -> timer Complete (running / hold-la irundha)
+  /// prevState: Save-ku MUNNADI workState (save apram statval Completed aagidum)
+  Future<void> syncTimerWithStatus(BuildContext context, TaskData t,
+      String newStatus, String prevState) async {
+    final task = latestTask(t);
+    if (!isMyTask(task)) return; // timer assigned user-ku mattum
+    final id = task.id.toString();
+
+    if (newStatus == "Started" && prevState != "running" && prevState != "done") {
+      if (!context.mounted) return;
+      await startWork(context, task);
+    } else if (newStatus == "Completed" &&
+        (prevState == "running" || prevState == "hold")) {
+      if (!context.mounted) return;
+      await insertTaskLogHistory(context, id: id, level: "Complete");
+    }
+    await getWorkHistory(id);
+  }
+
+  void _afterApplyTaskResponse(List<TaskData> response) {
 
     _syncCalendarSource(response);
 
@@ -4702,6 +5291,9 @@ class TaskProvider with ChangeNotifier {
     if (level == "Start") {
       t.startTime = DateTime.now();
       t.isRunning = true;
+      // overdue / old task re-start -> palaya "completed" flag clear
+      t.isCompleted = false;
+      t.completedAt = null;
       _startUiTicker();
     } else if (level == "Hold") {
       if (t.isRunning && t.startTime != null) {
@@ -4717,6 +5309,7 @@ class TaskProvider with ChangeNotifier {
       t.isRunning = false;
       t.startTime = null;
       t.isCompleted = true;
+      t.completedAt = DateTime.now();
       _stopUiTickerIfNoneRunning();
     }
   }
@@ -4726,15 +5319,37 @@ class TaskProvider with ChangeNotifier {
   // ===========================================================================
 
   /// idle | running | hold | done
+  ///
+  /// Overdue / old task fix:
+  ///  munnadi work log "Complete" aana task -> eppavum "done" (tick icon mattum,
+  ///  Start / Resume button varaadhu). Aana task status innum Completed illa,
+  ///  date-um thaandiduchu (overdue) -> work innum pending. Adhanaala
+  ///  innaiku complete pannala na thirumba start panna allow pannrom.
   String workState(TaskData t) {
     if ((t.statval ?? "").toString().trim() == "Completed") return "done";
     final tm = taskTimers[t.id.toString()];
     final ws = (t.workStatus ?? "").toString().trim().toLowerCase();
-    if (tm != null && tm.isCompleted) return "done";
+
+    // running eppavume first (Start apram palaya complete flag-ah thaandidum)
     if (tm != null && tm.isRunning) return "running";
-    if (ws.startsWith("complete")) return "done";
-    if (ws == "hold" || (tm != null && tm.accumulatedSeconds > 0)) return "hold";
+
+    final logDone = (tm != null && tm.isCompleted) || ws.startsWith("complete");
+    final acc = tm?.accumulatedSeconds ?? 0;
+
+    if (logDone) {
+      if (_isOverdueTask(t) && !_isToday(tm?.completedAt)) {
+        return acc > 0 ? "hold" : "idle"; // Resume / Start kaattum
+      }
+      return "done";
+    }
+    if (ws == "hold" || acc > 0) return "hold";
     return "idle";
+  }
+
+  bool _isToday(DateTime? d) {
+    if (d == null) return false;
+    final n = DateTime.now();
+    return d.year == n.year && d.month == n.month && d.day == n.day;
   }
 
   /// Another task of the logged-in user that is currently running
@@ -5675,11 +6290,14 @@ class TaskTimer {
   int accumulatedSeconds;
   bool isRunning;
   bool isCompleted;
+  /// work log "Complete" aana time (overdue task-ah thirumba start panna allow panna)
+  DateTime? completedAt;
   TaskTimer({
     this.startTime,
     this.accumulatedSeconds = 0,
     this.isRunning = false,
     this.isCompleted = false,
+    this.completedAt,
   });
 }
 

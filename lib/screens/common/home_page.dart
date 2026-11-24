@@ -86,6 +86,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     debugPrint("🟢 HomePage initState() — Call #$_initStateCallCount");
 
     _isHomePageActive = true;
+    WidgetsBinding.instance.addObserver(this);
 
     Future.delayed(Duration.zero, () async {
       if (!mounted || !_isHomePageActive) return;
@@ -109,6 +110,11 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
         date1: today,
         date2: today,
       );
+
+      // Check In / Out status-ah DASHBOARD-ku munnaadiye (thaniya, light API)
+      // edukkurom. Munnadi heavy dashboard mudinja apram thaan vandhuchu ->
+      // adhu varaikkum "Check In" thappa theriyum.
+      attendanceProvider.getMainAttendance();
 
       // ---------------- HOME PROVIDER ----------------
       final homeProvider = Provider.of<HomeProvider>(context, listen: false);
@@ -181,6 +187,27 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
       await employeeProvider.getNotifications();
 
       debugPrint("✅ ALL HOMEPAGE DATA LOADED");
+    });
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  /// App background-la irundhu thirumba vandha (vera phone-la mark
+  /// panniyirukkalaam / net thirumba vandhirukkalaam) -> offline sync + server state
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state != AppLifecycleState.resumed || !mounted) return;
+    final att = Provider.of<AttendanceProvider>(context, listen: false);
+    Future.microtask(() async {
+      try {
+        await att.syncPending(context, silent: true);
+      } catch (_) {}
+      if (!mounted) return;
+      await att.getMainAttendance();
     });
   }
 
@@ -295,6 +322,18 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
 
   int _mrInt(HomeProvider h, String key) => int.tryParse(_mr(h, key)) ?? 0;
 
+  /// Daily Work Report total = ovvoru work type-oda total_count sum
+  /// (visitCount list-la ovvoru row oru category: {"value": "...", "total_count": "3"})
+  int _visitTotal(HomeProvider h) {
+    int sum = 0;
+    for (final e in h.visitCount) {
+      try {
+        sum += int.tryParse((e["total_count"] ?? "0").toString().trim()) ?? 0;
+      } catch (_) {}
+    }
+    return sum;
+  }
+
   // ---------------------------------------------------------------------------
   // Daily Work Plan status page open pannitu, back vandha udane dashboard reload
   // ---------------------------------------------------------------------------
@@ -329,6 +368,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
         ///Uncomment for JPS
         // int visitActiveCount = homeProvider.activeVisit;
         // int visitPendingsCount = homeProvider.inActiveVisit;
+
         final int taskPendingCount = _mrInt(homeProvider, "incomplete_count");
         final int taskCompletedCount = _mrInt(homeProvider, "complete_count");
 
@@ -376,7 +416,11 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                         8.height,
                         _buildFilterRow(context, homeProvider, screenWidth),
                         12.height,
-                        const InkWell(child: CheckAttendance()),
+                        // status server-la irundhu varra varaikkum loader;
+                        // thappana "Check In" button tap aagaadhu
+                        attPvr.attReady
+                            ? const InkWell(child: CheckAttendance())
+                            : _attendanceLoader(),
                         10.height,
 
                         /// range loading nadakkum bodhu cards dim + tap block
@@ -429,11 +473,14 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                                 //             Row(
                                 //               children: [
                                 //                 const CustomText(
-                                //                   "Daily Work Report ",
+                                //                   "Daily Work Report : ",
                                 //                   size: 16,
                                 //                   weight: FontWeight.bold,
                                 //                 ),
-                                //                 CustomText("${homeProvider.visitCount.length}", size: 20, weight: FontWeight.bold),
+                                //                 // munnadi visitCount.length = category count (eg: 4),
+                                //                 // ulla page-la ella records-um -> mismatch.
+                                //                 // Ippo ovvoru category total_count-um koottina mottham.
+                                //                 CustomText("${_visitTotal(homeProvider)}", size: 20, weight: FontWeight.bold),
                                 //               ],
                                 //             ),
                                 //             InkWell(
@@ -573,7 +620,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                                 //                                               borderRadius: BorderRadius.circular(12),
                                 //                                             ),
                                 //                                             child: CustomText(
-                                //                                               homeProvider.visitCount[index]["total_count"],
+                                //                                               "${homeProvider.visitCount[index]["total_count"] ?? 0}",
                                 //                                               size: 10,
                                 //                                               color: Colors.white,
                                 //                                             ),
@@ -671,11 +718,11 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                                 //   ),
                                 // ),
 
-                                // if (homeProvider.roleAccess.any((f) =>
-                                // f['feature'] == 'Task Management' &&
-                                //     f['name'] == 'View'))
+                                if (homeProvider.roleAccess.any((f) =>
+                                f['feature'] == 'Task Management' &&
+                                    f['name'] == 'View'))
 
-                                // 10.height,
+                                  10.height,
 
                                 /// TASK CARD
                                 _buildTaskCard(
@@ -699,6 +746,64 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
           ),
         );
       },
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // ATTENDANCE STATUS LOADER (CheckAttendance-ku badhila, status varra varaikkum)
+  // ---------------------------------------------------------------------------
+  Widget _attendanceLoader() {
+    final Color primary = colorsConst.primary;
+    return Container(
+      width: double.infinity,
+      height: 64,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(15),
+        border: Border.all(color: primary.withOpacity(0.12)),
+        boxShadow: const [
+          BoxShadow(color: Colors.black12, blurRadius: 6, offset: Offset(0, 3)),
+        ],
+      ),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 22,
+            height: 22,
+            child: CircularProgressIndicator(strokeWidth: 2.4, color: primary),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "Checking today's attendance...",
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.lato(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: const Color(0xff14151F),
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  "Please wait, check in / check out will appear",
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.lato(
+                    fontSize: 11.5,
+                    color: const Color(0xff6B7280),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 

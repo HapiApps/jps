@@ -1697,9 +1697,10 @@ class HomeProvider with ChangeNotifier{
             .toList(),
       );
 
-      if (!attendanceProvider.attCheck) {
-        attendanceProvider.getMainAttendance();
-      }
+      // Munnadi: attCheck true aanadhum thirumba server-la edukkala ->
+      // vera phone-la panna check-in / check-out inga update aagala.
+      // Ippo eppovume server state (20 sec throttle).
+      attendanceProvider.refreshMainAttendanceIfStale();
 
       // ============================================================
       // LATE + PERMISSION

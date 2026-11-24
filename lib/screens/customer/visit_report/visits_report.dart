@@ -39,6 +39,84 @@ class VisitReport extends StatefulWidget {
 class _VisitReportState extends State<VisitReport> with SingleTickerProviderStateMixin{
   late TabController tabController;
 
+  /// Summary tab-ku thani search (munnadi Details tab-oda same controller ->
+  /// oru tab-la type panna innoru tab-layum text vandhuchu)
+  final TextEditingController _empSearch = TextEditingController();
+
+  @override
+  void dispose() {
+    _empSearch.dispose();
+    tabController.dispose();
+    super.dispose();
+  }
+
+  /// Rendu tab-um ore date range-la reload (munnadi Summary filter apply panna
+  /// Summary mattum, Details filter apply panna Details mattum reload aachu
+  /// -> rendu tab count-um mismatch aachu)
+  void _reloadBoth(CustomerProvider p) {
+    p.getEmpWiseReport(context);
+    p.getVisitReport(context);
+  }
+
+  /// Clear All -> Home page range-ku thirumba
+  void _resetToHomeRange(CustomerProvider p) {
+    _empSearch.clear();
+    p.initVisitReport(widget.date1, widget.date2, widget.type);
+    p.manageFilter(false);
+    _reloadBoth(p);
+  }
+
+  int _summaryTotal(List<Map<String, dynamic>> list) {
+    int t = 0;
+    for (final e in list) {
+      t += int.tryParse((e["total"] ?? 0).toString()) ?? 0;
+    }
+    return t;
+  }
+
+  String _rangeText(CustomerProvider p) =>
+      p.startDate == p.endDate ? "${p.startDate}" : "${p.startDate} - ${p.endDate}";
+
+  /// Total count banner (Home "Daily Work Report" count-oda compare panna)
+  Widget _totalBanner(String label, int count, String range) {
+    return Container(
+      margin: const EdgeInsets.only(top: 8, bottom: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+      decoration: BoxDecoration(
+        color: colorsConst.primary.withOpacity(0.07),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: colorsConst.primary.withOpacity(0.18)),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.insights_rounded, size: 18, color: colorsConst.primary),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              "$label  •  $range",
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                  fontSize: 12.5, fontWeight: FontWeight.w600, color: Color(0xff4B5563)),
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+            decoration: BoxDecoration(
+              color: colorsConst.primary,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Text(
+              "$count",
+              style: const TextStyle(
+                  fontSize: 13, fontWeight: FontWeight.w800, color: Colors.white),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   void initState() {
     tabController = TabController(
@@ -88,93 +166,927 @@ class _VisitReportState extends State<VisitReport> with SingleTickerProviderStat
           return false;
         },
         child: SafeArea(
-        child: Scaffold(
-          backgroundColor: colorsConst.bacColor,
-          appBar: PreferredSize(
-            preferredSize: const Size.fromHeight(50),
+          child: Scaffold(
+            backgroundColor: colorsConst.bacColor,
+            appBar: PreferredSize(
+              preferredSize: const Size.fromHeight(50),
 
-            child:CustomAppbar(
-            text: constValue.visitRepo,
-            isMain: false,
-            isButton: true,
-            isLoading: taskprovider.isAddTaskLoading, // ✅ ADD இது
-            buttonCallback: () async {    // ✅ () { } -> async () { } ஆக மாத்துங்க
-              if (taskprovider.isAddTaskLoading) return;
+              child:CustomAppbar(
+                text: constValue.visitRepo,
+                isMain: false,
+                isButton: true,
+                isLoading: taskprovider.isAddTaskLoading, // ✅ ADD இது
+                buttonCallback: () async {    // ✅ () { } -> async () { } ஆக மாத்துங்க
+                  if (taskprovider.isAddTaskLoading) return;
 
-              setState(() {
-                taskprovider.isAddTaskLoading = true;
-              });
+                  setState(() {
+                    taskprovider.isAddTaskLoading = true;
+                  });
 
-              await Future.delayed(const Duration(milliseconds: 350));
+                  await Future.delayed(const Duration(milliseconds: 350));
 
-              if (!mounted) return;
+                  if (!mounted) return;
 
-              setState(() {
-                taskprovider.isAddTaskLoading = false;
-              });
+                  setState(() {
+                    taskprovider.isAddTaskLoading = false;
+                  });
 
-              utils.navigatePage(context, ()=> DashBoard(child:
-              CusAddVisit(taskId:"",companyId: "",companyName: "",
-                  numberList: [],isDirect: true, type: "", desc: "")));
-            },
-            callback: () {
-              Navigator.pushAndRemoveUntil(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const DashBoard(child:  HomePage()),
-                ),
-                    (route) => false,
-              );
-            },
-          ),
-          ),
-          body:Center(
-            child: SizedBox(
-              width: kIsWeb?webWidth:phoneWidth,
-              child: Column(
-                children: [
-                  20.height,
-                  if(localData.storage.read("role")=="1")
-                  Container(
-                      height: 40,
-                      decoration: customDecoration.baseBackgroundDecoration(
-                          color: Colors.transparent,
-                          radius: 5
-                      ),
-                      child:TabBar(
-                        controller: tabController,
-                        indicator: BoxDecoration(
-                          color: colorsConst.primary,
-                          borderRadius: BorderRadius.circular(25),
+                  utils.navigatePage(context, ()=> DashBoard(child:
+                  CusAddVisit(taskId:"",companyId: "",companyName: "",
+                      numberList: [],isDirect: true, type: "", desc: "")));
+                },
+                callback: () {
+                  Navigator.pushAndRemoveUntil(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const DashBoard(child:  HomePage()),
+                    ),
+                        (route) => false,
+                  );
+                },
+              ),
+            ),
+            body:Center(
+              child: SizedBox(
+                width: kIsWeb?webWidth:phoneWidth,
+                child: Column(
+                  children: [
+                    20.height,
+                    if(localData.storage.read("role")=="1")
+                      Container(
+                        height: 40,
+                        decoration: customDecoration.baseBackgroundDecoration(
+                            color: Colors.transparent,
+                            radius: 5
                         ),
-                        indicatorSize: TabBarIndicatorSize.tab,
-                        labelColor: Colors.white,
-                        unselectedLabelColor: colorsConst.primary,
-                        labelStyle: const TextStyle(fontWeight: FontWeight.bold),
-                        tabs: const [
-                          Tab(text: "Visit Summary"),
-                          Tab(text: "Visit Details"),
-                        ],
+                        child:TabBar(
+                          controller: tabController,
+                          indicator: BoxDecoration(
+                            color: colorsConst.primary,
+                            borderRadius: BorderRadius.circular(25),
+                          ),
+                          indicatorSize: TabBarIndicatorSize.tab,
+                          labelColor: Colors.white,
+                          unselectedLabelColor: colorsConst.primary,
+                          labelStyle: const TextStyle(fontWeight: FontWeight.bold),
+                          tabs: const [
+                            Tab(text: "Visit Summary"),
+                            Tab(text: "Visit Details"),
+                          ],
+                        ),
                       ),
-                  ),
-                  Expanded(
-                    child: TabBarView(
-                      controller: tabController,
-                      children: [
-                        if(localData.storage.read("role")=="1")
-                          Column(
+                    Expanded(
+                      child: TabBarView(
+                        controller: tabController,
+                        children: [
+                          if(localData.storage.read("role")=="1")
+                            Column(
+                              children: [
+                                10.height,
+                                Row(
+                                  children: [
+
+                                    /// Search + Filter Container
+                                    Expanded(
+                                      child: Container(
+                                        height: 40,
+                                        decoration: BoxDecoration(
+                                          color: colorsConst.primary,
+                                          borderRadius: BorderRadius.circular(20),
+                                        ),
+                                        child: Row(
+                                          children: [
+
+                                            /// Search Field
+                                            Expanded(
+                                              child: Container(
+                                                margin: const EdgeInsets.all(4),
+                                                decoration: BoxDecoration(
+                                                  color: Colors.white,
+                                                  borderRadius: BorderRadius.circular(20),
+                                                ),
+                                                child: TextField(
+                                                  controller: _empSearch,
+                                                  decoration: InputDecoration(
+                                                    hintText: "Search Employee",
+                                                    prefixIcon: const Icon(
+                                                      Icons.search,
+                                                      color: Colors.grey,
+                                                    ),
+                                                    border: InputBorder.none,
+                                                    contentPadding:
+                                                    const EdgeInsets.symmetric(vertical: 10),
+                                                  ),
+                                                  onChanged: (value) {
+                                                    setState(() {
+                                                      final suggestions = custProvider.groupedList2.where((user) {
+                                                        final comFName = user["firstname"].toString().toLowerCase();
+                                                        final input = value.toString().toLowerCase();
+                                                        return comFName.contains(input);
+                                                      }).toList();
+                                                      custProvider.groupedList = suggestions;
+                                                    });
+                                                  },
+                                                ),
+                                              ),
+                                            ),
+
+                                            /// Filter Button
+                                            IconButton(
+                                              onPressed: () {
+                                                showDialog(
+                                                  context: context,
+                                                  builder: (context) {
+
+                                                    return Consumer2<
+                                                        CustomerProvider,
+                                                        EmployeeProvider>(
+                                                      builder:
+                                                          (context, empProvider, ePvr, _) {
+
+                                                        return AlertDialog(
+                                                          actions: [
+
+                                                            SizedBox(
+                                                              width: kIsWeb
+                                                                  ? webWidth / 1.2
+                                                                  : phoneWidth / 1.2,
+
+                                                              child: Column(
+                                                                children: [
+
+                                                                  20.height,
+
+                                                                  Row(
+                                                                    mainAxisAlignment:
+                                                                    MainAxisAlignment
+                                                                        .spaceBetween,
+
+                                                                    children: [
+
+                                                                      70.width,
+
+                                                                      const CustomText(
+                                                                        text: 'Filters',
+                                                                        colors: Colors.black,
+                                                                        size: 16,
+                                                                        isBold: true,
+                                                                      ),
+
+                                                                      30.width,
+
+                                                                      InkWell(
+                                                                        onTap: () {
+
+                                                                          Navigator.of(
+                                                                            context,
+                                                                            rootNavigator:
+                                                                            true,
+                                                                          ).pop();
+                                                                        },
+
+                                                                        child: SvgPicture.asset(
+                                                                          assets.cancel,
+                                                                        ),
+                                                                      )
+                                                                    ],
+                                                                  ),
+
+                                                                  20.height,
+
+                                                                  /// From & To Date
+                                                                  Row(
+                                                                    mainAxisAlignment:
+                                                                    MainAxisAlignment
+                                                                        .spaceEvenly,
+
+                                                                    children: [
+
+                                                                      /// From Date
+                                                                      Column(
+                                                                        crossAxisAlignment:
+                                                                        CrossAxisAlignment
+                                                                            .start,
+
+                                                                        children: [
+
+                                                                          CustomText(
+                                                                            text: "From Date",
+                                                                            colors: colorsConst
+                                                                                .greyClr,
+                                                                            size: 12,
+                                                                          ),
+
+                                                                          InkWell(
+                                                                            onTap: () {
+
+                                                                              custProvider
+                                                                                  .datePick(
+                                                                                context:
+                                                                                context,
+                                                                                isStartDate:
+                                                                                true,
+                                                                                date:
+                                                                                custProvider
+                                                                                    .startDate,
+                                                                              );
+                                                                            },
+
+                                                                            child: Container(
+                                                                              height: 30,
+
+                                                                              width: kIsWeb
+                                                                                  ? webWidth /
+                                                                                  2.8
+                                                                                  : phoneWidth /
+                                                                                  2.8,
+
+                                                                              decoration:
+                                                                              customDecoration
+                                                                                  .baseBackgroundDecoration(
+                                                                                color:
+                                                                                Colors.white,
+                                                                                radius: 5,
+                                                                                borderColor:
+                                                                                colorsConst
+                                                                                    .litGrey,
+                                                                              ),
+
+                                                                              child: Row(
+                                                                                mainAxisAlignment:
+                                                                                MainAxisAlignment
+                                                                                    .center,
+
+                                                                                children: [
+
+                                                                                  CustomText(
+                                                                                    text:
+                                                                                    custProvider
+                                                                                        .startDate,
+                                                                                  ),
+
+                                                                                  5.width,
+
+                                                                                  SvgPicture.asset(
+                                                                                    assets
+                                                                                        .calendar2,
+                                                                                  ),
+                                                                                ],
+                                                                              ),
+                                                                            ),
+                                                                          )
+                                                                        ],
+                                                                      ),
+
+                                                                      /// To Date
+                                                                      Column(
+                                                                        crossAxisAlignment:
+                                                                        CrossAxisAlignment
+                                                                            .start,
+
+                                                                        children: [
+
+                                                                          CustomText(
+                                                                            text: "To Date",
+                                                                            colors: colorsConst
+                                                                                .greyClr,
+                                                                            size: 12,
+                                                                          ),
+
+                                                                          InkWell(
+                                                                            onTap: () {
+
+                                                                              custProvider
+                                                                                  .datePick(
+                                                                                context:
+                                                                                context,
+                                                                                isStartDate:
+                                                                                false,
+                                                                                date:
+                                                                                custProvider
+                                                                                    .endDate,
+                                                                              );
+                                                                            },
+
+                                                                            child: Container(
+                                                                              height: 30,
+
+                                                                              width: kIsWeb
+                                                                                  ? webWidth /
+                                                                                  2.8
+                                                                                  : phoneWidth /
+                                                                                  2.8,
+
+                                                                              decoration:
+                                                                              customDecoration
+                                                                                  .baseBackgroundDecoration(
+                                                                                color:
+                                                                                Colors.white,
+                                                                                radius: 5,
+                                                                                borderColor:
+                                                                                colorsConst
+                                                                                    .litGrey,
+                                                                              ),
+
+                                                                              child: Row(
+                                                                                mainAxisAlignment:
+                                                                                MainAxisAlignment
+                                                                                    .center,
+
+                                                                                children: [
+
+                                                                                  CustomText(
+                                                                                    text:
+                                                                                    custProvider
+                                                                                        .endDate,
+                                                                                  ),
+
+                                                                                  5.width,
+
+                                                                                  SvgPicture.asset(
+                                                                                    assets
+                                                                                        .calendar2,
+                                                                                  ),
+                                                                                ],
+                                                                              ),
+                                                                            ),
+                                                                          )
+                                                                        ],
+                                                                      ),
+                                                                    ],
+                                                                  ),
+
+                                                                  10.height,
+
+                                                                  /// Date Range Dropdown
+                                                                  Column(
+                                                                    crossAxisAlignment:
+                                                                    CrossAxisAlignment
+                                                                        .start,
+
+                                                                    children: [
+
+                                                                      CustomText(
+                                                                        text:
+                                                                        "Select Date Range",
+                                                                        colors:
+                                                                        colorsConst.greyClr,
+                                                                        size: 12,
+                                                                      ),
+
+                                                                      Container(
+                                                                        height: 30,
+                                                                        width: kIsWeb ? webWidth / 1.2 : phoneWidth / 1.2,
+                                                                        decoration: customDecoration.baseBackgroundDecoration(
+                                                                          radius: 5,
+                                                                          color: Colors.white,
+                                                                          borderColor: colorsConst.litGrey,
+                                                                        ),
+                                                                        child: DropdownButton<String>(
+                                                                          iconEnabledColor: colorsConst.greyClr,
+                                                                          isExpanded: true,
+                                                                          underline: const SizedBox(),
+                                                                          icon: const Icon(
+                                                                            Icons.keyboard_arrow_down_outlined,
+                                                                          ),
+
+                                                                          // ✅ Safe value check
+                                                                          value: custProvider.typeList
+                                                                              .toSet()
+                                                                              .toList()
+                                                                              .contains(custProvider.repType)
+                                                                              ? custProvider.repType
+                                                                              : null,
+
+                                                                          onChanged: (value) {
+                                                                            if (value != null) {
+                                                                              custProvider.changeDailyVisitType(
+                                                                                value,
+                                                                                context,
+                                                                              );
+                                                                            }
+                                                                          },
+
+                                                                          items: custProvider.typeList
+                                                                              .toSet() // ✅ Remove duplicate values like "All"
+                                                                              .toList()
+                                                                              .map<DropdownMenuItem<String>>((list) {
+                                                                            return DropdownMenuItem<String>(
+                                                                              value: list,
+                                                                              child: CustomText(
+                                                                                text: "  $list",
+                                                                                colors: Colors.black,
+                                                                                isBold: false,
+                                                                              ),
+                                                                            );
+                                                                          }).toList(),
+                                                                        ),
+                                                                      ),
+                                                                    ],
+                                                                  ),
+
+                                                                  20.height,
+
+                                                                  /// Buttons
+                                                                  Row(
+                                                                    mainAxisAlignment:
+                                                                    MainAxisAlignment
+                                                                        .spaceEvenly,
+
+                                                                    children: [
+
+                                                                      CustomBtn(
+                                                                        width: 100,
+                                                                        text: 'Clear All',
+
+                                                                        callback: () {
+
+                                                                          _resetToHomeRange(custProvider);
+
+                                                                          Navigator.of(
+                                                                            context,
+                                                                            rootNavigator:
+                                                                            true,
+                                                                          ).pop();
+                                                                        },
+
+                                                                        bgColor:
+                                                                        Colors.grey
+                                                                            .shade200,
+
+                                                                        textColor:
+                                                                        Colors.black,
+                                                                      ),
+
+                                                                      CustomBtn(
+                                                                        width: 100,
+                                                                        text:
+                                                                        'Apply Filters',
+
+                                                                        callback: () {
+
+                                                                          _empSearch.clear();
+                                                                          custProvider
+                                                                              .manageFilter(
+                                                                              true);
+
+                                                                          _reloadBoth(custProvider);
+
+                                                                          Navigator.of(
+                                                                            context,
+                                                                            rootNavigator:
+                                                                            true,
+                                                                          ).pop();
+                                                                        },
+
+                                                                        bgColor:
+                                                                        colorsConst
+                                                                            .primary,
+
+                                                                        textColor:
+                                                                        Colors.white,
+                                                                      ),
+                                                                    ],
+                                                                  ),
+
+                                                                  20.height,
+                                                                ],
+                                                              ),
+                                                            )
+                                                          ],
+                                                        );
+                                                      },
+                                                    );
+                                                  },
+                                                );
+                                              },
+                                              icon: const Icon(
+                                                Icons.tune,
+                                                color: Colors.white,
+                                                size: 28,
+                                              ),
+                                            ),
+
+                                            const SizedBox(width: 5),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+
+                                    const SizedBox(width: 2),
+
+                                    /// Download Button
+                                    IconButton(
+                                      onPressed: () {
+                                        custProvider.getVisitHoursReport(context);
+                                      },
+                                      icon:  Icon(
+                                        Icons.cloud_download,
+                                        color:colorsConst.primary,
+                                        size: 40,
+                                      ),
+                                    ),
+
+                                  ],
+                                ),
+                                /// Filter Chip
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Flexible(
+                                      child: custProvider.startDate == custProvider.endDate
+                                          ? filterChip(
+                                        "Date: ${custProvider.startDate}",
+                                      )
+                                          : filterChip(
+                                        "Date: ${custProvider.startDate}-${custProvider.endDate}",
+                                      ),
+                                    ),
+
+                                    const SizedBox(width: 8),
+
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.end,
+                                      children: [
+                                        Checkbox(
+                                          value: custProvider.hideEmptyEmployees,
+                                          activeColor: colorsConst.primary,
+                                          onChanged: (value) {
+                                            custProvider.toggleHideEmptyEmployees(
+                                              value ?? false,
+                                            );
+                                          },
+                                        ),
+
+                                        const CustomText(
+                                          text: "Visit Only",
+                                          size: 12,
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                                /// Loading
+                                custProvider.refresh == false
+
+                                    ? Padding(
+                                  padding:
+                                  const EdgeInsets.fromLTRB(
+                                      0, 200, 0, 0),
+
+                                  child: Loading(),
+                                )
+
+                                    :
+
+                                /// Empty
+                                custProvider.groupedList.isEmpty
+
+                                    ? const Padding(
+                                  padding:
+                                  EdgeInsets.fromLTRB(
+                                      0, 80, 0, 0),
+
+                                  child: Center(
+                                    child: CustomText(
+                                      text:
+                                      "No Visit Report Found",
+                                      size: 15,
+                                    ),
+                                  ),
+                                )
+
+                                    : Expanded(
+                                  child: Builder(
+                                    builder: (context) {
+
+                                      final filteredList =
+                                      custProvider
+                                          .hideEmptyEmployees
+
+                                          ? custProvider.groupedList
+                                          .where((e) {
+
+                                        int total =
+                                            int.tryParse(
+                                                e["total"]
+                                                    .toString()) ??
+                                                0;
+
+                                        return total > 0;
+
+                                      }).toList()
+
+                                          : custProvider.groupedList;
+
+                                      return Column(
+                                        children: [
+                                          _totalBanner(
+                                            "Total Visits (${filteredList.length} emp)",
+                                            _summaryTotal(filteredList),
+                                            _rangeText(custProvider),
+                                          ),
+                                          Expanded(
+                                            child: ListView.builder(
+                                              itemCount:
+                                              filteredList.length,
+
+                                              itemBuilder:
+                                                  (context, index) {
+
+                                                var data =
+                                                filteredList[index];
+
+                                                final typeList =
+                                                data["types"]
+                                                    .entries
+                                                    .toList();
+
+                                                return Column(
+                                                  children: [
+
+                                                    if (index == 0)
+                                                      10.height,
+
+                                                    InkWell(
+                                                      onTap: () {
+
+                                                        custProvider
+                                                            .selectUser(
+                                                          UserModel(
+                                                            id:
+                                                            data["role"],
+                                                            firstname:
+                                                            data["firstname"],
+                                                          ),
+                                                        );
+
+                                                        custProvider
+                                                            .manageFilter(
+                                                            true);
+
+                                                        tabController
+                                                            .animateTo(1);
+
+                                                        Future.delayed(
+                                                          const Duration(
+                                                              milliseconds:
+                                                              300),
+                                                              () {
+                                                            custProvider
+                                                                .getVisitReport(
+                                                                context);
+                                                          },
+                                                        );
+                                                      },
+
+                                                      child: Container(
+                                                        // munnadi screen width * 0.9 -> web-la page width
+                                                        // (0.5) thaandi overflow. Ippo parent width.
+                                                        width: double.infinity,
+
+                                                        margin:
+                                                        const EdgeInsets
+                                                            .symmetric(
+                                                            vertical: 5),
+
+                                                        decoration:
+                                                        customDecoration
+                                                            .baseBackgroundDecoration(
+                                                          color:
+                                                          Colors.white,
+                                                          borderColor:
+                                                          Colors.grey
+                                                              .shade200,
+                                                          radius: 5,
+                                                        ),
+
+                                                        child: Padding(
+                                                          padding:
+                                                          const EdgeInsets
+                                                              .fromLTRB(
+                                                              10,
+                                                              12,
+                                                              10,
+                                                              12),
+
+                                                          child: Column(
+                                                            crossAxisAlignment:
+                                                            CrossAxisAlignment
+                                                                .start,
+
+                                                            children: [
+
+                                                              /// Header
+                                                              Row(
+                                                                mainAxisAlignment:
+                                                                MainAxisAlignment
+                                                                    .spaceBetween,
+
+                                                                children: [
+
+                                                                  Expanded(
+                                                                    child: Row(
+                                                                      children: [
+
+                                                                        Flexible(
+                                                                          child: CustomText(
+                                                                            text:
+                                                                            "${data["firstname"]} ",
+                                                                            isBold:
+                                                                            true,
+                                                                            colors:
+                                                                            colorsConst
+                                                                                .orange,
+                                                                            size:
+                                                                            15,
+                                                                          ),
+                                                                        ),
+
+                                                                        CustomText(
+                                                                          text:
+                                                                          "( ${data["role"]} )",
+                                                                          colors:
+                                                                          colorsConst
+                                                                              .blue2,
+                                                                          size:
+                                                                          15,
+                                                                        ),
+                                                                      ],
+                                                                    ),
+                                                                  ),
+
+                                                                  Row(
+                                                                    children: [
+
+                                                                      const CustomText(
+                                                                        text:
+                                                                        "Total Visits: ",
+                                                                        colors:
+                                                                        Colors
+                                                                            .black,
+                                                                      ),
+
+                                                                      CustomText(
+                                                                        text:
+                                                                        "${data["total"]}",
+                                                                        colors:
+                                                                        colorsConst
+                                                                            .primary,
+                                                                        isBold:
+                                                                        true,
+                                                                      ),
+                                                                    ],
+                                                                  ),
+                                                                ],
+                                                              ),
+
+                                                              const Padding(
+                                                                padding:
+                                                                EdgeInsets.all(
+                                                                    8.0),
+
+                                                                child:
+                                                                DotLine(),
+                                                              ),
+
+                                                              const SizedBox(
+                                                                  height: 5),
+
+                                                              /// Types
+                                                              ...typeList
+                                                                  .asMap()
+                                                                  .entries
+                                                                  .map((item) {
+
+                                                                int i =
+                                                                    item.key;
+
+                                                                var entry =
+                                                                    item.value;
+
+                                                                bool isEven =
+                                                                    i % 2 == 0;
+
+                                                                return Container(
+                                                                  margin:
+                                                                  const EdgeInsets
+                                                                      .symmetric(
+                                                                      vertical:
+                                                                      2),
+
+                                                                  padding:
+                                                                  const EdgeInsets
+                                                                      .symmetric(
+                                                                    vertical:
+                                                                    8,
+                                                                    horizontal:
+                                                                    8,
+                                                                  ),
+
+                                                                  decoration:
+                                                                  BoxDecoration(
+                                                                    color: isEven
+                                                                        ? Colors
+                                                                        .grey
+                                                                        .shade100
+                                                                        : colorsConst
+                                                                        .primary
+                                                                        .withOpacity(
+                                                                        0.1),
+
+                                                                    border:
+                                                                    Border(
+                                                                      bottom:
+                                                                      BorderSide(
+                                                                        color:
+                                                                        isEven
+                                                                            ? colorsConst
+                                                                            .primary
+                                                                            .withOpacity(
+                                                                            0.4)
+                                                                            : Colors
+                                                                            .grey
+                                                                            .shade500,
+                                                                        width:
+                                                                        1.2,
+                                                                      ),
+                                                                    ),
+                                                                  ),
+
+                                                                  child: Row(
+                                                                    mainAxisAlignment:
+                                                                    MainAxisAlignment
+                                                                        .spaceBetween,
+
+                                                                    children: [
+
+                                                                      Text(
+                                                                        entry.key,
+
+                                                                        style:
+                                                                        TextStyle(
+                                                                          fontSize:
+                                                                          14,
+                                                                          color:
+                                                                          colorsConst
+                                                                              .greyClr,
+                                                                          fontWeight:
+                                                                          FontWeight
+                                                                              .w500,
+                                                                        ),
+                                                                      ),
+
+                                                                      Text(
+                                                                        entry.value
+                                                                            .toString(),
+
+                                                                        style:
+                                                                        TextStyle(
+                                                                          fontSize:
+                                                                          14,
+                                                                          color:
+                                                                          colorsConst
+                                                                              .primary,
+                                                                          fontWeight:
+                                                                          FontWeight
+                                                                              .bold,
+                                                                        ),
+                                                                      ),
+                                                                    ],
+                                                                  ),
+                                                                );
+                                                              }).toList(),
+                                                            ],
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ],
+                                                );
+                                              },
+                                            ),
+                                          ),
+                                        ],
+                                      );
+                                    },
+                                  ),
+                                ),
+                              ],
+                            ),
+
+                          Column(  //Employee visit
                             children: [
-                              10.height,
                               Row(
                                 children: [
-
-                                  /// Search + Filter Container
+                                  5.height,
+                                  /// Search + Filter
                                   Expanded(
                                     child: Container(
-                                      height: 40,
+                                      height: 45,
                                       decoration: BoxDecoration(
                                         color: colorsConst.primary,
-                                        borderRadius: BorderRadius.circular(20),
+                                        borderRadius: BorderRadius.circular(30),
                                       ),
                                       child: Row(
                                         children: [
@@ -185,29 +1097,23 @@ class _VisitReportState extends State<VisitReport> with SingleTickerProviderStat
                                               margin: const EdgeInsets.all(4),
                                               decoration: BoxDecoration(
                                                 color: Colors.white,
-                                                borderRadius: BorderRadius.circular(20),
+                                                borderRadius: BorderRadius.circular(30),
                                               ),
                                               child: TextField(
                                                 controller: custProvider.search,
                                                 decoration: InputDecoration(
-                                                  hintText: "Search Name or Customer",
+                                                  hintText:
+                                                  "${constValue.companyName}/${constValue.customer}/Emp/No",
                                                   prefixIcon: const Icon(
                                                     Icons.search,
                                                     color: Colors.grey,
                                                   ),
                                                   border: InputBorder.none,
                                                   contentPadding:
-                                                  const EdgeInsets.symmetric(vertical: 10),
+                                                  const EdgeInsets.symmetric(vertical: 12),
                                                 ),
                                                 onChanged: (value) {
-                                                  setState(() {
-                                                    final suggestions = custProvider.groupedList2.where((user) {
-                                                      final comFName = user["firstname"].toString().toLowerCase();
-                                                      final input = value.toString().toLowerCase();
-                                                      return comFName.contains(input);
-                                                    }).toList();
-                                                    custProvider.groupedList = suggestions;
-                                                  });
+                                                  custProvider.searchVisitReport(value);
                                                 },
                                               ),
                                             ),
@@ -216,24 +1122,18 @@ class _VisitReportState extends State<VisitReport> with SingleTickerProviderStat
                                           /// Filter Button
                                           IconButton(
                                             onPressed: () {
+
                                               showDialog(
                                                 context: context,
                                                 builder: (context) {
-
-                                                  return Consumer2<
-                                                      CustomerProvider,
-                                                      EmployeeProvider>(
-                                                    builder:
-                                                        (context, empProvider, ePvr, _) {
-
+                                                  return Consumer2<CustomerProvider, EmployeeProvider>(
+                                                    builder: (context, empProvider, ePvr, _) {
                                                       return AlertDialog(
                                                         actions: [
-
                                                           SizedBox(
                                                             width: kIsWeb
                                                                 ? webWidth / 1.2
                                                                 : phoneWidth / 1.2,
-
                                                             child: Column(
                                                               children: [
 
@@ -241,9 +1141,7 @@ class _VisitReportState extends State<VisitReport> with SingleTickerProviderStat
 
                                                                 Row(
                                                                   mainAxisAlignment:
-                                                                  MainAxisAlignment
-                                                                      .spaceBetween,
-
+                                                                  MainAxisAlignment.spaceBetween,
                                                                   children: [
 
                                                                     70.width,
@@ -259,14 +1157,11 @@ class _VisitReportState extends State<VisitReport> with SingleTickerProviderStat
 
                                                                     InkWell(
                                                                       onTap: () {
-
                                                                         Navigator.of(
                                                                           context,
-                                                                          rootNavigator:
-                                                                          true,
+                                                                          rootNavigator: true,
                                                                         ).pop();
                                                                       },
-
                                                                       child: SvgPicture.asset(
                                                                         assets.cancel,
                                                                       ),
@@ -276,82 +1171,55 @@ class _VisitReportState extends State<VisitReport> with SingleTickerProviderStat
 
                                                                 20.height,
 
-                                                                /// From & To Date
+                                                                /// FROM DATE
                                                                 Row(
                                                                   mainAxisAlignment:
-                                                                  MainAxisAlignment
-                                                                      .spaceEvenly,
-
+                                                                  MainAxisAlignment.spaceEvenly,
                                                                   children: [
 
-                                                                    /// From Date
                                                                     Column(
                                                                       crossAxisAlignment:
-                                                                      CrossAxisAlignment
-                                                                          .start,
-
+                                                                      CrossAxisAlignment.start,
                                                                       children: [
 
                                                                         CustomText(
                                                                           text: "From Date",
-                                                                          colors: colorsConst
-                                                                              .greyClr,
+                                                                          colors:
+                                                                          colorsConst.greyClr,
                                                                           size: 12,
                                                                         ),
 
                                                                         InkWell(
                                                                           onTap: () {
-
-                                                                            custProvider
-                                                                                .datePick(
-                                                                              context:
-                                                                              context,
-                                                                              isStartDate:
-                                                                              true,
-                                                                              date:
-                                                                              custProvider
-                                                                                  .startDate,
+                                                                            custProvider.datePick(
+                                                                              context: context,
+                                                                              isStartDate: true,
+                                                                              date: custProvider.startDate,
                                                                             );
                                                                           },
-
                                                                           child: Container(
                                                                             height: 30,
-
                                                                             width: kIsWeb
-                                                                                ? webWidth /
-                                                                                2.8
-                                                                                : phoneWidth /
-                                                                                2.8,
-
+                                                                                ? webWidth / 2.8
+                                                                                : phoneWidth / 2.8,
                                                                             decoration:
                                                                             customDecoration
                                                                                 .baseBackgroundDecoration(
-                                                                              color:
-                                                                              Colors.white,
+                                                                              color: Colors.white,
                                                                               radius: 5,
                                                                               borderColor:
-                                                                              colorsConst
-                                                                                  .litGrey,
+                                                                              colorsConst.litGrey,
                                                                             ),
-
                                                                             child: Row(
                                                                               mainAxisAlignment:
-                                                                              MainAxisAlignment
-                                                                                  .center,
-
+                                                                              MainAxisAlignment.center,
                                                                               children: [
-
                                                                                 CustomText(
-                                                                                  text:
-                                                                                  custProvider
-                                                                                      .startDate,
+                                                                                  text: custProvider.startDate,
                                                                                 ),
-
                                                                                 5.width,
-
                                                                                 SvgPicture.asset(
-                                                                                  assets
-                                                                                      .calendar2,
+                                                                                  assets.calendar2,
                                                                                 ),
                                                                               ],
                                                                             ),
@@ -360,230 +1228,93 @@ class _VisitReportState extends State<VisitReport> with SingleTickerProviderStat
                                                                       ],
                                                                     ),
 
-                                                                    /// To Date
+                                                                    /// TO DATE
                                                                     Column(
                                                                       crossAxisAlignment:
-                                                                      CrossAxisAlignment
-                                                                          .start,
-
+                                                                      CrossAxisAlignment.start,
                                                                       children: [
 
                                                                         CustomText(
                                                                           text: "To Date",
-                                                                          colors: colorsConst
-                                                                              .greyClr,
+                                                                          colors:
+                                                                          colorsConst.greyClr,
                                                                           size: 12,
                                                                         ),
 
                                                                         InkWell(
                                                                           onTap: () {
-
-                                                                            custProvider
-                                                                                .datePick(
-                                                                              context:
-                                                                              context,
-                                                                              isStartDate:
-                                                                              false,
-                                                                              date:
-                                                                              custProvider
-                                                                                  .endDate,
+                                                                            custProvider.datePick(
+                                                                              context: context,
+                                                                              isStartDate: false,
+                                                                              date: custProvider.endDate,
                                                                             );
                                                                           },
-
                                                                           child: Container(
                                                                             height: 30,
-
                                                                             width: kIsWeb
-                                                                                ? webWidth /
-                                                                                2.8
-                                                                                : phoneWidth /
-                                                                                2.8,
-
+                                                                                ? webWidth / 2.8
+                                                                                : phoneWidth / 2.8,
                                                                             decoration:
                                                                             customDecoration
                                                                                 .baseBackgroundDecoration(
-                                                                              color:
-                                                                              Colors.white,
+                                                                              color: Colors.white,
                                                                               radius: 5,
                                                                               borderColor:
-                                                                              colorsConst
-                                                                                  .litGrey,
+                                                                              colorsConst.litGrey,
                                                                             ),
-
                                                                             child: Row(
                                                                               mainAxisAlignment:
-                                                                              MainAxisAlignment
-                                                                                  .center,
-
+                                                                              MainAxisAlignment.center,
                                                                               children: [
-
                                                                                 CustomText(
-                                                                                  text:
-                                                                                  custProvider
-                                                                                      .endDate,
+                                                                                  text: custProvider.endDate,
                                                                                 ),
-
                                                                                 5.width,
-
                                                                                 SvgPicture.asset(
-                                                                                  assets
-                                                                                      .calendar2,
+                                                                                  assets.calendar2,
                                                                                 ),
                                                                               ],
                                                                             ),
                                                                           ),
                                                                         )
                                                                       ],
-                                                                    ),
-                                                                  ],
-                                                                ),
-
-                                                                10.height,
-
-                                                                /// Date Range Dropdown
-                                                                Column(
-                                                                  crossAxisAlignment:
-                                                                  CrossAxisAlignment
-                                                                      .start,
-
-                                                                  children: [
-
-                                                                    CustomText(
-                                                                      text:
-                                                                      "Select Date Range",
-                                                                      colors:
-                                                                      colorsConst.greyClr,
-                                                                      size: 12,
-                                                                    ),
-
-                                                                    Container(
-                                                                      height: 30,
-                                                                      width: kIsWeb ? webWidth / 1.2 : phoneWidth / 1.2,
-                                                                      decoration: customDecoration.baseBackgroundDecoration(
-                                                                        radius: 5,
-                                                                        color: Colors.white,
-                                                                        borderColor: colorsConst.litGrey,
-                                                                      ),
-                                                                      child: DropdownButton<String>(
-                                                                        iconEnabledColor: colorsConst.greyClr,
-                                                                        isExpanded: true,
-                                                                        underline: const SizedBox(),
-                                                                        icon: const Icon(
-                                                                          Icons.keyboard_arrow_down_outlined,
-                                                                        ),
-
-                                                                        // ✅ Safe value check
-                                                                        value: custProvider.typeList
-                                                                            .toSet()
-                                                                            .toList()
-                                                                            .contains(custProvider.repType)
-                                                                            ? custProvider.repType
-                                                                            : null,
-
-                                                                        onChanged: (value) {
-                                                                          if (value != null) {
-                                                                            custProvider.changeDailyVisitType(
-                                                                              value,
-                                                                              context,
-                                                                            );
-                                                                          }
-                                                                        },
-
-                                                                        items: custProvider.typeList
-                                                                            .toSet() // ✅ Remove duplicate values like "All"
-                                                                            .toList()
-                                                                            .map<DropdownMenuItem<String>>((list) {
-                                                                          return DropdownMenuItem<String>(
-                                                                            value: list,
-                                                                            child: CustomText(
-                                                                              text: "  $list",
-                                                                              colors: Colors.black,
-                                                                              isBold: false,
-                                                                            ),
-                                                                          );
-                                                                        }).toList(),
-                                                                      ),
                                                                     ),
                                                                   ],
                                                                 ),
 
                                                                 20.height,
 
-                                                                /// Buttons
                                                                 Row(
                                                                   mainAxisAlignment:
-                                                                  MainAxisAlignment
-                                                                      .spaceEvenly,
-
+                                                                  MainAxisAlignment.spaceEvenly,
                                                                   children: [
 
                                                                     CustomBtn(
                                                                       width: 100,
                                                                       text: 'Clear All',
-
                                                                       callback: () {
+                                                                        _resetToHomeRange(custProvider);
 
-                                                                        custProvider
-                                                                            .initVisitReport(
-                                                                          custProvider
-                                                                              .startDate,
-                                                                          custProvider
-                                                                              .endDate,
-                                                                          custProvider
-                                                                              .reportType,
-                                                                        );
-
-                                                                        custProvider
-                                                                            .manageFilter(
-                                                                            false);
-
-                                                                        custProvider
-                                                                            .getEmpWiseReport(
-                                                                            context);
-
-                                                                        Navigator.of(
-                                                                          context,
-                                                                          rootNavigator:
-                                                                          true,
-                                                                        ).pop();
+                                                                        Navigator.pop(context);
                                                                       },
-
-                                                                      bgColor:
-                                                                      Colors.grey
-                                                                          .shade200,
-
-                                                                      textColor:
-                                                                      Colors.black,
+                                                                      bgColor: Colors.grey.shade200,
+                                                                      textColor: Colors.black,
                                                                     ),
 
                                                                     CustomBtn(
                                                                       width: 100,
-                                                                      text:
-                                                                      'Apply Filters',
-
+                                                                      text: 'Apply Filters',
                                                                       callback: () {
 
-                                                                        custProvider
-                                                                            .manageFilter(
-                                                                            true);
+                                                                        custProvider.manageFilter(true);
 
-                                                                        custProvider
-                                                                            .getEmpWiseReport(
-                                                                            context);
+                                                                        _reloadBoth(custProvider);
 
-                                                                        Navigator.of(
-                                                                          context,
-                                                                          rootNavigator:
-                                                                          true,
-                                                                        ).pop();
+                                                                        Navigator.pop(context);
                                                                       },
-
                                                                       bgColor:
-                                                                      colorsConst
-                                                                          .primary,
-
-                                                                      textColor:
-                                                                      Colors.white,
+                                                                      colorsConst.primary,
+                                                                      textColor: Colors.white,
                                                                     ),
                                                                   ],
                                                                 ),
@@ -606,763 +1337,96 @@ class _VisitReportState extends State<VisitReport> with SingleTickerProviderStat
                                             ),
                                           ),
 
-                                          const SizedBox(width: 5),
+                                          5.width,
                                         ],
                                       ),
                                     ),
                                   ),
 
-                                  const SizedBox(width: 2),
+                                  15.width,
 
                                   /// Download Button
                                   IconButton(
                                     onPressed: () {
-                                      custProvider.getVisitHoursReport(context);
+                                      custProvider.getVisitHoursEmpReport(context);
                                     },
                                     icon:  Icon(
                                       Icons.cloud_download,
-                                      color:colorsConst.primary,
+                                      color: colorsConst.primary,
                                       size: 40,
                                     ),
                                   ),
-
                                 ],
                               ),
-                              /// Filter Chip
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Flexible(
-                                    child: custProvider.startDate == custProvider.endDate
-                                        ? filterChip(
-                                      "Date: ${custProvider.startDate}",
-                                    )
-                                        : filterChip(
-                                      "Date: ${custProvider.startDate}-${custProvider.endDate}",
-                                    ),
-                                  ),
+                              if (custProvider.filter) ...[
+                                10.height,
+                                Wrap(
+                                  spacing: 6,
+                                  runSpacing: 6,
+                                  children: [
 
-                                  const SizedBox(width: 8),
+                                    if ((custProvider.startDate??"").isNotEmpty)
+                                      filterChip("From: ${custProvider.startDate}"),
 
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.end,
-                                    children: [
-                                      Checkbox(
-                                        value: custProvider.hideEmptyEmployees,
-                                        activeColor: colorsConst.primary,
-                                        onChanged: (value) {
-                                          custProvider.toggleHideEmptyEmployees(
-                                            value ?? false,
-                                          );
-                                        },
-                                      ),
+                                    if ((custProvider.endDate ?? "").isNotEmpty)
+                                      filterChip("To: ${custProvider.endDate}"),
 
-                                      const CustomText(
-                                        text: "Visit Only",
-                                        size: 12,
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                              /// Loading
-                              custProvider.refresh == false
+                                    if ((custProvider.userName ?? "").isNotEmpty)
+                                      filterChip("Emp: ${custProvider.userName}"),
+                                    //
+                                    // if ((custProvider.typeValue ?? "").isNotEmpty)
+                                    // filterChip("Type: ${custProvider.typeValue}"),
 
-                                  ? Padding(
-                                padding:
-                                const EdgeInsets.fromLTRB(
-                                    0, 200, 0, 0),
-
-                                child: Loading(),
-                              )
-
-                                  :
-
-                              /// Empty
-                              custProvider.groupedList.isEmpty
-
-                                  ? const Padding(
-                                padding:
-                                EdgeInsets.fromLTRB(
-                                    0, 80, 0, 0),
-
-                                child: Center(
-                                  child: CustomText(
-                                    text:
-                                    "No Visit Report Found",
-                                    size: 15,
-                                  ),
+                                  ],
                                 ),
-                              )
-
-                                  : Expanded(
-                                child: Builder(
-                                  builder: (context) {
-
-                                    final filteredList =
-                                    custProvider
-                                        .hideEmptyEmployees
-
-                                        ? custProvider.groupedList
-                                        .where((e) {
-
-                                      int total =
-                                          int.tryParse(
-                                              e["total"]
-                                                  .toString()) ??
-                                              0;
-
-                                      return total > 0;
-
-                                    }).toList()
-
-                                        : custProvider.groupedList;
-
-                                    return ListView.builder(
-                                      itemCount:
-                                      filteredList.length,
-
-                                      itemBuilder:
-                                          (context, index) {
-
-                                        var data =
-                                        filteredList[index];
-
-                                        final typeList =
-                                        data["types"]
-                                            .entries
-                                            .toList();
-
-                                        return Column(
-                                          children: [
-
-                                            if (index == 0)
-                                              10.height,
-
-                                            InkWell(
-                                              onTap: () {
-
-                                                custProvider
-                                                    .selectUser(
-                                                  UserModel(
-                                                    id:
-                                                    data["role"],
-                                                    firstname:
-                                                    data["firstname"],
-                                                  ),
-                                                );
-
-                                                custProvider
-                                                    .manageFilter(
-                                                    true);
-
-                                                tabController
-                                                    .animateTo(1);
-
-                                                Future.delayed(
-                                                  const Duration(
-                                                      milliseconds:
-                                                      300),
-                                                      () {
-                                                    custProvider
-                                                        .getVisitReport(
-                                                        context);
-                                                  },
-                                                );
-                                              },
-
-                                              child: Container(
-                                                width:
-                                                MediaQuery.of(
-                                                    context)
-                                                    .size
-                                                    .width *
-                                                    0.9,
-
-                                                margin:
-                                                const EdgeInsets
-                                                    .symmetric(
-                                                    vertical: 5),
-
-                                                decoration:
-                                                customDecoration
-                                                    .baseBackgroundDecoration(
-                                                  color:
-                                                  Colors.white,
-                                                  borderColor:
-                                                  Colors.grey
-                                                      .shade200,
-                                                  radius: 5,
-                                                ),
-
-                                                child: Padding(
-                                                  padding:
-                                                  const EdgeInsets
-                                                      .fromLTRB(
-                                                      10,
-                                                      12,
-                                                      10,
-                                                      12),
-
-                                                  child: Column(
-                                                    crossAxisAlignment:
-                                                    CrossAxisAlignment
-                                                        .start,
-
-                                                    children: [
-
-                                                      /// Header
-                                                      Row(
-                                                        mainAxisAlignment:
-                                                        MainAxisAlignment
-                                                            .spaceBetween,
-
-                                                        children: [
-
-                                                          SizedBox(
-                                                            width:
-                                                            MediaQuery.of(
-                                                                context)
-                                                                .size
-                                                                .width *
-                                                                0.55,
-
-                                                            child: Row(
-                                                              children: [
-
-                                                                CustomText(
-                                                                  text:
-                                                                  "${data["firstname"]} ",
-                                                                  isBold:
-                                                                  true,
-                                                                  colors:
-                                                                  colorsConst
-                                                                      .orange,
-                                                                  size:
-                                                                  15,
-                                                                ),
-
-                                                                CustomText(
-                                                                  text:
-                                                                  "( ${data["role"]} )",
-                                                                  colors:
-                                                                  colorsConst
-                                                                      .blue2,
-                                                                  size:
-                                                                  15,
-                                                                ),
-                                                              ],
-                                                            ),
-                                                          ),
-
-                                                          Row(
-                                                            children: [
-
-                                                              const CustomText(
-                                                                text:
-                                                                "Total Visits: ",
-                                                                colors:
-                                                                Colors
-                                                                    .black,
-                                                              ),
-
-                                                              CustomText(
-                                                                text:
-                                                                "${data["total"]}",
-                                                                colors:
-                                                                colorsConst
-                                                                    .primary,
-                                                                isBold:
-                                                                true,
-                                                              ),
-                                                            ],
-                                                          ),
-                                                        ],
-                                                      ),
-
-                                                      const Padding(
-                                                        padding:
-                                                        EdgeInsets.all(
-                                                            8.0),
-
-                                                        child:
-                                                        DotLine(),
-                                                      ),
-
-                                                      const SizedBox(
-                                                          height: 5),
-
-                                                      /// Types
-                                                      ...typeList
-                                                          .asMap()
-                                                          .entries
-                                                          .map((item) {
-
-                                                        int i =
-                                                            item.key;
-
-                                                        var entry =
-                                                            item.value;
-
-                                                        bool isEven =
-                                                            i % 2 == 0;
-
-                                                        return Container(
-                                                          margin:
-                                                          const EdgeInsets
-                                                              .symmetric(
-                                                              vertical:
-                                                              2),
-
-                                                          padding:
-                                                          const EdgeInsets
-                                                              .symmetric(
-                                                            vertical:
-                                                            8,
-                                                            horizontal:
-                                                            8,
-                                                          ),
-
-                                                          decoration:
-                                                          BoxDecoration(
-                                                            color: isEven
-                                                                ? Colors
-                                                                .grey
-                                                                .shade100
-                                                                : colorsConst
-                                                                .primary
-                                                                .withOpacity(
-                                                                0.1),
-
-                                                            border:
-                                                            Border(
-                                                              bottom:
-                                                              BorderSide(
-                                                                color:
-                                                                isEven
-                                                                    ? colorsConst
-                                                                    .primary
-                                                                    .withOpacity(
-                                                                    0.4)
-                                                                    : Colors
-                                                                    .grey
-                                                                    .shade500,
-                                                                width:
-                                                                1.2,
-                                                              ),
-                                                            ),
-                                                          ),
-
-                                                          child: Row(
-                                                            mainAxisAlignment:
-                                                            MainAxisAlignment
-                                                                .spaceBetween,
-
-                                                            children: [
-
-                                                              Text(
-                                                                entry.key,
-
-                                                                style:
-                                                                TextStyle(
-                                                                  fontSize:
-                                                                  14,
-                                                                  color:
-                                                                  colorsConst
-                                                                      .greyClr,
-                                                                  fontWeight:
-                                                                  FontWeight
-                                                                      .w500,
-                                                                ),
-                                                              ),
-
-                                                              Text(
-                                                                entry.value
-                                                                    .toString(),
-
-                                                                style:
-                                                                TextStyle(
-                                                                  fontSize:
-                                                                  14,
-                                                                  color:
-                                                                  colorsConst
-                                                                      .primary,
-                                                                  fontWeight:
-                                                                  FontWeight
-                                                                      .bold,
-                                                                ),
-                                                              ),
-                                                            ],
-                                                          ),
-                                                        );
-                                                      }).toList(),
-                                                    ],
-                                                  ),
-                                                ),
-                                              ),
-                                            ),
-                                          ],
-                                        );
-                                      },
-                                    );
-                                  },
+                                20.height,
+                              ],
+                              custProvider.refresh==false?
+                              Padding(
+                                padding: const EdgeInsets.fromLTRB(0, 200, 0, 0),
+                                child: Loading(),
+                              ):
+                              custProvider.dailyVisitReport.isEmpty?
+                              const Padding(
+                                padding: EdgeInsets.fromLTRB(0, 80, 0, 0),
+                                child: Center(child: CustomText(text: "No Visit Report Found",size: 15,)),
+                              ):Expanded(
+                                child: Column(
+                                  children: [
+                                    _totalBanner(
+                                      custProvider.userName.toString().isNotEmpty &&
+                                          custProvider.userName.toString() != "null"
+                                          ? "Visits • ${custProvider.userName}"
+                                          : "Total Visits",
+                                      custProvider.dailyVisitReport.length,
+                                      _rangeText(custProvider),
+                                    ),
+                                    Expanded(
+                                      child: ListView.builder(
+                                          itemCount: custProvider.dailyVisitReport.length,
+                                          itemBuilder: (context,index){
+                                            CustomerReportModel data = custProvider.dailyVisitReport[index];
+                                            // CustomerReportModel data1 = custProvider.customerReport[index];
+                                            //  print("created${data1.createdBy}");
+                                            //  print("created com ${data1.companyName}");
+                                            return VisitReportDetails(data: data);
+                                          }),
+                                    ),
+                                  ],
                                 ),
                               ),
                             ],
                           ),
 
-                          Column(  //Employee visit
-                          children: [
-                            Row(
-                              children: [
-                                 5.height,
-                                /// Search + Filter
-                                Expanded(
-                                  child: Container(
-                                    height: 45,
-                                    decoration: BoxDecoration(
-                                      color: colorsConst.primary,
-                                      borderRadius: BorderRadius.circular(30),
-                                    ),
-                                    child: Row(
-                                      children: [
-
-                                        /// Search Field
-                                        Expanded(
-                                          child: Container(
-                                            margin: const EdgeInsets.all(4),
-                                            decoration: BoxDecoration(
-                                              color: Colors.white,
-                                              borderRadius: BorderRadius.circular(30),
-                                            ),
-                                            child: TextField(
-                                              controller: custProvider.search,
-                                              decoration: InputDecoration(
-                                                hintText:
-                                                "${constValue.companyName}/${constValue.customer}/Emp/No",
-                                                prefixIcon: const Icon(
-                                                  Icons.search,
-                                                  color: Colors.grey,
-                                                ),
-                                                border: InputBorder.none,
-                                                contentPadding:
-                                                const EdgeInsets.symmetric(vertical: 12),
-                                              ),
-                                              onChanged: (value) {
-                                                custProvider.searchVisitReport(value);
-                                              },
-                                            ),
-                                          ),
-                                        ),
-
-                                        /// Filter Button
-                                        IconButton(
-                                          onPressed: () {
-
-                                            showDialog(
-                                              context: context,
-                                              builder: (context) {
-                                                return Consumer2<CustomerProvider, EmployeeProvider>(
-                                                  builder: (context, empProvider, ePvr, _) {
-                                                    return AlertDialog(
-                                                      actions: [
-                                                        SizedBox(
-                                                          width: kIsWeb
-                                                              ? webWidth / 1.2
-                                                              : phoneWidth / 1.2,
-                                                          child: Column(
-                                                            children: [
-
-                                                              20.height,
-
-                                                              Row(
-                                                                mainAxisAlignment:
-                                                                MainAxisAlignment.spaceBetween,
-                                                                children: [
-
-                                                                  70.width,
-
-                                                                  const CustomText(
-                                                                    text: 'Filters',
-                                                                    colors: Colors.black,
-                                                                    size: 16,
-                                                                    isBold: true,
-                                                                  ),
-
-                                                                  30.width,
-
-                                                                  InkWell(
-                                                                    onTap: () {
-                                                                      Navigator.of(
-                                                                        context,
-                                                                        rootNavigator: true,
-                                                                      ).pop();
-                                                                    },
-                                                                    child: SvgPicture.asset(
-                                                                      assets.cancel,
-                                                                    ),
-                                                                  )
-                                                                ],
-                                                              ),
-
-                                                              20.height,
-
-                                                              /// FROM DATE
-                                                              Row(
-                                                                mainAxisAlignment:
-                                                                MainAxisAlignment.spaceEvenly,
-                                                                children: [
-
-                                                                  Column(
-                                                                    crossAxisAlignment:
-                                                                    CrossAxisAlignment.start,
-                                                                    children: [
-
-                                                                      CustomText(
-                                                                        text: "From Date",
-                                                                        colors:
-                                                                        colorsConst.greyClr,
-                                                                        size: 12,
-                                                                      ),
-
-                                                                      InkWell(
-                                                                        onTap: () {
-                                                                          custProvider.datePick(
-                                                                            context: context,
-                                                                            isStartDate: true,
-                                                                            date: custProvider.startDate,
-                                                                          );
-                                                                        },
-                                                                        child: Container(
-                                                                          height: 30,
-                                                                          width: kIsWeb
-                                                                              ? webWidth / 2.8
-                                                                              : phoneWidth / 2.8,
-                                                                          decoration:
-                                                                          customDecoration
-                                                                              .baseBackgroundDecoration(
-                                                                            color: Colors.white,
-                                                                            radius: 5,
-                                                                            borderColor:
-                                                                            colorsConst.litGrey,
-                                                                          ),
-                                                                          child: Row(
-                                                                            mainAxisAlignment:
-                                                                            MainAxisAlignment.center,
-                                                                            children: [
-                                                                              CustomText(
-                                                                                text: custProvider.startDate,
-                                                                              ),
-                                                                              5.width,
-                                                                              SvgPicture.asset(
-                                                                                assets.calendar2,
-                                                                              ),
-                                                                            ],
-                                                                          ),
-                                                                        ),
-                                                                      )
-                                                                    ],
-                                                                  ),
-
-                                                                  /// TO DATE
-                                                                  Column(
-                                                                    crossAxisAlignment:
-                                                                    CrossAxisAlignment.start,
-                                                                    children: [
-
-                                                                      CustomText(
-                                                                        text: "To Date",
-                                                                        colors:
-                                                                        colorsConst.greyClr,
-                                                                        size: 12,
-                                                                      ),
-
-                                                                      InkWell(
-                                                                        onTap: () {
-                                                                          custProvider.datePick(
-                                                                            context: context,
-                                                                            isStartDate: false,
-                                                                            date: custProvider.endDate,
-                                                                          );
-                                                                        },
-                                                                        child: Container(
-                                                                          height: 30,
-                                                                          width: kIsWeb
-                                                                              ? webWidth / 2.8
-                                                                              : phoneWidth / 2.8,
-                                                                          decoration:
-                                                                          customDecoration
-                                                                              .baseBackgroundDecoration(
-                                                                            color: Colors.white,
-                                                                            radius: 5,
-                                                                            borderColor:
-                                                                            colorsConst.litGrey,
-                                                                          ),
-                                                                          child: Row(
-                                                                            mainAxisAlignment:
-                                                                            MainAxisAlignment.center,
-                                                                            children: [
-                                                                              CustomText(
-                                                                                text: custProvider.endDate,
-                                                                              ),
-                                                                              5.width,
-                                                                              SvgPicture.asset(
-                                                                                assets.calendar2,
-                                                                              ),
-                                                                            ],
-                                                                          ),
-                                                                        ),
-                                                                      )
-                                                                    ],
-                                                                  ),
-                                                                ],
-                                                              ),
-
-                                                              20.height,
-
-                                                              Row(
-                                                                mainAxisAlignment:
-                                                                MainAxisAlignment.spaceEvenly,
-                                                                children: [
-
-                                                                  CustomBtn(
-                                                                    width: 100,
-                                                                    text: 'Clear All',
-                                                                    callback: () {
-                                                                      custProvider.initVisitReport(
-                                                                        custProvider.startDate,
-                                                                        custProvider.endDate,
-                                                                        custProvider.reportType,
-                                                                      );
-
-                                                                      custProvider.manageFilter(false);
-
-                                                                      custProvider.getVisitReport(
-                                                                        context,
-                                                                      );
-
-                                                                      Navigator.pop(context);
-                                                                    },
-                                                                    bgColor: Colors.grey.shade200,
-                                                                    textColor: Colors.black,
-                                                                  ),
-
-                                                                  CustomBtn(
-                                                                    width: 100,
-                                                                    text: 'Apply Filters',
-                                                                    callback: () {
-
-                                                                      custProvider.manageFilter(true);
-
-                                                                      custProvider.getVisitReport(
-                                                                        context,
-                                                                      );
-
-                                                                      Navigator.pop(context);
-                                                                    },
-                                                                    bgColor:
-                                                                    colorsConst.primary,
-                                                                    textColor: Colors.white,
-                                                                  ),
-                                                                ],
-                                                              ),
-
-                                                              20.height,
-                                                            ],
-                                                          ),
-                                                        )
-                                                      ],
-                                                    );
-                                                  },
-                                                );
-                                              },
-                                            );
-                                          },
-                                          icon: const Icon(
-                                            Icons.tune,
-                                            color: Colors.white,
-                                            size: 28,
-                                          ),
-                                        ),
-
-                                        5.width,
-                                      ],
-                                    ),
-                                  ),
-                                ),
-
-                                15.width,
-
-                                /// Download Button
-                                IconButton(
-                                  onPressed: () {
-                                    custProvider.getVisitHoursEmpReport(context);
-                                  },
-                                  icon:  Icon(
-                                    Icons.cloud_download,
-                                    color: colorsConst.primary,
-                                    size: 40,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            if (custProvider.filter) ...[
-                              10.height,
-                              Wrap(
-                                spacing: 6,
-                                runSpacing: 6,
-                                children: [
-
-                                    if ((custProvider.startDate??"").isNotEmpty)
-                                    filterChip("From: ${custProvider.startDate}"),
-
-                                   if ((custProvider.endDate ?? "").isNotEmpty)
-                                  filterChip("To: ${custProvider.endDate}"),
-
-                                   if ((custProvider.userName ?? "").isNotEmpty)
-                                    filterChip("Emp: ${custProvider.userName}"),
-                                   //
-                                   // if ((custProvider.typeValue ?? "").isNotEmpty)
-                                   // filterChip("Type: ${custProvider.typeValue}"),
-
-                                ],
-                              ),
-                              20.height,
-                            ],
-                            custProvider.refresh==false?
-                            Padding(
-                              padding: const EdgeInsets.fromLTRB(0, 200, 0, 0),
-                              child: Loading(),
-                            ):
-                            custProvider.dailyVisitReport.isEmpty?
-                            const Padding(
-                              padding: EdgeInsets.fromLTRB(0, 80, 0, 0),
-                              child: Center(child: CustomText(text: "No Visit Report Found",size: 15,)),
-                            ):Expanded(
-                              child: ListView.builder(
-                                  itemCount: custProvider.dailyVisitReport.length,
-                                  itemBuilder: (context,index){
-                                    CustomerReportModel data = custProvider.dailyVisitReport[index];
-                                   // CustomerReportModel data1 = custProvider.customerReport[index];
-                                   //  print("created${data1.createdBy}");
-                                   //  print("created com ${data1.companyName}");
-                                    print("created${data.createdBy}");
-                                    print("created com ${data.companyName}");
-                                    return VisitReportDetails(data: data);
-                                  }),
-                            ),
-                          ],
-                        ),
-
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
         ),
-            ),
       );
     });
   }

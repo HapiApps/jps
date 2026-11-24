@@ -3437,7 +3437,7 @@ class CustomerProvider with ChangeNotifier{
       final response =
       await custRepo.getDashboardReport(data);
 
-      log("Daily Work Plan Report  $response");
+      log("Daily Work Activity Report  $response");
 
       if (response.isNotEmpty) {
 
@@ -3509,7 +3509,7 @@ class CustomerProvider with ChangeNotifier{
         "date2": _endDate
       };
       final response =await custRepo.getDashboardReport(data);
-      log("Daily Work Plan Report Res $response");
+      log("Daily Work Activity Report Res $response");
       if (response.isNotEmpty) {
         reportExportEmployeeReportSectionWise(
           context,
@@ -3527,6 +3527,54 @@ class CustomerProvider with ChangeNotifier{
       addCtr.reset();
     }
     notifyListeners();
+  }
+
+  // ===========================================================================
+  // DAILY WORK ACTIVITY REPORT - common sheet name / heading / file name
+  // ===========================================================================
+  static const String _dwaTitle = "Daily Work Activity Report";
+
+  /// "24-11-2026" (same day) | "01-11-2026 to 24-11-2026"
+  String _dwaRange(String startDate, String endDate) {
+    final s = startDate.trim();
+    final e = endDate.trim();
+    if (s.isEmpty && e.isEmpty) return "All dates";
+    if (e.isEmpty || s == e) return s;
+    if (s.isEmpty) return e;
+    return "$s to $e";
+  }
+
+  /// Share / download aagum bodhu theriyura file name
+  /// eg: "AppName_Daily Work Activity Report (01-11-2026 to 24-11-2026).xlsx"
+  String _dwaFileName(String startDate, String endDate, {bool empWise = false}) {
+    final range = _dwaRange(startDate, endDate).replaceAll(RegExp(r'[\\/:*?"<>|]'), "-");
+    final kind = empWise ? "$_dwaTitle - Employee Wise" : _dwaTitle;
+    return "${constValue.appName}_$kind ($range).xlsx";
+  }
+
+  /// Sheet name + row 1 heading + row 2 range/generated -> next free row return
+  int _dwaHeader(Worksheet sheet, String startDate, String endDate) {
+    sheet.name = _dwaTitle; // Excel sheet tab name (31 char limit kulla)
+
+    final title = sheet.getRangeByName('A1:H1');
+    title.merge();
+    sheet.getRangeByIndex(1, 1).setText(_dwaTitle);
+    title.cellStyle.bold = true;
+    title.cellStyle.fontSize = 16;
+    title.cellStyle.hAlign = HAlignType.left;
+    title.cellStyle.backColor = '#D9E1F2';
+    title.rowHeight = 26;
+
+    final sub = sheet.getRangeByName('A2:H2');
+    sub.merge();
+    sheet.getRangeByIndex(2, 1).setText(
+        "Date Range: ${_dwaRange(startDate, endDate)}    |    Generated: "
+            "${DateFormat('dd-MM-yyyy hh:mm a').format(DateTime.now())}");
+    sub.cellStyle.italic = true;
+    sub.cellStyle.fontColor = '#4B5563';
+    sub.cellStyle.hAlign = HAlignType.left;
+
+    return 4; // row 3 gap, employee sections row 4-la irundhu
   }
 
   Future<void> reportExportEmployeeSectionWise(
@@ -3630,7 +3678,8 @@ class CustomerProvider with ChangeNotifier{
       final Worksheet sheet =
       workbook.worksheets[0];
 
-      int currentRow = 1;
+      // sheet name + top heading: "Daily Work Activity Report (range)"
+      int currentRow = _dwaHeader(sheet, startDate, endDate);
 
       for (var emp in allEmployees) {
 
@@ -3666,7 +3715,7 @@ class CustomerProvider with ChangeNotifier{
         sheet
             .getRangeByIndex(currentRow, 1)
             .setText(
-            '$emp ( $startDate to $endDate ) Daily Work Plan Report');
+            '$emp  •  ${_dwaRange(startDate, endDate)}');
 
         sheet
             .getRangeByIndex(currentRow, 1)
@@ -3869,7 +3918,7 @@ class CustomerProvider with ChangeNotifier{
         )
           ..setAttribute(
               'download',
-              '${constValue.appName}_Daily Work Plan Report.xlsx')
+              _dwaFileName(startDate, endDate))
           ..click();
 
       } else {
@@ -3879,7 +3928,7 @@ class CustomerProvider with ChangeNotifier{
                 .path;
 
         final file =
-        File('$path/${constValue.appName}_Daily Work Plan Report.xlsx');
+        File('$path/${_dwaFileName(startDate, endDate)}');
 
         await file.writeAsBytes(
           bytes,
@@ -3994,7 +4043,8 @@ class CustomerProvider with ChangeNotifier{
       final Worksheet sheet =
       workbook.worksheets[0];
 
-      int currentRow = 1;
+      // sheet name + top heading: "Daily Work Activity Report (range)"
+      int currentRow = _dwaHeader(sheet, startDate, endDate);
 
       for (var emp in allEmployees) {
 
@@ -4025,7 +4075,7 @@ class CustomerProvider with ChangeNotifier{
         sheet
             .getRangeByIndex(currentRow, 1)
             .setText(
-            '$emp ( $startDate to $endDate ) Daily Work Plan Report');
+            '$emp  •  ${_dwaRange(startDate, endDate)}');
 
         sheet
             .getRangeByIndex(currentRow, 1)
@@ -4176,7 +4226,7 @@ class CustomerProvider with ChangeNotifier{
         )
           ..setAttribute(
               'download',
-              'Visit_Daily Work Plan Report.xlsx')
+              _dwaFileName(startDate, endDate, empWise: true))
           ..click();
 
       } else {
@@ -4186,7 +4236,7 @@ class CustomerProvider with ChangeNotifier{
                 .path;
 
         final file =
-        File('$path/Daily Work Plan Report.xlsx');
+        File('$path/${_dwaFileName(startDate, endDate, empWise: true)}');
 
         await file.writeAsBytes(
           bytes,

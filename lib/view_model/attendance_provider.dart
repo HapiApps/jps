@@ -242,113 +242,256 @@ class AttendanceProvider with ChangeNotifier{
   String get inTime=>_inTime;
   String get outTime=>_outTime;
 
-  Future<void> getMainAttendance({bool fromReport = false}) async {
+  // ===========================================================================
+  // TODAY ATTENDANCE = SERVER TRUTH
+  //
+  // Munnadi problem:
+  //  * Phone A-la check-in -> Phone B login -> "Check In" nu kaattuchu
+  //    (A-la net illama offline queue-la mattum irundhuchu / status
+  //     "contains" logic / date format compare fail).
+  //  * B-la thirumba check-in -> A sync aanadhum server-la 2 check-in ->
+  //    "check in-um aagirukku, check out-um aagirukku" mismatch.
+  //
+  // Ippo:
+  //  1. Home load / resume / mark-ku munnadi -> server-la irundhu fresh state.
+  //  2. status/time list-ah time order-la sort panni KADAISI action vachu
+  //     button decide (1 = checked-in, 2 = checked-out).
+  //  3. Mark panna munnadi server-la check -> duplicate check-in / out block.
+  //  4. Offline queue sync panna munnadi server state-oda compare ->
+  //     duplicate entries drop (vera phone-la already panniyirundha).
+  //  5. Net illana -> last server state cache (same user + same date) + pending.
+  // ===========================================================================
+  static const String _attCacheKey = "att_today_state";
+
+  /// server-la innaiku kadaisi action: "" (onnum illa) | "1" (in) | "2" (out)
+  String _serverLast = "";
+  String get serverLastAction => _serverLast;
+  DateTime? _lastServerFetch;
+  bool _serverFetching = false;
+
+  /// FALSE = innum server-la irundhu innaiku status varala.
+  /// Appo Check In / Check Out button kaattakoodaadhu (loader kaattanum),
+  /// illana late-ah load aagura varaikkum "Check In" thappa theriyum.
+  bool _attReady = false;
+  bool get attReady => _attReady;
+
+  String _todayKey() => DateFormat('yyyy-MM-dd').format(DateTime.now());
+
+  bool _isTodayStr(String raw) {
+    final d = _parseAnyAttDate(raw);
+    if (d == null) return false;
+    final n = DateTime.now();
+    return d.year == n.year && d.month == n.month && d.day == n.day;
+  }
+
+  /// "24-Nov-2026" | "24-11-2026" | "2026-11-24" | "24/11/2026" | "2026-11-24 09:10:00"
+  DateTime? _parseAnyAttDate(String raw) {
+    final s = raw.trim();
+    if (s.isEmpty || s == "null") return null;
+    for (final f in const ['dd-MMM-yyyy', 'd-MMM-yyyy', 'dd-MM-yyyy', 'dd/MM/yyyy']) {
+      try {
+        return DateFormat(f, 'en_US').parseStrict(s);
+      } catch (_) {}
+    }
+    final iso = DateTime.tryParse(s);
+    return iso;
+  }
+
+  DateTime? _parseClock(String t) {
+    final v = t.trim();
+    if (v.isEmpty || v == "-" || v == "null") return null;
+    final n = DateTime.now();
+    for (final f in const ['hh:mm a', 'h:mm a', 'HH:mm:ss', 'HH:mm']) {
+      try {
+        final x = DateFormat(f, 'en_US').parseStrict(v.toUpperCase());
+        return DateTime(n.year, n.month, n.day, x.hour, x.minute, x.second);
+      } catch (_) {}
+    }
+    final iso = DateTime.tryParse(v);
+    return iso;
+  }
+
+  /// server row -> innaiku events (time order)
+  List<Map<String, dynamic>> _todayEvents(dynamic row) {
+    final statuses = (row["status"]?.toString() ?? "")
+        .split(",").map((e) => e.trim()).toList();
+    final times = (row["time"]?.toString() ?? "")
+        .split(",").map((e) => e.trim()).toList();
+    final dates = (row["date"]?.toString() ?? "")
+        .split(",").map((e) => e.trim()).toList();
+
+    // date list align aagala-na -> oru date-aavadhu innaiku-nu irukkanum
+    final bool aligned = dates.length == statuses.length;
+    if (!aligned && !dates.any(_isTodayStr)) return <Map<String, dynamic>>[];
+
+    final out = <Map<String, dynamic>>[];
+    for (int i = 0; i < statuses.length; i++) {
+      final st = statuses[i];
+      if (st != "1" && st != "2") continue;
+      // date list status-oda align-ah irundha andha date check, illana ellaame innaiku
+      if (aligned && !_isTodayStr(dates[i])) continue;
+      final t = i < times.length ? times[i] : "";
+      out.add({"s": st, "t": t, "at": _parseClock(t)});
+    }
+    // time order (time parse aagalanna server order-laye)
+    final allTimed = out.every((e) => e["at"] != null);
+    if (allTimed) {
+      out.sort((a, b) => (a["at"] as DateTime).compareTo(b["at"] as DateTime));
+    }
+    return out;
+  }
+
+  void _resetTodayState() {
+    _mainCheckOut = false;
+    _mainAttendance = 0;
+    _serverLast = "";
+    _inTime = "";
+    _outTime = "-";
+    _totalHrs = "";
+  }
+
+  void _applyEvents(List<Map<String, dynamic>> ev) {
+    _resetTodayState();
+    if (ev.isEmpty) return;
+
+    final firstIn = ev.firstWhere((e) => e["s"] == "1", orElse: () => {});
+    final lastOut = ev.lastWhere((e) => e["s"] == "2", orElse: () => {});
+    _serverLast = ev.last["s"].toString();
+
+    if (firstIn.isNotEmpty) {
+      _mainAttendance = 1;
+      _inTime = firstIn["t"].toString();
+    }
+    // kadaisi action check-out-na mattum checked-out
+    _mainCheckOut = _serverLast == "2" && _mainAttendance == 1;
+    if (_mainCheckOut && lastOut.isNotEmpty) {
+      _outTime = lastOut["t"].toString();
+      _totalHrs = getTimeDifferenceBetween(_inTime, _outTime);
+    }
+  }
+
+  void _saveCache() {
     try {
-      final Map data = {
-        "action": getAllData,
-        "search_type": "user_attendance",
-        "id": localData.storage.read("id"),
-        "cos_id": localData.storage.read("cos_id"),
-      };
+      localData.storage.write(_attCacheKey, {
+        "uid": localData.storage.read("id").toString(),
+        "date": _todayKey(),
+        "last": _serverLast,
+        "att": _mainAttendance,
+        "out": _mainCheckOut,
+        "in_t": _inTime,
+        "out_t": _outTime,
+        "hrs": _totalHrs,
+      });
+    } catch (_) {}
+  }
 
-      final response = await attRepo.getAttendance(data);
-      log(data.toString());
-      log(response.toString());
+  /// net illa / API fail -> same user + innaiku cache irundha adha podu
+  bool _loadCache() {
+    try {
+      final c = localData.storage.read(_attCacheKey);
+      if (c is! Map) return false;
+      if (c["uid"].toString() != localData.storage.read("id").toString()) return false;
+      if (c["date"].toString() != _todayKey()) return false;
+      _serverLast = c["last"]?.toString() ?? "";
+      _mainAttendance = int.tryParse(c["att"].toString()) ?? 0;
+      _mainCheckOut = c["out"] == true;
+      _inTime = c["in_t"]?.toString() ?? "";
+      _outTime = c["out_t"]?.toString() ?? "-";
+      _totalHrs = c["hrs"]?.toString() ?? "";
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
 
-      // Reset AFTER response, so the button never flickers back to "Check In"
-      if (!fromReport) {
-        _mainCheckOut = false;
-        _isPermission = false;
-        _mainAttendance = 0;
-        _totalHrs = "";
-        _permissionStatus = "";
-      }
+  /// Home auto-refresh (60s) ku -> 20 sec-ku oru dhadava mattum server hit
+  Future<void> refreshMainAttendanceIfStale() async {
+    final last = _lastServerFetch;
+    if (_attCheck && last != null &&
+        DateTime.now().difference(last) < const Duration(seconds: 20)) {
+      return;
+    }
+    await getMainAttendance();
+  }
 
-      if (response.isNotEmpty) {
-        final String today = DateFormat('dd-MMM-yyyy').format(DateTime.now());
-        final String myId = localData.storage.read("id").toString();
+  /// server fetch. true = server reply vandhuchu (state server-oda match)
+  Future<bool> _fetchTodayFromServer({bool fromReport = false}) async {
+    final Map data = {
+      "action": getAllData,
+      "search_type": "user_attendance",
+      "id": localData.storage.read("id"),
+      "cos_id": localData.storage.read("cos_id"),
+    };
+    // romba late aana (slow net) 12 sec-la cache-ku fallback
+    final response = await attRepo
+        .getAttendance(data)
+        .timeout(const Duration(seconds: 12));
+    log(data.toString());
+    log(response.toString());
 
-        final userData = response.firstWhere(
-              (e) => e["salesman_id"].toString() == myId,
-          orElse: () => null,
-        );
-
-        if (userData != null) {
-          // server may send "29-Sep-2026,29-Sep-2026" (in + out)
-          final bool isToday = userData["date"]
-              .toString()
-              .split(",")
-              .any((d) => d.trim() == today);
-
-          if (isToday) {
-            final String status = userData["status"].toString();
-            final List<String> times = (userData["time"]?.toString() ?? "")
-                .split(",")
-                .map((e) => e.trim())
-                .toList();
-
-            /// CHECKOUT
-            _mainCheckOut = status.contains("2");
-
-            /// ATTENDANCE STATUS (covers "1", "1,2", "2,1")
-            if (status.contains("1")) {
-              _mainAttendance = 1;
-            }
-
-            /// TIMES
-            if (status.contains("1,2")) {
-              _inTime = times[0];
-              _outTime = times.length > 1 ? times[1] : "-";
-              if (times.length > 1) {
-                _totalHrs = getTimeDifferenceBetween(_inTime, _outTime);
-              }
-            } else if (status.contains("2,1")) {
-              _outTime = times[0];
-              _inTime = times.length > 1 ? times[1] : times[0];
-              if (times.length > 1) {
-                _totalHrs = getTimeDifferenceBetween(_outTime, _inTime);
-              }
-            } else if (times.isNotEmpty && times[0].isNotEmpty) {
-              _inTime = times[0];
-            }
-
-            /// PERMISSION
-            final String perStatus = userData["per_status"].toString();
-            final String reasonSave = userData["per_reason"].toString();
-
-            if (!fromReport) {
-              if (perStatus != "null" && perStatus.isNotEmpty) {
-                _permissionStatus = perStatus.split(",").last;
-                _isPermission = _permissionStatus == "1";
-              } else {
-                _permissionStatus = "";
-                _isPermission = false;
-              }
-
-              if (reasonSave != "null" && reasonSave.isNotEmpty) {
-                permissionReason.text = reasonSave.split(",").last;
-              }
-            }
-
-            /// LATE COUNT
-            final String t =
-                "${DateTime.now().day.toString().padLeft(2, "0")}-${DateTime.now().month.toString().padLeft(2, "0")}-${DateTime.now().year}";
-            getLateCount(t, t);
-          }
+    final String myId = localData.storage.read("id").toString();
+    dynamic userData;
+    if (response is List) {
+      for (final e in response) {
+        if (e is Map && e["salesman_id"].toString() == myId) {
+          userData = e;
+          break;
         }
-        _attCheck = true;
-      } else {
-        _totalHrs = "";
-        _permissionStatus = "";
-        _attCheck = true;
       }
-    } catch (e) {
-      print("Attendance Error: $e");
-      _attCheck = true;
     }
 
-    if (!fromReport) applyPendingState();
+    if (fromReport) return true;
 
+    final ev = userData == null ? <Map<String, dynamic>>[] : _todayEvents(userData);
+    _applyEvents(ev);
+
+    // permission
+    _isPermission = false;
+    _permissionStatus = "";
+    if (userData != null && ev.isNotEmpty) {
+      final String perStatus = userData["per_status"].toString();
+      final String reasonSave = userData["per_reason"].toString();
+      if (perStatus != "null" && perStatus.isNotEmpty) {
+        _permissionStatus = perStatus.split(",").last.trim();
+        _isPermission = _permissionStatus == "1";
+      }
+      if (reasonSave != "null" && reasonSave.isNotEmpty) {
+        permissionReason.text = reasonSave.split(",").last;
+      }
+      final String t = DateFormat('dd-MM-yyyy').format(DateTime.now());
+      getLateCount(t, t);
+    }
+
+    _lastServerFetch = DateTime.now();
+    _saveCache();
+    return true;
+  }
+
+  Future<void> getMainAttendance({bool fromReport = false}) async {
+    if (_serverFetching && !fromReport) return;
+    _serverFetching = true;
+    try {
+      bool ok = false;
+      try {
+        ok = await _fetchTodayFromServer(fromReport: fromReport);
+      } catch (e) {
+        print("Attendance Error: $e");
+        ok = false;
+      }
+
+      if (!ok && !fromReport) {
+        // net illa -> cache (illana munnadi state appadiye)
+        _loadCache();
+      }
+      _attCheck = true;
+
+      if (!fromReport) {
+        applyPendingState();
+        _attReady = true; // server / cache vandhachu -> button kaattalaam
+      }
+    } finally {
+      _serverFetching = false;
+    }
     notifyListeners();
   }
   DateTime parseTime(String time) {
@@ -1506,6 +1649,7 @@ class AttendanceProvider with ChangeNotifier{
     if (kind == "attendance") {
       if (status == "1") {
         _mainAttendance = 1;
+        _mainCheckOut = false;
       } else {
         _mainAttendance = 1;
         _mainCheckOut = true;
@@ -1531,6 +1675,13 @@ class AttendanceProvider with ChangeNotifier{
     // Block double tap / selfie + button race
     if (_isMarking) return;
 
+    // innum status load aagala -> thappana tap block
+    if (!_attReady) {
+      utils.showWarningToast(context, text: "Checking today's attendance, please wait...");
+      if (!_serverFetching) getMainAttendance();
+      return;
+    }
+
     // Location validation
     if (lat == null ||
         lng == null ||
@@ -1555,9 +1706,18 @@ class AttendanceProvider with ChangeNotifier{
 
     _isMarking = true;
     try {
-      // Net illana offline save
+      // Net illana offline save (current state-oda duplicate block)
       final online = await OfflineAttendanceService.isOnline();
       if (!online) {
+        if (status == "1" && _mainAttendance == 1 && !_mainCheckOut) {
+          utils.showWarningToast(context, text: "Already checked in");
+          return;
+        }
+        if (status == "2" && (_mainAttendance == 0 || _mainCheckOut)) {
+          utils.showWarningToast(context,
+              text: _mainCheckOut ? "Already checked out" : "Please check in first");
+          return;
+        }
         await saveOffline(context, "attendance", status, lat, lng);
         return;
       }
@@ -1580,6 +1740,29 @@ class AttendanceProvider with ChangeNotifier{
           lng,
           message: "Saved. Earlier entries are still pending, will sync in order.",
         );
+        return;
+      }
+
+      // 🔒 Vera phone-la already mark panniyirukkalaam -> server-la fresh check
+      try {
+        await _fetchTodayFromServer();
+        applyPendingState();
+        notifyListeners();
+      } catch (_) {}
+      if (!context.mounted) return;
+
+      if (status == "1" && _mainAttendance == 1 && !_mainCheckOut) {
+        utils.showWarningToast(context,
+            text: "Already checked in${_inTime.isNotEmpty ? " at $_inTime" : ""}");
+        return;
+      }
+      if (status == "2" && _mainAttendance == 0) {
+        utils.showWarningToast(context, text: "Please check in first");
+        return;
+      }
+      if (status == "2" && _mainCheckOut) {
+        utils.showWarningToast(context,
+            text: "Already checked out${_outTime != "-" ? " at $_outTime" : ""}");
         return;
       }
 
@@ -1669,11 +1852,34 @@ class AttendanceProvider with ChangeNotifier{
     bool failed = false;
     bool stop = false; // network/server down -> stop, try again later
 
+    // Server-la innaiku enna irukku -> duplicate offline entries drop
+    bool serverKnown = false;
+    try {
+      await _fetchTodayFromServer();
+      serverKnown = true;
+    } catch (_) {}
+    String simLast = serverKnown ? _serverLast : "";
+    final String todayStr = _todayKey();
+
     try {
       // 1) Attendance entries
       for (final item in OfflineAttendanceService.getAll()) {
         final kind = item["kind"]?.toString();
         final id = item["id"].toString();
+
+        // vera phone-la already panniyirundha (innaiku entry) -> anuppaadha, drop
+        if (kind == "attendance" && serverKnown &&
+            (item["markedAt"]?.toString() ?? "").startsWith(todayStr)) {
+          final st = item["status"]?.toString() ?? "";
+          final dupIn = st == "1" && simLast == "1";
+          final dupOut = st == "2" && (simLast == "2" || simLast == "");
+          if (dupIn || dupOut) {
+            log("SKIP duplicate offline attendance $id (status=$st, server=$simLast)");
+            await OfflineAttendanceService.remove(id);
+            dropped++;
+            continue;
+          }
+        }
 
         final SyncResult r;
         if (kind == "attendance") {
@@ -1687,6 +1893,10 @@ class AttendanceProvider with ChangeNotifier{
         if (r.ok) {
           await OfflineAttendanceService.remove(id);
           synced++;
+          if (kind == "attendance" &&
+              (item["markedAt"]?.toString() ?? "").startsWith(todayStr)) {
+            simLast = item["status"]?.toString() ?? simLast;
+          }
         } else if (r.retry) {
           // Network / 5xx / timeout: keep item, stop, try again later.
           failed = true;
@@ -1752,8 +1962,12 @@ class AttendanceProvider with ChangeNotifier{
     if (dropped > 0 && !silent) {
       utils.showWarningToast(
         context,
-        text: "$dropped entries were rejected by the server and removed.",
+        text: "$dropped offline entries skipped (already marked / rejected).",
       );
+    }
+    if (dropped > 0 && synced == 0) {
+      // drop mattum aanaalum UI server-oda sync aaganum
+      getMainAttendance();
     }
 
     if (failed && !silent) {
@@ -1800,14 +2014,32 @@ class AttendanceProvider with ChangeNotifier{
         .toList();
     if (pending.isEmpty) return;
 
+    // server state mela pending-ah order-la apply; duplicate (in-mela in) ignore
+    String last = _serverLast.isNotEmpty
+        ? _serverLast
+        : (_mainAttendance == 1 ? (_mainCheckOut ? "2" : "1") : "");
     for (final e in pending) {
-      if (e["status"] == "1") {
+      final st = e["status"]?.toString();
+      if (st == "1" && last != "1") {
         _mainAttendance = 1;
-      } else if (e["status"] == "2") {
+        _mainCheckOut = false;
+        last = "1";
+      } else if (st == "2" && last == "1") {
         _mainAttendance = 1;
         _mainCheckOut = true;
+        last = "2";
       }
     }
+  }
+
+  /// Innaiku sync aagaadha offline attendance irukka (UI-la "pending" kaatta)
+  bool get hasPendingToday {
+    final myId = localData.storage.read("id").toString();
+    final today = DateTime.now().toString().substring(0, 10);
+    return OfflineAttendanceService.getAll().any((e) =>
+    e["kind"] == "attendance" &&
+        e["emp_id"].toString() == myId &&
+        e["markedAt"].toString().startsWith(today));
   }
 
   // =====================================================================
@@ -1939,6 +2171,13 @@ class AttendanceProvider with ChangeNotifier{
     asc = false;
 
     _mainAttendance = 0;
+    _serverLast = "";
+    _lastServerFetch = null;
+    _serverFetching = false;
+    _attReady = false;
+    try {
+      localData.storage.remove(_attCacheKey);
+    } catch (_) {}
     _todayLeave = LeaveBlock.none;
     _leaveChecked = false;
     _inTime = "";
