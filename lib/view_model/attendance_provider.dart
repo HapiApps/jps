@@ -341,6 +341,33 @@ class AttendanceProvider with ChangeNotifier{
     return out;
   }
 
+  // ===========================================================================
+  // ✅ MULTIPLE CHECK IN / CHECK OUT
+  //
+  // Oru naalla evlo dhadava venaalum check in -> check out pannalaam.
+  //  * _mainAttendance = 1  -> innaiku kuraindhadhu oru dhadava check-in aagirukku
+  //  * _mainCheckOut        -> KADAISI action check-out (button "Check In" kaattum,
+  //                            ippo DISABLE aagaadhu)
+  //  * isCheckedIn          -> ippo office-la irukkaanga (kadaisi action check-in)
+  //  * _sessions            -> [{in, out}] ovvoru session-um (out "" = open)
+  //  * _totalHrs            -> ella closed session-oda mottha neram
+  // ===========================================================================
+  List<Map<String, String>> _sessions = [];
+  List<Map<String, String>> get sessions => _sessions;
+  int get sessionCount => _sessions.length;
+
+  /// ippo check-in aagi irukkaanga (check out pannala)
+  bool get isCheckedIn => _mainAttendance == 1 && !_mainCheckOut;
+
+  /// adutha tap enna anuppanum: "1" = check in, "2" = check out
+  String get nextAttendanceStatus => isCheckedIn ? "2" : "1";
+
+  /// current (open) session-oda check-in time, illana ""
+  String get currentInTime {
+    if (!isCheckedIn || _sessions.isEmpty) return "";
+    return _sessions.last["in"] ?? "";
+  }
+
   void _resetTodayState() {
     _mainCheckOut = false;
     _mainAttendance = 0;
@@ -348,10 +375,50 @@ class AttendanceProvider with ChangeNotifier{
     _inTime = "";
     _outTime = "-";
     _totalHrs = "";
+    _sessions = [];
   }
+
+  /// "X : Y mins" (pazhaya getTimeDifferenceBetween format-e)
+  String _fmtMinutes(int mins) => "${mins ~/ 60} : ${mins % 60} mins";
+
+  /// events -> sessions (in/out pair). Out illama in -> open session.
+  /// In illama out (thappana data) -> ignore.
+  void _buildSessions(List<Map<String, dynamic>> ev) {
+    _sessions = [];
+    int totalMins = 0;
+    Map<String, dynamic>? open;
+    for (final e in ev) {
+      if (e["s"] == "1") {
+        if (open != null) {
+          // in mela in (duplicate) -> munnadi open session-ah appadiye vechikko
+          continue;
+        }
+        open = e;
+      } else if (e["s"] == "2" && open != null) {
+        _sessions.add({"in": open["t"].toString(), "out": e["t"].toString()});
+        final a = open["at"] as DateTime?;
+        final b = e["at"] as DateTime?;
+        if (a != null && b != null && b.isAfter(a)) {
+          totalMins += b.difference(a).inMinutes;
+        }
+        open = null;
+      }
+    }
+    if (open != null) {
+      _sessions.add({"in": open["t"].toString(), "out": ""});
+    }
+    _totalHrs = _sessions.any((s) => (s["out"] ?? "").isNotEmpty)
+        ? _fmtMinutes(totalMins)
+        : "";
+  }
+
+  /// pending offline punches indha state mela already podiyaacha
+  /// (rendu dhadava pottaa session duplicate aagum)
+  bool _pendingApplied = false;
 
   void _applyEvents(List<Map<String, dynamic>> ev) {
     _resetTodayState();
+    _pendingApplied = false;
     if (ev.isEmpty) return;
 
     final firstIn = ev.firstWhere((e) => e["s"] == "1", orElse: () => {});
@@ -360,14 +427,14 @@ class AttendanceProvider with ChangeNotifier{
 
     if (firstIn.isNotEmpty) {
       _mainAttendance = 1;
-      _inTime = firstIn["t"].toString();
+      _inTime = firstIn["t"].toString(); // eppovum FIRST check-in (late calc ku)
     }
-    // kadaisi action check-out-na mattum checked-out
+    // kadaisi action check-out-na mattum checked-out (thirumba check-in allow)
     _mainCheckOut = _serverLast == "2" && _mainAttendance == 1;
     if (_mainCheckOut && lastOut.isNotEmpty) {
-      _outTime = lastOut["t"].toString();
-      _totalHrs = getTimeDifferenceBetween(_inTime, _outTime);
+      _outTime = lastOut["t"].toString(); // LAST check-out
     }
+    _buildSessions(ev);
   }
 
   void _saveCache() {
@@ -381,6 +448,7 @@ class AttendanceProvider with ChangeNotifier{
         "in_t": _inTime,
         "out_t": _outTime,
         "hrs": _totalHrs,
+        "sessions": _sessions,
       });
     } catch (_) {}
   }
@@ -398,6 +466,19 @@ class AttendanceProvider with ChangeNotifier{
       _inTime = c["in_t"]?.toString() ?? "";
       _outTime = c["out_t"]?.toString() ?? "-";
       _totalHrs = c["hrs"]?.toString() ?? "";
+      _pendingApplied = false;
+      _sessions = [];
+      final s = c["sessions"];
+      if (s is List) {
+        for (final x in s) {
+          if (x is Map) {
+            _sessions.add({
+              "in": x["in"]?.toString() ?? "",
+              "out": x["out"]?.toString() ?? "",
+            });
+          }
+        }
+      }
       return true;
     } catch (_) {
       return false;
@@ -759,13 +840,16 @@ class AttendanceProvider with ChangeNotifier{
         }
         permisCount=count;
         for(var i=0;i<response.length;i++){
+          // Multiple check-in: FIRST check-in ("1") time vechu dhaan late
+          // (munnadi "1,2" / "2,1" contains logic, 2+ sessions-la thappa varum)
+          final sts = response[i].status.toString().split(",").map((e) => e.trim()).toList();
+          final tms = (response[i].time ?? "").split(",").map((e) => e.trim()).toList();
+          final idx = sts.indexOf("1");
           var inTime = "";
-          if (response[i].status.toString().contains("1,2")) {
-            inTime = response[i].time!.split(",")[0];
-          }else if (response[i].status.toString().contains("2,1")) {
-            inTime = response[i].time!.split(",")[1];
-          }else {
-            inTime = response[i].time!.split(",")[0];
+          if (idx >= 0 && idx < tms.length) {
+            inTime = tms[idx];
+          } else if (tms.isNotEmpty) {
+            inTime = tms[0];
           }
           if(isLate(inTime)){
             count2++;
@@ -1351,8 +1435,10 @@ class AttendanceProvider with ChangeNotifier{
   /// TRUE na mattum attendance block. Full-day leave + innum check-in pannala.
   /// Check-in pannitu apram leave potta -> check-OUT allow.
   /// Half-day leave -> eppovum allow.
+  /// Multiple check-in: full-day leave irundha PUDHU check-in block
+  /// (check-in aagi irundha check-OUT eppovum allow).
   bool get attendanceBlockedByLeave =>
-      _todayLeave == LeaveBlock.fullDay && _mainAttendance == 0;
+      _todayLeave == LeaveBlock.fullDay && !isCheckedIn;
 
   /// status "1" = approved (approveApply-la status=="1" -> approve).
   bool _isApprovedLeave(String? st) {
@@ -1647,13 +1733,8 @@ class AttendanceProvider with ChangeNotifier{
 
     // UI-a local-a maathu, appo thaan button text/color maarum
     if (kind == "attendance") {
-      if (status == "1") {
-        _mainAttendance = 1;
-        _mainCheckOut = false;
-      } else {
-        _mainAttendance = 1;
-        _mainCheckOut = true;
-      }
+      _applyLocalPunch(status, DateTime.now());
+      _pendingApplied = true;
     }
     notifyListeners();
 
@@ -1699,7 +1780,7 @@ class AttendanceProvider with ChangeNotifier{
     // FULL-DAY leave + innum check-in pannala -> block.
     // Half-day leave -> ALLOW (oru session work pannuvaanga).
     // Check-in pannitu apram leave potta -> check-OUT ku allow.
-    if (_todayLeave == LeaveBlock.fullDay && _mainAttendance == 0) {
+    if (_todayLeave == LeaveBlock.fullDay && status == "1") {
       utils.showWarningToast(context, text: "You are on leave today");
       return;
     }
@@ -2012,7 +2093,8 @@ class AttendanceProvider with ChangeNotifier{
         e["emp_id"] == myId &&
         e["markedAt"].toString().startsWith(today))
         .toList();
-    if (pending.isEmpty) return;
+    if (pending.isEmpty || _pendingApplied) return;
+    _pendingApplied = true;
 
     // server state mela pending-ah order-la apply; duplicate (in-mela in) ignore
     String last = _serverLast.isNotEmpty
@@ -2020,16 +2102,45 @@ class AttendanceProvider with ChangeNotifier{
         : (_mainAttendance == 1 ? (_mainCheckOut ? "2" : "1") : "");
     for (final e in pending) {
       final st = e["status"]?.toString();
+      final at = DateTime.tryParse(e["markedAt"].toString()) ?? DateTime.now();
       if (st == "1" && last != "1") {
-        _mainAttendance = 1;
-        _mainCheckOut = false;
+        _applyLocalPunch("1", at);
         last = "1";
       } else if (st == "2" && last == "1") {
-        _mainAttendance = 1;
-        _mainCheckOut = true;
+        _applyLocalPunch("2", at);
         last = "2";
       }
     }
+  }
+
+  /// Offline / pending punch-ah local state-la podu (multi session support).
+  /// Duplicate (in mela in / out mela out) ignore.
+  void _applyLocalPunch(String status, DateTime at) {
+    final t = DateFormat('hh:mm a').format(at);
+    if (status == "1") {
+      if (isCheckedIn) return;
+      _mainAttendance = 1;
+      _mainCheckOut = false;
+      if (_inTime.isEmpty) _inTime = t;
+      _outTime = "-";
+      _sessions.add({"in": t, "out": ""});
+    } else {
+      if (!isCheckedIn) return;
+      _mainCheckOut = true;
+      _outTime = t;
+      if (_sessions.isNotEmpty && (_sessions.last["out"] ?? "").isEmpty) {
+        _sessions.last["out"] = t;
+      }
+      // mottha neram thirumba calculate
+      int mins = 0;
+      for (final s in _sessions) {
+        final a = _parseClock(s["in"] ?? "");
+        final b = _parseClock(s["out"] ?? "");
+        if (a != null && b != null && b.isAfter(a)) mins += b.difference(a).inMinutes;
+      }
+      _totalHrs = _fmtMinutes(mins);
+    }
+    _serverLast = status;
   }
 
   /// Innaiku sync aagaadha offline attendance irukka (UI-la "pending" kaatta)
@@ -2184,6 +2295,7 @@ class AttendanceProvider with ChangeNotifier{
     _outTime = "-";
     _totalHrs = "";
     _totalHrs2 = "";
+    _sessions = [];
 
     _lateCount = 0;
     permisCount = 0;

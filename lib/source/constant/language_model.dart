@@ -1247,12 +1247,19 @@ class ConstantValues {
 
   String get noActivitiesFound => _t("No Activities Found",
       "செயல்பாடுகள் எதுவும் கிடைக்கவில்லை", "कोई गतिविधि नहीं मिली");
+  //
+  // String get sureWantTo => _t("Are you sure you want",
+  //     "நீங்கள் விரும்புகிறீர்களா", "क्या आप वाकई चाहते हैं");
+  //
+  // String get endSessionQ =>
+  //     _t("to end the session?", "அமர்வை முடிக்க?", "सत्र समाप्त करना?");
+
 
   String get sureWantTo => _t("Are you sure you want",
-      "நீங்கள் விரும்புகிறீர்களா", "क्या आप वाकई चाहते हैं");
+      "நிச்சயமாக நீங்கள்", "क्या आप वाकई");
 
-  String get endSessionQ =>
-      _t("to end the session?", "அமர்வை முடிக்க?", "सत्र समाप्त करना?");
+  String get endSessionQ => _t("to log out?",
+      "வெளியேற விரும்புகிறீர்களா?", "लॉग आउट करना चाहते हैं?");
 
   String get deleteAccountQ => _t("to delete your account?",
       "உங்கள் கணக்கை நீக்க?", "अपना खाता हटाना?");

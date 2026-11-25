@@ -16,6 +16,15 @@ import 'custom_text.dart';
 /// simple cache to avoid repeated reverse-geocoding calls for the same lat/lng
 final Map<String, String> _areaCache = {};
 
+/// ✅ MULTI CHECK IN / OUT: oru check in -> check out jodi.
+/// outTime "" = innum check out pannala (office-la irukkaanga)
+class AttSession {
+  final String inTime;
+  final String outTime;
+  const AttSession(this.inTime, this.outTime);
+  bool get isOpen => outTime.trim().isEmpty || outTime.trim() == "-";
+}
+
 class AttendanceDetails extends StatelessWidget {
   final String date;
   final bool? showDate;
@@ -37,6 +46,10 @@ class AttendanceDetails extends StatelessWidget {
   final String? outLng;
   final String empId;
   final String active;
+
+  /// ✅ NEW: andha naal ella check in / out (time order). 2+ irundha
+  /// In / Out column-la ovvoru line-a kaattum. Illana pazhaya madhiri.
+  final List<AttSession> sessions;
 
   const AttendanceDetails({
     super.key,
@@ -60,7 +73,45 @@ class AttendanceDetails extends StatelessWidget {
     this.outLng,
     required this.empId,
     required this.active,
+    this.sessions = const [],
   });
+
+  bool get _multi => sessions.length > 1;
+
+  /// Total: multi-la check out pannala-naalum (open session) mudinja
+  /// sessions-oda total kaattum. Single-la pazhaya rule.
+  String get _totalText {
+    if (_multi) return (timeD.trim().isEmpty || timeD == "null") ? "-" : timeD;
+    return outTime.toString() == "-" ? "-" : timeD;
+  }
+
+  /// In / Out column value. Multi-na ovvoru line-um, illana single text.
+  Widget _timeColumn({required bool isIn, required double size, bool bold = false}) {
+    if (!_multi) {
+      final String v = isIn
+          ? (inTime.toString() != "null" ? inTime : "-")
+          : outTime.toString();
+      return CustomText(text: v, size: size, isBold: bold);
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        for (int i = 0; i < sessions.length; i++)
+          Padding(
+            padding: EdgeInsets.only(top: i == 0 ? 0 : 3),
+            child: isIn
+                ? CustomText(text: sessions[i].inTime, size: size, isBold: bold)
+                : sessions[i].isOpen
+                ? CustomText(
+                text: "Working…",
+                size: size,
+                isBold: true,
+                colors: Colors.orange.shade800)
+                : CustomText(text: sessions[i].outTime, size: size, isBold: bold),
+          ),
+      ],
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -88,254 +139,279 @@ class AttendanceDetails extends StatelessWidget {
         });
       }
     }
-    var webWidth = MediaQuery.of(context).size.width * 0.5;
-    var phoneWidth = MediaQuery.of(context).size.width * 0.95;
 
     // ✅ Web-ku dedicated clean layout (Expanded based, overflow aagaadhu)
     if (kIsWeb) return _webLayout(context, chunked);
 
-    return Column(
+    return _mobileLayout(context, chunked);
+  }
+
+  // ===================== MOBILE LAYOUT (premium card) =====================
+  // Ellaa pazhaya features-um irukku:
+  //  * admin -> avatar + name + role (tap -> EmployeeDetails)
+  //  * employee -> date
+  //  * In / Out / Total (multi check in / out line by line)
+  //  * late -> orange tint + "Late" badge
+  //  * map icon + card tap -> callback
+  //  * in / out area name
+  //  * permissions list (admin-ku name-oda)
+  //  * isName == false -> name block illama compact
+  Widget _mobileLayout(BuildContext context, List chunked) {
+    final bool isAdmin = localData.storage.read("role") == "1";
+    final bool late = isLate(inTime);
+    final bool showName = isName == true && isAdmin;
+    final bool hasIn = inLat != null && inLng != null && inLat!.isNotEmpty && inLng!.isNotEmpty;
+    final bool hasOut = outLat != null && outLng != null && outLat!.isNotEmpty && outLng!.isNotEmpty;
+    final Color primary = colorsConst.primary;
+    const Color lateClr = Color(0xFFE65100);
+
+    Widget lateBadge() => Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFE0B2),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: const CustomText(text: "Late", size: 10, isBold: true, colors: lateClr),
+    );
+
+    Widget label(String t, Color dot) => Row(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        if (localData.storage.read("role") != "1" && showDate == true)
-          Padding(
-            padding: const EdgeInsets.all(5.0),
+        Container(
+          width: 6,
+          height: 6,
+          decoration: BoxDecoration(color: dot, shape: BoxShape.circle),
+        ),
+        4.width,
+        CustomText(text: t, size: 10, colors: Colors.grey.shade600),
+      ],
+    );
+
+    Widget timeCell(String t, Color dot, Widget value) => Expanded(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [label(t, dot), 5.height, value],
+      ),
+    );
+
+    Widget areaText(String lat, String lng) => FutureBuilder<String>(
+      future: _getAreaName(lat, lng),
+      builder: (context, snapshot) => CustomText(
+        text: snapshot.hasData ? snapshot.data! : "...",
+        size: 11,
+        colors: Colors.grey.shade700,
+      ),
+    );
+
+    // ---------- header (name / date + late + map) ----------
+    final Widget header = Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        if (showName)
+          Expanded(
+            child: InkWell(
+              borderRadius: BorderRadius.circular(8),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => EmployeeDetails(id: empId, active: active, role: role),
+                  ),
+                );
+              },
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    radius: 18,
+                    backgroundColor: primary.withOpacity(0.10),
+                    child: SvgPicture.asset(assets.profile, width: 18, height: 18),
+                  ),
+                  10.width,
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        CustomText(text: name, isBold: true, size: 14),
+                        2.height,
+                        CustomText(text: role, colors: colorsConst.blueClr, size: 11),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          )
+        else
+          Expanded(
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                SizedBox(
-                    width: kIsWeb ? webWidth / 4 : phoneWidth / 4,
-                    child: CustomText(text: "Date", colors: colorsConst.greyClr, size: 12,)),
-                5.width,
-                SizedBox(
-                  width: kIsWeb ? webWidth / 5 : phoneWidth / 5,
-                  child: const CustomText(text: "In Time", size: 12,),
-                ), 5.width,
-                SizedBox(
-                  width: kIsWeb ? webWidth / 5 : phoneWidth / 5,
-                  child: const CustomText(text: "Out Time", size: 12),
-                ), 5.width,
-                SizedBox(
-                  width: kIsWeb ? webWidth / 5.2 : phoneWidth / 5.2,
-                  child: CustomText(text: "Total Hrs", size: 12,),
+                Icon(Icons.calendar_today_rounded, size: 14, color: primary),
+                6.width,
+                Flexible(child: CustomText(text: date, size: 13, isBold: true)),
+              ],
+            ),
+          ),
+        if (late) ...[lateBadge(), 8.width],
+        _mapIcon(callback),
+      ],
+    );
+
+    // ---------- times strip ----------
+    final Widget times = Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: late ? Colors.white.withOpacity(0.7) : const Color(0xFFF6F8FB),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          timeCell("In Time", Colors.green, _timeColumn(isIn: true, size: 12, bold: true)),
+          timeCell("Out Time", Colors.red, _timeColumn(isIn: false, size: 12, bold: true)),
+          timeCell(
+            "Total Hrs",
+            primary,
+            CustomText(text: _totalText, size: 12, isBold: true, colors: primary),
+          ),
+        ],
+      ),
+    );
+
+    // ---------- location ----------
+    final Widget? location = (!hasIn && !hasOut)
+        ? null
+        : Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.location_on_outlined, size: 14, color: Colors.grey.shade600),
+          4.width,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (hasIn) areaText(inLat!, inLng!),
+                if (hasIn && hasOut) 2.height,
+                if (hasOut) areaText(outLat!, outLng!),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+
+    // ---------- permissions ----------
+    final Widget? permissions = chunked.isEmpty
+        ? null
+        : Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        10.height,
+        Divider(height: 1, color: Colors.grey.shade200),
+        8.height,
+        Row(
+          children: [
+            Icon(Icons.lock_clock, size: 13, color: Colors.purple.shade400),
+            5.width,
+            CustomText(
+              text: "Permission${chunked.length == 1 ? "" : "s"}",
+              size: 11,
+              isBold: true,
+              colors: Colors.purple.shade400,
+            ),
+          ],
+        ),
+        for (final item in chunked)
+          Padding(
+            padding: const EdgeInsets.only(top: 6),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (isAdmin && isName == false)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 3),
+                    child: CustomText(text: name, size: 11, isBold: true),
+                  ),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: Colors.purple.shade50,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: CustomText(
+                        text: "${item['in']} - ${item['out'] == "" ? "…" : item['out']}",
+                        size: 11,
+                        isBold: true,
+                      ),
+                    ),
+                    8.width,
+                    CustomText(
+                      text: item["out"] != ""
+                          ? timeDifference("${item["in"]},${item["out"]}")
+                          : "-",
+                      size: 11,
+                      isBold: true,
+                      colors: Colors.grey.shade700,
+                    ),
+                    8.width,
+                    Expanded(
+                      child: CustomText(
+                        text: "${item['reason']}",
+                        size: 11,
+                        colors: Colors.grey.shade700,
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
           ),
-        InkWell(
-          // ✅ parent-oda callback use pannrom (web -> browser Google Maps, mobile -> CheckLocation)
-          onTap: callback,
-          child: Container(
-            width: kIsWeb ? webWidth : phoneWidth,
-            decoration: customDecoration.baseBackgroundDecoration(
-                color: isLate(inTime) ? const Color(0xFFFFF3E0) : Colors.white,
-                radius: 5,
-                borderColor: Colors.grey.shade200, isShadow: true, shadowColor: Colors.grey.shade200
-            ),
-            child: Padding(
-              padding: isName == false
-                  ? const EdgeInsets.fromLTRB(5, 4, 5, 4)
-                  : localData.storage.read("role") != "1"
-                  ? const EdgeInsets.fromLTRB(5, 10, 5, 10)
-                  : const EdgeInsets.all(0.0),
-              child: Column(
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      // ✅ FIX: "!kIsWeb" condition remove pannittom -> web-layum name, role show aagum
-                      if (isName == true)
-                        if (localData.storage.read("role") == "1")
-                          InkWell(
-                            onTap: () {
-                              Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                      builder: (context) => EmployeeDetails(id: empId, active: active, role: role)));
-                            },
-                            child: SizedBox(
-                              width: kIsWeb ? webWidth / 3.8 : phoneWidth / 3.8,
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  CircleAvatar(
-                                      radius: 15,
-                                      backgroundColor: Colors.grey.shade400,
-                                      child: SvgPicture.asset(assets.profile)
-                                  ), 5.height,
-                                  CustomText(text: name, isBold: true, size: 13,), 5.height,
-                                  CustomText(text: role, colors: colorsConst.blueClr, size: 11,),
-                                ],
-                              ),
-                            ),
-                          ),
-                      if (isName == true)
-                        if (localData.storage.read("role") == "1")
-                          Container(color: colorsConst.litGrey, width: 1, height: 75,),
-                      if (localData.storage.read("role") != "1")
-                        SizedBox(
-                            width: kIsWeb ? webWidth / 4 : phoneWidth / 4,
-                            child: CustomText(text: date, size: 12,)),
-                      if (isName == true)
-                        2.width,
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              // ---------------- IN TIME ----------------
-                              SizedBox(
-                                width: kIsWeb ? webWidth / 6 : phoneWidth / 4,
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    if (localData.storage.read("role") == "1")
-                                      const CustomText(text: "In Time", colors: Colors.grey, size: 11,),
-                                    5.height,
-                                    CustomText(text: inTime.toString() != "null" ? inTime : "-", size: 11,),
-                                  ],
-                                ),
-                              ), 2.width,
-                              // ---------------- OUT TIME ----------------
-                              SizedBox(
-                                width: kIsWeb ? webWidth / 5 : phoneWidth / 5,
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    if (localData.storage.read("role") == "1")
-                                      const CustomText(text: "Out Time", colors: Colors.grey, size: 11,),
-                                    5.height,
-                                    CustomText(text: outTime.toString(), size: 11),
-                                  ],
-                                ),
-                              ), 2.width,
-                              SizedBox(
-                                width: kIsWeb ? webWidth / 5.2 : phoneWidth / 5.2,
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    if (localData.storage.read("role") == "1")
-                                      const CustomText(text: "Total Hrs  ", colors: Colors.grey, size: 11,),
-                                    if (localData.storage.read("role") == "1")
-                                      2.height,
-                                    CustomText(text: outTime.toString() == "-" ? "-" : timeD, size: 11,),
-                                  ],
-                                ),
-                              ),
-                              Padding(
-                                padding: const EdgeInsets.only(right: 4.0),
-                                child: _mapIcon(callback),
-                              ),
-                            ],
-                          ),
-                          5.height,
-                          if (inLat != null && inLng != null && inLat!.isNotEmpty && inLng!.isNotEmpty)
-                            FutureBuilder<String>(
-                              future: _getAreaName(inLat!, inLng!),
-                              builder: (context, snapshot) {
-                                return CustomText(
-                                  text: snapshot.hasData ? snapshot.data! : "...",
-                                  size: 12,
-                                  colors: Colors.black,
-                                );
-                              },
-                            ),
-                          5.height,
-                          if (outLat != null && outLng != null && outLat!.isNotEmpty && outLng!.isNotEmpty)
-                            FutureBuilder<String>(
-                              future: _getAreaName(outLat!, outLng!),
-                              builder: (context, snapshot) {
-                                return CustomText(
-                                  text: snapshot.hasData ? snapshot.data! : "...",
-                                  size: 12,
-                                  colors: Colors.black,
-                                );
-                              },
-                            ),
-                        ],
-                      ),
-                    ],
-                  ),
+      ],
+    );
 
-                  if (chunked.isNotEmpty)
-                    Padding(
-                      padding: isName == false
-                          ? const EdgeInsets.fromLTRB(5, 10, 5, 10)
-                          : EdgeInsets.fromLTRB(
-                          localData.storage.read("role") == "1" ? 10 : 2,
-                          localData.storage.read("role") == "1" ? 0 : 5,
-                          localData.storage.read("role") == "1" ? 10 : 2,
-                          5),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Container(
-                            width: kIsWeb ? webWidth / 1 : phoneWidth / 1,
-                            height: 0.2, color: Colors.grey,
-                          ),
-                          5.height,
-                          CustomText(text: "Permission${chunked.length == 1 ? "" : "s"}", colors: colorsConst.greyClr,),
-                          5.height,
-                          SizedBox(
-                            width: kIsWeb ? webWidth : phoneWidth,
-                            child: ListView.builder(
-                              shrinkWrap: true,
-                              physics: const NeverScrollableScrollPhysics(),
-                              itemCount: chunked.length,
-                              itemBuilder: (context, index) {
-                                final item = chunked[index];
-                                return Padding(
-                                  padding: const EdgeInsets.fromLTRB(0, 5, 0, 0),
-                                  child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.start,
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      if (localData.storage.read("role") == "1" && chunked.isNotEmpty)
-                                        SizedBox(
-                                          width: kIsWeb ? webWidth / 4 : phoneWidth / 3,
-                                          child: CustomText(
-                                            text: name,
-                                            size: 11,
-                                            isBold: true,
-                                          ),
-                                        ),
-                                      10.height,
-                                      Row(
-                                        children: [
-                                          SizedBox(
-                                            width: kIsWeb ? webWidth / 3 : phoneWidth / 3,
-                                            child: CustomText(text: "${item['in']} - ${item['out']}", size: 11, isBold: true,),
-                                          ),
-                                          SizedBox(
-                                            width: kIsWeb ? webWidth / 5 : phoneWidth / 5,
-                                            child: CustomText(
-                                                text: item["out"] != "" ? timeDifference("${item["in"]},${item["out"]}") : "-",
-                                                size: 11,
-                                                isBold: true),
-                                          ),
-                                          SizedBox(
-                                            width: kIsWeb ? webWidth / 3 : phoneWidth / 2.7,
-                                            child: CustomText(text: "${item['reason']}", size: 11,),
-                                          ),
-                                        ],
-                                      ),
-                                    ],
-                                  ),
-                                );
-                              },
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                ],
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          // parent-oda callback (map open)
+          onTap: callback,
+          borderRadius: BorderRadius.circular(14),
+          child: Container(
+            width: double.infinity,
+            padding: EdgeInsets.all(isName == false ? 10 : 12),
+            decoration: BoxDecoration(
+              color: late ? const Color(0xFFFFF8EE) : Colors.white,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: late ? const Color(0xFFFFD8A8) : Colors.grey.shade200,
               ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, 3),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                header,
+                10.height,
+                times,
+                if (location != null) location,
+                if (permissions != null) permissions,
+              ],
             ),
           ),
         ),
-      ],
+      ),
     );
   }
 
@@ -346,14 +422,14 @@ class AttendanceDetails extends StatelessWidget {
     final bool hasIn = inLat != null && inLng != null && inLat!.isNotEmpty && inLng!.isNotEmpty;
     final bool hasOut = outLat != null && outLng != null && outLat!.isNotEmpty && outLng!.isNotEmpty;
 
-    Widget cell(String label, String value) => Expanded(
+    Widget cell(String label, String value, {Widget? child}) => Expanded(
       flex: 2,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           CustomText(text: label, colors: Colors.grey, size: 11),
           4.height,
-          CustomText(text: value, size: 13, isBold: true),
+          child ?? CustomText(text: value, size: 13, isBold: true),
         ],
       ),
     );
@@ -395,7 +471,8 @@ class AttendanceDetails extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
+                crossAxisAlignment:
+                _multi ? CrossAxisAlignment.start : CrossAxisAlignment.center,
                 children: [
                   // ---------- LEFT: employee / date ----------
                   // ✅ CHANGED: 200 -> 180 (times ku konjam adhigam idam)
@@ -442,9 +519,9 @@ class AttendanceDetails extends StatelessWidget {
                     color: Colors.grey.shade300,
                   ),
                   // ---------- MIDDLE: times ----------
-                  cell("In Time", inTime.toString() != "null" ? inTime : "-"),
-                  cell("Out Time", outTime.toString()),
-                  cell("Total Hrs", outTime.toString() == "-" ? "-" : timeD),
+                  cell("In Time", "", child: _timeColumn(isIn: true, size: 13, bold: true)),
+                  cell("Out Time", "", child: _timeColumn(isIn: false, size: 13, bold: true)),
+                  cell("Total Hrs", _totalText),
                   // ---------- RIGHT: location ----------
                   Expanded(
                     flex: 4,

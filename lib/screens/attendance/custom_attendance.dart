@@ -45,6 +45,10 @@ class CheckAttendance extends StatefulWidget {
 
 class _CheckAttendanceState extends State<CheckAttendance> {
 
+  /// ✅ NEW: button tap pannadhum udane button-kulla chinna loader.
+  /// (leave check + server check mudiyura varaikkum ethuvum nadakkalanu
+  ///  thonaama irukka). Double tap-um block aagum.
+  bool _btnLoading = false;
 
   @override
   void initState() {
@@ -265,14 +269,11 @@ class _CheckAttendanceState extends State<CheckAttendance> {
           var split =attProvider.permissionStatus.toString().split(",");
           String lastPermissionStatus = "";
           bool isPermissionActive = lastPermissionStatus == "1";
+          /// ✅ MULTI CHECK-IN: check out aanaalum grey/disable illa.
+          /// Ippo check-in-la irundha -> red (Check Out), illana -> green (Check In)
           Color getAttendanceColor() {
             if (isPermissionActive) return Colors.red;
-
-            if (attProvider.mainCheckOut == true) return Colors.grey;
-
-            return attProvider.mainAttendance == 0
-                ? Colors.green
-                : Colors.red;
+            return attProvider.isCheckedIn ? Colors.red : Colors.green;
           }
           if (attProvider.permissionStatus.isNotEmpty) {
             lastPermissionStatus =
@@ -317,7 +318,7 @@ class _CheckAttendanceState extends State<CheckAttendance> {
             // old flag fallback, aana check-out ku eppovum allow.
             final bool blocked = attProvider.leaveChecked
                 ? attProvider.attendanceBlockedByLeave
-                : (isOnLeaveValue == "1" && attProvider.mainAttendance == 0);
+                : (isOnLeaveValue == "1" && !attProvider.isCheckedIn);
 
             if (blocked) {
               utils.showWarningToast(
@@ -332,14 +333,14 @@ class _CheckAttendanceState extends State<CheckAttendance> {
             if (attProvider.permissionStatus == "1") {
               // Permission OUT
               if (!needSelfie) {
-                attProvider.putDailyPermission(
+                await attProvider.putDailyPermission(
                   context,
                   "2",
                   locPvr.latitude,
                   locPvr.longitude,
                 );
               } else {
-                attProvider.signDialog(
+                await attProvider.signDialog(
                   context: context,
                   img: attProvider.profile,
                   onTap: (newImg) {
@@ -357,18 +358,18 @@ class _CheckAttendanceState extends State<CheckAttendance> {
               // Attendance IN / OUT
               // type is calculated ONCE at tap time, so it can't
               // change if provider state updates later.
-              final String type =
-              attProvider.mainAttendance == 0 ? "1" : "2";
+              // ✅ MULTI CHECK-IN: kadaisi action vechu (out aana thirumba "1")
+              final String type = attProvider.nextAttendanceStatus;
 
               if (!needSelfie) {
-                attProvider.putDailyAttendance(
+                await attProvider.putDailyAttendance(
                   context,
                   type,
                   locPvr.latitude,
                   locPvr.longitude,
                 );
               } else {
-                attProvider.signDialog(
+                await attProvider.signDialog(
                   context: context,
                   img: attProvider.profile,
                   onTap: (newImg) {
@@ -385,20 +386,54 @@ class _CheckAttendanceState extends State<CheckAttendance> {
             }
           }
 
-          /// ✅ NEW: button label + colour shared by normal button & swipe button
-          final String attendBtnText = attProvider.mainCheckOut
-              ? constValue.attendMak
-              : attProvider.permissionStatus == "1"
-              ? constValue.perOut
-              : attProvider.mainAttendance == 0
-              ? constValue.attendIn
-              : constValue.attendOut;
+          /// ✅ NEW: tap -> udane loader, mudinjadhum (success / error / cancel) normal
+          Future<void> onAttendTap({required bool forceSelfie}) async {
+            if (_btnLoading) return; // double tap block
+            setState(() => _btnLoading = true);
+            try {
+              await markAttendance(forceSelfie: forceSelfie);
+            } catch (e) {
+              log("markAttendance error: $e");
+            } finally {
+              if (mounted) setState(() => _btnLoading = false);
+            }
+          }
 
-          final Color attendBtnColor = attProvider.mainCheckOut
-              ? Colors.grey
-              : attProvider.permissionStatus == "1"
+          /// ✅ NEW: button label + colour shared by normal button & swipe button
+          /// ✅ MULTI CHECK-IN: "Attendance Marked" + disable REMOVE.
+          /// Check out pannitaa thirumba "Check In" kaattum.
+          final String attendBtnText = attProvider.permissionStatus == "1"
+              ? constValue.perOut
+              : attProvider.isCheckedIn
+              ? constValue.attendOut
+              : constValue.attendIn;
+
+          final Color attendBtnColor = attProvider.permissionStatus == "1"
               ? Colors.red
               : getAttendanceColor();
+
+          /// ✅ button keezha chinna status line (simple text, "Session" word illa)
+          ///   check-in-la irundha  -> "Checked in at 03:10 PM"
+          ///   check-out aana       -> "Checked out at 05:30 PM · Worked 6h 20m"
+          String sessionInfo() {
+            if (attProvider.sessionCount == 0) return "";
+            if (attProvider.isCheckedIn) {
+              final t = attProvider.currentInTime;
+              return t.isEmpty ? "" : "Checked in at $t";
+            }
+            final out = attProvider.outTime;
+            if (out.isEmpty || out == "-") return "";
+            // provider format "6 : 20 mins" -> "6h 20m"
+            String worked = "";
+            final m = RegExp(r'(\d+)\s*:\s*(\d+)').firstMatch(attProvider.totalHrs);
+            if (m != null) {
+              final h = int.parse(m.group(1)!);
+              final mi = int.parse(m.group(2)!);
+              worked = h > 0 ? " · Worked ${h}h ${mi}m" : " · Worked ${mi}m";
+            }
+            return "Checked out at $out$worked";
+          }
+          final String statusLine = sessionInfo();
 
           return
             // attProvider.attCheck==false?const Loading():
@@ -421,259 +456,260 @@ class _CheckAttendanceState extends State<CheckAttendance> {
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
-                                  if(attProvider.mainCheckOut == false)
-                                    Row(
-                                      children: [
-                                        /// ✅ CHANGED: verify checkbox hidden for Aswin
-                                        if(!isAswin) ...[
-                                          GestureDetector(
-                                            onTap: () {
-                                              attProvider.manageSelfie();
-                                            },
-                                            child: Container(
-                                              width: 20,
-                                              height: 20,
-                                              decoration: BoxDecoration(
-                                                color: attProvider.isSelfie ? Color(0xffD9D9D9) :Color(0xffD9D9D9),
-                                                borderRadius: BorderRadius.circular(4),
-                                                border: Border.all(color: Color(0xffD9D9D9), width: 1.2),
-                                              ),
-                                              child: attProvider.isSelfie
-                                                  ? Icon(
-                                                Icons.check,
-                                                size: 14,
-                                                color: colorsConst.primary,
-                                              )
-                                                  : null,
-                                            ),
-                                          ),
-                                          const SizedBox(width: 3),
-                                          CustomText(
-                                            //text:  "verify",
-                                            text:  "${constValue.verify}",
-
-                                            shrink: true,
-                                            size: 11,
-                                            colors: Colors.blue,isBold: true,
-                                          ),
-                                          3.width,
-                                        ],
+                                  // ✅ MULTI CHECK-IN: eppovum kaattu (re-check-in ku verify/selfie venum)
+                                  Row(
+                                    children: [
+                                      /// ✅ CHANGED: verify checkbox hidden for Aswin
+                                      if(!isAswin) ...[
                                         GestureDetector(
-                                          onTap: attProvider.permissionStatus != "1"
-                                              ? () {
-                                            if (attProvider.mainCheckOut == true) {
-                                              utils.showWarningToast(context,
-                                                  text: "Permission cannot be added after marking attendance.");
-                                            } else {
-                                              if (split.last == "2") {
-                                                attProvider.permissionReason.clear();
-                                              }
-
-                                              showDialog(
-                                                context: context,
-                                                barrierDismissible: false,
-                                                builder: (BuildContext context) {
-                                                  return AlertDialog(
-                                                    actions: [
-                                                      Center(
-                                                        child: SizedBox(
-                                                          width: kIsWeb
-                                                              ? MediaQuery.of(context).size.width * 0.3
-                                                              : MediaQuery.of(context).size.width * 0.8,
-                                                          child: Column(
-                                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                                            children: [
-                                                              Center(
-                                                                child: CustomText(
-                                                                  text: "${constValue.permission}\n",
-                                                                  colors: Colors.black,
-                                                                  size: 15,
-                                                                  isBold: true,
-                                                                ),
-                                                              ),
-                                                              Column(
-                                                                crossAxisAlignment: CrossAxisAlignment.start,
-                                                                children: [
-                                                                  Row(
-                                                                    children: [
-                                                                      CustomText(
-                                                                          text: "Reason",
-                                                                          colors: colorsConst.greyClr),
-                                                                      CustomText(
-                                                                          text: "*",
-                                                                          colors: colorsConst.appRed,
-                                                                          size: 20),
-                                                                    ],
-                                                                  ),
-                                                                  5.height,
-                                                                  TextField(
-                                                                    textCapitalization:
-                                                                    TextCapitalization.sentences,
-                                                                    minLines: 1,
-                                                                    maxLines: null,
-                                                                    controller: attProvider.permissionReason,
-                                                                    textInputAction: TextInputAction.done,
-                                                                    decoration: InputDecoration(
-                                                                      hintText: "",
-                                                                      fillColor: Colors.white,
-                                                                      filled: true,
-                                                                      enabledBorder: OutlineInputBorder(
-                                                                        borderSide: BorderSide(
-                                                                            color: Colors.grey.shade300),
-                                                                        borderRadius: BorderRadius.circular(10),
-                                                                      ),
-                                                                      focusedBorder: OutlineInputBorder(
-                                                                        borderSide: BorderSide(
-                                                                            color: colorsConst.primary),
-                                                                        borderRadius: BorderRadius.circular(10),
-                                                                      ),
-                                                                      contentPadding: const EdgeInsets.fromLTRB(
-                                                                          10, 10, 10, 10),
-                                                                    ),
-                                                                  ),
-                                                                ],
-                                                              ),
-                                                              20.height,
-
-                                                              Row(
-                                                                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                                                                children: [
-                                                                  OutlinedButton(
-                                                                    onPressed: () {
-                                                                      attProvider.permissionReason.clear();
-                                                                      Navigator.pop(context);
-                                                                    },
-                                                                    style: OutlinedButton.styleFrom(
-                                                                      backgroundColor: Colors.grey.shade200,
-                                                                      side:
-                                                                      const BorderSide(color: Colors.white),
-                                                                    ),
-                                                                    child: CustomText(
-                                                                      text: "Cancel",
-                                                                      colors: colorsConst.secondary,
-                                                                      size: 15,
-                                                                      isBold: true,
-                                                                    ),
-                                                                  ),
-                                                                  OutlinedButton(
-                                                                    onPressed: () async {
-                                                                      if (attProvider.permissionReason.text
-                                                                          .trim()
-                                                                          .isNotEmpty) {
-                                                                        Map<Permission, PermissionStatus>
-                                                                        status = await [
-                                                                          Permission.location,
-                                                                        ].request();
-
-                                                                        if (status[Permission.location] ==
-                                                                            PermissionStatus.granted) {
-                                                                          bool isLocationServiceEnabled =
-                                                                          await Geolocator
-                                                                              .isLocationServiceEnabled();
-
-                                                                          if (!isLocationServiceEnabled) {
-                                                                            utils.showWarningToast(context,
-                                                                                text:
-                                                                                "Location services are disabled. Please enable them.");
-                                                                          } else {
-                                                                            if (locPvr.latitude == "" &&
-                                                                                locPvr.longitude == "") {
-                                                                              utils.showWarningToast(
-                                                                                  text: "Check Your Location",
-                                                                                  context);
-                                                                              await locPvr.manageLocation(
-                                                                                  context, true);
-                                                                            } else {
-                                                                              if (attProvider.isSelfie == false) {
-                                                                                attProvider.putDailyPermission(
-                                                                                    context,
-                                                                                    "1",
-                                                                                    locPvr.latitude,
-                                                                                    locPvr.longitude);
-                                                                              } else {
-                                                                                attProvider.signDialog(
-                                                                                  context: context,
-                                                                                  img: attProvider.profile,
-                                                                                  onTap: (newImg) {
-                                                                                    attProvider
-                                                                                        .profilePick(newImg);
-                                                                                    attProvider.putDailyPermission(
-                                                                                        context,
-                                                                                        "1",
-                                                                                        locPvr.latitude,
-                                                                                        locPvr.longitude);
-                                                                                  },
-                                                                                );
-                                                                              }
-                                                                            }
-                                                                          }
-                                                                        } else {
-                                                                          await locPvr.manageLocation(
-                                                                              context, true);
-                                                                        }
-                                                                      } else {
-                                                                        utils.showWarningToast(context,
-                                                                            text: "Please type a reason");
-                                                                      }
-                                                                    },
-                                                                    style: OutlinedButton.styleFrom(
-                                                                      backgroundColor: colorsConst.primary,
-                                                                      side: BorderSide(
-                                                                          color: colorsConst.primary),
-                                                                    ),
-                                                                    child: const CustomText(
-                                                                      text: "Ok",
-                                                                      colors: Colors.white,
-                                                                      size: 15,
-                                                                      isBold: true,
-                                                                    ),
-                                                                  ),
-                                                                ],
-                                                              ),
-                                                              40.height,
-                                                            ],
-                                                          ),
-                                                        ),
-                                                      ),
-                                                    ],
-                                                  );
-                                                },
-                                              );
-                                            }
-                                          }
-                                              : null,
-
+                                          onTap: () {
+                                            attProvider.manageSelfie();
+                                          },
                                           child: Container(
-                                            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
+                                            width: 20,
+                                            height: 20,
                                             decoration: BoxDecoration(
-                                              color: attProvider.permissionStatus != "1"
-                                                  ? Colors.green
-                                                  : Colors.grey.shade400,
-                                              borderRadius: BorderRadius.circular(8),
+                                              color: attProvider.isSelfie ? Color(0xffD9D9D9) :Color(0xffD9D9D9),
+                                              borderRadius: BorderRadius.circular(4),
+                                              border: Border.all(color: Color(0xffD9D9D9), width: 1.2),
                                             ),
-                                            child: Row(
-                                              mainAxisSize: MainAxisSize.min,
-                                              children: [
-                                                Icon(
-                                                  Icons.lock_clock,
-                                                  size: 14,
-                                                  color: Colors.white,
-                                                ),
-                                                const SizedBox(width: 6),
-                                                CustomText(
-                                                  text: "${constValue.permission}",
-                                                  size: 11,
-                                                  shrink: true,
-                                                  isBold: true,
-                                                  colors: Colors.white,
-                                                ),
-                                              ],
-                                            ),
+                                            child: attProvider.isSelfie
+                                                ? Icon(
+                                              Icons.check,
+                                              size: 14,
+                                              color: colorsConst.primary,
+                                            )
+                                                : null,
                                           ),
                                         ),
+                                        const SizedBox(width: 3),
+                                        CustomText(
+                                          //text:  "verify",
+                                          text:  "${constValue.verify}",
 
+                                          shrink: true,
+                                          size: 11,
+                                          colors: Colors.blue,isBold: true,
+                                        ),
+                                        3.width,
                                       ],
-                                    ),
+                                      GestureDetector(
+                                        onTap: attProvider.permissionStatus != "1"
+                                            ? () {
+                                          if (attProvider.mainCheckOut == true) {
+                                            // check out aana nilai-la permission illa
+                                            utils.showWarningToast(context,
+                                                text: "Please check in to add permission.");
+                                          } else {
+                                            if (split.last == "2") {
+                                              attProvider.permissionReason.clear();
+                                            }
+
+                                            showDialog(
+                                              context: context,
+                                              barrierDismissible: false,
+                                              builder: (BuildContext context) {
+                                                return AlertDialog(
+                                                  actions: [
+                                                    Center(
+                                                      child: SizedBox(
+                                                        width: kIsWeb
+                                                            ? MediaQuery.of(context).size.width * 0.3
+                                                            : MediaQuery.of(context).size.width * 0.8,
+                                                        child: Column(
+                                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                                          children: [
+                                                            Center(
+                                                              child: CustomText(
+                                                                text: "${constValue.permission}\n",
+                                                                colors: Colors.black,
+                                                                size: 15,
+                                                                isBold: true,
+                                                              ),
+                                                            ),
+                                                            Column(
+                                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                                              children: [
+                                                                Row(
+                                                                  children: [
+                                                                    CustomText(
+                                                                        text: "Reason",
+                                                                        colors: colorsConst.greyClr),
+                                                                    CustomText(
+                                                                        text: "*",
+                                                                        colors: colorsConst.appRed,
+                                                                        size: 20),
+                                                                  ],
+                                                                ),
+                                                                5.height,
+                                                                TextField(
+                                                                  textCapitalization:
+                                                                  TextCapitalization.sentences,
+                                                                  minLines: 1,
+                                                                  maxLines: null,
+                                                                  controller: attProvider.permissionReason,
+                                                                  textInputAction: TextInputAction.done,
+                                                                  decoration: InputDecoration(
+                                                                    hintText: "",
+                                                                    fillColor: Colors.white,
+                                                                    filled: true,
+                                                                    enabledBorder: OutlineInputBorder(
+                                                                      borderSide: BorderSide(
+                                                                          color: Colors.grey.shade300),
+                                                                      borderRadius: BorderRadius.circular(10),
+                                                                    ),
+                                                                    focusedBorder: OutlineInputBorder(
+                                                                      borderSide: BorderSide(
+                                                                          color: colorsConst.primary),
+                                                                      borderRadius: BorderRadius.circular(10),
+                                                                    ),
+                                                                    contentPadding: const EdgeInsets.fromLTRB(
+                                                                        10, 10, 10, 10),
+                                                                  ),
+                                                                ),
+                                                              ],
+                                                            ),
+                                                            20.height,
+
+                                                            Row(
+                                                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                                              children: [
+                                                                OutlinedButton(
+                                                                  onPressed: () {
+                                                                    attProvider.permissionReason.clear();
+                                                                    Navigator.pop(context);
+                                                                  },
+                                                                  style: OutlinedButton.styleFrom(
+                                                                    backgroundColor: Colors.grey.shade200,
+                                                                    side:
+                                                                    const BorderSide(color: Colors.white),
+                                                                  ),
+                                                                  child: CustomText(
+                                                                    text: "Cancel",
+                                                                    colors: colorsConst.secondary,
+                                                                    size: 15,
+                                                                    isBold: true,
+                                                                  ),
+                                                                ),
+                                                                OutlinedButton(
+                                                                  onPressed: () async {
+                                                                    if (attProvider.permissionReason.text
+                                                                        .trim()
+                                                                        .isNotEmpty) {
+                                                                      Map<Permission, PermissionStatus>
+                                                                      status = await [
+                                                                        Permission.location,
+                                                                      ].request();
+
+                                                                      if (status[Permission.location] ==
+                                                                          PermissionStatus.granted) {
+                                                                        bool isLocationServiceEnabled =
+                                                                        await Geolocator
+                                                                            .isLocationServiceEnabled();
+
+                                                                        if (!isLocationServiceEnabled) {
+                                                                          utils.showWarningToast(context,
+                                                                              text:
+                                                                              "Location services are disabled. Please enable them.");
+                                                                        } else {
+                                                                          if (locPvr.latitude == "" &&
+                                                                              locPvr.longitude == "") {
+                                                                            utils.showWarningToast(
+                                                                                text: "Check Your Location",
+                                                                                context);
+                                                                            await locPvr.manageLocation(
+                                                                                context, true);
+                                                                          } else {
+                                                                            if (attProvider.isSelfie == false) {
+                                                                              attProvider.putDailyPermission(
+                                                                                  context,
+                                                                                  "1",
+                                                                                  locPvr.latitude,
+                                                                                  locPvr.longitude);
+                                                                            } else {
+                                                                              attProvider.signDialog(
+                                                                                context: context,
+                                                                                img: attProvider.profile,
+                                                                                onTap: (newImg) {
+                                                                                  attProvider
+                                                                                      .profilePick(newImg);
+                                                                                  attProvider.putDailyPermission(
+                                                                                      context,
+                                                                                      "1",
+                                                                                      locPvr.latitude,
+                                                                                      locPvr.longitude);
+                                                                                },
+                                                                              );
+                                                                            }
+                                                                          }
+                                                                        }
+                                                                      } else {
+                                                                        await locPvr.manageLocation(
+                                                                            context, true);
+                                                                      }
+                                                                    } else {
+                                                                      utils.showWarningToast(context,
+                                                                          text: "Please type a reason");
+                                                                    }
+                                                                  },
+                                                                  style: OutlinedButton.styleFrom(
+                                                                    backgroundColor: colorsConst.primary,
+                                                                    side: BorderSide(
+                                                                        color: colorsConst.primary),
+                                                                  ),
+                                                                  child: const CustomText(
+                                                                    text: "Ok",
+                                                                    colors: Colors.white,
+                                                                    size: 15,
+                                                                    isBold: true,
+                                                                  ),
+                                                                ),
+                                                              ],
+                                                            ),
+                                                            40.height,
+                                                          ],
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ],
+                                                );
+                                              },
+                                            );
+                                          }
+                                        }
+                                            : null,
+
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
+                                          decoration: BoxDecoration(
+                                            color: attProvider.permissionStatus != "1"
+                                                ? Colors.green
+                                                : Colors.grey.shade400,
+                                            borderRadius: BorderRadius.circular(8),
+                                          ),
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Icon(
+                                                Icons.lock_clock,
+                                                size: 14,
+                                                color: Colors.white,
+                                              ),
+                                              const SizedBox(width: 6),
+                                              CustomText(
+                                                text: "${constValue.permission}",
+                                                size: 11,
+                                                shrink: true,
+                                                isBold: true,
+                                                colors: Colors.white,
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+
+                                    ],
+                                  ),
                                 ],
                               ),
                               20.height,
@@ -685,9 +721,10 @@ class _CheckAttendanceState extends State<CheckAttendance> {
                                   ? SwipeAttendanceButton(
                                 text: attendBtnText,
                                 color: attendBtnColor,
-                                enabled: !attProvider.mainCheckOut,
+                                enabled: true, // ✅ check out apram-um enable
+                                loading: _btnLoading,
                                 onSwipe: () {
-                                  markAttendance(forceSelfie: true);
+                                  onAttendTap(forceSelfie: true);
                                 },
                               )
                                   : Container(
@@ -695,11 +732,9 @@ class _CheckAttendanceState extends State<CheckAttendance> {
                                 height: 35,
                                 child: ElevatedButton(
                                   style: ElevatedButton.styleFrom(
-                                    backgroundColor: attProvider.mainCheckOut
-                                        ? Colors.grey
-                                        : attProvider.permissionStatus == "1"
-                                        ? Colors.red
-                                        : getAttendanceColor(),
+                                    backgroundColor: attendBtnColor,
+                                    // loading-la konjam light aagum (colour maaraadhu)
+                                    disabledBackgroundColor: attendBtnColor.withOpacity(0.75),
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(10),
                                     ),
@@ -711,29 +746,62 @@ class _CheckAttendanceState extends State<CheckAttendance> {
                                   // 2nd call saw mainAttendance already = 1 -> sent "2" (check-out)
                                   // so check-in + check-out happened together.
                                   // Now: ONLY ONE API call per tap.
-                                  onPressed: attProvider.mainCheckOut
+                                  // ✅ MULTI CHECK-IN: eppovum enable
+                                  // ✅ loading-la tap disable (null)
+                                  onPressed: _btnLoading
                                       ? null
                                       : () async {
-                                    // ✅ CHANGED: logic moved to markAttendance()
                                     // (same flow as before: selfie only if verify is ticked)
-                                    await markAttendance(forceSelfie: false);
+                                    await onAttendTap(forceSelfie: false);
                                   },
 
-                                  child: CustomText(
-                                    text:  attProvider.mainCheckOut
-                                        ? constValue.attendMak
-                                        : attProvider.permissionStatus == "1"
-                                        ? constValue.perOut
-                                        : attProvider.mainAttendance == 0
-                                        ? constValue.attendIn
-                                        : constValue.attendOut,
-                                    size: 13,
-                                    isBold: true,
-                                    colors: Colors.white,
-                                    shrink: true,
+                                  // ✅ tap pannadhum button-kulla chinna loader + "Please wait"
+                                  child: AnimatedSwitcher(
+                                    duration: const Duration(milliseconds: 150),
+                                    child: _btnLoading
+                                        ? Row(
+                                      key: const ValueKey("loading"),
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        const SizedBox(
+                                          width: 14,
+                                          height: 14,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                        8.width,
+                                        const CustomText(
+                                          text: "Please wait...",
+                                          size: 13,
+                                          isBold: true,
+                                          colors: Colors.white,
+                                          shrink: true,
+                                        ),
+                                      ],
+                                    )
+                                        : CustomText(
+                                      key: const ValueKey("text"),
+                                      text: attendBtnText,
+                                      size: 13,
+                                      isBold: true,
+                                      colors: Colors.white,
+                                      shrink: true,
+                                    ),
                                   ),
                                 ),
-                              )
+                              ),
+                              /// ✅ status (eg: "Checked in at 03:10 PM")
+                              if (statusLine.isNotEmpty) ...[
+                                4.height,
+                                CustomText(
+                                  text: statusLine,
+                                  size: 10.5,
+                                  shrink: true,
+                                  colors: colorsConst.greyClr,
+                                ),
+                              ],
                             ],
                           ),
                         ),
@@ -963,6 +1031,8 @@ class SwipeAttendanceButton extends StatefulWidget {
   final double height;
   final IconData icon;
   final VoidCallback onSwipe;
+  /// ✅ NEW: true -> thumb-la chinna loader, swipe block
+  final bool loading;
 
   const SwipeAttendanceButton({
     super.key,
@@ -970,6 +1040,7 @@ class SwipeAttendanceButton extends StatefulWidget {
     required this.color,
     required this.onSwipe,
     this.enabled = true,
+    this.loading = false,
     this.height = 40,
     this.icon = Icons.keyboard_double_arrow_right_rounded,
   });
@@ -1003,6 +1074,7 @@ class _SwipeAttendanceButtonState extends State<SwipeAttendanceButton> {
         final double progress = (_pos / maxDrag).clamp(0.0, 1.0);
         final Duration anim =
         _dragging ? Duration.zero : const Duration(milliseconds: 250);
+        final bool canDrag = widget.enabled && !_done && !widget.loading;
 
         return Container(
           width: w,
@@ -1040,7 +1112,7 @@ class _SwipeAttendanceButtonState extends State<SwipeAttendanceButton> {
                     child: Opacity(
                       opacity: (1 - progress * 1.3).clamp(0.0, 1.0),
                       child: Text(
-                        widget.text,
+                        widget.loading ? "Please wait..." : widget.text,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         textAlign: TextAlign.center,
@@ -1063,15 +1135,15 @@ class _SwipeAttendanceButtonState extends State<SwipeAttendanceButton> {
                 left: pad + _pos,
                 top: pad,
                 child: GestureDetector(
-                  onHorizontalDragStart: widget.enabled && !_done
+                  onHorizontalDragStart: canDrag
                       ? (_) => setState(() => _dragging = true)
                       : null,
-                  onHorizontalDragUpdate: widget.enabled && !_done
+                  onHorizontalDragUpdate: canDrag
                       ? (d) => setState(() {
                     _pos = (_pos + d.delta.dx).clamp(0.0, maxDrag);
                   })
                       : null,
-                  onHorizontalDragEnd: widget.enabled && !_done
+                  onHorizontalDragEnd: canDrag
                       ? (_) {
                     if (progress >= 0.85) {
                       setState(() {
@@ -1109,7 +1181,12 @@ class _SwipeAttendanceButtonState extends State<SwipeAttendanceButton> {
                         ),
                       ],
                     ),
-                    child: Icon(
+                    child: widget.loading
+                        ? Padding(
+                      padding: EdgeInsets.all(thumb * 0.25),
+                      child: CircularProgressIndicator(strokeWidth: 2.2, color: base),
+                    )
+                        : Icon(
                       _done ? Icons.check_rounded : widget.icon,
                       color: base,
                       size: thumb * 0.72,

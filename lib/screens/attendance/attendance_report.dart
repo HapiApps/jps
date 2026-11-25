@@ -830,6 +830,7 @@ class _AttendanceReportState extends State<AttendanceReport> {
     required String inTime,
     required String outTime,
     required String totalHrs,
+    List<_Session> sessions = const [],
   }) {
     final Size size = MediaQuery.of(context).size;
     final double w = kIsWeb ? size.width * 0.6 : size.width * 0.95;
@@ -891,6 +892,7 @@ class _AttendanceReportState extends State<AttendanceReport> {
                 inTime: inTime,
                 outTime: outTime,
                 totalHrs: totalHrs,
+                sessions: sessions,
                 inArea: inArea,
                 outArea: outArea,
               ),
@@ -1097,82 +1099,78 @@ class _AttendanceReportState extends State<AttendanceReport> {
                             ),
                           ),
                         15.height,
-                        Padding(
-                          padding: EdgeInsets.only(left: kIsWeb ? 0 : 12.0),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Expanded(
-                                child: SizedBox(
-                                  height: 45,
-                                  child: ToggleButtons(
-
-                                    isSelected: List.generate(
-                                      attProvider.items.length,
-                                          (index) => attProvider.selectedIndex == index,
-                                    ),
-
-                                    onPressed: (index) {
-                                      setState(() {
-                                        attProvider.selectedIndex = index;
-
-                                        switch (index) {
-                                          case 0:
-                                            showType = "Present";
-                                            break;
-                                          case 1:
-                                            showType = "Absent";
-                                            break;
-                                          case 2:
-                                            showType = "Late";
-                                            break;
-                                          case 3:
-                                            showType = "Leave";
-                                            break;
-                                          case 4:
-                                            showType = "Permission";
-                                            break;
-                                        }
-                                      });
-                                    },
-
-                                    borderRadius: const BorderRadius.only(
-                                      topLeft: Radius.circular(5),
-                                      bottomLeft: Radius.circular(5),
-                                    ),
-                                    borderWidth: 1,
-                                    borderColor: Colors.grey.shade300,
-                                    selectedBorderColor: Colors.green,
-                                    fillColor: Colors.green,
-                                    constraints: const BoxConstraints(
-                                      minHeight: 45,
-                                      minWidth: 0,
-                                    ),
-
-                                    children: attProvider.items.map((item) {
-                                      final index = attProvider.items.indexOf(item);
-                                      final isSelected = attProvider.selectedIndex == index;
-
-                                      return Padding(
-                                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                                        child: Center(
-                                          child: CustomText(
-                                            text: item,
-                                            size: 12,
-                                            colors: isSelected
-                                                ? Colors.white
-                                                : attProvider.itemColors[index].withOpacity(0.6),
-                                            isBold: true,
-                                          ),
-                                        ),
-                                      );
-                                    }).toList(),
-                                  ),
-                                ),
+                        // ✅ ALIGNMENT FIX (same ToggleButtons design):
+                        //  * left 12 padding remove -> cards-oda same line-la
+                        //  * ella tab-um equal width (full width fill, right-la gap illa)
+                        //  * 4 corner-um rounded (munnadi left side mattum)
+                        //  * text perusa irundhaa shrink (overflow illa)
+                        LayoutBuilder(
+                          builder: (context, constraints) {
+                            final int n = attProvider.items.length;
+                            // n tab + (n + 1) border lines (1px each)
+                            final double tabW =
+                            ((constraints.maxWidth - (n + 1)) / n).floorToDouble();
+                            return ToggleButtons(
+                              isSelected: List.generate(
+                                n,
+                                    (index) => attProvider.selectedIndex == index,
                               ),
-                            ],
-                          ),
+                              onPressed: (index) {
+                                setState(() {
+                                  attProvider.selectedIndex = index;
+
+                                  switch (index) {
+                                    case 0:
+                                      showType = "Present";
+                                      break;
+                                    case 1:
+                                      showType = "Absent";
+                                      break;
+                                    case 2:
+                                      showType = "Late";
+                                      break;
+                                    case 3:
+                                      showType = "Leave";
+                                      break;
+                                    case 4:
+                                      showType = "Permission";
+                                      break;
+                                  }
+                                });
+                              },
+                              borderRadius: BorderRadius.circular(8),
+                              borderWidth: 1,
+                              borderColor: Colors.grey.shade300,
+                              selectedBorderColor: Colors.green,
+                              fillColor: Colors.green,
+                              splashColor: Colors.green.withOpacity(0.12),
+                              constraints: BoxConstraints(
+                                minHeight: 42,
+                                maxHeight: 42,
+                                minWidth: tabW,
+                                maxWidth: tabW,
+                              ),
+                              children: List.generate(n, (index) {
+                                final bool isSelected = attProvider.selectedIndex == index;
+                                return Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                                  child: FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    child: CustomText(
+                                      text: attProvider.items[index],
+                                      size: 12,
+                                      colors: isSelected
+                                          ? Colors.white
+                                          : attProvider.itemColors[index].withOpacity(0.85),
+                                      isBold: true,
+                                    ),
+                                  ),
+                                );
+                              }),
+                            );
+                          },
                         ),
+                        10.height,
                         // ✅ isFilterLoading add pannirukku
                         (attProvider.refresh == false || isFilterLoading) ?
                         const Padding(
@@ -1273,6 +1271,7 @@ class _AttendanceReportState extends State<AttendanceReport> {
                                         inTime: inTime,
                                         outTime: outTime,
                                         totalHrs: timeD,
+                                        sessions: parts.sessions,
                                       );
                                     },
 
@@ -1280,6 +1279,8 @@ class _AttendanceReportState extends State<AttendanceReport> {
                                     perReason: data.perReason.toString(),
                                     perTime: data.perTime.toString(),
                                     perCreatedTs: data.perCreatedTs.toString(), empId: data.salesmanId, active: data.active,
+                                    // ✅ ella check in / out -> card-la In / Out column-la line-a
+                                    sessions: _cardSessions(parts),
                                   ),
                                   5.height
                                 ],
@@ -1474,6 +1475,7 @@ class _AttendanceReportState extends State<AttendanceReport> {
                                               inTime: inTime,
                                               outTime: outTime,
                                               totalHrs: timeD,
+                                              sessions: parts.sessions,
                                             );
                                           },
 
@@ -1481,6 +1483,8 @@ class _AttendanceReportState extends State<AttendanceReport> {
                                           perReason: data.perReason.toString(),
                                           perTime: data.perTime.toString(),
                                           perCreatedTs: data.perCreatedTs.toString(), empId: data.salesmanId, active: data.active,
+                                          // ✅ ella check in / out -> card-la In / Out column-la line-a
+                                          sessions: _cardSessions(parts),
                                         ),
                                       ],
                                     ),
@@ -1599,6 +1603,7 @@ class _AttendanceReportState extends State<AttendanceReport> {
                                             inTime: inTime,
                                             outTime: outTime,
                                             totalHrs: timeD,
+                                            sessions: parts.sessions,
                                           );
                                         },
 
@@ -1607,6 +1612,8 @@ class _AttendanceReportState extends State<AttendanceReport> {
                                         perReason: pi.reason,
                                         perTime: pi.time,
                                         perCreatedTs: data.perCreatedTs.toString(), empId: data.salesmanId, active: data.active,
+                                        // ✅ ella check in / out -> card-la In / Out column-la line-a
+                                        sessions: _cardSessions(parts),
                                       ),
 
                                       5.height
@@ -1902,6 +1909,9 @@ class _AttendanceReportState extends State<AttendanceReport> {
     final times = (data.time ?? "").split(",").map((e) => e.trim()).toList();
     final lats  = (data.lats ?? "").split(",").map((e) => e.trim()).toList();
     final lngs  = (data.lngs ?? "").split(",").map((e) => e.trim()).toList();
+    final sts   = (data.status?.toString() ?? "").split(",").map((e) => e.trim()).toList();
+    final bool hasStatus = sts.length == times.length &&
+        sts.every((s) => s == "1" || s == "2");
 
     final entries = <_TimeEntry>[];
     for (int i = 0; i < times.length; i++) {
@@ -1911,6 +1921,8 @@ class _AttendanceReportState extends State<AttendanceReport> {
         i < lats.length ? lats[i] : "",
         i < lngs.length ? lngs[i] : "",
         _parseT(times[i]),
+        // status illana: index odd/even vechu (0 = in, 1 = out, 2 = in ...)
+        hasStatus ? sts[i] : (i.isEven ? "1" : "2"),
       ));
     }
 
@@ -1920,16 +1932,42 @@ class _AttendanceReportState extends State<AttendanceReport> {
     }
 
     if (entries.isEmpty) {
-      return _AttParts("-", "-", "-", "", "", "", "");
+      return _AttParts("-", "-", "-", "", "", "", "", const []);
     }
 
-    final _TimeEntry inE = entries.first;
-    final _TimeEntry? outE = entries.length > 1 ? entries[1] : null;
+    // ✅ MULTI CHECK-IN: In = FIRST check-in, Out = LAST check-out
+    // (kadaisi action check-in-na innum office-la -> Out "-")
+    // Total = ella session-um (in -> out) koottina neram
+    final _TimeEntry inE =
+    entries.firstWhere((e) => e.status == "1", orElse: () => entries.first);
+    final _TimeEntry? outE =
+    entries.length > 1 && entries.last.status == "2" ? entries.last : null;
 
-    String timeD = "-";
-    if (outE != null) {
-      timeD = att.timeDifference("${inE.time},${outE.time}");
+    int totalMins = 0;
+    bool anyClosed = false;
+    _TimeEntry? open;
+    final sessions = <_Session>[];
+    for (final e in entries) {
+      if (e.status == "1") {
+        open ??= e;
+      } else if (open != null) {
+        int mins = 0;
+        if (open.dt != null && e.dt != null && e.dt!.isAfter(open.dt!)) {
+          mins = e.dt!.difference(open.dt!).inMinutes;
+          totalMins += mins;
+        }
+        sessions.add(_Session(open.time, e.time, _fmtMins(mins),
+            open.lat, open.lng, e.lat, e.lng));
+        anyClosed = true;
+        open = null;
+      }
     }
+    // check out pannala (innum office-la) -> open session
+    if (open != null) {
+      sessions.add(_Session(open.time, "", "", open.lat, open.lng, "", ""));
+    }
+
+    final String timeD = anyClosed ? _fmtMins(totalMins) : "-";
 
     return _AttParts(
       inE.time,
@@ -1939,7 +1977,21 @@ class _AttendanceReportState extends State<AttendanceReport> {
       inE.lng,
       outE?.lat ?? "",
       outE?.lng ?? "",
+      sessions,
     );
+  }
+
+  /// card-ku (AttendanceDetails) anuppa
+  List<AttSession> _cardSessions(_AttParts p) =>
+      p.sessions.map((e) => AttSession(e.inTime, e.outTime)).toList();
+
+  /// "45 Mins" | "3 Hrs" | "3 Hrs 55 Mins" (pazhaya timeDifference format)
+  String _fmtMins(int totalMins) {
+    final h = totalMins ~/ 60;
+    final m = totalMins % 60;
+    return totalMins < 60
+        ? "$totalMins Mins"
+        : (m == 0 ? "$h Hrs" : "$h Hrs $m Mins");
   }
 
   // ==========================================================================
@@ -2405,6 +2457,7 @@ class _MapInfoCard extends StatelessWidget {
   final String inTime;
   final String outTime;
   final String totalHrs;
+  final List<_Session> sessions;
   final Future<String>? inArea;
   final Future<String>? outArea;
 
@@ -2415,6 +2468,7 @@ class _MapInfoCard extends StatelessWidget {
     required this.inTime,
     required this.outTime,
     required this.totalHrs,
+    this.sessions = const [],
     this.inArea,
     this.outArea,
   });
@@ -2459,7 +2513,7 @@ class _MapInfoCard extends StatelessWidget {
   }
 
   Widget _cell(String label, String value,
-      {bool late = false, Future<String>? area}) {
+      {bool late = false, Future<String>? area, List<String>? lines}) {
     return Expanded(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -2488,12 +2542,27 @@ class _MapInfoCard extends StatelessWidget {
             ],
           ),
           4.height,
-          CustomText(
-            text: value,
-            size: 14,
-            isBold: true,
-            colors: late ? const Color(0xFFE65100) : Colors.black,
-          ),
+          // ✅ multi check in / out -> ovvoru time-um thani line
+          if (lines != null && lines.length > 1)
+            for (int i = 0; i < lines.length; i++)
+              Padding(
+                padding: EdgeInsets.only(top: i == 0 ? 0 : 3),
+                child: CustomText(
+                  text: lines[i].isEmpty ? "Working…" : lines[i],
+                  size: 13,
+                  isBold: true,
+                  colors: lines[i].isEmpty
+                      ? Colors.orange.shade800
+                      : (i == 0 && late ? const Color(0xFFE65100) : Colors.black),
+                ),
+              )
+          else
+            CustomText(
+              text: value,
+              size: 14,
+              isBold: true,
+              colors: late ? const Color(0xFFE65100) : Colors.black,
+            ),
           _area(area),
         ],
       ),
@@ -2503,7 +2572,11 @@ class _MapInfoCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final String out = _clean(outTime);
-    final String total = out == "-" ? "-" : _clean(totalHrs);
+    final bool multi = sessions.length > 1;
+    // multi-la innum office-la irundhaalum mudinja sessions total kaattum
+    final String total = (out == "-" && !multi) ? "-" : _clean(totalHrs);
+    final List<String>? inLines = multi ? sessions.map((e) => e.inTime).toList() : null;
+    final List<String>? outLines = multi ? sessions.map((e) => e.outTime).toList() : null;
 
     return Container(
       padding: const EdgeInsets.all(14),
@@ -2564,8 +2637,8 @@ class _MapInfoCard extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _cell("Check In", _clean(inTime), late: _isLate, area: inArea),
-              _cell("Check Out", out, area: out == "-" ? null : outArea),
+              _cell("Check In", _clean(inTime), late: _isLate, area: inArea, lines: inLines),
+              _cell("Check Out", out, area: out == "-" ? null : outArea, lines: outLines),
               _cell("Total Hrs", total),
             ],
           ),
@@ -2578,12 +2651,24 @@ class _MapInfoCard extends StatelessWidget {
 class _TimeEntry {
   final String time, lat, lng;
   final DateTime? dt;
-  _TimeEntry(this.time, this.lat, this.lng, this.dt);
+  final String status; // "1" = in, "2" = out
+  _TimeEntry(this.time, this.lat, this.lng, this.dt, [this.status = "1"]);
 }
 
 class _AttParts {
   final String inTime, outTime, timeD, lat1, lng1, lat2, lng2;
-  _AttParts(this.inTime, this.outTime, this.timeD, this.lat1, this.lng1, this.lat2, this.lng2);
+  /// ✅ NEW: ella sessions (in -> out), time order-la
+  final List<_Session> sessions;
+  _AttParts(this.inTime, this.outTime, this.timeD, this.lat1, this.lng1, this.lat2, this.lng2,
+      [this.sessions = const []]);
+}
+
+/// ✅ NEW: oru check in -> check out. outTime "" = innum check-in-la
+class _Session {
+  final String inTime, outTime, duration, inLat, inLng, outLat, outLng;
+  const _Session(this.inTime, this.outTime, this.duration,
+      this.inLat, this.inLng, this.outLat, this.outLng);
+  bool get isOpen => outTime.isEmpty;
 }
 
 /// ✅ NEW: permission info (applied or auto)
