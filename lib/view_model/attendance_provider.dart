@@ -846,10 +846,12 @@ class AttendanceProvider with ChangeNotifier{
           final tms = (response[i].time ?? "").split(",").map((e) => e.trim()).toList();
           final idx = sts.indexOf("1");
           var inTime = "";
+          // ✅ check-in ("1") illana late count-la serkkaadhu
+          // (munnadi tms[0] edutthu permission time-a late-nu count pannuchu)
           if (idx >= 0 && idx < tms.length) {
             inTime = tms[idx];
-          } else if (tms.isNotEmpty) {
-            inTime = tms[0];
+          } else if (!sts.any((x) => x == "1" || x == "2") && tms.isNotEmpty) {
+            inTime = tms[0]; // status field-e illaadha palaya data
           }
           if(isLate(inTime)){
             count2++;
@@ -1489,6 +1491,12 @@ class AttendanceProvider with ChangeNotifier{
   bool _isMarking = false;
   bool _isMarkingPermission = false;
 
+  /// valid latitude / longitude number-ah (0, "null", "" illa)
+  bool _validCoord(String? v) {
+    final d = double.tryParse((v ?? "").trim());
+    return d != null && d.isFinite && d != 0;
+  }
+
   /// Last reason a sync failed (shown in the toast, useful for debugging).
   String _lastSyncError = "";
   String get lastSyncError => _lastSyncError;
@@ -1764,12 +1772,11 @@ class AttendanceProvider with ChangeNotifier{
     }
 
     // Location validation
+    // ✅ "null" / "" / "0" / text -> ellame reject (munnadi "null" string pass aachu)
     if (lat == null ||
         lng == null ||
-        lat.isEmpty ||
-        lng.isEmpty ||
-        lat == "0.0" ||
-        lng == "0.0") {
+        !_validCoord(lat) ||
+        !_validCoord(lng)) {
       utils.showWarningToast(
         context,
         text: "Location not available. Please enable GPS and try again.",
@@ -2161,6 +2168,12 @@ class AttendanceProvider with ChangeNotifier{
   Future putDailyPermission(context, String status, String lat, String lng) async {
 
     if (_isMarkingPermission) return;
+    // ✅ permission-kum location validate (munnadi check-e illa)
+    if (!_validCoord(lat) || !_validCoord(lng)) {
+      utils.showWarningToast(context,
+          text: "Location not available. Please enable GPS and try again.");
+      return;
+    }
     _isMarkingPermission = true;
 
     showDialog(

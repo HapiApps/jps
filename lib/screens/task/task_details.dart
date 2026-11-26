@@ -28,6 +28,7 @@ import '../../view_model/expense_provider.dart';
 import '../../view_model/task_provider.dart';
 import '../common/dashboard.dart';
 import 'edit_task.dart';
+import 'task_summary_pdf.dart';
 
 class TaskDetails extends StatefulWidget {
   final TaskData data;
@@ -79,6 +80,13 @@ class _TaskDetailsState extends State<TaskDetails>
   Duration currentPosition = Duration.zero;
   Duration networkCurrent = Duration.zero;
   Duration networkTotal = Duration.zero;
+
+  // ===== TASK SUMMARY PDF =====
+  bool _pdfBusy = false;
+
+  /// ✅ indha page-oda sondha data load (history / comments / work history).
+  /// PDF button idha wait pannum -> "still loading" block illa.
+  Future<void> _loadFuture = Future.value();
 
   // ===== VOICE TO TEXT (url -> transcript) =====
   final Map<String, String> _transcripts = {};
@@ -159,7 +167,7 @@ class _TaskDetailsState extends State<TaskDetails>
     });
 
     /// ================= API LOAD =================
-    Future.microtask(() async {
+    _loadFuture = Future.microtask(() async {
       if (!mounted) return;
 
       final taskProvider = Provider.of<TaskProvider>(context, listen: false);
@@ -682,6 +690,9 @@ class _TaskDetailsState extends State<TaskDetails>
   Future<void> _afterTimerAction(TaskProvider tp) async {
     if (!mounted) return;
     await tp.getWorkHistory(widget.data.id.toString());
+    // ✅ Complete -> status "Completed" aagum, Progress Tracker-um refresh
+    if (!mounted) return;
+    await tp.getStatusHistory(widget.data.id.toString());
   }
 
   Future<void> _confirmComplete(TaskProvider tp, TaskData d) async {
@@ -1146,6 +1157,215 @@ class _TaskDetailsState extends State<TaskDetails>
     });
   }
 
+  // ===========================================================================
+  // TASK SUMMARY PDF (Download / Share / Print)
+  // ===========================================================================
+  void _openPdfMenu() {
+    HapticFeedback.lightImpact();
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetCtx) {
+        Widget item(IconData icon, Color color, String title, String sub, String action) {
+          return ListTile(
+            leading: Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.10),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(icon, color: color, size: 20),
+            ),
+            title: Text(title,
+                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
+            subtitle: Text(sub, style: const TextStyle(fontSize: 12)),
+            onTap: () {
+              Navigator.pop(sheetCtx);
+              _makePdf(action);
+            },
+          );
+        }
+
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(8, 14, 8, 8),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Padding(
+                  padding: EdgeInsets.only(left: 16, bottom: 6),
+                  child: Text("Task Summary Report (PDF)",
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+                ),
+                item(Icons.download_rounded, const Color(0xff0B5FB5), "Download PDF",
+                    "Save and open the summary", "download"),
+                item(Icons.share_rounded, const Color(0xff1FAF38), "Share PDF",
+                    "WhatsApp, mail or save to Files", "share"),
+                if (!kIsWeb)
+                  item(Icons.print_rounded, const Color(0xff7C3AED), "Print / Preview",
+                      "Preview before printing", "print"),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _makePdf(String action) async {
+    if (_pdfBusy) return;
+    final tp = Provider.of<TaskProvider>(context, listen: false);
+    final cp = Provider.of<CustomerProvider>(context, listen: false);
+
+    // ✅ munnadi: flag false-na udane "still loading" toast + block.
+    // Ippo: icon-la spinner kaatti, data load mudiyura varaikkum wait pannum.
+    setState(() => _pdfBusy = true);
+    try {
+      await _waitForData(tp, cp);
+      if (!mounted) return;
+      final task = tp.latestTask(widget.data);
+      final id = task.id.toString();
+
+      // status history (oldest -> newest)
+      final hist = tp.historyDetails
+          .map((h) => Map<String, dynamic>.from(h as Map))
+          .toList()
+        ..sort((a, b) => (a["created_ts"] ?? "")
+            .toString()
+            .compareTo((b["created_ts"] ?? "").toString()));
+      final statusHistory = hist.map((h) {
+        final d = DateTime.tryParse((h["created_ts"] ?? "").toString());
+        return {
+          "status": (h["value"] ?? "").toString(),
+          "by": (h["firstname"] ?? "").toString(),
+          "time": d != null
+              ? DateFormat("dd-MM-yyyy hh:mm a").format(d)
+              : (h["created_ts"] ?? "").toString(),
+        };
+      }).toList();
+
+      // work history (same calc as the Work History card)
+      final workHistory = _buildWorkRows(tp.workHistory)
+          .map((r) => {
+        "action": r["label"].toString(),
+        "by": r["name"].toString(),
+        "note": r["note"].toString(),
+        "time": r["time"].toString(),
+      })
+          .toList();
+
+      // ALL comments (card-la last 5 mattum, PDF-la ellame)
+      final comments = cp.customerReport.map((m) {
+        String doc = (m.documents ?? "").toString().trim();
+        if (doc == "null") doc = "";
+        final parts = doc.split('||').map((e) => e.trim()).where((e) => e.isNotEmpty);
+        final hasVoice = parts.any(_isAudioFile);
+        String text = (m.comments ?? "").toString().trim();
+        if (text == "null") text = "";
+        if (text.isEmpty) {
+          text = hasVoice ? "[Voice note]" : (doc.isNotEmpty ? "[Attachment]" : "");
+        } else if (hasVoice) {
+          text = "$text  [Voice note]";
+        }
+        final d = DateTime.tryParse(m.createdTs.toString());
+        return {
+          "by": m.firstname.toString(),
+          "text": text,
+          "time": d != null
+              ? DateFormat("dd-MM-yyyy hh:mm a").format(d)
+              : m.createdTs.toString(),
+        };
+      }).toList();
+
+      final bytes = await TaskSummaryPdf.build(TaskSummaryData(
+        task: task,
+        workState: tp.workState(task),
+        workedSeconds: tp.currentSeconds(id),
+        statusHistory: statusHistory,
+        workHistory: workHistory,
+        comments: comments,
+        imagePaths: imgList.map((e) => e.toString()).toList(),
+        voiceCount: voiceC,
+      ));
+
+      final name = TaskSummaryPdf.fileName(task);
+      if (action == "share") {
+        await TaskSummaryPdf.share(bytes, name);
+      } else if (action == "print") {
+        await TaskSummaryPdf.printPdf(bytes, name);
+      } else {
+        await TaskSummaryPdf.download(bytes, name);
+        if (mounted) {
+          utils.showSuccessToast(context: context, text: "Task summary downloaded");
+        }
+      }
+    } catch (e, st) {
+      debugPrint("TASK PDF ERROR => $e\n$st");
+      if (mounted) {
+        // ✅ real reason kaattum (munnadi "Unable to create PDF" mattum)
+        var msg = e.toString().replaceFirst('Exception: ', '');
+        if (msg.length > 120) msg = "${msg.substring(0, 120)}...";
+        utils.showWarningToast(context, text: "Unable to create PDF: $msg");
+      }
+    } finally {
+      if (mounted) setState(() => _pdfBusy = false);
+    }
+  }
+
+  /// role int-ah save aagirundhaalum ("1" / 1) correct-ah check aagum
+  bool get _isAdmin => localData.storage.read("role").toString() == "1";
+
+  /// App bar-la chinna round icon button (PDF / Edit same size, same look)
+  Widget _appBarAction({
+    required String tooltip,
+    required VoidCallback? onTap,
+    required Widget child,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 3),
+      child: Tooltip(
+        message: tooltip,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(20),
+          onTap: onTap,
+          child: Container(
+            width: 36,
+            height: 36,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: colorsConst.primary.withOpacity(0.10),
+              shape: BoxShape.circle,
+            ),
+            child: child,
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Page data load mudiyura varaikkum wait (max ~20 sec), apram irukkura
+  /// data-oda PDF generate aagum. Shared provider flags (refresh) vera page
+  /// API-aala false-ah stuck aanaalum ninnudaadhu.
+  Future<void> _waitForData(TaskProvider tp, CustomerProvider cp) async {
+    try {
+      await _loadFuture.timeout(const Duration(seconds: 15));
+    } catch (_) {
+      // timeout / error -> irukkura data-vae podhum
+    }
+    // timer action apram work history / status history reload nadandhaa
+    final until = DateTime.now().add(const Duration(seconds: 5));
+    while (mounted &&
+        (tp.workHistoryLoading || tp.refresh == false || cp.refresh == false) &&
+        DateTime.now().isBefore(until)) {
+      await Future.delayed(const Duration(milliseconds: 250));
+    }
+  }
+
   /// Go back INSTANTLY (pop first, no waiting for network call).
   void _handleBack() {
     HapticFeedback.lightImpact();
@@ -1224,24 +1444,44 @@ class _TaskDetailsState extends State<TaskDetails>
                 ),
               ),
               actions: [
-                if (widget.data.statval != "Completed" &&
-                    localData.storage.read("role") == "1")
-                  IconButton(
-                      onPressed: () {
-                        HapticFeedback.lightImpact();
-                        utils.navigatePage(
-                            context,
-                                () => DashBoard(
-                                child: EditTask(
-                                    data: widget.data,
-                                    isDirect: widget.isDirect,
-                                    numberList: widget.numberList)));
-                      },
-                      icon: SvgPicture.asset(
-                        assets.tEdit,
-                        width: 20,
-                        height: 20,
-                      )),
+                /// ✅ TASK SUMMARY PDF (ellaarukkum)
+                _appBarAction(
+                  tooltip: "Task summary PDF",
+                  onTap: _pdfBusy ? null : _openPdfMenu,
+                  child: _pdfBusy
+                      ? SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(
+                        strokeWidth: 2, color: colorsConst.primary),
+                  )
+                      : Icon(Icons.picture_as_pdf_outlined,
+                      color: colorsConst.primary, size: 20),
+                ),
+
+                /// ✅ EDIT (admin-ku eppovum, Completed task-um edit pannalaam)
+                if (_isAdmin)
+                  _appBarAction(
+                    tooltip: "Edit task",
+                    onTap: () {
+                      HapticFeedback.lightImpact();
+                      utils.navigatePage(
+                          context,
+                              () => DashBoard(
+                              child: EditTask(
+                                  data: taskProvider.latestTask(widget.data),
+                                  isDirect: widget.isDirect,
+                                  numberList: widget.numberList)));
+                    },
+                    child: SvgPicture.asset(
+                      assets.tEdit,
+                      width: 18,
+                      height: 18,
+                      placeholderBuilder: (_) => Icon(Icons.edit_outlined,
+                          size: 18, color: colorsConst.primary),
+                    ),
+                  ),
+                8.width,
               ],
             ),
             floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,

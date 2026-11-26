@@ -135,6 +135,9 @@ class _ViewTaskState extends State<ViewTaskPage> with SingleTickerProviderStateM
 
       taskProvider.getAllTask(true);
 
+      // ✅ saved pins (logout / login aanaalum irukkum)
+      taskProvider.loadPinnedTasks();
+
       // ============ 2) DROPDOWN / MASTER DATA ============
       if (kIsWeb) {
         taskProvider.getTaskType(false);
@@ -384,6 +387,127 @@ class _ChipStyle {
   final Color fg;
   final IconData icon;
   const _ChipStyle(this.label, this.bg, this.fg, this.icon);
+}
+
+/// ---------------------------------------------------------------------------
+/// ✅ PIN / UNPIN CONFIRMATION POPUP
+/// Used by: task list card long-press + calendar tab tile long-press.
+/// Returns true only when the user taps "Pin" / "Unpin".
+/// ---------------------------------------------------------------------------
+Future<bool> _confirmPinDialog(
+    BuildContext context, TaskData task, bool isPinned) async {
+  final String title = (task.taskTitle ?? "").toString().trim();
+  final Color primary = colorsConst.primary;
+  final Color accent = isPinned ? const Color(0xffE5383B) : primary;
+
+  final result = await showDialog<bool>(
+    context: context,
+    barrierDismissible: true,
+    builder: (dCtx) {
+      return Dialog(
+        backgroundColor: Colors.white,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 32),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 360),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 22, 20, 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 52,
+                  height: 52,
+                  decoration: BoxDecoration(
+                    color: accent.withOpacity(0.10),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    isPinned ? Icons.push_pin_outlined : Icons.push_pin_rounded,
+                    color: accent,
+                    size: 26,
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Text(
+                  isPinned ? "Unpin this task?" : "Pin this task?",
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xff14151F),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                if (title.isNotEmpty) ...[
+                  Text(
+                    title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xff374151),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                ],
+                Text(
+                  isPinned
+                      ? "It will go back to its normal position in the list."
+                      : "It will stay at the top of your task list.",
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontSize: 13, color: Color(0xff6B7280)),
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  children: [
+                    Expanded(
+                      child: SizedBox(
+                        height: 44,
+                        child: OutlinedButton(
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: const Color(0xff374151),
+                            side: const BorderSide(color: Color(0xffD9DCE1)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                          onPressed: () => Navigator.of(dCtx).pop(false),
+                          child: const Text("Cancel"),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: SizedBox(
+                        height: 44,
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: accent,
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                          onPressed: () => Navigator.of(dCtx).pop(true),
+                          child: Text(isPinned ? "Unpin" : "Pin"),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    },
+  );
+
+  return result == true;
 }
 
 /// Display text only. Logic / API still use the English status value.
@@ -1978,6 +2102,54 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>
     );
   }
 
+  // -------------------------------------------------------------------------
+  // ✅ PIN (long press)
+  // -------------------------------------------------------------------------
+  Future<void> _togglePin(TaskData data) async {
+    _myFocusScopeNode.unfocus();
+    HapticFeedback.mediumImpact();
+
+    // ✅ confirmation popup mudhalla
+    final tp = context.read<TaskProvider>();
+    final ok = await _confirmPinDialog(context, data, tp.isPinned(data));
+    if (!ok || !mounted) return;
+
+    final pinned = await tp.togglePin(data);
+    if (!mounted) return;
+    if (pinned) _resetPaging(); // pinned task mela pogum -> top-ku scroll
+    utils.showSuccessToast(
+      context: context,
+      text: pinned ? "Task pinned to top" : "Task unpinned",
+    );
+  }
+
+  Widget _pinTag() {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(5, 2, 7, 2),
+      decoration: BoxDecoration(
+        color: colorsConst.primary.withOpacity(0.10),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: colorsConst.primary.withOpacity(0.35)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.push_pin_rounded, size: 11, color: colorsConst.primary),
+          const SizedBox(width: 3),
+          Text(
+            "PINNED",
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.6,
+              color: colorsConst.primary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _metaItem(
       IconData icon,
       String text, {
@@ -2027,6 +2199,7 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>
 
     final priorityStyle = _priorityStyle(data.level.toString());
     final bool isNew = _isNewTask(data);
+    final bool pinned = tp.isPinned(data);
 
     // due date
     final dueDate = _parseDate(data.taskDate);
@@ -2055,6 +2228,7 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: () => _openDetails(data, index),
+        onLongPress: () => _togglePin(data), // ✅ pin / unpin
         child: Container(
           padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
           decoration: BoxDecoration(
@@ -2063,10 +2237,12 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>
             border: Border.all(
               color: workState == "running"
                   ? const Color(0xff1FAF38).withOpacity(0.45)
+                  : pinned
+                  ? colorsConst.primary.withOpacity(0.45)
                   : isNew
                   ? const Color(0xffFF8A00).withOpacity(0.35)
                   : const Color(0xffE9ECF0),
-              width: (workState == "running" || isNew) ? 1.4 : 1,
+              width: (workState == "running" || pinned || isNew) ? 1.4 : 1,
             ),
           ),
           child: Column(
@@ -2082,6 +2258,7 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>
                       runSpacing: 4,
                       crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
+                        if (pinned) _pinTag(), // ✅
                         // NEW / OLD mudhalla -> kannukku udane theriyum
                         isNew ? _newTag() : _oldTag(),
                         _pill(statusStyle),
@@ -3088,7 +3265,12 @@ class _TaskCalendarTabState extends State<_TaskCalendarTab> {
       builder: (ctx, _, __) {
         final tp = ctx.read<TaskProvider>();
         _rebuildIndex(tp);
-        final dayTasks = _byDay[_key(_selected)] ?? const <TaskData>[];
+        final rawDay = _byDay[_key(_selected)] ?? const <TaskData>[];
+        // ✅ pinned tasks andha naal list-layum mela
+        final dayTasks = [
+          ...rawDay.where(tp.isPinned),
+          ...rawDay.where((t) => !tp.isPinned(t)),
+        ];
 
         return ListView(
           physics: const ClampingScrollPhysics(),
@@ -3355,6 +3537,20 @@ class _TaskCalendarTabState extends State<_TaskCalendarTab> {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: () => _open(t, tp),
+      onLongPress: () async {
+        HapticFeedback.mediumImpact();
+
+        // ✅ confirmation popup mudhalla
+        final ok = await _confirmPinDialog(context, t, tp.isPinned(t));
+        if (!ok || !mounted) return;
+
+        final pinned = await tp.togglePin(t);
+        if (!mounted) return;
+        utils.showSuccessToast(
+          context: context,
+          text: pinned ? "Task pinned to top" : "Task unpinned",
+        );
+      },
       child: Container(
         margin: const EdgeInsets.only(bottom: 12), // was 10
         padding: const EdgeInsets.all(16), // was (14,14,12,14)
@@ -3388,15 +3584,26 @@ class _TaskCalendarTabState extends State<_TaskCalendarTab> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    t.taskTitle ?? "",
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 18, // was 16
-                      fontWeight: FontWeight.w600,
-                      color: _dark,
-                    ),
+                  Row(
+                    children: [
+                      if (tp.isPinned(t)) ...[
+                        Icon(Icons.push_pin_rounded,
+                            size: 15, color: colorsConst.primary),
+                        const SizedBox(width: 4),
+                      ],
+                      Expanded(
+                        child: Text(
+                          t.taskTitle ?? "",
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 18, // was 16
+                            fontWeight: FontWeight.w600,
+                            color: _dark,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 2), // was 4
                   Row(

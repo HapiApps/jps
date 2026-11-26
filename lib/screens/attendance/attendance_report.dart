@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
@@ -306,45 +307,83 @@ class _AttendanceReportState extends State<AttendanceReport> {
   /// `late final` -> Geocoding() is created only on first use,
   /// so it never runs on Flutter Web (the usage below is guarded by kIsWeb).
   late final Geocoding geocodingService = Geocoding();
-  Future<String> _getAreaName(String lat, String lng) async {
-    try {
-      if (lat.isEmpty || lng.isEmpty) return "-";
-      final String key = "$lat,$lng";
-      if (_areaCache.containsKey(key)) return _areaCache[key]!;
 
-      final double? latitude = double.tryParse(lat);
-      final double? longitude = double.tryParse(lng);
-      if (latitude == null || longitude == null) return "-";
+  /// ✅ ore lat,lng-ku ore request (list-la 20 card irundhaalum)
+  final Map<String, Future<String>> _areaInFlight = {};
 
-      String result = "-";
+  /// ✅ web Nominatim: 1 request / sec limit. Munnadi ella card-um orey
+  /// neram call panni 429 vandhu "-" cache aagi, andha session muzhukka
+  /// location theriyala.
+  Future<void> _nominatimGate = Future.value();
 
-      if (kIsWeb) {
-        final res = await http.get(Uri.parse(
-            'https://nominatim.openstreetmap.org/reverse?format=jsonv2'
-                '&lat=$latitude&lon=$longitude&zoom=16&addressdetails=1&accept-language=en'));
-        if (res.statusCode == 200) {
-          final Map<String, dynamic> a =
-          (jsonDecode(res.body)['address'] ?? {}) as Map<String, dynamic>;
-          final String sub = (a['suburb'] ?? a['neighbourhood'] ?? a['city_district'] ?? '').toString();
-          final String city = (a['city'] ?? a['town'] ?? a['village'] ?? a['county'] ?? '').toString();
-          final String area = "$sub, $city".replaceAll(RegExp(r'^, |, $'), '').trim();
-          if (area.isNotEmpty && area != ",") result = area;
-        }
-      } else {
-        final List<Placemark> placemarks =
-        await geocodingService.placemarkFromCoordinates(latitude, longitude);
-        if (placemarks.isNotEmpty) {
-          final Placemark place = placemarks.first;
-          final String area = "${place.subLocality ?? ''} ${place.locality ?? ''}".trim();
-          result = area.isNotEmpty ? area : (place.name ?? "-");
-        }
-      }
+  String _coordText(double lat, double lng) =>
+      "${lat.toStringAsFixed(5)}, ${lng.toStringAsFixed(5)}";
 
-      _areaCache[key] = result;
-      return result;
-    } catch (e) {
-      return "-";
+  Future<String> _getAreaName(String lat, String lng) {
+    if (lat.trim().isEmpty || lng.trim().isEmpty) return Future.value("-");
+    final double? latitude = double.tryParse(lat.trim());
+    final double? longitude = double.tryParse(lng.trim());
+    if (latitude == null || longitude == null || latitude == 0 || longitude == 0) {
+      return Future.value("-");
     }
+    final String key = "$latitude,$longitude";
+    final cached = _areaCache[key];
+    if (cached != null) return Future.value(cached);
+    return _areaInFlight[key] ??= _lookupArea(key, latitude, longitude)
+        .whenComplete(() => _areaInFlight.remove(key));
+  }
+
+  Future<String> _lookupArea(String key, double latitude, double longitude) async {
+    for (int attempt = 1; attempt <= 2; attempt++) {
+      try {
+        String? area;
+        if (kIsWeb) {
+          // queue -> oru nerathula oru request, 1.1 sec gap
+          final prev = _nominatimGate;
+          final done = Completer<void>();
+          _nominatimGate = done.future;
+          await prev;
+          try {
+            final res = await http
+                .get(Uri.parse(
+                'https://nominatim.openstreetmap.org/reverse?format=jsonv2'
+                    '&lat=$latitude&lon=$longitude&zoom=16&addressdetails=1&accept-language=en'))
+                .timeout(const Duration(seconds: 10));
+            if (res.statusCode == 200) {
+              final Map<String, dynamic> a =
+              (jsonDecode(res.body)['address'] ?? {}) as Map<String, dynamic>;
+              final String sub = (a['suburb'] ?? a['neighbourhood'] ?? a['city_district'] ?? '').toString();
+              final String city = (a['city'] ?? a['town'] ?? a['village'] ?? a['county'] ?? '').toString();
+              final String v = "$sub, $city".replaceAll(RegExp(r'^, |, $'), '').trim();
+              if (v.isNotEmpty && v != ",") area = v;
+            } else {
+              debugPrint("Nominatim ${res.statusCode} for $key");
+            }
+          } finally {
+            Future.delayed(const Duration(milliseconds: 1100), done.complete);
+          }
+        } else {
+          final List<Placemark> placemarks = await geocodingService
+              .placemarkFromCoordinates(latitude, longitude)
+              .timeout(const Duration(seconds: 10));
+          if (placemarks.isNotEmpty) {
+            final Placemark place = placemarks.first;
+            final String v = "${place.subLocality ?? ''} ${place.locality ?? ''}".trim();
+            area = v.isNotEmpty ? v : place.name;
+          }
+        }
+        if (area != null && area.trim().isNotEmpty) {
+          _areaCache[key] = area; // ✅ success mattum cache
+          return area;
+        }
+      } catch (e) {
+        debugPrint("Area lookup attempt $attempt failed for $key: $e");
+      }
+      if (attempt < 2) await Future.delayed(const Duration(seconds: 2));
+    }
+    // ✅ area name kidaikkala -> "-" illa, coordinates kaattu (cache pannaadhu,
+    // adutha dhadava thirumba try aagum)
+    return _coordText(latitude, longitude);
   }
 
   /// ✅ "check in/out : area1  area2" inline text
@@ -927,7 +966,7 @@ class _AttendanceReportState extends State<AttendanceReport> {
     return Consumer4<AttendanceProvider,EmployeeProvider,HomeProvider,LeaveProvider>
       (builder: (context,attProvider,empProvider,homeProvider,levPvr,_){
       // ✅ filters (date + employee) ellaa tab layum correct aa apply aaga, list ah inga filter pannrom
-      final List<AttendanceModel> presentList = _userFiltered(attProvider);
+      final List<AttendanceModel> presentList = _presentList(attProvider); // ✅ check-in pannavanga mattum
       final List<dynamic> absentList = _filteredAbsent(attProvider, levPvr, empProvider); // ✅ CHANGED
       final List<AttendanceModel> permList = _permissionList(attProvider);                // ✅ NEW
       final List<AttendanceModel> lateAll = _lateList(attProvider);                       // ✅ NEW (Late tab = 9:10 ku apram check-in)
@@ -1185,7 +1224,7 @@ class _AttendanceReportState extends State<AttendanceReport> {
                             itemBuilder: (context, index) {
 
                               final sortedData =
-                              List<AttendanceModel>.from(_userFiltered(attProvider));
+                              List<AttendanceModel>.from(_presentList(attProvider));
 
                               sortedData.sort((a, b) {
 
@@ -1345,6 +1384,13 @@ class _AttendanceReportState extends State<AttendanceReport> {
                                                   crossAxisAlignment: CrossAxisAlignment.start,
                                                   children: [
                                                     CustomText(text: data.firstname.toString(), isBold: true),
+                                                    // ✅ permission potu check-in pannaadhavanga
+                                                    if (data is _AbsentRow && data.note.isNotEmpty)
+                                                      CustomText(
+                                                        text: data.note,
+                                                        size: 11,
+                                                        colors: Colors.red,
+                                                      ),
 
                                                   ],
                                                 ),
@@ -1372,7 +1418,7 @@ class _AttendanceReportState extends State<AttendanceReport> {
                             builder: (context) {
 
                               final sortedData =
-                              List<AttendanceModel>.from(_userFiltered(attProvider));
+                              List<AttendanceModel>.from(_presentList(attProvider));
 
                               sortedData.sort((a, b) {
                                 DateTime aTime =
@@ -1514,9 +1560,15 @@ class _AttendanceReportState extends State<AttendanceReport> {
                                   AttendanceModel data = filteredList[index];
 
                                   // ✅ earlier time = In, later time = Out (lat/lng um pair aa move aagum)
-                                  final parts = _splitAttendance(data, attProvider);
+                                  // ✅ check-in pannala-na permission time-a In/Out-la kaattakoodaadhu
+                                  final bool checkedIn = _hasCheckIn(data);
+                                  final _AttParts parts = checkedIn
+                                      ? _splitAttendance(data, attProvider)
+                                      : _AttParts("-", "-", "-", "", "", "", "", const []);
                                   final String inTime  = parts.inTime;
-                                  final String outTime = _outLabel(data, parts.outTime, levPvr);
+                                  final String outTime = checkedIn
+                                      ? _outLabel(data, parts.outTime, levPvr)
+                                      : (_missedCheckIn(data) ? "Check-in missed" : "Not checked in");
                                   final String timeD   = parts.timeD;
                                   final String lat1 = parts.lat1;
                                   final String lng1 = parts.lng1;
@@ -1885,7 +1937,7 @@ class _AttendanceReportState extends State<AttendanceReport> {
 
   /// ✅ Late tab list (selected employee + date filter already applied in _userFiltered)
   List<AttendanceModel> _lateList(AttendanceProvider att) {
-    final list = _userFiltered(att)
+    final list = _presentList(att)
         .where((d) => isLate(_splitAttendance(d, att).inTime))
         .toList();
     list.sort((a, b) {
@@ -2046,6 +2098,88 @@ class _AttendanceReportState extends State<AttendanceReport> {
     return _PermInfo(d.perStatus.toString(), d.perReason.toString(), d.perTime.toString());
   }
 
+  // ==========================================================================
+  // ✅ CHECK-IN vs PERMISSION RULES
+  //  * Present / Late  -> real check-in ("1" status + time) irundha mattum
+  //  * Permission potu check-in pannala -> Permission tab-la mattum
+  //  * Permission mudinju (permission out) + 15 min aagiyum check-in illa
+  //    -> "Check-in missed" + Absent tab-la varum
+  //  * Permission innum mudiyala (today) -> grace, absent-la podaadhu
+  //  * Munnadi naal (past day) check-in illa -> missed
+  // ==========================================================================
+  static const int _permGraceMins = 15;
+
+  bool _validT(String t) {
+    final v = t.trim();
+    return v.isNotEmpty && v != "null" && v != "-";
+  }
+
+  /// real check-in irukka?
+  bool _hasCheckIn(AttendanceModel d) {
+    final times = (d.time ?? "").split(",").map((e) => e.trim()).toList();
+    final sts = (d.status?.toString() ?? "").split(",").map((e) => e.trim()).toList();
+    final bool hasStatus = sts.any((s) => s == "1" || s == "2");
+    if (hasStatus) {
+      for (int i = 0; i < sts.length; i++) {
+        if (sts[i] == "1" && i < times.length && _validT(times[i])) return true;
+      }
+      return false;
+    }
+    return times.any(_validT);
+  }
+
+  /// row-oda date (createdTs -> illana perCreatedTs)
+  DateTime? _rowDay(AttendanceModel d) {
+    return _parseDay(d.createdTs.toString().split(',')[0]) ??
+        _parseDay(d.perCreatedTs.toString().split(',')[0]);
+  }
+
+  /// permission mudinja time + 15 min. null = innum permission-la (deadline illa)
+  DateTime? _permissionDeadline(AttendanceModel d) {
+    final DateTime? day = _rowDay(d);
+    if (day == null) return null;
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final bool pastDay = day.isBefore(today);
+
+    final sts = d.perStatus.toString().split(",").map((e) => e.trim()).toList();
+    final bool ended = sts.isNotEmpty && sts.last == "2"; // permission out pannitaanga
+
+    if (!ended) {
+      // permission start mattum. innaiku -> wait. past day -> missed.
+      return pastDay ? DateTime(day.year, day.month, day.day, 23, 59) : null;
+    }
+
+    // permission out time = perTime-la kadaisi parse aagura time
+    DateTime? end;
+    final parts = d.perTime
+        .toString()
+        .split(RegExp(r'\s*(,|\|\||\s-\s|\bto\b)\s*'))
+        .where(_validT)
+        .toList();
+    for (final t in parts.reversed) {
+      final x = _parseT(t);
+      if (x != null) {
+        end = DateTime(day.year, day.month, day.day, x.hour, x.minute);
+        break;
+      }
+    }
+    // time parse aagala -> past day-na missed, innaiku-na day end varai wait
+    end ??= DateTime(day.year, day.month, day.day, pastDay ? 0 : 23, pastDay ? 0 : 59);
+    return end.add(const Duration(minutes: _permGraceMins));
+  }
+
+  /// permission potu, grace thaandiyum check-in pannala
+  bool _missedCheckIn(AttendanceModel d) {
+    if (!_hasAppliedPermission(d) || _hasCheckIn(d)) return false;
+    final dl = _permissionDeadline(d);
+    return dl != null && DateTime.now().isAfter(dl);
+  }
+
+  /// Present tab: real check-in mattum
+  List<AttendanceModel> _presentList(AttendanceProvider att) =>
+      _userFiltered(att).where(_hasCheckIn).toList();
+
   /// Permission tab: applied permission mattum
   List<AttendanceModel> _permissionList(AttendanceProvider att) {
     final list = _userFiltered(att).where(_hasAppliedPermission).toList();
@@ -2097,6 +2231,41 @@ class _AttendanceReportState extends State<AttendanceReport> {
       return _nameMatch(d.firstname?.toString(), att.userName);
     }));
 
+    // ✅ 1b) permission potu, permission mudinju 15 min aagiyum check-in pannala -> Absent
+    //      permission innum nadakkudhu / grace kulla -> absent-la podakoodaadhu
+    final Set<String> seenMissed = {};
+    final Set<String> onPermission = {}; // "id|day" -> grace kulla, absent illa
+    for (final d in _userFiltered(att)) {
+      if (!_hasAppliedPermission(d) || _hasCheckIn(d)) continue;
+      final DateTime? day = _rowDay(d);
+      if (day == null) continue;
+      if (fs != null && fe != null && (day.isBefore(fs) || day.isAfter(fe))) continue;
+      final String name = d.firstname.toString();
+      if (!_nameMatch(name, att.userName)) continue;
+      if (_onLeave(lev, d.salesmanId.toString(), name, day)) continue;
+
+      if (!_missedCheckIn(d)) {
+        onPermission.add("${d.salesmanId}|${_dayKey(day)}");
+        continue;
+      }
+      final key = "${name.trim().toLowerCase()}|${_dayKey(day)}";
+      if (!seenMissed.add(key)) continue;
+      // backend absent list-la already irundha, adhukku note mattum podu
+      out.removeWhere((x) {
+        final md = _parseDay(x.missingDate?.toString());
+        return md != null &&
+            _dayKey(md) == _dayKey(day) &&
+            x.firstname.toString().trim().toLowerCase() == name.trim().toLowerCase();
+      });
+      out.add(_AbsentRow(
+        firstname: name,
+        role: d.role.toString(),
+        missingDate:
+        "${day.year}-${day.month.toString().padLeft(2, '0')}-${day.day.toString().padLeft(2, '0')}",
+        note: "Permission taken – check-in missing",
+      ));
+    }
+
     // 2) local: check-in pannaadhavanga (admin mattum)
     if (localData.storage.read("role").toString() == "1" && fs != null && fe != null) {
       final now = DateTime.now();
@@ -2116,11 +2285,13 @@ class _AttendanceReportState extends State<AttendanceReport> {
 
       final Set<String> present = {};
       for (final d in att.getDailyAttendance) {
+        // ✅ permission mattum potta row present illa (real check-in venum)
+        if (!_hasCheckIn(d)) continue;
         final day = _parseDay(d.createdTs.toString().split(',')[0]);
         if (day != null) present.add("${d.salesmanId}|${_dayKey(day)}");
       }
 
-      final Set<String> seen = {};
+      final Set<String> seen = {...seenMissed};
       for (final d in out) {
         final md = _parseDay(d.missingDate?.toString());
         if (md != null) {
@@ -2139,6 +2310,8 @@ class _AttendanceReportState extends State<AttendanceReport> {
           final name = u.firstname.toString();
           if (!_nameMatch(name, att.userName)) return;
           if (present.contains("$id|${_dayKey(day)}")) return;
+          // ✅ permission-la irukkaanga (grace kulla) -> innum absent illa
+          if (onPermission.contains("$id|${_dayKey(day)}")) return;
           if (_onLeave(lev, id, name, day)) return;
           final key = "${name.trim().toLowerCase()}|${_dayKey(day)}";
           if (!seen.add(key)) return;
@@ -2680,5 +2853,12 @@ class _PermInfo {
 /// ✅ NEW: locally-computed absent row (check-in illa, leave illa)
 class _AbsentRow {
   final String firstname, role, missingDate;
-  const _AbsentRow({required this.firstname, required this.role, required this.missingDate});
+  /// ✅ e.g. "Permission taken – check-in missing"
+  final String note;
+  const _AbsentRow({
+    required this.firstname,
+    required this.role,
+    required this.missingDate,
+    this.note = "",
+  });
 }

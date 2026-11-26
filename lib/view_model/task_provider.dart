@@ -262,7 +262,85 @@ class TaskProvider with ChangeNotifier {
       return true;
     }).toList();
 
+    _filterUserData = _pinFirst(_filterUserData); // ✅ pinned tasks mela
+
     notifyListeners();
+  }
+
+  // ===========================================================================
+  // ✅ PINNED TASKS (long press -> pin / unpin)
+  //  * Phone-la SharedPreferences-la save aagum (per user + per company key),
+  //    so logout panni thirumba login pannaalum pin irukkum.
+  //  * resetOnLogout() memory-a mattum clear pannum, saved pins-a illa.
+  //  * Pinned tasks list-la eppovum mela varum (kadaisiya pin pannadhu first).
+  // ===========================================================================
+  final List<String> _pinnedOrder = []; // task ids, latest pin first
+  String _pinLoadedKey = "";
+
+  String _pinKey() {
+    final cos = (localData.storage.read("cos_id") ?? "").toString();
+    final uid = (localData.storage.read("id") ?? "").toString();
+    return "pinned_tasks_${cos}_$uid";
+  }
+
+  int get pinnedCount => _pinnedOrder.length;
+
+  bool isPinned(TaskData t) => _pinnedOrder.contains(t.id.toString());
+
+  /// pinned mela (pin order-la), matha tasks appadiye same order-la
+  List<TaskData> _pinFirst(List<TaskData> list) {
+    if (_pinnedOrder.isEmpty) return list;
+    final pinned = <TaskData>[];
+    final rest = <TaskData>[];
+    for (final t in list) {
+      (_pinnedOrder.contains(t.id.toString()) ? pinned : rest).add(t);
+    }
+    if (pinned.isEmpty) return list;
+    pinned.sort((a, b) => _pinnedOrder
+        .indexOf(a.id.toString())
+        .compareTo(_pinnedOrder.indexOf(b.id.toString())));
+    return [...pinned, ...rest];
+  }
+
+  /// View Task page open aagum bodhu call pannunga (user maarinaa thirumba load)
+  Future<void> loadPinnedTasks({bool force = false}) async {
+    final key = _pinKey();
+    if (!force && key == _pinLoadedKey) return;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final saved = prefs.getStringList(key) ?? const <String>[];
+      _pinnedOrder
+        ..clear()
+        ..addAll(saved.where((e) => e.trim().isNotEmpty && e != "null"));
+      _pinLoadedKey = key;
+    } catch (e) {
+      _log("loadPinnedTasks error: $e");
+    }
+    filterList();
+  }
+
+  Future<void> _savePinned() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setStringList(_pinKey(), List<String>.from(_pinnedOrder));
+    } catch (e) {
+      _log("savePinned error: $e");
+    }
+  }
+
+  /// true = ippo pinned, false = unpinned
+  Future<bool> togglePin(TaskData t) async {
+    final id = t.id.toString();
+    if (id.isEmpty || id == "null") return false;
+    final nowPinned = !_pinnedOrder.contains(id);
+    if (nowPinned) {
+      _pinnedOrder.insert(0, id);
+    } else {
+      _pinnedOrder.remove(id);
+    }
+    filterList(); // UI udane update
+    await _savePinned();
+    return nowPinned;
   }
 
   // ---- "My tasks" mode (logged-in user's own tasks only) ----
@@ -366,6 +444,8 @@ class TaskProvider with ChangeNotifier {
 
       return isWithinDateRange && isTypeMatch && isEmpMatch && isCusMatch;
     }).toList();
+
+    _filterUserData = _pinFirst(_filterUserData); // ✅ pinned mela
 
     notifyListeners();
   }
@@ -2479,7 +2559,8 @@ class TaskProvider with ChangeNotifier {
     List<String> ids = [];
     List<String> selectedNames = [];
 
-    var list = Provider.of<EmployeeProvider>(context, listen: false).activeEmps;
+    var list = assignableEmps(
+        Provider.of<EmployeeProvider>(context, listen: false).activeEmps);
 
     for (var name in names) {
       var found = list.firstWhere(
@@ -3162,33 +3243,91 @@ class TaskProvider with ChangeNotifier {
   List<UserModel> assignEmployees = [];
   List historyDetails = [];
 
-  Future<void> getTaskUsers() async {
-    _log("========== getTaskUsers() CALLED ==========");
+  // ---- Assigned dropdown employees (network weak-a irundhaalum list kaanaama pogaadhu) ----
+  static const String _taskUsersCacheKey = "task_users_cache";
+  bool _usersLoading = false;
+  bool get usersLoading => _usersLoading;
 
+  /// Dropdown-ku list: EmployeeProvider.activeEmps -> illana task_users API -> illana local cache
+  List<UserModel> assignableEmps(List<UserModel> activeEmps) {
+    if (activeEmps.isNotEmpty) return activeEmps;
+    if (assignEmployees.isNotEmpty) return assignEmployees;
+    return _readCachedTaskUsers();
+  }
+
+  List<UserModel> _readCachedTaskUsers() {
     try {
-      Map data = {
-        "action": getAllData,
-        "search_type": "task_users",
-        "cos_id": localData.storage.read("cos_id"),
-        "role": localData.storage.read("role"),
-      };
+      final raw = localData.storage.read(_taskUsersCacheKey);
+      if (raw == null) return [];
+      final list = (raw is String ? jsonDecode(raw) : raw) as List;
+      return list
+          .map((e) => UserModel(
+        id: e["id"].toString(),
+        firstname: e["firstname"].toString(),
+      ))
+          .where((u) => u.id.toString().isNotEmpty)
+          .toList();
+    } catch (e) {
+      _log("task users cache read error: $e");
+      return [];
+    }
+  }
 
-      final response = await _taskRepo.getUsers(data);
+  void _writeCachedTaskUsers(List<UserModel> users) {
+    try {
+      localData.storage.write(
+        _taskUsersCacheKey,
+        jsonEncode(users
+            .map((u) => {"id": u.id.toString(), "firstname": u.firstname.toString()})
+            .toList()),
+      );
+    } catch (e) {
+      _log("task users cache write error: $e");
+    }
+  }
 
-      _log("Response Length: ${response.length}");
+  Future<void> getTaskUsers({int retries = 3}) async {
+    _log("========== getTaskUsers() CALLED ==========");
+    if (_usersLoading) return;
+    _usersLoading = true;
 
-      if (response.isNotEmpty) {
-        assignEmployees = [];
-        assignEmployees = response;
-      } else {
-        assignEmployees = [];
+    // munnadi saved list-a udane kaattu (offline / slow network)
+    if (assignEmployees.isEmpty) {
+      assignEmployees = _readCachedTaskUsers();
+    }
+    notifyListeners();
+
+    Map data = {
+      "action": getAllData,
+      "search_type": "task_users",
+      "cos_id": localData.storage.read("cos_id"),
+      "role": localData.storage.read("role"),
+    };
+
+    for (int attempt = 1; attempt <= retries; attempt++) {
+      try {
+        final response = await _taskRepo
+            .getUsers(data)
+            .timeout(const Duration(seconds: 20));
+        _log("getTaskUsers attempt $attempt -> ${response.length}");
+
+        if (response.isNotEmpty) {
+          assignEmployees = List<UserModel>.from(response);
+          _writeCachedTaskUsers(assignEmployees);
+          break;
+        }
+        // empty response -> palaya list-a azhikkaadhu
+        break;
+      } catch (e) {
+        // ERROR vandha list-a [] aakkaadhu (munnadi idhu thaan problem)
+        _log("getTaskUsers attempt $attempt ERROR: $e");
+        if (attempt < retries) {
+          await Future.delayed(Duration(seconds: attempt * 2));
+        }
       }
-    } catch (e, stackTrace) {
-      assignEmployees = [];
-      _log("ERROR in getTaskUsers(): $e");
-      _log(stackTrace);
     }
 
+    _usersLoading = false;
     notifyListeners();
   }
 
@@ -3269,7 +3408,9 @@ class TaskProvider with ChangeNotifier {
 
     _type = null;
     _status = null;
-    _assignedId = "";
+    // ✅ FIX: munnadi _assignedId mattum clear aachu, _assignedNames illa ->
+    // Add Task thirumba open pannaa "Assigned To" field-la palaya names irundhuchu
+    resetAssigned(notify: false);
     _level = "Normal";
 
     if (typeList.isNotEmpty) {
@@ -3292,6 +3433,15 @@ class TaskProvider with ChangeNotifier {
         "${now.year}";
 
     notifyListeners();
+  }
+
+  /// ✅ "Assigned To" selection-a fully clear pannum (ids + names)
+  /// initState-la call panna notify: false kudunga (build time-la notify panna koodaadhu)
+  void resetAssigned({bool notify = true}) {
+    _assignedId = "";
+    _assignedNames = "";
+    _assName = "";
+    if (notify) notifyListeners();
   }
 
   void initEditValue(context, TaskData data) {
@@ -3937,8 +4087,16 @@ class TaskProvider with ChangeNotifier {
     {
       final id = r.id.toString();
       final status = (r.workStatus ?? "").toString().trim();
-      final serverRunning = status == "Start";
-      final serverDone = (status == "Completed" || status == "Complete");
+      final st = status.toLowerCase();
+      final serverRunning = st == "start" || st == "started" || st == "resume";
+      final serverDone = st.startsWith("complete");
+
+      // ✅ FIX: local-a Complete aagi, server innum pazhaya "Hold" anuppina
+      // (late / out-of-order response, offline cache, backend lag) ->
+      // Complete-a vidaadhu. Server-la pudhu "Start" vandha mattum thaan reset.
+      final old = taskTimers[id];
+      final keepLocalDone =
+          !serverRunning && !serverDone && old != null && old.isCompleted;
 
       // finished segments (Hold / Complete) from the server
       final acc = _parseSecs(r.totalHours);
@@ -3963,14 +4121,19 @@ class TaskProvider with ChangeNotifier {
       // work Complete aana time (last action_time) -> overdue re-open check-ku
       DateTime? doneAt;
       if (serverDone) {
-        doneAt = DateTime.tryParse((r.actionTime ?? "").trim()) ?? taskTimers[id]?.completedAt;
+        doneAt = DateTime.tryParse((r.actionTime ?? "").trim()) ?? old?.completedAt;
+      } else if (keepLocalDone) {
+        doneAt = old!.completedAt;
       }
 
       taskTimers[id] = TaskTimer(
-        accumulatedSeconds: acc,
+        // stale response-la total kammiyaa irundhaa local value-a vechukko
+        accumulatedSeconds: keepLocalDone && old!.accumulatedSeconds > acc
+            ? old.accumulatedSeconds
+            : acc,
         isRunning: serverRunning,
         startTime: start,
-        isCompleted: serverDone,
+        isCompleted: serverDone || keepLocalDone,
         completedAt: doneAt,
       );
       if (serverRunning) _startUiTicker();
@@ -4015,7 +4178,8 @@ class TaskProvider with ChangeNotifier {
     } else if (newStatus == "Completed" &&
         (prevState == "running" || prevState == "hold")) {
       if (!context.mounted) return;
-      await insertTaskLogHistory(context, id: id, level: "Complete");
+      // status already Completed (Save) -> thirumba status API venaam
+      await insertTaskLogHistory(context, id: id, level: "Complete", completeTask: false);
     }
     await getWorkHistory(id);
   }
@@ -4038,6 +4202,12 @@ class TaskProvider with ChangeNotifier {
   /// getAllTask() fail aana reason (web-la "No Task Found" mattum varaama UI-la theriyum)
   String _taskLoadError = "";
   String get taskLoadError => _taskLoadError;
+
+  /// ✅ FIX: getAllTask / getAllIncompleteTask pala idathula irundhu await
+  /// illaama call aagudhu (Hold, Complete, Save, chat...). Pazhaya request
+  /// late-ah vandhaa pudhu state-a (Complete) pazhaya state-aala (Hold)
+  /// overwrite pannidum. Kadaisi request-oda response mattum apply aagum.
+  int _taskReqSeq = 0;
 
   Future<void> getAllTask(bool isRefresh, {String? date1, String? date2, String? type}) async {
     _log("=====  getAllTask START =====");
@@ -4080,7 +4250,12 @@ class TaskProvider with ChangeNotifier {
         "id": localData.storage.read("id"),
       };
 
+      final seq = ++_taskReqSeq;
       final response = await _taskRepo.getReport(data);
+      if (seq != _taskReqSeq) {
+        _log("getAllTask: stale response ignored (#$seq, latest #$_taskReqSeq)");
+        return;
+      }
 
       if (response.isNotEmpty) {
         _allTasks = response;
@@ -4154,9 +4329,14 @@ class TaskProvider with ChangeNotifier {
 
       final cacheKey = "incomplete_${data['cos_id']}_${data['id']}_${data['role']}";
       List<TaskData> response = [];
+      final seq = ++_taskReqSeq;
 
       try {
         response = await _taskRepo.getReport(data);
+        if (seq != _taskReqSeq) {
+          _log("getAllIncompleteTask: stale response ignored");
+          return;
+        }
         if (response.isNotEmpty) {
           localData.storage.write(
             cacheKey,
@@ -5436,8 +5616,59 @@ class TaskProvider with ChangeNotifier {
     }
   }
 
+  /// ✅ FIX: Timer "Complete" -> task status-um "Completed" aaganum.
+  /// Munnadi work log mattum Complete aachu, task status Started / Assigned-aave
+  /// irundhuchu -> overdue task-la adutha naal "On Hold / Resume" thirumba vandhuchu.
+  Future<void> _markTaskCompleted(BuildContext context, String id) async {
+    try {
+      final idx = _allTasks.indexWhere((e) => e.id.toString() == id);
+      if (idx >= 0 &&
+          (_allTasks[idx].statval ?? "").toString().trim() == "Completed") {
+        return; // already completed
+      }
+
+      if (statusList.isEmpty) {
+        if (kIsWeb) {
+          await getTaskStatuses();
+        } else {
+          await getTypeSts();
+          if (statusList.isEmpty) await getTaskStatuses();
+        }
+      }
+      final match = statusList.cast<dynamic>().firstWhere(
+            (e) => (e["value"] ?? "").toString().trim().toLowerCase() == "completed",
+        orElse: () => null,
+      );
+      if (match == null) {
+        _log("markTaskCompleted: 'Completed' status not found in statusList");
+        return;
+      }
+
+      final response = await _taskRepo.updateTaskStatusApi(
+          taskId: id, status: match["id"].toString());
+      _log("markTaskCompleted => $response");
+      if (!response.toString().contains("200")) return;
+
+      // UI udane update (getAllTask varra varaikkum kaathirukka vendaam)
+      if (idx >= 0) {
+        try {
+          (_allTasks[idx] as dynamic).statval = "Completed";
+        } catch (_) {}
+      }
+      getStatusHistory(id);
+      if (context.mounted) {
+        try {
+          Provider.of<HomeProvider>(context, listen: false).loadFullDashboard(context);
+        } catch (_) {}
+      }
+    } catch (e) {
+      _log("markTaskCompleted error: $e");
+    }
+  }
+
+  /// [completeTask] = false -> task status already Completed (Progress Tracker Save)
   Future<void> insertTaskLogHistory(context,
-      {required String id, required String level}) async {
+      {required String id, required String level, bool completeTask = true}) async {
     try {
       showDialog(
         context: context,
@@ -5479,8 +5710,12 @@ class TaskProvider with ChangeNotifier {
         _updateTimerOnLog(id, level);
         _notifyAdminWork(context, id, level, resumed); // not awaited, so the UI isn't blocked
 
-        getAllTask(false);
-        Navigator.pop(context);
+        Navigator.pop(context); // loader close
+
+        if (level == "Complete" && completeTask) {
+          await _markTaskCompleted(context, id);
+        }
+        await getAllTask(false);
       } else {
         utils.showErrorToast(context: context);
         Navigator.pop(context);
@@ -5494,6 +5729,11 @@ class TaskProvider with ChangeNotifier {
 
   void resetOnLogout() {
     final now = DateTime.now();
+
+    // ✅ pins memory-la mattum clear. Phone-la saved pins appadiye irukkum,
+    // adutha login-la loadPinnedTasks() thirumba edukkum.
+    _pinnedOrder.clear();
+    _pinLoadedKey = "";
 
     timer?.cancel();
     timer = null;

@@ -70,6 +70,15 @@ const InitializationSettings initializationSettings = InitializationSettings(
 );
 
 /// ==========================================================
+/// ✅ FIX 3: LISTENER GUARDS
+/// ==========================================================
+/// main() can run again (Retry button). Without these, every extra run
+/// adds ANOTHER listener → one push shows 2, 3... notifications.
+StreamSubscription<RemoteMessage>? _onMessageSub;
+StreamSubscription<RemoteMessage>? _onOpenedSub;
+StreamSubscription<String>? _onTokenRefreshSub;
+
+/// ==========================================================
 /// NOTIFICATION TEXT LIMITS
 /// ==========================================================
 /// Only the text shown in the notification tray is shortened.
@@ -213,7 +222,9 @@ Future<String?> setupFirebaseMessaging() async {
     final FirebaseMessaging messaging = FirebaseMessaging.instance;
 
     // Token refresh listener (early register) -> server sync
-    messaging.onTokenRefresh.listen(
+    // ✅ FIX 3: cancel any old listener first
+    await _onTokenRefreshSub?.cancel();
+    _onTokenRefreshSub = messaging.onTokenRefresh.listen(
           (String newToken) {
         log("🔄 FCM TOKEN REFRESHED: $newToken");
         // final ctx = navigatorKey.currentContext;
@@ -227,14 +238,15 @@ Future<String?> setupFirebaseMessaging() async {
       },
     );
 
-    // Foreground-la alert + sound kaattanum (badge venam)
-    // Permission-ku wait pannaama mudhalla set pannidalam
+    // ✅ FIX 1: iOS should NOT auto-show FCM notifications in foreground.
+    // The onMessage listener below already shows a local notification.
+    // If alert/sound is true here, iOS shows one + we show one = 2.
     await safeCall(
       'FCM.setForegroundNotificationPresentationOptions',
           () => messaging.setForegroundNotificationPresentationOptions(
-        alert: true,
+        alert: false,
         badge: false,
-        sound: true,
+        sound: false,
       ),
       timeout: const Duration(seconds: 10),
     );
@@ -327,6 +339,15 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
     await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   } catch (e) {
     log("⚠️ Background Firebase init: $e");
+  }
+
+  // ✅ FIX 2: If the push has a `notification` block, iOS/Android has
+  // ALREADY shown it in the tray. Showing a local one too = duplicate.
+  // Tap on that system notification is handled by onMessageOpenedApp /
+  // getInitialMessage, so routing still works.
+  if (message.notification != null) {
+    log("🔕 System already displayed this notification → skip local");
+    return;
   }
 
   try {
@@ -499,7 +520,9 @@ Future<void> setupForegroundTask() async {
 }
 
 void setupForegroundFirebaseMessageListener() {
-  FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
+  // ✅ FIX 3: remove old listener before adding a new one
+  _onMessageSub?.cancel();
+  _onMessageSub = FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
     try {
       log("${message.data}");
 
@@ -622,7 +645,9 @@ void setupForegroundFirebaseMessageListener() {
 
 /// Background tap (app in background, user taps FCM notification)
 void setupNotificationOpenedListener() {
-  FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
+  // ✅ FIX 3: remove old listener before adding a new one
+  _onOpenedSub?.cancel();
+  _onOpenedSub = FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
     try {
       handleNotificationNavigation(normalizeMessage(message));
     } catch (e, st) {
@@ -711,20 +736,6 @@ Future<void> main() async {
     await setupLocalNotifications();
 
     final String? fcmToken = await setupFirebaseMessaging();
-
-    // if (fcmToken != null) {
-    //   log("🔥 FINAL FCM TOKEN: $fcmToken");
-    // } else {
-    //   log("⚠️ FCM token was not available");
-    // }
-
-    // ❌ Duplicate call removed (it requested permission + registered
-    //    onTokenRefresh listener a second time). Kept here as comment:
-    // unawaited(setupFirebaseMessaging().then((t) {
-    //   log(t != null
-    //       ? "🔥 FINAL FCM TOKEN: $t"
-    //       : "⚠️ FCM token was not available");
-    // }));
 
     log(fcmToken != null
         ? "🔥 FINAL FCM TOKEN: $fcmToken"

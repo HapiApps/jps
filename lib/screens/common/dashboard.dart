@@ -791,12 +791,13 @@ class _DashBoardState extends State<DashBoard> {
               ))),
       _PanelItem("${constValue.setting}", assets.setting, 7,
               () => const DashBoard(child: Setting())),
-      if (role != "1")
-        _PanelItem("", "", 999, () => const DashBoard(child: Setting()),
-            isShow: false),
+      // ✅ FIX: employee login-ku munnadi inga oru empty placeholder item
+      // (title "", isShow: false) irundhuchu. Mobile PanelButton adha
+      // empty box-a kaattuchu -> sidebar-la blank gap. Ippo remove pannitom.
     ];
 
-    return allItems.map((item) {
+    // ✅ hidden items (isShow: false) mobile / web rendu-layum render aagaadhu
+    return allItems.where((item) => item.isShow).map((item) {
       void onTap() {
         HapticFeedback.selectionClick();
         homeProvider.updateIndex(item.index);

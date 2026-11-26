@@ -604,6 +604,22 @@ class ConstantValues {
   String get total_Leave =>
       _t("Total Leave", "மொத்த விடுப்பு", "कुल छुट्टी");
 
+  String get tapHereTo =>
+      _t("Tap Here to", "தொடங்க இங்கே தட்டவும்", "शुरू करने के लिए यहाँ टैप करें");
+
+  String get startTracking =>
+      _t("Start Tracking", "கண்காணிப்பைத் தொடங்கு", "ट्रैकिंग शुरू करें");
+
+  String checkedInAt(String time) =>
+      _t("Checked in at $time", "$time மணிக்கு வருகை பதிவு செய்யப்பட்டது", "$time पर चेक-इन किया");
+
+  String checkedOutAt(String time) =>
+      _t("Checked out at $time", "$time மணிக்கு வெளியேறியது", "$time पर चेक-आउट किया");
+
+  String workedHours(int h, int m) => h > 0
+      ? _t(" · Worked ${h}h ${m}m", " · பணியாற்றியது ${h}மணி ${m}நிமிடம்", " · काम किया ${h}घं ${m}मि")
+      : _t(" · Worked ${m}m", " · பணியாற்றியது ${m}நிமிடம்", " · काम किया ${m}मि");
+
   String get taken_Leave =>
       _t("Leave Taken", "எடுத்த விடுப்பு", "ली गई छुट्टी");
 

@@ -3,7 +3,6 @@ import 'package:master_code/component/custom_radio_button.dart';
 import 'package:master_code/component/map_dropdown.dart';
 import 'package:master_code/component/maxline_textfield.dart';
 import 'package:master_code/screens/task/search_custom_dropdown.dart' hide MapDropDown;
-import 'package:master_code/screens/task/task_types.dart';
 import 'package:master_code/source/extentions/extensions.dart';
 import 'package:master_code/view_model/customer_provider.dart';
 import 'package:flutter/foundation.dart';
@@ -13,7 +12,6 @@ import 'package:flutter_svg/svg.dart';
 import 'package:master_code/view_model/employee_provider.dart';
 import 'package:provider/provider.dart';
 import '../../component/custom_appbar.dart';
-import '../../component/custom_loading.dart';
 import '../../component/custom_loading_button.dart';
 import '../../component/custom_text.dart';
 import '../../component/custom_textfield.dart';
@@ -54,13 +52,19 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
     final taskProvider = Provider.of<TaskProvider>(context, listen: false);
     final customerProvider =
     Provider.of<CustomerProvider>(context, listen: false);
+    final empProvider = Provider.of<EmployeeProvider>(context, listen: false);
 
     // ✅ data already provider la irundha, first frame lerundhe form kaata
     final bool alreadyLoaded = taskProvider.typeList.isNotEmpty &&
         taskProvider.statusList.isNotEmpty &&
-        customerProvider.customer.isNotEmpty;
+        customerProvider.customer.isNotEmpty &&
+        taskProvider.assignableEmps(empProvider.activeEmps).isNotEmpty;
 
     _isLoading = !alreadyLoaded;
+
+    // ✅ FIX: first frame-laye "Assigned To" empty-a irukkanum
+    // (Edit Task / palaya Add Task-la select panna names inga varakoodaadhu)
+    taskProvider.resetAssigned(notify: false);
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       taskProvider.setTodayDate();
@@ -85,12 +89,17 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
       }
 
       // ✅ first time mattum - ella API calls um parallel ah
-      await Future.wait([
-        customerProvider.getAllCustomers(true),
-        taskProvider.getTaskType(false),
-        taskProvider.getTaskStatuses(),
-        taskProvider.getTaskUsers(),
-      ]);
+      // ✅ weak network-la loader eppavum suththaama irukka timeout
+      try {
+        await Future.wait([
+          customerProvider.getAllCustomers(true),
+          taskProvider.getTaskType(false),
+          taskProvider.getTaskStatuses(),
+          taskProvider.getTaskUsers(),
+        ]).timeout(const Duration(seconds: 45));
+      } catch (e) {
+        debugPrint("AddTask initial load timeout/error: $e");
+      }
 
       taskProvider.setDefaultType();
       taskProvider.initValue();
@@ -308,15 +317,57 @@ class _AddTaskState extends State<AddTask> with SingleTickerProviderStateMixin {
                                   ),
                                 ],
                               ),
-                              SearchCustomDropdown(
-                                  text: "${constValue.assigned}",
-                                  hintText: taskProvider.assignedNames.isEmpty
-                                      ? "${constValue.assigned}"
-                                      : taskProvider.assignedNames,
-                                  valueList: empPvr.activeEmps,
-                                  isOptional: false,
-                                  onChanged: (value) {},
-                                  width: kIsWeb ? webWidth : phoneWidth),
+                              Builder(builder: (context) {
+                                final emps =
+                                taskProvider.assignableEmps(empPvr.activeEmps);
+                                return Column(
+                                  children: [
+                                    SearchCustomDropdown(
+                                        key: ValueKey("emp_${emps.length}"),
+                                        text: "${constValue.assigned} To",
+                                        hintText: taskProvider.assignedNames.isEmpty
+                                            ? "${constValue.assigned} To"
+                                            : taskProvider.assignedNames,
+                                        valueList: emps,
+                                        isOptional: false,
+                                        onChanged: (value) {},
+                                        width: kIsWeb ? webWidth : phoneWidth),
+                                    // ✅ list empty-a irundha retry option
+                                    if (emps.isEmpty)
+                                      SizedBox(
+                                        width: kIsWeb ? webWidth : phoneWidth,
+                                        child: Row(
+                                          children: [
+                                            Expanded(
+                                              child: CustomText(
+                                                text: taskProvider.usersLoading
+                                                    ? "Loading employees..."
+                                                    : "Employees load aagala (network). Retry pannunga",
+                                                colors: colorsConst.greyClr,
+                                                size: 12,
+                                              ),
+                                            ),
+                                            if (taskProvider.usersLoading)
+                                              const SizedBox(
+                                                width: 16,
+                                                height: 16,
+                                                child: CircularProgressIndicator(
+                                                    strokeWidth: 2),
+                                              )
+                                            else
+                                              TextButton.icon(
+                                                onPressed: () =>
+                                                    taskProvider.getTaskUsers(),
+                                                icon: const Icon(Icons.refresh,
+                                                    size: 18),
+                                                label: const Text("Retry"),
+                                              ),
+                                          ],
+                                        ),
+                                      ),
+                                  ],
+                                );
+                              }),
                               MapDropDown(
                                   hintText: "${constValue.status}",
                                   saveValue: taskProvider.status,

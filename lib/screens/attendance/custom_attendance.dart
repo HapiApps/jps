@@ -69,6 +69,72 @@ class _CheckAttendanceState extends State<CheckAttendance> {
       });
     }
   }
+  // ===========================================================================
+  // ✅ FRESH LOCATION (attendance / permission tap pannum bodhu)
+  //  1. high accuracy, 15 sec
+  //  2. vehicle / weak GPS -> medium accuracy, 10 sec
+  //  3. last known position (5 nimisham kulla irundha mattum, mobile)
+  //  4. edhuvum kidaikkala -> null (attendance block + clear message)
+  // ===========================================================================
+  static const int _lastKnownMaxAgeMins = 5;
+
+  bool _validCoord(String v) {
+    final d = double.tryParse(v.trim());
+    return d != null && d.isFinite && d != 0;
+  }
+
+  Future<Position?> _freshPosition() async {
+    try {
+      if (!await Geolocator.isLocationServiceEnabled()) return null;
+      var perm = await Geolocator.checkPermission();
+      if (perm == LocationPermission.denied) {
+        perm = await Geolocator.requestPermission();
+      }
+      if (perm == LocationPermission.denied ||
+          perm == LocationPermission.deniedForever) {
+        return null;
+      }
+      try {
+        return await Geolocator.getCurrentPosition(
+          desiredAccuracy: LocationAccuracy.high,
+          timeLimit: const Duration(seconds: 15),
+        );
+      } catch (e) {
+        log("GPS high accuracy failed: $e");
+      }
+      try {
+        return await Geolocator.getCurrentPosition(
+          desiredAccuracy: LocationAccuracy.medium,
+          timeLimit: const Duration(seconds: 10),
+        );
+      } catch (e) {
+        log("GPS medium accuracy failed: $e");
+      }
+      if (!kIsWeb) {
+        final last = await Geolocator.getLastKnownPosition();
+        if (last != null &&
+            DateTime.now().difference(last.timestamp).inMinutes <=
+                _lastKnownMaxAgeMins) {
+          log("Using last known position (${last.timestamp})");
+          return last;
+        }
+      }
+    } catch (e) {
+      log("freshPosition error: $e");
+    }
+    return null;
+  }
+
+  /// [lat, lng] (valid mattum) illana null
+  Future<List<String>?> _resolveLatLng() async {
+    final p = await _freshPosition();
+    if (p == null) return null;
+    final la = p.latitude.toString();
+    final lo = p.longitude.toString();
+    if (!_validCoord(la) || !_validCoord(lo)) return null;
+    return [la, lo];
+  }
+
   void startTracking(BuildContext context,String lat,String lng){
     showDialog(context: context,
         barrierDismissible: false,
@@ -292,15 +358,20 @@ class _CheckAttendanceState extends State<CheckAttendance> {
           /// [forceSelfie] = true  -> always open the selfie camera first (Aswin swipe)
           /// [forceSelfie] = false -> old behaviour (selfie only if verify checkbox ticked)
           Future<void> markAttendance({required bool forceSelfie}) async {
-            if (locPvr.latitude == null ||
-                locPvr.longitude == null) {
+            // ✅ tap pannum bodhu FRESH GPS edukkurom.
+            // Munnadi locPvr.latitude (app open aana bodhu oru dhadava mattum
+            // edutha value) anuppichu -> stale / empty / "null" location store aachu.
+            final coords = await _resolveLatLng();
+            if (!context.mounted) return;
+            if (coords == null) {
               utils.showWarningToast(
                 context,
-                text:
-                "Location not available. Please enable GPS and try again.",
+                text: "Unable to get your location. Turn on GPS, move to an open area and try again.",
               );
               return;
             }
+            final String lat = coords[0];
+            final String lng = coords[1];
 
             String isOnLeaveValue = homeProvider.mainReportList.isEmpty
                 ? "0"
@@ -336,8 +407,8 @@ class _CheckAttendanceState extends State<CheckAttendance> {
                 await attProvider.putDailyPermission(
                   context,
                   "2",
-                  locPvr.latitude,
-                  locPvr.longitude,
+                  lat,
+                  lng,
                 );
               } else {
                 await attProvider.signDialog(
@@ -348,8 +419,8 @@ class _CheckAttendanceState extends State<CheckAttendance> {
                     attProvider.putDailyPermission(
                       context,
                       "2",
-                      locPvr.latitude,
-                      locPvr.longitude,
+                      lat,
+                      lng,
                     );
                   },
                 );
@@ -365,8 +436,8 @@ class _CheckAttendanceState extends State<CheckAttendance> {
                 await attProvider.putDailyAttendance(
                   context,
                   type,
-                  locPvr.latitude,
-                  locPvr.longitude,
+                  lat,
+                  lng,
                 );
               } else {
                 await attProvider.signDialog(
@@ -377,8 +448,8 @@ class _CheckAttendanceState extends State<CheckAttendance> {
                     attProvider.putDailyAttendance(
                       context,
                       type,
-                      locPvr.latitude,
-                      locPvr.longitude,
+                      lat,
+                      lng,
                     );
                   },
                 );
@@ -417,21 +488,29 @@ class _CheckAttendanceState extends State<CheckAttendance> {
           ///   check-out aana       -> "Checked out at 05:30 PM · Worked 6h 20m"
           String sessionInfo() {
             if (attProvider.sessionCount == 0) return "";
+
             if (attProvider.isCheckedIn) {
               final t = attProvider.currentInTime;
-              return t.isEmpty ? "" : "Checked in at $t";
+              return t.isEmpty ? "" : constValue.checkedInAt(t);
             }
+
             final out = attProvider.outTime;
             if (out.isEmpty || out == "-") return "";
-            // provider format "6 : 20 mins" -> "6h 20m"
+
+            // Provider format "6 : 20 mins" -> "6h 20m"
             String worked = "";
-            final m = RegExp(r'(\d+)\s*:\s*(\d+)').firstMatch(attProvider.totalHrs);
+
+            final m = RegExp(r'(\d+)\s*:\s*(\d+)')
+                .firstMatch(attProvider.totalHrs);
+
             if (m != null) {
               final h = int.parse(m.group(1)!);
               final mi = int.parse(m.group(2)!);
-              worked = h > 0 ? " · Worked ${h}h ${mi}m" : " · Worked ${mi}m";
+
+              worked = constValue.workedHours(h, mi);
             }
-            return "Checked out at $out$worked";
+
+            return "${constValue.checkedOutAt(out)}$worked";
           }
           final String statusLine = sessionInfo();
 
@@ -612,20 +691,24 @@ class _CheckAttendanceState extends State<CheckAttendance> {
                                                                               text:
                                                                               "Location services are disabled. Please enable them.");
                                                                         } else {
-                                                                          if (locPvr.latitude == "" &&
-                                                                              locPvr.longitude == "") {
+                                                                          // ✅ permission-kum fresh GPS
+                                                                          final coords = await _resolveLatLng();
+                                                                          if (!context.mounted) return;
+                                                                          if (coords == null) {
                                                                             utils.showWarningToast(
                                                                                 text: "Check Your Location",
                                                                                 context);
                                                                             await locPvr.manageLocation(
                                                                                 context, true);
                                                                           } else {
+                                                                            final String pLat = coords[0];
+                                                                            final String pLng = coords[1];
                                                                             if (attProvider.isSelfie == false) {
                                                                               attProvider.putDailyPermission(
                                                                                   context,
                                                                                   "1",
-                                                                                  locPvr.latitude,
-                                                                                  locPvr.longitude);
+                                                                                  pLat,
+                                                                                  pLng);
                                                                             } else {
                                                                               attProvider.signDialog(
                                                                                 context: context,
@@ -636,8 +719,8 @@ class _CheckAttendanceState extends State<CheckAttendance> {
                                                                                   attProvider.putDailyPermission(
                                                                                       context,
                                                                                       "1",
-                                                                                      locPvr.latitude,
-                                                                                      locPvr.longitude);
+                                                                                      pLat,
+                                                                                      pLng);
                                                                                 },
                                                                               );
                                                                             }
@@ -927,8 +1010,8 @@ class _CheckAttendanceState extends State<CheckAttendance> {
                               Column(
                                 children: [
 
-                                  CustomText(text: "Tap Here to",colors: ColorsConst.textGrey,),
-                                  CustomText(text: "Start Tracking",colors: ColorsConst.textGrey,),
+                                  CustomText(text: constValue.tapHereTo,colors: ColorsConst.textGrey,),
+                                  CustomText(text: constValue.startTracking,colors: ColorsConst.textGrey,),
                                   15.height,
                                   GestureDetector(
                                     onTap: () async {
