@@ -1010,7 +1010,7 @@ class _CheckAttendanceState extends State<CheckAttendance> {
                               Column(
                                 children: [
 
-                                  CustomText(text: constValue.tapHereTo,colors: ColorsConst.textGrey,),
+                                  CustomText(text: constValue.tapHere,colors: ColorsConst.textGrey,),
                                   CustomText(text: constValue.startTracking,colors: ColorsConst.textGrey,),
                                   15.height,
                                   GestureDetector(
@@ -1052,11 +1052,21 @@ class _CheckAttendanceState extends State<CheckAttendance> {
                                       child: Stack(
                                         children: [
                                           Center(
-                                            child: CustomText(
-                                              text: localData.storage.read("Track") == true
-                                                  ? 'ON     '
-                                                  : '     Tracker Off',
-                                              size: 11, colors: Colors.white,
+                                            child: Container(
+                                              padding: const EdgeInsets.symmetric(
+                                                horizontal: 6,
+                                                vertical: 2,
+                                              ),
+                                              child: Padding(
+                                                padding: const EdgeInsets.only(left: 8.0),
+                                                child: CustomText(
+                                                  text: localData.storage.read("Track") == true
+                                                      ? constValue.trackOn
+                                                      : constValue.trackOff,
+                                                  size: 10,
+                                                  colors: Colors.white,
+                                                ),
+                                              ),
                                             ),
                                           ),
                                           Align(

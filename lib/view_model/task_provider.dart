@@ -343,6 +343,65 @@ class TaskProvider with ChangeNotifier {
     return nowPinned;
   }
 
+  // ===========================================================================
+  // ✅ SEEN TASKS ("NEW" tag -> task open pannina remove aagum)
+  //  * Pin maadhiriye SharedPreferences-la save (per user + per company key),
+  //    so app close / logout-login pannaalum NEW thirumba varaadhu.
+  //  * Storage perusaagaama irukka kadaisi _kSeenMax ids mattum vechukkum.
+  // ===========================================================================
+  static const int _kSeenMax = 500;
+  final List<String> _seenOrder = []; // latest open first
+  final Set<String> _seenIds = {};
+  String _seenLoadedKey = "";
+
+  String _seenKey() {
+    final cos = (localData.storage.read("cos_id") ?? "").toString();
+    final uid = (localData.storage.read("id") ?? "").toString();
+    return "seen_tasks_${cos}_$uid";
+  }
+
+  bool isSeen(TaskData t) => _seenIds.contains(t.id.toString());
+
+  /// View Task page open aagum bodhu call pannunga (user maarinaa thirumba load)
+  Future<void> loadSeenTasks({bool force = false}) async {
+    final key = _seenKey();
+    if (!force && key == _seenLoadedKey) return;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final saved = prefs.getStringList(key) ?? const <String>[];
+      _seenOrder
+        ..clear()
+        ..addAll(saved.where((e) => e.trim().isNotEmpty && e != "null"));
+      _seenIds
+        ..clear()
+        ..addAll(_seenOrder);
+      _seenLoadedKey = key;
+    } catch (e) {
+      _log("loadSeenTasks error: $e");
+    }
+    notifyListeners(); // dataVersion++ -> cards rebuild
+  }
+
+  /// Task open (details / chat / edit / calendar) pannumbodhu call pannunga.
+  Future<void> markTaskSeen(TaskData t) async {
+    final id = t.id.toString();
+    if (id.isEmpty || id == "null" || _seenIds.contains(id)) return;
+    _seenIds.add(id);
+    _seenOrder.insert(0, id);
+    if (_seenOrder.length > _kSeenMax) {
+      final removed = _seenOrder.sublist(_kSeenMax);
+      _seenOrder.removeRange(_kSeenMax, _seenOrder.length);
+      _seenIds.removeAll(removed);
+    }
+    notifyListeners(); // NEW tag udane poidum
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setStringList(_seenKey(), List<String>.from(_seenOrder));
+    } catch (e) {
+      _log("saveSeen error: $e");
+    }
+  }
+
   // ---- "My tasks" mode (logged-in user's own tasks only) ----
   bool _mineOnly = false;
   bool get mineOnly => _mineOnly;

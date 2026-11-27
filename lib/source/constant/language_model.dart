@@ -344,7 +344,8 @@ class ConstantValues {
   String get customers => _t("Customers", "வாடிக்கையாளர்கள்", "ग्राहक");
 
   String get customer => _t("Customer", "வாடிக்கையாளர்", "ग्राहक");
-  String get wages => _t("Wages Employee", "தினக்கூலி ஊழியர்", "दैनिक वेतन कर्मचारी");
+
+  String get wages => _t("Wages Employee", "தினக்கூலி", "दिहाड़ी कर्मी");
 
   String get customer1 =>
       _t("   Customer", "   வாடிக்கையாளர்", "   ग्राहक");
@@ -604,11 +605,58 @@ class ConstantValues {
   String get total_Leave =>
       _t("Total Leave", "மொத்த விடுப்பு", "कुल छुट्टी");
 
-  String get tapHereTo =>
-      _t("Tap Here to", "தொடங்க இங்கே தட்டவும்", "शुरू करने के लिए यहाँ टैप करें");
+  String get dateLocale => _t("en", "ta", "hi");
+
+  String get todayLabel   => _t("Today", "இன்று", "आज");
+  String get periodCap    => _t("PERIOD", "காலம்", "अवधि");
+  String get dateCap      => _t("DATE", "தேதி", "तारीख");
+  String get updatingCap  => _t("UPDATING...", "புதுப்பிக்கிறது...", "अपडेट हो रहा है...");
+  String get selectDateDropdown   => _t("Select date", "தேதியைத் தேர்வுசெய்க", "तारीख चुनें");
+  String get selectPeriod => _t("Select period", "காலத்தைத் தேர்வுசெய்க", "अवधि चुनें");
+  String get customLabel  => _t("Custom", "தனிப்பயன்", "कस्टम");
+  String get customRange  => _t("Custom Range", "தனிப்பயன் வரம்பு", "कस्टम अवधि");
+
+  String dateRangeDays(int d) => _t(
+    "DATE RANGE · $d DAYS",
+    "தேதி வரம்பு · $d நாட்கள்",
+    "तारीख सीमा · $d दिन",
+  );
+
+  String periodName(String v) {
+    switch (v.trim().toLowerCase()) {
+      case "today":
+        return _t("Today", "இன்று", "आज");
+      case "yesterday":
+        return _t("Yesterday", "நேற்று", "कल");
+      case "this week":
+        return _t("This Week", "இந்த வாரம்", "इस सप्ताह");
+      case "last week":
+        return _t("Last Week", "கடந்த வாரம்", "पिछला सप्ताह");
+      case "last 7 days":
+        return _t("Last 7 Days", "கடந்த 7 நாட்கள்", "पिछले 7 दिन");
+      case "this month":
+        return _t("This Month", "இந்த மாதம்", "इस महीने");
+      case "last month":
+        return _t("Last Month", "கடந்த மாதம்", "पिछले महीने");
+      case "last 30 days":
+        return _t("Last 30 Days", "கடந்த 30 நாட்கள்", "पिछले 30 दिन");
+      case "this year":
+        return _t("This Year", "இந்த ஆண்டு", "इस साल");
+      case "custom":
+        return customLabel;
+      default:
+        return v;
+    }
+  }
+
+  String get tapHere => _t("Tap Here", "இங்கே தட்டவும்", "यहाँ टैप करें");
 
   String get startTracking =>
-      _t("Start Tracking", "கண்காணிப்பைத் தொடங்கு", "ट्रैकिंग शुरू करें");
+      _t("Start", "தொடங்கு", "शुरू करें");
+
+  String get trackOn  => _t("Track ON",  "இயக்கம்",   "चालू");
+
+  String get trackOff => _t("Track OFF", "நிறுத்தம்", "बंद");
 
   String checkedInAt(String time) =>
       _t("Checked in at $time", "$time மணிக்கு வருகை பதிவு செய்யப்பட்டது", "$time पर चेक-इन किया");

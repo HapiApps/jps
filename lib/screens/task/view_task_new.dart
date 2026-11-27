@@ -138,6 +138,9 @@ class _ViewTaskState extends State<ViewTaskPage> with SingleTickerProviderStateM
       // ✅ saved pins (logout / login aanaalum irukkum)
       taskProvider.loadPinnedTasks();
 
+      // ✅ open panna tasks (NEW tag thirumba varaama irukka)
+      taskProvider.loadSeenTasks();
+
       // ============ 2) DROPDOWN / MASTER DATA ============
       if (kIsWeb) {
         taskProvider.getTaskType(false);
@@ -1934,6 +1937,7 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>
   void _openEdit(TaskData data) {
     _myFocusScopeNode.unfocus();
     HapticFeedback.lightImpact();
+    context.read<TaskProvider>().markTaskSeen(data); // ✅ NEW tag remove
     Provider.of<HomeProvider>(context, listen: false).panelClose();
     utils.navigatePage(
       context,
@@ -1949,6 +1953,7 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>
 
   void _openDetails(TaskData data, int index) {
     _myFocusScopeNode.unfocus();
+    context.read<TaskProvider>().markTaskSeen(data); // ✅ NEW tag remove
     Provider.of<HomeProvider>(context, listen: false).panelClose();
     utils.navigatePage(
       context,
@@ -1965,6 +1970,7 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>
   }
 
   Future<void> _openChat(TaskData data, int index) async {
+    context.read<TaskProvider>().markTaskSeen(data); // ✅ NEW tag remove
     final result = await Navigator.push(
       context,
       MaterialPageRoute(
@@ -2022,9 +2028,10 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>
   }
 
   // -------------------------------------------------------------------------
-  // NEW / OLD TAG
+  // NEW TAG
   // NEW  = created today or yesterday (last 2 days incl. today)
-  // OLD  = created before that
+  //        AND user innum andha task-ah open pannala (open panna -> remove)
+  // older tasks-ku endha tag-um illa
   // createdTs illana taskDate fallback
   // -------------------------------------------------------------------------
   bool _isNewTask(TaskData d) {
@@ -2067,34 +2074,6 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>
               fontWeight: FontWeight.w800,
               letterSpacing: 0.6,
               color: Colors.white,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// subtle outlined "OLD" badge
-  Widget _oldTag() {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(6, 2, 8, 2),
-      decoration: BoxDecoration(
-        color: const Color(0xffF5F6F8),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: const Color(0xffDCDFE4)),
-      ),
-      child: const Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.history_rounded, size: 11, color: Color(0xff8A90A2)),
-          SizedBox(width: 3),
-          Text(
-            "OLD",
-            style: TextStyle(
-              fontSize: 10,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 0.6,
-              color: Color(0xff8A90A2),
             ),
           ),
         ],
@@ -2198,7 +2177,12 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>
         : _statusStyle(statusText);
 
     final priorityStyle = _priorityStyle(data.level.toString());
-    final bool isNew = _isNewTask(data);
+    // ✅ NEW = last 2 days (today incl.) + innum open pannala + innum start pannala
+    final String sts = (data.statval ?? "").toString().trim();
+    final bool alreadyStarted = workState != "idle" || // running / hold / done
+        sts == "Started" ||
+        sts == "Completed";
+    final bool isNew = _isNewTask(data) && !tp.isSeen(data) && !alreadyStarted;
     final bool pinned = tp.isPinned(data);
 
     // due date
@@ -2259,8 +2243,8 @@ class _ViewfilterUserDataState extends State<ViewfilterUserData>
                       crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
                         if (pinned) _pinTag(), // ✅
-                        // NEW / OLD mudhalla -> kannukku udane theriyum
-                        isNew ? _newTag() : _oldTag(),
+                        // ✅ NEW mattum (OLD tag remove panniyaachu)
+                        if (isNew) _newTag(),
                         _pill(statusStyle),
                         _pill(priorityStyle),
                       ],
@@ -3240,6 +3224,7 @@ class _TaskCalendarTabState extends State<_TaskCalendarTab> {
   }
 
   void _open(TaskData t, TaskProvider tp) {
+    tp.markTaskSeen(t); // ✅ calendar-la irundhu open pannaalum NEW poidum
     Provider.of<HomeProvider>(context, listen: false).panelClose();
     int idx = tp.filterUserData.indexOf(t);
     if (idx < 0) idx = 0;

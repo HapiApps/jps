@@ -808,13 +808,30 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   }
 
   // ---------------------------------------------------------------------------
+  // ✅ LOCALIZED DATE FORMAT (Eng / Tamil / Hindi)
+  //  * selected language-la day / month names varum (eg: "வெள்., 27 நவ.")
+  //  * main()-la initializeDateFormatting() call aagalana crash aagaama
+  //    English-ku fallback aagum
+  // ---------------------------------------------------------------------------
+  String _fd(String pattern, DateTime d) {
+    try {
+      return DateFormat(pattern, constValue.dateLocale).format(d);
+    } catch (_) {
+      return DateFormat(pattern).format(d);
+    }
+  }
+
+  /// Tamil / Hindi letters-ku letterSpacing pottaa udainju theriyum
+  double get _capSpacing => constValue.dateLocale == "en" ? 0.9 : 0;
+
+  // ---------------------------------------------------------------------------
   // GREETING + DATE
   // ---------------------------------------------------------------------------
   Widget _buildGreetingRow(HomeProvider homeProvider) {
     final Color primary = colorsConst.primary;
     // live "today" (provider _date app open aana bodhu mattum set aagum,
     // midnight cross aanaa stale aagidum -> inga direct DateTime.now())
-    final String todayText = DateFormat('EEE, dd MMM').format(DateTime.now());
+    final String todayText = _fd('EEE, dd MMM', DateTime.now());
 
     return Row(
       children: [
@@ -846,27 +863,34 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
         8.width,
 
         /// TODAY pill -> idhu eppovum INNAIKKU date (selected range illa)
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: primary.withOpacity(0.15)),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.wb_sunny_outlined, size: 13, color: primary),
-              const SizedBox(width: 5),
-              Text(
-                "Today · $todayText",
-                style: GoogleFonts.lato(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  color: const Color(0xff4B5563),
+        /// ✅ Flexible: Tamil / Hindi-la neelama vandhaalum greeting-ah thallaadhu
+        Flexible(
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: primary.withOpacity(0.15)),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.wb_sunny_outlined, size: 13, color: primary),
+                const SizedBox(width: 5),
+                Flexible(
+                  child: Text(
+                    "${constValue.todayLabel} · $todayText",
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.lato(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: const Color(0xff4B5563),
+                    ),
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ],
@@ -903,9 +927,11 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
 
   Widget _caption(String text) => Text(
     text,
+    maxLines: 1,
+    overflow: TextOverflow.ellipsis,
     style: GoogleFonts.lato(
       fontSize: 10,
-      letterSpacing: 0.9,
+      letterSpacing: _capSpacing,
       fontWeight: FontWeight.w700,
       color: const Color(0xff8A90A2),
     ),
@@ -945,17 +971,17 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   String _rangeLabel(HomeProvider h) {
     final s = _tryParse(h.startDate);
     final e = _tryParse(h.endDate);
-    if (s == null) return "Select date";
+    if (s == null) return constValue.selectDateDropdown;
     if (e == null || DateUtils.isSameDay(s, e)) {
-      return DateFormat('dd MMM yyyy').format(s);
+      return _fd('dd MMM yyyy', s);
     }
     if (s.year == e.year) {
       if (s.month == e.month) {
-        return "${DateFormat('dd').format(s)} – ${DateFormat('dd MMM yyyy').format(e)}";
+        return "${_fd('dd', s)} – ${_fd('dd MMM yyyy', e)}";
       }
-      return "${DateFormat('dd MMM').format(s)} – ${DateFormat('dd MMM yyyy').format(e)}";
+      return "${_fd('dd MMM', s)} – ${_fd('dd MMM yyyy', e)}";
     }
-    return "${DateFormat('dd MMM yy').format(s)} – ${DateFormat('dd MMM yy').format(e)}";
+    return "${_fd('dd MMM yy', s)} – ${_fd('dd MMM yy', e)}";
   }
 
   /// Single line card: [PERIOD ▾] | [DATE RANGE]
@@ -968,13 +994,15 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     final Color primary = colorsConst.primary;
     final bool loading = homeProvider.rangeLoading;
     final bool isCustom = !homeProvider.typeList.contains(homeProvider.type);
-    final String periodLabel = isCustom ? "Custom" : homeProvider.type;
+    // ✅ display mattum translate; logic-ku homeProvider.type (English) appadiye
+    final String periodLabel =
+    isCustom ? constValue.customLabel : constValue.periodName(homeProvider.type);
     final int days = _rangeDays(homeProvider);
     final String caption = loading
-        ? "UPDATING..."
+        ? constValue.updatingCap
         : days > 1
-        ? "DATE RANGE · $days DAYS"
-        : "DATE";
+        ? constValue.dateRangeDays(days)
+        : constValue.dateCap;
 
     Widget chip(IconData icon) => Container(
       width: 30,
@@ -1029,7 +1057,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                       flex: 5,
                       child: PopupMenuButton<String>(
                         enabled: !loading,
-                        tooltip: "Select period",
+                        tooltip: constValue.selectPeriod,
                         color: Colors.white,
                         surfaceTintColor: Colors.white,
                         elevation: 8,
@@ -1046,10 +1074,11 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                           homeProvider.changeType(context, v);
                         },
                         itemBuilder: (_) => <PopupMenuEntry<String>>[
+                          // value = English (logic), text = selected language
                           ...homeProvider.typeList.map((t) => _periodItem(
-                              t, t, homeProvider.type == t, primary)),
+                              t, constValue.periodName(t), homeProvider.type == t, primary)),
                           const PopupMenuDivider(height: 8),
-                          _periodItem(_customKey, "Custom Range", isCustom,
+                          _periodItem(_customKey, constValue.customRange, isCustom,
                               primary,
                               icon: Icons.date_range_rounded),
                         ],
@@ -1064,7 +1093,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    _caption("PERIOD"),
+                                    _caption(constValue.periodCap),
                                     const SizedBox(height: 2),
                                     Text(
                                       periodLabel,
@@ -1119,7 +1148,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                                       overflow: TextOverflow.ellipsis,
                                       style: GoogleFonts.lato(
                                         fontSize: 10,
-                                        letterSpacing: 0.6,
+                                        letterSpacing: _capSpacing == 0 ? 0 : 0.6,
                                         fontWeight: FontWeight.w700,
                                         color: loading
                                             ? primary

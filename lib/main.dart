@@ -96,6 +96,39 @@ String truncateForNotification(String text, {int maxChars = kNotifBodyMax}) {
 }
 
 /// ==========================================================
+/// ✅ FIX 4 (ANDROID): STABLE NOTIFICATION ID + DEDUPE
+/// ==========================================================
+/// Before: foreground used `message.hashCode` (new random number for every
+/// message object) and background used `purpose_id.hashCode`. So when the
+/// backend sends the SAME push twice (e.g. user has 2 tokens saved in DB,
+/// or the API fires twice), Android stacked 2 notifications.
+///
+/// Now: the id is built from the CONTENT. Same content → same id →
+/// Android REPLACES the old one instead of showing a second one.
+int buildNotificationId(Map<String, dynamic> data) {
+  final String key = [
+    data['purpose_id'] ?? data['task_id'] ?? '',
+    data['title'] ?? '',
+    data['body'] ?? '',
+  ].join('|');
+  // keep it a positive 31-bit int (Android notification id is a Java int)
+  return key.hashCode & 0x7fffffff;
+}
+
+/// Foreground-only guard: if the same content arrives again within
+/// [_kDedupeWindow], skip it completely (no second sound / vibration).
+final Map<int, DateTime> _recentNotifIds = {};
+const Duration _kDedupeWindow = Duration(seconds: 10);
+
+bool isDuplicateNotification(int id) {
+  final DateTime now = DateTime.now();
+  _recentNotifIds.removeWhere((_, t) => now.difference(t) > _kDedupeWindow);
+  if (_recentNotifIds.containsKey(id)) return true;
+  _recentNotifIds[id] = now;
+  return false;
+}
+
+/// ==========================================================
 /// PENDING NOTIFICATION (killed-state / not-yet-ready navigator)
 /// ==========================================================
 Map<String, dynamic>? pendingNotificationData;
@@ -389,10 +422,13 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
       iOS: iosDetails,
     );
 
-    final int notificationId = (data['purpose_id'] ??
-        data['task_id'] ??
-        DateTime.now().millisecondsSinceEpoch.toString())
-        .hashCode;
+    // ✅ FIX 4: same content-based id as the foreground listener
+    final int notificationId = buildNotificationId(data);
+
+    // ✅ FIX 5 (ANDROID): background handler runs in a SEPARATE isolate,
+    // so the plugin must be initialized here too (main()'s init doesn't
+    // apply in this isolate).
+    await flutterLocalNotificationsPlugin.initialize(initializationSettings);
 
     await flutterLocalNotificationsPlugin.show(
       notificationId,
@@ -497,8 +533,11 @@ Future<void> setupForegroundTask() async {
 
     FlutterForegroundTask.init(
       androidNotificationOptions: AndroidNotificationOptions(
-        channelId: 'JPS',
-        channelName: 'JPS',
+        // ✅ FIX 6 (ANDROID): separate channel for the persistent tracking
+        // notification. Sharing 'JPS' with push notifications mixed the
+        // two (and Android keeps the FIRST importance set for a channel).
+        channelId: 'JPS_TRACKING',
+        channelName: 'JPS Tracking',
         channelDescription: 'Tracking is on',
         channelImportance: NotificationChannelImportance.DEFAULT,
         priority: NotificationPriority.DEFAULT,
@@ -525,6 +564,13 @@ void setupForegroundFirebaseMessageListener() {
   _onMessageSub = FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
     try {
       log("${message.data}");
+
+      // ✅ FIX 4: drop the same push if it arrives twice (Android stacking fix)
+      final int notificationId = buildNotificationId(normalizeMessage(message));
+      if (isDuplicateNotification(notificationId)) {
+        log("🔕 Duplicate push ignored (id=$notificationId)");
+        return;
+      }
 
       final BuildContext? context = navigatorKey.currentContext;
 
@@ -619,7 +665,7 @@ void setupForegroundFirebaseMessageListener() {
         // (works even when backend sends a `notification` block)
         if (title.contains("A new task has been assigned")) {
           await flutterLocalNotificationsPlugin.show(
-            message.hashCode,
+            notificationId,
             shortMessage,
             truncateForNotification("Created by $name .Task",
                 maxChars: kNotifBodyMax),
@@ -628,7 +674,7 @@ void setupForegroundFirebaseMessageListener() {
           );
         } else {
           await flutterLocalNotificationsPlugin.show(
-            message.hashCode,
+            notificationId,
             shortMessage,
             shortTitle,
             platformDetails,
